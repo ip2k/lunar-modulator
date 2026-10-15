@@ -1,3 +1,22 @@
+## Coordinator checkpoint: ROM73 PLL campaign in progress
+
+Exact candidate 864445bea6ea3ec4b6f21f0b42f3033c7d139f646a351e955f4eca535936d694
+constructed privately from a98de4c2 build; stock recovery/config preserved.
+Allowed211/transition210 sectors. Candidate receipt ba98d3a2826736e4a50e809606939f466403b8f53787e6746227ec6fa6548116;
+template043c155b4b24feb1ec71bc0c277ff7c6fb4bc00aed51320486aa927de7f1a384.
+Root21 helper tests pass; independent frozen-runner review has no blockers.
+Actual bench file-only preflight passed after correcting Hera-only receipt path.
+New consumed campaign /home/claude/fm1-pll-a98de4c2-20261015/rom73-pll-cycle:
+fresh paired full reads identical to current9e864776; journalled installation
+started. Do not rerun; inspect coordinator.stdout/stderr, journal, boot and
+capture receipts. No completed install/boot/audio claim at this checkpoint.
+Runner f5f995825d095644b4876e83bd360eb1e0eb53a5d621fbbbf4a9ff9a86ed4b9b;
+preflight57d9c0ed760f752697e1c3cfc5c56a7a05733d45948f0106f255e2c8581d3da0.
+MIDI transport regression rerun22 tests passed. FA rewinds/FC pauses/FB resumes;
+physical USB FC/FB evidence exists, FA rewind/TRS still pending. Clock sync separate.
+Goal ACTIVE: audio/SAVE/recovery/full-song/web release gates remain open.
+Unrelated uv.lock untouched. Offline sequence-dispatch hotspot review running.
+
 ## Latest coordinator checkpoint: fresh PLL diagnostic build ready for admission
 
 Exact a98de4c2 source built on Hera: 16/16 fresh catalogue shards pass,

@@ -199,3 +199,22 @@ literal CLK_CON2 write was found in that listing, which does not exclude
 callee effects. The selector meaning, low-nibble 6 provenance and actual
 frequency remain unproven; private `scratch/loader-clock-write-trace.md`
 records exact loader/profile/disassembly identities and call sites.
+
+## Fresh ROM73 PLL candidate campaign started
+
+[verified] Root constructed private target864445bea6ea3ec4b6f21f0b42f3033c7d139f646a351e955f4eca535936d694
+from the exact a98de4c2 frozen build. Stock recovery/configuration components
+are preserved;211 allowed sectors and210 changed sectors. Candidate receipt
+ba98d3a2826736e4a50e809606939f466403b8f53787e6746227ec6fa6548116,
+template043c155b4b24feb1ec71bc0c277ff7c6fb4bc00aed51320486aa927de7f1a384.
+21 focused helper tests passed; independent frozen-runner review found no
+remaining blocker. Actual file-only bench preflight caught a Hera-only receipt
+path, corrected it to the pinned local build receipt, then passed.
+
+[verified] Root started the one-use ROM73 campaign at
+`/home/claude/fm1-pll-a98de4c2-20261015/rom73-pll-cycle`. Fresh paired
+full reads matched installed9e864776; command log hash
+13de961d88518d52f9dd2ca9299d55a9b8a1e44f1ce0eeb17f9bcba522400d77.
+Journalled installation has started. This records an in-progress operation;
+no completed installation, boot, raw PLL result or audio acceptance yet.
+The campaign is consumed: inspect receipts and never retry it.
