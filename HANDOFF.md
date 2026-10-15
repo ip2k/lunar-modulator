@@ -1,3 +1,14 @@
+## ROM97 installed/read back; native98 capture in progress
+
+Goal ACTIVE; musical acceptance FAILED; SAVE disarmed. ROM97 campaign CONSUMED.
+Root independently matched all4096 final page hashes to target13902c8a, clean SG
+install completions,53 liveness queries after last write. Static evidence retained
+under scratch/fabs-profile-result/physical-install and root-review. SingleFC0C
+ambiguous host7/resid16 NOT RETRIED; independent native98 observed and telemetry
+started. Await110s input-only telemetry/180s audio completion and automatic ROM
+return. Do not relaunch any campaign. See notes/2026-10-15-fabs-profile-staging.md.
+Next ready-pop RAM trial16249740 pushed/verified; exact Hera target check assigned.
+
 ## ROM97 campaign launched once — DO NOT RELAUNCH
 
 Goal ACTIVE; performance FAILED pending measurement; SAVE disarmed.
