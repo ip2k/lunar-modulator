@@ -1,3 +1,51 @@
+## ROM107 limiter result and next calibration — 2026-10-15
+
+[verified] Owner cold-boot audio/display acceptance remains FAILED. Matched limiter
+campaign completed: fresh paired 1 MiB reads matched f3a9b18e; installed target
+23150dca74404733e377a9c5c74ff883bfa2ef09d67b1f84c0650ccbd9474409.
+Root independently verified all4096 final readback pages, 210 transition sectors,
+protected ranges and directory-last ordering. Sole FC0C reply was ambiguous;
+runner refused and no retry was issued. Independent capture saw native108,
+109 telemetry frames across109.223 device seconds; 498.576 blocks/s versus
+492.191 baseline (+1.297%), required689.344;190.766 underruns/s. This is NOT an
+audio fix. Timed recovery observed ROM109 at port1-1, bus1/dev109.
+Input-only telemetry110s and KA6 audio180s finished rc0; both children cleaned up.
+WAV:207360044 bytes,6ch/48kHz/32bit,8640000 frames; SHA256
+5ee16cae63b7cdb3d86db93712a11bc57a7c3a213389a386ccc02e12f537e53a.
+No active-note/song/perceptual acceptance. SAVE and autoplay remain off.
+Evidence: scratch/c0-limiter-helper-result/{independent-readback.json,
+audio-rate-summary.json,physical-install.tar,final-capture-metadata.tar}.
+Bench BASE /home/claude/fm1-c0-limiter-helper-20f21059-20261015;
+rom107-c0-limiter-helper-cycle is CONSUMED: never rerun/retry it.
+Next worker prepares standalone CPU schema8 fixed-work flash/RAM diagnostic,
+expected-current23150, fresh pair still required, ROM109 new one-use lifecycle.
+New campaign BASE /home/claude/fm1-cpu-rate-8a8fb2b8-20261015;
+immutable 2c runtime tool paths remain at canonical
+/home/claude/fm1-cpu-rate-calibration-8a8fb2-20261015/runtime/tools (not staged yet).
+Root reran17 CPU package/provenance tests PASS. No CPU diagnostic admitted yet.
+Root exclusively owns hardware; worker offline only. Goal ACTIVE; uv.lock untouched.
+Prior root pushed6c46fd68. This checkpoint must be pushed and SHA verified.
+
+## ROM107 limiter campaign started — 2026-10-15
+
+[verified] Cold-boot owner report remains FAILED: very laggy sine display and
+bad distorted audio. Root staged the matched limiter20f/runtime2c package at
+bench01 /home/claude/fm1-c0-limiter-helper-20f21059-20261015.
+Archive b2f86d00/index9e3e976c; 249 tools, 60 native source files and all175
+capture dependencies independently verified. Seven package tests passed.
+Full preflight refused a stale campaign boot hash before device commands.
+Root verified exact2c boot488d6743 and all transitive dependencies, reviewed and
+applied five-file boot-pin correction3f62468d; four correction tests passed.
+Corrected campaign pins9021f7c7; complete file-only preflight passed.
+Single-use launcher started under sudo, PID249729, fresh paired reads started.
+No retry is permitted for ambiguous reset acknowledgements. Inspect durable
+cycle/stdout/stderr under assigned BASE; root owns hardware operations.
+Target23150dca, expected currentf3a9, ROM107, 210 transition sectors, stock
+boot/recovery protected ranges preserved. Input-only110s/audio180s capture;
+120s timed recovery, autoplay and SAVE off. Pending actual install/capture result.
+Do not claim performance or musical acceptance. Goal ACTIVE; uv.lock untouched.
+Prior pushed root6c46fd68; new checkpoint must be pushed and SHA verified.
+
 ## Offline calibration candidate and UI codegen review — 2026-10-15
 
 Goal ACTIVE; cold-boot audio/display acceptance still FAILED; SAVE disarmed.
