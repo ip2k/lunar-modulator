@@ -5735,3 +5735,18 @@ Next: freeze runtime tools, prepare separately reviewed candidate/campaign,
 fresh paired reads matching bc593f95..., then controlled capture. SAVE remains
 disarmed; hardware musical acceptance, persistence/recovery and web shipping
 remain unfinished. Overall goal ACTIVE.
+
+### IRQ candidate constructed; fresh read/install still pending
+
+[verified: bench filesystem only] Exact60-file native source staging closes the
+candidate audit's formerly empty source scan; frozen source manifest d061242c...
+rehashes successfully. Constructor emitted 1MiB target a2c7eee6ca72659435452b59bd381fa8556b05a4fdc898329de3ea4fcdbf41d4,
+receipt6a228b99f65f975dd240335324bdd599fc37e073dc728d6beb44fa4b6fdac9c7,
+template2fdc0d481dddcdc6664bee4abafff5f99b0f0c8d0041c075a6e0b50699c88aca.
+Private BASE /home/claude/fm1-irq-profile-3e8664b5-20261015. Offline comparison
+with previous exact target gives209transitionsectors within211allowed sectors;
+this is not a fresh-read substitute. No new physical write or boot yet.
+Next: finish and independently review one-use ROM89 schema6/no-autoplay runner,
+fresh paired reads matching bc593f95..., guarded install/full readback, passive
+capture, inspect IRQ/render occupancy. Original ROM87 campaign remains consumed.
+SAVE disarmed; goal ACTIVE, release/hardware musical acceptance incomplete.

@@ -64,3 +64,23 @@ WL80UBOOT1.00. Fresh paired reads must still match the previous full target
 before a separately reviewed installation. Prior ROM87 campaign is consumed.
 The reviewed diagnostic flash/adapter/boot source pins were refreshed for the
 new no-autoplay policy; 18 focused flash/adapter/boot checks pass.
+
+## Private campaign preparation follow-up
+
+[verified: retained six-channel recording, FFmpeg astats] The prior producer-gap
+capture's inputs1/2 peak at -1.359959/-0.940678 dBFS, respectively. Neither hits
+digital full scale in this recording. This does not exclude analog clipping or
+upstream distortion, and does not replace listening acceptance. Retained report:
+`scratch/producer-gap-result/physical/audio-astats.txt`. Keep the current gain
+settings for the next comparison.
+
+[verified: bench filesystem only] The frozen build and runtime are separately
+staged under `/home/claude/fm1-irq-profile-3e8664b5-20261015`. Original producer
+receipt remains unchanged; compatibility receipt SHA256 is
+`1344f8f757ec02b90e56307889b77dee276c8a2405192c4ee8a3904eb4c7429f`.
+Capture runtime covers174 files; its249-file tools-source inventory is a separate
+binding. No new candidate has been installed. Independent construction review
+found that the staged candidate audit's source scan resolves to an absent
+`runtime/firmware/native` directory. An exact frozen-source staging and rehash
+step is being prepared to close that gap before construction. The linked ELF
+check alone does not make a missing source scan pass meaningful.
