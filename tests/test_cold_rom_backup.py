@@ -61,6 +61,26 @@ def test_coordinator_jtag_status_is_literal_and_does_not_require_an_abi():
     assert adapter.validate_entry(encoded(ev), USB, FW, now=1050.0) == 1030.0
 
 
+def test_old_pinned_upload_can_precede_a_fresh_physical_entry():
+    ev = entry(observed=5030.0)
+    ev.update(attempt_started_at=1000.0, uploaded_at=1005.0,
+              owner_key_action_at=5008.0, status_observed_at=5010.0)
+    assert adapter.validate_entry(encoded(ev), USB, FW, now=5050.0) == 5030.0
+
+
+def test_stale_key_action_is_rejected_even_when_enumeration_is_fresh():
+    ev = entry(observed=5030.0)
+    ev.update(attempt_started_at=1000.0, uploaded_at=1005.0,
+              owner_key_action_at=4900.0, status_observed_at=5020.0)
+    with pytest.raises(ValueError, match="stale"):
+        adapter.validate_entry(encoded(ev), USB, FW, now=5050.0)
+
+
+def test_stale_enumeration_is_rejected():
+    with pytest.raises(ValueError, match="stale"):
+        adapter.validate_entry(encoded(entry()), USB, FW, now=1200.0)
+
+
 @pytest.mark.parametrize("mutate", [
     lambda e: e["owner_attestation"].update(performed_usb_key_once=False),
     lambda e: e["owner_attestation"].update(selected_physical_unit=False),
