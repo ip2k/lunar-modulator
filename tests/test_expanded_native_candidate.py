@@ -107,6 +107,9 @@ def test_expanded_candidate_hot_dsp_ram_requires_matching_verified_receipts(samp
         candidate.construct(**args, hot_dsp_ram_receipt=hot_dsp_receipt(args['elf']))
     target, receipt = candidate.construct(
         **args, hot_dsp_ram=True, hot_dsp_ram_receipt=hot_dsp_receipt(args['elf']))
+    assert candidate.HOT_DSP_RAM_BODIES == [
+        'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock',
+        'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
     assert receipt['hot_dsp_ram'] is True
     assert receipt['elf_verified'] and receipt['link_audit']['passed']
     assert target[0xD9000:] == sample['baseline'][0xD9000:]

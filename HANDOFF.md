@@ -1,17 +1,20 @@
-## Coordinator checkpoint: ROM79 install active; SixOp follow-up prepared
+## Coordinator checkpoint: ROM79 native boot and capture; receipt corrected
 
-Root launched fresh one-use ROM79 campaign exactly once (PID78314).
-Paired reads passed;209-sector header-last install ACTIVE. Never rerun.
+ROM79 one-use install/readback completed; native USB80 appeared after single
+boot request. SG reply ambiguous; DO NOT retry. Analog180s and input-only
+telemetry110s launched; inspect completion and records before accepting runtime.
 Base /home/claude/fm1-hot-ram-guard-1ce89483-20261015;
-cycle rom79-hot-ram-guard-cycle. Inspect journal/stdout/stderr before any action.
-No new boot/audio/performance result yet. SAVE remains disarmed.
-Four private scratch suites pass31tests/7subtests after test-only import umask
-isolation fix; frozen live helper unchanged. Source next trial adds existing
-opt-in RAM attribute to SixOp RenderBlock, currently1,382B XIP beneath RAM
-wrapper. SixOp six-mode/rate bitwise baseline passes. Fresh native link and
-independent placement/fit review pending before any new physical campaign.
-MIDI FA/FC/FB implemented sharedUSB/TRS; physical FA rewind/TRS still open.
-Goal ACTIVE; detailed notes/2026-10-15-hot-dsp-ram-experiment.md.
+cycle rom79-hot-ram-guard-cycle. SAVE disarmed.
+
+Next trial RenderBlock source32adfdc6 built on Hera16/16. ELF independently
+places RenderBlock592B at01c00544, total DSP RAM3788B. XIP callees remain.
+That build receipt omitted fifth body: NOT admissible for installation.
+Builder/verifier five-body metadata corrected, dependent source hashes updated;
+58 focused tests pass. Fresh exact-source rebuild required after this commit.
+Private evidence scratch/hot-ram-render-block-result and
+scratch/native-hot-dsp-ram/render-block-elf-review.md.
+MIDI FA/FC/FB implemented shared USB/TRS; physical FA rewind/TRS remain open.
+Goal ACTIVE; audio performance, persistence/recovery and web release incomplete.
 Unrelated uv.lock untouched. Latest source/checkpoint pushed per Git state.
 
 ## Coordinator checkpoint: guard-corrected build and fresh campaign ready

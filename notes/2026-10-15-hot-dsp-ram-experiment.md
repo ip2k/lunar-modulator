@@ -189,3 +189,19 @@ bitwise. Native placement/size and performance require a fresh build and
 separate physical campaign. Private rationale and limits:
 `scratch/native-hot-dsp-ram/next-placement-review.md` and
 `render-block-handoff.md`. Do not add inclusive dispatch and engine timings.
+
+## Guard campaign native boot and fifth-body receipt correction
+
+[verified: device] ROM79 transaction installed and read back the target. The
+single boot request returned ambiguous SG status; no retry was made. Native
+USB device80 appeared and bound to Lunar ALSA client28. Ready analog capture
+preceded boot; input-only110-second telemetry recording started afterward.
+Completion/performance are still pending; native enumeration is not acceptance.
+
+[verified: build] Exact32adfdc6 source linked on Hera16/16. Independent ELF
+review places RenderBlock at0x01c00544 with592 bytes; .ram_dsp totals3788 bytes.
+Startup copies it and PC guard covers it. XIP callees remain. The generated
+receipt listed only four bodies, so this artifact is not admissible. Builder
+and candidate verifier now require all five; source hash pins updated in
+adapter and boot runner. Root reran58 focused tests successfully. A fresh
+exact-source build is required; do not retrofit metadata onto the old build.

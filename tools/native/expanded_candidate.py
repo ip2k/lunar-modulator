@@ -18,8 +18,8 @@ from audit_link import Elf, audit, collect_sources
 from probe_artifact import flatten, artifact_call_payloads, artifact_stub_boundaries
 
 STATUS = 'private-expanded-native-candidate-verified-offline'
-HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'Hall::Instance::Render',
-                      'Limiter::Render', 'fm1_app_render']
+HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock',
+                      'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
 
 
 def validate_hot_dsp_ram_receipts(elf, verification, artifact):

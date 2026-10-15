@@ -128,7 +128,11 @@ def test_hot_dsp_ram_requires_bounded_runtime_and_copies_extent_at_startup():
         builder.hot_dsp_ram_configuration(True, 'continuous')
     receipt = builder.hot_dsp_ram_configuration(True, 'diagnostic')
     assert receipt['selected_bodies'] == builder.HOT_DSP_RAM_BODIES
+    assert 'SixOp::Instance::RenderBlock' in receipt['selected_bodies']
     assert receipt['all_callees_in_ram'] is False
+    disabled = builder.hot_dsp_ram_configuration(False, 'continuous')
+    assert disabled['enabled'] is False
+    assert disabled['selected_bodies'] == []
     platform = ('    extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];\n'
                 '    for (s = _rt_load, d = _rt_start; d < _rt_end; s++, d++) *d = *s;\n'
                 '    fm1_guard_enable(FM1_GUARD_STACK | FM1_GUARD_WRITE | FM1_GUARD_BUS | FM1_GUARD_PC);\n')
