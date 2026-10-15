@@ -91,3 +91,42 @@ candidate SHA, followed by a fresh passive same-connection snapshot and exact
 campaign pin. If ROM59 bytes differ from the candidate, this path correctly
 refuses; the install path is then a different operation requiring its own
 fresh installation admission.
+
+
+## Completed capture and ROM61 return
+
+[verified] The detached capture completed normally: arecord and telemetry
+exited0; the110-second usbmon timeout exited124 as expected. All100 telemetry
+frames were valid, covering uptime1006–100963ms. The initial84 underruns never
+increased during those samples; render maximum27768ticks (1157us), draw
+maximum154548ticks (6439.5us), minimum sampled user/system stack margins
+15064/7724bytes. USB messages, UART bytes, accepted note-ons and rejected
+messages remained0. Physical1-1 subsequently enumerated as4c4a:8057 device61,
+without another reset request or owner power cycle. The consumed ROM59
+campaign must not be retried.
+
+[verified] The filtered exact-device bulk-OUT usbmon file is empty; stderr
+is empty. It does not prove absence of all bus traffic, physical capture
+completeness, or firmware receipt. The helper logged successful aseqsend
+exits for six scheduled notes. A later passive full-bus sample checked the
+text field spacing only; it did not cover those earlier stimuli.
+
+[verified] Private bench WAV SHA256:
+`78a1f3b9ebee3e3577384654c386e396d921afa579d85a866bc2adb4ab2bc8b6`.
+Coordinator private copied telemetry JSONL:
+`e356ddf636581021617cccb16a96f6924cd754f4ef3a4be55fc79b771ef87246`;
+helper log:
+`92e6bd8b1ca8b8fba7d2ff9e13a8f7891816a707d8a1e66e169665dc551cc69a`.
+No waveform/listening acceptance is claimed for this run.
+
+[inferred] Host-side ALSA subscription is the next discriminating hypothesis.
+Upstream aseqsend1.2.14 addresses events directly without connecting a port;
+the Linux raw-MIDI sequencer bridge opens its hardware output in the port-use
+callback. Software Midi Through loopback does not establish that this hardware
+output was opened. Actual bench kernel is6.18.34+rpt-rpi-2712; upstream-source
+inspection is not proof of its exact compiled behavior. Prepare a bounded,
+explicitly subscribed mido output, verify host OUT callbacks alongside device
+counters, then assess analogue response before changing firmware receive code.
+
+SAVE remains disarmed; full-song, independent recovery, storage ownership,
+installer and release acceptance remain open.

@@ -4956,3 +4956,21 @@ Next dependency: minimal existing RehearsalSG adapter and independent review, fu
 [verified] The preceding compression-answer goal turn made no implementation progress; this continuation resumed the next safe physical diagnostic. A reviewed private runner uses the existing generic fresh-read boot adapter, with no flash programming. Both fresh 1MiB reads equal installed target22216472. The sole FC0C reply was ambiguous and was not retried; native1209:0001 subsequently appeared as device60. Runner terminal58934 is terminal; detached helper4186585, audio4186587 and telemetry4186620 were observed live. Continue monitoring the same helper through its150s capture and timed ROM return; do not rerun consumed ROM59 campaigns.
 
 [verified] Private evidence root: /home/claude/fm1-trio-usbmon-9ec846-20261015. Runner SHA11b2a7e912541a7d729ebb8f74abd509e0dd5851e738a664f32a279b98860c25; helper SHA060abd0736e2f1b4df5057618469ae252a7b063c45fa0c7f7d950db311c2c567. Existing174-file runtime pin469344db remains unchanged; file-only preflight passed. Coordinator launch fixes PATH to /usr/sbin:/usr/bin:/sbin:/bin. Root-only usbmon1u capture selects native bus1/device60/bulkOUTendpoint1 before note stimuli. Its host callbacks do not prove firmware consumption. New offline analyzer, helper and generic boot checks total29 passing tests. Independent analyzer review pending. SAVE remains disarmed; no new flash write or hardware acceptance is claimed. Goal ACTIVE.
+
+
+## ROM59 cycle complete; subscribed MIDI preparation — 2026-10-15
+
+[verified] Native60 capture is terminal: audio and telemetry exit0,100 valid
+frames, no increments beyond initial84 underruns, USB/UART/notes all0. Filtered
+native60 EP1 OUT trace is empty. Timed recovery reached ROM61 on physical1-1
+without another command or owner cycle. Installed target22216472 unchanged;
+no flash programming occurred. Complete hashes/results are appended to
+notes/2026-10-15-rom59-existing-target-diagnostic-boot.md.
+
+[inferred] aseqsend direct addressing without an ALSA output subscription may
+explain missing host delivery. An offline worker is preparing a bounded mido
+subscribed sender for a fresh ROM61 read/one-shot boot campaign. Private
+scratch/trio61-usbmon-cycle is not yet reviewed or admitted; do not execute
+until its hash-bound helper/runner pass review and file-only preflight.
+Analyzer f4aa1200 is committed/pushed/SHA-verified with17 focused tests passing.
+Goal ACTIVE; SAVE and physical/recovery/installer/release gates stay open.
