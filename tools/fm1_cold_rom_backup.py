@@ -55,8 +55,9 @@ def validate_entry(data: bytes, usb_binding: dict, dongle_sha256: str,
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError("Malformed cold-ROM entry evidence") from exc
     _same_keys(entry, {"schema", "kind", "source", "owner_attestation",
-                       "dongle_upload", "attempt_started_at",
-                       "status_observed_at", "target_port", "rom_enumeration",
+                       "dongle_upload", "attempt_started_at", "uploaded_at",
+                       "owner_key_action_at", "status_observed_at",
+                       "status_observation", "target_port", "rom_enumeration",
                        "rom_usb"}, "cold-ROM entry")
     if (type(entry["schema"]) is not int or entry["schema"] != SCHEMA or
             entry["kind"] != ENTRY_KIND or
@@ -65,7 +66,7 @@ def validate_entry(data: bytes, usb_binding: dict, dongle_sha256: str,
 
     upload = _same_keys(entry["dongle_upload"],
         {"firmware_sha256", "build_receipt_sha256",
-         "owner_confirmed_exact_image_uploaded"}, "dongle upload")
+         "coordinator_uploaded_exact_image"}, "coordinator upload record")
     if (upload["firmware_sha256"] != dongle_sha256 or
             not isinstance(upload["build_receipt_sha256"], str) or
             len(upload["build_receipt_sha256"]) != 64 or
@@ -73,29 +74,33 @@ def validate_entry(data: bytes, usb_binding: dict, dongle_sha256: str,
         raise ValueError("Uploaded Cynthion image/build receipt binding differs")
     attestation = _same_keys(entry["owner_attestation"],
         {"performed_usb_key_once", "selected_physical_unit",
-         "rom_device_is_selected_unit", "identity_basis", "usb_serial",
-         "status_observation"}, "owner attestation")
+         "rom_device_is_selected_unit", "identity_basis", "usb_serial"},
+         "owner physical attestation")
     for field in ("performed_usb_key_once", "selected_physical_unit",
-                  "rom_device_is_selected_unit", "owner_confirmed_exact_image_uploaded"):
-        value = upload[field] if field == "owner_confirmed_exact_image_uploaded" else attestation[field]
-        if type(value) is not bool or not value:
+                  "rom_device_is_selected_unit"):
+        if type(attestation[field]) is not bool or not attestation[field]:
             raise ValueError(f"Owner must affirm {field}")
+    if type(upload["coordinator_uploaded_exact_image"]) is not bool or not upload["coordinator_uploaded_exact_image"]:
+        raise ValueError("Coordinator must record uploading the exact pinned image")
     if (attestation["identity_basis"] != "owner-attested-physical-selection" or
             attestation["usb_serial"] is not None):
         raise ValueError("ROM identity must remain explicitly owner-attested and serial-less")
-    observation = _same_keys(attestation["status_observation"],
+    observation = _same_keys(entry["status_observation"],
         {"method", "value"}, "gateware status observation")
-    if (observation["method"] not in ("status-leds", "other-owner-observed") or
+    if (observation["method"] not in ("owner-leds", "coordinator-read-jtag") or
             not isinstance(observation["value"], str) or
             not observation["value"].strip() or len(observation["value"]) > 240):
-        raise ValueError("Record the owner-observed gateware status without inferring recovery")
+        raise ValueError("Record a literal owner LED or coordinator JTAG status observation")
 
     started = _timestamp(entry["attempt_started_at"], "attempt")
+    uploaded = _timestamp(entry["uploaded_at"], "coordinator upload")
+    key_action = _timestamp(entry["owner_key_action_at"], "owner USB_KEY action")
     status = _timestamp(entry["status_observed_at"], "gateware status")
     enumeration = _same_keys(entry["rom_enumeration"],
         {"observed_at", "candidates"}, "ROM enumeration")
     observed = _timestamp(enumeration["observed_at"], "ROM enumeration")
-    if (not started <= status <= observed or not 0 <= now - observed <= MAX_ENTRY_AGE_SECONDS or
+    if (not started <= uploaded <= key_action <= status <= observed or
+            not 0 <= now - observed <= MAX_ENTRY_AGE_SECONDS or
             observed - started > MAX_ENTRY_AGE_SECONDS):
         raise ValueError("Cold-ROM entry is stale or has invalid event ordering")
 
@@ -222,7 +227,9 @@ def prepare_campaign(path: str | Path, *, now: float | None = None):
     prepared_config = dict(config)
     # Keep the pinned owner observation in memory; do not reopen its source path
     # later when publishing the manifest.
-    prepared_config["_owner_status_observation"] = parsed_entry["owner_attestation"]["status_observation"]
+    prepared_config["_status_observation"] = parsed_entry["status_observation"]
+    prepared_config["_owner_physical_attestation"] = parsed_entry["owner_attestation"]
+    prepared_config["_coordinator_upload_record"] = parsed_entry["dongle_upload"]
     prepared = fixed.PreparedCampaign(prepared_config, fixed.digest(raw), loader,
         tuple(operations), reader.SGHeader, entered_at, inventory_sha)
     return prepared, receipt, fixed.digest(entry_bytes), dongle_sha
@@ -324,8 +331,9 @@ def run_campaign(prepared, receipt: Path, entry_sha256: str,
                 "profile_source_sha256": fixed.PROFILE_SOURCE_SHA,
                 "campaign_sha256": prepared.manifest_sha256,
                 "request_inventory_sha256": prepared.request_inventory_sha256,
-                "owner_unit_attested": True,
-                "owner_status_observation": prepared.config["_owner_status_observation"],
+                "owner_physical_attestation": prepared.config["_owner_physical_attestation"],
+                "status_observation": prepared.config["_status_observation"],
+                "coordinator_upload_record": prepared.config["_coordinator_upload_record"],
                 "unit_identity": None,
                 "identity_basis": "owner-attested-physical-selection; ROM serial unavailable",
                 "usb_serial": None,

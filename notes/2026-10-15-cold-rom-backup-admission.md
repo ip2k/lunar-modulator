@@ -14,15 +14,17 @@ unchanged ROM reader, the exact audited RAM loader/profile and profile source,
 the Cynthion firmware file, and a build-receipt file. The cold-entry JSON is
 separate from the historical FM-1 identity flow. It must explicitly record:
 
-- the exact uploaded firmware SHA-256 and build-receipt SHA-256, with the
-  owner's statement that this exact image was uploaded;
+- the exact uploaded firmware SHA-256 and build-receipt SHA-256, with a
+  coordinator record that it uploaded that exact image;
 - the owner's one USB_KEY operation, selection of the physical unit, and
   correlation of the subsequently enumerated ROM device to that selection;
-- a literal owner-observed gateware status (for example, an LED observation),
-  without imposing a console, nonce, ACK, or `DONE` protocol;
+- a literal status observation from owner-visible LEDs or the coordinator's
+  read-only JTAG capture, without imposing a console, nonce, ACK, or `DONE`
+  protocol or requiring an ABI parser;
 - that the ROM USB port was absent before the operation, followed by exactly
   one fresh ROM candidate at the observed topology, VID/PID and devnum;
-- timestamps for operation, status observation, and ROM enumeration.
+- timestamps for upload, owner key action, status observation, and ROM
+  enumeration.
 
 The ROM has no serial in this schema. The report therefore leaves
 `unit_identity` and `usb_serial` null and calls the identity basis
@@ -56,25 +58,32 @@ private evidence directory. `usb_binding` is the exact current
 
 The entry JSON has exactly these top-level fields: `schema=1`,
 `kind="fm1-cold-rom-entry"`, `source="cynthion-usb-key"`, `owner_attestation`,
-`dongle_upload`, `attempt_started_at`, `status_observed_at`, `target_port`,
-`rom_enumeration`, and `rom_usb`. `owner_attestation` contains true assertions
+`dongle_upload`, `attempt_started_at`, `uploaded_at`, `owner_key_action_at`,
+`status_observed_at`, `status_observation`, `target_port`, `rom_enumeration`,
+and `rom_usb`. `owner_attestation` contains true assertions
 for `performed_usb_key_once`, `selected_physical_unit`,
 `rom_device_is_selected_unit`, the literal identity basis
-`owner-attested-physical-selection`, `usb_serial=null`, and
-`status_observation={method,value}` where method is `status-leds` or
-`other-owner-observed`. `dongle_upload` contains the exact firmware and build
-receipt hashes plus `owner_confirmed_exact_image_uploaded=true`.
+`owner-attested-physical-selection`, and `usb_serial=null`. `dongle_upload`
+contains the exact firmware and build receipt hashes plus
+`coordinator_uploaded_exact_image=true`. `status_observation={method,value}`
+is separate from owner attestation; method is `owner-leds` or
+`coordinator-read-jtag`. Its value is a bounded literal observation, not a
+claim that an inferred register protocol or recovery ABI was verified.
 `target_port={path,was_absent_before_attempt:true}`;
 `rom_enumeration={observed_at,candidates:[<exact rom_usb mapping>]}` with one
-candidate only; `rom_usb` must equal campaign `usb_binding`. The three event
-timestamps are numeric Unix seconds and ordered operation, observed status,
-then enumeration. These fields are an explicit owner record, not machine proof
-of the human assertions.
+candidate only; `rom_usb` must equal campaign `usb_binding`. The five event
+timestamps are numeric Unix seconds and ordered attempt start, coordinator
+upload, owner key action, status observation, then enumeration. The owner
+attests only physical selection/key action; upload and JTAG observation are
+attributed to the coordinator. These fields are records, not machine proof of
+human assertions.
 
 This prototype does not generate authentic owner evidence or obtain the
-Cynthion build receipt; those artifacts must come from a real owner-controlled
-build/upload/observation session. It does not replace review of the actual
-gateware, USB_KEY electrical behavior, host SG exclusivity, or a recovery test.
+Cynthion build receipt; these artifacts must come from the actual build, a
+coordinator-recorded exact-image upload, owner physical selection/key action,
+status observation, and fresh enumeration. It does not replace review of the
+actual gateware, USB_KEY electrical behavior, host SG exclusivity, or a recovery
+test.
 
 ## Offline verification
 
@@ -82,7 +91,7 @@ Using `/tmp/lunar-installer-service-test-venv/bin/python`:
 
 ```text
 pytest -q -p no:cacheprovider -o addopts='' tests/test_cold_rom_backup.py tests/test_fixed_loader_backup.py
-72 passed
+75 passed
 ```
 
 The new campaign tests inject a fake transport and synthetic pages; they do
@@ -108,7 +117,7 @@ not this isolated worktree; semantic indexing was not treated as evidence.
    grants no installation, write, reset, or boot permission.
 
 Current source pins: `tools/fm1_cold_rom_backup.py` SHA-256
-`9fda7c569f75616d0be8be2f7775207dbdee54e02b747f1aceafaa140efbb9ec`;
+`6f1928732159232c3c923bb133a6fcca350e9d3738bd5ad41bde84984e2219c5`;
 `tools/fm1_fixed_loader_backup.py`
 `79bbe99ce923daaf8af2c701a65ec39a015191313de79676e36622cb8db00afb`;
 `tools/fm1_uboot_read.py`
