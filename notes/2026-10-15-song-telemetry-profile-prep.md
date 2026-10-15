@@ -26,6 +26,7 @@ Private output: /home/claude/mvave-fm1/song-telemetry-current-profile-20261015
 - Source payload hashes: project 22bf4e768ec1e55a9a92ebb7b2ef1ed5d5967703d226fca7798f0c67b441d24f; SET cfc53ae471b9541adaf817180de721e268e2a43adaeea77154c8ec9a6bb6b7f3.
 - The profile records successful native-record equality for recompressed content. Selected modules are 54 total: 13 engines, 23 audio effects, 2 MIDI effects, and 16 modulation modules. Test-only modules are not selected.
 - Startup index is 0 and startup project is Event Horizon. The SET is ordered second and references the same parent project.
+- The project dependency scan is complete, while the SET scan and sequence-semantics verification are false. This checkpoint does not claim either was proven.
 - installable, native_link_verified, native_ram_verified, and hardware_tested remain false.
 
 Container exited 0 with OOMKilled=false; no matching container remains. The generated request/profile/payloads are retained outside Git and were not published. The next step is for the coordinator to consume these exact prepared inputs in the authorized target-link pipeline, then independently verify the resulting target receipt and audits.
