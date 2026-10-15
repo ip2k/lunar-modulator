@@ -2,7 +2,8 @@
 
 import unittest
 
-from amaranth import ClockDomain, Elaboratable, Module
+from amaranth import ClockDomain, Elaboratable, Module, ResetSignal, ClockSignal
+from cynthion.gateware.platform.cynthion_r1_4 import CynthionPlatformRev1D4
 from amaranth.sim import Simulator
 from luna.gateware.interface.ulpi import ULPIInterface
 
@@ -11,8 +12,13 @@ from gateware.ulpi_safe_phy import ULPISafePHY
 
 class _Top(Elaboratable):
     def __init__(self, *, startup_cycles=2, transaction_timeout_cycles=8,
-                 deadline_cycles=120):
+                 deadline_cycles=120, platform_pin_record=False):
         self.ulpi = ULPIInterface()
+        self.platform_pin_record = platform_pin_record
+        self.platform = None
+        if platform_pin_record:
+            self.platform = CynthionPlatformRev1D4()
+            self.ulpi = self.platform.request("target_phy")
         self.dut = ULPISafePHY(
             self.ulpi,
             startup_cycles=startup_cycles,
@@ -24,7 +30,18 @@ class _Top(Elaboratable):
         m = Module()
         m.domains.usb = ClockDomain("usb")
         m.submodules.safe_phy = self.dut
+        if self.platform_pin_record:
+            # This is the bridge used for Cynthion's nested ULPIResource pins.
+            m.d.comb += [
+                self.ulpi.clk.o.eq(ClockSignal("usb")),
+                self.ulpi.rst.o.eq(ResetSignal("usb")),
+            ]
         return m
+
+
+def _port(record, name, direction):
+    signal = getattr(record, name)
+    return getattr(signal, direction, signal)
 
 
 class _FakeUSB3343:
@@ -33,6 +50,12 @@ class _FakeUSB3343:
     def __init__(self, top, *, response=True, initial=None, read_override=None):
         self.top = top
         self.ulpi = top.ulpi
+        self.dir = _port(self.ulpi, "dir", "i")
+        self.nxt = _port(self.ulpi, "nxt", "i")
+        self.data_in = _port(self.ulpi, "data", "i")
+        self.data_out = _port(self.ulpi, "data", "o")
+        self.data_oe = _port(self.ulpi, "data", "oe")
+        self.stop = _port(self.ulpi, "stp", "o")
         self.dut = top.dut
         self.response = response
         self.registers = {
@@ -50,76 +73,92 @@ class _FakeUSB3343:
         self.read_counts = {}
         self.reads = []
         self.writes = []
+        self.commands = []
+        self.stp_pulses = 0
+        self.bus_output = []
         self.premature_drive = False
+        self.link_enabled_on_fault = None
+        self.fault_cycle = None
 
     async def run(self, ctx, *, max_cycles=200):
-        ctx.set(self.ulpi.dir, 0)
-        ctx.set(self.ulpi.nxt, 0)
-        ctx.set(self.ulpi.data.i, 0)
+        ctx.set(self.dir, 0)
+        ctx.set(self.nxt, 0)
+        ctx.set(self.data_in, 0)
         ctx.set(self.dut.start, 1)
         mode = "idle"
         address = 0
         command_kind = None
         wait_count = 0
+        payload = 0
 
-        for _ in range(max_cycles):
+        for cycle in range(max_cycles):
             await ctx.tick("usb")
             ctx.set(self.dut.start, 0)
+            if ctx.get(self.data_oe):
+                self.bus_output.append((cycle, ctx.get(self.data_out)))
             if not ctx.get(self.dut.ready) and ctx.get(self.dut.drive_allowed):
                 self.premature_drive = True
             if ctx.get(self.dut.ready) or ctx.get(self.dut.fault):
+                if ctx.get(self.dut.fault):
+                    self.link_enabled_on_fault = ctx.get(self.data_oe)
+                    self.fault_cycle = cycle
                 return
             if not self.response:
                 continue
 
             if mode == "idle":
-                if (ctx.get(self.ulpi.dir) == 0
-                        and ctx.get(self.ulpi.data.oe)
-                        and (ctx.get(self.ulpi.data.o) & 0xC0) in (0x80, 0xC0)):
-                    command = ctx.get(self.ulpi.data.o)
+                if (ctx.get(self.dir) == 0
+                        and ctx.get(self.data_oe)
+                        and (ctx.get(self.data_out) & 0xC0) in (0x80, 0xC0)):
+                    command = ctx.get(self.data_out)
                     address = command & 0x3F
                     command_kind = "read" if (command & 0xC0) == 0xC0 else "write"
-                    ctx.set(self.ulpi.nxt, 1)
-                    mode = "accept_command"
+                    self.commands.append((command_kind, address))
+                    ctx.set(self.nxt, 1)
+                    mode = "accept_read_command" if command_kind == "read" else "accept_write_command"
 
-            elif mode == "accept_command":
-                if command_kind == "read":
-                    value = self.registers.get(address, 0)
-                    self.reads.append(address)
-                    if self.read_override is not None:
-                        count = self.read_counts.get(address, 0)
-                        replacement = self.read_override(address, count, value)
-                        if replacement is not None:
-                            value = replacement
-                    self.read_counts[address] = self.read_counts.get(address, 0) + 1
-                    ctx.set(self.ulpi.nxt, 0)
-                    ctx.set(self.ulpi.data.i, value)
-                    ctx.set(self.ulpi.dir, 1)
-                    wait_count = 0
-                    mode = "read_data"
-                else:
-                    value = ctx.get(self.ulpi.data.o)
-                    self.writes.append((address, value))
-                    self.registers[address] = value
-                    ctx.set(self.ulpi.nxt, 1)
-                    wait_count = 0
-                    mode = "write_data"
+            elif mode == "accept_read_command":
+                value = self.registers.get(address, 0)
+                self.reads.append(address)
+                if self.read_override is not None:
+                    count = self.read_counts.get(address, 0)
+                    replacement = self.read_override(address, count, value)
+                    if replacement is not None:
+                        value = replacement
+                self.read_counts[address] = self.read_counts.get(address, 0) + 1
+                ctx.set(self.nxt, 0)
+                ctx.set(self.data_in, value)
+                ctx.set(self.dir, 1)
+                wait_count = 0
+                mode = "read_turnaround"
 
-            elif mode == "read_data":
+            elif mode == "read_turnaround":
                 wait_count += 1
                 if wait_count >= 3:
-                    ctx.set(self.ulpi.dir, 0)
-                    ctx.set(self.ulpi.data.i, 0)
+                    ctx.set(self.dir, 0)
+                    ctx.set(self.data_in, 0)
                     mode = "idle"
 
-            elif mode == "write_data":
-                # Keep NXT asserted through payload acceptance; the register
-                # window emits STP and then reports done.
-                ctx.set(self.ulpi.nxt, 0)
-                mode = "write_done"
+            elif mode == "accept_write_command":
+                ctx.set(self.nxt, 0)
+                mode = "write_payload"
 
-            elif mode == "write_done":
+            elif mode == "write_payload":
+                payload = ctx.get(self.data_out)
+                self.writes.append((address, payload))
+                ctx.set(self.nxt, 1)
+                mode = "accept_write_payload"
+
+            elif mode == "accept_write_payload":
+                self.registers[address] = payload
+                if ctx.get(self.stop):
+                    self.stp_pulses += 1
+                ctx.set(self.nxt, 0)
                 mode = "idle"
+
+            elif mode == "write_stop":
+                if ctx.get(self.stop):
+                    mode = "idle"
 
             if ctx.get(self.dut.ready) or ctx.get(self.dut.fault):
                 return
@@ -174,6 +213,46 @@ class ULPISafePHYTests(unittest.TestCase):
         self.assertEqual(observed["line_update"], 1)
         self.assertEqual(observed["line_update_ended"], 0)
         self.assertEqual(observed["drive_after_rxcmd"], 1)
+        self.assertEqual(fake.commands, [
+            ("read", 0x00), ("read", 0x01), ("read", 0x02), ("read", 0x03),
+            ("write", 0x04), ("write", 0x0A), ("write", 0x32),
+            ("read", 0x04), ("read", 0x0A), ("read", 0x32),
+        ])
+        self.assertEqual(fake.stp_pulses, 3)
+
+    def test_cynthion_r14_target_phy_resource_bridges_real_transactions(self):
+        top = _Top(platform_pin_record=True)
+        fake = _FakeUSB3343(top)
+        observed = {}
+
+        async def bench(ctx):
+            await fake.run(ctx)
+            observed.update(
+                ready=ctx.get(top.dut.ready),
+                fault=ctx.get(top.dut.fault),
+                drive=ctx.get(top.dut.drive_allowed),
+                clk=ctx.get(top.ulpi.clk.o),
+                stp=ctx.get(top.ulpi.stp.o),
+                writes=list(fake.writes),
+                reads=list(fake.reads),
+                commands=list(fake.commands),
+                stp_pulses=fake.stp_pulses,
+            )
+
+        self._simulate(top, bench)
+        self.assertEqual(observed["ready"], 1)
+        self.assertEqual(observed["fault"], 0)
+        self.assertEqual(observed["drive"], 1)
+        self.assertEqual(observed["clk"], 1)
+        self.assertEqual(observed["stp"], 0)
+        self.assertEqual(observed["writes"], [(0x04, 0x49), (0x0A, 0x00), (0x32, 0x00)])
+        self.assertEqual(observed["reads"], [0x00, 0x01, 0x02, 0x03, 0x04, 0x0A, 0x32])
+        self.assertEqual(observed["commands"], [
+            ("read", 0x00), ("read", 0x01), ("read", 0x02), ("read", 0x03),
+            ("write", 0x04), ("write", 0x0A), ("write", 0x32),
+            ("read", 0x04), ("read", 0x0A), ("read", 0x32),
+        ])
+        self.assertEqual(observed["stp_pulses"], 3)
 
     def test_wrong_phy_identity_never_allows_drive(self):
         top = _Top()
@@ -248,6 +327,30 @@ class ULPISafePHYTests(unittest.TestCase):
 
         self._simulate(top, bench)
         self.assertEqual(observed, {"ready": 0, "fault": 1, "drive": 0})
+
+    def test_global_deadline_stops_inflight_luna_request_without_more_bus_bytes(self):
+        top = _Top(startup_cycles=2, transaction_timeout_cycles=50, deadline_cycles=12)
+        fake = _FakeUSB3343(top, response=False)
+        observed = {}
+
+        async def bench(ctx):
+            await fake.run(ctx, max_cycles=20)
+            observed.update(
+                ready=ctx.get(top.dut.ready),
+                fault=ctx.get(top.dut.fault),
+                drive=ctx.get(top.dut.drive_allowed),
+                enabled_on_fault=fake.link_enabled_on_fault,
+                fault_cycle=fake.fault_cycle,
+                bytes=list(fake.bus_output),
+            )
+
+        self._simulate(top, bench)
+        self.assertEqual(observed["ready"], 0)
+        self.assertEqual(observed["fault"], 1)
+        self.assertEqual(observed["drive"], 0)
+        self.assertEqual(observed["enabled_on_fault"], 0)
+        self.assertTrue(any(byte == 0xC0 for _, byte in observed["bytes"]))
+        self.assertTrue(all(cycle < observed["fault_cycle"] for cycle, _ in observed["bytes"]))
 
 if __name__ == "__main__":
     unittest.main()
