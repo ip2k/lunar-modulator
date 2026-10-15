@@ -1,4 +1,32 @@
-## Hall ROM111 campaign LAUNCHED; do not retry — 2026-10-15
+## Hall measurement complete; real-time audio still fails — 2026-10-15
+
+[verified] ROM111 one-use campaign is CONSUMED. Fresh paired 1 MiB reads
+matched current5b3ebc0b;210 sectors written, directory0x4000 last. Independent
+root transcript check matched all4096 final256-byte page hashes to complete
+target28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f.
+Durable install result and capture READY preceded the sole FC0C. Ambiguous
+host7/resid16/info1 response stopped runner; NO retry. Independent capture
+observed native112, completed110s telemetry/180s KA6 recording with rc0 and
+child cleanup. Passive sysfs now port1-1 bus1/dev113,4c4a:8057 (timed recovery).
+
+[verified]109 schema1 frames/108 intervals:54456 blocks and20855 underruns
+over109.250 device seconds (109.240 host seconds).498.453 blocks/s versus
+matched baseline488.145 (+2.112%);190.892 underruns/s. Required689.344 blocks/s;
+27.692% shortfall remains. All134 raw SysEx frames independently re-decoded
+and matched recorded values. No accepted note-ons/PLAY; no musical acceptance.
+Evidence/root summaries: scratch/hall-o2-cpu-result/; details appended to
+notes/2026-10-15-hall-o2-matched-preparation.md. Do not rerun consumed campaign.
+
+Offline FIR object O2 experiment c979cfb45d19ff0f52b8a2724a98cb38643da981
+backed to origin/codex/2026-10-15-fir-o2-sizeprobe, remote SHA verified; not
+integrated. Worker physical_storage_compression runs matched full LTO build on
+Hera to establish actual fit (not infer it from bitcode/object sizes).
+Worker profile_catalogue_build revises postmix peak propagation to independent
+default-off experimental flag and checks target codegen before integration.
+Goal ACTIVE; cold-boot listening FAILED; SAVE/autoplayoff. No physical action
+currently needed. uv.lock remains untouched.
+
+## Hall ROM111 campaign LAUNCHED; do not retry — 2026-10-15 [historical]
 
 [verified] Final independent v3 review68b411eca6a4960fd9f91609b7566a2413a60574950b88eb6bf1c9d68326214f
 found no blockers; root destination file-only preflight passed. Immediately before

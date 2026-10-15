@@ -144,3 +144,39 @@ then invoked launch-once.py once under sudo-n. Its own file-only preflight
 passed; persistent PID282595 began FRESH_PAIRED_READ_START. No outcome or
 performance claim yet. This campaign is consumed: never relaunch or retry
 an ambiguous reset; inspect existing process/artifacts and independent capture.
+
+## Completed physical measurement [verified; musical acceptance still failed]
+
+Fresh paired full-flash dumps matched5b3ebc0b4a1672662137677bb08de5017c17319ebc25290a676d548654dfa7aa.
+Install wrote210 sectors,0x4000 directory last. Root's independent final-page
+transcript verifier matched4096 consecutive256-byte page hashes against target
+28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f;
+all SG completions were clean, with63 keepalives since the last write.
+Adapter log3d91ad0ee2712749f0d2b92200eb48129517f99a2110d523e8ba0c5cf2ce5690.
+Install result was durably written before capture READY and sole FC0C reset.
+Reset returned host7/resid16/info1: runner stopped without retry. Independent
+capture observed native112 and completed normally (110s telemetry,180s KA6
+audio, rc0, children cleaned up). Passive sysfs subsequently observed ROM113
+on the same port1-1,4c4a:8057. The campaign remains consumed permanently.
+
+Root independently decoded all134 raw SysEx frames and matched their recorded
+schemas/values.109 schema1 frames span108 intervals,109.250 device seconds
+and109.240131 host seconds:54456 produced blocks,20855 underruns, zero accepted
+note-ons. Throughput498.453089 blocks/s versus CPU8a baseline488.145253
+(+2.111633%); underruns190.892449/s versus201.192781/s. Required689.343750
+blocks/s;27.691650% throughput shortfall remains. This is a measured small gain,
+not real-time audio or listening acceptance. No PLAY/song/note test occurred.
+
+Local evidence under scratch/hall-o2-cpu-result/:
+
+- fresh-read-evidence.tar SHA9cc0e19d217e8a05ef001490c036253cc4a742b1136d3cbaa5c124ac66dba9b4
+- capture-evidence.tar SHA81321c34bfaaaed8d440be805b9bdc15d691c190680260cbe3719fa09a54de31
+- events.jsonl SHA6aef02f2c8289f2c4c7c40666233fc3ed5507661bf55c9585c0149f9f0a921d2
+- raw.syx SHAe8822286ddbce9f707d80451883150b4893ad892edcba240087c3e8caec47a42
+- capture.jsonl SHAc55cb03ad028ff7b2dcb48d43dc25388a38849270281abe0ce557775c511c261
+- root-independent-summary.json and root-independent-readback.json preserve calculations/checks.
+
+Audio remains on bench01 at BASE/rom111-hall-o2-cpu-cycle/diagnostic-audio/audio.wav.
+Successful capture does not establish useful sound; the owner cold-boot report
+remains severe waveform lag and distorted audio. No further power cycle needed
+for the next recovery-mode investigation. SAVE/autoplay remain off.
