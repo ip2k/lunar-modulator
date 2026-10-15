@@ -15,6 +15,9 @@
 #if defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE) && !defined(LUNAR_DIAGNOSTIC_TELEMETRY)
 #error "IRQ profiling requires diagnostic telemetry"
 #endif
+#if defined(LUNAR_DIAGNOSTIC_CPU_RATE) && !defined(LUNAR_DIAGNOSTIC_TELEMETRY)
+#error "CPU-rate calibration requires diagnostic telemetry"
+#endif
 #if defined(LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE) && \
     (!defined(LUNAR_DIAGNOSTIC_TELEMETRY) || !defined(LUNAR_RENDER_STAGE_PROFILE))
 #error "Engine render profiling requires telemetry and render-stage profiling"
@@ -37,9 +40,15 @@ static volatile uint32_t lunar_master_adc_raw;
 #ifdef LUNAR_STARTUP_PROJECT_INDEX
 static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_INDEX;
 #endif
+#ifdef LUNAR_DIAGNOSTIC_CPU_RATE
+static void lunar_cpu_rate_calibrate(void);
+#endif
 #include "platform.c"
 #undef FM1_BTN_OCT_DOWN
 #undef FM1_BTN_OCT_UP
+#ifdef LUNAR_DIAGNOSTIC_CPU_RATE
+#include "cpu_rate_calibration.h"
+#endif
 #include "fm1_app.h"
 #include "audio_queue.h"
 #include "instance_pool.h"
@@ -370,6 +379,29 @@ static void diagnostic_report(void)
         midi_out_event(packets[i]);
 }
 
+#ifdef LUNAR_DIAGNOSTIC_CPU_RATE
+static void diagnostic_cpu_rate_report(void)
+{
+    static uint32_t last_report;
+    uint32_t now = fm1_ms;
+    if ((uint32_t)(now - last_report) < 30000u || !usb.config ||
+        mo_w - mo_r > MQ - LUNAR_CPU_RATE_PACKETS) return;
+    const uint32_t values[LUNAR_CPU_RATE_FIELDS] = {
+        lunar_cpu_rate_result.uptime_ms,
+        lunar_cpu_rate_result.iterations,
+        lunar_cpu_rate_result.trials,
+        lunar_cpu_rate_result.xip_ticks,
+        lunar_cpu_rate_result.ram_ticks,
+        lunar_cpu_rate_result.xip_checksum,
+        lunar_cpu_rate_result.ram_checksum,
+        lunar_cpu_rate_result.status,
+    };
+    for (unsigned i = 0; i < LUNAR_CPU_RATE_PACKETS; ++i)
+        midi_out_event(lunar_cpu_rate_packet(values, i));
+    last_report = now;
+}
+#endif
+
 #ifdef LUNAR_RENDER_STAGE_PROFILE
 static void diagnostic_profile_report(void)
 {
@@ -461,6 +493,9 @@ static void diagnostic_irq_report(void)
 
 static void diagnostic_reports(void)
 {
+#ifdef LUNAR_DIAGNOSTIC_CPU_RATE
+    diagnostic_cpu_rate_report();
+#endif
 #ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
     static uint32_t last_clock_report;
     static uint32_t last_pll_report;

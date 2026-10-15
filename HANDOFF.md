@@ -1,3 +1,20 @@
+## Fixed-work calibration source integrated — 2026-10-15
+
+Goal ACTIVE; owner cold-boot audio/display acceptance still FAILED; SAVE disarmed.
+Integrated reviewed worker9bc04a5: explicit opt-in schema8 fixed integer workload
+in XIP versus .ram_text, raw TIMER4 deltas/checksums only, no clock register writes
+or CPU-frequency inference. Focused telemetry plus candidate/catalogue suites PASS
+(167 tests); diff check clean. Source integration does not admit schema8 for physical
+flashing: exact target codegen/copy/guard audit and strict admission remain pending.
+Matched limiter20f build succeeded on Hera: app853720B, RAM DSP12652B; final audit
+and new ROM107 package pending, no new flash/boot command issued.
+Read-only live bench refresh confirms4c4a:8057 bus1dev107 port1-1. Current physical
+image remainsf3a9 froma503. CPU calibration worker prepares separate exacta503
+build; compactUI worker corrects uint16 capture_pending regression before merge.
+Last root verified pushed95e3b5f6 before this checkpoint; unrelateduv.lock untouched.
+Next: independently review frozen limiter artifact/deployment and run one fresh-read
+single-use recovery campaign; review matched calibration target independently.
+
 ## Limiter helper source integrated; matched Hera build pending — 2026-10-15
 
 Goal ACTIVE; owner cold-boot audio/display acceptance still FAILED; SAVE disarmed.

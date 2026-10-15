@@ -207,6 +207,59 @@ def test_engine_render_profile_is_opt_in_schema7_and_has_dedicated_cadence():
     assert "default: diagnostic_engine_profile_report(); break;" in source
 
 
+def test_cpu_rate_calibration_is_opt_in_schema8_and_no_playback():
+    import pytest
+
+    assert builder.diagnostic_cpu_rate_configuration(False) == {
+        "enabled": False, "schema": None, "compile_definition": None,
+        "frame_bytes": None, "packets_per_frame": None, "kernel": None,
+        "iterations_per_trial": None, "trials_per_kernel": None,
+        "timing": None, "starts": None, "register_writes": False,
+        "hardware_tested": False,
+    }
+    assert builder.diagnostic_cpu_rate_flags(False) == []
+    enabled = builder.validate_diagnostic_cpu_rate(
+        True, "song-diagnostic", True, False, False)
+    assert enabled == {
+        "enabled": True, "schema": 8,
+        "compile_definition": "LUNAR_DIAGNOSTIC_CPU_RATE=1",
+        "frame_bytes": 49, "packets_per_frame": 17,
+        "kernel": "fixed integer workload in XIP and .ram_text",
+        "iterations_per_trial": 4096, "trials_per_kernel": 4,
+        "timing": "raw TIMER4 ticks; no CPU frequency interpretation",
+        "starts": "post-recovery, pre-platform flash probe",
+        "register_writes": False, "hardware_tested": False,
+    }
+    assert builder.diagnostic_cpu_rate_flags(True) == [
+        "-DLUNAR_DIAGNOSTIC_CPU_RATE=1"]
+    for mode, telemetry, play, pulse in (
+            ("diagnostic", True, False, False),
+            ("song-diagnostic", False, False, False),
+            ("song-diagnostic", True, True, False),
+            ("song-diagnostic", True, False, True)):
+        with pytest.raises(ValueError):
+            builder.validate_diagnostic_cpu_rate(True, mode, telemetry, play, pulse)
+    with pytest.raises(TypeError):
+        builder.diagnostic_cpu_rate_configuration(1)
+    source = (ROOT / "firmware/native/app_probe.c").read_text()
+    assert "#if defined(LUNAR_DIAGNOSTIC_CPU_RATE) && !defined(LUNAR_DIAGNOSTIC_TELEMETRY)" in source
+    assert "#include \"cpu_rate_calibration.h\"" in source
+    assert source.index('#include "platform.c"') < source.index('#include "cpu_rate_calibration.h"')
+    calibration = (ROOT / "firmware/native/cpu_rate_calibration.h").read_text()
+    assert 'section(".ram_text")' in calibration
+    assert "LUNAR_CPU_RATE_ITERATIONS 4096u" in calibration
+    assert "LUNAR_CPU_RATE_TRIALS 4u" in calibration
+    assert "diagnostic_cpu_rate_flags(args.diagnostic_cpu_rate)" in (
+        ROOT / "tools/native/build_application_probe.py").read_text()
+    platform = (ROOT / "firmware/third_party/dinghy/src/platform.c").read_text()
+    start = platform.index("void fm1_cstart(void)")
+    end = platform.index("\n}\n#endif", start)
+    body = platform[start:end]
+    assert body.index("for (s = _rt_load") < body.index("lunar_cpu_rate_calibrate();")
+    assert body.index("if (boot_mode == BOOT_RECOVERY || recovery_key())") < body.index("lunar_cpu_rate_calibrate();")
+    assert body.index("lunar_cpu_rate_calibrate();") < body.index("flash_ok =")
+
+
 def test_engine_render_hooks_compile_out_when_disabled(tmp_path):
     import subprocess
     source = tmp_path / "profile.cpp"

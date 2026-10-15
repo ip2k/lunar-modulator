@@ -162,6 +162,9 @@ static inline uint32_t lunar_producer_gap_packet(
 #define LUNAR_ENGINE_PROFILE_FIELDS 9u
 #define LUNAR_ENGINE_PROFILE_BYTES (9u + 5u * LUNAR_ENGINE_PROFILE_FIELDS)
 #define LUNAR_ENGINE_PROFILE_PACKETS ((LUNAR_ENGINE_PROFILE_BYTES + 2u) / 3u)
+#define LUNAR_CPU_RATE_FIELDS 8u
+#define LUNAR_CPU_RATE_BYTES (9u + 5u * LUNAR_CPU_RATE_FIELDS)
+#define LUNAR_CPU_RATE_PACKETS ((LUNAR_CPU_RATE_BYTES + 2u) / 3u)
 static inline uint32_t lunar_irq_packet(
     const uint32_t values[LUNAR_IRQ_FIELDS], unsigned index)
 {
@@ -200,6 +203,30 @@ static inline uint32_t lunar_engine_profile_packet(
         uint8_t byte;
         if (pos < sizeof prefix) byte = prefix[pos];
         else if (pos == LUNAR_ENGINE_PROFILE_BYTES - 1u) byte = 0xf7;
+        else {
+            unsigned data = pos - (unsigned)sizeof prefix;
+            byte = (uint8_t)((values[data / 5u] >> (7u * (data % 5u))) & 127u);
+        }
+        packet |= (uint32_t)byte << (8u * (j + 1u));
+    }
+    return packet;
+}
+
+/* Schema 8: fixed-work integer kernel elapsed raw TIMER4 ticks in XIP and
+ * ordinary SRAM. This is not a CPU-frequency or instruction-cycle claim. */
+static inline uint32_t lunar_cpu_rate_packet(
+    const uint32_t values[LUNAR_CPU_RATE_FIELDS], unsigned index)
+{
+    static const uint8_t prefix[] = {0xf0, 0x7d, 'L', 'U', 'N', 'A', 'R', 8};
+    if (index >= LUNAR_CPU_RATE_PACKETS) return 0;
+    unsigned at = index * 3u, left = LUNAR_CPU_RATE_BYTES - at;
+    unsigned n = left < 3u ? left : 3u;
+    uint32_t packet = left > 3u ? 4u : 4u + n;
+    for (unsigned j = 0; j < n; ++j) {
+        unsigned pos = at + j;
+        uint8_t byte;
+        if (pos < sizeof prefix) byte = prefix[pos];
+        else if (pos == LUNAR_CPU_RATE_BYTES - 1u) byte = 0xf7;
         else {
             unsigned data = pos - (unsigned)sizeof prefix;
             byte = (uint8_t)((values[data / 5u] >> (7u * (data % 5u))) & 127u);

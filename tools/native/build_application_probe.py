@@ -199,6 +199,36 @@ def diagnostic_irq_profile_flags(enabled):
             if receipt["compile_definition"] else [])
 
 
+def diagnostic_cpu_rate_configuration(enabled):
+    if type(enabled) is not bool:
+        raise TypeError("diagnostic CPU-rate option must be a bool")
+    return dict(enabled=enabled, schema=8 if enabled else None,
+                compile_definition="LUNAR_DIAGNOSTIC_CPU_RATE=1" if enabled else None,
+                frame_bytes=49 if enabled else None,
+                packets_per_frame=17 if enabled else None,
+                kernel="fixed integer workload in XIP and .ram_text" if enabled else None,
+                iterations_per_trial=4096 if enabled else None,
+                trials_per_kernel=4 if enabled else None,
+                timing="raw TIMER4 ticks; no CPU frequency interpretation" if enabled else None,
+                starts="post-recovery, pre-platform flash probe" if enabled else None,
+                register_writes=False, hardware_tested=False)
+
+
+def validate_diagnostic_cpu_rate(enabled, runtime_mode, telemetry_explicit,
+                                 song_play, trio_pulse):
+    receipt = diagnostic_cpu_rate_configuration(enabled)
+    if enabled and (runtime_mode != "song-diagnostic" or not telemetry_explicit
+                    or song_play or trio_pulse):
+        raise ValueError("CPU-rate calibration requires explicit song-diagnostic telemetry with playback disabled")
+    return receipt
+
+
+def diagnostic_cpu_rate_flags(enabled):
+    receipt = diagnostic_cpu_rate_configuration(enabled)
+    return (["-D" + receipt["compile_definition"]]
+            if receipt["compile_definition"] else [])
+
+
 def render_stage_profile_configuration(enabled):
     if type(enabled) is not bool:
         raise TypeError("render-stage profile option must be a bool")
@@ -590,6 +620,8 @@ def main():
                         help='Opt in to schema-5 producer/display timing reports for prepared song playback')
     parser.add_argument('--diagnostic-irq-profile', action='store_true',
                         help='Opt in to schema-6 IRQ timing reports in song-diagnostic mode; requires telemetry')
+    parser.add_argument('--diagnostic-cpu-rate', action='store_true',
+                        help='Opt in to schema-8 fixed-work XIP/SRAM raw-tick comparison; no CPU-frequency claim')
     parser.add_argument('--diagnostic-clock-snapshot', action='store_true',
                         help='Report raw post-platform clock registers; no clock changes or MHz claim')
     parser.add_argument('--render-stage-profile', action='store_true',
@@ -682,6 +714,9 @@ def main():
             args.diagnostic_song_play)
         irq_profile_receipt = validate_diagnostic_irq_profile(
             args.diagnostic_irq_profile, args.runtime_mode, args.diagnostic_telemetry)
+        cpu_rate_receipt = validate_diagnostic_cpu_rate(
+            args.diagnostic_cpu_rate, args.runtime_mode, args.diagnostic_telemetry,
+            args.diagnostic_song_play, args.diagnostic_trio_pulse)
         engine_render_profile_receipt = validate_engine_render_profile(
             args.diagnostic_engine_render_profile, args.runtime_mode,
             args.diagnostic_telemetry, args.render_stage_profile,
@@ -803,6 +838,7 @@ def main():
     flags += diagnostic_telemetry_flags(telemetry_enabled)
     flags += diagnostic_producer_gaps_flags(args.diagnostic_producer_gaps)
     flags += diagnostic_irq_profile_flags(args.diagnostic_irq_profile)
+    flags += diagnostic_cpu_rate_flags(args.diagnostic_cpu_rate)
     flags += render_stage_profile_flags(args.render_stage_profile)
     flags += engine_render_profile_flags(args.diagnostic_engine_render_profile)
     if args.diagnostic_clock_snapshot:
@@ -987,6 +1023,8 @@ def main():
         report["diagnostic_producer_gaps"] = producer_gap_receipt
     if args.diagnostic_irq_profile:
         report["diagnostic_irq_profile"] = irq_profile_receipt
+    if args.diagnostic_cpu_rate:
+        report["diagnostic_cpu_rate"] = cpu_rate_receipt
     if args.diagnostic_clock_snapshot:
         report["diagnostic_clock_snapshot"] = clock_snapshot_receipt
     if args.render_stage_profile:
