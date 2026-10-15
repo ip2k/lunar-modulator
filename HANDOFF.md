@@ -1,4 +1,28 @@
-## Exact162 candidate constructed; ROM99 not launched — 2026-10-15
+## ROM99 physical comparison complete; ROM101 recovery — 2026-10-15
+
+Goal ACTIVE, real-time/audio/display acceptance FAILED; SAVE disarmed. ROM99
+one-use launcher is CONSUMED: never relaunch. Installed target915131c3 from
+exact16249740; fresh paired backups matched13902c8a,210 changed sectors and
+independent4096-page final readback PASS. Sole boot reply ambiguous, not
+retried; native USB100 appeared. Input-only110s telemetry and180s KA6 capture
+rc0; passive enumeration subsequently showed ROM101. About447.87blocks/s vs
+689.34required,241.47underruns/s; only0.40% throughput improvement. See
+notes/2026-10-15-resampler-ram-physical-results.md and ignored
+scratch/resampler-ram-result/{physical-install,physical-capture,comparison-rom99.json}.
+
+Source c0f138a09eac30ae187cb764617bac7e03df06e9 (hidden Session-grid scan
+optimization) pushed and remote SHA verified. Hera exact c0 target build passed
+all16 shards/link under claim lunar--hidden-session-target-build-20261015,
+including prior0556 RAM changes/getter. App854104B,6540B flash slack,
+.ram_dsp11916B. Await its complete source/build export, root review,
+construct exact candidate and prepare a NEW ROM101 campaign with fresh paired
+reads; do not reuse any old launch script. Offline0556 staging-v3 bundle is
+prepared only, no candidate construction/hardware admission claim. UI final
+independent review found no blocker;43 sequencer tests passed. Next throughput
+investigation is assigned. uv.lock
+remains untouched. This note checkpoint's push must be verified separately.
+
+## Historical: exact162 candidate prepared before consumed ROM99 campaign
 
 Goal ACTIVE; owner cold-boot audio/display acceptance FAILED; SAVE disarmed.
 Root passively observed ROM99 on bench01 port1-1, bus1 dev99. No new install,
