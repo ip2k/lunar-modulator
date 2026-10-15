@@ -34,6 +34,9 @@ static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_IND
 #ifdef LUNAR_DIAGNOSTIC_TELEMETRY
 #include "diagnostic_telemetry.h"
 #endif
+#ifdef LUNAR_DIAGNOSTIC_SONG_PLAY
+#include "diagnostic_song_play.h"
+#endif
 #include "runtime_mode.h"
 #ifdef LUNAR_UART1_MIDI
 #include "midi_stream.h"
@@ -261,6 +264,10 @@ static void app_main(void)
 #ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
     uint32_t pulse_start = 0;
 #endif
+#ifdef LUNAR_DIAGNOSTIC_SONG_PLAY
+    uint32_t song_ready_ms = 0;
+    uint8_t song_play_attempted = 0;
+#endif
     int previous_master = -1;
 #ifdef LUNAR_COMPRESSED_WAVETABLES
     if (lunar_wave_tables_init()) {
@@ -333,6 +340,9 @@ static void app_main(void)
      * queue production are ready; keep the overall runtime deadline unchanged. */
     pulse_start = fm1_ms;
 #endif
+#ifdef LUNAR_DIAGNOSTIC_SONG_PLAY
+    song_ready_ms = fm1_ms;
+#endif
 #ifdef LUNAR_STACK_WATERMARK
     sample_stacks();
     uint32_t last_stack_sample = fm1_ms;
@@ -347,6 +357,13 @@ static void app_main(void)
         }
         refill_audio();
         platform_poll();
+#ifdef LUNAR_DIAGNOSTIC_SONG_PLAY
+        if (lunar_diagnostic_song_play_poll(fm1_ms, song_ready_ms,
+                                           &song_play_attempted) && !app.ui.playing) {
+            fm1_app_button(&app, FM1_BTN_PLAY, 1);
+            fm1_app_button(&app, FM1_BTN_PLAY, 0);
+        }
+#endif
 #ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
         {
             static uint8_t pulse_state;

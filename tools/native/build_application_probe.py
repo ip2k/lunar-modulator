@@ -145,6 +145,20 @@ def diagnostic_telemetry_flags(enabled):
             if receipt["compile_definition"] else [])
 
 
+def validate_diagnostic_song_play(enabled, runtime_mode, startup_project_index,
+                                  telemetry, trio_pulse):
+    if type(enabled) is not bool:
+        raise TypeError("diagnostic song play option must be a bool")
+    if enabled and (runtime_mode != "song-diagnostic" or
+                    startup_project_index is None or not telemetry or trio_pulse):
+        raise ValueError("diagnostic song play requires prepared project startup, "
+                         "song-diagnostic telemetry and no Trio pulse")
+    return dict(enabled=enabled,
+                compile_definition="LUNAR_DIAGNOSTIC_SONG_PLAY=1" if enabled else None,
+                start_ms=2000 if enabled else None,
+                once=enabled, hardware_tested=False)
+
+
 def state_bin_object_index(objects):
     """Find the one cached codec object that a SAVE build must replace."""
     matches = [i for i, path in enumerate(objects)
@@ -331,6 +345,8 @@ def main():
                         help='Opt in to polled UART1/PH8 MIDI input alongside USB MIDI')
     parser.add_argument('--diagnostic-trio-pulse', action='store_true',
                         help='Opt in to one C4 pulse at 3-5s for a content-free Trio diagnostic')
+    parser.add_argument('--diagnostic-song-play', action='store_true',
+                        help='Start the prepared diagnostic song once after 2s of readiness')
     parser.add_argument('--diagnostic-telemetry', action='store_true',
                         help='Opt in to bounded one-second USB-MIDI diagnostic reports; content may be prepared')
     parser.add_argument('--flash-plaits-wavetables', action='store_true',
@@ -402,6 +418,9 @@ def main():
     try:
         telemetry_receipt = validate_diagnostic_telemetry(
             telemetry_enabled, args.runtime_mode)
+        song_play_receipt = validate_diagnostic_song_play(
+            args.diagnostic_song_play, args.runtime_mode, args.startup_project_index,
+            telemetry_enabled, args.diagnostic_trio_pulse)
     except ValueError as error:
         parser.error(str(error))
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
@@ -508,6 +527,8 @@ def main():
              '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft)), runtime_policy['define']]
     flags += project_save_service_flags(args.link_project_save_service)
     flags += native_midi_input_flags(args.enable_trs_midi)
+    if args.diagnostic_song_play:
+        flags += ['-DLUNAR_DIAGNOSTIC_SONG_PLAY=1']
     flags += diagnostic_telemetry_flags(telemetry_enabled)
     flags += trio_diagnostic_pulse_flags(args.diagnostic_trio_pulse)
     if args.startup_set_index is not None:
@@ -669,6 +690,7 @@ def main():
                   project_save_service=save_service_receipt,
                   native_midi_input=native_midi_receipt,
                   diagnostic_telemetry=telemetry_receipt,
+                  diagnostic_song_play=song_play_receipt,
                   diagnostic_trio_pulse=trio_pulse_receipt,
                   state_bin_codec=state_bin_codec,
                   probe_return_to_rom_seconds=runtime_policy['return_to_rom_seconds'], hardware_candidate=False,
