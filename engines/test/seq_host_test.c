@@ -634,6 +634,8 @@ static void uids_and_refusals(void) {
 typedef struct {
   int write;
   uint32_t ticks, begins, events, locks;
+  uint32_t begin_bpm_x100;
+  int begin_playing;
   uint32_t ev_frame[32];
   uint8_t ev_kind[32], ev_to_engine[32];
   fm1_seq_hook_write_t w[2];
@@ -643,9 +645,9 @@ static uint32_t h_begin(void *ctx, uint32_t frames, const fm1_engine_t *e, uint3
   fake_hook_t *f = (fake_hook_t *)ctx;
   (void)frames;
   (void)e;
-  (void)bpm;
-  (void)playing;
   ++f->begins;
+  f->begin_bpm_x100 = bpm;
+  f->begin_playing = playing;
   return 0;
 }
 static void h_event(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_engine) {
@@ -675,6 +677,78 @@ static uint32_t h_tick(void *ctx, uint32_t frame, const fm1_seq_hook_write_t **w
   f->w[1].value = 1.5f;
   *w = f->w;
   return f->write && frame == 32u ? 2u : 0u;
+}
+
+/* Compare the small post-advance getter both with the full info API and with
+ * the values the real slots hook passes to begin. */
+static void tempo_playing_hook_matches(fm1_seq_host_t *h, uint32_t expected_bpm,
+                                       int expected_playing) {
+  fm1_seq_info_t info;
+  fm1_seq_hook_t hook;
+  fake_hook_t fh;
+  uint32_t bpm = 0;
+  int playing = -1;
+  fm1_seq_get_info(h->seq, &info);
+  fm1_seq_get_tempo_playing(h->seq, &bpm, &playing);
+  CHECK(bpm == info.bpm_x100 && playing == info.playing);
+  CHECK(bpm == expected_bpm && playing == expected_playing);
+
+  memset(&hook, 0, sizeof(hook));
+  memset(&fh, 0, sizeof(fh));
+  hook.ctx = &fh;
+  hook.begin = h_begin;
+  hook.event = h_event;
+  hook.lock = h_lock;
+  hook.tick = h_tick;
+  fm1_seq_host_dispatch_slots_ticks(h, BLOCK, NULL, 0, &hook);
+  CHECK(fh.begins == 1 && fh.begin_bpm_x100 == bpm && fh.begin_playing == playing);
+}
+
+/* The optimized hook getter must stay equal to full info after tempo edits,
+ * local and MIDI transport, and a song Stop that takes effect at a bar edge. */
+static void tempo_playing_getter(void) {
+  static const char song_setup[] =
+      "bpm 30000;clipsel 0 0;loop 0 0 16;tog 0 0 60 100;sgins 0 0 1;sgend 2";
+  fm1_seq_host_t h;
+  uint32_t k;
+  int was_playing = 0, stopped_on_boundary = 0;
+
+  fm1_seq_host_init(&h, make(mem_text), ev_text, CAP);
+  tempo_playing_hook_matches(&h, 12000u, 0);      /* initial stopped state */
+  CHECK(fm1_seq_host_line(&h, "bpm 12345", 9) <= CAP);
+  (void)fm1_seq_host_advance(&h, BLOCK);
+  tempo_playing_hook_matches(&h, 12345u, 0);
+  CHECK(fm1_seq_host_line(&h, "play", 4) <= CAP);
+  (void)fm1_seq_host_advance(&h, BLOCK);
+  tempo_playing_hook_matches(&h, 12345u, 1);
+  CHECK(fm1_seq_host_midi_transport(&h, 0xFCu) <= CAP);
+  (void)fm1_seq_host_advance(&h, BLOCK);
+  tempo_playing_hook_matches(&h, 12345u, 0);
+  CHECK(fm1_seq_host_midi_transport(&h, 0xFBu) <= CAP);
+  (void)fm1_seq_host_advance(&h, BLOCK);
+  tempo_playing_hook_matches(&h, 12345u, 1);
+  CHECK(fm1_seq_host_line(&h, "bpm 20000", 9) <= CAP);
+  (void)fm1_seq_host_advance(&h, BLOCK);
+  tempo_playing_hook_matches(&h, 20000u, 1);
+  CHECK(fm1_seq_host_line(&h, "stop", 4) <= CAP);
+  (void)fm1_seq_host_advance(&h, BLOCK);
+  tempo_playing_hook_matches(&h, 20000u, 0);
+
+  fm1_seq_host_init(&h, make(mem_text), ev_text, CAP);
+  CHECK(fm1_seq_host_line(&h, song_setup, sizeof(song_setup) - 1u) <= CAP);
+  CHECK(fm1_seq_host_line(&h, "play", 4) <= CAP);
+  (void)fm1_seq_host_advance(&h, BLOCK);
+  tempo_playing_hook_matches(&h, 30000u, 1);
+  for (k = 0; k < 1000u; ++k) {
+    fm1_seq_info_t info;
+    (void)fm1_seq_host_advance(&h, BLOCK);
+    fm1_seq_get_info(h.seq, &info);
+    if (was_playing && !info.playing) stopped_on_boundary = 1;
+    was_playing = info.playing;
+    tempo_playing_hook_matches(&h, 30000u, info.playing);
+    if (stopped_on_boundary) break;
+  }
+  CHECK(stopped_on_boundary);
 }
 
 static void hooked_block(void) {
@@ -1121,6 +1195,7 @@ int main(void) {
   slots();
   hooked_slots();
   no_buffer();
+  tempo_playing_getter();
   midi_transport_pause_resume();
   printf("{\"ok\":%s,\"events\":%llu,\"sink_calls\":%llu,\"splits\":%llu}\n", failed ? "false" : "true",
          (unsigned long long)events, (unsigned long long)calls, (unsigned long long)inside);

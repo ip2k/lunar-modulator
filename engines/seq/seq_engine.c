@@ -2112,6 +2112,11 @@ void fm1_seq_get_info(const fm1_seq_t *s, fm1_seq_info_t *i) {
   }
 }
 
+void fm1_seq_get_tempo_playing(const fm1_seq_t *s, uint32_t *bpm_x100, int *playing) {
+  if (bpm_x100) *bpm_x100 = s->bpm_x100;
+  if (playing) *playing = s->playing;
+}
+
 int fm1_seq_song_entry(const fm1_seq_t *s, uint8_t e, fm1_seq_song_entry_t *out) {
   unsigned at = 0, k = 0, scene, reps;
   uint32_t bar = 0;

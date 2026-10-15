@@ -386,6 +386,10 @@ typedef struct fm1_seq_stats {
 
 void fm1_seq_get_info(const fm1_seq_t *s, fm1_seq_info_t *out);
 
+/* The current post-advance tempo and transport state for audio hooks. Unlike
+ * fm1_seq_get_clock(), this reads the state after the most recent advance. */
+void fm1_seq_get_tempo_playing(const fm1_seq_t *s, uint32_t *bpm_x100, int *playing);
+
 /* One song entry, for the Song page's rows and the song's length. A
  * scene's length is its longest clip rounded up to whole bars, at least one
  * (Movy's); an entry lasts bars x presses. */
