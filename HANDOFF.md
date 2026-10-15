@@ -1,3 +1,12 @@
+## Producer-gap candidate constructed; physical campaign not yet launched
+
+Private candidate bc593f95…fb566 constructed and verified offline;209 changed
+sectors/211 allowed against retained current3571d214…5fbbb, none outside allowlist.
+No new flash or boot. Raw/compat receipts kept separate; original input sidecars
+verified. Evidence and exact hashes: notes/2026-10-15-producer-gap-trial.md.
+Final runner review/preflight pending, then fresh paired ROM87 reads required.
+User cold-boot listening still FAILED; SAVE disarmed; goal ACTIVE.
+
 ## Cold boot reproduced starvation; startup clock snapshots match
 
 Owner physically power cycled installed prior target3571d214…5fbbb and reports
