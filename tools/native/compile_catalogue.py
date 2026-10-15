@@ -11,14 +11,18 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def optimization_overrides(base_opt, hot_dsp_os=False):
-    """Explicit experiment: keep -Oz except for the measured sixop/Hall units."""
-    if type(hot_dsp_os) is not bool:
-        raise TypeError('hot DSP optimization option must be a bool')
+def optimization_overrides(base_opt, hot_dsp_os=False, hot_dsp_hall_o2=False):
+    """Return exact opt-in per-TU overrides for bounded DSP experiments."""
+    if type(hot_dsp_os) is not bool or type(hot_dsp_hall_o2) is not bool:
+        raise TypeError('Hot DSP optimization options must be bools')
     if base_opt not in ('s', 'z'):
         raise ValueError('Catalogue base optimization must be s or z')
-    if hot_dsp_os and base_opt != 'z':
-        raise ValueError('Hot DSP -Os requires a -Oz base catalogue')
+    if hot_dsp_os and hot_dsp_hall_o2:
+        raise ValueError('Choose only one hot DSP optimization profile')
+    if (hot_dsp_os or hot_dsp_hall_o2) and base_opt != 'z':
+        raise ValueError('Hot DSP experiments require a -Oz base catalogue')
+    if hot_dsp_hall_o2:
+        return {'our/src/mi_sixop.o': '-Os', 'our/src/fx_hall.o': '-O2'}
     return ({'our/src/mi_sixop.o': '-Os', 'our/src/fx_hall.o': '-Os'}
             if hot_dsp_os else {})
 
@@ -54,6 +58,9 @@ def main():
     parser.add_argument('--hot-dsp-os', action='store_true',
                         help='Explicit experiment: -Os for sixop/Hall with --opt z; '
                         'does not establish hardware performance')
+    parser.add_argument('--hot-dsp-hall-o2', action='store_true',
+                        help='Harness-only experiment: SixOp -Os and Hall -O2 over -Oz; '
+                        'not a firmware performance or acceptance claim')
     parser.add_argument('--hot-dsp-ram', action='store_true',
                         help='Explicit experiment: place selected sixop/Hall/limiter render bodies in RAM')
     parser.add_argument('--shared-resampler', action='store_true',
@@ -66,7 +73,7 @@ def main():
                         help='Emit pinned-toolchain bitcode for cross-unit optimization')
     args = parser.parse_args()
     try:
-        overrides = optimization_overrides(args.opt, args.hot_dsp_os)
+        overrides = optimization_overrides(args.opt, args.hot_dsp_os, args.hot_dsp_hall_o2)
     except ValueError as error:
         parser.error(str(error))
     inputs = source_manifest(ROOT)
@@ -132,6 +139,7 @@ def main():
               'gpl_mods': 1, 'modules': 'all', 'closed_sdk_archives': [],
               'optimization': '-O' + args.opt, 'lto': args.lto,
               'optimization_overrides': overrides,
+              'hot_dsp_hall_o2': args.hot_dsp_hall_o2,
               'hot_dsp_ram': args.hot_dsp_ram,
               'shared_resampler': args.shared_resampler,
               'indexed_tft': args.indexed_tft,
