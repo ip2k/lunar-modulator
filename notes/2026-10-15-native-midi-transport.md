@@ -33,3 +33,16 @@ linked. Private evidence is on Hera at
 `/home/claude/mvave-fm1/song-midi-link-6d971bf-20261015`.
 Independent read-only receipt review found no EH+SET policy mismatch. This
 remains a private diagnostic build, not hardware-admitted/installable firmware.
+
+[verified] Offline candidate reconstruction on bench01 produced target SHA256
+0903762167a1dd9877c190e3b67e6657cfe4c5f7227af65d327456f73f8ba4fe;
+209 sectors differ from the last installed diagnostic. `_check_build` accepted
+its exact EH+SET frozen receipts before candidate construction. No new device
+command was issued at this stage. The completed-install gate rejected an old
+source hash for the policy expanded in c66d28b9. Independent review confirmed
+that update preserves the Trio branch and strictly binds the EH+SET branch.
+Updated both adapter and boot dependency hashes, including the adapter hash
+in the boot gate. All 33 policy/adapter/boot tests pass; a new test checks every
+real boot dependency hash and rejects a tampered policy copy. No safety check
+was removed. The pending ROM63 campaign remains one-use, with fresh paired
+reads required before writes and SAVE disarmed.

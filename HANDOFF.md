@@ -5022,3 +5022,19 @@ review pass. Evidence `/home/claude/mvave-fm1/song-midi-link-6d971bf-20261015`.
 Passive bench enumeration confirms ROM63 at1-1, KA6dev51, Pico38; no new device
 command sent. Preparing fresh candidate and passive full-song capture; no
 physical transport/song acceptance. SAVE disarmed, overall goal ACTIVE.
+
+## MIDI transport / song candidate preflight, 2026-10-15 UTC
+
+MIDI Start/Stop/Continue implementation and real-app FIFO regression are backed
+up at c1934edf1c3d2b3f77e6f33c41dffbe1cb08ffe0. Hera's source6d971bf
+all13/54-module EH+SET diagnostic links at849276bytes (11368spare).
+Private candidate0903762167a1dd9877c190e3b67e6657cfe4c5f7227af65d327456f73f8ba4fe
+and exact input template are at bench01:/home/claude/fm1-song-midi-6d971bf-20261015.
+Offline `_check_build` and candidate construction passed. Preflight caught stale
+source hashes in generic diagnostic adapters; reviewed update plus33tests pass.
+No ROM63 device read/write/boot has occurred in this checkpoint. Next: finish
+independent passive-capture helper/runner review, freeze runtime hashes, fresh
+paired reads of current22216472,209-sector directory-last install/readback and
+passive EH audio/telemetry. Test MIDI transport separately afterward. SAVE,
+physical song acceptance, recovery and web installer release remain open; goal
+ACTIVE. Branch feature/2026-10-11@installable-firmware, commit/push follows.

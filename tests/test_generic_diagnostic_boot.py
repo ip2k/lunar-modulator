@@ -209,3 +209,18 @@ def test_completion_first_reset_sends_exact_fc0c_once(monkeypatch):
                       "boot_observed": False}
     assert [event for event, _ in calls].count("ioctl") == 1
     assert reset.consumed and reset.ioctl_attempts == 1
+
+
+def test_real_source_pins_and_tamper_refusal(tmp_path, monkeypatch):
+    evidence = boot._source_evidence()
+    assert len(evidence) == len(boot.SOURCE_PINS) + 1
+    # Exercise real hashes against a private copy; no transport is constructed.
+    for name in boot.SOURCE_PINS:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes((boot.ROOT / name).read_bytes())
+    monkeypatch.setattr(boot, "ROOT", tmp_path)
+    boot._source_evidence()
+    (tmp_path / "native/generic_diagnostic_flash.py").write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="Reviewed install/reset source changed"):
+        boot._source_evidence()
