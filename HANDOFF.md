@@ -1,3 +1,20 @@
+## Offline calibration candidate and UI codegen review — 2026-10-15
+
+Goal ACTIVE; cold-boot audio/display acceptance still FAILED; SAVE disarmed.
+CPU schema8 offline candidate built at scratch/cpu-rate-calibration-deployment,
+target5b3ebc0b, compat52b12ee4. Current-image/fresh-read/ROM binding remain unset;
+this is not device admission. Root reran CPU seal/constructor6 and runtime export2
+tests:8 PASS. Limiter matched target23150dca independently differs from current
+f3a9 in210 allowed sectors, with protected regions equal; package still pending.
+Read-only bench refresh again shows ROM107 at port1-1. No device write/reset/boot.
+Target UI single-TU comparison: compact snapshot saves440B stack but adds152B,
+51 instructions and2 calls; LTO object grows840B. Full-copy oracle matches a503
+byte-for-byte. No runtime speed claim, and compactUI remains out of limiter test.
+Report: primary-checkout scratch/seq-ui-snapshot-codegen/result.md;
+shared Hera handoff lunar--seq-ui-snapshot-codegen-20261015.md. Source unchanged.
+Next: complete root-reviewed limiter package, fresh paired reads, one-use capture;
+then separate CPU-rate measurement. Last pushed root7831e503; uv.lock untouched.
+
 ## Calibration provenance and compact UI integrated — 2026-10-15
 
 Goal ACTIVE; owner cold-boot audio/display acceptance FAILED; SAVE disarmed.

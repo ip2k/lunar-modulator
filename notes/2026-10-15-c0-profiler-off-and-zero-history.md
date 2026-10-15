@@ -214,3 +214,31 @@ No flash, reset, MIDI stimulus or boot was issued during these checks.
 Physical image remains f3a9… and its most recently observed recovery device
 is ROM107. The forthcoming limiter campaign still needs the coordinator's
 complete package review, live binding refresh and fresh paired flash reads.
+
+## Additional offline review
+
+[verified: offline construction and tests] The separate CPU diagnostic candidate
+is `5b3ebc0b4a1672662137677bb08de5017c17319ebc25290a676d548654dfa7aa`.
+Its compatibility receipt is
+`52b12ee4e828c7b8c309ebaf7bafe1107b0f586dfb1267fa4a01c76a8e192b05`.
+The fresh-read, current-image and ROM fields remain unbound. Root reran six
+seal/constructor tests plus two runtime-export tests: eight passed. No physical
+CPU measurement, admission or boot follows from these results.
+
+[verified: target compiler comparison, not runtime timing] A bounded pi32v2
+single-translation-unit comparison of compact UI snapshot e3657775 against
+a503b6ce reduces stack reservation from 1,612 to 1,172 bytes but grows the
+sync function from 2,228 to 2,380 bytes, 727 to 778 instructions and 15 to 17
+calls. The LTO object grows 840 bytes. The full-copy oracle object matches the
+original a503 object byte-for-byte. This is a demonstrated stack tradeoff,
+with no demonstrated speedup; the matched limiter image excludes this change.
+Private report: primary checkout `scratch/seq-ui-snapshot-codegen/result.md`,
+SHA256 `8d28a862a37fe84ce44a1ba4484b616721000fb52c7dd9cc6152a5f313d9cd43`.
+
+[verified: independent candidate comparison] The pending matched limiter target
+`23150dca74404733e377a9c5c74ff883bfa2ef09d67b1f84c0650ccbd9474409`
+differs from installed f3a9 in 210 allowed 4KiB sectors. Protected regions
+remain byte-identical. This distinct current-to-target count does not replace
+the 211-sector stock-baseline allowlist. Fresh paired reads and complete
+campaign review remain required before any write. A read-only sysfs refresh
+still shows ROM107, bus1/port1-1; no new device command was issued.
