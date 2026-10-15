@@ -5554,3 +5554,28 @@ The source regression binds the annotation to the exact buffer-array signature.
 All 63 focused builder/candidate/adapter/boot checks pass. Fresh target build,
 actual compute-body RAM placement review and subsequent physical evidence are
 still required. DSP arithmetic is unchanged; no performance claim is made.
+
+
+### Corrected buffer-array target build completed
+
+[verified: build outputs] Source d8586ae89f54cd266b2a42a8f45ad8976347244c
+was pushed and remote SHA verified. Its fresh sixteen-shard Hera build completed;
+all ten frozen output hashes rechecked locally. Private evidence archive
+scratch/hot-ram-build/fm-buffers-d8586ae8-evidence.tar is 27,473,920 bytes,
+SHA256 963fbee881037eeca78e46755af60a68fb62b6e225dc908e9adcdcab5f594ec1.
+Extracted evidence: scratch/hot-ram-fm-buffers-result/.
+The buffer-array Render symbol is now RAM 0x01c00544, size 710 bytes;
+compiler optimization changes its size relative to the prior XIP copy.
+Total .ram_dsp is 4,524 bytes, ending 0x01c016f0 below 0x01c06000;
+app is 852,688 bytes. Calls into XIP remain. This is placement evidence,
+not proof that all expensive work is in RAM or that audio starvation is solved.
+Independent linked-code review is pending. Exact-source default/opt-in host
+SixOp reference checks passed; report scratch/native-hot-dsp-ram/fm-buffers-host-checks/report.md.
+No corrected-image physical write yet; fresh candidate admission/compatibility
+binding and a separately reviewed campaign are next after linked-code review.
+Bench device last observed in ROM83. SAVE remains disarmed and release unaccepted.
+
+[verified: tests] MIDI parser/USB/UART/input integration checks again pass37tests.
+Existing transport accepts FA Start (rewind), FC Stop (pause/gate release),
+FB Continue (resume); exact FA rewind and TRS physical acceptance still pending.
+F8 clock synchronization is separate. Goal remains active.
