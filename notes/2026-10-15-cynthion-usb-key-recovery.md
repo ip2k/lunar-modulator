@@ -217,3 +217,15 @@ loopback acceptance passes as recorded above.
 
 The recovery signal is implemented from the documented protocol and existing
 project model; do not copy the unlicensed third-party Pico gist.
+
+## Backup admission timing checkpoint
+
+[verified: source review and integration tests] Integration9e85c1da retains
+exact gateware/build pins and start/upload/key/status/enumeration ordering,
+but applies the120-second freshness checks to the physical key action and ROM
+enumeration rather than elapsed FPGA preparation time. A previously loaded
+image may precede a fresh owner action; a stale action or enumeration is still
+rejected. Cold adapter SHA-256:
+`9a6ea5583c985a1c2d0604f0bb5ddc4692ebafcb046d5ba36b61000c1326cc1c`.
+Combined focused integration suite:100 passed,43 upstream warnings. Physical
+key action, actual ROM enumeration and paired backup remain pending.
