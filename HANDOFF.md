@@ -1,3 +1,29 @@
+## Exact162 candidate constructed; ROM99 not launched — 2026-10-15
+
+Goal ACTIVE; owner cold-boot audio/display acceptance FAILED; SAVE disarmed.
+Root passively observed ROM99 on bench01 port1-1, bus1 dev99. No new install,
+boot or reset this segment. Exact162 candidate915131c38619a652bd120af68bd89c050e0a45820f0b8c5eb1e004d2fae0fdb5
+constructed offline at /home/claude/fm1-resampler-ram-16249740-20261015;
+candidate receipt4944be9f, templateae38d650. Historical installed13902c8a
+comparison shows210 changed sectors, all within211-sector allowlist, protected
+[0,0x4000) and[0xd7000,0x100000) equal. Fresh paired-read admission still required.
+V7 staged source/build/tools inventories verified. V8 two-file correction fixes
+actual tools-manifest schema; original v7 payloads preserved. Root independently
+reran9 tests and bench runtime verifier175files PASS, then constructor PASS.
+V8 runtime verifiera481258f; constructor2f760e06. Full root evidence in ignored
+scratch/resampler-ram-deployment/construction-root-evidence.json. Corrected local
+scaffold removes circular hash dependency and retains external campaign+selfhash
+checks. New final binding assigned; root still must review/stage/file-preflight
+and separately decide sole one-use launch. Never use contaminated bound-rom99.
+
+Offline exact725 getter target passed16shards/link; exact20f9 RAMtables passed
+16shards/link with coefficient bytes unchanged and .ram_dsp9784B. New0556c503
+stage1RAM target passed16shards/link, .ram_dsp11916B and11312B remaining; source
+and target evidence in notes/2026-10-15-resampler-stage1-ram.md. None is hardware
+performance proof. HEAD7a3fa3d8 docs follow-up plus0556c503 are not yet backed
+up to GitHub: github.com DNS failure. Source0556c503 independently seeded Hera
+bare. Root must retry explicit feature-branch push and verify SHA. uv.lock untouched.
+
 ## Performance follow-ups and ROM99 preparation
 
 Goal ACTIVE; audio/display acceptance FAILED; SAVE disarmed. Physical device
