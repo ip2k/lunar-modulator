@@ -47,6 +47,8 @@ def test_disconnected_selftest_terminates_without_entering_key_state():
             assert ctx.get(dut.dm_o) == ((expected_state >> 1) & 1)
             assert ctx.get(dut.dp_oe) == 1
             assert ctx.get(dut.dm_oe) == 1
+            ctx.set(dut.pad_dp_i, expected_state & 1)
+            ctx.set(dut.pad_dm_i, (expected_state >> 1) & 1)
             ctx.set(dut.line_state_value, expected_state)
             ctx.set(dut.line_state_valid, 1)
             ctx.set(dut.line_state_update, 1)
@@ -74,6 +76,9 @@ def test_disconnected_selftest_terminates_without_entering_key_state():
         assert ctx.get(dut.selftest_observed_valid) == 0b1111
         assert [ctx.get(event_count) for event_count in dut.selftest_step_events] == [1, 1, 1, 1]
         assert [ctx.get(value) for value in dut.selftest_step_observed] == [2, 1, 0, 3]
+        assert [ctx.get(value) for value in dut.selftest_step_gpio] == [
+            0b111010, 0b110101, 0b110000, 0b111111
+        ]
         assert ctx.get(dut.leds) == 0b100000
 
     sim.add_testbench(bench)
@@ -306,6 +311,9 @@ def test_disconnected_walk_collects_all_four_states_after_swapped_rxcmd_mismatch
         assert ctx.get(dut.selftest_observed_valid) == 0b1111
         assert [ctx.get(value) for value in dut.selftest_step_events] == [1, 1, 1, 1]
         assert [ctx.get(value) for value in dut.selftest_step_observed] == observed_values
+        assert [ctx.get(value) for value in dut.selftest_step_gpio] == [
+            0b111010, 0b110101, 0b110000, 0b111111
+        ]
         assert ctx.get(dut.dp_oe) == 0
         assert ctx.get(dut.dm_oe) == 0
 

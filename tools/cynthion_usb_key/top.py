@@ -124,7 +124,7 @@ class CynthionUsbKeyTop(Elaboratable):
             JTAGRegisterInterface(default_read_value=0xBAD0C0DE))
         m.submodules.debug_registers = debug
         debug.add_read_only_register(1, read=0x4C554E52)  # "LUNR"
-        debug.add_read_only_register(2, read=2)           # register layout v2
+        debug.add_read_only_register(2, read=3)           # register layout v3
         status_snapshot = Signal(32)
         status_bits = Cat(core.state, safe_phy.ready, safe_phy.fault,
                           core.selftest_mask, safe_phy.line_state_valid,
@@ -154,6 +154,7 @@ class CynthionUsbKeyTop(Elaboratable):
             8, read=Cat(*core.selftest_step_observed))
         debug.add_read_only_register(9, read=core.selftest_observed_valid)
         debug.add_read_only_register(10, read=0xC6)  # K, J, SE0, SE1, packed
+        debug.add_read_only_register(11, read=Cat(*core.selftest_step_gpio))
 
         for bit in range(6):
             m.d.comb += platform.request("led", bit).o.eq(core.leds[bit])

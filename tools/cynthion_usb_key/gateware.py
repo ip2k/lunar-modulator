@@ -89,6 +89,8 @@ class CynthionUsbKey(Elaboratable):
                                      for i in range(4)]
         self.selftest_step_observed = [Signal(2, name=f"selftest_step_{i}_observed")
                                        for i in range(4)]
+        self.selftest_step_gpio = [Signal(6, name=f"selftest_step_{i}_gpio")
+                                   for i in range(4)]
 
     def elaborate(self, platform):
         m = Module()
@@ -108,6 +110,7 @@ class CynthionUsbKey(Elaboratable):
         selftest_seen = Signal()
         step_events = Array(self.selftest_step_events)
         step_observed = Array(self.selftest_step_observed)
+        step_gpio = Array(self.selftest_step_gpio)
         tx_bit = Signal(range(self.key_bits))
         selftest_value = Signal(2)
         phase = Signal(range(self.bit_cycles))
@@ -182,6 +185,10 @@ class CynthionUsbKey(Elaboratable):
                     with m.If(step_events[index] != 0xFF):
                         d += step_events[index].eq(step_events[index] + 1)
                     d += [step_observed[index].eq(self.line_state_value),
+                          step_gpio[index].eq(Cat(
+                              self.pad_dp_i, self.pad_dm_i, self.dp_o, self.dm_o,
+                              self.dp_oe & self.phy_isolated,
+                              self.dm_oe & self.phy_isolated)),
                           self.selftest_observed_valid[index].eq(1)]
 
         # Pad state selection is combinationally masked by all three gates.
@@ -226,7 +233,8 @@ class CynthionUsbKey(Elaboratable):
                           self.selftest_failure_gpio.eq(0),
                           self.selftest_observed_valid.eq(0)]
                     for index in range(4):
-                        d += [step_events[index].eq(0), step_observed[index].eq(0)]
+                        d += [step_events[index].eq(0), step_observed[index].eq(0),
+                              step_gpio[index].eq(0)]
             with m.Case(self.SELFTEST):
                 with m.If(~permitted):
                     d += [self.state.eq(self.FAULT),
