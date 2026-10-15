@@ -12,12 +12,12 @@ build with the switch off compiles none of it (`tests/test_gpl_switch.py`).
 | What it is | Felucca is open firmware for the M-VAVE FM-1 by **Leo Kuroshita (@kurogedelic), Hügelton Instruments**, bare metal, integer DSP. These are three of its fourteen engines, all of its own design: **WHEEL**, a tonewheel-style additive organ (nine drawbar partials, 16 registrations, percussion, key click, drive, a two-rotor rotary); **TRIO**, three oscillators with ring modulation and hard sync into a gritty 12 dB multimode filter, in the style of the sound chips of early 8-bit home computers; **PHASE**, phase distortion, a C port of the oscillator of **CrispyZebra** (<https://github.com/hugelton/CrispyZebra>, the same author's, GPL-3.0). `core.h` holds the types they share, `dsp.c` the fixed-point blocks they use, `voice.c` the voice code that drives them on the device, and `LICENSING.md` is Felucca's own account of its licences |
 | Licence | `GPL-3.0-only` (every source file's SPDX line; `LICENSE` is the GPL version 3 as the FSF publishes it) |
 | Copied by | `vendor.py` (`--check` compares every file, and runs `tools/gen_tables.py` again to compare `gen/upstream_engine_tables.h`) |
-| Local changes | **None.** Every file is upstream's, byte for byte |
+| Local changes | `core.h`: feature macros use `LUNAR_SLICE` and `LUNAR_FM4`; defaults and expressions are unchanged. `vendor.py` applies this deterministic adaptation before copying or checking. All other imported source bytes are unchanged |
 | Generated | `gen/upstream_engine_tables.h`: the output of upstream's own `tools/gen_tables.py` at that commit, as Felucca's build makes it (its `tools/build.py` and `tests/run_tests.sh` write it to `build/gen/`), committed so that no build here needs Python. Its tables are for 44,100 Hz and a 32-sample control block |
 | Used by | `engines/src/upstream_engine_bridge.c`, which includes `core.h`, the tables, `dsp.c` and the three engines as Felucca's `felucca.c` does, and `engines/src/upstream_engine_shim.cc` above it: the sound engines **Drawbar** (`drawbar`, WHEEL), **Trio** (`trio`, TRIO) and **Phase Bend** (`phase-bend`, PHASE), built through `engines/mk/upstream_engines.mk` only while the switch is on. `voice.c` is used only by the test oracle `fm1-upstream-engines-oracle` (`engines/test/upstream_engines_oracle.c`), a desktop tool |
 | Not taken | Felucca's other engines (ANALOG, DIGITAL, LOFI, SAMPLE, VOICE, GRAIN, PHYS, DRUM, NOISE, SLICE; FM6 is ours from msfa, with Felucca's `fm6_core.c` as its oracle in `../upstream-fm6/`), its parts, mixer, effects, sequencer, UI, platform and tools, and its sample material. `notes/2026-10-06-fm1-x0x.md` §3 ranks them |
 
-## How the files are compiled (no change to them)
+## How the files are compiled
 
 `engines/src/upstream_engine_bridge.c` makes two definitions around `core.h`, so
 that it compiles off the FM-1 and each of our instances holds its own part;
@@ -81,7 +81,7 @@ voice 92 bytes; an instance of Drawbar 4,976 bytes, of Trio or Phase Bend
 | --- | --- |
 | `LICENSE` | `3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986` |
 | `LICENSING.md` | `7fe37c44120f506c4e5ecc3af92cf3e75aa26eb2c81c178290db36267e7b841a` |
-| `src/core.h` | `1822b8b41853127cd6f21dde363c3627f4dbd234f603618c0feb2dcdd4c02a3c` |
+| `src/core.h` | `5f54b1caf4b44fc6912b40157645e7d941075f0dc8242012d215bcc3b60dfc3b` |
 | `src/dsp.c` | `f3bb643947d1d80e46aeb23985f0f61cefc02c222952a06d79f79153acdf01e7` |
 | `src/eng_wheel.c` | `f82d6e0fe99dec64c477e83db7d70ca774fcbf2764768748eb33295232348b0b` |
 | `src/eng_trio.c` | `7bf65c3662f72dfb893dd8897ef26025ffe551a664c70256e374d826f1fd163a` |
@@ -108,3 +108,5 @@ PHASE and CrispyZebra. "Drawbar", "Trio" and "Phase Bend" are this
 project's names for them (proposed to the owner,
 `notes/2026-10-06-fm1-x0x.md` §6.1; "Trio" is Felucca's own, borrowed with
 thanks as "FM6" was). Felucca's own names appear in credits.
+
+The original upstream `src/core.h` SHA256 is `1822b8b41853127cd6f21dde363c3627f4dbd234f603618c0feb2dcdd4c02a3c`; the Files table records the locally adapted bytes. Only the two feature-macro identifiers and their comment references change.

@@ -854,8 +854,8 @@ handling and factory settings are described below.
 
 !!! note "In builds with the GPL switch on"
     These three engines are GPL-3.0-only. They are included only when the
-    firmware's GPL switch is on: in the simulator while we test, and in a
-    firmware build made for personal use, never in a shared build
+    firmware's GPL switch is on. SDK-free builds may be distributed under
+    the GPL; builds linking incompatible closed SDK libraries may not
     ([chapter 14](14-credits-and-licences.md#licences)).
 
 What the three share:
@@ -991,7 +991,7 @@ Example Phase Bend settings:
 
 These engines are based on Leo Kuroshita's WHEEL, TRIO and PHASE engines
 in Felucca by Hügelton Instruments. The upstream engine sources are
-incorporated unmodified under GPL-3.0-only. The example settings above use
+incorporated under GPL-3.0-only with local feature-macro names. The example settings above use
 values from the upstream factory sounds. Phase Bend's oscillator is ported
 from CrispyZebra by Leo Kuroshita. See [chapter 14](14-credits-and-licences.md)
 for upstream credits and licence details.

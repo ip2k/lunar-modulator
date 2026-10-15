@@ -3311,8 +3311,8 @@ used, and no code was taken from it or anywhere. Stereo-linked.
 
 Drawbar, Trio and Phase Bend are Lunar engines derived from Leo Kuroshita's
 WHEEL, TRIO and PHASE engines (Hügelton Instruments; GPL-3.0-only). Their
-unmodified upstream sources are in `third_party/upstream-engines/` (see its
-`UPSTREAM.md`). The GPL switch controls whether they are built
+upstream engine sources are in `third_party/upstream-engines/`; two shared
+header feature macros use local names (see `UPSTREAM.md`). The GPL switch controls whether they are built
 (`FM1_GPL_MODS`, [Build and checks](#build-and-checks);
 `mk/upstream_engines.mk`). See the source table above for attribution and
 licensing. SLICE is not ported yet (below).

@@ -284,7 +284,8 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     ([`engines/README.md`](engines/README.md#crater-kit)).
     **Drawbar**, **Trio** and **Phase Bend** are Lunar engines derived from
     Leo Kuroshita's WHEEL, TRIO and PHASE engines (Hügelton Instruments,
-    GPL-3.0-only). The upstream sources are vendored unmodified in
+    GPL-3.0-only). The upstream sources, with two locally renamed feature
+    macros in the shared header, are vendored in
     `engines/third_party/upstream-engines/` and compiled through our
     `engines/src/upstream_engine_bridge.c` and
     `engines/src/upstream_engine_shim.cc` integration. They retain the

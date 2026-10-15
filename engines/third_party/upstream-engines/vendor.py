@@ -8,7 +8,8 @@ Usage:
 
 UPSTREAM_SOURCE_CHECKOUT is a clone of https://github.com/hugelton/Felucca (any
 commit; the files are read from the commit pinned below with `git show`).
-Nothing is rewritten: every file is upstream's, byte for byte. The one file
+Only core.h's two feature-macro names are adapted to LUNAR_*; other files
+are upstream's, byte for byte. The one file
 made here, gen/upstream_engine_tables.h, is the output of upstream's own
 tools/gen_tables.py at that commit (copied to tools/), run with this
 machine's python3; `--check` runs it again and compares. Felucca's build
@@ -42,6 +43,14 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def local_source(source: str, data: bytes) -> bytes:
+    """Apply only the documented local feature-macro names."""
+    if source == "firmware/src/core.h":
+        for feature in (b"SLICE", b"FM4"):
+            data = data.replace(b"FELUCCA_" + feature, b"LUNAR_" + feature)
+    return data
+
+
 def tables(gen_tables: Path) -> bytes:
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "upstream_engine_tables.h"
@@ -60,6 +69,7 @@ def main() -> int:
     for src, dst in FILES.items():
         data = subprocess.run(["git", "-C", str(checkout), "show", f"{COMMIT}:{src}"],
                               check=True, capture_output=True).stdout
+        data = local_source(src, data)
         here = HERE / dst
         if check:
             if not here.exists() or here.read_bytes() != data:
