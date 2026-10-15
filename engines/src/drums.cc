@@ -702,7 +702,7 @@ class Instance {
     return c.level * w.gain * vel_gain * c.volume * kOutGain;
   }
 
-  void RenderBlock() {
+  FM1_HOT_DSP_RENDER void RenderBlock() {
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     for (int p = 0; p < kNumPads; ++p) {
       if ((ramping_ >> p) & 1u) {
