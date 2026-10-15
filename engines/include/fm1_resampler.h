@@ -50,6 +50,18 @@
 
 #include <stdint.h>
 
+/* The trusted render path is called after its owner has checked readiness.
+ * Keep its FIR body in XIP by default. In the explicit native hot-DSP profile,
+ * outline it into RAM so callers do not execute the 61-pair loop from flash.
+ * Do not add `used`: this is a static header helper, and forcing it into every
+ * translation unit that includes the header would create unused RAM copies. */
+#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM && defined(__ELF__)
+#define FM1_RESAMPLER_POP_READY_PLACEMENT \
+  __attribute__((noinline, section(".ram_dsp")))
+#else
+#define FM1_RESAMPLER_POP_READY_PLACEMENT
+#endif
+
 #define FM1_RESAMPLER_SPAN 12          /* stage-1 kernel width, intermediate samples */
 #define FM1_RESAMPLER_PHASES 128       /* kernel table entries per intermediate sample */
 #define FM1_RESAMPLER_KERNEL_LEN (FM1_RESAMPLER_SPAN / 2 * FM1_RESAMPLER_PHASES + 1)
@@ -388,7 +400,8 @@ static inline float fm1_resampler_intermediate_(fm1_resampler_t *r) {
 
 /* Internal fast path for a caller that has established fm1_resampler_needed(r)
  * == 0 and has not mutated the resampler since that check. */
-static inline float fm1_resampler_pop_ready_(fm1_resampler_t *r) {
+static inline FM1_RESAMPLER_POP_READY_PLACEMENT
+float fm1_resampler_pop_ready_(fm1_resampler_t *r) {
   const float *h = fm1_resampler_lowpass, *e;
   float y0 = 0.0f, y1 = 0.0f, y2 = 0.0f, y3 = 0.0f;
   uint32_t j;
