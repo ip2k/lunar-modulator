@@ -491,17 +491,23 @@ int fm1_seq_ui_rec_led(const fm1_seq_ui_t *u, uint64_t frame, int held) {
 
 /* ---- tracks and mute (S6) -------------------------------------------------------- */
 
-/* The focused track's route and its clip's settings, and every track's
- * mute, as the core holds them now. */
-static void read_track(fm1_seq_ui_t *u, const fm1_seq_t *s) {
+static void read_mute_mask(fm1_seq_ui_t *u, const fm1_seq_t *s) {
   fm1_seq_track_info_t tr;
-  fm1_seq_clip_info_t c;
   u->muted = 0;
+#ifdef FM1_SEQ_UI_TEST_MUTE_MASK_SCAN_COUNT
+  extern unsigned fm1_seq_ui_test_mute_mask_scans;
+  ++fm1_seq_ui_test_mute_mask_scans;
+#endif
   for (unsigned t = 0; t < u->tracks && t < 16u; ++t) {
     if (fm1_seq_get_track(s, (uint8_t)t, &tr) && tr.muted) {
       u->muted = (uint16_t)(u->muted | (1u << t));
     }
   }
+}
+
+static void read_focused_track(fm1_seq_ui_t *u, const fm1_seq_t *s) {
+  fm1_seq_track_info_t tr;
+  fm1_seq_clip_info_t c;
   memset(&tr, 0, sizeof tr);
   memset(&c, 0, sizeof c);
   tr.active = FM1_SEQ_NONE;
@@ -516,6 +522,30 @@ static void read_track(fm1_seq_ui_t *u, const fm1_seq_t *s) {
   u->clip_tr = c.transpose;
 }
 
+/* A direct UI focus read has no generation with which to tag its mute mask.
+ * Keep its immediate value correct and force the next sync to verify it. */
+static void read_track(fm1_seq_ui_t *u, const fm1_seq_t *s) {
+  read_mute_mask(u, s);
+  read_focused_track(u, s);
+  u->muted_valid = 0;
+}
+
+static void read_mute_mask_if_stale(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen) {
+#ifdef FM1_SEQ_UI_DISABLE_MUTE_MASK_CACHE
+  (void)gen;
+  read_mute_mask(u, s);
+#else
+  if (!u->muted_valid || u->muted_seq != s || u->muted_gen != gen ||
+      u->muted_tracks != u->tracks) {
+    read_mute_mask(u, s);
+  }
+  u->muted_seq = s;
+  u->muted_gen = gen;
+  u->muted_tracks = u->tracks;
+  u->muted_valid = 1;
+#endif
+}
+
 static int track_muted(const fm1_seq_ui_t *u, unsigned t) {
   return t < 16u && ((u->muted >> t) & 1u);
 }
@@ -526,6 +556,8 @@ static void set_mute(fm1_seq_ui_t *u, unsigned t, int on, const fm1_seq_ui_emit_
   emit(out, FM1_SEQ_V_MUTE, 2, arg);
   if (on) u->muted = (uint16_t)(u->muted | (1u << t));
   else u->muted = (uint16_t)(u->muted & ~(1u << t));
+  /* The emitter may defer or refuse the command without changing gen. */
+  u->muted_valid = 0;
 }
 
 /* Focus track t: `watch t` (Capture follows the track, and empties), the
@@ -779,7 +811,8 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
   u->swing = i.swing_pct;
   u->dq = i.default_quant;
   u->metro = i.metronome;
-  read_track(u, s);
+  read_mute_mask_if_stale(u, s, gen);
+  read_focused_track(u, s);
   if (u->view == FM1_SEQ_VIEW_SESSION) {
     read_session(u, s);
     u->sess_valid = 1;

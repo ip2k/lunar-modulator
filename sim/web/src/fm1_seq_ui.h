@@ -434,6 +434,11 @@ typedef struct fm1_seq_ui {
                                        the app makes its sound current */
   uint8_t toast_arg;                /* the toast's number: a track, a quantize */
   uint16_t muted;                   /* bit per track */
+  /* The all-track mute mask changes only when the sequencer generation or
+   * instance changes. Focused-track details remain live-read every block. */
+  const fm1_seq_t *muted_seq;
+  uint32_t muted_gen;
+  uint8_t muted_tracks, muted_valid;
   uint16_t swing;                   /* the set's swing, 50..80 % */
   uint8_t dq, metro;                /* its default quantize and metronome */
   uint8_t clip_num, clip_den;       /* the focused clip's speed, */
