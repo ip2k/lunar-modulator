@@ -1,0 +1,44 @@
+# Trio diagnostic telemetry interpretation — 2026-10-15
+
+Review target: source commit `9ec846b0f4745345ab1d4da9700933be48e3d50e`, checked in the active Lunar worktree at `63476ba98b2c9fbd7734fb306686eb6b84c6466a`. This is a source interpretation and next-capture guide, not a reading of a live device capture.
+
+## Timing and audio counters
+
+`firmware/third_party/dinghy/hal/fm1_time.h:6-16,30-33` defines TIMER4 from the 24 MHz crystal and `FM1_TICKS_PER_US=24`. In `firmware/native/app_probe.c:123-135`, `render_ticks_max` is the largest single `fm1_app_render(...,64)` duration, accumulated in raw TIMER4 ticks. `draw_ticks_max` is the largest measured main-loop draw segment (`app_probe.c:391-418`): it includes `fm1_app_draw` and the diagnostic footer fill/text, and excludes the later strip DMA. Convert SysEx values by dividing by 24; the TFT `R/D us` row is already converted (`app_probe.c:398-414`, `firmware/native/realtime_readout.h:6-20`). These are maxima since startup, not averages or per-frame samples.
+
+The app renders 64 frames per queue block; its platform audio callback requests 256 frames and pops four blocks (`app_probe.c:112-120`). At the configured 44,118 Hz (`app_probe.c:273`), one block is about 1,450.66 µs and one 256-frame callback about 5,802.62 µs. The eight-block queue holds about 11.61 ms (`firmware/native/audio_queue.h:11-18`). A render maximum above one block interval is a scheduling-pressure signal, not by itself proof of an audible dropout; correlate it with the **delta** of underruns. `audio_underruns` increments once per missing 64-frame block and supplies a whole silent block without advancing the consumer (`audio_queue.h:47-63`). It is a cumulative missing-block count, not a callback count.
+
+`produced_audio_blocks` is the cumulative producer counter `audio_queue.written` (`app_probe.c:231-236`); compare modular deltas, not it as an instantaneous queue depth. The report samples multiple volatile counters separately, so one SysEx frame is not an atomic snapshot. At steady state, produced blocks should advance at roughly 689.34 blocks/s (44,118/64), subject to startup, pause, and report sampling. A 120-second run should not wrap a uint32 counter.
+
+## MIDI ingress counters
+
+The TFT MIDI row is `Uxxxxx Bxxxxx Nxxxxx Axxxx` (`firmware/native/midi_diagnostic_readout.h:6-24`):
+
+- `U`: cumulative USB messages returned by `midi_get`, whether or not they are note-ons (`app_probe.c:199-217`).
+- `B`: cumulative UART bytes consumed by the parser, not bytes proven to have arrived electrically (`app_probe.c:189-196`). The polled UART count can miss bytes; `fm1_uart.h` documents that limitation. The parser drains at most 32 bytes per main-loop pass.
+- `N`: cumulative accepted, nonzero-velocity Note Ons after status/data and configured-channel filtering, immediately before the app note callback (`app_probe.c:156-175`; `midi_input.h:6-18`). It does not count note-offs or the diagnostic's internal C4 pulse (`app_probe.c:345-352`).
+- `A`: latest direct MASTER ADC sample, separate from the generated platform's existing gain-control path; it is not MIDI activity (`app_probe.c:16`, builder transform in `tools/native/build_application_probe.py:444`).
+
+The shared MIDI filter admits Note Off, Note On, CC and pitch-bend only; channel `0` is omni, otherwise the setting is 1–16 (`midi_input.h:6-18`). `rejected_messages` in SysEx is cumulative filtered/unsupported decoded events, but does not identify the rejection reason. A mismatch between a nonzero configured channel and the sender can therefore show `B` or `U` advancing, `N` flat, and rejects increasing. The default settings schema uses channel 0 (`engines/state/schema/settings.schema.json:17`), but the captured build's actual settings still need binding to its prepared profile.
+
+For a controlled external-note interval, compare adjacent reports using unsigned/modular deltas: UART `B`, USB `U`, accepted `N`, rejected count, underruns and produced blocks. `B=0` is consistent with no bytes consumed, a disabled UART build option, or a receive/poll issue; it is not a wiring verdict. `B>0` with `N=0` narrows the issue to parser completion/validity, channel or message filtering, or stimulus shape; the counters alone cannot distinguish these. `N>0` proves this handler accepted and dispatched Note Ons, not that a particular engine sounded. Compare the controlled external intervals against the internal pulse interval, but do not expect the pulse to increment `N`.
+
+## Stack and report behavior
+
+The SysEx field order and strict decoder are in `firmware/native/diagnostic_telemetry.h:6-30` and `tools/native/diagnostic_telemetry.py:8-42`. Stack fields are `UINT32_MAX`, `UINT32_MAX`, and zero when `LUNAR_STACK_WATERMARK` is absent (`app_probe.c:231-242`). With watermarking enabled, the probe paints known stack regions at entry, samples after app initialization and about once per second, and retains the minimum observed margins (`app_probe.c:41-55,331-357`; `firmware/native/stack_watermark.h:6-24`). Those are observed margins, not worst-case bounds; zero samples or sentinel margins mean unavailable, not a huge stack reserve. Bind interpretation to the exact compile receipt/flag.
+
+The private schema-1 SysEx report is attempted at most once per second. It is omitted when USB is not configured or the MIDI output ring cannot fit the complete 27-packet frame (`app_probe.c:220-247`; encoder `diagnostic_telemetry.h:10-30`). Thus a capture can have gaps even while the app is running. The host decoder's capture format requires complete concatenated frames and rejects malformed/truncated data; it removes interleaved MIDI realtime bytes (`diagnostic_telemetry.py:31-42`). Preserve capture timestamps and boot/build identity separately; the counters do not establish image identity or delivery completeness.
+
+## Offline JSONL analysis
+
+`tools/native/analyze_diagnostic_telemetry.py` consumes the passive recorder's `events.jsonl` without opening MIDI or audio devices. It validates every row's finite nonnegative `elapsed_seconds` and globally nondecreasing monotonic timeline, then requires exact schema-1 keys and uint32 integer values on diagnostic rows. Duplicate JSON keys, blank/malformed rows, invalid values, and inputs over the bounded row/line/file limits are rejected. The focused host suite also exercises a recording emitted by `record_diagnostic_telemetry.py`.
+
+The JSON output retains each diagnostic frame's wall and elapsed timestamps for matching externally timed WAV intervals. It reports `render_max_us` and `draw_max_us` (24 ticks/µs), modular frame-to-frame deltas and interval-average rates for cumulative counters, plus stack margins marked as observed minima or unavailable. Rates are null when two diagnostic frames have equal elapsed timestamps. It counts recorder event types but does not infer missing frames, interpolate event times, align a WAV, or claim that MIDI dispatch produced audible output. USB message and UART byte totals are ingress observations; `accepted_noteons` is the handler's accepted Note On count, not engine or audio acceptance.
+
+Run with `python3 tools/native/analyze_diagnostic_telemetry.py /path/to/events.jsonl`. The analyzer tests passed 17/17 after coordinator review, including an oversized timestamp rejection; the combined telemetry codec/recorder/analyzer suite passed 37 tests in the repository test environment; this validates parsing and calculations only, not a device capture.
+
+## Source-backed silence assessment and limits
+
+The source contains a common application callback for both decoded USB messages and enabled UART-parser events, and accepted Note Ons reach `fm1_app_note_on` (`app_probe.c:156-187,199-217`). This review found no source-confirmed cause that would explain the earlier silent external MIDI observation. Channel mismatch is a concrete, testable filter condition; the UART HAL's polled count limitation is a separate possible blind spot, not evidence it happened. The next capture should therefore correlate timed known-note intervals with `B/U/N/rejected_messages`, audio underrun deltas, and the internal pulse, while retaining raw messages and exact prepared settings. It cannot on its own prove electrical UART reception, audible output, or a specific engine's callback behavior.
+
+Serena/Rarefaction coverage is not claimed for this review: Rarefaction selected the primary Developer checkout rather than the active worktree, and shared MCP state was left untouched. The conclusions above come from direct source inspection at the pinned source commit and are not a target-build or device-performance claim.

@@ -1,0 +1,211 @@
+from __future__ import annotations
+
+import json
+from types import SimpleNamespace
+
+import pytest
+
+from tools.native import analyze_diagnostic_telemetry as analyzer
+from tools.native import diagnostic_telemetry as codec
+from tools.native import record_diagnostic_telemetry as recorder
+
+
+def values(**overrides):
+    result = {name: 0 for name in codec.FIELDS}
+    result.update({
+        "user_stack_margin": 1200,
+        "system_stack_margin": 800,
+        "stack_samples": 2,
+    })
+    result.update(overrides)
+    return result
+
+
+def row(elapsed, data, *, event="diagnostic_frame", **extra):
+    item = {
+        "event": event,
+        "wall_time_utc": "2026-10-15T12:00:00.000+00:00",
+        "elapsed_seconds": elapsed,
+    }
+    if event == "diagnostic_frame":
+        item["values"] = data
+    item.update(extra)
+    return json.dumps(item, separators=(",", ":"))
+
+
+def test_deltas_rates_timing_stack_and_gaps_are_explicit():
+    first = values(
+        uptime_ms=1000, render_ticks_max=2400, draw_ticks_max=4800,
+        audio_underruns=0xFFFFFFFE, usb_messages=10, uart_bytes=20,
+        accepted_noteons=4, rejected_messages=1, produced_audio_blocks=500,
+    )
+    second = values(
+        uptime_ms=3000, render_ticks_max=3600, draw_ticks_max=7200,
+        audio_underruns=1, usb_messages=16, uart_bytes=26,
+        accepted_noteons=5, rejected_messages=3, produced_audio_blocks=1880,
+    )
+    report = analyzer.analyze_jsonl([
+        row(0.0, first),
+        row(0.5, {}, event="unrelated_message", message_type="note_on"),
+        row(2.0, second),
+    ])
+
+    before, after = report["frames"]
+    assert report["diagnostic_frame_count"] == 2
+    assert report["event_counts"] == {"diagnostic_frame": 2, "unrelated_message": 1}
+    assert before["render_max_us"] == 100
+    assert before["draw_max_us"] == 200
+    assert before["counter_deltas"] is None
+    assert after["elapsed_since_previous_frame_seconds"] == 2.0
+    assert after["counter_deltas"] == {
+        "uptime_ms": 2000,
+        "audio_underruns": 3,
+        "usb_messages": 6,
+        "uart_bytes": 6,
+        "accepted_noteons": 1,
+        "rejected_messages": 2,
+        "produced_audio_blocks": 1380,
+    }
+    assert after["counter_rates_per_second"]["audio_underruns"] == 1.5
+    assert after["counter_rates_per_second"]["accepted_noteons"] == 0.5
+    assert after["stack"]["user"] == {
+        "bytes": 1200,
+        "status": "observed_minimum_not_worst_case",
+    }
+    assert after["counter_rates_per_second"]["produced_audio_blocks"] == 690
+    assert report["expected_audio_blocks_per_second"] == 44118 / 64
+
+
+def test_stack_sentinel_and_zero_samples_are_unavailable():
+    sample = values(user_stack_margin=0xFFFFFFFF, system_stack_margin=0xFFFFFFFF,
+                    stack_samples=0)
+    report = analyzer.analyze_jsonl([row(0, sample)])
+    stack = report["frames"][0]["stack"]
+    assert stack["user"] == {"bytes": None, "status": "unavailable"}
+    assert stack["system"] == {"bytes": None, "status": "unavailable"}
+
+
+def test_equal_monotonic_timestamps_have_null_rate_not_division_or_invention():
+    first = values(usb_messages=5)
+    second = values(usb_messages=7)
+    report = analyzer.analyze_jsonl([row(1.0, first), row(1.0, second)])
+    frame = report["frames"][1]
+    assert frame["elapsed_since_previous_frame_seconds"] == 0
+    assert frame["counter_deltas"]["usb_messages"] == 2
+    assert frame["counter_rates_per_second"]["usb_messages"] is None
+
+
+@pytest.mark.parametrize("bad_elapsed", [True, -0.1, float("inf"), float("nan"), "1.0", 10**1000])
+def test_rejects_invalid_elapsed_timestamps(bad_elapsed):
+    with pytest.raises(ValueError, match="elapsed_seconds"):
+        analyzer.analyze_jsonl([row(bad_elapsed, values())])
+
+
+def test_rejects_elapsed_time_regression_even_across_unrelated_events():
+    with pytest.raises(ValueError, match="moved backwards"):
+        analyzer.analyze_jsonl([
+            row(2.0, values()),
+            row(1.5, {}, event="unrelated_message"),
+        ])
+
+
+@pytest.mark.parametrize("bad_value", [True, -1, 0x100000000, 1.5, "7"])
+def test_rejects_non_uint32_telemetry_fields(bad_value):
+    sample = values(usb_messages=bad_value)
+    with pytest.raises(ValueError, match="usb_messages must be a uint32"):
+        analyzer.analyze_jsonl([row(0, sample)])
+
+
+def test_rejects_missing_extra_duplicate_and_malformed_schema_rows():
+    valid = values()
+    missing = dict(valid)
+    del missing["usb_messages"]
+    extra = dict(valid, caller_asserted_installable=True)
+    with pytest.raises(ValueError, match="exactly the schema-1 fields"):
+        analyzer.analyze_jsonl([row(0, missing)])
+    with pytest.raises(ValueError, match="exactly the schema-1 fields"):
+        analyzer.analyze_jsonl([row(0, extra)])
+    duplicate = '{"event":"unrelated_message","event":"diagnostic_frame","elapsed_seconds":0,"values":{}}'
+    with pytest.raises(ValueError, match="duplicate JSON key"):
+        analyzer.analyze_jsonl([duplicate])
+    with pytest.raises(ValueError, match="invalid JSON"):
+        analyzer.analyze_jsonl(["{broken"])
+    with pytest.raises(ValueError, match="no diagnostic_frame"):
+        analyzer.analyze_jsonl([row(0, {}, event="unrelated_message")])
+
+
+class _Clock:
+    def __init__(self):
+        self.now = 0.0
+
+    def monotonic(self):
+        self.now += 0.01
+        return self.now
+
+    def wall_time(self):
+        return 1_800_000_000 + self.now
+
+    def sleep(self, duration):
+        self.now += duration
+
+
+class _Input:
+    def __init__(self, messages):
+        self.messages = messages
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def iter_pending(self):
+        messages, self.messages = self.messages, []
+        return iter(messages)
+
+
+class _Mido:
+    backend = SimpleNamespace(name="fake", api="test")
+
+    def __init__(self, messages):
+        self.messages = messages
+
+    def get_input_names(self):
+        return ["FM-1 MIDI"]
+
+    def open_input(self, name):
+        assert name == "FM-1 MIDI"
+        return _Input(self.messages)
+
+
+def _encode_frame(data):
+    body = bytearray(codec.PREFIX)
+    for name in codec.FIELDS:
+        value = data[name]
+        for digit in range(5):
+            body.append((value >> (7 * digit)) & 0x7F)
+    return bytes(body) + b"\xf7"
+
+
+def test_reads_actual_recorder_events_jsonl_schema(tmp_path):
+    clock = _Clock()
+    first = values(uptime_ms=1000, render_ticks_max=240, usb_messages=1)
+    second = values(uptime_ms=2000, render_ticks_max=480, usb_messages=3)
+    fake_mido = _Mido([
+        SimpleNamespace(type="sysex", data=_encode_frame(first)[1:-1]),
+        SimpleNamespace(type="note_on", note=60),
+        SimpleNamespace(type="sysex", data=_encode_frame(second)[1:-1]),
+    ])
+    output = tmp_path / "capture"
+    recorder.record(
+        "FM-1 MIDI", "a" * 64, output, 0.5,
+        mido_module=fake_mido,
+        monotonic=clock.monotonic,
+        wall_time=clock.wall_time,
+        sleep=clock.sleep,
+    )
+    report = analyzer.analyze_file(output / "events.jsonl")
+    assert report["event_counts"] == {"diagnostic_frame": 2, "unrelated_message": 1}
+    assert report["frames"][1]["render_max_us"] == 20
+    assert report["frames"][1]["counter_deltas"]["usb_messages"] == 2
+    assert report["frames"][1]["elapsed_seconds"] > report["frames"][0]["elapsed_seconds"]
