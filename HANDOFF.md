@@ -11,8 +11,11 @@ Root verified pushedcb2691cecf866250689d23093be85120da24a2a6. Untrackeduv.lock u
 Read-only bench refresh: ROM107, port1-1,4c4a:8057; physical image remainsf3a9.
 CPU calibration raw26-member export at scratch/cpu-rate-calibration-export:
 archive907265b9, receipt9bf9fbc2, appb03eba1a; targetsource8a8fb2b8 exacta503 replay.
-Workercodegen audit says identical fixed-loop kernels in XIP and startup-copied
-RAM; root independent exported-byte/codegen audit remains next. No frequency claim.
+Root independently verified all26 exported members and identical36-byte kernels
+in XIP and startup-copiedRAM, copy-before-measurement-before-flash-probe ordering.
+No physical calibration or frequency claim. Small warm kernel cannot exclude
+full-application cache capacity/conflict penalties. Root rehashed172 retained
+bench capture dependencies: allmatch; three newtools still needstagingverification.
 Limiter worker assembles complete fresh ROM107 package at
 scratch/c0-limiter-helper-deployment; root must review/stage/check fresh paired
 reads before one-use execution. No new reset/flash/boot issued this segment.

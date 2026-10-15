@@ -180,3 +180,37 @@ Private evidence: `scratch/c0-zero-pop-target-result/independent-readback.json`,
 Next work: execution-rate calibration without PLL/power changes and bounded
 review of remaining render/effects/bookkeeping cost; new hardware experiments
 require fresh independently bound campaigns on observed ROM107.
+
+## Offline calibration and matched limiter preparation
+
+[verified: independent exported-file and instruction review] The CPU-rate
+calibration export has 26 verified members, raw receipt
+`9bf9fbc26953ab06b3a6fa44fb4cc309c8c3ada294f71ed92c4021d296dd3f1c`,
+and app hash
+`b03eba1a7ce5ab848c326c3d2618f5f2774abbd20db1dc1e480fc5cf92319102`.
+Exact source is `8a8fb2b86219bc339d70c2e790659e8426b74159`. The XIP and
+SRAM kernels have identical 36-byte instruction bodies and no calls. Startup
+copies the SRAM body before measurement, which precedes the platform flash
+probe. Evidence: `scratch/cpu-rate-calibration-export/root-independent-review.json`.
+This is static verification only: no calibration target has been installed
+or measured. Even a small warm-kernel timing difference would not rule out
+cache capacity or conflict misses across the full application's working set.
+No CPU-frequency conclusion follows from this probe alone.
+
+[verified: independent export review] The separate matched limiter build
+remains source `20f21059c25aba0d46ec552cc1231dd1b093b976`, app hash
+`356283b83ce0d9cf0b49a006dd0df54d75b06d00f246ebe8a468f9d58620cc08`.
+Its HoldStep, BoxStep and TapOut helpers resolve into startup-copied RAM.
+The ten-body RAM DSP range is 12,652 bytes and remains within its guard.
+No physical speedup is established. Its deployment tooling stays frozen at
+`2c36897506eaa12b3282662299affc363409a2b1`; later compact UI and CPU source
+integrations are deliberately excluded from this matched experiment.
+
+[verified: read-only host check] All 172 retained external capture-runtime
+dependency files on bench01 still match their frozen hashes. The three new
+staged telemetry tools are excluded from this check and require full staging
+verification. Evidence: `scratch/c0-limiter-helper-deployment/root-external-runtime-review.json`.
+No flash, reset, MIDI stimulus or boot was issued during these checks.
+Physical image remains f3a9… and its most recently observed recovery device
+is ROM107. The forthcoming limiter campaign still needs the coordinator's
+complete package review, live binding refresh and fresh paired flash reads.
