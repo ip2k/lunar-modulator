@@ -14,6 +14,9 @@ import re
 import subprocess
 from pathlib import Path, PurePosixPath
 
+TUPLE_SCHEMA = 2
+PROVENANCE_SCHEMA = 1
+
 PINNED_TOOLCHAIN_IMAGE = "0fcc80c729c795f96758e301a86df8c42b466cc0b40cb9dfbaf8db693589eefc"
 PROFILE_ID = "fm1-092-d7000"
 WAVETABLE_PROFILE = "compressed-required-banks-ram-plaits-braids-shapes8-v1"
@@ -43,6 +46,16 @@ def sha(raw: bytes) -> str:
 
 def canonical(value) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
+
+
+def _tuple_envelope(fields, provenance_sha, source_commit, app_sha, request_sha):
+    value = dict(fields)
+    value["schema"] = TUPLE_SCHEMA
+    value.update({
+        "build_provenance_sha256": provenance_sha,
+        "tuple_id": "continuous-" + sha((source_commit + app_sha + request_sha).encode("ascii"))[:24],
+    })
+    return canonical(value)
 
 
 def read(path: Path, limit=MAX_JSON) -> bytes:
@@ -554,7 +567,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
     compiler_sha = expected_compiler_sha
 
     fields = {
-        "schema": 1,
+        "schema": TUPLE_SCHEMA,
         "profile_id": PROFILE_ID,
         "flash_layout": "expanded-d7000",
         "app_sha256": app_sha,
@@ -576,6 +589,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         "installable": False,
     }
     provenance = dict(fields)
+    provenance["schema"] = PROVENANCE_SCHEMA  # independent sidecar contract
     provenance.update({
         "source_commit": source_commit,
         "toolchain_image_id": "sha256:" + PINNED_TOOLCHAIN_IMAGE,
@@ -606,12 +620,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
     })
     provenance_raw = canonical(provenance)
     provenance_sha = sha(provenance_raw)
-    tuple_value = dict(fields)
-    tuple_value.update({
-        "build_provenance_sha256": provenance_sha,
-        "tuple_id": "continuous-" + sha((source_commit + app_sha + request_sha).encode("ascii"))[:24],
-    })
-    tuple_raw = canonical(tuple_value)
+    tuple_raw = _tuple_envelope(fields, provenance_sha, source_commit, app_sha, request_sha)
 
     # Capture must never overwrite; callers receive immutable sidecars.
     outputs = {

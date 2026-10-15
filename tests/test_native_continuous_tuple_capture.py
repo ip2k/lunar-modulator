@@ -14,6 +14,9 @@ from capture_trusted_build_tuple import (
     _linked_object_manifest,
     _source_manifest,
     _verify_catalogue_subset,
+    TUPLE_SCHEMA,
+    PROVENANCE_SCHEMA,
+    _tuple_envelope,
     _toolchain_manifest,
     canonical,
     sha,
@@ -339,3 +342,19 @@ def test_capture_reaches_inspection_after_contract_and_name_validation(monkeypat
             worker_provenance_path=provenance,
             wrapper_path=wrapper,
         )
+
+
+def test_tuple_schema_is_v2_while_capture_sidecars_keep_independent_versions():
+    assert TUPLE_SCHEMA == 2
+    fields = {"schema": 1, "profile_id": "fm1-092-d7000", "installable": False}
+    raw = _tuple_envelope(fields, "a" * 64, "b" * 40, "c" * 64, "d" * 64)
+    value = json.loads(raw)
+    assert raw == canonical(value)
+    assert value["schema"] == 2
+    assert value["build_provenance_sha256"] == "a" * 64
+    assert value["tuple_id"].startswith("continuous-")
+    assert value["installable"] is False
+
+    provenance = dict(value)
+    provenance["schema"] = PROVENANCE_SCHEMA
+    assert provenance["schema"] == 1
