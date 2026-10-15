@@ -160,6 +160,10 @@ volatile uint32_t lunar_midi_accepted_noteons __attribute__((used));
 volatile uint32_t lunar_midi_rejected_messages __attribute__((used));
 static void apply_midi_event(uint8_t st, uint8_t a, uint8_t b, uint8_t channel)
 {
+    if (st == 0xfau || st == 0xfbu || st == 0xfcu) {
+        (void)fm1_app_seq_midi_transport(&app, st);
+        return;
+    }
     if (!lunar_midi_input_accept(st, a, b, channel)) {
         ++lunar_midi_rejected_messages;
         return;

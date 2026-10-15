@@ -175,6 +175,8 @@ struct fm1_seq {
   fm1_seq_limits_t lim;         /* 20 bytes, alignment 2 */
   uint8_t n_tracks, n_clips;    /* clips: tracks * 8 + the two clipboards */
   uint8_t playing, recording, rec_track, rec_empty_start, pending_rec, metronome;
+  uint8_t midi_paused, midi_paused_emitting_clock;
+                                /* internal MIDI Stop: freeze ticks/cursor and clock state */
   uint8_t default_quant, emitting_clock, watch_track, clip_clipboard;
   uint8_t song_len, song_has_start, song_armed, song_armed_launch;
   uint8_t ext_running, ext_awaiting_first, ext_base_set, was_following;

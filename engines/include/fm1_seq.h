@@ -246,6 +246,13 @@ void fm1_seq_note_in(fm1_seq_t *s, uint16_t frame, uint8_t track, uint8_t pitch,
 uint32_t fm1_seq_realtime_in(fm1_seq_t *s, uint16_t frame, uint8_t status,
                              fm1_seq_ev_t *out, uint32_t cap);
 
+/* Internal MIDI transport (FA/FB/FC), independent of external clock follow.
+ * Stop preserves the current song position for Continue; Start restarts it.
+ * Returns zero without changing state if the output buffer cannot hold the
+ * complete transport burst. */
+uint32_t fm1_seq_midi_transport_in(fm1_seq_t *s, uint8_t status,
+                                   fm1_seq_ev_t *out, uint32_t cap);
+
 /* The set as Movy's `movy1` text. Returns the length of the whole text; it is
  * written (NUL-terminated) only if that is less than cap. */
 size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap);

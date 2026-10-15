@@ -211,6 +211,9 @@ uint32_t fm1_seq_apply_line(fm1_seq_t *s, const char *ops, size_t len, fm1_seq_e
 uint32_t fm1_seq_host_line(fm1_seq_host_t *h, const char *ops, size_t len);
 uint32_t fm1_seq_host_cmd(fm1_seq_host_t *h, const fm1_seq_cmd_t *c);
 uint32_t fm1_seq_host_realtime(fm1_seq_host_t *h, uint8_t status);
+
+/* Internal MIDI Start/Continue/Stop, independent of external clock input. */
+uint32_t fm1_seq_host_midi_transport(fm1_seq_host_t *h, uint8_t status);
 /* Live input for recording and Capture, at frame 0; velocity 0 is a
  * note-off. It causes no events itself. */
 void fm1_seq_host_note_in(fm1_seq_host_t *h, uint8_t track, uint8_t pitch, uint8_t vel);

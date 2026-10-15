@@ -49,6 +49,12 @@ extern "C" int lunar_midi_stream_feed(uint8_t byte, uint8_t *status,
     transport.pending = true;
     if (!parser->read()) return 0;
     uint8_t type = static_cast<uint8_t>(parser->getType());
+    if (type == 0xfau || type == 0xfbu || type == 0xfcu) {
+        *status = type;
+        *a = 0;
+        *b = 0;
+        return 1;
+    }
     if (type < 0x80u || type >= 0xf0u) return 0;
     if (parser->getData1() > 127u || parser->getData2() > 127u) return 0;
     *status = type | (parser->getChannel() - 1u);

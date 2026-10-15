@@ -69,6 +69,23 @@ int main() {
     assert(lunar_midi_uart_drain(ring,8,&cursor,&pending,3,8,emit,0)==3);
     assert(events==5 && status[4]==0x91 && data1[4]==70 && data2[4]==99);
 
+    /* Realtime transport is emitted in order without clearing running status. */
+    lunar_midi_stream_reset(); cursor=0; pending=0; events=0;
+    const uint8_t interleaved[] = {
+        0x92,60,100,0xfa,61,110,0xfb,0xf8,62,120,0xfc
+    };
+    for (unsigned i=0; i<sizeof interleaved; ++i) {
+        ring[cursor]=interleaved[i];
+        assert(lunar_midi_uart_drain(ring,8,&cursor,&pending,1,1,emit,0)==1);
+    }
+    assert(events==6);
+    assert(status[0]==0x92 && data1[0]==60 && data2[0]==100);
+    assert(status[1]==0xfa);
+    assert(status[2]==0x92 && data1[2]==61 && data2[2]==110);
+    assert(status[3]==0xfb);
+    assert(status[4]==0x92 && data1[4]==62 && data2[4]==120);
+    assert(status[5]==0xfc);
+
     assert(lunar_midi_uart_drain(ring,8,&cursor,&pending,0,1,0,0)==-1);
     return 0;
 }

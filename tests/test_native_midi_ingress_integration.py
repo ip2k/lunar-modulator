@@ -87,6 +87,14 @@ static void fm1_app_note_off(App *a, int note) {
 }
 static void fm1_app_all_notes_off(App *a) { assert(a == &app); record('x', 0, 0); }
 static void fm1_app_pitch_bend(App *, float) {}
+static uint8_t transport_status[8];
+static unsigned transport_count;
+static uint32_t fm1_app_seq_midi_transport(App *a, uint8_t status) {
+    assert(a == &app && transport_count < sizeof transport_status);
+    transport_status[transport_count++] = status;
+    record('t', status, 0);
+    return 0;
+}
 
 volatile uint32_t lunar_midi_usb_messages;
 volatile uint32_t lunar_midi_uart_bytes;
@@ -140,6 +148,39 @@ int main(int argc, char **argv) {
         assert(event_count == 0);
         assert(lunar_midi_usb_messages == 1 && lunar_midi_uart_bytes == sizeof bytes);
         assert(lunar_midi_rejected_messages == 2 && lunar_midi_accepted_noteons == 0);
+    } else if (which[0] == 'r') {
+        /* Realtime transport is shared across USB/UART and bypasses channel filtering. */
+        midi_in_event(packet(9, 0x92, 60, 100));
+        midi_in_event(packet(15, 0xFA, 0, 0));
+        midi_in_event(packet(15, 0xFB, 0, 0));
+        midi_in_event(packet(15, 0xFC, 0, 0));
+        midi_in_event(packet(9, 0x90, 61, 100)); /* wrong channel */
+        midi_in_event(packet(9, 0x92, 62, 100));
+        midi_in_event(packet(15, 0xF8, 0, 0)); /* clock is intentionally ignored */
+        const uint8_t bytes[] = {
+            0x92, 63, 100, 0xF8, 0xFA, 64, 110, 0xFB, 0xFC,
+            0x90, 65, 100 /* running-status note on the wrong channel */
+        };
+        for (unsigned i=0; i<sizeof bytes; ++i) uart_midi_ring[i] = bytes[i];
+        uart_received = sizeof bytes;
+        incoming_midi();
+        assert(event_count == 10);
+        check_event(0, 'n', 60, 100);
+        check_event(1, 't', 0xFA, 0);
+        check_event(2, 't', 0xFB, 0);
+        check_event(3, 't', 0xFC, 0);
+        check_event(4, 'n', 62, 100);
+        check_event(5, 'n', 63, 100);
+        check_event(6, 't', 0xFA, 0);
+        check_event(7, 'n', 64, 110);
+        check_event(8, 't', 0xFB, 0);
+        check_event(9, 't', 0xFC, 0);
+        assert(transport_count == 6);
+        const uint8_t expected_transport[] = {0xFA,0xFB,0xFC,0xFA,0xFB,0xFC};
+        for (unsigned i=0; i<transport_count; ++i)
+            assert(transport_status[i] == expected_transport[i]);
+        assert(lunar_midi_usb_messages == 7 && lunar_midi_uart_bytes == sizeof bytes);
+        assert(lunar_midi_accepted_noteons == 4 && lunar_midi_rejected_messages == 3);
     } else {
         assert(0 && "unknown scenario");
     }
@@ -165,6 +206,6 @@ int main(int argc, char **argv) {
     return binary
 
 
-@pytest.mark.parametrize("scenario", ["usb", "trs", "mismatch"])
+@pytest.mark.parametrize("scenario", ["usb", "trs", "mismatch", "realtime"])
 def test_joined_midi_ingress_routes_notes_and_channel_filter(midi_ingress_check, scenario):
     subprocess.run([str(midi_ingress_check), scenario], check=True)

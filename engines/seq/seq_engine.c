@@ -133,7 +133,8 @@ int fm1_seq_can_replace(const fm1_seq_t *dst, const fm1_seq_t *src) {
   if (!dst || !src || ((uintptr_t)dst & 7u) || ((uintptr_t)src & 7u) ||
       dst->magic != SQ_MAGIC || src->magic != SQ_MAGIC ||
       dst->sample_rate != src->sample_rate || src->playing || src->recording ||
-      src->pending_rec || src->n_gates || src->n_pend || src->n_tail ||
+      src->pending_rec || src->midi_paused || src->midi_paused_emitting_clock ||
+      src->n_gates || src->n_pend || src->n_tail ||
       dst->size != fm1_seq_size(&dst->lim) || src->size != fm1_seq_size(&src->lim) ||
       dst->size != src->size) return 0;
 #define SAME(field) if (dst->lim.field != src->lim.field) return 0
@@ -576,6 +577,8 @@ static void start_transport(fm1_seq_t *s) {
   s->master_tick = 0;
   s->bar_tick = 0;
   s->playing = 1;
+  s->midi_paused = 0;
+  s->midi_paused_emitting_clock = 0;
 }
 
 /* song_entry_at: (scene, repeats) of the entry starting at raw index i. */
@@ -1535,7 +1538,7 @@ void sq_live_note_off(fm1_seq_t *s, unsigned t, uint8_t pitch, uint64_t frame) {
 
 /* stop (engine.rs 960-981). D6: lanes whose last value differs from their
  * base are sent back to it, after the note-offs. */
-void sq_stop(fm1_seq_t *s, sq_out_t *o) {
+static void sq_stop_at(fm1_seq_t *s, sq_out_t *o, int reset_position) {
   unsigned t, lane;
   s->playing = 0;
   s->recording = 0;
@@ -1544,13 +1547,15 @@ void sq_stop(fm1_seq_t *s, sq_out_t *o) {
   pending_to_tail(s);
   commit_rec_tail(s);
   sq_capture_clear(s);
-  s->song_pos = 0;
-  s->song_has_start = 0;
-  s->song_armed = 0;
-  s->song_armed_launch = SQ_NONE;
-  s->song_follow = 1;          /* D16: STOP, then Play, follows a detached song again */
-  s->song_jump = SQ_NONE;
-  s->scene_land_slot = SQ_NONE;
+  if (reset_position) {
+    s->song_pos = 0;
+    s->song_has_start = 0;
+    s->song_armed = 0;
+    s->song_armed_launch = SQ_NONE;
+    s->song_follow = 1;        /* D16: STOP, then Play, follows a detached song again */
+    s->song_jump = SQ_NONE;
+    s->scene_land_slot = SQ_NONE;
+  }
   flush_gates(s, o);
   for (t = 0; t < s->n_tracks; ++t) {
     sq_track_t *tr = &sq_tracks(s)[t];
@@ -1558,6 +1563,12 @@ void sq_stop(fm1_seq_t *s, sq_out_t *o) {
     tr->last_auto_step = -1;
     memset(tr->auto_cur, 0xFF, sizeof(tr->auto_cur));
   }
+}
+
+void sq_stop(fm1_seq_t *s, sq_out_t *o) {
+  sq_stop_at(s, o, 1);
+  s->midi_paused = 0;
+  s->midi_paused_emitting_clock = 0;
 }
 
 /* ---- The scheduler (R2-R8) --------------------------------------------------- */
@@ -1898,6 +1909,10 @@ uint32_t fm1_seq_advance(fm1_seq_t *s, uint32_t frames, fm1_seq_ev_t *out, uint3
   out_init(&o, s, out, cap);
   s->frame_now += frames;
 
+  /* MIDI Stop freezes musical time, including the fractional tick accumulator.
+   * Wall-frame time still advances so unrelated live input keeps its clock. */
+  if (s->midi_paused) return o.n;
+
   if (s->ext_running && s->ext_last_frame > 0 && s->frame_now > s->ext_last_frame &&
       s->frame_now - s->ext_last_frame > (uint64_t)s->sample_rate / 2u) {
     s->ext_running = 0;
@@ -1987,6 +2002,54 @@ uint32_t fm1_seq_realtime_in(fm1_seq_t *s, uint16_t frame, uint8_t status, fm1_s
   sq_out_t o;
   out_init(&o, s, out, cap);
   sq_external_realtime(s, status, s->frame_now + (s->lim.compat ? 0u : frame), &o);
+  return o.n;
+}
+
+uint32_t fm1_seq_midi_transport_in(fm1_seq_t *s, uint8_t status,
+                                   fm1_seq_ev_t *out, uint32_t cap) {
+  sq_out_t o;
+  uint32_t required;
+  int was_emitting;
+  if (!s || (status != 0xFAu && status != 0xFBu && status != 0xFCu)) return 0;
+  required = (uint32_t)s->n_gates + 8u * (uint32_t)s->n_tracks + 1u;
+  if (!out || cap < required) return 0;
+  out_init(&o, s, out, cap);
+  was_emitting = s->emitting_clock != 0;
+  switch (status) {
+  case 0xFAu: /* Start always releases the old pass and starts the song at its top. */
+    if (s->playing || s->midi_paused) sq_stop_at(s, &o, 0);
+    s->song_jump = SQ_NONE;
+    /* MIDI transport owns this run; do not let a stale external-follow state
+     * re-anchor it on the next block. The existing realtime API is unchanged. */
+    s->ext_running = 0;
+    s->ext_awaiting_first = 0;
+    s->ext_base_set = 0;
+    s->was_following = 0;
+    s->resume_anchor_pending = 0;
+    sq_play(s);
+    s->emitting_clock = 0; /* advance emits the corresponding MIDI Start */
+    s->midi_paused_emitting_clock = 0;
+    break;
+  case 0xFBu: /* Continue is meaningful only after this transport's Stop. */
+    if (s->midi_paused) {
+      s->midi_paused = 0;
+      s->playing = 1;
+      /* Continue resumes the existing pattern; emitting Start here would
+       * reset downstream MIDI effects rather than continue their state. */
+      s->emitting_clock = s->midi_paused_emitting_clock;
+      s->midi_paused_emitting_clock = 0;
+    }
+    break;
+  case 0xFCu: /* Stop releases notes/automation but preserves song_pos for Continue. */
+    if (s->playing && !s->midi_paused) {
+      sq_stop_at(s, &o, 0);
+      s->midi_paused = 1;
+      s->midi_paused_emitting_clock = (uint8_t)was_emitting;
+      if (was_emitting) sq_emit(&o, FM1_SEQ_EV_STOP, SQ_NONE, 0, 0);
+      s->emitting_clock = 0;
+    }
+    break;
+  }
   return o.n;
 }
 

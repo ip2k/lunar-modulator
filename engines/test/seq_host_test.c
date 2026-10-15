@@ -995,6 +995,121 @@ static void no_buffer(void) {
   CHECK(st.dropped_events > 0);
 }
 
+typedef struct {
+  uint64_t tick;
+  uint8_t kind, track, a, b;
+} transport_note_t;
+
+static uint32_t collect_note_ons(fm1_seq_host_t *h, transport_note_t *out,
+                                 uint32_t n, uint32_t cap) {
+  uint32_t i;
+  for (i = 0; i < h->n; ++i) {
+    const fm1_seq_ev_t *e = &h->ev[i];
+    if (e->kind == FM1_SEQ_EV_NOTE_ON && n < cap) {
+      out[n].tick = e->tick;
+      out[n].kind = e->kind;
+      out[n].track = e->track;
+      out[n].a = e->a;
+      out[n].b = e->b;
+      ++n;
+    }
+  }
+  h->n = 0;
+  return n;
+}
+
+static void midi_transport_pause_resume(void) {
+  static uint64_t mem_a[4096], mem_b[4096], mem_scratch[4096];
+  static fm1_seq_ev_t ev_a[CAP], ev_b[CAP];
+  static transport_note_t notes_a[2048], notes_b[2048];
+  fm1_seq_host_t a, b;
+  fm1_seq_t *scratch;
+  fm1_seq_info_t before, during, after;
+  uint32_t na = 0, nb = 0, k, i;
+  const char *setup[] = {
+    "bpm 30000",
+    "clipsel 0 0; loop 0 0 16; tog 0 0 60 100",
+    "clipsel 0 1; loop 0 0 16; tog 0 0 61 100",
+    "clipsel 0 2; loop 0 0 16; tog 0 0 62 100",
+    "clipsel 0 0; sgins 0 0 2; sgins 1 1 1"
+  };
+  uint8_t got_scene_1 = 0;
+
+  fm1_seq_host_init(&a, make(mem_a), ev_a, CAP);
+  fm1_seq_host_init(&b, make(mem_b), ev_b, CAP);
+  scratch = make(mem_scratch);
+  for (i = 0; i < sizeof(setup) / sizeof(setup[0]); ++i) {
+    fm1_seq_host_line(&a, setup[i], strlen(setup[i]));
+    fm1_seq_host_line(&b, setup[i], strlen(setup[i]));
+  }
+
+  /* A paused sequence cannot be reused as a replacement scratch image. A
+   * normal local Stop clears the MIDI pause bookkeeping again. */
+  CHECK(fm1_seq_host_midi_transport(&a, 0xFAu) == 0);
+  CHECK(fm1_seq_can_replace(a.seq, scratch));
+  CHECK(fm1_seq_host_midi_transport(&a, 0xFCu) <= CAP);
+  CHECK(!fm1_seq_can_replace(scratch, a.seq));
+  {
+    fm1_seq_cmd_t stop;
+    CHECK(fm1_seq_parse("stop", 4, &stop));
+    fm1_seq_host_cmd(&a, &stop);
+  }
+  CHECK(fm1_seq_can_replace(scratch, a.seq));
+
+  /* Reinitialize the reference pair. FA overrides a stopped pending jump;
+   * both instances then follow the same repeated entry and scene handoff. */
+  fm1_seq_host_init(&a, make(mem_a), ev_a, CAP);
+  fm1_seq_host_init(&b, make(mem_b), ev_b, CAP);
+  for (i = 0; i < sizeof(setup) / sizeof(setup[0]); ++i) {
+    fm1_seq_host_line(&a, setup[i], strlen(setup[i]));
+    fm1_seq_host_line(&b, setup[i], strlen(setup[i]));
+  }
+  fm1_seq_host_line(&a, "sgjump 1", 8);
+  fm1_seq_host_line(&b, "sgjump 1", 8);
+  CHECK(fm1_seq_host_midi_transport(&a, 0xFAu) == 0);
+  CHECK(fm1_seq_host_midi_transport(&b, 0xFAu) == 0);
+  for (k = 0; k < 100; ++k) {
+    fm1_seq_host_advance(&a, BLOCK);
+    fm1_seq_host_advance(&b, BLOCK);
+    na = collect_note_ons(&a, notes_a, na, 2048);
+    nb = collect_note_ons(&b, notes_b, nb, 2048);
+  }
+  fm1_seq_get_info(b.seq, &before);
+  (void)fm1_seq_host_midi_transport(&b, 0xFCu);
+  b.n = 0; /* ignore the Stop event; the pause itself must emit nothing */
+  fm1_seq_get_info(b.seq, &during);
+  CHECK(during.playing == 0 && during.song_pos == before.song_pos &&
+        during.master_tick == before.master_tick);
+  for (k = 0; k < 137; ++k) {
+    CHECK(fm1_seq_host_advance(&b, BLOCK) == 0);
+  }
+  fm1_seq_get_info(b.seq, &after);
+  CHECK(after.song_pos == during.song_pos && after.master_tick == during.master_tick);
+  CHECK(fm1_seq_host_midi_transport(&b, 0xFBu) == 0);
+  /* Continue must not produce a START event that resets downstream MIDI FX. */
+  CHECK(fm1_seq_host_advance(&b, BLOCK) == 0);
+  nb = collect_note_ons(&b, notes_b, nb, 2048);
+  fm1_seq_host_advance(&a, BLOCK);
+  na = collect_note_ons(&a, notes_a, na, 2048);
+  fm1_seq_get_info(b.seq, &after);
+  CHECK(after.playing == 1 && after.master_tick > during.master_tick);
+  /* Compare the remaining musical run; paused wall time adds no song ticks. */
+  for (k = 0; k < 1450; ++k) {
+    fm1_seq_host_advance(&a, BLOCK);
+    fm1_seq_host_advance(&b, BLOCK);
+    na = collect_note_ons(&a, notes_a, na, 2048);
+    nb = collect_note_ons(&b, notes_b, nb, 2048);
+  }
+  CHECK(na == nb);
+  for (i = 0; i < na && i < nb; ++i) {
+    CHECK(notes_a[i].tick == notes_b[i].tick && notes_a[i].kind == notes_b[i].kind &&
+          notes_a[i].track == notes_b[i].track && notes_a[i].a == notes_b[i].a &&
+          notes_a[i].b == notes_b[i].b);
+    if (notes_b[i].a == 61) got_scene_1 = 1;
+  }
+  CHECK(got_scene_1);
+}
+
 int main(void) {
   uint64_t events = 0, calls = 0, inside = 0;
   parsers_and_figures();
@@ -1006,6 +1121,7 @@ int main(void) {
   slots();
   hooked_slots();
   no_buffer();
+  midi_transport_pause_resume();
   printf("{\"ok\":%s,\"events\":%llu,\"sink_calls\":%llu,\"splits\":%llu}\n", failed ? "false" : "true",
          (unsigned long long)events, (unsigned long long)calls, (unsigned long long)inside);
   return failed ? 1 : 0;

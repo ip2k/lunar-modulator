@@ -195,6 +195,12 @@ uint32_t fm1_seq_host_realtime(fm1_seq_host_t *h, uint8_t status) {
   return k;
 }
 
+uint32_t fm1_seq_host_midi_transport(fm1_seq_host_t *h, uint8_t status) {
+  const uint32_t k = fm1_seq_midi_transport_in(h->seq, status, tail(h), fm1_seq_host_room(h));
+  h->n += k;
+  return k;
+}
+
 void fm1_seq_host_note_in(fm1_seq_host_t *h, uint8_t track, uint8_t pitch, uint8_t vel) {
   fm1_seq_note_in(h->seq, 0, track, pitch, vel);
 }

@@ -471,6 +471,16 @@ it with the core's objects [verified: tests/test_seq_core.py].
 
 **Per block of n frames:**
 
+The native FM-1 routes USB and TRS MIDI `FA`/`FB`/`FC` through
+`fm1_app_seq_midi_transport` and `fm1_seq_host_midi_transport`, before channel
+filtering. This transport uses the selected internal tempo: Start rewinds,
+Stop releases sequencer notes and freezes musical position, and Continue
+resumes it without resetting MIDI effects. It does not select external-clock
+follow; `fm1_seq_host_realtime` remains the separate clock-follow API.
+The app holds transport intents in a bounded FIFO when event room is tight;
+a newer panel Play or Stop supersedes those held intents. Target compilation
+and physical acceptance are recorded separately in the bench notes.
+
 1. The host's own controls and live notes go straight to the engine
    (`fm1-render`: `--param-at` and `--bend`, then `--note` offs before ons).
 2. Commands due now: `fm1_seq_host_line` (a script or UI line: Movy ops, or

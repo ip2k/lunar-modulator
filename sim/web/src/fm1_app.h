@@ -265,6 +265,7 @@ enum {
 #define FM1_APP_SEQ_TRACKS 8
 #define FM1_APP_SEQ_BYTES 32768u      /* the instance's arena */
 #define FM1_APP_SEQ_EVENTS 272u       /* the block's event buffer, in events */
+#define FM1_APP_SEQ_MIDI_PENDING 8u   /* bounded FIFO for transport under room pressure */
 #define FM1_APP_SEQ_BUDGET 36864u     /* the sequencer's share of FM-1 RAM */
 #define FM1_APP_SEQ_UI_BYTES 1024u    /* the SEQ mode UI state's bound */
 
@@ -457,6 +458,8 @@ typedef struct fm1_app {
   uint32_t lock_mask[FM1_APP_SOUNDS];     /* parameter, for the screen; never in value[] */
   int seq_pending;               /* seq_pend waits for room (event-room rule) */
   fm1_seq_cmd_t seq_pend;
+  uint8_t seq_midi_pend[FM1_APP_SEQ_MIDI_PENDING];
+  uint8_t seq_midi_head, seq_midi_count;
   uint64_t seq_dropped_before;   /* events dropped by instances since replaced */
   uint64_t seq_held, seq_busy;   /* commands held for room, and refused */
   uint32_t seq_gen;              /* bumped by every sequencer input */
@@ -684,6 +687,9 @@ size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len);
 /* One typed command (the UI's): FM1_APP_SEQ_APPLIED, _HELD, _BUSY or
  * _REFUSED. */
 int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c);
+/* MIDI realtime transport: APPLIED, HELD in the bounded FIFO, BUSY at its
+ * limit, or REFUSED without a sequencer. */
+int fm1_app_seq_midi_transport(fm1_app_t *a, uint8_t status);
 
 /* Live notes for recording and Capture (velocity 0 releases), at frame 0
  * of the coming block, as a `non` or `nof` op would be applied there; the

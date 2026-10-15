@@ -4990,3 +4990,25 @@ Goal ACTIVE; SAVE and physical/recovery/installer/release gates stay open.
 [verified] The preceding compression-answer turn was status-only; this continuation reviewed and integrated telemetry decoupling. `--diagnostic-telemetry` now allows a bounded prepared-project/companion-SET run without the synthetic Trio pulse; legacy pulse builds keep telemetry. Root reran21 focused tests successfully. No new target link/device admission is claimed. Fresh Event Horizon+companion SET profile and link are next; catalogue worker owns the Hera16-shard build (first batch terminal CLI output-directory failure; corrected retry pending verification).
 
 [verified] Offline native62 spectral review found six sustained stereo note windows near C4/E4/G4 with no clipping or100ms silent gaps during holds; exact latency, listening and full-song acceptance remain unproven. See notes/2026-10-15-native62-audio-analysis.md. Migration options review found no evidenced crash-safe first on-device archive publication; host escrow needs independent tested recovery. See notes/2026-10-15-stock-archive-migration-options.md. Current device last observed ROM63, installed22216472; no new device command sent. SAVE disarmed, overall goal ACTIVE.
+
+## MIDI transport and full-song diagnostic integration — 2026-10-15
+
+[verified] Owner requested native MIDI Start/Stop. Integration now includes a
+shared USB/TRS dispatch before note-channel filtering and a dedicated sequencer
+transport path: Start rewinds, Stop releases gates while
+preserving musical time, Continue resumes. Existing external-clock API remains
+separate. Root reran172 focused sequencer/song/USB/UART integration tests successfully;
+app FIFO pressure/UI tests and the target build remain pending at this checkpoint;
+no hardware transport result is claimed. Authoritative worktree is
+`/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware`.
+
+[verified] One-shot diagnostic song PLAY is committed as2573ca82, and exact
+EH+companion-SET admission as c66d28b9, pushed to the feature branch with remote
+SHA verified. Root reran26 focused policy/autoplay tests successfully. Prepared
+profile fd68a478 and selection bf8bf473 are retained on Hera; the prior167-object
+catalogue completed all16 shards, but MIDI core/app changes require a new
+catalogue before linking. The private runner generator now takes an explicit
+source commit argument; generate it only after the final source checkpoint and
+independent review. No fresh link, flash, or boot has occurred. Device remains
+last observed ROM63; preserve all consumed campaigns. SAVE/recovery/release
+acceptance gates remain open and the overall goal ACTIVE.

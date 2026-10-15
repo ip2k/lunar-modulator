@@ -3564,6 +3564,11 @@ static int seq_fits(const fm1_app_t *a) {
   return fm1_seq_host_room(&a->seq_host) >= seq_need(a);
 }
 
+static void seq_clear_midi_pending(fm1_app_t *a) {
+  a->seq_midi_head = 0;
+  a->seq_midi_count = 0;
+}
+
 static void seq_apply(fm1_app_t *a, const fm1_seq_cmd_t *c) {
   ++a->seq_gen;
   fm1_seq_host_cmd(&a->seq_host, c);
@@ -3576,6 +3581,13 @@ static void seq_flush(fm1_app_t *a) {
   if (a->seq_pending && seq_fits(a)) {
     a->seq_pending = 0;
     seq_apply(a, &a->seq_pend);
+  }
+  while (a->seq_midi_count && !a->seq_pending && seq_fits(a)) {
+    const uint8_t status = a->seq_midi_pend[a->seq_midi_head];
+    a->seq_midi_head = (uint8_t)((a->seq_midi_head + 1u) % FM1_APP_SEQ_MIDI_PENDING);
+    --a->seq_midi_count;
+    ++a->seq_gen;
+    fm1_seq_host_midi_transport(&a->seq_host, status);
   }
 }
 
@@ -3618,6 +3630,10 @@ size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len) {
 
 int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
   if (!a->seq) return FM1_APP_SEQ_REFUSED;
+  /* A local Play/Stop is newer user intent than transport bytes held for
+   * room. Discard those older MIDI intents before flushing the command. */
+  if (c->verb == FM1_SEQ_V_PLAY || c->verb == FM1_SEQ_V_STOP)
+    seq_clear_midi_pending(a);
   seq_flush(a);
   if (a->seq_pending) {
     ++a->seq_busy;
@@ -3631,6 +3647,35 @@ int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
   a->seq_pending = 1;
   ++a->seq_held;
   return FM1_APP_SEQ_HELD;
+}
+
+int fm1_app_seq_midi_transport(fm1_app_t *a, uint8_t status) {
+  uint8_t tail;
+  if (!a->seq || (status != 0xFAu && status != 0xFBu && status != 0xFCu))
+    return FM1_APP_SEQ_REFUSED;
+  seq_flush(a);
+  if (!a->seq_pending && !a->seq_midi_count && seq_fits(a)) {
+    ++a->seq_gen;
+    fm1_seq_host_midi_transport(&a->seq_host, status);
+    return FM1_APP_SEQ_APPLIED;
+  }
+  if (a->seq_midi_count < FM1_APP_SEQ_MIDI_PENDING) {
+    tail = (uint8_t)((a->seq_midi_head + a->seq_midi_count) % FM1_APP_SEQ_MIDI_PENDING);
+    a->seq_midi_pend[tail] = status;
+    ++a->seq_midi_count;
+    ++a->seq_held;
+    return FM1_APP_SEQ_HELD;
+  }
+  /* Never lose Stop to a saturated FIFO: replace its newest queued intent.
+   * Other statuses report BUSY rather than claiming they were accepted. */
+  if (status == 0xFCu) {
+    tail = (uint8_t)((a->seq_midi_head + a->seq_midi_count - 1u) % FM1_APP_SEQ_MIDI_PENDING);
+    a->seq_midi_pend[tail] = status;
+    ++a->seq_held;
+    return FM1_APP_SEQ_HELD;
+  }
+  ++a->seq_busy;
+  return FM1_APP_SEQ_BUSY;
 }
 
 void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity) {
@@ -3654,6 +3699,7 @@ static void seq_drop(fm1_app_t *a) {
   seq_release(a);
   memset(a->lock_mask, 0, sizeof a->lock_mask);
   a->seq_pending = 0;
+  seq_clear_midi_pending(a);
   a->seq_host.n = 0;
   a->seq_last_n = 0;
 }

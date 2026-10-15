@@ -49,6 +49,17 @@ int main(int argc,char **argv) {
     assert(!feed(0x90+c)); assert(!feed(60)); assert(feed(100));
     assert(s==0x90+c && a==60 && b==100);
     assert(!lunar_midi_stream_feed(0x90+c,0,&a,&b));
+    /* Realtime transport must not cancel channel running status; clock is ignored. */
+    lunar_midi_stream_reset();
+    assert(!feed(0x92)); assert(!feed(60)); assert(feed(100));
+    assert(s==0x92 && a==60 && b==100);
+    assert(feed(0xfa) && s==0xfa);
+    assert(!feed(61)); assert(!feed(0xf8)); assert(feed(110));
+    assert(s==0x92 && a==61 && b==110);
+    assert(feed(0xfb) && s==0xfb);
+    assert(!feed(62)); assert(feed(120));
+    assert(s==0x92 && a==62 && b==120);
+    assert(feed(0xfc) && s==0xfc);
     return 0;
 }
 ''')
