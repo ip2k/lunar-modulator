@@ -37,7 +37,7 @@ Inside the container the build command was:
 python3 tools/native/build_application_probe.py --toolchain /toolchain --catalogue /catalogue --build /out/build --prepared-profile /prepared --expected-profile-sha256 d4b8a9c6c4945fa8b94940cd9c826f46000d18351e000090faca7b800a79ad29 --firmware-identity FM-1_500 --runtime-mode song-diagnostic --stack-watermark --flash-layout expanded-d7000 --link-project-save-service --shapes-voices 8 --indexed-tft --compressed-wavetables --enable-trs-midi --diagnostic-trio-pulse
 ```
 
-The build output log is `writable-output/build/container.log`; the host runner console JSON is adjacent at `run-5.console.json`. Earlier wrapper attempts failed before producing a receipt: initial container workdir was unset, the prepared input was mounted as a file rather than the required directory, then the builder's output directory was precreated. These were runner integration issues; the successful run above used `/workspace`, the full prepared directory, and a writable parent directory so the builder created `/out/build`.
+The build output log is `run-5/container.log`; the host runner console JSON is adjacent at `run-5.console.json`. Earlier wrapper attempts failed before producing a receipt: initial container workdir was unset, the prepared input was mounted as a file rather than the required directory, then the builder's output directory was precreated. These were runner integration issues; the successful run above used `/workspace`, the full prepared directory, and a writable parent directory so the builder created `/out/build`.
 
 ## Validation and limits
 

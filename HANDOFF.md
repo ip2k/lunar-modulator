@@ -4750,3 +4750,13 @@ full catalogue tree and selected files, refusing missing or changed inputs;
 the tuple is not a self-contained archive. SAVE remains disarmed; hardware,
 recovery, persistence, installer, CI/review and shipment gates remain open.
 Goal ACTIVE.
+
+## Frozen automatic-note diagnostic checkpoint — 2026-10-14
+
+[verified] Source/helper evidence is integrated at `971ffbb5292b238c997fbcf7cbebfbfcbb0295cd`, pushed and remote SHA verified. Worker `a10317cf245d974ff3ea18a1c3c3c0fa721ddc59` is also verified on its GitHub backup branch. The new frozen build uses target source `66196f54` and reproduces app `3de52e9b…` and ELF `a07fbd8e…` exactly. Coordinator independently rehashed all five outputs and four retained manifests. Exact receipt SHA is `136dad341994bee22919e115a04951ad983935729023bbc6b648c7b9b29c3ce2`. Five focused runner tests passed on the Mac. See `notes/2026-10-14-trio-pulse-frozen-build-receipt.md`.
+
+[verified] Passive bench enumeration still shows ROM device55, KA6 device51/card2/sequencer24:0 and Pico device38. No new read/boot/write or audio capture occurred in this continuation. The owner missed the previous key run; no power cycle is requested. The prepared content-free all-thirteen/54-module diagnostic emits one C4 pulse automatically during seconds3–5, so the next analogue capture does not depend on watched timing. It has not been installed.
+
+[verified] Two retained original092 reference images were copied to ignored mode0700 `scratch/archived-092-recovery/` and each hashes to `96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4`; retained manifest SHA `1ab5e38943648080d9fde9fa86197607aa7a0e01c19da62cd20f24e8f11280cf`, identity SHA `6a585e03a819ada8b10d2ff3618610fbb32136b9fa8b4f0b8027acd6b68ccc2f`. These are historical reference backups, not a fresh current-device pair or proof of full stock restore.
+
+Next: finish/review the narrow exact-image flash policy, including fresh reconnect restore admission preserving the transaction's original current baseline after an interrupted write; complete the existing SG transport adapter and offline refusal tests. Only then take fresh device55 paired reads, derive exact current D9000→candidate D7000 sector plan with D7000/D8000 stock restoration and directory-last commit, program/read back, capture the automatic-note boot, and measure the signal. Do not reuse device53 read/boot campaigns. SAVE stays disarmed, hardware/recovery/installer/release acceptance remains open, overall goal ACTIVE.
