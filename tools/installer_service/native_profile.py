@@ -19,6 +19,8 @@ PROFILE_CONTRACT = {
     "required_caller_selected_modules": ["drums", "hall", "macro", "sixop"],
     "return_to_rom_seconds": 120,
     "shapes_voices": 8,
+    "target_app_storage": {"rgb565_bytes": 220848, "indexed_bytes": 163760,
+                           "pool_credit_bytes": 57088},
     "indexed_tft": True,
     "flash_plaits_wavetables": False,
     "catalogue_optimization_overrides": {
@@ -73,15 +75,14 @@ def validate_receipt(receipt: dict) -> None:
     native_tools = str(Path(__file__).resolve().parents[1] / "native")
     if native_tools not in sys.path:
         sys.path.insert(0, native_tools)
-    from build_demo_image import (BASE_INSTANCE_POOL_BYTES, SHAPES8_TABLES,
-                                  TARGET_STORAGE)
+    from build_demo_image import BASE_INSTANCE_POOL_BYTES, SHAPES8_TABLES
     expected = {
         "flash_layout": "expanded-d7000", "app_budget_bytes": 860644,
         "shapes_voices": 8, "indexed_tft": True,
         "flash_plaits_wavetables": False,
-        "target_app_storage": TARGET_STORAGE,
+        "target_app_storage": PROFILE_CONTRACT["target_app_storage"],
         "compressed_wave_tables": [dict(row) for row in SHAPES8_TABLES],
-        "instance_pool_bytes": BASE_INSTANCE_POOL_BYTES + TARGET_STORAGE["pool_credit_bytes"]
+        "instance_pool_bytes": BASE_INSTANCE_POOL_BYTES + PROFILE_CONTRACT["target_app_storage"]["pool_credit_bytes"]
             - sum(row["raw_bytes"] for row in SHAPES8_TABLES),
         "runtime_configuration": {
             "runtime_mode": "song-diagnostic", "return_to_rom_seconds": 120,

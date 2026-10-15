@@ -38,11 +38,16 @@ SHAPES8_TABLES = (
          fnv32=3119621762, generated_source_sha256='c3c20d193d012125c53b2d2cba811c33c559462c070fed2702dc896727f2b82e'),
 )
 TARGET_STORAGE = dict(rgb565_bytes=220832, indexed_bytes=163744, pool_credit_bytes=57088)
+# The fixed UART/telemetry/stage7 build measures sizeof(fm1_app_t) through the
+# target ABI as 16 bytes larger in each framebuffer mode; 16-byte pool credit
+# alignment leaves its existing allocation budget unchanged.
+HALL_O2_STAGE7_TARGET_STORAGE = dict(rgb565_bytes=220848, indexed_bytes=163760,
+                                     pool_credit_bytes=57088)
 BASE_INSTANCE_POOL_BYTES = 192000
 SHAPES_VOICES = 12
 
 
-def checked_wavetable_profile(verification, selected):
+def checked_wavetable_profile(verification, selected, *, target_storage=None):
     """Validate one of the two explicitly reviewed linked storage profiles."""
     voices = verification.get('shapes_voices')
     flash_plaits = verification.get('flash_plaits_wavetables')
@@ -98,23 +103,24 @@ def checked_wavetable_profile(verification, selected):
                 raise ValueError('Linked compressed wavetable metadata is malformed')
         checked_rows.append(dict(row))
         expected_raw_bytes += row['raw_bytes']
+    storage_policy = TARGET_STORAGE if target_storage is None else target_storage
     storage = verification.get('target_app_storage')
-    if (not isinstance(storage, dict) or storage != TARGET_STORAGE
-            or any(type(storage.get(key)) is not int for key in TARGET_STORAGE)):
+    if (not isinstance(storage, dict) or storage != storage_policy
+            or any(type(storage.get(key)) is not int for key in storage_policy)):
         raise ValueError('Linked target storage profile differs from fixed layout')
-    expected_pool = BASE_INSTANCE_POOL_BYTES + TARGET_STORAGE['pool_credit_bytes'] - expected_raw_bytes
+    expected_pool = BASE_INSTANCE_POOL_BYTES + storage_policy['pool_credit_bytes'] - expected_raw_bytes
     if (type(verification.get('instance_pool_bytes')) is not int
             or verification['instance_pool_bytes'] != expected_pool):
         raise ValueError('Linked instance pool does not match selected wavetable profile')
     return dict(wavetable_profile=profile, compressed_wave_tables=checked_rows,
                 indexed_tft=True, flash_plaits_wavetables=flash_plaits, shapes_voices=voices,
-                instance_pool_bytes=expected_pool, target_app_storage=dict(TARGET_STORAGE))
+                instance_pool_bytes=expected_pool, target_app_storage=dict(storage_policy))
 
 
 
 def checked_link_receipt(selection, prepared, verification, artifact, app, elf, *,
                          runtime_mode='diagnostic', require_save_service=False,
-                         firmware_identity=None, flash_layout=None):
+                         firmware_identity=None, flash_layout=None, diagnostic_profile=None):
     """Bind ordered choices and actual output bytes to one completed link."""
     if runtime_mode not in ('diagnostic', 'song-diagnostic', 'continuous'):
         raise ValueError('Unsupported private runtime mode')
@@ -160,8 +166,11 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
             or startup.get('runtime_hook_linked') is not (len(selection['project_ids']) > 1)
             or verification.get('module_selection') != prepared.report['module_selection']):
         raise ValueError('Linked image differs from selected project/profile identity')
+    storage_policy = (HALL_O2_STAGE7_TARGET_STORAGE if diagnostic_profile == HALL_O2_STAGE7_PROFILE
+                      else TARGET_STORAGE)
     wavetable = checked_wavetable_profile(
-        verification, prepared.report['module_selection']['selected'])
+        verification, prepared.report['module_selection']['selected'],
+        target_storage=storage_policy)
     for report in (verification, artifact):
         for key in ('installable', 'hardware_tested'):
             if report.get(key) is not False:
@@ -305,7 +314,8 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
                                   bounded_read(output / 'link/artifact/app.bin', 1048576),
                                   bounded_read(output / 'link/lunar-app-probe.elf', 16 * 1048576),
                                   runtime_mode=runtime_mode, require_save_service=True,
-                                  firmware_identity=firmware_identity, flash_layout=flash_layout)
+                                  firmware_identity=firmware_identity, flash_layout=flash_layout,
+                                  diagnostic_profile=diagnostic_profile)
     receipt['project_save_service'] = read_report(output / 'link/verification.json')['project_save_service']
     receipt['state_bin_codec'] = read_report(output / 'link/verification.json')['state_bin_codec']
     receipt['verification_sha256'] = sha(bounded_read(output / 'link/verification.json', 16 * 1048576))

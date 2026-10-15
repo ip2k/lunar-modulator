@@ -27,6 +27,10 @@ WAVETABLES = {
 }
 TARGET_STORAGE = {"rgb565_bytes": 220832, "indexed_bytes": 163744,
                   "pool_credit_bytes": 57088}
+# Exact target-ABI sizeof(fm1_app_t) measurement for the fixed D7000 stage7
+# diagnostic flags; pool credit stays unchanged after 16-byte alignment.
+D7000_DIAGNOSTIC_TARGET_STORAGE = {"rgb565_bytes": 220848, "indexed_bytes": 163760,
+                                  "pool_credit_bytes": 57088}
 BASE_INSTANCE_POOL_BYTES = 192000
 SHAPES_VOICES = 12
 SCHEMA2_PROFILE_ID = "fm1-092-d7000"
@@ -239,12 +243,13 @@ def _verify_wavetable_receipt(receipt: dict, selected: list[str], flash_layout: 
                     or type(actual.get("symbol")) is not str
                     or actual["symbol"] != expected["symbol"]):
                 raise ValueError("worker D7000 wavetable identity is malformed or stale")
+        storage_policy = D7000_DIAGNOSTIC_TARGET_STORAGE
         storage = receipt.get("target_app_storage")
-        if (not isinstance(storage, dict) or storage != TARGET_STORAGE
-                or any(type(storage.get(key)) is not int for key in TARGET_STORAGE)):
+        if (not isinstance(storage, dict) or storage != storage_policy
+                or any(type(storage.get(key)) is not int for key in storage_policy)):
             raise ValueError("worker target storage profile differs from fixed layout")
         raw_bytes = sum(row["raw_bytes"] for row in expected_rows)
-        expected_pool = BASE_INSTANCE_POOL_BYTES + TARGET_STORAGE["pool_credit_bytes"] - raw_bytes
+        expected_pool = BASE_INSTANCE_POOL_BYTES + storage_policy["pool_credit_bytes"] - raw_bytes
         if type(receipt.get("instance_pool_bytes")) is not int or receipt["instance_pool_bytes"] != expected_pool:
             raise ValueError("worker instance pool does not match the D7000 Shapes8 profile")
         return
