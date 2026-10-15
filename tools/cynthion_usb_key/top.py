@@ -101,6 +101,8 @@ class CynthionUsbKeyTop(Elaboratable):
         dm = platform.request("target_usb_dm")
         m.d.comb += [
             core.user_button.eq(button.i),
+            core.pad_dp_i.eq(dp.i),
+            core.pad_dm_i.eq(dm.i),
             core.phy_isolated.eq(safe_phy.drive_allowed),
             core.phy_fault.eq(safe_phy.fault),
             core.bank6_3v3_confirmed.eq(1),
@@ -122,7 +124,7 @@ class CynthionUsbKeyTop(Elaboratable):
             JTAGRegisterInterface(default_read_value=0xBAD0C0DE))
         m.submodules.debug_registers = debug
         debug.add_read_only_register(1, read=0x4C554E52)  # "LUNR"
-        debug.add_read_only_register(2, read=1)           # register layout v1
+        debug.add_read_only_register(2, read=2)           # register layout v2
         status_snapshot = Signal(32)
         status_bits = Cat(core.state, safe_phy.ready, safe_phy.fault,
                           core.selftest_mask, safe_phy.line_state_valid,
@@ -131,6 +133,27 @@ class CynthionUsbKeyTop(Elaboratable):
                           Const(self.target_power_from_control))
         m.d.usb += status_snapshot.eq(status_bits)
         debug.add_read_only_register(3, read=status_snapshot)
+        gpio_snapshot = Signal(32)
+        failure_snapshot = Signal(32)
+        failure_gpio_snapshot = Signal(32)
+        m.d.usb += [
+            gpio_snapshot.eq(Cat(dp.i, dm.i, core.dp_o, core.dm_o,
+                                 dp.oe, dm.oe)),
+            failure_snapshot.eq(Cat(core.selftest_failure_reason,
+                                    core.selftest_failure_step,
+                                    core.selftest_failure_expected,
+                                    core.selftest_failure_observed)),
+            failure_gpio_snapshot.eq(core.selftest_failure_gpio),
+        ]
+        debug.add_read_only_register(4, read=gpio_snapshot)
+        debug.add_read_only_register(5, read=failure_snapshot)
+        debug.add_read_only_register(6, read=failure_gpio_snapshot)
+        debug.add_read_only_register(
+            7, read=Cat(*core.selftest_step_events))
+        debug.add_read_only_register(
+            8, read=Cat(*core.selftest_step_observed))
+        debug.add_read_only_register(9, read=core.selftest_observed_valid)
+        debug.add_read_only_register(10, read=0xC6)  # K, J, SE0, SE1, packed
 
         for bit in range(6):
             m.d.comb += platform.request("led", bit).o.eq(core.leds[bit])

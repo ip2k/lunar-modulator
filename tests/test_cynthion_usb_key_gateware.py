@@ -5,7 +5,7 @@ pytest.importorskip("cynthion")
 from amaranth.sim import Simulator
 
 from tools.cynthion_usb_key.gateware import CynthionUsbKey
-from tools.cynthion_usb_key.top import CynthionUsbKeyTop
+from tools.cynthion_usb_key.top import CynthionUsbKeyPlatform, CynthionUsbKeyTop
 
 
 def test_control_power_is_explicit_and_operation_only():
@@ -13,6 +13,15 @@ def test_control_power_is_explicit_and_operation_only():
     assert CynthionUsbKeyTop(target_power_from_control=True).target_power_from_control
     with pytest.raises(ValueError, match="only in operation mode"):
         CynthionUsbKeyTop(mode="disconnected-selftest", target_power_from_control=True)
+
+
+def test_target_gpio_resources_expose_input_output_and_output_enable():
+    platform = CynthionUsbKeyPlatform()
+    for name in ("target_usb_dp", "target_usb_dm"):
+        pad = platform.request(name)
+        assert hasattr(pad, "i")
+        assert hasattr(pad, "o")
+        assert hasattr(pad, "oe")
 
 
 def test_disconnected_selftest_terminates_without_entering_key_state():
@@ -62,7 +71,43 @@ def test_disconnected_selftest_terminates_without_entering_key_state():
         assert ctx.get(dut.dp_oe) == 0
         assert ctx.get(dut.dm_oe) == 0
         assert ctx.get(dut.selftest_mask) == 0b1111
+        assert ctx.get(dut.selftest_observed_valid) == 0b1111
+        assert [ctx.get(event_count) for event_count in dut.selftest_step_events] == [1, 1, 1, 1]
+        assert [ctx.get(value) for value in dut.selftest_step_observed] == [2, 1, 0, 3]
         assert ctx.get(dut.leds) == 0b100000
+
+    sim.add_testbench(bench)
+    sim.run()
+
+
+def test_disconnected_selftest_latches_first_failed_line_and_gpio_evidence():
+    dut = CynthionUsbKey(clock_hz=1_000_000, selftest_state_us=4,
+                         auto_selftest=True, selftest_only=True)
+    sim = Simulator(dut)
+    sim.add_clock(1e-6, domain="usb")
+
+    async def bench(ctx):
+        ctx.set(dut.phy_isolated, 1)
+        ctx.set(dut.bank6_3v3_confirmed, 1)
+        ctx.set(dut.ack_sense_valid, 1)
+        ctx.set(dut.pad_dp_i, 1)
+        ctx.set(dut.pad_dm_i, 0)
+        for _ in range(20):
+            await ctx.tick(domain="usb")
+            if ctx.get(dut.state) == dut.FAULT:
+                break
+
+        assert ctx.get(dut.state) == dut.FAULT
+        assert ctx.get(dut.state) != dut.KEY
+        assert ctx.get(dut.selftest_failure_reason) == 1
+        assert ctx.get(dut.selftest_failure_step) == 0
+        assert ctx.get(dut.selftest_failure_expected) == 2  # K
+        assert ctx.get(dut.selftest_failure_observed) == 0  # no RXCMD event
+        assert ctx.get(dut.selftest_failure_gpio) == 0b111001
+        assert ctx.get(dut.selftest_observed_valid) == 0
+        assert [ctx.get(event_count) for event_count in dut.selftest_step_events] == [0, 0, 0, 0]
+        assert ctx.get(dut.dp_oe) == 0
+        assert ctx.get(dut.dm_oe) == 0
 
     sim.add_testbench(bench)
     sim.run()

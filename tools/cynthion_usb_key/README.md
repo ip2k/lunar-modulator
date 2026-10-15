@@ -21,26 +21,37 @@ drives the four USB line states through the N4/P3 series resistors after the
 target PHY has passed its non-driving configuration/readback sequence. This
 image has no reachable key-transmission state. **Both target ports must be
 empty before configuring this image**, since the self-test intentionally drives
-the target-side lines. It returns both GPIOs to high impedance on completion or
-fault. The result checks GPIO-to-USB3343-RXCMD loopback only; it does not prove
-ROM acknowledgement or key behavior.
+the target-side lines. It spends 1 ms on each expected line state before
+failing, then returns both GPIOs to high impedance. The result checks
+GPIO-to-USB3343-RXCMD loopback only; it does not prove ROM acknowledgement or
+key behavior.
 
 The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 
 | Address | Meaning |
 | --- | --- |
 | `0x01` | Magic `0x4c554e52` (`LUNR`) |
-| `0x02` | Register layout version `1` |
+| `0x02` | Register layout version `2` |
 | `0x03` | Status snapshot |
+| `0x04` | Live GPIO: DP input, DM input, DP output, DM output, DP OE, DM OE (bits 0–5) |
+| `0x05` | Self-test failure: reason (bits 0–1), step (2–3), expected state (4–5), last observed state (6–7) |
+| `0x06` | GPIO input/output/OE snapshot latched at self-test failure (same bit layout as `0x04`) |
+| `0x07` | RXCMD event counts for K/J/SE0/SE1, one saturating byte per step |
+| `0x08` | Last RXCMD line state for each K/J/SE0/SE1 step, two bits per step |
+| `0x09` | Valid-observation mask for the four self-test steps |
+| `0x0a` | Expected sequence `K, J, SE0, SE1`, packed as `0xc6` |
 
 Status register `0x03` packs state in bits 0–3, PHY ready/fault in bits 4–5,
 the four-step self-test mask in bits 6–9, line-state-valid in bit 10, the
 USB3343 line-state value in bits 11–12, disconnected-selftest mode in bit 13,
 and CONTROL-to-TARGET-A power selection in bit 14. This is diagnostic telemetry
 and is not a safety interlock or hardware acceptance result. All registers are
-read-only.
-The snapshot is captured in the USB clock domain to avoid a multi-bit clock
-domain crossing.
+read-only. Status and live GPIO snapshots are captured in the USB clock domain.
+Failure registers preserve the first self-test fault evidence after the pads
+return high impedance. The expected sequence uses bit 0 = DP and bit 1 = DM;
+register `0x08` packs step 0 into bits 0–1 and then ascends by two bits per
+step. Register `0x07` similarly packs step 0 into bits 0–7. Failure reasons
+are 1 for RXCMD mismatch/timeout and 2 for loss of the drive interlock.
 
 The protocol's finite attempt limit is 30,000 packets. With the current
 16-bit word at 20 us per bit and 160 us release gap, the maximum packet train
