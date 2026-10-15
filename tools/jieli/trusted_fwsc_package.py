@@ -12,6 +12,9 @@ import model_092_app_replacement as nested_model  # noqa: E402
 
 PROFILE_ID = "fm1-092-d7000"
 RUNTIME_POLICY_SHA256 = "fe457ad4056aeb8e6b3ec9df606ac79ab757adc142bd2db9780357fb72f1e905"
+TUPLE_SCHEMA = 2
+PROVENANCE_SCHEMA = 1
+
 TUPLE_KEYS = {
     "app_bytes", "app_sha256", "application_identity", "artifact_receipt_sha256",
     "build_provenance_sha256", "build_receipt_sha256", "catalogue_sha256", "elf_sha256",
@@ -77,7 +80,7 @@ def _validate_tuple(raw_tuple, expected_tuple_sha256):
         raise ValueError("trusted build tuple digest differs from its external trust anchor")
     build_tuple = _json_object(raw_tuple, "build tuple", canonical=True)
     _require_exact_keys(build_tuple, TUPLE_KEYS, "build tuple")
-    if (type(build_tuple["schema"]) is not int or build_tuple["schema"] != 1
+    if (type(build_tuple["schema"]) is not int or build_tuple["schema"] != TUPLE_SCHEMA
             or build_tuple["profile_id"] != PROFILE_ID):
         raise ValueError("build tuple schema/profile is not the named D7000 profile")
     if build_tuple["flash_layout"] != "expanded-d7000":
@@ -215,7 +218,7 @@ def _validate_receipts(build_tuple, app, elf, artifact_raw, build_raw, provenanc
     request = _json_object(request_raw, "build request")
     prepared_profile = _json_object(prepared_profile_raw, "prepared profile")
     image = _json_object(image_raw, "image receipt")
-    if type(provenance.get("schema")) is not int or provenance["schema"] != 1:
+    if type(provenance.get("schema")) is not int or provenance["schema"] != PROVENANCE_SCHEMA:
         raise ValueError("unsupported build provenance schema")
     for key in ("profile_id", "flash_layout", "app_sha256", "app_bytes", "elf_sha256",
                 "application_identity", "recovery_identity", "artifact_receipt_sha256",

@@ -1,104 +1,38 @@
 # Operator-owned continuous build tuple capture
 
-This branch adds an offline host wrapper for one privately selected continuous
-FM-1 candidate. It creates a clean detached source snapshot, pins the Docker
-image by immutable ID, uses fixed command/mount/resource policy, and records
-host-inspected image/container configuration plus source/request/output hashes.
-The worker and tuple capture keep storage, installability, hardware, and release
-admission false. No device I/O is performed.
+This tooling captures provenance for one private expanded-D7000 continuous
+FM-1 candidate. It snapshots the source, catalogue, and toolchain trees; pins
+the container image and inspected configuration; and records hashes for the
+request, prepared profile, app, ELF, receipts, and linked inputs. The resulting
+tuple is diagnostic build evidence only: storage admission, hardware testing,
+installability, and release acceptance remain false.
 
-The current checkpoint is implementation and host-test only. The first wrapper
-attempt stopped before worker execution because Docker normalized `--cpus=4`
-without an effective quota. The host contract now pins the observed quota/period,
-all privilege/device/namespace/runtime/mount/entrypoint fields, exact command
-argument vector and its digest, and the full toolchain tree including directory
-modes and symlink targets. The mutable catalogue bind was replaced by a fresh
-private snapshot: its complete tree manifest must match the source at copy time,
-the container mounts only the snapshot read-only, and the snapshot is rechecked
-after completion. The initial real-build preflight measured 4,418 total catalogue entries (including directories) and 80.9 MB; the original 4,096-entry cap refused before Docker creation. The fixed cap is 8,192 entries with the 512 MiB aggregate byte limit retained, and a boundary test accepts 8,192 and rejects 8,193. Selected build-receipt catalogue rows must match that snapshot. Linked-object provenance separately rehashes all
-receipt rows: 161 linked catalogue rows and 120 generated `/output/build/link/`
-rows, while the 167-row catalogue inventory retains six unlinked rows as well.
-The first invocation stopped at host preflight before Docker creation because the catalogue exceeded the former row cap. After the cap increase, a fresh container build completed and wrote app/ELF/verification outputs, but cleanup of the read-only catalogue snapshot failed and prevented tuple capture from completing. The follow-up adds bounded cleanup of only the wrapper-owned private snapshots after the container has exited; an offline read-only tree test covers this. A fresh build then completed but tuple capture rejected the producer's exact `prepared-build-inputs` status because capture expected `prepared`. The image and selection receipts otherwise matched on request, prepared profile, selected content, startup project, and SET IDs. The capture validator now requires the producer's exact status and exact integer schema version; focused positive and negative tests cover that contract. Existing successful private build outputs are retained for a capture-only retry; no tuple has been captured yet. Next: independent review of cleanup, then rerun with a fresh output directory and verify the complete tuple. The selected
-input is the already-reviewed Event Horizon + companion SET request; intended
-target is Shapes8 on the D7000 profile with continuous FM-1_500 identity and
-FM-1_000 recovery identity. A generated tuple will be diagnostic provenance,
-not a firmware package or install approval.
+The tuple contract is now schema 2. Its toolchain_tree_sha256 binds the
+complete mounted toolchain tree, while build-provenance.json deliberately
+remains schema 1 because its field contract did not change. The trusted
+package consumer accepts only exact schema-2 tuples and rejects legacy schema-1
+tuples; it still requires an externally supplied digest of the canonical tuple
+as the trust anchor. A format upgrade does not retroactively bless or rewrite
+older retained tuple bytes.
 
-Validation at this checkpoint:
+The retained 2026-10-14 build was captured before this schema change. Its
+on-disk build_tuple.json remains schema 1 with raw SHA-256
+9c246fb70bfb04cb6a6adbaf845fe71a882ba0228317b286f648b502b2e66ec4.
+The tests preserve those bytes, verify that the consumer rejects them, and
+construct a canonical schema-2 in-memory fixture for package-path testing.
+That fixture digest is
+247c8ded29a33a014cec82f7dafc548e718ad9d576107e3f3453388c4c9cd19a;
+it is test-only and is not a newly captured operator tuple. A fresh successful
+capture under the schema-2 producer has not yet been recorded.
 
-- `python3 -m py_compile` on the builder, wrapper, worker, and tuple capture.
-- Pinned Hera pytest environment: 88 focused tests passed across continuous
-  tuple capture, wrapper policy, and native image controller. Policy tests
-  reject added privilege/device/capabilities, namespace/runtime changes, extra
-  environment/mounts, and altered worker entrypoint; provenance tests exercise
-  catalogue and generated linked-object mappings, tampering, and duplicate rows.
-- `git diff --check` passed.
+The selected workload in the retained build is Event Horizon plus its
+companion SET, Shapes8, D7000, continuous FM-1_500 identity and FM-1_000
+recovery identity. That is build provenance, not package release or hardware
+acceptance.
 
-Next: independent review of the pushed source checkpoint, then one fresh
-bounded Hera container run using the fixed wrapper and a new private output path. Record actual invocation,
-source/toolchain/catalogue/request/app/ELF/receipt hashes and capacity only
-after that run succeeds. Keep output in a private mode-0700 location outside
-the repository. Do not infer hardware acceptance, NOR ownership, recovery, or
-installability from this build.
-
-
-Capture-only retry follow-up (2026-10-14): After the status fix, the retained
-successful build was retried without running Docker. The exact invocation bytes
-(SHA-256 `7f993540…8011a3b4`) were preserved. The recorded request hash,
-source commit/manifest, catalogue snapshot manifest, toolchain manifest, and
-all three originally recorded mount paths were checked. Reconstruction produced
-the recorded source manifest `ed9c5ae3…0dd7710e`, catalogue manifest
-`7a08f4d4…4650e77a`, and request hash `a089835b…e0e9a07`; these are
-reconstructed private inputs, not a claim about original filesystem timing.
-Capture then refused because actual `verification.json` has no `app_bytes`
-field. The same app SHA/length and ELF SHA are present in `image.json` and
-`artifact.json`, and match the retained app/ELF bytes. The helper now checks both
-receipts against exact bytes, and keeps the build receipt ELF hash check, without
-requiring a duplicate app length that the producer does not emit. The focused
-capture/wrapper/controller suite passes 90 tests. No tuple was written; request
-independent review before another capture-only attempt. The reconstruction
-mounts were removed using the wrapper's bounded owner-path cleanup helper.
-
-
-The next capture-only attempt reached linked-object inventory validation and
-found that the retained producer records generated object paths under the fixed
-Docker mount `/output/build/link/` (120 rows), while the host verifier assumed
-`/out/build/link/`. The invocation and receipt both bind `/output`; the verifier
-now accepts only that exact fixed producer prefix and still rejects other paths.
-This is a producer-path contract correction, not a rewritten receipt. The
-reconstructed mounts were removed after the refusal and no tuple was written.
-
-
-The next capture-only attempt exposed a distinct worker-binding contract error.
-The invocation receipt has two hashes: `worker_sha256` covers the committed
-`tools/native/trusted_continuous_worker.py` source bytes in the detached
-source snapshot, while `worker_provenance_sha256` covers the output
-`worker-provenance.json`. The capture helper had been passed only the
-provenance path and compared it to the source hash, so it correctly refused
-without writing tuple sidecars. The correction now passes and checks the exact
-source-snapshot member separately from the provenance JSON, verifies each
-against its original invocation field, then validates the source tree manifest
-as before. It leaves invocation and producer evidence unchanged.
-
-Focused tests cover the two distinct positive pins and refuse mutation of
-either byte stream or either invocation digest. The 91-test focused suite,
-Python compilation, and diff check pass. This is source/test verification only;
-capture retry remains held for coordinator review.
-
-
-After the worker source/provenance binding fix was reviewed, the capture-only
-retry passed those pins and then refused on two serialization details in the
-retained container inspection. The producer sorts inspected mounts by
-destination and Docker returns the container name with a leading slash. Capture
-now sorts only its expected mount rows for exact equality, still requiring the
-same five rows, exact paths and read-only bits, and requires the exact Docker
-name `"/" + container_name` without normalization. Focused tests accept the
-sorted producer form and refuse changed path/read-only fields, missing or
-doubled slash, and a different name. Full read-only comparison found the other
-retained inspection fields, command, resources, and receipt digests match their
-fixed contract.
-
-The 92-test focused suite, Python compilation, and diff check pass. No capture
-retry has been made after this refusal; no tuple sidecars exist. The original
-invocation and build receipts remain byte-identical. Request coordinator review
-of this commit before the next capture-only attempt.
+Focused validation for the schema update:
+- tests/test_native_continuous_tuple_capture.py covers canonical schema-2
+  envelope creation and independent provenance schema versioning.
+- tests/test_trusted_fwsc_package.py refuses legacy schema 1, accepts only
+  externally pinned schema 2, preserves all false admission flags, and tests
+  the retained package inputs without modifying their on-disk receipts.

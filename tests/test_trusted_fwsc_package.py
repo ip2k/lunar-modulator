@@ -10,7 +10,8 @@ sys.path.insert(0, str(ROOT / "tools" / "jieli"))
 import trusted_fwsc_package as packager  # noqa: E402
 import model_092_app_replacement as model  # noqa: E402
 
-TUPLE_SHA = "9c246fb70bfb04cb6a6adbaf845fe71a882ba0228317b286f648b502b2e66ec4"
+TUPLE_SHA = "247c8ded29a33a014cec82f7dafc548e718ad9d576107e3f3453388c4c9cd19a"
+LEGACY_TUPLE_SHA = "9c246fb70bfb04cb6a6adbaf845fe71a882ba0228317b286f648b502b2e66ec4"
 BUILD_ROOT = Path("/home/claude/.local/share/codex-private/continuous-tuple-20261014/run-298ff12/build-output/build")
 TASK_ROOT = BUILD_ROOT
 CATALOGUE_ROOT = Path("/home/claude/mvave-fm1/nor-watchdog-target-closure-20261014/catalogue-fresh")
@@ -50,7 +51,17 @@ def _inputs():
     if source is None or reference is None or any(not path.is_file() for path in required):
         pytest.skip("retained continuous D7000 package artifacts are unavailable on this host")
 
-    tuple_raw = (BUILD_ROOT / "build_tuple.json").read_bytes()
+    legacy_tuple_raw = (BUILD_ROOT / "build_tuple.json").read_bytes()
+    legacy_tuple = json.loads(legacy_tuple_raw)
+    assert packager.sha256(legacy_tuple_raw) == LEGACY_TUPLE_SHA
+    with pytest.raises(ValueError, match="schema/profile"):
+        packager._validate_tuple(legacy_tuple_raw, LEGACY_TUPLE_SHA)
+    assert legacy_tuple["schema"] == 1  # retained artifact predates schema 2
+    # Exercise current schema-2 envelope policy over immutable retained build
+    # inputs; never rewrite the private historical tuple on disk.
+    legacy_tuple["schema"] = 2
+    tuple_raw = packager.canonical_json(legacy_tuple)
+    assert packager.sha256(tuple_raw) == TUPLE_SHA
     provenance_raw = (BUILD_ROOT / "build-provenance.json").read_bytes()
     provenance = json.loads(provenance_raw)
     manifest_raw = manifest_path.read_bytes()
@@ -114,7 +125,7 @@ def test_real_continuous_d7000_tuple_composes_in_memory_with_independent_integri
 
 def test_tuple_requires_external_digest_and_false_admission_flags():
     synthetic = {
-        "schema": 1,
+        "schema": 2,
         "tuple_id": "synthetic-test-only",
         "profile_id": packager.PROFILE_ID,
         "flash_layout": "expanded-d7000",
@@ -134,7 +145,7 @@ def test_tuple_requires_external_digest_and_false_admission_flags():
     with pytest.raises(ValueError, match="fields differ"):
         packager._validate_tuple(packager.canonical_json({}), packager.sha256(packager.canonical_json({})))
     assert packager._validate_tuple(raw, digest)["tuple_id"] == "synthetic-test-only"
-    for wrong_schema in (True, 1.0, "1", None):
+    for wrong_schema in (1, True, 1.0, "2", None):
         malformed = packager.canonical_json(dict(synthetic, schema=wrong_schema))
         with pytest.raises(ValueError, match="schema/profile"):
             packager._validate_tuple(malformed, packager.sha256(malformed))
