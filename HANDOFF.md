@@ -1,3 +1,25 @@
+## c0 ROM101 one-use campaign started — 2026-10-15
+
+Goal ACTIVE; owner cold-boot audio/display acceptance FAILED; SAVE disarmed.
+Root independently reran8 bound-contract tests PASS; reviewed fresh-pair ordering,
+current-only nonadmissible template binding and exact c0 build/runtime pins.
+Staged11 exact inventory/helper files to benchBASE
+/home/claude/fm1-hidden-session-c0f138a0-20261015; inventory SHA
+bfa8d268ee8dc7a3b91052edf9302c894ad6c903a0632ecb3c0581d35eef83dd.
+Actual staged FILE_ONLY_PREFLIGHT_OK, then sole launch PID199099. Campaign
+pins SHA0f6fc20b88e51d05a3c4efe0d55809a6bdb2da983020eedfb21a85fc532ea2a4.
+ROM101 campaign is CONSUMED: never relaunch. Runner must obtain fresh paired
+reads matching915131c3 before preparing the c7afa08c target; full readback
+before the already-armed input-only110s telemetry/180s KA6 capture and sole boot.
+Inspect cycle.stdout/cycle.stderr, launch.json, rom101-engine-render-profile-cycle
+and capture helper evidence before any further device action. Physical result
+is pending. No claimed throughput/audio acceptance. Root exclusively owns bench.
+
+Exact b27 limiter build/export is complete in scratch/limiter-boxstep-export;
+separate staging with exact21a runtime is assigned. A future unbound deployment
+scaffold is assigned; it must not reuse ROM101. Limiter-only Os policy trial
+implementation is assigned separately, no device/build action yet. uv.lock untouched.
+
 ## c0 candidate constructed; limiter target built — 2026-10-15
 
 Goal ACTIVE; owner cold-boot audio/display acceptance FAILED; SAVE disarmed.
