@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from amaranth import Cat, ClockSignal, DomainRenamer, Elaboratable, Module, ResetSignal, Signal
+from amaranth import Cat, ClockSignal, Const, DomainRenamer, Elaboratable, Module, ResetSignal, Signal
 from amaranth.build import Attrs, Pins, Resource
 from cynthion.gateware.platform.cynthion_r1_4 import CynthionPlatformRev1D4
 from luna.gateware.interface.jtag import JTAGRegisterInterface
@@ -38,12 +38,15 @@ class CynthionUsbKeyPlatform(CynthionPlatformRev1D4):
 
 
 class CynthionUsbKeyTop(Elaboratable):
-    """Core integration; never enables VBUS, discharge, or programming."""
+    """Core integration with explicit, default-off VBUS selection."""
 
-    def __init__(self, *, mode="operation"):
+    def __init__(self, *, mode="operation", target_power_from_control=False):
         if mode not in {"operation", "disconnected-selftest"}:
             raise ValueError(f"unsupported mode: {mode}")
+        if target_power_from_control and mode != "operation":
+            raise ValueError("CONTROL power is available only in operation mode")
         self.mode = mode
+        self.target_power_from_control = bool(target_power_from_control)
 
     def elaborate(self, platform):
         m = Module()
@@ -123,20 +126,23 @@ class CynthionUsbKeyTop(Elaboratable):
         status_snapshot = Signal(32)
         status_bits = Cat(core.state, safe_phy.ready, safe_phy.fault,
                           core.selftest_mask, safe_phy.line_state_valid,
-                          safe_phy.line_state_value)
+                          safe_phy.line_state_value,
+                          Const(self.mode == "disconnected-selftest"),
+                          Const(self.target_power_from_control))
         m.d.usb += status_snapshot.eq(status_bits)
         debug.add_read_only_register(3, read=status_snapshot)
 
         for bit in range(6):
             m.d.comb += platform.request("led", bit).o.eq(core.leds[bit])
 
-        # Explicitly keep every TARGET-A VBUS source switch disabled, with no
-        # discharge path. r1.4's switches are active high; the platform's
-        # analyzer selects TARGET-C passthrough by default, so all four need a
-        # literal zero here. There is deliberately no USB control-plane path.
+        # r1.4 switches are active high. CONTROL->TARGET-A is an explicit,
+        # operation-only build choice; TARGET-C passthrough and AUX remain off
+        # in every mode, and the discharge path stays off. There is no USB
+        # control-plane path. The default keeps every switch disabled.
         m.d.comb += [
             platform.request("target_c_vbus_en").o.eq(0),
-            platform.request("control_vbus_en").o.eq(0),
+            platform.request("control_vbus_en").o.eq(
+                int(self.target_power_from_control)),
             platform.request("aux_vbus_en").o.eq(0),
             platform.request("target_a_discharge").o.eq(0),
         ]
