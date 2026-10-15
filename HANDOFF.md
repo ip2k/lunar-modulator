@@ -1,3 +1,14 @@
+## One-use corrected FM buffer-array campaign LAUNCHED
+
+Private base /home/claude/fm1-hot-ram-fm-buffers-d8586ae8-20261015,
+rom83-fm-buffers-cycle. Persistent PID93876, launch.json consumed.
+NEVER RELAUNCH. File-only preflight passed, independent runner review complete,
+33 focused cycle tests pass. At last observation stdout FRESH_READ_START,
+no stderr. Fresh paired reads must match b2d5b950…25ffc1 before installation
+of target3571d214…5fbbb (210changed/211allowed). Inspect durable campaign
+journal/output and independent capture before drawing conclusions.
+No musical/performance/recovery acceptance yet. Goal ACTIVE; SAVE disarmed.
+
 ## Current checkpoint: corrected FM buffer-array candidate staged
 
 Source d8586ae8 freshly built16/16 on Hera, independently reviewed actual FM

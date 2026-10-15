@@ -353,3 +353,22 @@ write. Single reset only, no retry on ambiguous acknowledgement. Timed return
 to ROM, analog capture and telemetry remain distinct acceptance evidence.
 The full goal remains active; audio starvation, persistence/recovery and web
 release remain unaccepted. SAVE remains disarmed.
+
+### Corrected trial launched once
+
+[verified: coordinator] Staged preflight caught and rejected a stale capture
+helper hash before any device callback. Corrected dependent pins; added an
+actual-helper consistency test. Offline constructor had generated Python cache
+files in the exact-inventory tools tree; removed only those generated caches,
+then reran with -B. Full staged FILE_ONLY_PREFLIGHT_OK passed. All four focused
+cycle suites pass33tests; independent runner review found no remaining blocker.
+Extraction helper assertions were also replaced with explicit ValueError gates;
+five optimized-mode refusal cases passed independently.
+
+[verified: launch] Reconfirmed ROM bus1/dev83, KA6dev51 and no active
+recorders. Exact pinned one-shot launcher
+612d1976bed7e667c1f92f9455294afb924de1839ef6361955d11146fb0b429d
+started persistent PID93876 after file-only preflight; launch.json consumed.
+Last stdout FRESH_READ_START, stderr empty. Do not relaunch or infer successful
+installation yet; inspect fresh paired read, journal, boot and separate capture.
+Runner review scratch/hot-ram-fm-buffers-cycle/runner-independent-review.md.
