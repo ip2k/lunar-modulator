@@ -6015,3 +6015,22 @@ adapter SHA940a7c8167626ec7a63a55819c46efb790caa567e34c1caeada70a9b4b774619.
 Schema7 build artifacts from exact6b8576b remain unchanged; fresh deployment binding
 is required before constructing/staging a physical candidate. SAVE disarmed;
 no release or musical acceptance; overall goal ACTIVE. Unrelated uv.lock untouched.
+
+### Tap-inline measured result — 2026-10-15
+
+[verified] Latest passive timing:422.581blocks/s versus419.890 prior; required
+689.344. Underruns266.753/s versus269.455/s. No meaningful demonstrated gain
+from this one-shot pair; no MIDI notes/transport. Cold-boot musical acceptance
+still FAILED. Full physical evidence and hashes recorded in
+notes/2026-10-15-tap-inline-physical-timing.md. Consumed ROM93 campaign returned
+to ROM95 automatically; no physical intervention is needed now.
+
+Runtime policy checkpoint93fc25771e95926cb06a27f10ca86c56e73d7c88 was pushed
+and verified against origin. The exact same commit was seeded and verified in
+Hera bare repo ref codex/2026-10-15-combined-dsp-profile-base. Worker
+physical_storage_compression assigned16-shard combined current-profile build;
+profile_catalogue_build owns offline schema7 constructor scaffold;
+demo_controller_review owns offline exact93fc tools/exact6b native exports and
+strict runtime-source inventory. These are offline workers; Mac exclusively
+owns bench admission/writes. Fresh deployment runtime/ROM pins remain unresolved.
+SAVE disarmed; overall goal ACTIVE; uv.lock untouched.
