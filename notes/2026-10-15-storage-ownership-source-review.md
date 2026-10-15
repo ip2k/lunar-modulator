@@ -1,0 +1,44 @@
+# FM-1_092 VM/USR ownership: source-matched review — 2026-10-15
+
+## Finding
+
+The retained data and source establish **where** FM-1_092 declares VM and USR, but do not establish which stock application components allocate, read, or rewrite their records. I found no version-matched FM-1_092 VM/USR decoder or allocator in this checkout. The exact stock package model preserves these areas as opaque payloads; it does not interpret them. Consequently, no byte-preserving on-device migration into the proposed storage48 map can presently be specified or verified.
+
+The candidate map has 34 sectors of combined VM+USR geometry. Two 12-sector SAVE slots use 24 sectors; the current OTA stage reserves five more, leaving five sectors (20 KiB). The retained archive has 36,728 non-`0xFF` bytes across the complete VM and USR banks. That is 16,248 bytes more than the entire five-sector remainder, before record indexes, allocator metadata, alignment, or unknown erased-page reservations. The 33,123 non-FF bytes inside the *proposed slot extents* also exceed the remainder by 12,643 bytes. This is a capacity contradiction for raw-byte-preserving relocation under this map. It does not prove all non-FF bytes are live, but using fewer bytes would require format-aware export/compaction and evidence that every stock-supported record and reference remains valid.
+
+External archival is already byte-preserving and feasible: `tools/native/storage_backup.py` extracts the full image and named opaque ranges from matching inputs. It is a recovery copy, not an on-device migration or proof that stock settings/features can be restored after the old sectors are reassigned. Until stock semantics are resolved, keep VM, BTIF and USR unchanged and keep SAVE disarmed.
+
+## Exact geometry and source responsibilities
+
+`tools/jieli/raw_flash_profile.py` defines the recorded FM-1_092 descriptor map: VM `[0xD9000,0xE9000)` (64 KiB), BTIF `[0xE9000,0xEA000)` (4 KiB), USR `[0xEA000,0xFC000)` (72 KiB), and `key_mac` `[0xFF000,0x100000)` (4 KiB). These are descriptor-derived boundaries, not decoder output or proof of ownership within a bank. `tools/jieli/model_092_app_replacement.py` requires the decoded FWSC child order `app.bin`, `cfg_tool.bin`, VM, PRCT, BTIF, USR and preserves non-app payloads against its pinned reference. It has no VM/USR record interpretation.
+
+The known storage-path conflict is concrete but belongs to the open-native Dinghy implementation, not the proprietary stock app. `firmware/third_party/dinghy/src/ota.c` stages its loader by erasing `[0xE0000,0xE5000)` and writes its 112-byte `UPDATA_PARM` at `0xE4F00`; both addresses are inside the FM-1_092 VM descriptor. The retained SPL analysis describes conditional recovery-record scanning, while `reference/dinghy/firmware/loader/ldr_core.c` removes matching records in the broader `[0x93000,0xFC000)` region. That open loader's cleanup range intersects VM, BTIF and USR. Neither implementation reveals what the FM-1_092 stock app stores in those ranges, and neither can be silently treated as its stock allocator.
+
+The only stock application call trace presently recorded is in `notes/2026-10-11-sdk-diagnostic-review.md`, which explicitly analyzes a different V15 artifact identified as FM-1_009. It reports that the analyzed app retains `syscfg_file_init`, has no direct retained `syscfg_vm_init` call, and contains VM busy/idle callbacks that inspect RAM. That does not establish the 092 app's startup calls or bank semantics. The generic SDK header `source-sdk/include_lib/driver/device/vm.h` (retained in the earlier review environment, not present as a source tree in this checkout) documents `vm_init(device,start,length,mode)` and says initialization occurs each power-up; the implementation is closed, and no 092 application callsite/address arguments are available. Absence of a literal address in the old disassembly search is not proof of no computed or indirect access (`notes/2026-10-14-rollback-stage-last-cutpoint-review.md`).
+
+## Retained archive evidence (privacy-safe)
+
+The only bank-byte evidence used here is the existing ignored local archive `build/native-storage-backup-20261013/private-stock092/`, bound by its prior manifest to historical baseline SHA-256 `96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4` and manifest SHA-256 `ae1bb3f601e8bdffa2980bb6b4a24ced4439ecda62619fe7f7a07cdb2d9a2923`. No bytes, presets, names, or private payload contents are reproduced.
+
+`notes/2026-10-14-stock-bank-characterization.md` records the manifest-matched extents and aggregate sector scan:
+
+- VM: sectors `[0xD9000,0xDA000)` and `[0xE8000,0xE9000)` contain 142 and 213 non-FF bytes; the fourteen intervening sectors are all FF.
+- USR: `[0xEA000,0xF2000)` is eight fully non-FF sectors; `[0xF2000,0xFA000)` is eight all-FF sectors; `[0xFA000,0xFB000)` has 11 non-FF bytes and `[0xFB000,0xFC000)` has 3,594.
+- Aggregate across full banks: 36,728 non-FF bytes. Within the candidate slot extents, the count is 33,123; the remaining 3,605 non-FF bytes are in the two partial USR sectors `[0xFA000,0xFC000)`, which the candidate map does not assign. These counts describe byte values only and do not identify live records. In particular, the erased USR run `[0xF2000,0xFA000)` lies inside the region the existing cutpoint review flags as unresolved for stock-app readiness.
+
+The storage48 candidate map in `notes/2026-10-14-storage48-migration-plan.md` assigns A to seven VM sectors, four VM sectors after the OTA window, and one USR sector; B to twelve USR sectors; and leaves five USR sectors. It therefore does not preserve the original bytes in the mapped sectors. Even placing just the 33,123 non-FF bytes already present in the proposed slot extents into the five remaining sectors is impossible by raw-byte count alone (33,123 > 20,480); preserving every non-FF byte from both complete banks is larger still (36,728). The candidate also crosses named VM/USR descriptor boundaries and needs a scatter-extent storage API; the current `firmware/native/project_store.h` represents adjacent equal-size slots.
+
+## Concrete next implementation/evidence gate
+
+Do not implement a sector-reassignment writer from the current ledger. The next useful work is a **version-matched offline stock-state export and relocation proof**, using the exact FM-1_092 app/package lineage and the retained pair as inputs:
+
+1. Obtain an exact 092 application/loader image, its matching map/symbols or reproducible disassembly, and the corresponding VM implementation/format evidence. Verify identity and hashes against the archived baseline/package; do not substitute the FM-1_009 trace or Dinghy's independent allocator.
+2. Trace actual 092 startup/config code into VM and USR APIs, resolve the descriptor handles/ranges and on-flash record/index format, then decode the archived VM/USR copies into a privacy-preserving inventory of record types, extents, references, checksums, and unknown records. Keep unknown records raw and migration-blocking.
+3. If the format supports relocation, prototype a host-only exporter/importer that relocates complete records plus metadata, verifies checksums and references, and reconstructs exact old-bank bytes for rollback. Test against both archived matching images and preserved stock package components. If no matching implementation or complete record graph is obtainable, keep the banks reserved; archival bytes alone cannot justify erasure.
+4. Only after that evidence, make a new explicit sector map with OTA stage/record and cleanup/SPL record scans accounted for, fault-test migration and byte-exact restoration offline, and request review of the precise extents. This note grants no device-write or bank-reuse authorization.
+
+The source gap is therefore precise: **there is no matched 092 stock VM/USR reader/allocator and no exportable record schema in the available source**. The most direct falsifier would be a matching FM-1_092 firmware/source artifact that exposes those callsites and layout; without it, the measurable 33,123-byte lower bound already rules out raw-byte retention in the proposed five-sector slack.
+
+## Scope and limits
+
+Read-only source and existing-note review in checkout `93a575a74b2f5fe9ebf0821e2dbd64d0c34a5879`. No device, USB, MIDI, flash, power, reboot, package output, or build/test was performed. The existing worktree had an unrelated untracked note `notes/2026-10-15-rom59-existing-target-diagnostic-boot.md`; it was left untouched. Rarefaction/Serena were not used: available semantic selections are known to target the primary checkout, and retargeting the shared MCP is prohibited. The evidence above comes from direct source, pinned profile code, and previously committed archive characterization; it does not upgrade archive acquisition provenance or physical rollback status.
