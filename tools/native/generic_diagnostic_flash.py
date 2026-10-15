@@ -31,11 +31,15 @@ from fm1_flash_transaction import (create_transaction, digest, encoded,
 
 KIND = "lunar-private-d7000-trio-diagnostic-plan"
 INPUT_KIND = "lunar-private-d7000-trio-diagnostic-input"
+SONG_KIND = "lunar-private-d7000-event-horizon-set-diagnostic-plan"
+SONG_INPUT_KIND = "lunar-private-d7000-event-horizon-set-diagnostic-input"
 FLASH_BYTES, SECTOR, APP_BASE = raw.FLASH_BYTES, 4096, raw.APP_BASE
 CURRENT_END, TARGET_END = 0xD9000, 0xD7000
 SOUND_IDS = ("macro", "shapes", "macro-heavy", "sixop", "dx7", "sw-sophie",
              "drums", "acid-bass", "comet", "crater", "drawbar", "trio",
              "phase-bend")
+EVENT_HORIZON_ID = "replacement-showcase-candidate-event-horizon"
+EVENT_HORIZON_SET_ID = "replacement-showcase-event-horizon-companion-set"
 _POLICIES = WeakSet()
 _HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 _HEX40 = re.compile(r"[0-9a-f]{40}\Z")
@@ -68,6 +72,168 @@ def _valid_sha(value, pattern=_HEX64):
     return isinstance(value, str) and pattern.fullmatch(value) is not None
 
 
+def _unique_json(pairs):
+    out = {}
+    for key, value in pairs:
+        if key in out:
+            raise ValueError("Duplicate JSON key")
+        out[key] = value
+    return out
+
+
+def _validate_event_horizon_set_profile(build, verification, prepared_raw):
+    """Bind EH+SET startup identity to the prepared bytes and linked report."""
+    try:
+        profile = json.loads(prepared_raw, object_pairs_hook=_unique_json)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("Prepared song profile is not valid JSON") from error
+    if not isinstance(profile, dict):
+        raise ValueError("Prepared song profile is malformed")
+    profile_assets = profile.get("content")
+    module_selection = profile.get("module_selection")
+    if (type(profile.get("version")) is not int or profile.get("version") != 1
+            or profile.get("installable") is not False
+            or profile.get("native_link_verified") is not False
+            or profile.get("native_ram_verified") is not False
+            or profile.get("hardware_tested") is not False
+            or not isinstance(module_selection, dict)
+            or not isinstance(module_selection.get("selected"), list)
+            or profile.get("module_selection") != verification.get("module_selection")):
+        raise ValueError("Prepared profile module/admission receipt differs from the linked build")
+    if (not isinstance(profile_assets, list) or len(profile_assets) != 2
+            or type(profile.get("packed_content_bytes")) is not int):
+        raise ValueError("Song diagnostic requires exactly one project and one SET")
+    project, companion = profile_assets
+    if (not isinstance(project, dict) or not isinstance(companion, dict)
+            or project.get("kind") != "project" or companion.get("kind") != "set"
+            or project.get("source") != "projects/" + EVENT_HORIZON_ID + ".lunar"
+            or companion.get("source") != "sets/" + EVENT_HORIZON_SET_ID + ".movy1"):
+        raise ValueError("Prepared content is not the exact Event Horizon project/SET pair")
+    selected_modules = set(module_selection["selected"])
+    for index, asset in enumerate(profile_assets):
+        if (not _valid_sha(asset.get("source_sha256"))
+                or not _valid_sha(asset.get("packed_sha256"))
+                or type(asset.get("bytes")) is not int or asset["bytes"] <= 0
+                or asset.get("packed") != f"content-{index:02d}.bin"
+                or asset.get("sequence_semantics_verified") is not False
+                or not isinstance(asset.get("dependencies"), list)
+                or any(not isinstance(dep, str) for dep in asset["dependencies"])
+                or not set(asset["dependencies"]).issubset(selected_modules)):
+            raise ValueError("Prepared song asset hashes, length or admission flags differ")
+    if project.get("dependency_scan_complete") is not True or companion.get("dependency_scan_complete") is not False:
+        raise ValueError("Prepared project/SET dependency-scan contract differs")
+
+    verification_assets = [
+        {"kind": row["kind"], "bytes": row["bytes"], "packed_sha256": row["packed_sha256"]}
+        for row in profile_assets
+    ]
+    packed_bytes = sum(row["bytes"] for row in profile_assets)
+    if profile["packed_content_bytes"] != packed_bytes:
+        raise ValueError("Prepared profile packed-content total differs")
+    embedded = verification.get("embedded_content")
+    if (not isinstance(embedded, dict)
+            or embedded.get("prepared_sha256") != build["prepared_profile_sha256"]
+            or embedded.get("asset_count") != 2
+            or embedded.get("packed_content_bytes") != packed_bytes
+            or embedded.get("packed_sha256") != [row["packed_sha256"] for row in verification_assets]
+            or embedded.get("assets") != verification_assets
+            or embedded.get("sequence_semantics_verified") is not False
+            or embedded.get("native_playback_verified") is not False):
+        raise ValueError("Linked content receipt differs from the exact prepared profile")
+
+    startup = verification.get("startup_project")
+    if (not isinstance(startup, dict) or type(startup.get("index")) is not int
+            or startup["index"] != 0 or startup.get("runtime_hook_linked") is not False
+            or startup.get("staging_reclaimed_before_engine_allocation") is not True
+            or startup.get("failure_returns_to_recovery") is not True
+            or startup.get("runtime_verified") is not False
+            or startup.get("hardware_tested") is not False):
+        raise ValueError("Event Horizon startup index or admission receipt differs")
+
+    companion_receipt = verification.get("companion_set_selection")
+    selection_path = Path(build["prepared_profile_path"]).resolve().parent.parent / "selection.json"
+    if not isinstance(companion_receipt, dict):
+        raise ValueError("Companion SET selection receipt is missing")
+    selection, selection_raw = _json(
+        selection_path, companion_receipt.get("selection_receipt_sha256"), 1024 * 1024)
+    if not isinstance(selection, dict):
+        raise ValueError("Companion selection receipt is malformed")
+    content = selection.get("content")
+    selected = selection.get("selected_content")
+    if (type(selection.get("version")) is not int or selection.get("version") != 1
+            or selection.get("status") != "prepared-build-inputs"
+            or selection.get("prepared_profile_sha256") != build["prepared_profile_sha256"]
+            or selection.get("project_ids") != [EVENT_HORIZON_ID]
+            or selection.get("startup_index") != 0
+            or selection.get("startup_project_id") != EVENT_HORIZON_ID
+            or selection.get("set_ids") != [EVENT_HORIZON_SET_ID]
+            or selected != [{"kind": "project", "id": EVENT_HORIZON_ID},
+                            {"kind": "set", "id": EVENT_HORIZON_SET_ID,
+                             "parent_project_id": EVENT_HORIZON_ID}]
+            or not isinstance(content, list) or len(content) != 2):
+        raise ValueError("Hash-pinned selection receipt is not the exact EH+SET startup")
+    for index, (prepared, selected_asset) in enumerate(zip(profile_assets, content)):
+        expected_id = EVENT_HORIZON_ID if index == 0 else EVENT_HORIZON_SET_ID
+        if (not isinstance(selected_asset, dict) or selected_asset.get("id") != expected_id
+                or selected_asset.get("kind") != prepared.get("kind")
+                or selected_asset.get("source") != prepared.get("source")
+                or selected_asset.get("source_sha256") != prepared.get("source_sha256")
+                or selected_asset.get("packed") != prepared.get("packed")
+                or selected_asset.get("packed_sha256") != prepared.get("packed_sha256")
+                or selected_asset.get("bytes") != prepared.get("bytes")):
+            raise ValueError("Selection receipt asset identity differs from prepared profile")
+    if content[1].get("parent_project_id") != EVENT_HORIZON_ID:
+        raise ValueError("Companion SET parent differs from selected startup project")
+    if selection.get("packed_content_bytes") != packed_bytes:
+        raise ValueError("Selection receipt packed-content total differs")
+    if companion_receipt != {
+            "enabled": True,
+            "selection_receipt_sha256": digest(selection_raw),
+            "parent_project_index": 0,
+            "set_indices": [1],
+            "before_audio_init": True,
+            "timeout_keeps_project_sequence": True,
+            "runtime_verified": False,
+            "sequence_semantics_verified": False,
+            "hardware_tested": False}:
+        raise ValueError("Companion SET selection report differs from the bound profile")
+    project_loader = verification.get("project_loader")
+    project_linked = ("modulation_staging_link_verified", "sequence_staging_link_verified",
+                      "engine_staging_link_verified", "engine_parameter_link_verified",
+                      "audio_adoption_link_verified", "midi_restore_link_verified",
+                      "scalar_restore_link_verified", "dx7_restore_link_verified",
+                      "modulation_adoption_link_verified", "modulation_restore_link_verified",
+                      "startup_composition_link_verified", "view_restore_link_verified")
+    set_loader = verification.get("set_loader")
+    if (not isinstance(project_loader, dict)
+            or any(project_loader.get(key) is not True for key in project_linked)
+            or any(project_loader.get(key) is not False for key in
+                   ("activated", "stack_margin_verified", "timing_verified",
+                    "hardware_tested", "sequence_semantics_verified"))
+            or not isinstance(set_loader, dict)
+            or set_loader.get("native_link_verified") is not True
+            or set_loader.get("activation_api_link_verified") is not True
+            or any(set_loader.get(key) is not False for key in
+                   ("activated", "stack_margin_verified", "hardware_tested",
+                    "sequence_semantics_verified"))):
+        raise ValueError("Native project/SET loader link or admission receipts differ")
+    # The combined project+SET path is represented by startup_project plus
+    # companion_set_selection. `startup_set` describes standalone SET startup,
+    # which the builder does not emit for a project startup and must not be
+    # accepted as a substitute for the parent-bound companion selection.
+    if "startup_set" in verification:
+        raise ValueError("Standalone SET startup receipt is incompatible with EH+SET startup")
+    for flag in ("installable", "native_link_verified", "native_ram_verified", "hardware_tested"):
+        if selection.get(flag) is not False:
+            raise ValueError("Selection receipt has an invalid admission flag: " + flag)
+    return {"project_id": EVENT_HORIZON_ID, "set_id": EVENT_HORIZON_SET_ID,
+            "startup_project_index": 0,
+            "startup_set_index": companion_receipt["set_indices"][0],
+            "selection_path": selection_path, "selection_raw": selection_raw,
+            "selection_receipt_sha256": digest(selection_raw),
+            "asset_count": 2, "packed_content_bytes": packed_bytes}
+
+
 def _transition(stock, current, target):
     """Derive exact sectors for stock-derived D7000 target over live D9000."""
     if any(not isinstance(x, bytes) or len(x) != FLASH_BYTES
@@ -88,6 +254,34 @@ def _transition(stock, current, target):
     ranges = [[a, a + SECTOR] for a in sectors]
     order = [a for a in sectors if a != APP_BASE] + [APP_BASE]
     return ranges, sectors, order
+
+
+def _validate_diagnostic_mode(record, build, verification, prepared_profile):
+    """Select one exact diagnostic contract without broadening the pulse path."""
+    profile_kind = record.get("kind")
+    pulse = verification.get("diagnostic_trio_pulse")
+    if profile_kind == INPUT_KIND:
+        if pulse != {"enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TRIO_PULSE=1",
+                     "note": 60, "velocity": 100, "start_ms": 3000, "end_ms": 5000,
+                     "once": True, "hardware_tested": False}:
+            raise ValueError("Exact non-repeating Trio diagnostic pulse required")
+        return None
+    if profile_kind != SONG_INPUT_KIND:
+        raise ValueError("Unknown private diagnostic profile kind")
+    if pulse != {"enabled": False, "compile_definition": None, "note": None,
+                 "velocity": None, "start_ms": None, "end_ms": None,
+                 "once": True, "hardware_tested": False}:
+        raise ValueError("EH+SET song diagnostics must explicitly disable the Trio pulse")
+    if verification.get("diagnostic_telemetry") != {
+            "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TELEMETRY=1",
+            "interval_ms": 1000, "transport": "USB-MIDI-SysEx", "hardware_tested": False}:
+        raise ValueError("EH+SET diagnostic telemetry must be enabled")
+    if verification.get("diagnostic_song_play") != {
+            "enabled": True,
+            "compile_definition": "LUNAR_DIAGNOSTIC_SONG_PLAY=1",
+            "start_ms": 2000, "once": True, "hardware_tested": False}:
+        raise ValueError("EH+SET diagnostic playback must be the bounded one-shot PLAY profile")
+    return _validate_event_horizon_set_profile(build, verification, prepared_profile)
 
 
 def _check_build(record, app, elf, disassembly):
@@ -181,11 +375,8 @@ def _check_build(record, app, elf, disassembly):
         raise ValueError("All thirteen expected sound engines must be selected in catalogue order")
     if len(modules["selected"]) != 54 or len(set(modules["selected"])) != 54:
         raise ValueError("Expected exact all-13/54-module link")
-    pulse = verification.get("diagnostic_trio_pulse")
-    if pulse != {"enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TRIO_PULSE=1",
-                 "note": 60, "velocity": 100, "start_ms": 3000, "end_ms": 5000,
-                 "once": True, "hardware_tested": False}:
-        raise ValueError("Exact non-repeating Trio diagnostic pulse required")
+    profile_kind = record.get("kind")
+    song_profile = _validate_diagnostic_mode(record, build, verification, prepared_profile)
     identity = verification.get("firmware_identity")
     if identity != {"application_identity": "FM-1_500", "explicit": True,
                     "recovery_identity": "FM-1_000", "package_identity_verified": False,
@@ -199,15 +390,19 @@ def _check_build(record, app, elf, disassembly):
             save.get(k) is not False for k in ("storage_admitted", "flash_io_bound", "save_service_armed", "runtime_verified", "hardware_tested")):
         raise ValueError("SAVE must remain linked but fully disarmed/unadmitted")
     embedded = verification.get("embedded_content")
-    if not isinstance(embedded, dict) or embedded.get("asset_count") != 0 or embedded.get("packed_content_bytes") != 0 or embedded.get("assets") != []:
-        raise ValueError("Content-free diagnostic profile required")
+    if profile_kind == INPUT_KIND:
+        if (not isinstance(embedded, dict) or embedded.get("asset_count") != 0
+                or embedded.get("packed_content_bytes") != 0 or embedded.get("assets") != []):
+            raise ValueError("Content-free diagnostic profile required")
+    elif not isinstance(embedded, dict):
+        raise ValueError("EH+SET linked content receipt is missing")
     if (verification.get("catalogue_source_freshness_verified") is not True or
             verification.get("flash_layout") != "expanded-d7000" or
             verification.get("flash_write_range") != "empty" or
             verification.get("installable") is not False or verification.get("hardware_tested") is not False or
             verification.get("hardware_candidate") is not False):
         raise ValueError("Build freshness/layout/admission contract differs")
-    return verification, artifact, frozen, frozen_raw
+    return verification, artifact, frozen, frozen_raw, song_profile
 
 def prepare(output, input_record_path, input_record_sha256, *, now=None):
     """Validate exact private artifacts and seal one offline transaction plan.
@@ -221,7 +416,8 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
     record, record_raw = _json(record_path, input_record_sha256, 256 * 1024)
     expected_keys = {"schema", "kind", "source", "build", "candidate", "stock", "read", "created_at"}
     if (set(record) != expected_keys or type(record.get("schema")) is not int or record["schema"] != 1 or
-            record.get("kind") != INPUT_KIND or not isinstance(record.get("created_at"), (int, float)) or
+            record.get("kind") not in (INPUT_KIND, SONG_INPUT_KIND) or
+            not isinstance(record.get("created_at"), (int, float)) or
             not 0 <= now - record["created_at"] <= 120):
         raise ValueError("Fresh exact diagnostic input record required")
     candidate = record["candidate"]
@@ -269,7 +465,7 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
     app = _file(build["app_path"], build["app_sha256"])
     elf = _file(build["elf_path"], build["elf_sha256"])
     disassembly = _file(build["disassembly_path"], build["disassembly_sha256"])
-    verification, artifact, frozen, frozen_raw = _check_build(record, app, elf, disassembly)
+    verification, artifact, frozen, frozen_raw, song_profile = _check_build(record, app, elf, disassembly)
     rebuilt, expected_candidate_receipt = expanded_candidate.construct(
         stock_a, stock_b, stock_manifest, stock_identity, reference, app, elf,
         "fixed-loader", disassembly.decode("utf-8"), "combined", "expanded-d7000")
@@ -285,7 +481,9 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
                 "simulated": False, "usb_binding": live_manifest["usb_binding"],
                 "backup_manifest_sha256": read["manifest_sha256"]}
     out = Path(output).resolve()
-    scope = "offline-prepared content-free D7000 Trio diagnostic; no physical admission"
+    scope = ("offline-prepared content-free D7000 Trio diagnostic; no physical admission"
+             if song_profile is None else
+             "offline-prepared Event Horizon project+SET song diagnostic; no physical admission")
     plan = create_transaction(out, current, current_b, target, identity, writable_ranges,
                               scope, commit_sector=APP_BASE)
     saved_plan, journal, saved_before, saved_after = load_transaction(out)
@@ -322,7 +520,8 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
                "baseline_sha256": digest(current), "identity": identity}
     # The actual fixed loader SHA is validated as an explicit portion of the generic read receipt.
     binding["loader_sha256"] = live_manifest["loader_sha256"]
-    result = {"schema": 1, "kind": KIND, "status": "offline-diagnostic-transaction-prepared",
+    result = {"schema": 1, "kind": KIND if song_profile is None else SONG_KIND,
+              "status": "offline-diagnostic-transaction-prepared",
               "source": record["source"], "build_record_sha256": digest(record_raw),
               "build_artifact_sha256": digest(_file(build["artifact_path"], build["artifact_sha256"])),
               "verification_sha256": build["verification_sha256"],
@@ -331,9 +530,20 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
               "stock_baseline_sha256": digest(stock_a), "live_baseline_sha256": digest(current),
               "live_manifest_sha256": read["manifest_sha256"], "live_campaign_sha256": read["campaign_sha256"],
               "usb_binding": live_manifest["usb_binding"], "sg_binding": live_manifest["sg_binding"],
-              "project_ids": [], "startup_project_id": None, "content_free": True,
+              "project_ids": ([] if song_profile is None else [song_profile["project_id"]]),
+              "startup_project_id": (None if song_profile is None else song_profile["project_id"]),
+              "set_ids": ([] if song_profile is None else [song_profile["set_id"]]),
+              "startup_project_index": (None if song_profile is None else song_profile["startup_project_index"]),
+              "startup_set_index": (None if song_profile is None else song_profile["startup_set_index"]),
+              "content_selection_receipt_sha256": (
+                  None if song_profile is None else song_profile["selection_receipt_sha256"]),
+              "content_free": song_profile is None,
+              "packed_content_bytes": (0 if song_profile is None else song_profile["packed_content_bytes"]),
+              "content_asset_count": (0 if song_profile is None else song_profile["asset_count"]),
               "selected_sounds": list(SOUND_IDS), "selected_module_count": 54,
               "diagnostic_pulse": verification["diagnostic_trio_pulse"],
+              "diagnostic_telemetry": verification.get("diagnostic_telemetry"),
+              "diagnostic_song_play": verification.get("diagnostic_song_play"),
               "current_profile_end": CURRENT_END, "candidate_profile_end": TARGET_END,
               "reclaimed_stock_range": [TARGET_END, CURRENT_END],
               "writable_ranges": writable_ranges, "changed_sector_count": len(sectors),
@@ -347,7 +557,7 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
               "installable": False, "updater_accepted": False,
               "settings_migration_verified": False, "physical_recovery_verified": False,
               "SAVE_linked_but_disarmed": True,
-              "next_gate": "coordinator review and fresh physical admission; separate archived-092 restore evidence required"}
+              "next_gate": "coordinator review and fresh physical admission; playback, SAVE, and recovery remain unverified"}
     receipt_path = out / "diagnostic-receipt.json"
     receipt_path.write_bytes(encoded(result))
     evidence = list(verified_read["evidence"])
@@ -363,6 +573,8 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
                 "verification_path", "artifact_path", "app_path", "elf_path", "disassembly_path",
                 "prepared_profile_path"):
         pinned_paths.append(Path(build[key]))
+    if song_profile is not None:
+        pinned_paths.append(song_profile["selection_path"])
     for path in pinned_paths:
         path = path.resolve()
         if path.is_dir():
