@@ -77,3 +77,11 @@ switch to PHY transmit mode.
 The target PHY configuration, electrical assumptions, remaining review gates,
 and offline verification limits are recorded in the task handoff. This
 prototype is not an accepted recovery method or an installability claim.
+
+The safe-PHY initializer applies the USB3343 register setup directly through
+ULPI, including register `0x39` value `0x06` for the Cynthion r1.4 D+/D- trace
+swap. It verifies this value by readback before exposing drive permission.
+Generic USB3343 instances retain the register's `0x04` default profile unless
+the board-specific r1.4 profile is explicitly selected. This follows the
+platform's `ulpi_extra_registers` setting and Microchip USB334x datasheet
+§7.1.3.5; it does not change the GPIO or RXCMD line-state bit order.
