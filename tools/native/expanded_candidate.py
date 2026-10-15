@@ -20,7 +20,7 @@ from probe_artifact import flatten, artifact_call_payloads, artifact_stub_bounda
 STATUS = 'private-expanded-native-candidate-verified-offline'
 HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
                       'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
-                      'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
+                      'Hall::Instance::Render', 'Limiter::BoxStep', 'Limiter::Render', 'fm1_app_render']
 
 
 def validate_hot_dsp_ram_receipts(elf, verification, artifact):

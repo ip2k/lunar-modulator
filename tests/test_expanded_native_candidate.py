@@ -110,13 +110,13 @@ def test_expanded_candidate_hot_dsp_ram_requires_matching_verified_receipts(samp
     assert candidate.HOT_DSP_RAM_BODIES == [
         'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
         'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
-        'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
+        'Hall::Instance::Render', 'Limiter::BoxStep', 'Limiter::Render', 'fm1_app_render']
     assert receipt['hot_dsp_ram'] is True
     assert receipt['elf_verified'] and receipt['link_audit']['passed']
     assert target[0xD9000:] == sample['baseline'][0xD9000:]
 
 
-@pytest.mark.parametrize('fault', ['artifact-off', 'runtime', 'save', 'body', 'missing-fmvoice',
+@pytest.mark.parametrize('fault', ['artifact-off', 'runtime', 'save', 'body', 'missing-boxstep', 'missing-fmvoice',
                                   'duplicate-fmvoice', 'missing-fm-template',
                                   'duplicate-fm-template', 'extent'])
 def test_expanded_candidate_hot_dsp_ram_rejects_receipt_mismatch(sample, fault):
@@ -126,6 +126,9 @@ def test_expanded_candidate_hot_dsp_ram_rejects_receipt_mismatch(sample, fault):
     elif fault == 'runtime': receipt['verification']['runtime_configuration']['runtime_mode'] = 'continuous'
     elif fault == 'save': receipt['verification']['project_save_service']['save_service_armed'] = True
     elif fault == 'body': receipt['verification']['hot_dsp_ram']['selected_bodies'] = ['fm1_app_render']
+    elif fault == 'missing-boxstep':
+        receipt['verification']['hot_dsp_ram']['selected_bodies'] = [
+            x for x in candidate.HOT_DSP_RAM_BODIES if x != 'Limiter::BoxStep']
     elif fault == 'missing-fmvoice': receipt['verification']['hot_dsp_ram']['selected_bodies'] = [x for x in candidate.HOT_DSP_RAM_BODIES if x != 'plaits::FMVoice::Render']
     elif fault == 'duplicate-fmvoice': receipt['verification']['hot_dsp_ram']['selected_bodies'] = candidate.HOT_DSP_RAM_BODIES + ['plaits::FMVoice::Render']
     elif fault == 'missing-fm-template': receipt['verification']['hot_dsp_ram']['selected_bodies'] = [x for x in candidate.HOT_DSP_RAM_BODIES if x != 'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)']
