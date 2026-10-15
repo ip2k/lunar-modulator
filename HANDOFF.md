@@ -27,14 +27,31 @@ the policy delta and independently passed93 optimization/receipt tests in
 /Users/likwid/.codex/worktrees/drums-o2-policy-review. Worker
 physical_storage_compression completed its matched16-shard full build on Hera:
 all shards passed, final link failed by1,920 bytes of XIP. No image exists.
-Next offline comparison disables the startup-only CPU-rate diagnostic in both
-control and Drums-O2 builds, retaining telemetry and timed recovery, to measure
-whether unneeded diagnostic code can make room without musical feature cuts.
-Worker profile_catalogue_build revises postmix peak propagation to independent
-default-off experimental flag and checks target codegen before integration.
-Worker demo_controller_review prepares an opt-in SixOp resampler push-helper
-RAM placement experiment, with exact historical receipt-profile compatibility;
-host section/equivalence checks passed, full target fit is still unverified.
+[verified: offline link-only comparison] Removing startup-only CPU diagnostics
+from exact48b control yields855420B (492B smaller), SHA
+71bf9dcf49b0fb646967b2ec3e5ff3590c4a31e517513154729ca560fda94db5.
+Basic telemetry, clock3/4, return120, SAVE/autoplayoff retained. Drums-O2 e712
+still fails XIP by1428B; no valid app/verification exists. Preserved16-shard
+catalogues reused transparently; two fresh application links, not new full
+build receipts. Report scratch/cpuoff-o2-fit-comparison/handoff.md; Hera outputs
+/home/claude/mvave-fm1/cpuoff-link-only-comparison-20261015/. Stop O2 variant.
+
+[verified: source/host checks; target review pending] Resampler push-helper RAM
+candidate ee823c4060d3d637aaecfcd4032b720ef921f0c4 is backed up. Root71 focused
+checks passed. Worker reports target app855672B and RAM DSP13744B, corrected
+against exact48b baseline855912B/RAM13120B: app-240B/RAM+624B. Earlier +240/+1032
+comparison used stale baseline and is superseded. Independent source/target
+review assigned profile_catalogue_build; do not call matched until provenance
+is checked. Worker demo_controller_review prepares separate Drums::Render RAM
+child (linked body3858B numerically fits helper-build9960B DSP headroom), exact
+12-body receipt profile preserving7/8/10/11 histories; target fit still required.
+No algorithm, resampling quality or musical features removed.
+
+Postmix peak handoff experiment6f1b6c01defc494c93e19624cc2874e9ed343f5f is backed
+up and independently default-off FM1_EXPERIMENT_POSTMIX_PEAK_HANDOFF.13 tests /
+223860 differential scenarios passed; non-LTO target wrapper12B smaller but
+both buffer traversals remain. No full build or speed claim; not integrated.
+Report /Users/likwid/.codex/worktrees/postmix-peak-propagation/scratch/postmix-peak-propagation-handoff.md.
 Goal ACTIVE; cold-boot listening FAILED; SAVE/autoplayoff. No physical action
 currently needed. uv.lock remains untouched.
 
