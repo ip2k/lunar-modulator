@@ -282,16 +282,18 @@ in a desktop renderer, in a browser and, later, on the FM-1.
     is upstream's, and fm1-x0x's own test against 8W8 passes with it
     [verified: `tests/test_engine_crater_kit.py`]
     ([`engines/README.md`](engines/README.md#crater-kit)).
-    **Drawbar**, **Trio** and **Phase Bend** are Felucca's WHEEL, TRIO and
-    PHASE engines (Leo Kuroshita, Hügelton Instruments, GPL-3.0-only),
-    vendored unmodified and compiled as Felucca compiles them
-    (`engines/src/felucca_bridge.c`), under a shim of ours that plays them in
-    Felucca's 32-sample blocks with Felucca's envelope and voice rules. They
-    are Felucca's own voice code to the bit on every factory sound [verified:
-    `fm1-felucca-oracle`, `tests/test_engine_felucca.py`]; about 4–5 KB an
-    instance and 25 KB of flash for the three
-    ([`engines/third_party/felucca/UPSTREAM.md`](engines/third_party/felucca/UPSTREAM.md),
-    [`engines/README.md`](engines/README.md#the-felucca-engines)).
+    **Drawbar**, **Trio** and **Phase Bend** are Lunar engines derived from
+    Leo Kuroshita's WHEEL, TRIO and PHASE engines (Hügelton Instruments,
+    GPL-3.0-only). The upstream sources are vendored unmodified in
+    `engines/third_party/upstream-engines/` and compiled through our
+    `engines/src/upstream_engine_bridge.c` and
+    `engines/src/upstream_engine_shim.cc` integration. They retain the
+    upstream 32-sample blocks, envelope and voice rules. Their output matches
+    the upstream oracle bit-for-bit on every factory sound [verified:
+    `fm1-upstream-engines-oracle`, `tests/test_engine_upstream_engines.py`];
+    about 4–5 KB an instance and 25 KB of flash for all three
+    ([`engines/third_party/upstream-engines/UPSTREAM.md`](engines/third_party/upstream-engines/UPSTREAM.md),
+    [`engines/README.md`](engines/README.md#lunar-engines-derived-from-upstream-sources)).
   - Crush (a bitcrusher and sample-rate reducer, after DaisySP's Decimator
     and Bitcrush, Electro-Smith, MIT), Fold (a wavefolder with
     antiderivative anti-aliasing), Drive (overdrive and saturation, five
@@ -1388,7 +1390,7 @@ decide:
   soft-key entry on the owner's unit (answered: works on FM-1_092,
   [verified: 2026-10-07 bench note]); whether to vendor Felucca's Apache-2.0 `fm6_core.c` as an msfa
   oracle (answered: yes, as FM6's test oracle only, 2026-10-05,
-  `engines/third_party/felucca-fm6/`); whether to read V1.1.9's `system.a` with a modern `llvm-dis` in a
+  `engines/third_party/upstream-fm6/`); whether to read V1.1.9's `system.a` with a modern `llvm-dis` in a
   container on aeon (output kept in scratch) to see how `#C<n>` is parsed.
 - If the kit is late, whether to run the gate first with our RP2040 dongle.
   docs/08 Phase 2 allows it; docs/14 prefers the kit first.

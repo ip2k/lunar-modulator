@@ -847,13 +847,11 @@ Some settings to start from:
 
 {{status sim desktop planned}}
 
-Three engines come from **Felucca**, Leo Kuroshita's open firmware for the
-FM-1 (Hügelton Instruments), each its own design: **Drawbar**, an organ;
-**Trio**, three oscillators in the style of the sound chips of the early
-8-bit home computers; and **Phase Bend**, phase distortion. Their sound is
-Felucca's own: the firmware runs Felucca's code for them unchanged, notes,
-envelope and all, and plays every one of Felucca's factory sounds for them
-to the sample as Felucca does ([chapter 14](14-credits-and-licences.md)).
+Lunar's **Drawbar**, **Trio** and **Phase Bend** engines derive from Leo
+Kuroshita's WHEEL, TRIO and PHASE engines (Hügelton Instruments,
+GPL-3.0-only). Their source is incorporated unmodified; the Lunar integration
+preserves its note handling, envelopes and factory sounds
+([chapter 14](14-credits-and-licences.md)).
 
 !!! note "In builds with the GPL switch on"
     Felucca is published under the GNU General Public License, so these

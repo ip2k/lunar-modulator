@@ -29,9 +29,9 @@ python -m pytest tests/test_engine*.py           # the engine tests
 | `acid-bass` | Acid Bass | sound | 1 | fm1-x0x's 303 (Charles Vestal, **GPL-3.0-only**): Open303 (Robin Schmidt, MIT) with the Devilfish ranges and a RAT drive | [below](#acid-bass); a bass after the TB-303, built only with the GPL switch on |
 | `comet` | Comet Kit | sound | 11 | fm1-x0x's 909 (Charles Vestal, **GPL-3.0-only**): 9W9 (athousanddetails) after ER-99 (Matthew Cieplak), with ER-99's cymbal recordings | [below](#comet-kit); a 16-pad kit after the TR-909, built only with the GPL switch on |
 | `crater` | Crater Kit | sound | 13 | fm1-x0x's 808 (Charles Vestal, **GPL-3.0-only**), ported from 8W8 (athousanddetails, GPL-3.0): circuit models after the TR-808's service notes and Werner, Abel and Smith; sc808's rim shot (MIT) | [below](#crater-kit); a 16-pad kit after the TR-808 on notes 36–51, built only with the GPL switch on |
-| `drawbar` | Drawbar | sound | 8 | Felucca's WHEEL (Leo Kuroshita, Hügelton Instruments, **GPL-3.0-only**), unmodified | [below](#the-felucca-engines); a tonewheel-style organ, built only with the GPL switch on |
-| `trio` | Trio | sound | 8 | Felucca's TRIO (**GPL-3.0-only**), unmodified | [below](#the-felucca-engines); three chip-style oscillators with ring and sync into a gritty filter, GPL switch on |
-| `phase-bend` | Phase Bend | sound | 8 | Felucca's PHASE, CrispyZebra's phase-distortion oscillator (**GPL-3.0-only**), unmodified | [below](#the-felucca-engines); phase distortion with resonant waves, GPL switch on |
+| `drawbar` | Drawbar | sound | 8 | Felucca's WHEEL (Leo Kuroshita, Hügelton Instruments, **GPL-3.0-only**), unmodified | [below](#lunar-engines-derived-from-upstream-sources); a tonewheel-style organ, built only with the GPL switch on |
+| `trio` | Trio | sound | 8 | Felucca's TRIO (**GPL-3.0-only**), unmodified | [below](#lunar-engines-derived-from-upstream-sources); three chip-style oscillators with ring and sync into a gritty filter, GPL switch on |
+| `phase-bend` | Phase Bend | sound | 8 | Felucca's PHASE, CrispyZebra's phase-distortion oscillator (**GPL-3.0-only**), unmodified | [below](#lunar-engines-derived-from-upstream-sources); phase distortion with resonant waves, GPL switch on |
 | `test-sine` | Test Sine | sound | 12 | this repository | tests the host and the analysis |
 | `plate` | Plate | effect | – | Rings' reverb, with Elements' Freeze | [mi-fx.md](mi-fx.md) |
 | `ensemble` | Ensemble | effect | – | Plaits' ensemble | [mi-fx.md](mi-fx.md) |
@@ -95,7 +95,7 @@ whole account. In short:
   units are set by the first create, and another rate is refused, as is
   any below 16,385 Hz, where msfa's frequency table overflows.
 - **Checked** against Felucca's Apache-2.0 port of the same core
-  (`third_party/felucca-fm6/`, `fm1-dx7-oracle`), test only: all 32
+  (`third_party/upstream-fm6/`, `fm1-dx7-oracle`), test only: all 32
   algorithms within 0.3 dB of envelope and 28–40 dB SNR, and the rest in
   tests/test_engines_dx7.py.
 - **Cost:** 15,848 bytes an instance at 44,118 Hz on 64-bit, 32-bit and
@@ -3307,26 +3307,21 @@ used, and no code was taken from it or anywhere. Stereo-linked.
   log2 and a 2^x a frame), 0.09 % of the block; at the centre the log and
   the exponential are skipped [verified, 2026-10-05].
 
-## The Felucca engines
+## Lunar engines derived from upstream sources
 
-Three engines of **Felucca**, open firmware for the FM-1 by Leo Kuroshita
-(@kurogedelic), Hügelton Instruments: **Drawbar** (its WHEEL, a
-tonewheel-style organ), **Trio** (TRIO, three oscillators and a filter in
-the style of 8-bit home-computer sound chips) and **Phase Bend** (PHASE,
-the phase-distortion oscillator of CrispyZebra, the same author's). Their
-files are vendored **unmodified** in `third_party/felucca/` (GPL-3.0-only;
-`UPSTREAM.md` has the commit, the hashes and the credits). **GPL code:
-built only while the GPL switch is on** (`FM1_GPL_MODS`, [Build and
-checks](#build-and-checks); `mk/felucca.mk`); the licence table lists each
-as `GPL-3.0-only AND MIT`. They came out of the fm1-x0x study's ranking of
-Felucca's engines (`notes/2026-10-06-fm1-x0x.md` §3.2: WHEEL, TRIO, SLICE,
-PHASE); SLICE is not ported yet (below).
+Drawbar, Trio and Phase Bend are Lunar engines derived from Leo Kuroshita's
+WHEEL, TRIO and PHASE engines (Hügelton Instruments; GPL-3.0-only). Their
+unmodified upstream sources are in `third_party/upstream-engines/` (see its
+`UPSTREAM.md`). The GPL switch controls whether they are built
+(`FM1_GPL_MODS`, [Build and checks](#build-and-checks);
+`mk/upstream_engines.mk`). See the source table above for attribution and
+licensing. SLICE is not ported yet (below).
 
 **How they run.** Felucca is one compilation unit of static functions, its
-engines C with designated initialisers, so `src/felucca_bridge.c` includes
+engines C with designated initialisers, so `src/upstream_engine_bridge.c` includes
 Felucca's `core.h`, its generated tables, `dsp.c` and the three engine
 files as Felucca's `felucca.c` does, and exports a narrow interface
-(`src/felucca_bridge.h`); `src/felucca_shim.cc` is the engine API above it.
+(`src/upstream_engine_bridge.h`); `src/upstream_engine_shim.cc` is the engine API above it.
 Two definitions around `core.h` let it compile off the FM-1 and give each
 instance its own part, changing nothing an engine computes (UPSTREAM.md).
 WHEEL keeps part state in static arrays of its own; each instance holds a
@@ -3345,7 +3340,7 @@ way, once a control block and once a note-on).
   48,000 and 22,050 are refused, as the Plaits engines refuse 48 kHz). No
   resampling: at 44,118 Hz the samples are Felucca's on the device
   [verified: the oracle below at 44,100 and 44,118 Hz; the pitch measured
-  at 0.71 cent over 440 Hz, `tests/test_engine_felucca.py`].
+  at 0.71 cent over 440 Hz, `tests/test_engine_upstream_engines.py`].
 - **Voices**: eight. A key struck while it sounds starts again in its own
   voice; otherwise the next free voice in turn (Felucca's ROTATE, so tails
   ring); with none free the oldest released, else the oldest held that is
@@ -3370,7 +3365,7 @@ way, once a control block and once a note-on).
   cleanly (each partial's gain ramps over the block, the rotor eases): MOD,
   as the effects' clean switches [verified: turned every 3 ms under a
   chord, the output steps no more than at any held value,
-  `tests/test_engine_felucca.py`]. Every FLOAT is SMOOTH and MOD.
+  `tests/test_engine_upstream_engines.py`]. Every FLOAT is SMOOTH and MOD.
 - **Per-note offsets** on the FLOATs a voice reads itself: everywhere the
   envelope and Volume; Trio's and Phase Bend's knobs too. Drawbar's bars,
   click and drive are read once a block for the whole part, so they are not
@@ -3386,7 +3381,7 @@ way, once a control block and once a note-on).
   and FM6's), and Volume scales it by (Volume / 0.7)²; below −180 dB it is
   silence, so no sample is subnormal.
 
-**The oracle** (`test/felucca_oracle.c`, `fm1-felucca-oracle`, a desktop
+**The oracle** (`test/upstream_engines_oracle.c`, `fm1-upstream-engines-oracle`, a desktop
 tool built only with the switch on): Felucca's own `voice.c`, vendored
 unmodified, drives the same engine files on one part, with what it reaches
 outside them (the modulation matrix, the DRUM engine, its LFO's generator)
@@ -3396,7 +3391,7 @@ factory sound of the three engines (16, read from the vendored sources) and
 the defaults give the same samples, bit for bit, through a phrase with a
 chord, accents, retriggers and ten keys at once (two steals), at host
 blocks of 1, 7, 32 and 64 and at 44,100 and 44,118 Hz [verified
-2026-10-06: `tests/test_engine_felucca.py`].
+2026-10-06: `tests/test_engine_upstream_engines.py`].
 
 | Engine | Page 1 | Page 2 | Page 3 | Page 4 |
 | --- | --- | --- | --- | --- |
@@ -4649,7 +4644,7 @@ on 2026-10-06:
 | `sanitizers/` | Exemptions for vendored code under ASan/UBSan (below) |
 | `third_party/mutable/` | Mutable Instruments code, MIT, unmodified; see `UPSTREAM.md` |
 | `third_party/msfa/` | Google's msfa, Apache-2.0, unmodified; see `UPSTREAM.md` |
-| `third_party/felucca-fm6/` | Felucca's `fm6_core.c`, Apache-2.0, unmodified: FM6's test oracle only |
+| `third_party/upstream-fm6/` | Felucca's `fm6_core.c`, Apache-2.0, unmodified: FM6's test oracle only |
 | `third_party/schwung*/` | Schwung's ABI headers and the two modules, MIT, unmodified; see each `UPSTREAM.md` |
 
 ### The renderer's test options
