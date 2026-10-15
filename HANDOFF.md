@@ -17,12 +17,24 @@ and matched recorded values. No accepted note-ons/PLAY; no musical acceptance.
 Evidence/root summaries: scratch/hall-o2-cpu-result/; details appended to
 notes/2026-10-15-hall-o2-matched-preparation.md. Do not rerun consumed campaign.
 
-Offline FIR object O2 experiment c979cfb45d19ff0f52b8a2724a98cb38643da981
-backed to origin/codex/2026-10-15-fir-o2-sizeprobe, remote SHA verified; not
-integrated. Worker physical_storage_compression runs matched full LTO build on
-Hera to establish actual fit (not infer it from bitcode/object sizes).
+[verified: offline build] FIR object O2 experiment c979cfb45d19ff0f52b8a2724a98cb38643da981
+failed the final flash fit by4,256 bytes despite all16 compilation shards
+passing. No installable app/ELF was produced; do not deploy it. Both-engine
+object-size savings did not predict the full LTO image. Its branch is backed up.
+Drums-only follow-up e712d556d5ff8a502f64a82d61c0cba09ad82d64 is backed to
+origin/codex/2026-10-15-drums-o2-only with remote SHA verified. Root reviewed
+the policy delta and independently passed93 optimization/receipt tests in
+/Users/likwid/.codex/worktrees/drums-o2-policy-review. Worker
+physical_storage_compression completed its matched16-shard full build on Hera:
+all shards passed, final link failed by1,920 bytes of XIP. No image exists.
+Next offline comparison disables the startup-only CPU-rate diagnostic in both
+control and Drums-O2 builds, retaining telemetry and timed recovery, to measure
+whether unneeded diagnostic code can make room without musical feature cuts.
 Worker profile_catalogue_build revises postmix peak propagation to independent
 default-off experimental flag and checks target codegen before integration.
+Worker demo_controller_review prepares an opt-in SixOp resampler push-helper
+RAM placement experiment, with exact historical receipt-profile compatibility;
+host section/equivalence checks passed, full target fit is still unverified.
 Goal ACTIVE; cold-boot listening FAILED; SAVE/autoplayoff. No physical action
 currently needed. uv.lock remains untouched.
 
