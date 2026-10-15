@@ -30,6 +30,7 @@ static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_IND
 #include "midi_diagnostic_readout.h"
 #ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
 #include "trio_diagnostic_pulse.h"
+#include "diagnostic_telemetry.h"
 #endif
 #include "runtime_mode.h"
 #ifdef LUNAR_UART1_MIDI
@@ -216,6 +217,36 @@ static void incoming_midi(void)
 #endif
 }
 
+#ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
+static void diagnostic_report(void)
+{
+    static uint32_t last_report;
+    uint32_t now = fm1_ms;
+    if ((uint32_t)(now - last_report) < 1000u) return;
+    last_report = now;
+    /* This diagnostic's main loop is the only MIDI-output producer. The USB
+     * consumer may free slots meanwhile; reserve room for the whole frame
+     * before publishing its first packet. Never block audio for a report. */
+    if (!usb.config || mo_w - mo_r > MQ - LUNAR_DIAGNOSTIC_PACKETS) return;
+    uint32_t values[LUNAR_DIAGNOSTIC_FIELDS] = {
+        now, render_ticks_max, draw_ticks_max, audio_queue.underruns,
+        lunar_midi_usb_messages, lunar_midi_uart_bytes,
+        lunar_midi_accepted_noteons, lunar_midi_rejected_messages,
+        lunar_master_adc_raw, UINT32_MAX, UINT32_MAX, 0u,
+        initial_engine_result, audio_queue.written
+    };
+#ifdef LUNAR_STACK_WATERMARK
+    values[9] = lunar_stack_user_margin;
+    values[10] = lunar_stack_system_margin;
+    values[11] = lunar_stack_samples;
+#endif
+    uint32_t packets[LUNAR_DIAGNOSTIC_PACKETS];
+    lunar_diagnostic_packets(packets, values);
+    for (unsigned i = 0; i < LUNAR_DIAGNOSTIC_PACKETS; ++i)
+        midi_out_event(packets[i]);
+}
+#endif
+
 static void app_main(void)
 {
     /* HAL: SELECT, ALGORITHM, KNOB1..4, PRESETS. Shared app differs. */
@@ -350,6 +381,9 @@ static void app_main(void)
             fm1_app_master(&app, position, 0);
         }
         incoming_midi();
+#ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
+        diagnostic_report();
+#endif
 #ifdef LUNAR_PROJECT_SAVE_SERVICE
         (void)lunar_project_save_service_poll(&save_service, &app);
 #endif

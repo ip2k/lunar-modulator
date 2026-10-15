@@ -1,3 +1,23 @@
+# Diagnostic telemetry source checkpoint — 2026-10-15 UTC
+
+Added pulse-diagnostic-only 1 Hz outbound SysEx measurements for MIDI input,
+accepted/rejected notes, render/draw maxima, underruns, ADC and stack margins.
+Whole-frame queue admission drops rather than blocks. Strict offline decoder
+rejects malformed/truncated data and supports interleaved realtime bytes.
+Independent review found no blocking framing/queue defect; target stack and
+actual USB delivery remain unverified. Focused telemetry, MIDI build-policy,
+audio-queue and realtime-readout host suites passed with sanitizer harnesses;
+git diff --check passed. See notes/2026-10-15-native-diagnostic-telemetry.md.
+
+Hera worker has built all 167 catalogue objects (16 shards, zero failures)
+from exact ad9a0f0b source and prepared 55 production modules with no content.
+Next: bind this telemetry source to a fresh native link and check resources;
+historical frozen runner must retain its old source pins. MIDI source audit
+found no proved wiring defect; fresh ingress counters are required to distinguish
+transport arrival from filtering/application behavior. No device writes or boot
+occurred for this telemetry change. Physical all13 musical acceptance, SAVE,
+independent recovery, installer/release gates remain open; goal ACTIVE.
+
 # Naming migration integrated — 2026-10-15 UTC
 
 Owner requested Lunar product naming and neutral integration identifiers, keeping
