@@ -8,6 +8,42 @@ from tools.cynthion_usb_key.gateware import CynthionUsbKey
 from tools.cynthion_usb_key.top import CynthionUsbKeyPlatform, CynthionUsbKeyTop
 
 
+async def _enter_wait_dp(ctx, dut):
+    """Drive the simulation contract through self-test and candidate ACK."""
+    for _ in range(10):
+        await ctx.tick(domain="usb")
+        if ctx.get(dut.state) == dut.SELFTEST:
+            break
+    assert ctx.get(dut.state) == dut.SELFTEST
+
+    sequence = (2, 1, 0, 3)
+    for index, expected in enumerate(sequence):
+        ctx.set(dut.line_state_valid, 1)
+        ctx.set(dut.line_state_value, expected)
+        ctx.set(dut.line_state_update, 1)
+        await ctx.tick(domain="usb")
+        ctx.set(dut.line_state_update, 0)
+        for _ in range(5):
+            await ctx.tick(domain="usb")
+            if index < len(sequence) - 1 and (
+                ctx.get(dut.dp_o), ctx.get(dut.dm_o)
+            ) == (sequence[index + 1] & 1, sequence[index + 1] >> 1):
+                break
+    assert ctx.get(dut.state) == dut.KEY
+
+    key_bit = (dut.key_word >> (dut.key_bits - 1)) & 1
+    expected_live = 3 if key_bit else 1
+    while ctx.get(dut.debug_key_phase) < 8:
+        await ctx.tick(domain="usb")
+    ctx.set(dut.line_state_value, expected_live)
+    ctx.set(dut.line_state_update, 1)
+    await ctx.tick(domain="usb")
+    ctx.set(dut.line_state_update, 0)
+    ctx.set(dut.line_state_value, 0)
+    await ctx.tick(domain="usb")
+    assert ctx.get(dut.state) == dut.WAIT_DP
+
+
 def test_control_power_is_explicit_and_operation_only():
     assert CynthionUsbKeyTop().target_power_from_control is False
     assert CynthionUsbKeyTop(target_power_from_control=True).target_power_from_control
@@ -188,6 +224,11 @@ def test_disconnected_line_echo_cannot_falsely_ack_a_data_bit():
         assert ctx.get(dut.state) == dut.FAULT
         assert ctx.get(dut.dp_oe) == 0
         assert ctx.get(dut.dm_oe) == 0
+        assert ctx.get(dut.protocol_failure_reason) == dut.PROTOCOL_FAULT_PACKET_LIMIT
+        assert ctx.get(dut.protocol_failure_origin_state) == dut.GAP
+        assert ctx.get(dut.debug_packets) == 1
+        assert ctx.get(dut.debug_receiver_live) == 1
+        assert ctx.get(dut.debug_ack_ticks) < dut.ack_duration_us
 
     sim.add_testbench(bench)
     sim.run()
@@ -255,6 +296,55 @@ def test_sof_output_has_exact_period_and_pulse_after_fresh_entry():
             await ctx.tick(domain="usb")
         assert samples == [1, 1, 0, 0, 0, 0, 0, 0,
                            1, 1, 0, 0, 0, 0, 0, 0, 1, 1]
+
+    sim.add_testbench(bench)
+    sim.run()
+
+
+@pytest.mark.parametrize(
+    ("stage", "expected_reason", "expected_origin"),
+    [
+        ("wait", CynthionUsbKey.PROTOCOL_FAULT_WAIT_DP_TIMEOUT,
+         CynthionUsbKey.WAIT_DP),
+        ("sof", CynthionUsbKey.PROTOCOL_FAULT_SOF_TIMEOUT,
+         CynthionUsbKey.SOF),
+    ],
+)
+def test_terminal_protocol_fault_reports_timeout_stage_and_progress(
+    stage, expected_reason, expected_origin
+):
+    dut = CynthionUsbKey(clock_hz=1_000_000, selftest_state_us=2,
+                         ack_duration_us=1, dp_high_timeout_ms=0.003,
+                         sof_timeout_ms=0.003, auto_selftest=True)
+    sim = Simulator(dut)
+    sim.add_clock(1e-6, domain="usb")
+
+    async def bench(ctx):
+        ctx.set(dut.phy_isolated, 1)
+        ctx.set(dut.bank6_3v3_confirmed, 1)
+        ctx.set(dut.ack_sense_valid, 1)
+        await _enter_wait_dp(ctx, dut)
+
+        if stage == "sof":
+            ctx.set(dut.line_state_value, 1)
+            await ctx.tick(domain="usb")
+            assert ctx.get(dut.state) == dut.SOF
+
+        for _ in range(8):
+            await ctx.tick(domain="usb")
+            if ctx.get(dut.state) == dut.FAULT:
+                break
+
+        assert ctx.get(dut.state) == dut.FAULT
+        assert ctx.get(dut.protocol_failure_reason) == expected_reason
+        assert ctx.get(dut.protocol_failure_origin_state) == expected_origin
+        assert ctx.get(dut.debug_wait_ticks) > 0
+        if stage == "sof":
+            assert ctx.get(dut.debug_sof_ticks) == 3
+        else:
+            assert ctx.get(dut.debug_sof_ticks) == 0
+        assert ctx.get(dut.dp_oe) == 0
+        assert ctx.get(dut.dm_oe) == 0
 
     sim.add_testbench(bench)
     sim.run()

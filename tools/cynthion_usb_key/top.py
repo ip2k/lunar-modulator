@@ -132,7 +132,7 @@ class CynthionUsbKeyTop(Elaboratable):
             JTAGRegisterInterface(default_read_value=0xBAD0C0DE))
         m.submodules.debug_registers = debug
         debug.add_read_only_register(1, read=0x4C554E52)  # "LUNR"
-        debug.add_read_only_register(2, read=3)           # register layout v3
+        debug.add_read_only_register(2, read=4)           # register layout v4
         status_snapshot = Signal(32)
         status_bits = Cat(core.state, safe_phy.ready, safe_phy.fault,
                           core.selftest_mask, safe_phy.line_state_valid,
@@ -163,6 +163,46 @@ class CynthionUsbKeyTop(Elaboratable):
         debug.add_read_only_register(9, read=core.selftest_observed_valid)
         debug.add_read_only_register(10, read=0xC6)  # K, J, SE0, SE1, packed
         debug.add_read_only_register(11, read=Cat(*core.selftest_step_gpio))
+
+        # Preserve protocol failure provenance after the core has returned its
+        # outputs to high impedance. These snapshots are diagnostic-only and
+        # are captured once when DONE/FAULT is first observed in the USB
+        # domain; they do not feed the protocol state machine.
+        terminal_snapshot_valid = Signal()
+        protocol_failure_snapshot = Signal(32)
+        packet_count_snapshot = Signal(32)
+        ack_progress_snapshot = Signal(32)
+        wait_progress_snapshot = Signal(32)
+        sof_progress_snapshot = Signal(32)
+        sof_low_progress_snapshot = Signal(32)
+        key_progress_snapshot = Signal(32)
+        with m.If(~terminal_snapshot_valid &
+                  ((core.state == core.DONE) | (core.state == core.FAULT))):
+            m.d.usb += [
+                terminal_snapshot_valid.eq(1),
+                protocol_failure_snapshot.eq(Cat(
+                    Const(1),
+                    core.protocol_failure_reason,
+                    core.protocol_failure_origin_state,
+                    core.state)),
+                packet_count_snapshot.eq(core.debug_packets),
+                ack_progress_snapshot.eq(Cat(
+                    core.debug_receiver_live,
+                    core.debug_ack_confirm,
+                    core.debug_ack_ticks[:16])),
+                wait_progress_snapshot.eq(core.debug_wait_ticks),
+                sof_progress_snapshot.eq(core.debug_sof_ticks),
+                sof_low_progress_snapshot.eq(core.debug_dp_low_ticks),
+                key_progress_snapshot.eq(Cat(
+                    core.debug_key_bit, core.debug_key_phase)),
+            ]
+        debug.add_read_only_register(12, read=protocol_failure_snapshot)
+        debug.add_read_only_register(13, read=packet_count_snapshot)
+        debug.add_read_only_register(14, read=ack_progress_snapshot)
+        debug.add_read_only_register(15, read=wait_progress_snapshot)
+        debug.add_read_only_register(16, read=sof_progress_snapshot)
+        debug.add_read_only_register(17, read=sof_low_progress_snapshot)
+        debug.add_read_only_register(18, read=key_progress_snapshot)
 
         for bit in range(6):
             m.d.comb += platform.request("led", bit).o.eq(core.leds[bit])
