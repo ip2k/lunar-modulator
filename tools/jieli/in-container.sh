@@ -143,7 +143,7 @@ sz_compile() {  # sz_compile TARGET-NAME "CC" "EXTRA"
   fi
   $cc $SZ_C $extra -c "$SRC/tools/jieli/sizes.c" -o "$SZ/$t/sizes_c.o" \
     >"$SZ/$t/sizes_c.log" 2>&1 || echo "   $t sizes.c failed (see $SZ/$t/sizes_c.log)"
-  if [ "${FM1_GPL_MODS:-1}" != 0 ]; then     # Felucca's engines (GPL), while the switch is on
+  if [ "${FM1_GPL_MODS:-1}" != 0 ]; then     # GPL sound modules, while the switch is on
     $cc $SZ_CXX $extra -I"$OUT/ladder/obj/gen" -DSZ_UPSTREAM_ENGINES -c "$SRC/tools/jieli/sizes.cc" \
       -o "$SZ/$t/sizes_UPSTREAM_ENGINES.o" >"$SZ/$t/sizes_UPSTREAM_ENGINES.log" 2>&1 \
       || echo "   $t SZ_UPSTREAM_ENGINES failed (see $SZ/$t/sizes_UPSTREAM_ENGINES.log)"

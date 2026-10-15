@@ -1,18 +1,15 @@
-# mk/upstream_engines.mk -- the GPL modules built on Felucca's engines (Leo
-# Kuroshita / Hügelton Instruments, GPL-3.0-only; third_party/upstream-engines,
-# UPSTREAM.md):
-#   "Drawbar" (drawbar), a tonewheel-style organ, on WHEEL (eng_wheel.c);
-#   "Trio" (trio), three chip-style oscillators and a filter, on TRIO;
-#   "Phase Bend" (phase-bend), phase distortion, on PHASE.
+# mk/upstream_engines.mk -- build integration for the upstream-derived GPL
+# modules (third_party/upstream-engines/UPSTREAM.md): Drawbar, Trio and Phase
+# Bend. Their upstream names and attribution are documented in that notice.
 # One shim (src/upstream_engine_shim.cc, C++, our API) over one C object
-# (src/upstream_engine_bridge.c), which includes Felucca's files as its felucca.c
-# does. Built only while the GPL switch is on (FM1_GPL_MODS,
+# (src/upstream_engine_bridge.c), which includes the selected vendor sources.
+# Built only while the GPL switch is on (FM1_GPL_MODS,
 # engines/Makefile); the registry entries and licence rows sit under
 # #if FM1_GPL_MODS (src/registry.cc). With the switch off this fragment adds
 # nothing, and tests/test_gpl_switch.py checks that nothing of it is in that
 # build.
 #
-# The bridge is built as Felucca builds its own code: C (gnu11: core.h has a
+# The bridge is built as the vendor code expects: C (gnu11: core.h has a
 # _Static_assert; the engines use designated initialisers and GNU
 # attributes), -fwrapv (its fixed-point code multiplies and shifts signed
 # values as its ARM build does; engines/sanitizers/ubsan.supp), no
@@ -40,7 +37,7 @@ OUR_SRC += src/upstream_engine_shim.cc
 GPL_OBJ += $(UPSTREAM_ENGINE_OBJ)
 
 # fm1-upstream-engines-oracle (test/upstream_engines_oracle.c): the three engines through our
-# API against Felucca's own voice.c driving the same engine files
+# API against the upstream voice oracle driving the same engine files
 # (tests/test_engine_upstream_engines.py). A desktop test tool, C like the bridge.
 UPSTREAM_ENGINE_ORACLE_OBJ := $(BUILD)/gpl/upstream_engines/upstream_engines_oracle.o
 

@@ -1,8 +1,8 @@
-/* tools/jieli/sizes_upstream_engines.c -- the Felucca engines' world (engines/src/
+/* tools/jieli/sizes_upstream_engines.c -- the upstream engines' world (engines/src/
  * upstream_engine_bridge.c) as constants in the object file (`fm1sz_<name>`), beside
  * sizes.cc's SZ_UPSTREAM_ENGINES (the shim's Instance), for tools/jieli/analyze.py:
  * an instance is AlignUp16(sizeof Instance) + AlignUp16(world), the world
- * being Felucca's part (track_t) and, for Drawbar, WHEEL's part and voice
+ * being the vendor's part (track_t) and, for Drawbar, WHEEL's part and voice
  * state (upstream_engine_shim.cc InstanceSize).
  *
  * It includes the bridge, so it holds GPL-3.0-only code: compiled only while

@@ -1,6 +1,6 @@
 # mk/msfa.mk -- "FM6" (engine id dx7): six-operator FM on msfa, Google's
 # music-synthesizer-for-android FM core (Apache-2.0, vendored byte-identical
-# in third_party/msfa), and the Felucca oracle the tests compare it with
+# in third_party/msfa), and a reference integer-C oracle the tests compare it with
 # (engines/msfa.md).
 #
 # Each vendored msfa .cc is compiled on its own through src/msfa_unit.cc,
@@ -34,7 +34,7 @@ RENDER_EXTRA_OBJ += $(MSFA_OBJ)
 -include $(MSFA_OBJ:.o=.d)
 
 # fm1-dx7-oracle (test/dx7_oracle.cc): one voice through FM6 and through
-# Felucca's fm6_core.c (third_party/upstream-fm6, Apache-2.0; set up in
+# upstream fm6_core.c (third_party/upstream-fm6, Apache-2.0; set up in
 # test/dx7_upstream_fm6.c), and how far apart they are; also msfa's start-up
 # tables (tests/test_engines_dx7.py). A desktop test tool: fm6_core.c is in
 # no engine. It is C, built with the vendored-code flags.
