@@ -261,13 +261,15 @@ def test_hot_dsp_ram_requires_bounded_runtime_and_copies_extent_at_startup():
         'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
         'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)', 'Hall::Instance::Render',
         'Limiter::HoldStep', 'Limiter::BoxStep', 'Limiter::TapOut', 'Limiter::Render',
-        'fm1_app_render', 'fm1_resampler_push_ready_', 'Drums::Instance::Render']
+        'fm1_app_render', 'fm1_resampler_push_ready_', 'Drums::Instance::Render',
+        'Drums::Instance::RenderBlock']
     assert 'SixOp::Instance::RenderBlock' in receipt['selected_bodies']
     assert 'plaits::FMVoice::Render' in receipt['selected_bodies']
     assert 'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)' in receipt['selected_bodies']
     assert 'Limiter::BoxStep' in receipt['selected_bodies']
     assert 'fm1_resampler_push_ready_' in receipt['selected_bodies']
     assert 'Drums::Instance::Render' in receipt['selected_bodies']
+    assert 'Drums::Instance::RenderBlock' in receipt['selected_bodies']
     assert receipt['all_callees_in_ram'] is False
     disabled = builder.hot_dsp_ram_configuration(False, 'continuous')
     assert disabled['enabled'] is False
@@ -303,6 +305,7 @@ def test_drums_hot_dsp_annotation_is_opt_in_and_scoped_to_instance_render():
     root = Path(builder.__file__).resolve().parents[2]
     drums = (root / 'engines/src/drums.cc').read_text()
     assert drums.count('FM1_HOT_DSP_RENDER void Render(float *out_lr, uint32_t frames)') == 1
+    assert drums.count('FM1_HOT_DSP_RENDER void RenderBlock()') == 1
     import re
     assert not re.search(r'(?m)^\s*void Render\(float \*out_lr, uint32_t frames\)', drums)
     assert '#define FM1_HOT_DSP_RENDER __attribute__((noinline, used, section(".ram_dsp")))' in (

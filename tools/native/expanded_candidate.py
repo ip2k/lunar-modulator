@@ -39,11 +39,13 @@ HOT_DSP_RAM_BOXSTEP_BODIES = [
 # Exact profile after moving the internal resampler push helper. Retain the
 # prior lists above as complete historical profiles; reject partial mixtures.
 HOT_DSP_RAM_PUSH_READY_BODIES = HOT_DSP_RAM_PRE_PUSH_READY_BODIES + ['fm1_resampler_push_ready_']
-HOT_DSP_RAM_BODIES = HOT_DSP_RAM_PUSH_READY_BODIES + ['Drums::Instance::Render']
+HOT_DSP_RAM_PUSH_READY_DRUMS_BODIES = HOT_DSP_RAM_PUSH_READY_BODIES + ['Drums::Instance::Render']
+HOT_DSP_RAM_RENDERBLOCK_BODIES = HOT_DSP_RAM_PUSH_READY_DRUMS_BODIES + ['Drums::Instance::RenderBlock']
+HOT_DSP_RAM_BODIES = HOT_DSP_RAM_RENDERBLOCK_BODIES
 HOT_DSP_RAM_SUPPORTED_BODY_PROFILES = (
     HOT_DSP_RAM_LEGACY_BODIES, HOT_DSP_RAM_BOXSTEP_BODIES,
     HOT_DSP_RAM_PRE_PUSH_READY_BODIES, HOT_DSP_RAM_PUSH_READY_BODIES,
-    HOT_DSP_RAM_BODIES)
+    HOT_DSP_RAM_PUSH_READY_DRUMS_BODIES, HOT_DSP_RAM_RENDERBLOCK_BODIES)
 
 
 def validate_hot_dsp_ram_receipts(elf, verification, artifact):
