@@ -53,6 +53,9 @@ extern void lunar_native_midi_uart_init(void);
 
 bootguard_t bootguard __attribute__((section(".noinit")));
 static volatile uint32_t fm1_ms;                /* milliseconds since power-on (TIMER5) */
+#ifdef LUNAR_DIAGNOSTIC_CPU_RATE
+static void lunar_cpu_rate_calibrate(void);
+#endif
 
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "libc.c"
@@ -369,6 +372,9 @@ void fm1_cstart(void)
     fm1_boot.p3_rst = (uint8_t)p3;
     if (boot_mode == BOOT_RECOVERY || recovery_key())
         recovery_main();                        /* OCT- at power-on: the USB rescue */
+#ifdef LUNAR_DIAGNOSTIC_CPU_RATE
+    lunar_cpu_rate_calibrate();                 /* opt-in, fixed work; no clock changes */
+#endif
     flash_ok = FL_FAR(fl_jedec_ram)() == 0x856014u;
     ota_boot_cleanup();
     lcd_init();

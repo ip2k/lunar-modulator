@@ -431,3 +431,24 @@ def test_engine_profile_rejects_wrong_schema_or_nonexact_values(mutation):
         values[ENGINE_PROFILE_FIELDS[0]] = 0x100000000
     with pytest.raises(ValueError, match="schema-7 fields|must be a uint32"):
         analyzer.analyze_jsonl([json.dumps(event)])
+
+
+def test_cpu_rate_analysis_is_raw_tick_only_and_rejects_unknown_status_bits():
+    values = dict.fromkeys(codec.CPU_RATE_FIELDS, 0)
+    values.update(uptime_ms=123, iterations_per_trial=4096, trials_per_kernel=4,
+                  xip_elapsed_ticks=400, ram_elapsed_ticks=420,
+                  xip_checksum=17, ram_checksum=17, status=3)
+    event = {"event": "cpu_rate_frame", "schema": 8, "frame_index": 0,
+             "elapsed_seconds": 4.0, "values": values}
+    report = analyzer.analyze_jsonl([json.dumps(event)])
+    assert report["cpu_rate_frame_count"] == 1
+    result = report["cpu_rate_frames"][0]
+    assert result["checks"]["both_elapsed_nonzero"]
+    assert result["checks"]["checksums_match"]
+    assert "raw TIMER4 ticks" in result["timing_units"]
+    assert any("not an instruction counter or calibrated CPU frequency" in item
+               for item in report["interpretation_limits"])
+    for bad_values in (dict(values, status=4), dict(values, iterations_per_trial=1)):
+        bad_event = dict(event, values=bad_values)
+        with pytest.raises(ValueError):
+            analyzer.analyze_jsonl([json.dumps(bad_event)])

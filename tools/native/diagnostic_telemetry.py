@@ -37,6 +37,13 @@ ENGINE_PROFILE_FIELDS = (
     "sixop_render_block_ticks", "sixop_render_block_calls",
 )
 ENGINE_PROFILE_FRAME_BYTES = len(ENGINE_PROFILE_PREFIX) + 5 * len(ENGINE_PROFILE_FIELDS) + 1
+CPU_RATE_PREFIX = b"\xf0\x7dLUNAR\x08"
+CPU_RATE_FIELDS = (
+    "uptime_ms", "iterations_per_trial", "trials_per_kernel",
+    "xip_elapsed_ticks", "ram_elapsed_ticks", "xip_checksum",
+    "ram_checksum", "status",
+)
+CPU_RATE_FRAME_BYTES = len(CPU_RATE_PREFIX) + 5 * len(CPU_RATE_FIELDS) + 1
 PROFILE_PREFIX = b"\xf0\x7dLUNAR\x02"
 FIELDS = (
     "uptime_ms", "render_ticks_max", "draw_ticks_max", "audio_underruns",
@@ -94,6 +101,11 @@ def decode_engine_profile_frame(frame: bytes) -> dict[str, int]:
     return _decode_values(frame, ENGINE_PROFILE_PREFIX, ENGINE_PROFILE_FIELDS, 7)
 
 
+def decode_cpu_rate_frame(frame: bytes) -> dict[str, int]:
+    """Require schema-8 fixed-work XIP/SRAM raw-tick results."""
+    return _decode_values(frame, CPU_RATE_PREFIX, CPU_RATE_FIELDS, 8)
+
+
 def decode_any_frame(frame: bytes) -> tuple[int, dict[str, int]]:
     if frame.startswith(PREFIX):
         return 1, decode_frame(frame)
@@ -109,6 +121,8 @@ def decode_any_frame(frame: bytes) -> tuple[int, dict[str, int]]:
         return 6, decode_irq_profile_frame(frame)
     if frame.startswith(ENGINE_PROFILE_PREFIX):
         return 7, decode_engine_profile_frame(frame)
+    if frame.startswith(CPU_RATE_PREFIX):
+        return 8, decode_cpu_rate_frame(frame)
     raise ValueError("unknown Lunar diagnostic schema")
 
 
@@ -139,6 +153,8 @@ def decode_capture(data: bytes) -> list[dict[str, int]]:
             size = IRQ_PROFILE_FRAME_BYTES
         elif clean.startswith(ENGINE_PROFILE_PREFIX, offset):
             size = ENGINE_PROFILE_FRAME_BYTES
+        elif clean.startswith(CPU_RATE_PREFIX, offset):
+            size = CPU_RATE_FRAME_BYTES
         else:
             raise ValueError("unknown or truncated diagnostic frame prefix")
         if offset + size > len(clean):
