@@ -1,3 +1,20 @@
+## Coordinator checkpoint: ROM81 five-body trial launched
+
+Exact9377348f source freshly built16/16 on Hera with corrected five-body receipts.
+Independent ELF/runner review and bench file-only preflight pass. New private base
+/home/claude/fm1-hot-ram-render-block-9377348f-20261015, cycle
+rom81-render-block-cycle; persistent PID84237 launched once. Inspect durable
+output/journal; NEVER relaunch. Fresh physical binding bus1/dev81/path1-1 ROM
+verified immediately before launch. Target b2d5b9505128398631d7fef2a268624ab00cba2d635653d2fc581953b925ffc1;
+210changed sectors expected after paired reads of current0c32c1a9.
+Prior guard campaign fully captured and returned ROM81; throughput267.603 vs
+256.896 blocks/device-second (+4.17%), still below689 needed. No audio acceptance.
+Private retained evidence scratch/hot-ram-guard-result/physical, comparison.json.
+New build scratch/hot-ram-render-block-corrected-result; runner/reviews under
+scratch/hot-ram-render-block-cycle. SAVE disarmed. Goal ACTIVE.
+MIDI Start/Stop/Continue shared USB/TRS implemented; full hardware acceptance pending.
+Unrelated uv.lock untouched. This checkpoint backed up per verified Git state.
+
 ## Coordinator checkpoint: ROM79 native boot and capture; receipt corrected
 
 ROM79 one-use install/readback completed; native USB80 appeared after single

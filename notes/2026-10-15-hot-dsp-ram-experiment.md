@@ -205,3 +205,23 @@ receipt listed only four bodies, so this artifact is not admissible. Builder
 and candidate verifier now require all five; source hash pins updated in
 adapter and boot runner. Root reran58 focused tests successfully. A fresh
 exact-source build is required; do not retrofit metadata onto the old build.
+
+## Completed guard measurements and fresh five-body campaign
+
+[verified: device evidence] Guard trial completed analog180s and telemetry110s,
+then automatically returned ROM81. Counter deltas over device uptime give
+256.896 baseline vs267.603 produced blocks/s (+4.17%); underruns432.456 vs421.741/s.
+Still far short of approximately689 blocks/s: no playback acceptance. Private
+archive SHA abbbe26167e80571c222241a18743a322a1dc1ae17bfbd474c1fda99a09789f1;
+comparison scratch/hot-ram-guard-result/physical/comparison.json.
+
+[verified: build and passive device] Exact9377348f rebuilt all16 shards on Hera.
+Corrected receipt lists five bodies, .ram_dsp3788B, RenderBlock592B at01c00544;
+XIP callees remain. Ten artifact hashes and independent ELF review pass.
+Candidate b2d5b9505128398631d7fef2a268624ab00cba2d635653d2fc581953b925ffc1,
+210changed sectors. Runtime/source pins, independent runner review and file-only
+preflight pass. New root-owned bench base fm1-hot-ram-render-block-9377348f-20261015;
+rom81-render-block-cycle launched once, PID84237. Fresh exact ROM81 USB binding
+verified before launch. Installation/boot/capture outcome pending. Do not reuse.
+The build archive required separately staged exact selection.json; constructor
+then succeeded offline, before any device action. SAVE remains disarmed.
