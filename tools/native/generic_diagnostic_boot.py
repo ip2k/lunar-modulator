@@ -24,8 +24,8 @@ BOOT_KIND = "lunar-generic-diagnostic-completed-boot"
 FLASH_BYTES, MAX_AGE = 1048576, 120
 SOURCE_PINS = {
     "native/generic_diagnostic_flash.py": "524ac70a4514f6bd3ec96d19a8924808624334620d0317a779aedfe33ef7247a",
-    "native/expanded_candidate.py": "1e2dba6e39d8eb9ae559b78d849a83dcc8ec716a994396ceeeb7ab30a9d451b0",
-    "native/generic_diagnostic_sg_adapter.py": "e8d70e1ba5234d8ff0fc790b54edebc8b09f1d51f3d6fab60b2b44060da4de1b",
+    "native/expanded_candidate.py": "cb606acf96af8d68ed19bc0cf54e30a99629baae3448e34e93c6fd0056a2b6a6",
+    "native/generic_diagnostic_sg_adapter.py": "a05d2b2f9f577fb21e11a6a4f7bf24e95fe5f03b89f0003deb0867dff5241743",
     "native/expanded_sg.py": "f18e73b658c9d0b06b03b528c6fd4dd4da511a95102ea44252836d885e1a3700",
     "native/event120_generic_boot.py": "a060459933f8e34b34df8a0978e76e65e3d92f6bb728cbeb3306f4ffb132d820",
     "native/event120_reset.py": "f7b75e3448fe30babaed23b70340bab76db1e2c8815d13d22c6bdb00116a770c",

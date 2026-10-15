@@ -109,13 +109,16 @@ def test_expanded_candidate_hot_dsp_ram_requires_matching_verified_receipts(samp
         **args, hot_dsp_ram=True, hot_dsp_ram_receipt=hot_dsp_receipt(args['elf']))
     assert candidate.HOT_DSP_RAM_BODIES == [
         'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
+        'plaits::fm::Voice<6>::Render(Parameters,float*,size_t)',
         'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
     assert receipt['hot_dsp_ram'] is True
     assert receipt['elf_verified'] and receipt['link_audit']['passed']
     assert target[0xD9000:] == sample['baseline'][0xD9000:]
 
 
-@pytest.mark.parametrize('fault', ['artifact-off', 'runtime', 'save', 'body', 'missing-fmvoice', 'duplicate-fmvoice', 'extent'])
+@pytest.mark.parametrize('fault', ['artifact-off', 'runtime', 'save', 'body', 'missing-fmvoice',
+                                  'duplicate-fmvoice', 'missing-fm-template',
+                                  'duplicate-fm-template', 'extent'])
 def test_expanded_candidate_hot_dsp_ram_rejects_receipt_mismatch(sample, fault):
     args = inputs(sample, hot_dsp_ram=True)
     receipt = hot_dsp_receipt(args['elf'])
@@ -125,6 +128,8 @@ def test_expanded_candidate_hot_dsp_ram_rejects_receipt_mismatch(sample, fault):
     elif fault == 'body': receipt['verification']['hot_dsp_ram']['selected_bodies'] = ['fm1_app_render']
     elif fault == 'missing-fmvoice': receipt['verification']['hot_dsp_ram']['selected_bodies'] = [x for x in candidate.HOT_DSP_RAM_BODIES if x != 'plaits::FMVoice::Render']
     elif fault == 'duplicate-fmvoice': receipt['verification']['hot_dsp_ram']['selected_bodies'] = candidate.HOT_DSP_RAM_BODIES + ['plaits::FMVoice::Render']
+    elif fault == 'missing-fm-template': receipt['verification']['hot_dsp_ram']['selected_bodies'] = [x for x in candidate.HOT_DSP_RAM_BODIES if x != 'plaits::fm::Voice<6>::Render(Parameters,float*,size_t)']
+    elif fault == 'duplicate-fm-template': receipt['verification']['hot_dsp_ram']['selected_bodies'] = candidate.HOT_DSP_RAM_BODIES + ['plaits::fm::Voice<6>::Render(Parameters,float*,size_t)']
     else: receipt['verification']['hot_dsp_ram']['extent']['bytes'] += 4
     with pytest.raises(ValueError):
         candidate.construct(**args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)

@@ -259,3 +259,25 @@ single boot request, which returned an ambiguous acknowledgement. No retry was
 issued. Native USB82 appeared and the independently launched capture helper
 is recording. Preserve the consumed campaign; capture completion, final
 readback evidence and automatic ROM return still need inspection.
+
+## Five-body physical result and actual FM-template source follow-up
+
+[verified: physical evidence] Five-body transaction journal is complete with
+intent null and verified targetb2d5b9505128398631d7fef2a268624ab00cba2d635653d2fc581953b925ffc1.
+Telemetry110s and analog180s both exited0; nativeUSB82 automatically returned
+to ROM83. No boot retry. Private campaign archive230195200bytes SHA256
+d237de85ee3056560f5f581bc5b411f62d931130d7826a13b11e7b468050ad89,
+safely extracted at scratch/hot-ram-render-block-result/physical/campaign-evidence/.
+Counter rates: previous267.602634 vs268.253350 produced blocks/s; new
+underruns421.092143/s over107.898device seconds. This tiny difference does not
+resolve starvation against689.34375blocks/s demand or establish musical acceptance.
+Comparison saved at scratch/hot-ram-render-block-result/physical/comparison.json.
+
+[verified: host and source] Exact a7dc8fbe default and RAM-opt-in host SixOp tests
+both pass six mode/rate scenarios x24000 stereo frames against the cached-accent
+reference. This is neither cross-build PCM identity nor target timing proof.
+The next source experiment annotates only the concrete FM-template three-argument
+Render overload, preserving arithmetic and default behavior. Seven-body receipts
+now require it; missing and duplicate template entries are rejected. Updated
+source pins and four focused receipt/adapter/boot suites pass63tests.
+Fresh target build and disassembly remain required; no seven-body device write.

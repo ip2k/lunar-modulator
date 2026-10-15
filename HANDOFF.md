@@ -5516,3 +5516,25 @@ Four offline gate tests passed before root staging; current MIDI routing/app
 queue subset38tests passed. Existing source supports FA rewind/start, FC pause
 and gate release, FB continue on shared USB/UART path. F8 clock is separate;
 exact FA rewind/TRS physical acceptance remains open. Overall goal ACTIVE.
+
+### Latest checkpoint: five-body RAM result; concrete FM-template experiment
+
+Active worktree is /Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware,
+branch feature/2026-10-11@installable-firmware. Five-body9377348f campaign
+bench01:/home/claude/fm1-hot-ram-render-block-9377348f-20261015 is consumed.
+Installation completed/full target verifiedb2d5b950; one ambiguous boot reply,
+no retry. NativeUSB82 observed, then automaticROM83 return. Telemetry110s and
+analog180s exited0. Private archive SHA d237de85ee3056560f5f581bc5b411f62d931130d7826a13b11e7b468050ad89
+under scratch/hot-ram-render-block-result/physical/. Produced268.253blocks/s
+vs prior267.603; still severe starvation, no musical acceptance.
+
+Six-body a7dc8fbe Hera build passes target static gates and host reference
+checks, but independent ELF review found FMVoice::Render is only a28B RAM
+wrapper; substantial1958B FM template stays XIP. Do not install that wrapper
+experiment. Source follow-up annotates concrete template Render overload;
+seven-body lists/pins/tests updated,63focused tests pass. Next: fresh exact
+source sixteen-shard Hera build and inspect actual compute-body placement,
+before preparing any separate freshly bound device campaign. SAVE disarmed;
+full recovery/persistence/web release and physical MIDI acceptance remain open.
+MIDI FA start/rewind,FC pause/gate release,FB continue implemented for USB/UART;
+37parser/routing checks passed again. F8 clock synchronization is separate.

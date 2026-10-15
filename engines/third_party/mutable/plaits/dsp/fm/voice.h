@@ -31,6 +31,8 @@
 
 #include "stmlib/stmlib.h"
 
+#include "fm1_hot_dsp.h"
+
 #include "plaits/dsp/fm/algorithms.h"
 #include "plaits/dsp/fm/dx_units.h"
 #include "plaits/dsp/fm/envelope.h"
@@ -140,7 +142,7 @@ class Voice {
     Render(parameters, buffers, size);
   }
   
-  inline void Render(
+  FM1_HOT_DSP_RENDER inline void Render(
       const Parameters& parameters,
       float* temp,
       size_t size) {
