@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MIT */
 /* Internal postmix helpers shared with the native equivalence harness. */
 #ifndef FM1_POSTMIX_H
 #define FM1_POSTMIX_H
