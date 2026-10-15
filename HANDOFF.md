@@ -1,3 +1,23 @@
+# Current checkpoint: hot-DSP physical result — 2026-10-15 UTC
+
+ROM69 campaign is consumed. Installation/full readback matched e77cc3c1; one
+ambiguous reset was not retried. Native70 appeared and timed recovery returned
+ROM71 without owner intervention. Both passive recorders completed successfully.
+Device counters show 259.12 audio blocks/s versus 689.34 needed, still severe
+starvation; no musical acceptance. Exact evidence, hashes and limits:
+notes/2026-10-15-hot-dsp-hardware-campaign.md. Private data:
+scratch/hot-dsp-result/physical/ and bench hot-dsp BASE/rom69-cycle.
+
+Limiter equal-peak ratio reuse plus strengthened equivalence harness is backed
+up at a3f921450e71e2ad4c5dbe2654e4dca6fcf9e6e2 (remote SHA verified).
+108 scenarios x 6000 frames, six exact parameter transitions/scenario, bitwise
+audio/full-state equality; 48 focused tests passed. Target benefit unmeasured.
+Clock diagnostic exact 5c4502ee build exists; separate schema3 runtime preparation
+and fresh candidate/identity/read-pair admission remain pending. No historical
+campaign may be repurposed. Sixop fixed-note velocity cache is under bounded
+agent implementation with render-equivalence checks. Goal ACTIVE: audio, SAVE,
+independent recovery, full-song physical acceptance and web release gates open.
+
 # Passive diagnostic capture checkpoint — 2026-10-15 UTC
 
 Coordinator reviewed passive telemetry recorder and joined USB/UART ingress
