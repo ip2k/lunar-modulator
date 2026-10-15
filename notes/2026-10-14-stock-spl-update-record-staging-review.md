@@ -10,7 +10,7 @@
 
 ## Why the existing path cannot simply be relocated
 
-The stock-OTA-like Felucca staging code erases five 4 KiB sectors at `0xE0000..0xE4FFF`, writes/decompresses the loader there, and places the persistent record at `0xE4F00` (`firmware/third_party/dinghy/src/ota.c:24-29,303-339,363-389`). Its `FELUCCA_OTA_RAMONLY` switch only omits the persistent record; its own comment says that power loss leaves the staged loader behind and cannot resume (`ota.c:378-382`). It does not make the overwritten VM sectors safe.
+The stock-OTA-like Felucca staging code erases five 4 KiB sectors at `0xE0000..0xE4FFF`, writes/decompresses the loader there, and places the persistent record at `0xE4F00` (`firmware/third_party/dinghy/src/ota.c:24-29,303-339,363-389`). Its `LUNAR_OTA_RAMONLY` switch only omits the persistent record; its own comment says that power loss leaves the staged loader behind and cannot resume (`ota.c:378-382`). It does not make the overwritten VM sectors safe.
 
 The loader then writes app data only in its fixed `[0x4000,0x93000)` range, and its completion cleanup clears the RAM mailbox and scans/erases matching records at 4 KiB-boundary-minus-256 slots in `[0x93000,0xFC000)` (`reference/dinghy/firmware/loader/ldr_core.c:31-34,91-103,117-180`; `loader.c:19-20,70-73,108-115`). That interval intersects FM-1_092 VM, BTIF and USR. Widening the app limit to `0xD9000` without rewriting both staging and record-discovery/cleanup rules would corrupt protected state. The proposed application/profile extent is `[0x04000,0xD9000)`; geometry code rejects overlap and preserves the suffix exactly (`tools/jieli/expanded_flash_profile.py:12-29,40-60`).
 

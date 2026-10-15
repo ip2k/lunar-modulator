@@ -3,7 +3,7 @@
 /* M-UPGRADE update entry.
  *
  * The updater talks SysEx (F0 pack7(00 59 cmd len24 body chk) F7):
- *   cmd 0x11  handshake -> we answer our package identity (FELUCCA_ID)
+ *   cmd 0x11  handshake -> we answer our package identity (LUNAR_ID)
  *   F0 22 24 35 7F F7  upgrade -> ota_session(): pull parts of the package
  *     with cmd 0x30 read requests, check them, stage the package's update
  *     loader at 0xE0000 (outside Felucca's store), ask 0xE0000000 ("success"),
@@ -134,7 +134,7 @@ static void ota_reply_identity(void)
     for (i = 0; i < sizeof id; i++) id[i] = 0;
     for (i = 0; i < sizeof id && id_text[i]; i++) id[i] = (uint8_t)id_text[i];
 #else
-    static const char ID[] = FELUCCA_ID;         /* loader / unmodified builds */
+    static const char ID[] = LUNAR_ID;         /* loader / unmodified builds */
     uint8_t id[27];
     uint32_t i;
     for (i = 0; i < sizeof id; i++)
@@ -288,6 +288,7 @@ static int ota_stage(void)                       /* steps 1..6; 0 = host said su
         return -7;
     official = ota_rd16(b) == OTA_LDR_HCRC && ota_rd16(b + 2) == OTA_LDR_DCRC && len == OTA_LDR_LEN;
     for (i = 0x48, own = 0; i + 16u <= 0x48u + 64u && !own; i++)    /* first LZ4 literals: crt0_ldr.S */
+        /* Legacy loader signature retained byte-for-byte for compatibility. */
         own = ota_memeq(b + i, (const uint8_t *)"FELUCCA-LOADER-1", 16) && ota_rd32(b + 0x20 + 4) <= 0x14000u;
     if (!official && !own)
         return -7;
@@ -370,16 +371,16 @@ static int ota_session(void)
         parm[8 + i] = (uint8_t)"ota-FM-1_015"[i];    /* the loader's own USB identity */
     ota_wr32(parm + 72, OTA_AREA);
     ota_wr16(parm, ota_crc16(parm + 2, 78, 0));
-#if FELUCCA_OTA_DRYRUN
+#if LUNAR_OTA_DRYRUN
     ota_unstage();
     ota_show(9, 1);                                 /* 1 = dry run complete */
     return 1;
 #endif
-#ifndef FELUCCA_OTA_RAMONLY
-#define FELUCCA_OTA_RAMONLY 0                       /* 1: RAM record only, no power-loss resume (a power
+#ifndef LUNAR_OTA_RAMONLY
+#define LUNAR_OTA_RAMONLY 0                       /* 1: RAM record only, no power-loss resume (a power
                                                      * cycle leaves a broken loader behind) */
 #endif
-    if (!FELUCCA_OTA_RAMONLY && (ota_prog(OTA_RES, parm, sizeof parm) || ota_fread(OTA_RES, back, sizeof back) ||
+    if (!LUNAR_OTA_RAMONLY && (ota_prog(OTA_RES, parm, sizeof parm) || ota_fread(OTA_RES, back, sizeof back) ||
         !ota_memeq(back, parm, sizeof parm))) {
         ota_unstage();
         ota_show(9, -14);

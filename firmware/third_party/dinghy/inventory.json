@@ -2,15 +2,14 @@
   "revision": "d44df7db09b98ccad2f1233b8f83f5f09c04829e",
   "files": {
     "LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
-    "LICENSING.md": "be2790d446a0bfad83d4a6c14765fceca84d15dd18484224089f6a1117c5ffca",
+    "LICENSING.md": "fbc41ac1ebb1742580aa4b14d9b1840508c4ee4b05d9ea6e9022bd2f546ca36a",
     "Terminus-LICENSE.txt": "0a18785a674c0061da0fa1eb1bbdfe2d7db383b3f2e64c73454540e9cc3ae33d",
     "app.ld": "6a9f41205e482fbdf2d24dc418416e45a3a8e1781d3e594279d751335af8942a",
     "crt0.S": "2212471c4a70e94022ba24ef65a4b208fadd5f7e33f80745c5f5e8b9f4aa840c",
-    "gen/felucca_font.h": "ce47ea8e3c8bd7dd40aa5862918c98436201ef4cd29b6f82399c45ff7fdc5119",
     "hal/fm1_adc.h": "1917870bd802de9134d33335efbcf886b296705dff06688925fd7325589c0c1a",
     "hal/fm1_audio.h": "22351440699748546e932098e3016c618d6137dd0ae34557e08a107641d4e62e",
     "hal/fm1_cc.h": "46c533a0926ba9298ae36705f857ed609a61b95511ba7f0d1800857b4760dd73",
-    "hal/fm1_flash.h": "94ef8a6b727f8a6425af08c3a197aef3988d4cad85ac401d99c65a45d7b1c26e",
+    "hal/fm1_flash.h": "eff221385ffef3ab06edf967aa4b3ceebcba001fa0e28619f5b44dc7d4fa6074",
     "hal/fm1_gpio.h": "5e3937e32a3b4b9b9ae622c5b42c8819ec8a16f2d76dbddec91654703c77a216",
     "hal/fm1_guard.h": "dda2ebdd3024aab7700f8ef00cc55de23c0b369be1d889741d2058eb5c33ce74",
     "hal/fm1_input.h": "7579aa8e061e4b23a86aee693f1d6004dc552b888457ea507f1ba3d941465241",
@@ -24,21 +23,22 @@
     "hal/fm1_usb.h": "667289a678a027221343b6496b61870222eb80394a696d7dd896dbc2ffe303d4",
     "hal/fm1_vec.S": "8f9e787871332f522157d561dc3cfe8906ed0abf160139ed5819cfdeab66f01a",
     "hal/fm1_xip.h": "dcba6ddb9cd2403e1d97c4db49d836110ef2805d2369db7ed323e3fbe26c56ed",
-    "src/bootguard.h": "bf19ef423356552105115a3ec3dde3beddb0369670f4b4317520ebfd8f032afb",
+    "src/bootguard.h": "d991e60e3740f3f487e7dde883b7f92d4696fccff274b706958d39598a044a20",
     "src/dinghy.c": "c27e4be6f6eb9d56d0d1b9f857ceed97a80e476a23a2553fa2fe52b1841cb383",
-    "src/gfx.c": "ae52d4e854c2c81a2ea7892807c771fc228103391a186ceb1201e2faf1efa74e",
+    "src/gfx.c": "701b3bdd35332bca2428cc5013906e25cf01b6c01edc38abcd17251f5d974876",
     "src/lcd.c": "b69f0c3d6a5b61c883a35b50ddd6582811bd620a45268543e923fb8849caaac4",
     "src/libc.c": "344b09afe33da826feefeb1ea2a1a7c50732f91c133fee30174819645edc131a",
-    "src/ota.c": "ffc981586704b41f62c763248037d1fe373c84c3566c0486de795296f9841855",
-    "src/platform.c": "98025f78140e3cb985d9e7b2ef738ca32909f6e963ee068fe42d35a6cd553636",
+    "src/ota.c": "c4ab213bea46bcae74250e25fbd764cb0a52926779e3597cc30a22a3f09619ca",
+    "src/platform.c": "6d113bae40346ab2bccc69d4070e96f8b29b684b6e0c0d1a18be18a44a7cdc73",
     "src/recovery.c": "f2c7c0c0fd1592f8390ee0066f96033843a3e2eaabbf995013ee9b0735429929",
     "src/uac_fir.h": "b4393a8efc4ce5427334692b9857d31446a36416dc6ca7941aea5bd4add4ca56",
-    "src/usb.c": "fc25d9ce8d4100a95ef9ec07a52bc25befe894df6e63e7f48d073727bdf6320d"
+    "src/usb.c": "4660b7252d1c8eba0e540635dff16991bd24563e4fbd4d4077c2999a950551ca",
+    "gen/lunar_font.h": "bc30e3fe45998975440522d274022ae3d167ab41999d2b9b327cdfa4c131e17b"
   },
   "local_modifications": {
     "hal/fm1_flash.h": {
       "upstream_sha256": "ee9700389d8bf842606b7210e52e125c085a44fbb5d30301cf189d823c4d5e90",
-      "local_sha256": "94ef8a6b727f8a6425af08c3a197aef3988d4cad85ac401d99c65a45d7b1c26e",
+      "local_sha256": "eff221385ffef3ab06edf967aa4b3ceebcba001fa0e28619f5b44dc7d4fa6074",
       "reason": "Preserves prior interrupt-enable state, accounts for NOR status-poll deadlines, validates caller source spans, stages each program page in aligned SRAM, and now refuses erase/program before IRQ masking unless the live SP lies in an app.ld stack window with 1 KiB headroom, the staged page is fully on that stack, and the timing word is aligned ordinary SRAM. A narrow FL_PROGRAM_PAGE seam lets the host fixture assert the staged page pointer. Intentional local FM-1 changes; upstream source remains identified by revision and original hash."
     },
     "hal/fm1_sys.h": {
@@ -48,13 +48,33 @@
     },
     "src/platform.c": {
       "upstream_sha256": "6cfb23b317af3d95da4d6eeeb8a34de59ee77a626d7d17484398feeb2535bfd7",
-      "local_sha256": "98025f78140e3cb985d9e7b2ef738ca32909f6e963ee068fe42d35a6cd553636",
-      "reason": "Adds a compile-time guarded native UART1 MIDI initialization hook immediately before TIMER5 starts, preserving unchanged behavior when LUNAR_UART1_MIDI is not defined."
+      "local_sha256": "6d113bae40346ab2bccc69d4070e96f8b29b684b6e0c0d1a18be18a44a7cdc73",
+      "reason": "Adds a compile-time guarded native UART1 MIDI initialization hook immediately before TIMER5 starts, preserving unchanged behavior when LUNAR_UART1_MIDI is not defined. Configuration and identity macros are renamed from FELUCCA_* to LUNAR_*."
     },
     "src/usb.c": {
       "upstream_sha256": "68cbe458df1119a4517a384840f22f6359107453e571b3612672e01d52325857",
-      "local_sha256": "fc25d9ce8d4100a95ef9ec07a52bc25befe894df6e63e7f48d073727bdf6320d",
-      "reason": "Replaces inherited USB manufacturer and application/update product string descriptors with Lunar Modulator identity, preserving USB protocol fields and required source attribution."
+      "local_sha256": "4660b7252d1c8eba0e540635dff16991bd24563e4fbd4d4077c2999a950551ca",
+      "reason": "Replaces inherited USB manufacturer and application/update product string descriptors with Lunar Modulator identity, preserving USB protocol fields and required source attribution. Interface configuration macros use LUNAR_* names."
+    },
+    "src/bootguard.h": {
+      "upstream_sha256": "bf19ef423356552105115a3ec3dde3beddb0369670f4b4317520ebfd8f032afb",
+      "local_sha256": "d991e60e3740f3f487e7dde883b7f92d4696fccff274b706958d39598a044a20",
+      "reason": "Renames the local header guard from FELUCCA_BOOTGUARD_H to LUNAR_BOOTGUARD_H; code behavior is unchanged."
+    },
+    "src/gfx.c": {
+      "upstream_sha256": "ae52d4e854c2c81a2ea7892807c771fc228103391a186ceb1201e2faf1efa74e",
+      "local_sha256": "701b3bdd35332bca2428cc5013906e25cf01b6c01edc38abcd17251f5d974876",
+      "reason": "Uses the locally renamed lunar_font header/type; generated font bytes are unchanged."
+    },
+    "src/ota.c": {
+      "upstream_sha256": "ffc981586704b41f62c763248037d1fe373c84c3566c0486de795296f9841855",
+      "local_sha256": "c4ab213bea46bcae74250e25fbd764cb0a52926779e3597cc30a22a3f09619ca",
+      "reason": "Renames local OTA configuration and identity macros to LUNAR_*; preserves the legacy FELUCCA-LOADER-1 wire signature byte-for-byte for compatibility."
+    },
+    "gen/lunar_font.h": {
+      "upstream_sha256": "ce47ea8e3c8bd7dd40aa5862918c98436201ef4cd29b6f82399c45ff7fdc5119",
+      "local_sha256": "bc30e3fe45998975440522d274022ae3d167ab41999d2b9b327cdfa4c131e17b",
+      "reason": "Renames generated header, include guard and font type to lunar_font; generated font data is unchanged."
     }
   }
 }

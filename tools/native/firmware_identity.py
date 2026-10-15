@@ -20,9 +20,9 @@ def identity_configuration(identity=None):
 def platform_with_identity(source, identity=None):
     """Override the pinned HAL's guarded macro without modifying vendor files."""
     receipt = identity_configuration(identity)
-    guard = '#ifndef FELUCCA_ID\n#define FELUCCA_ID "FM-1_990"'
+    guard = '#ifndef LUNAR_ID\n#define LUNAR_ID "FM-1_990"'
     if source.count(guard) != 1:
         raise ValueError("pinned native application identity guard changed")
     if identity is None:
         return source
-    return '#define FELUCCA_ID "' + receipt["application_identity"] + '"\n' + source
+    return '#define LUNAR_ID "' + receipt["application_identity"] + '"\n' + source

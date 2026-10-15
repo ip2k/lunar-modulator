@@ -405,8 +405,8 @@ def main():
         wave_records = prepare(out, wave_namespaces)
     # Keep crash/recovery text while eliminating redundant four-bit storage
     # for the pinned small face, whose alpha is strictly binary.
-    (out / 'felucca_font.h').write_text(compact_header(
-        (platform / 'gen/felucca_font.h').read_text()))
+    (out / 'lunar_font.h').write_text(compact_header(
+        (platform / 'gen/lunar_font.h').read_text()))
     (out / 'gfx.c').write_text(compact_gfx((platform / 'src/gfx.c').read_text()))
     source = platform_with_identity((platform / 'src/platform.c').read_text(),
                                     args.firmware_identity)

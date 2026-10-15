@@ -27,7 +27,7 @@ implementation is being developed offline while those requirements are open.
 
 [verified] The retained FM-1_092 geometry admits a sector-count candidate for two 49,152-byte slots only by combining VM and USR extents and excluding the existing five-sector OTA staging range. This is arithmetic, not permission or proof that any sector is free. The historical 092 archive contains opaque, non-FF VM and USR data; even sectors reading all 0xFF are not established as allocator-free. Do not enable SAVE or change the profile based on this plan.
 
-[verified] The current Dinghy OTA implementation erases [0xE0000,0xE5000) and writes its 112-byte persistent UPDATA_PARM at 0xE4F00; both lie in the stock 092 VM descriptor [0xD9000,0xE9000). Retaining that OTA path therefore requires excluding all five sectors from project storage unless a separately reviewed staging design replaces it. The FELUCCA_OTA_RAMONLY option removes the persistent record only; its own comment says a power cycle can leave a broken staged loader with no resume. It is not a storage migration.
+[verified] The current Dinghy OTA implementation erases [0xE0000,0xE5000) and writes its 112-byte persistent UPDATA_PARM at 0xE4F00; both lie in the stock 092 VM descriptor [0xD9000,0xE9000). Retaining that OTA path therefore requires excluding all five sectors from project storage unless a separately reviewed staging design replaces it. The LUNAR_OTA_RAMONLY option removes the persistent record only; its own comment says a power cycle can leave a broken staged loader with no resume. It is not a storage migration.
 
 ## Evidence and exact geometry
 

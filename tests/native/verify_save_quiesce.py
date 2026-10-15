@@ -16,7 +16,7 @@ b=usb.index('} uac;',a)+len('} uac;')
 c=usb.index('#define RS_H',b); d=usb.index('} rs;',c)+len('} rs;')
 fir=(src/'firmware/third_party/dinghy/src/uac_fir.h').read_text()
 fir_defines='\n'.join(l for l in fir.splitlines() if l.startswith('#define'))
-header=('/* SPDX-License-Identifier: GPL-3.0-only */\n#define FELUCCA_UAC_48K 1\n'
+header=('/* SPDX-License-Identifier: GPL-3.0-only */\n#define LUNAR_UAC_48K 1\n'
     '#define HALF_FRAMES 256u\n#define RING_PUBLISH() __asm__ volatile("" ::: "memory")\n'
     + declarations+usb[a:b]+'\n'+fir_defines+'\n'+usb[c:d]+'\n'
     'static struct { unsigned config; } usb;\n'

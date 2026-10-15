@@ -9,7 +9,7 @@ import subprocess
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-PROBE = ROOT / "firmware" / "third_party" / "felucca-expanded-offline"
+PROBE = ROOT / "firmware" / "third_party" / "expanded-loader-offline"
 CORE = PROBE / "ldr_core.c"
 HARNESS = PROBE / "test_ldr_core.c"
 CC = shutil.which("cc") or shutil.which("clang") or shutil.which("gcc")

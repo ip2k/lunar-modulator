@@ -15,7 +15,7 @@ Felucca's maintained GPL-3.0-only OTA code at firmware/third_party/dinghy/src/ot
 - OTA_AREA is E0000, OTA_AREA_LEN is 0x5000 (five 4 KiB sectors), record at E4F00.
 - The pinned official compressed loader is 0x4DE1 bytes (19,937), plus its 32-byte header and a 256-byte record area. Its conservative guard requires len <= OTA_AREA_LEN - 0x200. This needs five sectors.
 - The same code separately bounds an uncompressed Felucca loader at 0x14000 (80 KiB); 80 KiB is an uncompressed maximum, not the compressed official stage size.
-- FELUCCA_OTA_RAMONLY suppresses the persistent record and explicitly loses recovery after power interruption.
+- LUNAR_OTA_RAMONLY suppresses the persistent record and explicitly loses recovery after power interruption.
 
 A smaller custom first-stage bootstrap could fit one sector only if its compressed artifact, header, padding, and the reserved 256-byte scan slot together fit within 4096 bytes. That leaves at most 0xE00 (3584) bytes for the stored body under the same conservative guard. No evidence currently shows this implementation fits. The first implementation step is a pinned pi32v2 -Os build and link-map check against this 3584-byte limit, including all code required before streaming starts. If it misses, do not reuse E0000-E4FFF: that entire five-sector region is within the FM-1_092 VM bank. Reduce features/code or return to owner for a separately authorized allocation review.
 

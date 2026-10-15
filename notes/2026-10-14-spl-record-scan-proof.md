@@ -23,7 +23,7 @@ The source trace is preserved in
 `notes/2026-10-14-stock-spl-update-record-byte-review.md`.
 
 Felucca source provenance is pinned in the repository's
-`firmware/third_party/felucca-expanded-offline/UPSTREAM.md` to upstream
+`firmware/third_party/expanded-loader-offline/UPSTREAM.md` to upstream
 Felucca commit `1727537624390cc3f9c7dff2456b43b3a8edb005`. Its stated
 offline-probe edits omit record invalidation/cleanup, so the cleanup analysis
 uses the retained source snapshot

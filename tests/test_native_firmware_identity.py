@@ -23,8 +23,8 @@ def test_default_preserves_pinned_probe_source():
 def test_lunar_override_preserves_recovery_and_does_not_claim_acceptance(value):
     source = (ROOT / "firmware/third_party/dinghy/src/platform.c").read_text()
     result = identity.platform_with_identity(source, value)
-    assert result == f'#define FELUCCA_ID "{value}"\n' + source
-    assert '#define OTA_IDENTITY (recovery_active ? "FM-1_000" : FELUCCA_ID)' in result
+    assert result == f'#define LUNAR_ID "{value}"\n' + source
+    assert '#define OTA_IDENTITY (recovery_active ? "FM-1_000" : LUNAR_ID)' in result
     receipt = identity.identity_configuration(value)
     assert receipt["explicit"]
     for field in ("package_identity_verified", "updater_acceptance_verified",
@@ -42,7 +42,7 @@ def test_rejects_stock_foreign_malformed_and_injected_identities(value):
 
 def test_changed_vendor_guard_is_refused():
     with pytest.raises(ValueError, match="guard changed"):
-        identity.platform_with_identity('#define FELUCCA_ID "FM-1_991"', "FM-1_500")
+        identity.platform_with_identity('#define LUNAR_ID "FM-1_991"', "FM-1_500")
 
 
 def test_cli_refuses_invalid_identity_before_creating_build(tmp_path):
@@ -67,7 +67,7 @@ def test_usb_string_descriptor_wire_identity(tmp_path, loader, product):
     end = source.index("static int get_desc", start)
     fixture = tmp_path / "strings.c"
     fixture.write_text("#include <stdint.h>\n#include <stdio.h>\n" +
-                       ("#define FELUCCA_LOADER 1\n" if loader else "") +
+                       ("#define LUNAR_LOADER 1\n" if loader else "") +
                        source[start:end] +
                        "int main(void) { fwrite(STR1, 1, sizeof STR1, stdout); "
                        "fwrite(STR2, 1, sizeof STR2, stdout); return 0; }\n")
@@ -82,3 +82,45 @@ def test_usb_string_descriptor_wire_identity(tmp_path, loader, product):
         decoded.append(data[2:size].decode("utf-16le"))
         data = data[size:]
     assert decoded == ["Lunar Modulator", product]
+
+
+def test_lunar_platform_usb_configuration_emits_expected_audio_descriptor(tmp_path):
+    """Compile the platform's selected LUNAR_* settings through usb.c descriptors."""
+    import re
+
+    platform = (ROOT / "firmware/third_party/dinghy/src/platform.c").read_text()
+    usb = (ROOT / "firmware/third_party/dinghy/src/usb.c").read_text()
+    names = ("LUNAR_OTA", "LUNAR_CDC", "LUNAR_UAC", "LUNAR_UART")
+    definitions = []
+    for name in names:
+        match = re.search(rf"^#define {name} ([^\n]+)$", platform, re.M)
+        assert match, name
+        definitions.append(match.group(0))
+    assert [line.split()[-1] for line in definitions] == ["1", "0", "1", "0"]
+    assert "#define LUNAR_UAC_48K 1" in usb
+    descriptor_start = usb.index("#define CDC_IF")
+    descriptor_end = usb.index("typedef char cfg_len_ok", descriptor_start)
+    descriptor_source = usb[descriptor_start:descriptor_end]
+    fixture = tmp_path / "config.c"
+    fixture.write_text(
+        "#include <stdint.h>\n" + "\n".join(definitions) +
+        "\n#define LUNAR_UAC_48K 1\n#define LUNAR_USB_PID 1\n"
+        "#define UAC_MAXP 196u\n" + descriptor_source +
+        "\n#include <stdio.h>\n"
+        "int main(void) { printf(\"%u %u %u %u\\n\", "
+        "(unsigned)sizeof DEV_DESC, (unsigned)sizeof CFG_DESC, "
+        "CFG_DESC[4], (unsigned)(CFG_DESC[2] | (CFG_DESC[3] << 8))); "
+        "for (unsigned i=0;i<sizeof CFG_DESC;i++) printf(\"%02x\", CFG_DESC[i]); "
+        "return 0; }\n"
+    )
+    executable = tmp_path / "config"
+    subprocess.run(["cc", "-std=c99", "-Wall", "-Wextra", "-Werror",
+                    str(fixture), "-o", str(executable)], check=True,
+                   capture_output=True, text=True)
+    output = subprocess.check_output([str(executable)], text=True).splitlines()
+    assert output[0] == "18 178 3 178"
+    cfg = bytes.fromhex(output[1])
+    assert cfg[:9] == bytes([9, 2, 178, 0, 3, 1, 0, 0x80, 50])
+    assert bytes([0x44, 0xAC, 0x00, 0x80, 0xBB, 0x00]) in cfg
+    assert b"FELUCCA" not in (platform + usb).encode()
+    assert b"FELUCCA-LOADER-1" in (ROOT / "firmware/third_party/dinghy/src/ota.c").read_bytes()

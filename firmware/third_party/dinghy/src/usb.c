@@ -6,32 +6,32 @@
  * the audio ISR drains; MIDI out comes from a ring the audio ISR fills.
  * SysEx F0 22 24 35 7D F7 (soft key) asks the main loop to enter UBOOT.
  * VID 0x1209 / PID 0x0001 is the pid.codes test id.
- * FELUCCA_CDC=1 adds a CDC-ACM serial function (IAD composite: EP2 notify,
+ * LUNAR_CDC=1 adds a CDC-ACM serial function (IAD composite: EP2 notify,
  * EP3 bulk data) for the console in console.c.
- * FELUCCA_UAC=1 adds a USB audio input (UAC1, class compliant): the master
+ * LUNAR_UAC=1 adds a USB audio input (UAC1, class compliant): the master
  * output as 16-bit stereo at 44.1 kHz on an isochronous asynchronous IN
  * endpoint (EP4), so a computer can record the FM-1 over the cable. audio.c
  * fills a ring (uac_render_start, uac_tap); uac_service sends one packet per
  * USB frame from the TIMER5 ISR, nested in the render too (main.c). The
  * update loader leaves both off: MIDI only.
- * SLOOP 2.5, after Felucca 1.1.5: FELUCCA_UAC_48K=1 (the default with FELUCCA_UAC) offers 48 kHz too, for
+ * SLOOP 2.5, after Felucca 1.1.5: LUNAR_UAC_48K=1 (the default with LUNAR_UAC) offers 48 kHz too, for
  * phones and apps that only take 48 kHz: the host picks the rate with SET_CUR (two discrete rates in the one alt
  * setting). The engines stay at 44.1 kHz; at 48 kHz uac_tap48 resamples (a polyphase FIR 160 / 147, uac_fir.h:
  * 12 taps a phase, Q15, Felucca's 24 x Q30 made smaller) into the ring. 44.1 kHz, the rate until a host asks
  * for another, sends the samples as before, bit for bit. */
 #include "../hal/fm1_usb.h"   /* registers; relative, so the loader and the host tests find it too */
-#ifndef FELUCCA_CDC
-#define FELUCCA_CDC 0
+#ifndef LUNAR_CDC
+#define LUNAR_CDC 0
 #endif
-#ifndef FELUCCA_UAC
-#define FELUCCA_UAC 0
+#ifndef LUNAR_UAC
+#define LUNAR_UAC 0
 #endif
-#ifndef FELUCCA_UAC_48K
-#define FELUCCA_UAC_48K 1
+#ifndef LUNAR_UAC_48K
+#define LUNAR_UAC_48K 1
 #endif
-#if !FELUCCA_UAC
-#undef FELUCCA_UAC_48K
-#define FELUCCA_UAC_48K 0
+#if !LUNAR_UAC
+#undef LUNAR_UAC_48K
+#define LUNAR_UAC_48K 0
 #endif
 enum { S_FADDR = 0, S_POWER = 1, S_INTRTX1 = 2, S_INTRTX2 = 3, S_INTRRX1 = 4, S_INTRRX2 = 5, S_INTRUSB = 6,
        S_INTRTX1E = 7, S_INTRTX2E = 8, S_INTRRX1E = 9, S_INTRRX2E = 10, S_INTRUSBE = 11, S_FRAME1 = 12,
@@ -42,7 +42,7 @@ enum { S_FADDR = 0, S_POWER = 1, S_INTRTX1 = 2, S_INTRTX2 = 3, S_INTRRX1 = 4, S_
 static uint8_t ep0buf[64 + 4] __attribute__((aligned(4)));
 static uint8_t ep1tx[64] __attribute__((aligned(4)));
 static uint8_t ep1rx[64 + 4] __attribute__((aligned(4)));
-#if FELUCCA_CDC
+#if LUNAR_CDC
 static uint8_t ep2tx[8] __attribute__((aligned(4)));
 static uint8_t ep3tx[64] __attribute__((aligned(4)));
 static uint8_t ep3rx[64 + 4] __attribute__((aligned(4)));
@@ -60,7 +60,7 @@ static struct {
 } cdc = {{0x00, 0xC2, 0x01, 0x00, 0, 0, 8}};   /* 115200 8N1 */
 #endif
 
-#if FELUCCA_UAC
+#if LUNAR_UAC
 /* USB audio input. The I2S clock is not locked to USB (about 44,117.6 Hz against the host's 44,100):
  * the endpoint is asynchronous, so each 1 ms packet carries what the ring holds, 44 or 45 frames
  * (the 44.1 pattern) and one more or one fewer while the ring's fill drifts out of its band.
@@ -75,7 +75,7 @@ static struct {
 #define UA_LO 80u                /* a render may start late: keep a packet and more in hand */
 #define UA_HI 128u
 #define UAC_RATE 44100u
-#if FELUCCA_UAC_48K
+#if LUNAR_UAC_48K
 /* 48 kHz: the same times in 48 kHz frames (x 160 / 147); a render of HALF_FRAMES gives 139..140 frames */
 #define UA_PRIME48 113u
 #define UA_LO48 87u
@@ -111,7 +111,7 @@ static struct {
     uint32_t fill_lo, fill_hi;                   /* range of fill_min since the stream started */
     uint32_t rate_sets;                          /* SET_CUR sampling frequency requests */
 } uac;
-#if FELUCCA_UAC_48K
+#if LUNAR_UAC_48K
 #include "uac_fir.h"
 /* the resampler's input history: the last 16 frames, written twice so a window of UAC_FIR_N never wraps */
 #define RS_H 16u
@@ -137,12 +137,12 @@ static struct {
     uint8_t sysex[16];
     uint8_t sx_len, sx_on;
     volatile uint8_t uboot_req;
-    volatile uint8_t ota_req;    /* F0 22 24 35 7F F7: M-UPGRADE upgrade command (FELUCCA_OTA) */
+    volatile uint8_t ota_req;    /* F0 22 24 35 7F F7: M-UPGRADE upgrade command (LUNAR_OTA) */
     uint8_t rx_pend;             /* EP1 OUT packet seen, not yet taken (the MIDI ring was too full) */
     uint32_t rx_held, rx_bad;    /* packets held back (NAK) for room, malformed events ignored */
 } usb;
 
-#if FELUCCA_OTA
+#if LUNAR_OTA
 /* M-UPGRADE SysEx (ota.c): one received frame at a time (7-bit bytes between
  * F0 and F7; frames arriving while one is pending are dropped, the host
  * retries), and a TX ring of SysEx event packets sent before any MIDI. */
@@ -169,31 +169,31 @@ static void midi_out_event(uint32_t pkt)            /* from the audio ISR */
 }
 
 /* ------------------------------------------------------- descriptors --- */
-/* interfaces: 0 audio control, 1 MIDI streaming, 2 audio streaming (FELUCCA_UAC), then CDC's two.
+/* interfaces: 0 audio control, 1 MIDI streaming, 2 audio streaming (LUNAR_UAC), then CDC's two.
  * bcdDevice: 3.00 MIDI, +0.01 CDC, +0.10 the audio input, +0.20 more with 48 kHz (2.5) (hosts cache descriptors
  * per version) */
-#define CDC_IF (2 + FELUCCA_UAC)
+#define CDC_IF (2 + LUNAR_UAC)
 #define UAC_AS_IF 2u
-#define CFG_LEN (101 + 74 * FELUCCA_CDC + 74 * FELUCCA_UAC + 3 * FELUCCA_UAC_48K)
-#define USB_NIF (2 + FELUCCA_UAC + 2 * FELUCCA_CDC)
-#if FELUCCA_CDC
+#define CFG_LEN (101 + 74 * LUNAR_CDC + 74 * LUNAR_UAC + 3 * LUNAR_UAC_48K)
+#define USB_NIF (2 + LUNAR_UAC + 2 * LUNAR_CDC)
+#if LUNAR_CDC
 static const uint8_t DEV_DESC[18] = {18, 1, 0x00, 0x02, 0xEF, 0x02, 0x01, 64, 0x09, 0x12, 0x01, 0x00,
-                                     0x01 + 0x10 * (FELUCCA_UAC + FELUCCA_UAC_48K), 0x03, 1, 2, 0, 1};   /* misc/IAD */
+                                     0x01 + 0x10 * (LUNAR_UAC + LUNAR_UAC_48K), 0x03, 1, 2, 0, 1};   /* misc/IAD */
 static const uint8_t CFG_DESC[] = {
     9, 2, CFG_LEN & 0xFF, CFG_LEN >> 8, USB_NIF, 1, 0, 0x80, 50,
-    8, 0x0B, 0, 2 + FELUCCA_UAC, 1, 1, 0, 0,            /* IAD: audio + MIDI (IF 0-1, 0-2) */
+    8, 0x0B, 0, 2 + LUNAR_UAC, 1, 1, 0, 0,            /* IAD: audio + MIDI (IF 0-1, 0-2) */
 #else
-#ifndef FELUCCA_USB_PID
-#define FELUCCA_USB_PID 0x0001   /* the update loader is 0x0002 */
+#ifndef LUNAR_USB_PID
+#define LUNAR_USB_PID 0x0001   /* the update loader is 0x0002 */
 #endif
-static const uint8_t DEV_DESC[18] = {18, 1, 0x10, 0x01, 0, 0, 0, 64, 0x09, 0x12, FELUCCA_USB_PID & 0xFF,
-                                     FELUCCA_USB_PID >> 8, 0x00 + 0x10 * (FELUCCA_UAC + FELUCCA_UAC_48K), 0x03,
+static const uint8_t DEV_DESC[18] = {18, 1, 0x10, 0x01, 0, 0, 0, 64, 0x09, 0x12, LUNAR_USB_PID & 0xFF,
+                                     LUNAR_USB_PID >> 8, 0x00 + 0x10 * (LUNAR_UAC + LUNAR_UAC_48K), 0x03,
                                      1, 2, 0, 1};
 static const uint8_t CFG_DESC[] = {
     9, 2, CFG_LEN & 0xFF, CFG_LEN >> 8, USB_NIF, 1, 0, 0x80, 50,
 #endif
     9, 4, 0, 0, 0, 1, 1, 0, 0,
-#if FELUCCA_UAC
+#if LUNAR_UAC
     10, 0x24, 1, 0x00, 0x01, 31, 0, 2, 1, UAC_AS_IF,    /* AC header 1.00: MIDI + audio streaming */
     12, 0x24, 2, 1, 0x03, 0x06, 0, 2, 0x03, 0x00, 0, 0, /* input terminal 1: line, 2 ch (L R) */
     9, 0x24, 3, 2, 0x01, 0x01, 0, 1, 0,                 /* output terminal 2: USB streaming, from 1 */
@@ -210,11 +210,11 @@ static const uint8_t CFG_DESC[] = {
     5, 0x25, 1, 1, 1,
     9, 5, 0x81, 2, 64, 0, 0, 0, 0,
     5, 0x25, 1, 1, 3,
-#if FELUCCA_UAC
+#if LUNAR_UAC
     9, 4, UAC_AS_IF, 0, 0, 1, 2, 0, 0,                  /* IF2 audio streaming, alt 0: no bandwidth */
     9, 4, UAC_AS_IF, 1, 1, 1, 2, 0, 0,                  /* alt 1: the stream */
     7, 0x24, 1, 2, 1, 0x01, 0x00,                       /* AS general: terminal 2, delay 1, PCM */
-#if FELUCCA_UAC_48K
+#if LUNAR_UAC_48K
     14, 0x24, 2, 1, 2, 2, 16, 2, 0x44, 0xAC, 0x00, 0x80, 0xBB, 0x00,   /* type I: 2 ch, 16 bit, 44100 / 48000 */
 #else
     11, 0x24, 2, 1, 2, 2, 16, 1, UAC_RATE & 0xFF, (UAC_RATE >> 8) & 0xFF, UAC_RATE >> 16,
@@ -223,7 +223,7 @@ static const uint8_t CFG_DESC[] = {
     9, 5, 0x84, 0x05, UAC_MAXP & 0xFF, UAC_MAXP >> 8, 1, 0, 0,   /* EP4 IN isochronous async, 1 ms */
     7, 0x25, 1, 0x01, 0, 0, 0,                          /* CS endpoint: sampling frequency control */
 #endif
-#if FELUCCA_CDC
+#if LUNAR_CDC
     8, 0x0B, CDC_IF, 2, 2, 2, 1, 0,                     /* IAD: CDC ACM (IF 2-3, 3-4) */
     9, 4, CDC_IF, 0, 1, 2, 2, 1, 0,                     /* communication */
     5, 0x24, 0x00, 0x10, 0x01,                          /* header 1.10 */
@@ -237,16 +237,16 @@ static const uint8_t CFG_DESC[] = {
 #endif
 };
 typedef char cfg_len_ok[sizeof CFG_DESC == CFG_LEN ? 1 : -1];
-#if FELUCCA_CDC
+#if LUNAR_CDC
 /* SLOOP 2.4, after Felucca 1.0.3 (#67): menu USB SERIAL. ON presents the serial console as before (the
- * descriptors above, byte for byte); OFF, the default, presents the device as a FELUCCA_CDC=0 build does: class 0,
+ * descriptors above, byte for byte); OFF, the default, presents the device as a LUNAR_CDC=0 build does: class 0,
  * no IAD, audio + MIDI only (the same bytes: tests/uac_test.c compares them). With the console, macOS 13-15 let
  * Apple's CDC composite driver take the device and the USB audio input never appears. The console is a developer
  * tool; the editor, the installer and the soft key use USB-MIDI. Read once, before usb_start (main.c: the settings
  * are loaded first), so the host sees one device from the start */
 static uint8_t usb_cdc_on;
 static const uint8_t DEV_DESC_PLAIN[18] = {18, 1, 0x10, 0x01, 0, 0, 0, 64, 0x09, 0x12, 0x01, 0x00,
-                                           0x00 + 0x10 * (FELUCCA_UAC + FELUCCA_UAC_48K), 0x03, 1, 2, 0, 1};
+                                           0x00 + 0x10 * (LUNAR_UAC + LUNAR_UAC_48K), 0x03, 1, 2, 0, 1};
 #define CFG_PLAIN_LEN (CFG_LEN - 74)                    /* without the audio IAD (8) and the CDC block (66) */
 static uint8_t cfg_plain[CFG_PLAIN_LEN];
 static const uint8_t *cfg_plain_get(void)
@@ -267,7 +267,7 @@ static int usb_cdc_now(void) { return 0; }
 static const uint8_t STR0[4] = {4, 3, 0x09, 0x04};
 /* Lunar USB identity; original platform attribution remains in LICENSING.md. */
 static const uint8_t STR1[] = {0x20, 0x03, 0x4c, 0x00, 0x75, 0x00, 0x6e, 0x00, 0x61, 0x00, 0x72, 0x00, 0x20, 0x00, 0x4d, 0x00, 0x6f, 0x00, 0x64, 0x00, 0x75, 0x00, 0x6c, 0x00, 0x61, 0x00, 0x74, 0x00, 0x6f, 0x00, 0x72, 0x00};
-#ifdef FELUCCA_LOADER
+#ifdef LUNAR_LOADER
 static const uint8_t STR2[] = {0x2e, 0x03, 0x4c, 0x00, 0x75, 0x00, 0x6e, 0x00, 0x61, 0x00, 0x72, 0x00, 0x20, 0x00, 0x4d, 0x00, 0x6f, 0x00, 0x64, 0x00, 0x75, 0x00, 0x6c, 0x00, 0x61, 0x00, 0x74, 0x00, 0x6f, 0x00, 0x72, 0x00, 0x20, 0x00, 0x55, 0x00, 0x70, 0x00, 0x64, 0x00, 0x61, 0x00, 0x74, 0x00, 0x65, 0x00};
 #else
 static const uint8_t STR2[] = {0x20, 0x03, 0x4c, 0x00, 0x75, 0x00, 0x6e, 0x00, 0x61, 0x00, 0x72, 0x00, 0x20, 0x00, 0x4d, 0x00, 0x6f, 0x00, 0x64, 0x00, 0x75, 0x00, 0x6c, 0x00, 0x61, 0x00, 0x74, 0x00, 0x6f, 0x00, 0x72, 0x00};
@@ -279,7 +279,7 @@ static int get_desc(uint32_t wvalue, const uint8_t **d, uint16_t *l)
     case 1:
         *d = DEV_DESC;
         *l = sizeof DEV_DESC;
-#if FELUCCA_CDC
+#if LUNAR_CDC
         if (!usb_cdc_on)
             *d = DEV_DESC_PLAIN;
 #endif
@@ -287,7 +287,7 @@ static int get_desc(uint32_t wvalue, const uint8_t **d, uint16_t *l)
     case 2:
         *d = CFG_DESC;
         *l = sizeof CFG_DESC;
-#if FELUCCA_CDC
+#if LUNAR_CDC
         if (!usb_cdc_on) {
             *d = cfg_plain_get();
             *l = CFG_PLAIN_LEN;
@@ -347,7 +347,7 @@ static uint32_t sie_rd(uint32_t r)
     return fm1_usb_sie_data();
 }
 
-#if FELUCCA_UAC
+#if LUNAR_UAC
 static void uac_ep4_reset(void)                         /* drop a queued packet; isochronous mode */
 {
     sie_wr(S_INDEX, 4);
@@ -375,13 +375,13 @@ static void uac_stream(uint32_t alt)                    /* SET_INTERFACE, config
 }
 #endif
 
-#if FELUCCA_UAC
+#if LUNAR_UAC
 /* SET_CUR sampling frequency (any time: before or after SET_INTERFACE; a bus reset or a new configuration go
  * back to 44.1). 48 kHz when built with it and asked for (the nearer of the two), else 44.1. A change restarts
  * the stream: silence packets until the next render primes the ring at the new rate. */
 static void uac_rate_set(uint32_t hz)
 {
-    uint8_t r48 = (uint8_t)(FELUCCA_UAC_48K && hz >= (UAC_RATE + 48000u) / 2u);
+    uint8_t r48 = (uint8_t)(LUNAR_UAC_48K && hz >= (UAC_RATE + 48000u) / 2u);
     if (r48 == uac.r48)
         return;
     uac.go = 0;
@@ -405,7 +405,7 @@ static void ep1_config(void)
     sie_wr(S_RXCSR2, 0);
     sie_wr(S_INTRRX1E, 0x02);
     fm1_usb_ep_enable(1u << 1);
-#if FELUCCA_CDC
+#if LUNAR_CDC
     fm1_usb_ep_txbuf(2, ep2tx);
     sie_wr(S_INDEX, 2);
     sie_wr(S_TXMAXP, 0xFF);
@@ -424,7 +424,7 @@ static void ep1_config(void)
     fm1_usb_ep_enable((1u << 2) | (1u << 3));
     cdc.rx_pend = 1;                                    /* look once: a packet may already wait */
 #endif
-#if FELUCCA_UAC
+#if LUNAR_UAC
     fm1_usb_ep4_txbuf(ep4tx);
     sie_wr(S_INDEX, 4);
     sie_wr(S_TXMAXP, 0xFF);
@@ -480,10 +480,10 @@ static void ep0_service(void)
     if (csr & 0x04u) {                                  /* SentStall */
         sie_wr(S_CSR0, 0);
         usb.e0_tx = 0;
-#if FELUCCA_CDC
+#if LUNAR_CDC
         cdc.e0_rx = 0;
 #endif
-#if FELUCCA_UAC
+#if LUNAR_UAC
         uac.e0_rx = 0;
 #endif
         return;
@@ -491,10 +491,10 @@ static void ep0_service(void)
     if (csr & 0x10u) {                                  /* SetupEnd: the host abandoned the transfer */
         sie_wr(S_CSR0, 0x80);
         usb.e0_tx = 0;
-#if FELUCCA_CDC
+#if LUNAR_CDC
         cdc.e0_rx = 0;                                  /* else the next SETUP is taken as line coding */
 #endif
-#if FELUCCA_UAC
+#if LUNAR_UAC
         uac.e0_rx = 0;
 #endif
     }
@@ -506,7 +506,7 @@ static void ep0_service(void)
     if (!(csr & 0x01u))
         return;
     fm1_usb_rx_sync();
-#if FELUCCA_CDC
+#if LUNAR_CDC
     if (cdc.e0_rx) {                                    /* SET_LINE_CODING data stage */
         uint32_t n = sie_rd(S_COUNT0);
         for (i = 0; i < 7u && i < n; i++)
@@ -515,7 +515,7 @@ static void ep0_service(void)
         goto ack;
     }
 #endif
-#if FELUCCA_UAC
+#if LUNAR_UAC
     if (uac.e0_rx) {                                    /* SET_CUR sampling frequency: 3 bytes, Hz */
         uac.rate_sets++;
         if (sie_rd(S_COUNT0) >= 3u)
@@ -553,7 +553,7 @@ static void ep0_service(void)
             ep1_config();
         else
             sie_wr(S_INTRRX1E, 0);
-#if FELUCCA_UAC
+#if LUNAR_UAC
         if (usb.config != 1u)
             uac_stream(0);
         uac_rate_set(UAC_RATE);                         /* a new configuration starts at 44.1 */
@@ -568,7 +568,7 @@ static void ep0_service(void)
         e0_send(zero2, 2, wlength);
         return;
     case 0x010B:                                        /* SET_INTERFACE: alt 0 (alt 1 for the audio stream) */
-#if FELUCCA_UAC
+#if LUNAR_UAC
         if (s[4] == UAC_AS_IF && wvalue <= 1u && usb.config) {
             uac_ep4_reset();
             uac_stream(wvalue);
@@ -579,7 +579,7 @@ static void ep0_service(void)
             goto ack;
         goto stall;
     case 0x810A:
-#if FELUCCA_UAC
+#if LUNAR_UAC
         if (s[4] == UAC_AS_IF) {
             static uint8_t alt;
             alt = uac.alt;
@@ -590,12 +590,12 @@ static void ep0_service(void)
         e0_send(zero2, 1, wlength);
         return;
     case 0x0201: {                                      /* CLEAR_FEATURE(ENDPOINT_HALT): data toggle reset */
-#if FELUCCA_CDC
+#if LUNAR_CDC
         uint32_t ep = s[4] & 0x0Fu, last = usb_cdc_on ? 3u : 1u;   /* (USB SERIAL OFF: EP2 / EP3 are not described) */
 #else
         uint32_t ep = s[4] & 0x0Fu, last = 1u;
 #endif
-#if FELUCCA_UAC
+#if LUNAR_UAC
         if (wvalue == 0 && s[4] == 0x84u)
             goto ack;                                   /* isochronous: no halt, no toggle */
 #endif
@@ -610,7 +610,7 @@ static void ep0_service(void)
         }
         goto ack;
     }
-#if FELUCCA_CDC
+#if LUNAR_CDC
     case 0x2120:                                        /* SET_LINE_CODING: 7 bytes follow */
         if (wlength) {
             cdc.e0_rx = 1;
@@ -628,7 +628,7 @@ static void ep0_service(void)
     case 0x2123:                                        /* SEND_BREAK */
         goto ack;
 #endif
-#if FELUCCA_UAC
+#if LUNAR_UAC
     case 0x2201:                                        /* SET_CUR, endpoint: sampling frequency */
         if (s[4] != 0x84u || s[3] != 1u)
             goto stall;
@@ -643,12 +643,12 @@ static void ep0_service(void)
     case 0xA282:
     case 0xA283: {
         static const uint8_t RATE[3] = {UAC_RATE & 0xFF, (UAC_RATE >> 8) & 0xFF, UAC_RATE >> 16};
-#if FELUCCA_UAC_48K
+#if LUNAR_UAC_48K
         static const uint8_t RATE48[3] = {48000u & 0xFF, (48000u >> 8) & 0xFF, 48000u >> 16};
 #endif
         if (s[4] != 0x84u || s[3] != 1u)
             goto stall;
-#if FELUCCA_UAC_48K
+#if LUNAR_UAC_48K
         if (s[1] == 0x83u || (s[1] == 0x81u && uac.r48)) {
             e0_send(RATE48, 3, wlength);
             return;
@@ -678,7 +678,7 @@ static void sysex_byte(uint8_t b)
         return;                                        /* realtime may occur anywhere in SysEx */
     if ((b & 0x80u) && b != 0xF0u && b != 0xF7u) {
         usb.sx_on = 0;
-#if FELUCCA_OTA
+#if LUNAR_OTA
         sx_collect = 0;
 #endif
         return;                                        /* another status aborts the unfinished frame */
@@ -686,14 +686,14 @@ static void sysex_byte(uint8_t b)
     if (b == 0xF0) {
         usb.sx_on = 1;
         usb.sx_len = 0;
-#if FELUCCA_OTA
+#if LUNAR_OTA
         sx_collect = !sx_ready;
         sx_pos = 0;
 #endif
     }
     if (!usb.sx_on)
         return;
-#if FELUCCA_OTA
+#if LUNAR_OTA
     if (sx_collect && b != 0xF0 && b != 0xF7) {
         if (sx_pos < sizeof sx_frame)
             sx_frame[sx_pos++] = b;
@@ -709,7 +709,7 @@ static void sysex_byte(uint8_t b)
             ok = usb.sysex[i] == UBOOT_KEY[i];
         if (ok)
             usb.uboot_req = 1;
-#if FELUCCA_OTA
+#if LUNAR_OTA
         else if (usb.sx_len == 6u && usb.sysex[1] == 0x22 && usb.sysex[2] == 0x24 && usb.sysex[3] == 0x35 &&
                  usb.sysex[4] == 0x7F)
             usb.ota_req = 1;
@@ -738,7 +738,7 @@ static void midi_in_event(uint32_t pkt)
     }
     if (st >= 0x80u && st < 0xF8u) {                   /* channel / system common also ends a SysEx */
         usb.sx_on = 0;
-#if FELUCCA_OTA
+#if LUNAR_OTA
         sx_collect = 0;
 #endif
     }
@@ -772,7 +772,7 @@ static void midi_in_event(uint32_t pkt)
 static int ep1_take(const uint8_t *b, uint32_t n)
 {
     uint32_t i;
-#ifndef FELUCCA_LOADER
+#ifndef LUNAR_LOADER
     if (MQ - (mi_w - mi_r) < EP1_ROOM)
         return 0;
 #endif
@@ -805,7 +805,7 @@ static void ep1_rx(void)                                /* leaves the packet (NA
     sie_wr(S_RXCSR2, csr >> 8);
 }
 
-#if FELUCCA_OTA
+#if LUNAR_OTA
 /* ---- SysEx frames for the main loop (ota.c / editor.c hooks; felucca.c and the
  * update loader supply ota_now_ms / ota_idle) ---- */
 static uint32_t ota_now_ms(void);
@@ -871,7 +871,7 @@ static void ota_frame_done(void)
 static void ep1_tx(void)
 {
     uint32_t csr, n = 0;
-#if FELUCCA_OTA
+#if LUNAR_OTA
     if (mo_w == mo_r && so_w == so_r)
         return;
 #else
@@ -884,7 +884,7 @@ static void ep1_tx(void)
         return;                                         /* previous packet still pending */
     if (csr & 0x80u)
         sie_wr(S_TXCSR1, csr & ~0x80u);
-#if FELUCCA_OTA
+#if LUNAR_OTA
     while (so_r != so_w && n < 64u) {                   /* SysEx first, never split by notes */
         uint32_t pkt = sx_out_q[so_r % SXQ];
         ep1tx[n] = (uint8_t)pkt;
@@ -916,7 +916,7 @@ static void ep1_tx(void)
     usb.tx_pkts++;
 }
 
-#if FELUCCA_CDC
+#if LUNAR_CDC
 static void ep3_rx(void)                                /* leaves the packet (NAK) while the ring is full */
 {
     uint32_t csr, n, i;
@@ -962,7 +962,7 @@ static void ep3_tx(void)                                /* <= 63 bytes per packe
 }
 #endif
 
-#if FELUCCA_UAC
+#if LUNAR_UAC
 /* ---- the audio input: audio.c produces (render start, then each block), TIMER5 consumes ---- */
 static __attribute__((noinline)) void uac_render_start(void)   /* audio ISR, before a half buffer renders */
 {
@@ -975,7 +975,7 @@ static __attribute__((noinline)) void uac_render_start(void)   /* audio ISR, bef
     if (!uac.go || uac.ring48 != uac.r48) {             /* (re)start: silence ahead, then this render */
         uint32_t r = ua_r, i, prime = UA_PRIME;
         uac.go = 0;
-#if FELUCCA_UAC_48K
+#if LUNAR_UAC_48K
         uac.ring48 = uac.r48;
         if (uac.ring48) {                               /* the resampler starts from silence */
             prime = UA_PRIME48;
@@ -1006,7 +1006,7 @@ static inline int32_t uac_s16(int32_t v)
     return v > 32767 ? 32767 : v < -32768 ? -32768 : v;
 }
 
-#if FELUCCA_UAC_48K
+#if LUNAR_UAC_48K
 /* 44.1 -> 48 kHz (x 160 / 147), one block: each input frame enters the history, then the 1 or 2 output
  * frames whose newest input it is: phase ph, the window of UAC_FIR_N frames ending at it, the taps of phase
  * ph (or of 159 - ph backwards: the prototype is symmetric), Q15 into 32-bit sums (the taps' absolute sum
@@ -1061,7 +1061,7 @@ static __attribute__((noinline)) void uac_tap(const int32_t *out, uint32_t n)   
     uint32_t w = ua_w, i;
     if (!uac.feed)
         return;
-#if FELUCCA_UAC_48K
+#if LUNAR_UAC_48K
     if (uac.ring48) {
         uac_tap48(out, n);
         return;
@@ -1071,7 +1071,7 @@ static __attribute__((noinline)) void uac_tap(const int32_t *out, uint32_t n)   
         uac.overruns++;
         return;
     }
-#if FELUCCA_UAC_TONE
+#if LUNAR_UAC_TONE
     {   /* bench: triangles of period 100 frames instead of the music (L, R in antiphase): every
          * recorded frame must follow the one before, so a lost or repeated frame shows exactly */
         static uint32_t ph;
@@ -1096,7 +1096,7 @@ static __attribute__((noinline)) void uac_tap(const int32_t *out, uint32_t n)   
 static uint32_t uac_packet(uint32_t *d)
 {
     uint32_t n = 44u, r, fill, k, i, lo = UA_LO, hi = UA_HI;
-#if FELUCCA_UAC_48K
+#if LUNAR_UAC_48K
     if (uac.r48) {                                      /* 48 frames a ms, no pattern */
         n = 48u;
         lo = UA_LO48;
@@ -1202,7 +1202,7 @@ static void usb_poll(void)                              /* TIMER5 ISR, 2 kHz */
         }
     }
     iu = sie_rd(S_INTRUSB);
-#ifdef FELUCCA_LOADER
+#ifdef LUNAR_LOADER
     it = sie_rd(S_INTRTX1) | sie_rd(S_INTRTX2) << 8;    /* the update loader reads both */
     ir = sie_rd(S_INTRRX1) | sie_rd(S_INTRRX2) << 8;
 #else
@@ -1222,19 +1222,19 @@ static void usb_poll(void)                              /* TIMER5 ISR, 2 kHz */
         usb.suspended = 0;
         mo_r = mo_w;                                    /* nothing stale for the next host */
         usb.sx_on = 0;
-#if FELUCCA_OTA
+#if LUNAR_OTA
         so_r = so_w;
         sx_collect = 0;
 #endif
         usb.e0_tx = 0;
         usb.has_pend_addr = 0;
         usb.rx_pend = 0;
-#if FELUCCA_CDC
+#if LUNAR_CDC
         cdc.dtr = 0;
         cdc.e0_rx = 0;
         cdc.rx_pend = 0;
 #endif
-#if FELUCCA_UAC
+#if LUNAR_UAC
         uac.e0_rx = 0;
         uac_stream(0);
         uac_rate_set(UAC_RATE);
@@ -1252,7 +1252,7 @@ static void usb_poll(void)                              /* TIMER5 ISR, 2 kHz */
         ep1_rx();
     if (usb.config)
         ep1_tx();
-#if FELUCCA_CDC
+#if LUNAR_CDC
     if (usb.config) {
         if (ir & 0x08u)
             cdc.rx_pend = 1;
@@ -1262,7 +1262,7 @@ static void usb_poll(void)                              /* TIMER5 ISR, 2 kHz */
             ep3_tx();
     }
 #endif
-#if FELUCCA_UAC
+#if LUNAR_UAC
     uac_service();
 #endif
 }
