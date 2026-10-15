@@ -5038,3 +5038,17 @@ paired reads of current22216472,209-sector directory-last install/readback and
 passive EH audio/telemetry. Test MIDI transport separately afterward. SAVE,
 physical song acceptance, recovery and web installer release remain open; goal
 ACTIVE. Branch feature/2026-10-11@installable-firmware, commit/push follows.
+
+## ROM63 installation in progress — 2026-10-15 UTC
+
+One-use campaign started on bench01 at
+`/home/claude/fm1-song-midi-6d971bf-20261015/rom63-cycle`.
+Fresh paired reads produced dumpA/B and manifest;209-sector installation is
+running with directory sector last. Do not rerun or interrupt it. Inspect the
+transaction journal, cycle.stdout/stderr, completed boot campaign and passive
+capture receipts before claiming completion. Candidate09037621/app46842613;
+runtime7a8f2ed6/source6d971bf1; capture helper9bdfda67,180sWAV/110stelemetry,
+30sreadiness. Nine focused capture tests pass. Source/build/policy evidence is
+already retained. Goal ACTIVE; hardware transport/song acceptance, SAVE,
+recovery and web release remain open. MIDI counters alone do not prove transport
+state; private follow-up plan saved in scratch/song-midi-cycle.

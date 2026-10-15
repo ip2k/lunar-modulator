@@ -46,3 +46,21 @@ in the boot gate. All 33 policy/adapter/boot tests pass; a new test checks every
 real boot dependency hash and rejects a tampered policy copy. No safety check
 was removed. The pending ROM63 campaign remains one-use, with fresh paired
 reads required before writes and SAVE disarmed.
+
+[verified] Reviewed passive capture helper passes nine focused schema/gate tests.
+The campaign identity check now matches the actual sealed transaction object.
+Coordinator increased audio capture to180s and readiness wait to30s; telemetry
+remains110s with an outer watchdog. Helper SHA256
+9bdfda679cb4c42a1b24438a95b34da1ba10715c764f37ad42aa24c5b17007d1.
+The fresh ROM63 campaign was started at bench01; paired dumps and fresh manifest
+were produced and installation entered its journalled209-sector transition.
+This entry records an in-progress operation, not completed installation or boot.
+Exact runtime/tools are archived from7a8f2ed6, candidate app source6d971bf1.
+Do not repeat this consumed campaign. Inspect its durable journal and result:
+`/home/claude/fm1-song-midi-6d971bf-20261015/rom63-cycle`.
+
+[verified] Schema1 telemetry has no sequencer position/playing/transport-result
+field. USB message and UART byte counters establish ingress only. Follow-up
+Start/Stop/Continue tests must correlate timestamped sends with captured audio;
+full musical position/resumption acceptance still needs stronger observation.
+Private offline test plan: `scratch/song-midi-cycle/transport-test-plan.md`.
