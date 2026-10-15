@@ -29,7 +29,7 @@
     "src/lcd.c": "b69f0c3d6a5b61c883a35b50ddd6582811bd620a45268543e923fb8849caaac4",
     "src/libc.c": "344b09afe33da826feefeb1ea2a1a7c50732f91c133fee30174819645edc131a",
     "src/ota.c": "c4ab213bea46bcae74250e25fbd764cb0a52926779e3597cc30a22a3f09619ca",
-    "src/platform.c": "bfde58f16a31e5fc8c870647ce52cd068af6b0c2dadc543724b7f5acd0c64929",
+    "src/platform.c": "b047f212d1b459dada67e2da5b2db5f82c014ddc6ac8d760888b1888366b0dfe",
     "src/recovery.c": "f2c7c0c0fd1592f8390ee0066f96033843a3e2eaabbf995013ee9b0735429929",
     "src/uac_fir.h": "b4393a8efc4ce5427334692b9857d31446a36416dc6ca7941aea5bd4add4ca56",
     "src/usb.c": "4660b7252d1c8eba0e540635dff16991bd24563e4fbd4d4077c2999a950551ca",
@@ -48,8 +48,8 @@
     },
     "src/platform.c": {
       "upstream_sha256": "6cfb23b317af3d95da4d6eeeb8a34de59ee77a626d7d17484398feeb2535bfd7",
-      "local_sha256": "bfde58f16a31e5fc8c870647ce52cd068af6b0c2dadc543724b7f5acd0c64929",
-      "reason": "Adds a compile-time guarded native UART1 MIDI initialization hook immediately before TIMER5 starts, preserving unchanged behavior when LUNAR_UART1_MIDI is not defined. Configuration and identity macros are renamed from FELUCCA_* to LUNAR_*. Adds compile-gated nesting-aware IRQ occupancy hooks around ALNK0, TIMER5, input, USB and UAC service. Short accounting mutations preserve the full prior ICFG; disabled hooks are no-ops and service cadence is unchanged."
+      "local_sha256": "b047f212d1b459dada67e2da5b2db5f82c014ddc6ac8d760888b1888366b0dfe",
+      "reason": "Adds a compile-time guarded native UART1 MIDI initialization hook immediately before TIMER5 starts, preserving unchanged behavior when LUNAR_UART1_MIDI is not defined. Configuration and identity macros are renamed from FELUCCA_* to LUNAR_*. Adds compile-gated nesting-aware IRQ occupancy hooks around ALNK0, TIMER5, input, USB and UAC service. Short accounting mutations preserve the full prior ICFG; disabled hooks are no-ops and service cadence is unchanged. Adds an opt-in fixed-work CPU calibration call after recovery handling and before the flash probe; it performs no clock/register writes and is absent unless LUNAR_DIAGNOSTIC_CPU_RATE is defined."
     },
     "src/usb.c": {
       "upstream_sha256": "68cbe458df1119a4517a384840f22f6359107453e571b3612672e01d52325857",
