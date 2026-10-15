@@ -24,6 +24,25 @@ def test_schema6_irq_receipt_is_exact_and_strictly_typed():
     assert not module._exact_irq_profile_receipt(dict(receipt, extra=False))
 
 
+def _schema7_receipts():
+    engine = json.loads(json.dumps(builder.engine_render_profile_configuration(True)))
+    stages = builder.render_stage_profile_configuration(True)
+    return engine, stages
+
+
+def test_schema7_engine_profile_receipt_is_exact_and_strictly_typed():
+    engine, stages = _schema7_receipts()
+    assert module._exact_engine_render_profile_receipt(engine)
+    assert module._exact_render_stage_profile_receipt(stages)
+    for key, value in (("schema", True), ("frame_bytes", True),
+                       ("packets_per_frame", 19), ("hardware_tested", True),
+                       ("counter_semantics", "per-window")):
+        assert not module._exact_engine_render_profile_receipt(dict(engine, **{key: value}))
+    assert not module._exact_engine_render_profile_receipt(dict(engine, extra=False))
+    assert not module._exact_render_stage_profile_receipt(dict(stages, schema=True))
+    assert not module._exact_render_stage_profile_receipt(dict(stages, stages=[]))
+
+
 def test_song_profile_may_omit_autoplay_only_for_exact_irq_profile(monkeypatch):
     irq = {
         "enabled": True, "schema": 6,
@@ -79,6 +98,83 @@ def test_song_profile_may_omit_autoplay_only_for_exact_irq_profile(monkeypatch):
         module._validate_diagnostic_mode(record, {},
                                         dict(base, diagnostic_irq_profile=irq,
                                              diagnostic_song_play=malformed_play), b"")
+
+
+def test_song_profile_accepts_exact_schema7_plus_schema2_and_preserves_default_receipts(monkeypatch):
+    monkeypatch.setattr(module, "_validate_event_horizon_set_profile",
+                        lambda *_args: {"validated": True})
+    base = {
+        "diagnostic_trio_pulse": {
+            "enabled": False, "compile_definition": None, "note": None,
+            "velocity": None, "start_ms": None, "end_ms": None,
+            "once": True, "hardware_tested": False,
+        },
+        "diagnostic_telemetry": {
+            "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TELEMETRY=1",
+            "interval_ms": 1000, "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+        },
+        "diagnostic_song_play": {
+            "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_SONG_PLAY=1",
+            "start_ms": 2000, "once": True, "hardware_tested": False,
+        },
+    }
+    record = {"kind": module.SONG_INPUT_KIND}
+    # The schema-7 build alternates four bounded telemetry slots. Its schema-2
+    # stage frame therefore arrives about every four seconds, versus two
+    # seconds for the default two-slot telemetry build.
+    engine, stages = _schema7_receipts()
+    opted_in = dict(base, diagnostic_engine_render_profile=engine,
+                    render_stage_profile=stages)
+    assert module._validate_diagnostic_mode(record, {}, opted_in, b"") == {"validated": True}
+
+    # Older standard diagnostics omit both optional profiling fields and keep
+    # their existing one-shot-play receipt contract.
+    assert module._validate_diagnostic_mode(record, {}, base, b"") == {"validated": True}
+
+    for bad_engine in (dict(engine, frame_bytes=53), dict(engine, schema=True),
+                       dict(engine, hardware_tested=True)):
+        with pytest.raises(ValueError, match="engine render profile receipt differs"):
+            module._validate_diagnostic_mode(
+                record, {}, dict(base, diagnostic_engine_render_profile=bad_engine,
+                                 render_stage_profile=stages), b"")
+    with pytest.raises(ValueError, match="exact schema-2 render-stage"):
+        module._validate_diagnostic_mode(
+            record, {}, dict(base, diagnostic_engine_render_profile=engine), b"")
+    with pytest.raises(ValueError, match="exact schema-2 render-stage"):
+        module._validate_diagnostic_mode(
+            record, {}, dict(base, diagnostic_engine_render_profile=engine,
+                             render_stage_profile=dict(stages, schema=3)), b"")
+
+    irq = {
+        "enabled": True, "schema": 6,
+        "compile_definition": "LUNAR_DIAGNOSTIC_IRQ_PROFILE=1",
+        "frame_bytes": 119, "packets_per_frame": 40,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    producer = {
+        "enabled": True, "schema": 5,
+        "compile_definition": "LUNAR_DIAGNOSTIC_PRODUCER_GAPS=1",
+        "frame_bytes": 59, "packets_per_frame": 20,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    for incompatible in (dict(opted_in, diagnostic_irq_profile=irq),
+                         dict(opted_in, diagnostic_producer_gaps=producer)):
+        with pytest.raises(ValueError, match="cannot share producer-gap or IRQ cadence"):
+            module._validate_diagnostic_mode(record, {}, incompatible, b"")
+
+
+def test_input_pulse_profile_rejects_schema7_engine_profile():
+    verification = {
+        "diagnostic_trio_pulse": {
+            "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TRIO_PULSE=1",
+            "note": 60, "velocity": 100, "start_ms": 3000, "end_ms": 5000,
+            "once": True, "hardware_tested": False,
+        },
+        "diagnostic_engine_render_profile": _schema7_receipts()[0],
+    }
+    with pytest.raises(ValueError, match="Song-only timing telemetry"):
+        module._validate_diagnostic_mode(
+            {"kind": module.INPUT_KIND}, {}, verification, b"")
 
 
 class MemoryROM:

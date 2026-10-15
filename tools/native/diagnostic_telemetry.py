@@ -29,6 +29,14 @@ IRQ_PROFILE_FIELDS = (
     "render_elapsed_ticks", "render_irq_ticks", "overflow_count", "mismatch_count",
 )
 IRQ_PROFILE_FRAME_BYTES = len(IRQ_PROFILE_PREFIX) + 5 * len(IRQ_PROFILE_FIELDS) + 1
+ENGINE_PROFILE_PREFIX = b"\xf0\x7dLUNAR\x07"
+ENGINE_PROFILE_FIELDS = (
+    "uptime_ms", "drums_render_ticks", "drums_render_calls",
+    "drums_render_block_ticks", "drums_render_block_calls",
+    "sixop_render_ticks", "sixop_render_calls",
+    "sixop_render_block_ticks", "sixop_render_block_calls",
+)
+ENGINE_PROFILE_FRAME_BYTES = len(ENGINE_PROFILE_PREFIX) + 5 * len(ENGINE_PROFILE_FIELDS) + 1
 PROFILE_PREFIX = b"\xf0\x7dLUNAR\x02"
 FIELDS = (
     "uptime_ms", "render_ticks_max", "draw_ticks_max", "audio_underruns",
@@ -81,6 +89,11 @@ def decode_irq_profile_frame(frame: bytes) -> dict[str, int]:
     return _decode_values(frame, IRQ_PROFILE_PREFIX, IRQ_PROFILE_FIELDS, 6)
 
 
+def decode_engine_profile_frame(frame: bytes) -> dict[str, int]:
+    """Require a complete schema-7 engine outer/block timing frame."""
+    return _decode_values(frame, ENGINE_PROFILE_PREFIX, ENGINE_PROFILE_FIELDS, 7)
+
+
 def decode_any_frame(frame: bytes) -> tuple[int, dict[str, int]]:
     if frame.startswith(PREFIX):
         return 1, decode_frame(frame)
@@ -94,6 +107,8 @@ def decode_any_frame(frame: bytes) -> tuple[int, dict[str, int]]:
         return 5, decode_producer_gap_frame(frame)
     if frame.startswith(IRQ_PROFILE_PREFIX):
         return 6, decode_irq_profile_frame(frame)
+    if frame.startswith(ENGINE_PROFILE_PREFIX):
+        return 7, decode_engine_profile_frame(frame)
     raise ValueError("unknown Lunar diagnostic schema")
 
 
@@ -122,6 +137,8 @@ def decode_capture(data: bytes) -> list[dict[str, int]]:
             size = PRODUCER_GAP_FRAME_BYTES
         elif clean.startswith(IRQ_PROFILE_PREFIX, offset):
             size = IRQ_PROFILE_FRAME_BYTES
+        elif clean.startswith(ENGINE_PROFILE_PREFIX, offset):
+            size = ENGINE_PROFILE_FRAME_BYTES
         else:
             raise ValueError("unknown or truncated diagnostic frame prefix")
         if offset + size > len(clean):

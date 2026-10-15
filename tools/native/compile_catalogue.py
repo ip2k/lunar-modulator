@@ -56,6 +56,8 @@ def main():
                         'does not establish hardware performance')
     parser.add_argument('--hot-dsp-ram', action='store_true',
                         help='Explicit experiment: place selected sixop/Hall/limiter render bodies in RAM')
+    parser.add_argument('--engine-render-profile', action='store_true',
+                        help='Compile Drums/SixOp render timing hooks for the opt-in diagnostic')
     parser.add_argument('--shared-resampler', action='store_true',
                         help='Share the unchanged resampler coefficients')
     parser.add_argument('--shapes-voices', type=int, choices=range(1, 13), default=12,
@@ -94,6 +96,8 @@ def main():
     extra += ' -DFM1_SHAPES_VOICES=' + str(args.shapes_voices)
     if args.hot_dsp_ram:
         extra += ' -DFM1_HOT_DSP_RAM=1'
+    if args.engine_render_profile:
+        extra += ' -DLUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE=1'
     if args.lto:
         extra += ' -flto'
     make = ['make', '-s', '-C', str(ROOT / 'engines'), '-f', 'Makefile',
@@ -133,6 +137,7 @@ def main():
               'optimization': '-O' + args.opt, 'lto': args.lto,
               'optimization_overrides': overrides,
               'hot_dsp_ram': args.hot_dsp_ram,
+              'engine_render_profile': args.engine_render_profile,
               'shared_resampler': args.shared_resampler,
               'indexed_tft': args.indexed_tft,
               'shapes_voices': args.shapes_voices,

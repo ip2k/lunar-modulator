@@ -159,6 +159,9 @@ static inline uint32_t lunar_producer_gap_packet(
 #define LUNAR_IRQ_FIELDS 22u
 #define LUNAR_IRQ_BYTES (9u + 5u * LUNAR_IRQ_FIELDS)
 #define LUNAR_IRQ_PACKETS ((LUNAR_IRQ_BYTES + 2u) / 3u)
+#define LUNAR_ENGINE_PROFILE_FIELDS 9u
+#define LUNAR_ENGINE_PROFILE_BYTES (9u + 5u * LUNAR_ENGINE_PROFILE_FIELDS)
+#define LUNAR_ENGINE_PROFILE_PACKETS ((LUNAR_ENGINE_PROFILE_BYTES + 2u) / 3u)
 static inline uint32_t lunar_irq_packet(
     const uint32_t values[LUNAR_IRQ_FIELDS], unsigned index)
 {
@@ -172,6 +175,31 @@ static inline uint32_t lunar_irq_packet(
         uint8_t byte;
         if (pos < sizeof prefix) byte = prefix[pos];
         else if (pos == LUNAR_IRQ_BYTES - 1u) byte = 0xf7;
+        else {
+            unsigned data = pos - (unsigned)sizeof prefix;
+            byte = (uint8_t)((values[data / 5u] >> (7u * (data % 5u))) & 127u);
+        }
+        packet |= (uint32_t)byte << (8u * (j + 1u));
+    }
+    return packet;
+}
+
+/* Schema 7: cumulative outer Render and internal RenderBlock ticks/calls for
+ * Drums and SixOp. Outer time includes blocks; subtraction yields wrapper,
+ * resampler and copy/loop remainder, not an isolated FIR measurement. */
+static inline uint32_t lunar_engine_profile_packet(
+    const uint32_t values[LUNAR_ENGINE_PROFILE_FIELDS], unsigned index)
+{
+    static const uint8_t prefix[] = {0xf0, 0x7d, 'L', 'U', 'N', 'A', 'R', 7};
+    if (index >= LUNAR_ENGINE_PROFILE_PACKETS) return 0;
+    unsigned at = index * 3u, left = LUNAR_ENGINE_PROFILE_BYTES - at;
+    unsigned n = left < 3u ? left : 3u;
+    uint32_t packet = left > 3u ? 4u : 4u + n;
+    for (unsigned j = 0; j < n; ++j) {
+        unsigned pos = at + j;
+        uint8_t byte;
+        if (pos < sizeof prefix) byte = prefix[pos];
+        else if (pos == LUNAR_ENGINE_PROFILE_BYTES - 1u) byte = 0xf7;
         else {
             unsigned data = pos - (unsigned)sizeof prefix;
             byte = (uint8_t)((values[data / 5u] >> (7u * (data % 5u))) & 127u);

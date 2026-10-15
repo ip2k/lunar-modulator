@@ -381,3 +381,53 @@ def test_irq_profile_rejects_wrong_schema_or_nonexact_values(mutation):
         values[IRQ_PROFILE_FIELDS[0]] = True
     with pytest.raises(ValueError):
         analyzer.analyze_jsonl([json.dumps(event)])
+
+
+def test_engine_profile_rows_report_wrap_safe_cumulative_outer_and_block_counters():
+    from tools.native.diagnostic_telemetry import ENGINE_PROFILE_FIELDS
+    first = dict.fromkeys(ENGINE_PROFILE_FIELDS, 0)
+    first.update(uptime_ms=10000, drums_render_ticks=0xFFFFFFF0,
+                 drums_render_calls=10, drums_render_block_ticks=900,
+                 drums_render_block_calls=10, sixop_render_ticks=2000,
+                 sixop_render_calls=10, sixop_render_block_ticks=1500,
+                 sixop_render_block_calls=10)
+    second = dict.fromkeys(ENGINE_PROFILE_FIELDS, 0)
+    second.update(uptime_ms=14000, drums_render_ticks=24,
+                  drums_render_calls=15, drums_render_block_ticks=1300,
+                  drums_render_block_calls=15, sixop_render_ticks=3000,
+                  sixop_render_calls=15, sixop_render_block_ticks=2200,
+                  sixop_render_block_calls=15)
+    rows = [
+        {"event": "engine_profile_frame", "schema": 7, "frame_index": i,
+         "elapsed_seconds": i * 4, "values": values}
+        for i, values in enumerate((first, second))
+    ]
+    report = analyzer.analyze_jsonl(json.dumps(item) for item in rows)
+    assert report["engine_profile_frame_count"] == 2
+    second_frame = report["engine_profile_frames"][1]
+    assert second_frame["counter_deltas"]["drums_render_ticks"] == 40
+    assert second_frame["counter_deltas"]["drums_render_calls"] == 5
+    assert second_frame["counter_deltas"]["drums_render_block_ticks"] == 400
+    assert second_frame["counter_deltas"]["sixop_render_block_calls"] == 5
+    assert "not FIR-only" in second_frame["scope"]
+    assert "no calibration inferred" in second_frame["timing_units"]
+
+
+@pytest.mark.parametrize("mutation", ["schema", "missing", "extra", "bool", "overflow"])
+def test_engine_profile_rejects_wrong_schema_or_nonexact_values(mutation):
+    from tools.native.diagnostic_telemetry import ENGINE_PROFILE_FIELDS
+    values = dict.fromkeys(ENGINE_PROFILE_FIELDS, 0)
+    event = {"event": "engine_profile_frame", "schema": 7,
+             "elapsed_seconds": 0, "values": values}
+    if mutation == "schema":
+        event["schema"] = True
+    elif mutation == "missing":
+        values.pop(ENGINE_PROFILE_FIELDS[-1])
+    elif mutation == "extra":
+        values["fir_only_ticks"] = 1
+    elif mutation == "bool":
+        values[ENGINE_PROFILE_FIELDS[0]] = True
+    else:
+        values[ENGINE_PROFILE_FIELDS[0]] = 0x100000000
+    with pytest.raises(ValueError, match="schema-7 fields|must be a uint32"):
+        analyzer.analyze_jsonl([json.dumps(event)])

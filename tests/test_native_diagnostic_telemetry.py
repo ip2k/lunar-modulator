@@ -189,10 +189,44 @@ def test_schema6_irq_profile_frame_is_canonical_and_mixed_capture_decodes():
         codec.decode_any_frame(bytes(noncanonical))
 
 
+def test_schema7_engine_profile_wire_roundtrip_and_packet_bounds(tmp_path):
+    source = tmp_path / "engine_profile.c"
+    source.write_text(r'''
+#include "diagnostic_telemetry.h"
+#include <assert.h>
+#include <stdio.h>
+int main(void) {
+    uint32_t values[LUNAR_ENGINE_PROFILE_FIELDS];
+    for (unsigned i = 0; i < LUNAR_ENGINE_PROFILE_FIELDS; ++i)
+        values[i] = i == 1 ? UINT32_MAX : i * 1234567u;
+    assert(LUNAR_ENGINE_PROFILE_BYTES == 54u);
+    assert(LUNAR_ENGINE_PROFILE_PACKETS == 18u && LUNAR_ENGINE_PROFILE_PACKETS <= 64u);
+    for (unsigned i = 0; i < LUNAR_ENGINE_PROFILE_PACKETS; ++i) {
+        uint32_t packet = lunar_engine_profile_packet(values, i);
+        unsigned cin = packet & 15u;
+        unsigned n = cin == 4u ? 3u : cin - 4u;
+        assert(i + 1 == LUNAR_ENGINE_PROFILE_PACKETS ? cin == 7u : cin == 4u);
+        for (unsigned j = 0; j < n; ++j) putchar((packet >> (8u * (j + 1u))) & 255u);
+    }
+    assert(lunar_engine_profile_packet(values, LUNAR_ENGINE_PROFILE_PACKETS) == 0);
+}
+''')
+    exe = tmp_path / "engine_profile"
+    subprocess.run(["cc", "-std=c99", "-Wall", "-Wextra", "-Werror",
+                    "-fsanitize=address,undefined", "-I", str(ROOT / "firmware/native"),
+                    "-I", str(ROOT / "sim/web/src"), str(source), "-o", str(exe)], check=True)
+    frame = subprocess.check_output([str(exe)])
+    assert len(frame) == codec.ENGINE_PROFILE_FRAME_BYTES == 54
+    values = codec.decode_engine_profile_frame(frame)
+    assert values["drums_render_ticks"] == 0xFFFFFFFF
+    assert codec.decode_capture(frame)[0]["schema"] == 7
+    assert codec.decode_capture(codec.PREFIX + bytes(70) + b"\xf7" + frame)[-1]["schema"] == 7
+
+
 def test_profile_report_retains_samples_when_ring_is_full(tmp_path):
     app = (ROOT / "firmware/native/app_probe.c").read_text()
     start = app.index("static void diagnostic_profile_report(void)")
-    end = app.index("\n#endif\n\n/* Both frames share the same USB-MIDI ring", start)
+    end = app.index("\n#endif", start)
     function = app[start:end]
     source = tmp_path / "profile_queue.c"
     source.write_text(r'''
@@ -226,6 +260,45 @@ int main(void) {
 }
 ''')
     exe = tmp_path / "profile_queue"
+    subprocess.run(["cc", "-std=c99", "-Wall", "-Wextra", "-Werror",
+                    "-fsanitize=address,undefined", "-I", str(ROOT / "firmware/native"),
+                    "-I", str(ROOT / "sim/web/src"),
+                    str(source), "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True)
+
+
+def test_engine_profile_report_reserves_complete_ring_frame_and_keeps_counters(tmp_path):
+    import subprocess
+    app = (ROOT / "firmware/native/app_probe.c").read_text()
+    start = app.index("static void diagnostic_engine_profile_report(void)")
+    end = app.index("\n#endif", start)
+    function = app[start:end]
+    source = tmp_path / "engine_profile_queue.c"
+    source.write_text(r'''
+#include "diagnostic_telemetry.h"
+#include <assert.h>
+#define MQ 64u
+static uint32_t fm1_ms, mo_w, mo_r, sent;
+static struct { unsigned config; } usb;
+static volatile uint32_t engine_profile_values[LUNAR_ENGINE_PROFILE_FIELDS];
+static void midi_out_event(uint32_t packet) {
+    (void)packet; assert(mo_w - mo_r < MQ); ++mo_w; ++sent;
+}
+''' + function + r'''
+int main(void) {
+    fm1_ms = 4000; usb.config = 1;
+    engine_profile_values[1] = 1234;
+    mo_w = 47; mo_r = 0;
+    diagnostic_engine_profile_report();
+    assert(sent == 0 && engine_profile_values[1] == 1234);
+    mo_r = mo_w;
+    diagnostic_engine_profile_report();
+    assert(sent == LUNAR_ENGINE_PROFILE_PACKETS);
+    assert(engine_profile_values[1] == 1234);
+    assert(mo_w - mo_r == LUNAR_ENGINE_PROFILE_PACKETS);
+}
+''')
+    exe = tmp_path / "engine_profile_queue"
     subprocess.run(["cc", "-std=c99", "-Wall", "-Wextra", "-Werror",
                     "-fsanitize=address,undefined", "-I", str(ROOT / "firmware/native"),
                     "-I", str(ROOT / "sim/web/src"),

@@ -225,6 +225,36 @@ def render_stage_profile_flags(enabled):
             if receipt["compile_definition"] else [])
 
 
+def engine_render_profile_configuration(enabled):
+    if type(enabled) is not bool:
+        raise TypeError("engine render profile option must be a bool")
+    return dict(enabled=enabled, schema=7 if enabled else None,
+                compile_definition="LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE=1" if enabled else None,
+                frame_bytes=54 if enabled else None, packets_per_frame=18 if enabled else None,
+                counters=("uptime_ms", "drums_render_ticks", "drums_render_calls",
+                          "drums_render_block_ticks", "drums_render_block_calls",
+                          "sixop_render_ticks", "sixop_render_calls",
+                          "sixop_render_block_ticks", "sixop_render_block_calls") if enabled else [],
+                counter_semantics="cumulative-uint32-device-timer-ticks" if enabled else None,
+                hardware_tested=False)
+
+
+def validate_engine_render_profile(enabled, runtime_mode, telemetry_explicit,
+                                   render_stage_profile, producer_gaps, irq_profile):
+    receipt = engine_render_profile_configuration(enabled)
+    if enabled and (runtime_mode != "song-diagnostic" or not telemetry_explicit or
+                    not render_stage_profile or producer_gaps or irq_profile):
+        raise ValueError("engine render profiling requires song-diagnostic telemetry and schema-2 stage profiling, "
+                         "and cannot share producer-gap or IRQ cadence")
+    return receipt
+
+
+def engine_render_profile_flags(enabled):
+    receipt = engine_render_profile_configuration(enabled)
+    return (["-D" + receipt["compile_definition"]]
+            if receipt["compile_definition"] else [])
+
+
 def validate_clock_snapshot(enabled, runtime_mode, telemetry_explicit):
     if type(enabled) is not bool:
         raise TypeError("clock snapshot option must be a bool")
@@ -416,7 +446,8 @@ def hot_dsp_ram_extent(elf_path):
 
 
 def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=12,
-                      hot_dsp_os=False, hot_dsp_ram=False):
+                      hot_dsp_os=False, hot_dsp_ram=False,
+                      engine_render_profile=False):
     objects, receipts, indices = [], [], set()
     inputs = source_manifest(ROOT)
     overrides = optimization_overrides('z', hot_dsp_os)
@@ -428,6 +459,7 @@ def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=1
                         gpl_mods=1, modules='all', optimization='-Oz', lto=True,
                         shared_resampler=True, indexed_tft=indexed_tft, shapes_voices=shapes_voices,
                         closed_sdk_archives=[], hot_dsp_ram=hot_dsp_ram,
+                        engine_render_profile=engine_render_profile,
                         device_sdk_headers=[])
         if any(report.get(k) != v for k, v in required.items()):
             raise SystemExit('Incompatible catalogue report: ' + str(directory))
@@ -554,6 +586,8 @@ def main():
                         help='Report raw post-platform clock registers; no clock changes or MHz claim')
     parser.add_argument('--render-stage-profile', action='store_true',
                         help='Opt in to schema-2 render-stage reports; requires --diagnostic-telemetry')
+    parser.add_argument('--diagnostic-engine-render-profile', action='store_true',
+                        help='Opt in to schema-7 Drums/SixOp Render versus RenderBlock timing; requires schema 2')
     parser.add_argument('--flash-plaits-wavetables', action='store_true',
                         help='With compressed tables, retain original Plaits wave bank in flash '
                         'to recover RAM; decode Braids only when Shapes is selected')
@@ -640,6 +674,10 @@ def main():
             args.diagnostic_song_play)
         irq_profile_receipt = validate_diagnostic_irq_profile(
             args.diagnostic_irq_profile, args.runtime_mode, args.diagnostic_telemetry)
+        engine_render_profile_receipt = validate_engine_render_profile(
+            args.diagnostic_engine_render_profile, args.runtime_mode,
+            args.diagnostic_telemetry, args.render_stage_profile,
+            args.diagnostic_producer_gaps, args.diagnostic_irq_profile)
     except ValueError as error:
         parser.error(str(error))
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
@@ -673,7 +711,7 @@ def main():
                        if args.compressed_wavetables else [])
     objects, catalogue_receipts = checked_catalogue(
         catalogue, wave_namespaces, args.indexed_tft, args.shapes_voices,
-        args.hot_dsp_os, args.hot_dsp_ram)
+        args.hot_dsp_os, args.hot_dsp_ram, args.diagnostic_engine_render_profile)
     state_bin_codec = None
     if args.link_project_save_service:
         state_bin_codec = replace_with_compact_state_bin(
@@ -757,6 +795,7 @@ def main():
     flags += diagnostic_producer_gaps_flags(args.diagnostic_producer_gaps)
     flags += diagnostic_irq_profile_flags(args.diagnostic_irq_profile)
     flags += render_stage_profile_flags(args.render_stage_profile)
+    flags += engine_render_profile_flags(args.diagnostic_engine_render_profile)
     if args.diagnostic_clock_snapshot:
         flags += ["-DLUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT=1"]
     flags += trio_diagnostic_pulse_flags(args.diagnostic_trio_pulse)
@@ -941,6 +980,8 @@ def main():
         report["diagnostic_clock_snapshot"] = clock_snapshot_receipt
     if args.render_stage_profile:
         report["render_stage_profile"] = render_profile_receipt
+    if args.diagnostic_engine_render_profile:
+        report["diagnostic_engine_render_profile"] = engine_render_profile_receipt
     if content_inputs:
         try:
             report['embedded_content'] = embedded_content_receipt(

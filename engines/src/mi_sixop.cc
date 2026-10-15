@@ -67,6 +67,7 @@
 // Instruments; engine names here are our own (docs/11 §7).
 
 #include "fm1_engine.h"
+#include "engine_render_profile.h"
 #include "fm1_resampler.h"
 #include "fm1_smooth.h"
 #include "glide.h"
@@ -337,11 +338,14 @@ class Instance {
   // Each output sample pulls the 47,872.34 Hz mix the resampler needs for it,
   // rendering a new 16-sample block whenever the last one is used up.
   FM1_HOT_DSP_RENDER void Render(float *out_lr, uint32_t frames) {
+    FM1_ENGINE_PROFILE_RENDER_BEGIN();
     for (uint32_t f = 0; f < frames; ++f) {
       uint32_t need = fm1_resampler_needed(&resampler_);
       while (need) {
         if (!pending_) {
+          FM1_ENGINE_PROFILE_BLOCK_BEGIN();
           RenderBlock();
+          FM1_ENGINE_PROFILE_BLOCK_END();
           pending_ = kBlock;
         }
         const uint32_t took = fm1_resampler_push(
@@ -352,6 +356,7 @@ class Instance {
       }
       out_lr[2 * f] = out_lr[2 * f + 1] = fm1_resampler_pop(&resampler_);
     }
+    FM1_ENGINE_PROFILE_RENDER_END(FM1_ENGINE_PROFILE_SIXOP);
   }
 
  private:

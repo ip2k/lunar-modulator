@@ -148,6 +148,40 @@ def test_records_mixed_schema_frames_with_bounded_versioned_events(tmp_path):
     assert (out / "raw.syx").read_bytes() == FRAME + PROFILE_FRAME + PLL_FRAME
 
 
+def test_records_schema7_engine_profile_as_bounded_passive_frame(tmp_path):
+    from tools.native.diagnostic_telemetry import (
+        ENGINE_PROFILE_FIELDS, ENGINE_PROFILE_FRAME_BYTES, ENGINE_PROFILE_PREFIX,
+    )
+    values = dict.fromkeys(ENGINE_PROFILE_FIELDS, 0)
+    values.update(uptime_ms=12000, drums_render_ticks=0xFFFFFFF0,
+                  drums_render_calls=100, drums_render_block_ticks=800,
+                  drums_render_block_calls=100, sixop_render_ticks=1200,
+                  sixop_render_calls=100, sixop_render_block_ticks=700,
+                  sixop_render_block_calls=100)
+    # Use the canonical 7-bit uint32 wire encoder and ensure the recorder sees
+    # one whole schema-7 SysEx, not a host-fragmented packet as a frame.
+    frame = bytearray(ENGINE_PROFILE_PREFIX)
+    for name in ENGINE_PROFILE_FIELDS:
+        value = values[name]
+        for shift in (0, 7, 14, 21, 28):
+            frame.append((value >> shift) & 0x7f)
+    frame.append(0xf7)
+    assert len(frame) == ENGINE_PROFILE_FRAME_BYTES == 54
+    clock = FakeClock()
+    out = tmp_path / "engine-profile"
+    receipt = recorder.record(
+        "FM-1 MIDI", IMAGE_SHA, out, 0.05,
+        mido_module=FakeMido([SimpleNamespace(type="sysex", data=bytes(frame[1:-1]))]),
+        monotonic=clock.monotonic, wall_time=clock.wall_time, sleep=clock.sleep,
+    )
+    row = json.loads((out / "events.jsonl").read_text().splitlines()[0])
+    assert row["event"] == "engine_profile_frame" and row["schema"] == 7
+    assert row["values"] == values
+    assert receipt["engine_profile_frame_count"] == 1
+    assert receipt["midi_output_opened"] is False
+    assert (out / "raw.syx").read_bytes() == bytes(frame)
+
+
 def test_exact_port_must_exist_once_before_open(tmp_path):
     fake = FakeMido([], names=("FM-1 MIDI", "FM-1 MIDI (2)"))
     with pytest.raises(ValueError, match="exact MIDI input"):

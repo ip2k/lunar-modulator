@@ -12,11 +12,11 @@ from typing import Any, Iterable
 try:
     from .diagnostic_telemetry import (CLOCK_FIELDS, FIELDS, PLL_FIELDS, PROFILE_FIELDS,
                                       PROFILE_STAGES, PRODUCER_GAP_FIELDS,
-                                      IRQ_PROFILE_FIELDS)
+                                      IRQ_PROFILE_FIELDS, ENGINE_PROFILE_FIELDS)
 except ImportError:  # Direct ``python tools/native/analyze_diagnostic_telemetry.py`` use.
     from diagnostic_telemetry import (CLOCK_FIELDS, FIELDS, PLL_FIELDS, PROFILE_FIELDS,
                                       PROFILE_STAGES, PRODUCER_GAP_FIELDS,
-                                      IRQ_PROFILE_FIELDS)
+                                      IRQ_PROFILE_FIELDS, ENGINE_PROFILE_FIELDS)
 
 UINT32_MAX = 0xFFFFFFFF
 TICKS_PER_US = 24
@@ -82,8 +82,10 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
     pll_snapshots: list[dict[str, Any]] = []
     producer_gap_frames: list[dict[str, Any]] = []
     irq_profile_frames: list[dict[str, Any]] = []
+    engine_profile_frames: list[dict[str, Any]] = []
     previous_profile_elapsed: float | None = None
     previous_irq_values: dict[str, int] | None = None
+    previous_engine_profile_values: dict[str, int] | None = None
     event_counts: dict[str, int] = {}
     total_bytes = 0
     row_count = 0
@@ -185,6 +187,30 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
             previous_irq_values = checked
             continue
 
+        if event_name == "engine_profile_frame":
+            values = event.get("values")
+            schema = event.get("schema")
+            if (type(schema) is not int or schema != 7 or not isinstance(values, dict)
+                    or set(values) != set(ENGINE_PROFILE_FIELDS)):
+                raise ValueError(f"line {line_number}: engine profile values must contain exactly schema-7 fields")
+            checked = {name: _uint32(values[name], name, line_number)
+                       for name in ENGINE_PROFILE_FIELDS}
+            deltas = (None if previous_engine_profile_values is None else {
+                name: (checked[name] - previous_engine_profile_values[name]) & UINT32_MAX
+                for name in ENGINE_PROFILE_FIELDS if name != "uptime_ms"
+            })
+            engine_profile_frames.append({
+                "frame_index": event.get("frame_index"),
+                "wall_time_utc": event.get("wall_time_utc"),
+                "elapsed_seconds": elapsed,
+                "values": checked,
+                "counter_deltas": deltas,
+                "timing_units": "raw device timer ticks and uint32 call counters; no calibration inferred",
+                "scope": "outer Render includes internal RenderBlock; differences are wrapper/resampler/loop work, not FIR-only",
+            })
+            previous_engine_profile_values = checked
+            continue
+
         if event_name == "render_profile_frame":
             values = event.get("values")
             schema = event.get("schema")
@@ -273,7 +299,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         })
         previous_values = checked
 
-    if not frames and not profiles and not clock_snapshots and not pll_snapshots and not producer_gap_frames and not irq_profile_frames:
+    if not frames and not profiles and not clock_snapshots and not pll_snapshots and not producer_gap_frames and not irq_profile_frames and not engine_profile_frames:
         raise ValueError("event log contains no diagnostic or render_profile rows, clock snapshots, PLL snapshots, producer-gap frames, or IRQ profile frames")
 
     return {
@@ -295,12 +321,14 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         "pll_snapshot_frame_count": len(pll_snapshots),
         "producer_gap_frame_count": len(producer_gap_frames),
         "irq_profile_frame_count": len(irq_profile_frames),
+        "engine_profile_frame_count": len(engine_profile_frames),
         "frames": frames,
         "render_profiles": profiles,
         "clock_snapshots": clock_snapshots,
         "pll_snapshots": pll_snapshots,
         "producer_gap_frames": producer_gap_frames,
         "irq_profile_frames": irq_profile_frames,
+        "engine_profile_frames": engine_profile_frames,
         "interpretation_limits": [
             "Schema-1 counters are cumulative and sampled non-atomically; use modular deltas between frames.",
             "Missing reports create longer intervals; rates are interval averages, not reconstructed event times.",

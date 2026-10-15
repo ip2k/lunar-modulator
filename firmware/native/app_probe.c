@@ -15,6 +15,14 @@
 #if defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE) && !defined(LUNAR_DIAGNOSTIC_TELEMETRY)
 #error "IRQ profiling requires diagnostic telemetry"
 #endif
+#if defined(LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE) && \
+    (!defined(LUNAR_DIAGNOSTIC_TELEMETRY) || !defined(LUNAR_RENDER_STAGE_PROFILE))
+#error "Engine render profiling requires telemetry and render-stage profiling"
+#endif
+#if defined(LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE) && \
+    (defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE) || defined(LUNAR_DIAGNOSTIC_PRODUCER_GAPS))
+#error "Engine render profile has a dedicated telemetry cadence"
+#endif
 #include <stdint.h>
 #include <string.h>
 #define APP_NAME "LUNAR MODULATOR"
@@ -43,6 +51,20 @@ static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_IND
 #endif
 #ifdef LUNAR_DIAGNOSTIC_TELEMETRY
 #include "diagnostic_telemetry.h"
+#ifdef LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE
+static volatile uint32_t engine_profile_values[LUNAR_ENGINE_PROFILE_FIELDS];
+uint32_t lunar_engine_profile_ticks(void) { return fm1_ticks(); }
+void lunar_engine_profile_render(uint32_t engine, uint32_t ticks,
+                                 uint32_t block_ticks, uint32_t block_calls)
+{
+    if (engine >= 2u) return;
+    const unsigned base = 1u + engine * 4u;
+    engine_profile_values[base] += ticks;
+    engine_profile_values[base + 1u] += 1u;
+    engine_profile_values[base + 2u] += block_ticks;
+    engine_profile_values[base + 3u] += block_calls;
+}
+#endif
 #ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
 #include "producer_gap_profile.h"
 static lunar_producer_gap_profile_t producer_gap_profile;
@@ -369,6 +391,23 @@ static void diagnostic_profile_report(void)
 }
 #endif
 
+#ifdef LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE
+static void diagnostic_engine_profile_report(void)
+{
+    static uint32_t last_report;
+    uint32_t values[LUNAR_ENGINE_PROFILE_FIELDS];
+    uint32_t now = fm1_ms;
+    if ((uint32_t)(now - last_report) < 4000u || !usb.config ||
+        mo_w - mo_r > MQ - LUNAR_ENGINE_PROFILE_PACKETS) return;
+    values[0] = now;
+    for (unsigned i = 1; i < LUNAR_ENGINE_PROFILE_FIELDS; ++i)
+        values[i] = engine_profile_values[i];
+    for (unsigned i = 0; i < LUNAR_ENGINE_PROFILE_PACKETS; ++i)
+        midi_out_event(lunar_engine_profile_packet(values, i));
+    last_report = now;
+}
+#endif
+
 /* Both frames share the same USB-MIDI ring. The opt-in cadence alternates
  * bounded slots so no complete frame is perpetually crowded out. */
 
@@ -476,8 +515,17 @@ static void diagnostic_reports(void)
     else diagnostic_producer_gap_report();
 #endif
 #elif defined(LUNAR_RENDER_STAGE_PROFILE)
+#ifdef LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE
+    switch ((fm1_ms / 1000u) % 4u) {
+    case 0: diagnostic_report(); break;
+    case 1: diagnostic_profile_report(); break;
+    case 2: diagnostic_report(); break;
+    default: diagnostic_engine_profile_report(); break;
+    }
+#else
     if (((fm1_ms / 1000u) & 1u) == 0u) diagnostic_report();
     else diagnostic_profile_report();
+#endif
 #else
     diagnostic_report();
 #endif

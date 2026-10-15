@@ -32,6 +32,7 @@ def test_catalogue_receipt(tmp_path, monkeypatch, fault, indexed_tft, shapes_voi
                       gpl_mods=1, modules='all', optimization='-Oz', lto=True,
                       shared_resampler=True, indexed_tft=indexed_tft, shapes_voices=shapes_voices, closed_sdk_archives=[], device_sdk_headers=[],
                       hot_dsp_ram=False,
+                      engine_render_profile=False,
                       configured_sha256=hashlib.sha256(b'config').hexdigest(),
                       source_manifest={'source.c': 'current'},
                       results=[dict(index=shard, object=name, exit=0,
@@ -81,6 +82,7 @@ def test_catalogue_hot_dsp_ram_receipt_is_explicit_and_matched(tmp_path, monkeyp
                       gpl_mods=1, modules='all', optimization='-Oz', lto=True,
                       shared_resampler=True, indexed_tft=False, shapes_voices=12,
                       closed_sdk_archives=[], device_sdk_headers=[], hot_dsp_ram=False,
+                      engine_render_profile=False,
                       configured_sha256=hashlib.sha256(b'config').hexdigest(),
                       source_manifest={'source.c': 'current'},
                       results=[dict(index=shard, object=name, exit=0,
@@ -101,4 +103,14 @@ def test_catalogue_hot_dsp_ram_receipt_is_explicit_and_matched(tmp_path, monkeyp
         report['hot_dsp_ram'] = True
         write_report(path.parent, report)
     objects, receipts = builder.checked_catalogue(tmp_path, hot_dsp_ram=True)
+    assert len(objects) == len(receipts) == 16
+    with pytest.raises(SystemExit, match='Incompatible catalogue report'):
+        builder.checked_catalogue(tmp_path, hot_dsp_ram=True, engine_render_profile=True)
+    for shard in range(16):
+        path = tmp_path / f'shard-{shard:02d}/report.json'
+        report = json.loads(path.read_text())
+        report['engine_render_profile'] = True
+        write_report(path.parent, report)
+    objects, receipts = builder.checked_catalogue(
+        tmp_path, hot_dsp_ram=True, engine_render_profile=True)
     assert len(objects) == len(receipts) == 16

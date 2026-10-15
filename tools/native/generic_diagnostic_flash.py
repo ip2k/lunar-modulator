@@ -288,6 +288,50 @@ def _exact_irq_profile_receipt(value):
             and value == expected)
 
 
+def _exact_render_stage_profile_receipt(value):
+    expected = {
+        "enabled": True, "compile_definition": "LUNAR_RENDER_STAGE_PROFILE=1",
+        "schema": 2,
+        "stages": ["sequence_dispatch", "sound_0", "sound_1", "sound_2",
+                   "sound_3", "master_fx_0", "master_fx_1", "postmix",
+                   "display_strip"],
+        "hardware_tested": False,
+    }
+    return (isinstance(value, dict) and set(value) == set(expected)
+            and type(value.get("enabled")) is bool
+            and type(value.get("schema")) is int
+            and type(value.get("hardware_tested")) is bool
+            and isinstance(value.get("compile_definition"), str)
+            and isinstance(value.get("stages"), list)
+            and all(isinstance(stage, str) for stage in value["stages"])
+            and value == expected)
+
+
+def _exact_engine_render_profile_receipt(value):
+    expected = {
+        "enabled": True, "schema": 7,
+        "compile_definition": "LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE=1",
+        "frame_bytes": 54, "packets_per_frame": 18,
+        "counters": ["uptime_ms", "drums_render_ticks", "drums_render_calls",
+                     "drums_render_block_ticks", "drums_render_block_calls",
+                     "sixop_render_ticks", "sixop_render_calls",
+                     "sixop_render_block_ticks", "sixop_render_block_calls"],
+        "counter_semantics": "cumulative-uint32-device-timer-ticks",
+        "hardware_tested": False,
+    }
+    return (isinstance(value, dict) and set(value) == set(expected)
+            and type(value.get("enabled")) is bool
+            and type(value.get("schema")) is int
+            and type(value.get("frame_bytes")) is int
+            and type(value.get("packets_per_frame")) is int
+            and type(value.get("hardware_tested")) is bool
+            and isinstance(value.get("compile_definition"), str)
+            and isinstance(value.get("counters"), list)
+            and all(isinstance(counter, str) for counter in value["counters"])
+            and isinstance(value.get("counter_semantics"), str)
+            and value == expected)
+
+
 def _exact_song_play_receipt(value, enabled):
     expected = {
         "enabled": enabled,
@@ -309,7 +353,9 @@ def _validate_diagnostic_mode(record, build, verification, prepared_profile):
     profile_kind = record.get("kind")
     pulse = verification.get("diagnostic_trio_pulse")
     if profile_kind == INPUT_KIND:
-        if "diagnostic_producer_gaps" in verification or "diagnostic_irq_profile" in verification:
+        if ("diagnostic_producer_gaps" in verification or
+                "diagnostic_irq_profile" in verification or
+                "diagnostic_engine_render_profile" in verification):
             raise ValueError("Song-only timing telemetry is only valid for the EH+SET song profile")
         if pulse != {"enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TRIO_PULSE=1",
                      "note": 60, "velocity": 100, "start_ms": 3000, "end_ms": 5000,
@@ -332,6 +378,19 @@ def _validate_diagnostic_mode(record, build, verification, prepared_profile):
     if ("diagnostic_irq_profile" in verification
             and not _exact_irq_profile_receipt(verification["diagnostic_irq_profile"])):
         raise ValueError("EH+SET IRQ profile telemetry receipt differs")
+    engine_profile_present = "diagnostic_engine_render_profile" in verification
+    if engine_profile_present:
+        if not _exact_engine_render_profile_receipt(
+                verification["diagnostic_engine_render_profile"]):
+            raise ValueError("EH+SET engine render profile receipt differs")
+        if "diagnostic_producer_gaps" in verification or "diagnostic_irq_profile" in verification:
+            raise ValueError("Engine render profiling cannot share producer-gap or IRQ cadence")
+        if not _exact_render_stage_profile_receipt(verification.get("render_stage_profile")):
+            raise ValueError("Engine render profiling requires the exact schema-2 render-stage receipt")
+        # With both profiles enabled, the bounded four-slot scheduler emits
+        # schema-2 stage frames about every four seconds (the default two-slot
+        # stage cadence is about every two seconds). Keep cadence visible to
+        # policy reviewers; do not treat this opt-in as a one-second stream.
     song_play = verification.get("diagnostic_song_play")
     if _exact_song_play_receipt(song_play, True):
         pass

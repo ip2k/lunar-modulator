@@ -5918,3 +5918,42 @@ Separate authorized workers are adding opt-in schema7 cumulative outer-engine /
 internal-block timing (default compiled away), and comparing Hall-onlyO2 target
 code generation/fit on Hera. Neither has physical timing or musical acceptance.
 SAVE stays disarmed; owner cold-boot musical acceptance FAILED; goal ACTIVE.
+
+
+### Tap-inline comparison launched; engine/block profiler reviewed — 2026-10-15
+
+[verified: file-only admission checks + launch, physical result pending]
+Constructed 2b9178c4 target07761c6c8bbe8c706e323d42266196dff5b530113f451bcc8ca7eeaade65f4c7;
+candidate receiptf28a941e1b65b0dbdad6c6d45c65ea4f52daf299693132e570326106b1ba915d.
+Local construction8/deployment9 tests and independent offline review passed.
+Remote staged file-only preflight passed. Fresh USB sysfs ROM93 matched pins.
+One-use campaign rom93-tap-inline-only-cycle launched PID143490 under
+/home/claude/fm1-tap-inline-only-2b9178c4-20261015; fresh paired reads started.
+Campaign pinsc20022d709033657fa392a8470729bce5da6ed24979113213cd97d2aeeb27908;
+launcher66a018761bd0ddb09b900edc4a300e2b4bc6c58377dfac523f8af34dd26426c0.
+Initial launcher attempt stopped file-only before launch.json because the manifest
+needed a second copy at its hash-map path; both exact copies now staged, no device
+command occurred on that failed attempt. Do not relaunch the consumed campaign.
+New deployment manifest89c55abe6ea7fb5b2a641842184e8a712b400209fb7b1b2a76559475faee675d
+rebases two tool paths; historical construction manifest preserved separately.
+No notes or transport injected. Pending: paired-read/install/readback, passive
+110s telemetry/180s audio capture, automatic return, measured comparison.
+
+[verified: host source/policy tests, target link pending]
+Opt-in schema7 now measures Drums/SixOp outer Render and nested RenderBlock
+cumulative ticks/calls, with disabled hooks compiled away. Outer minus nested
+includes wrapper/resampler/output-loop work, not isolated FIR. Frames54bytes /
+18USB-MIDI events reserve complete queue capacity. Four-slot opt-in cadence puts
+schema2 and schema7 at about4seconds each; default schema2 remains about2seconds.
+Builder/catalogue receipts must match. Generic diagnostic policy strictly admits
+optional exact schema7 only for the song profile plus exact schema2; rejects
+combined IRQ/producer-gap/input-pulse modes. Existing absent-schema7 receipts
+retain their previous acceptance. Seven focused test modules188passed using repo
+.venv; agent separately Drums76passed; diff check clean. Fresh Hera catalogue and
+link required before any schema7 physical candidate. Unrelated uv.lock untouched.
+
+Hall-onlyO2 experiment33ef66d8e7fdfc84dc901906cf190e2fa15ec4cf backed up to origin
+codex/2026-10-15-hall-o2-codegen and verified exact remote SHA. Hera16shards/link
+passed, app855896/860644bytes. Static codegen/fit only, no timing win established;
+not integrated. A bounded exact-arithmetic Hall helper inline experiment follows.
+SAVE stays disarmed; owner cold-boot musical acceptance FAILED; overall goal ACTIVE.

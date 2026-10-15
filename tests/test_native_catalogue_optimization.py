@@ -98,6 +98,38 @@ def test_compiler_hot_dsp_ram_flag_is_receipted_and_applied(tmp_path, monkeypatc
 
 
 @pytest.mark.parametrize('enabled', (False, True))
+def test_compiler_engine_render_profile_flag_is_receipted_and_applied(tmp_path, monkeypatch, enabled):
+    headers = tmp_path / 'headers'
+    headers.mkdir()
+    (headers / '__config').write_text('#define _LIBCPP_HAS_THREAD_API_PTHREAD\n')
+    out = tmp_path / 'out'
+    names = [f'c/unit-{i}.o' for i in range(16)]
+    calls = []
+
+    def check_output(command, **kwargs):
+        return '\n'.join(str(out / 'obj' / name) for name in names) if command[-1] == 'print-objs' else ''
+
+    def run(command, **kwargs):
+        calls.append(command)
+        obj = Path(command[-1])
+        obj.parent.mkdir(parents=True, exist_ok=True)
+        obj.write_bytes(b'obj')
+        return subprocess.CompletedProcess(command, 0, '', '')
+
+    monkeypatch.setattr(compiler, 'source_manifest', lambda root: {'x.c': 'current'})
+    monkeypatch.setattr(compiler.subprocess, 'check_output', check_output)
+    monkeypatch.setattr(compiler.subprocess, 'run', run)
+    monkeypatch.setattr(sys, 'argv', ['compile_catalogue', '--toolchain', str(tmp_path),
+                        '--cxx-headers', str(headers), '--out', str(out), '--shard', '0',
+                        *(['--engine-render-profile'] if enabled else [])])
+    assert compiler.main() == 0
+    report = json.loads((out / 'report.json').read_text())
+    assert report['engine_render_profile'] is enabled
+    assert all(('LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE=1' in ' '.join(map(str, command))) is enabled
+               for command in calls)
+
+
+@pytest.mark.parametrize('enabled', (False, True))
 def test_hot_dsp_linker_template_is_opt_in(enabled):
     source = (Path(builder.__file__).resolve().parents[2] / 'firmware/native/app.ld').read_text()
     generated = builder.hot_dsp_ram_linker_script(source, enabled)
@@ -180,7 +212,8 @@ def test_linker_requires_matching_explicit_receipts(tmp_path, monkeypatch, fault
                       gpl_mods=1, modules='all', optimization='-Oz', lto=True,
                       optimization_overrides=dict(overrides), shared_resampler=True,
                       indexed_tft=False, shapes_voices=12, closed_sdk_archives=[],
-                      hot_dsp_ram=False, device_sdk_headers=[], source_manifest={'x.c': 'current'},
+                      hot_dsp_ram=False, engine_render_profile=False,
+                      device_sdk_headers=[], source_manifest={'x.c': 'current'},
                       configured_sha256=hashlib.sha256(b'config').hexdigest(),
                       results=[dict(index=shard, object=name, exit=0,
                                     optimization=overrides.get(name, '-Oz'),

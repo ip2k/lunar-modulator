@@ -175,6 +175,91 @@ def test_render_profile_is_explicit_telemetry_only_and_schema2_opt_in():
             raise AssertionError("render profiler escaped its explicit diagnostic gate")
 
 
+def test_engine_render_profile_is_opt_in_schema7_and_has_dedicated_cadence():
+    import pytest
+    disabled = builder.engine_render_profile_configuration(False)
+    assert disabled["enabled"] is False
+    assert disabled["compile_definition"] is None
+    assert builder.engine_render_profile_flags(False) == []
+    enabled = builder.validate_engine_render_profile(
+        True, "song-diagnostic", True, True, False, False)
+    assert enabled["schema"] == 7
+    assert enabled["frame_bytes"] == 54
+    assert enabled["packets_per_frame"] == 18
+    assert enabled["compile_definition"] == "LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE=1"
+    assert enabled["counter_semantics"] == "cumulative-uint32-device-timer-ticks"
+    assert builder.engine_render_profile_flags(True) == [
+        "-DLUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE=1"]
+    for args in (
+        ("diagnostic", True, True, False, False),
+        ("song-diagnostic", False, True, False, False),
+        ("song-diagnostic", True, False, False, False),
+        ("song-diagnostic", True, True, True, False),
+        ("song-diagnostic", True, True, False, True),
+    ):
+        with pytest.raises(ValueError, match="engine render profiling requires"):
+            builder.validate_engine_render_profile(True, *args)
+    with pytest.raises(TypeError):
+        builder.engine_render_profile_configuration(1)
+    source = (ROOT / "firmware/native/app_probe.c").read_text()
+    assert "case 0: diagnostic_report(); break;" in source
+    assert "case 1: diagnostic_profile_report(); break;" in source
+    assert "default: diagnostic_engine_profile_report(); break;" in source
+
+
+def test_engine_render_hooks_compile_out_when_disabled(tmp_path):
+    import subprocess
+    source = tmp_path / "profile.cpp"
+    source.write_text(r'''
+#include "engine_render_profile.h"
+void render() {
+    FM1_ENGINE_PROFILE_RENDER_BEGIN();
+    FM1_ENGINE_PROFILE_BLOCK_BEGIN();
+    FM1_ENGINE_PROFILE_BLOCK_END();
+    FM1_ENGINE_PROFILE_RENDER_END(FM1_ENGINE_PROFILE_DRUMS);
+}
+''')
+    assembly = tmp_path / "disabled.s"
+    subprocess.run(["c++", "-std=c++11", "-O2", "-S", "-I",
+                    str(ROOT / "engines/include"), str(source), "-o", str(assembly)], check=True)
+    generated = assembly.read_text()
+    assert "lunar_engine_profile" not in generated
+
+
+def test_engine_render_hooks_accumulate_wrap_safe_outer_and_block_ticks(tmp_path):
+    import subprocess
+    source = tmp_path / "profile.cpp"
+    source.write_text(r'''
+#define LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE 1
+#include "engine_render_profile.h"
+#include <cassert>
+static uint32_t samples[] = {0xfffffff0u, 0xfffffffcu, 3u, 10u};
+static unsigned at;
+static uint32_t got_engine, got_outer, got_blocks, got_calls;
+extern "C" uint32_t lunar_engine_profile_ticks(void) { return samples[at++]; }
+extern "C" void lunar_engine_profile_render(uint32_t engine, uint32_t outer,
+                                              uint32_t blocks, uint32_t calls) {
+    got_engine = engine; got_outer = outer; got_blocks = blocks; got_calls = calls;
+}
+static void render() {
+    FM1_ENGINE_PROFILE_RENDER_BEGIN();
+    FM1_ENGINE_PROFILE_BLOCK_BEGIN();
+    FM1_ENGINE_PROFILE_BLOCK_END();
+    FM1_ENGINE_PROFILE_RENDER_END(FM1_ENGINE_PROFILE_DRUMS);
+}
+int main() {
+    render();
+    assert(at == 4 && got_engine == FM1_ENGINE_PROFILE_DRUMS);
+    assert(got_outer == 26u && got_blocks == 7u && got_calls == 1u);
+}
+''')
+    exe = tmp_path / "profile"
+    subprocess.run(["c++", "-std=c++11", "-Wall", "-Wextra", "-Werror",
+                    "-fsanitize=address,undefined", "-I", str(ROOT / "engines/include"),
+                    str(source), "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True)
+
+
 def test_render_profiler_macros_compile_out_by_default(tmp_path):
     import subprocess
     source = tmp_path / "disabled.c"
