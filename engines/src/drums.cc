@@ -607,7 +607,7 @@ class Instance {
   }
 
   // One voice's block into out[]; returns its gain for the mix.
-  float RenderVoice(Voice &v, float *out) {
+  FM1_HOT_DSP_RENDER float RenderVoice(Voice &v, float *out) {
     const Controls c = VoiceControls(v);
     const Voicing &w = *v.voicing;
     const bool trigger = v.trigger;

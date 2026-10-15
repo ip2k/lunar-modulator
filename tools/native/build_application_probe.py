@@ -429,7 +429,8 @@ HOT_DSP_RAM_PUSH_READY_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::Re
                       'Limiter::TapOut', 'Limiter::Render', 'fm1_app_render',
                       'fm1_resampler_push_ready_']
 HOT_DSP_RAM_PUSH_READY_DRUMS_BODIES = HOT_DSP_RAM_PUSH_READY_BODIES + ['Drums::Instance::Render']
-HOT_DSP_RAM_BODIES = HOT_DSP_RAM_PUSH_READY_DRUMS_BODIES + ['Drums::Instance::RenderBlock']
+HOT_DSP_RAM_RENDERBLOCK_BODIES = HOT_DSP_RAM_PUSH_READY_DRUMS_BODIES + ['Drums::Instance::RenderBlock']
+HOT_DSP_RAM_BODIES = HOT_DSP_RAM_RENDERBLOCK_BODIES + ['Drums::Instance::RenderVoice']
 
 
 def hot_dsp_ram_configuration(enabled, runtime_mode):
