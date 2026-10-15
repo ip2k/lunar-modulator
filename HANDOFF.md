@@ -1,3 +1,31 @@
+## CPU measurement completed; real-time deficit remains — 2026-10-15
+
+[verified] Distinct fresh-read/boot-only campaign PID270568 completed its
+read proof and submitted exactly one FC0C reset. Ambiguous SG completion
+stopped the runner; independent passive capture observed native110 on the
+same port. No reset retry, no flash erase/program in this follow-up.
+Capture110s/KA6 audio180s completed rc0; children cleaned up. Passive sysfs
+then observed port1-1 bus1/dev111,4c4a:8057 (timed recovery).
+Campaign89ffa1dbbe77ebfa76dc7b9c3ffc99cd6790f4a6616df0e0a48b2b003d690d76
+is CONSUMED; never relaunch. Current image5b3ebc0b, no physical action needed.
+
+[verified]107 schema1 frames/106 intervals:53448 produced blocks and22029
+underruns over109.492 device seconds =488.145 blocks/s and201.193 underruns/s;
+required689.344. No accepted notes or song playback. CPU schema8 reports the
+same startup result three times (not three independent trials):4096x4,
+status3, both expected checksums3446819522, XIP17497/RAM17491 raw TIMER4 ticks.
+Ratio1.000343 supports small warmed-kernel parity only, not CPU MHz or a
+renderer-working-set conclusion. Musical acceptance remains FAILED; SAVEoff.
+Evidence scratch/cpu-rate-boot-only-result/{evidence.tar,analysis.json,
+root-independent-summary.json}; notes/2026-10-15-cpu-calibration-campaign.md.
+
+Compact routing getter integrated as f9dc614fbb044418e88592f222c3d654625061e6,
+pushed and remote SHA verified; host oracle/core/render checks pass. No target
+or physical speed claim. Workers now prepare matched parent/getter builds and
+Hall-O2 on the exact physical CPU8a baseline, plus dominant-cost code review.
+Goal ACTIVE; required hardware acceptance, persistence/recovery, installer,
+review/CI/main integration and shipment remain open. uv.lock untouched.
+
 ## CPU V2 installed; capture refused before reset — 2026-10-15
 
 [verified] PID263390 exited after complete install/readback of target5b3ebc0b.

@@ -115,3 +115,43 @@ f0277c94174a3936b71d9346af70f5444cebcb11 is backed up on
 origin/fix/2026-10-15@compact-seq-dispatch with matching remote SHA. Root reran
 the route oracle, sequencer core and render tests successfully. Neither change
 has been physically accepted or integrated into the current diagnostic.
+
+## Physical result and recovery
+
+[verified] The distinct read/boot-only follow-up completed its fresh dual-read
+proof and issued exactly one reset submission. The SG reply had host7/resid16/
+info1, so the runner stopped as ambiguous and did not retry. Independent capture
+validated the read/boot evidence and observed native USB1209:0001 at port1-1,
+bus1/dev110. Capture110s and KA6 audio180s both finished rc0 with child cleanup.
+Subsequent passive sysfs observed ROM4c4a:8057 at the same port, bus1/dev111.
+This is observed timed return to ROM, not stock restoration or musical acceptance.
+
+[verified] Root independently checked107 schema1 frames across106 intervals:
+53448 produced blocks and22029 underruns over109.492 device seconds, giving
+488.145252621 blocks/s and201.192781208 underruns/s. Required production is
+689.34375 blocks/s, a29.187% throughput shortfall. No accepted note-ons occurred.
+This run has not fixed the owner-rejected cold-boot audio or display performance.
+
+[verified] All three schema8 reports repeat ONE startup result; they are not
+three measurements. Iterations4096/trials4/status3; both checksums independently
+match expected3446819522. XIP17497/RAM17491 raw TIMER4 ticks: ratio1.00034303356.
+The linked kernels are instruction-identical36-byte warmed integer loops.
+[inferred] This supports parity for that small test only. It cannot establish
+CPU frequency, rule out full-renderer cache issues, or prove RAM relocation helps.
+Independent offline interpretation: scratch/cpu-rate-calibration-deployment/
+cpu-rate-result-review.md, SHA256cfb38310…ea01b5f (full hash in local file inventory).
+
+[verified] Local evidence archive1a5c1b43fc3608459f4ba215846e4d8ea434028599a7e6b060637d78206b0207;
+events5ff35012fd8dcc152abfa8b1da5149391892a63581475f9e7ca648ada0c10190;
+rawc88ae14b3de4f8bc2457b1f5a8d9b7dd0fcad3c96b1194c0e5f5420ad911b787;
+capturelogf3f06391cc55a5e265aed43feca46261ceb842bf93b7fd23974e77338fce1119.
+WAV stays on bench,207360044B,6ch/48kHz/S32,180s; SHA256
+2d448cee8b16e62eb78f3ce43c7c236f23df8e8ba3d4b59895b30295c8f080e5.
+No listening acceptance is inferred from recording completion.
+
+[verified: source only] Compact getter cherry-pick f9dc614fbb044418e88592f222c3d654625061e6
+is backed up on the active feature branch with exact remote SHA verified.
+Root host oracle/core/render tests pass. Matched target builds pending.
+Next causal experiment targets measured Hall cost; prepare a Hall-O2 variant
+on exact physical CPU8a source rather than comparing unrelated9f82 sources.
+No new hardware write/boot campaign has been prepared or launched.
