@@ -218,3 +218,48 @@ full reads matched installed9e864776; command log hash
 Journalled installation has started. This records an in-progress operation;
 no completed installation, boot, raw PLL result or audio acceptance yet.
 The campaign is consumed: inspect receipts and never retry it.
+
+
+## ROM73 completed installation and PLL capture
+
+[verified: journal/full readback/USB/capture receipts] Installation completed
+for target `864445bea6ea3ec4b6f21f0b42f3033c7d139f646a351e955f4eca535936d694`.
+All210 changed sectors were verified, with header sector last; full readback
+matched, journal complete and intent null. The single reset reply was ambiguous
+and was not retried. Native USB74 appeared; timed recovery returned ROM75.
+Both passive telemetry110s and audio180s recorders exited0. This consumed
+ROM73 campaign must not be repeated. No MIDI output was opened during capture.
+
+[verified: raw telemetry] Eleven supplemental frames agree: oscillator selector
+`0x45400203`, predivider `0x0940022b`, multiplier `0x0750310c`, sampled at startup.
+Schema3 reports `0x1c1`, `6`, `0x10200`. Applying the exact pinned SDK unsigned
+case6 cache formula yields system360MHz, HSB180MHz, LSB60MHz. These are computed
+cache values, **not a measured CPU frequency**; no clock writes were made.
+The capture does not support a simple underclocking conclusion.
+
+[verified: counter deltas] Over107.997 device seconds, production was
+256.89602488958025 blocks/s against required689.34375, with432.456457123809
+underruns/s. Final produced28024, underruns47477, render maximum116794 timer
+ticks (4866.4167 microseconds under the documented24ticks/us conversion).
+Observed stack minimums user5888/system7724 across105 samples. Audio timing
+still fails; successful installation/capture is not musical acceptance.
+
+[verified: bounded offline inspection] Exact A98 target build uses optimized
+r3/-mfprev1/-Oz/LTO, with receipt-recorded -Os for sixop/Hall. Inspected render
+entrypoints contain native float and no direct soft-float helper calls; double
+helpers inspected in resampler setup are initialization work. This is bounded
+inspection, not proof for every reachable callee. Sequence-dispatch timings
+include nested sound rendering, so cannot be added to those sound timings.
+Private reports: scratch/native-build-performance-review.md and
+scratch/performance-sequence-dispatch-review.md. Profiler overhead remains to
+be quantified before attributing the deficit to a particular implementation.
+
+Private local evidence: `scratch/pll-snapshot-result/physical/`.
+Events SHA256 `7b50cb2348d72e906121889024e3c7b7890b8b5f7340ec505707e14637814f63`;
+raw `c55a2d6281e28f3a60a95f50fb017bd7df3a03557ea8c8e4b1c10cf12c03ccf8`;
+recorder receipt `bc502de11f24f41efd61a93426dc6167a59eead43f5612939526771597209271`;
+journal `fe7e3c160de598157bd8d79092da7af0aeecb8f84a3c82f394b3fd4cbd8c923b`;
+boot campaign `7aeeea86704a1e0b3ca010b221057cbfc99148e67f50c20d00e113c42a88a603`;
+capture log `5be69285ffcbbecda620c5f4e24941bbb68f1f19b7b98e140b51dad785ee3387`.
+Audio stays private on bench01 under diagnostic-audio/audio.wav. No release,
+physical transport acceptance, SAVE authorization or independent recovery claim.

@@ -1,3 +1,25 @@
+## Coordinator checkpoint: ROM73 PLL campaign completed; audio still fails
+
+Installed target 864445bea6ea3ec4b6f21f0b42f3033c7d139f646a351e955f4eca535936d694
+from source a98de4c2; 210 changed sectors, header last, complete full readback
+matched target. Journal complete/intent null. Single reset reply ambiguous;
+no retry. Native USB74 observed; automatic timed recovery returned ROM75.
+Consumed /home/claude/fm1-pll-a98de4c2-20261015/rom73-pll-cycle: DO NOT RERUN.
+Telemetry110s/audio180s both exit0; local receipts scratch/pll-snapshot-result/physical.
+Raw startup PLL words 0x45400203 / 0x0940022b / 0x0750310c. Pinned SDK
+case6 formula yields cached system360MHz, HSB180MHz, LSB60MHz; this is NOT
+measured CPU frequency. No clock writes. Schema3 remains 0x1c1/6/0x10200.
+107.997s window: produced256.896 blocks/s vs required689.34375; underruns
+432.456/s, render maximum116794 ticks. Audio performance acceptance FAILED.
+Offline target audit finds optimized r3/-mfprev1 code and native float in
+inspected render loops; no accidental O0 evidence. Inclusive sequence-dispatch
+timer includes nested sound timers; do not sum them. Profiler overhead review
+running; next experiment should isolate measured work, not infer underclocking.
+MIDI Start/Stop/Continue implemented USB/UART; 22 focused tests pass. Physical
+USB FC/FB evidence exists; exact FA rewind/TRS acceptance and clock sync remain open.
+Goal ACTIVE: audio/SAVE/recovery/full-song/web release gates remain open.
+Unrelated untracked uv.lock untouched. Details: clock-snapshot diagnostic note.
+
 ## Coordinator checkpoint: ROM73 PLL campaign in progress
 
 Exact candidate 864445bea6ea3ec4b6f21f0b42f3033c7d139f646a351e955f4eca535936d694
