@@ -558,18 +558,6 @@ inline float Aim(float c, float soft, float round, int zero) {
   return zero ? kSafetyKnee * c : c;
 }
 
-// Keep the divide on the limiting path. The strict comparison is also the
-// original ternary's predicate, so equality, unordered NaN comparisons, and
-// the unity result retain their existing value semantics.
-inline float GainAboveAim(float peak, float aim) {
-#if defined(FM1_LIMIT_DISABLE_GUARDED_GAIN_DIVIDE)
-  return peak > aim ? aim / peak : 1.0f;
-#else
-  if (peak > aim) return aim / peak;
-  return 1.0f;
-#endif
-}
-
 // The lowest gain any of the line's last `span` frames (now - span .. now - 1)
 // needs, per channel, quantised as HoldStep quantises it: recomputed from the
 // stored input, Drive, Ceiling and Mode, with the current Link.
@@ -812,32 +800,32 @@ FM1_HOT_DSP_RENDER void Render(Instance *s, float *lr, uint32_t frames) {
     if (!zero || (s->fade_pos != 0 && !zero_old)) {
       const float e = Aim(c, soft, round, 0);
 #if defined(FM1_LIMIT_DISABLE_EQUAL_PEAK_REUSE)
-      hl = HoldStep(s, a, 0, GainAboveAim(pl, e));
-      hr = HoldStep(s, a, 1, GainAboveAim(pr, e));
+      hl = HoldStep(s, a, 0, pl > e ? e / pl : 1.0f);
+      hr = HoldStep(s, a, 1, pr > e ? e / pr : 1.0f);
 #else
       if (pl == pr) {
-        const float g = GainAboveAim(pl, e);
+        const float g = pl > e ? e / pl : 1.0f;
         hl = HoldStep(s, a, 0, g);
         hr = HoldStep(s, a, 1, g);
       } else {
-        hl = HoldStep(s, a, 0, GainAboveAim(pl, e));
-        hr = HoldStep(s, a, 1, GainAboveAim(pr, e));
+        hl = HoldStep(s, a, 0, pl > e ? e / pl : 1.0f);
+        hr = HoldStep(s, a, 1, pr > e ? e / pr : 1.0f);
       }
 #endif
     }
     if (zero || zero_old) {
       const float e0 = Aim(c, soft, round, 1);
 #if defined(FM1_LIMIT_DISABLE_EQUAL_PEAK_REUSE)
-      zl = ZeroGain(s, 0, GainAboveAim(pl, e0));
-      zr = ZeroGain(s, 1, GainAboveAim(pr, e0));
+      zl = ZeroGain(s, 0, pl > e0 ? e0 / pl : 1.0f);
+      zr = ZeroGain(s, 1, pr > e0 ? e0 / pr : 1.0f);
 #else
       if (pl == pr) {
-        const float g = GainAboveAim(pl, e0);
+        const float g = pl > e0 ? e0 / pl : 1.0f;
         zl = ZeroGain(s, 0, g);
         zr = ZeroGain(s, 1, g);
       } else {
-        zl = ZeroGain(s, 0, GainAboveAim(pl, e0));
-        zr = ZeroGain(s, 1, GainAboveAim(pr, e0));
+        zl = ZeroGain(s, 0, pl > e0 ? e0 / pl : 1.0f);
+        zr = ZeroGain(s, 1, pr > e0 ? e0 / pr : 1.0f);
       }
 #endif
     }

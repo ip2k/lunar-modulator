@@ -5844,3 +5844,22 @@ instance state (original108scenarios retained, four boundary cases added).
 Target code generation, linked fit and performance are not yet verified for
 this follow-on source. It is separate from the44fbb17f physical candidate.
 SAVE stays disarmed; cold-boot musical acceptance remains FAILED; goal ACTIVE.
+
+### Exact-zero physical campaign started; ineffective limiter helper removed
+
+[verified] Independent offline review and four structural deployment checks
+passed for campaign pins bed6d14fd9058b8d09e916c6013318ed80d2b45b9feb6f082b047fa4310dfbdb.
+Reviewed launcher cafef0614e54a5982c5c4f53fa7ee74ba5f276426447de10a7e8051a1be93537
+passed remote file-only preflight and launched once (PID134549) under the fresh
+BASE above, cycle rom91-exact-zero-dsp-cycle. Paired backups matched expected
+current a2c7eee6...; transaction underway. Do not relaunch this consumed campaign.
+Installation, capture and performance results still pending at this checkpoint.
+
+[verified: offline target codegen] Follow-on source5c6591d1 built on Hera with
+all16 shards/link passing; app854548/860644bytes. Four resampler tap calls were
+inlined. GainAboveAim still divided before comparison/select and added four
+calls, so that experiment was removed; original ternary arithmetic restored.
+Settled-glide and equal-peak optimizations and112 differential cases remain.
+Focused limiter test and112x6000-frame bitwise audio/state differential pass.
+This source correction has not been rebuilt or installed on the FM1.
+SAVE disarmed; no hardware musical acceptance; overall goal ACTIVE.
