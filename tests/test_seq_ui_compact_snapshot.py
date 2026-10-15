@@ -65,7 +65,7 @@ int main(void) {
     fm1_seq_t *seq;
     void *memory;
     size_t bytes;
-    int changed;
+    int changed, unchanged;
 
     fm1_seq_limits_default(&limits, 8);
     bytes = fm1_seq_size(&limits);
@@ -81,10 +81,11 @@ int main(void) {
         fm1_seq_note_in(seq, 0, 0, (uint8_t)(36 + i % 60), 100);
     fm1_seq_get_info(seq, &info);
     changed = fm1_seq_ui_sync(&ui, seq, 0, 64);
+    unchanged = fm1_seq_ui_sync(&ui, seq, 0, 128);
     if (info.capture_pending != 256 || ui.capture_pending != 256 ||
-        !(changed & FM1_SEQ_UI_SYNC_SEQ)) {
-        fprintf(stderr, "pending=%u ui=%u changed=0x%x\n",
-                info.capture_pending, ui.capture_pending, changed);
+        !(changed & FM1_SEQ_UI_SYNC_SEQ) || (unchanged & FM1_SEQ_UI_SYNC_SEQ)) {
+        fprintf(stderr, "pending=%u ui=%u changed=0x%x unchanged=0x%x\n",
+                info.capture_pending, ui.capture_pending, changed, unchanged);
         return 4;
     }
     free(memory);
