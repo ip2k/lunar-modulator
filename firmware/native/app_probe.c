@@ -30,6 +30,8 @@ static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_IND
 #include "midi_diagnostic_readout.h"
 #ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
 #include "trio_diagnostic_pulse.h"
+#endif
+#ifdef LUNAR_DIAGNOSTIC_TELEMETRY
 #include "diagnostic_telemetry.h"
 #endif
 #include "runtime_mode.h"
@@ -217,7 +219,7 @@ static void incoming_midi(void)
 #endif
 }
 
-#ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
+#ifdef LUNAR_DIAGNOSTIC_TELEMETRY
 static void diagnostic_report(void)
 {
     static uint32_t last_report;
@@ -318,6 +320,9 @@ static void app_main(void)
             bootguard_clear(&bootguard);
             fm1_enter_uboot();
         }
+        /* Preserve the exact startup-project API result in the existing
+         * telemetry field; project starts return 1 on success. */
+        initial_engine_result = startup_project_result;
     }
 #else
     initial_engine_result = (uint32_t)fm1_app_select(&app, 0, fm1_app_find("trio"));
@@ -381,7 +386,7 @@ static void app_main(void)
             fm1_app_master(&app, position, 0);
         }
         incoming_midi();
-#ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
+#ifdef LUNAR_DIAGNOSTIC_TELEMETRY
         diagnostic_report();
 #endif
 #ifdef LUNAR_PROJECT_SAVE_SERVICE

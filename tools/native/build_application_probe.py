@@ -115,6 +115,36 @@ def trio_diagnostic_pulse_flags(enabled):
             if receipt["compile_definition"] else [])
 
 
+def diagnostic_telemetry_configuration(enabled):
+    if type(enabled) is not bool:
+        raise TypeError("diagnostic telemetry option must be a bool")
+    return dict(enabled=enabled,
+                compile_definition=("LUNAR_DIAGNOSTIC_TELEMETRY=1" if enabled else None),
+                interval_ms=1000 if enabled else None,
+                transport="USB-MIDI-SysEx" if enabled else None,
+                hardware_tested=False)
+
+
+def validate_diagnostic_telemetry(enabled, runtime_mode):
+    receipt = diagnostic_telemetry_configuration(enabled)
+    if enabled and runtime_mode not in ("diagnostic", "song-diagnostic"):
+        raise ValueError("diagnostic telemetry requires a bounded diagnostic runtime")
+    return receipt
+
+
+def diagnostic_telemetry_enabled(explicit, trio_pulse):
+    """Keep legacy pulse builds instrumented while allowing telemetry alone."""
+    diagnostic_telemetry_configuration(explicit)
+    trio_diagnostic_pulse_configuration(trio_pulse)
+    return explicit or trio_pulse
+
+
+def diagnostic_telemetry_flags(enabled):
+    receipt = diagnostic_telemetry_configuration(enabled)
+    return (["-D" + receipt["compile_definition"]]
+            if receipt["compile_definition"] else [])
+
+
 def state_bin_object_index(objects):
     """Find the one cached codec object that a SAVE build must replace."""
     matches = [i for i, path in enumerate(objects)
@@ -301,6 +331,8 @@ def main():
                         help='Opt in to polled UART1/PH8 MIDI input alongside USB MIDI')
     parser.add_argument('--diagnostic-trio-pulse', action='store_true',
                         help='Opt in to one C4 pulse at 3-5s for a content-free Trio diagnostic')
+    parser.add_argument('--diagnostic-telemetry', action='store_true',
+                        help='Opt in to bounded one-second USB-MIDI diagnostic reports; content may be prepared')
     parser.add_argument('--flash-plaits-wavetables', action='store_true',
                         help='With compressed tables, retain original Plaits wave bank in flash '
                         'to recover RAM; decode Braids only when Shapes is selected')
@@ -363,6 +395,13 @@ def main():
             bool(content_inputs) and all(
                 module in content_inputs.report['module_selection']['selected']
                 for module in ENGINE_IDS if module != 'test-sine'))
+    except ValueError as error:
+        parser.error(str(error))
+    telemetry_enabled = diagnostic_telemetry_enabled(
+        args.diagnostic_telemetry, args.diagnostic_trio_pulse)
+    try:
+        telemetry_receipt = validate_diagnostic_telemetry(
+            telemetry_enabled, args.runtime_mode)
     except ValueError as error:
         parser.error(str(error))
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
@@ -469,6 +508,7 @@ def main():
              '-DFM1_TFT_INDEXED=' + str(int(args.indexed_tft)), runtime_policy['define']]
     flags += project_save_service_flags(args.link_project_save_service)
     flags += native_midi_input_flags(args.enable_trs_midi)
+    flags += diagnostic_telemetry_flags(telemetry_enabled)
     flags += trio_diagnostic_pulse_flags(args.diagnostic_trio_pulse)
     if args.startup_set_index is not None:
         flags += ['-DLUNAR_STARTUP_SET_INDEX=' + str(args.startup_set_index)]
@@ -628,6 +668,7 @@ def main():
                   runtime_policy_sha256=digest(ROOT / 'firmware/native/runtime_mode.h'),
                   project_save_service=save_service_receipt,
                   native_midi_input=native_midi_receipt,
+                  diagnostic_telemetry=telemetry_receipt,
                   diagnostic_trio_pulse=trio_pulse_receipt,
                   state_bin_codec=state_bin_codec,
                   probe_return_to_rom_seconds=runtime_policy['return_to_rom_seconds'], hardware_candidate=False,
