@@ -1,4 +1,20 @@
-## Latest coordinator checkpoint: MIDI semantics and physical clock capture
+## Latest coordinator checkpoint: supplemental raw PLL diagnostic
+
+Source/host review adds separate schema4 startup raw reads of 0x119a0,
+0x119a8 and0x119ac under the existing bounded clock-diagnostic opt-in.
+Schema3 unchanged; no clock writes or MHz inference. Initial5s unsigned
+underflow caught/fixed; actual-function cadence/queue-full regression passes.
+Coordinator reran all four telemetry test files successfully and diff check.
+Next: exact committed-source Hera frozen build with current limiter/sixop
+optimizations; fresh candidate must pin exact schema3+4 receipt metadata.
+Current installed9e864776 clock image and consumed ROM71 campaign unchanged;
+last observation ROM73. Optional owner cold-cycle response still pending.
+Clock capture performance remains259.2143/689.34375 blocks per second, failed.
+Goal ACTIVE; audio/SAVE/recovery/full-song/web release remain unaccepted.
+Unrelated untracked uv.lock untouched. Source commit is pushed and its remote
+SHA verified immediately after this checkpoint; inspect Git for its identity.
+
+## Previous coordinator checkpoint: MIDI semantics and physical clock capture
 
 Active goal remains feature-complete physical/web-installable Lunar; not accepted.
 MIDI semantic regression committed/pushed b9c44bde1e9d403bacf29188a52f4feb25a7d50a:

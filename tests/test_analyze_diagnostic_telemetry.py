@@ -104,6 +104,33 @@ def test_clock_snapshot_preserves_raw_startup_values_without_frequency_inference
     assert alone["clock_snapshot_frame_count"] == 2
 
 
+def test_pll_snapshot_preserves_raw_startup_values_without_frequency_inference():
+    raw = dict(zip(codec.PLL_FIELDS, [1234, 0x10203040, 0x55667788, 0x99AABBCC]))
+    snapshot = row(0.75, None, event="pll_snapshot_frame", schema=4, values=raw)
+    report = analyzer.analyze_jsonl([snapshot])
+    assert report["pll_snapshot_frame_count"] == 1
+    assert report["pll_snapshots"][0]["values"] == raw
+    assert report["pll_snapshots"][0]["frequency_interpreted"] is False
+    assert report["diagnostic_frame_count"] == 0
+
+
+@pytest.mark.parametrize("mutation", ["schema", "missing", "extra", "bool", "negative", "overflow"])
+def test_rejects_malformed_known_pll_snapshot(mutation):
+    raw = dict.fromkeys(codec.PLL_FIELDS, 0)
+    schema = 4
+    if mutation == "schema":
+        schema = True
+    elif mutation == "missing":
+        raw.pop("pll_multiplier_raw")
+    elif mutation == "extra":
+        raw["cpu_mhz"] = 240
+    else:
+        raw["pll_osc_selector_raw"] = {
+            "bool": True, "negative": -1, "overflow": 0x100000000}[mutation]
+    with pytest.raises(ValueError, match="schema-4 fields|must be a uint32"):
+        analyzer.analyze_jsonl([row(0, None, event="pll_snapshot_frame", schema=schema, values=raw)])
+
+
 @pytest.mark.parametrize("mutation", ["schema", "missing", "extra", "bool", "negative", "overflow"])
 def test_rejects_malformed_known_clock_snapshot(mutation):
     raw = dict.fromkeys(codec.CLOCK_FIELDS, 0)

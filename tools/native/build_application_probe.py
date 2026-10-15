@@ -179,6 +179,11 @@ def validate_clock_snapshot(enabled, runtime_mode, telemetry_explicit):
                     runtime_mode not in ("diagnostic", "song-diagnostic")):
         raise ValueError("clock snapshot requires explicit telemetry and a bounded diagnostic runtime")
     return dict(enabled=enabled, schema=3 if enabled else None,
+                supplemental_schema=4 if enabled else None,
+                supplemental_registers=("pll_osc_selector_raw", "pll_predivider_raw",
+                                        "pll_multiplier_raw") if enabled else [],
+                supplemental_register_addresses=("0x119a0", "0x119a8", "0x119ac") if enabled else [],
+                supplemental_frequency_interpreted=False,
                 compile_definition="LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT=1" if enabled else None,
                 sample="post-platform-init" if enabled else None,
                 register_writes=False, frequency_interpreted=False, hardware_tested=False)

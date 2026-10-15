@@ -16,4 +16,15 @@ static inline void lunar_clock_snapshot(uint32_t values[4], uint32_t uptime)
     values[2] = LUNAR_CLOCK_LOAD(0x10014u); /* CLK_CON2 */
     values[3] = LUNAR_CLOCK_LOAD(0x10008u); /* SYS_DIV */
 }
+
+/* Supplemental schema-4 PLL inputs for the stock CLK_CON2 selector case 6.
+ * These ordinary volatile reads are raw evidence only; they do not decode a
+ * clock rate and do not alter clock configuration. */
+static inline void lunar_pll_snapshot(uint32_t values[4], uint32_t uptime)
+{
+    values[0] = uptime;
+    values[1] = LUNAR_CLOCK_LOAD(0x119a0u); /* oscillator selector */
+    values[2] = LUNAR_CLOCK_LOAD(0x119a8u); /* predivider */
+    values[3] = LUNAR_CLOCK_LOAD(0x119acu); /* multiplier */
+}
 #endif

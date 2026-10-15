@@ -18,6 +18,9 @@ FRAME = PREFIX + bytes(5 * 14) + b"\xf7"
 assert len(FRAME) == FRAME_BYTES
 PROFILE_FRAME = PROFILE_PREFIX + bytes(5 * len(PROFILE_FIELDS)) + b"\xf7"
 assert len(PROFILE_FRAME) == PROFILE_FRAME_BYTES
+from tools.native.diagnostic_telemetry import PLL_FIELDS, PLL_FRAME_BYTES, PLL_PREFIX
+PLL_FRAME = PLL_PREFIX + bytes(5 * len(PLL_FIELDS)) + b"\xf7"
+assert len(PLL_FRAME) == PLL_FRAME_BYTES
 
 
 class FakeClock:
@@ -125,19 +128,21 @@ def test_records_mixed_schema_frames_with_bounded_versioned_events(tmp_path):
     fake = FakeMido([
         SimpleNamespace(type="sysex", data=FRAME[1:-1]),
         SimpleNamespace(type="sysex", data=PROFILE_FRAME[1:-1]),
+        SimpleNamespace(type="sysex", data=PLL_FRAME[1:-1]),
     ])
     out = tmp_path / "mixed"
     receipt = recorder.record("FM-1 MIDI", IMAGE_SHA, out, 0.05,
                               mido_module=fake, monotonic=clock.monotonic,
                               wall_time=clock.wall_time, sleep=clock.sleep)
     rows = [json.loads(line) for line in (out / "events.jsonl").read_text().splitlines()]
-    assert [row["event"] for row in rows] == ["diagnostic_frame", "render_profile_frame"]
-    assert [row["schema"] for row in rows] == [1, 2]
+    assert [row["event"] for row in rows] == ["diagnostic_frame", "render_profile_frame", "pll_snapshot_frame"]
+    assert [row["schema"] for row in rows] == [1, 2, 4]
     assert rows[0]["values"] == dict.fromkeys(FIELDS, 0)
     assert rows[1]["values"] == dict.fromkeys(PROFILE_FIELDS, 0)
-    assert receipt["valid_frame_count"] == 2
+    assert receipt["valid_frame_count"] == 3
     assert receipt["render_profile_frame_count"] == 1
-    assert (out / "raw.syx").read_bytes() == FRAME + PROFILE_FRAME
+    assert receipt["pll_snapshot_frame_count"] == 1
+    assert (out / "raw.syx").read_bytes() == FRAME + PROFILE_FRAME + PLL_FRAME
 
 
 def test_exact_port_must_exist_once_before_open(tmp_path):

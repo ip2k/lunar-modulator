@@ -121,3 +121,28 @@ Private local analysis/evidence: `scratch/clock-snapshot-result/physical/`.
 Pinned static branch audit: `scratch/stock-spl-clock-branch-map.md`; Hera
 handoff `lunar--stock-spl-clock-decode-20261015.md` SHA-256
 `887e201cc8c4f79a6d09df55eebe05df5f4a00aa31491a953e227fc0e006cd36`.
+
+## Supplemental PLL evidence preparation
+
+[verified: pinned SDK IR inspection] CLK_CON2 low-nibble case 6 is a valid
+SDK bookkeeping branch. Its calculation also reads 0x119a0, 0x119a8 and
+0x119ac. The exact integer operation order and evidence hashes are retained
+in private `scratch/clock-case6-ir-extraction.md`; this does not measure CPU
+frequency or prove that native startup ran the SDK initializer.
+
+[verified: source] The same bounded diagnostic opt-in now samples those three
+raw words once at startup and repeats them in a separate schema-4 frame.
+Schema 3 remains byte-compatible. Both use whole-frame queue admission;
+schema 4 first becomes due at five seconds, then every ten seconds after a
+successful enqueue. Queue pressure may delay the report. An independent
+review caught and corrected an unsigned initial-deadline underflow before
+any target build. Host tests exercise the actual scheduling function at
+startup, either side of the deadline, and queue-full deferral, as well as
+strict schema-4 encoding/decoding and recorder/analyzer preservation.
+
+No register writes, frequency inference, target observation or audio
+improvement is established by this supplemental source change. The next
+frozen build must include current limiter/sixop optimizations. A fresh
+candidate constructor must require exact schema-3/4 verification metadata;
+the generic flash build checker alone does not require clock diagnostics.
+ROM71's consumed campaign must not be reused.

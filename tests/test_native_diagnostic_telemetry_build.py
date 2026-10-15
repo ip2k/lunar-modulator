@@ -127,6 +127,11 @@ def test_clock_snapshot_is_explicit_bounded_and_reports_no_frequency():
     assert builder.validate_clock_snapshot(False, "continuous", False)["enabled"] is False
     enabled = builder.validate_clock_snapshot(True, "song-diagnostic", True)
     assert enabled["schema"] == 3
+    assert enabled["supplemental_schema"] == 4
+    assert enabled["supplemental_registers"] == (
+        "pll_osc_selector_raw", "pll_predivider_raw", "pll_multiplier_raw")
+    assert enabled["supplemental_register_addresses"] == ("0x119a0", "0x119a8", "0x119ac")
+    assert enabled["supplemental_frequency_interpreted"] is False
     assert enabled["register_writes"] is False
     assert enabled["frequency_interpreted"] is False
     assert enabled["hardware_tested"] is False

@@ -19,10 +19,10 @@ import time
 from typing import Any, Callable
 
 if __package__:
-    from .diagnostic_telemetry import (FRAME_BYTES, PROFILE_FRAME_BYTES, CLOCK_FRAME_BYTES,
+    from .diagnostic_telemetry import (FRAME_BYTES, PROFILE_FRAME_BYTES, CLOCK_FRAME_BYTES, PLL_FRAME_BYTES,
                                       decode_any_frame)
 else:  # Direct ``python tools/native/record_diagnostic_telemetry.py`` use.
-    from diagnostic_telemetry import (FRAME_BYTES, PROFILE_FRAME_BYTES, CLOCK_FRAME_BYTES,
+    from diagnostic_telemetry import (FRAME_BYTES, PROFILE_FRAME_BYTES, CLOCK_FRAME_BYTES, PLL_FRAME_BYTES,
                                       decode_any_frame)
 
 MAX_TIMEOUT_SECONDS = 180.0
@@ -84,6 +84,7 @@ def record(
     valid_frames = 0
     profile_frames = 0
     clock_frames = 0
+    pll_frames = 0
     event_count = 0
     started_wall = _stamp(wall_time)
     started_mono = monotonic()
@@ -109,7 +110,8 @@ def record(
                     if message.type == "sysex":
                         try:
                             data = message.data
-                            if len(data) not in (FRAME_BYTES - 2, PROFILE_FRAME_BYTES - 2, CLOCK_FRAME_BYTES - 2):
+                            if len(data) not in (FRAME_BYTES - 2, PROFILE_FRAME_BYTES - 2,
+                                                 CLOCK_FRAME_BYTES - 2, PLL_FRAME_BYTES - 2):
                                 raise ValueError("diagnostic SysEx payload has wrong length")
                             frame = bytes((0xF0, *data, 0xF7))
                             schema, values = decode_any_frame(frame)
@@ -126,8 +128,11 @@ def record(
                             profile_frames += 1
                         if schema == 3:
                             clock_frames += 1
+                        if schema == 4:
+                            pll_frames += 1
                         write_event(events, {
-                            "event": {1: "diagnostic_frame", 2: "render_profile_frame", 3: "clock_snapshot_frame"}[schema],
+                            "event": {1: "diagnostic_frame", 2: "render_profile_frame",
+                                      3: "clock_snapshot_frame", 4: "pll_snapshot_frame"}[schema],
                             "schema": schema,
                             "frame_index": valid_frames - 1,
                             "raw_offset": offset,
@@ -163,6 +168,7 @@ def record(
         "valid_frame_count": valid_frames,
         "render_profile_frame_count": profile_frames,
         "clock_snapshot_frame_count": clock_frames,
+        "pll_snapshot_frame_count": pll_frames,
         "raw_bytes": raw_path.stat().st_size,
         "raw_sha256": raw_hash.hexdigest(),
         "events_jsonl_sha256": hashlib.sha256(events_path.read_bytes()).hexdigest(),

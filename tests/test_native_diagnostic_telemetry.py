@@ -268,9 +268,9 @@ def test_clock_snapshot_reads_once_and_roundtrips_raw_registers(tmp_path):
 #include <stdio.h>
 static unsigned calls;
 static uint32_t load(uintptr_t address) {
-    const uintptr_t addresses[] = {0x1000cu, 0x10014u, 0x10008u};
-    const uint32_t values[] = {0xffffffffu, 0x80000000u, 0x12345678u};
-    assert(calls < 3 && address == addresses[calls]);
+    const uintptr_t addresses[] = {0x1000cu, 0x10014u, 0x10008u, 0x119a0u, 0x119a8u, 0x119acu};
+    const uint32_t values[] = {0xffffffffu, 0x80000000u, 0x12345678u, 0x10203040u, 0x55667788u, 0x99aabbccu};
+    assert(calls < 6 && address == addresses[calls]);
     return values[calls++];
 }
 #define LUNAR_CLOCK_LOAD(address) load(address)
@@ -278,6 +278,7 @@ static uint32_t load(uintptr_t address) {
 #include "diagnostic_telemetry.h"
 int main(void) {
     uint32_t values[4];
+    uint32_t pll[4];
     lunar_clock_snapshot(values, 1234u);
     assert(calls == 3 && LUNAR_CLOCK_PACKETS == 10);
     assert(lunar_clock_packet(values, LUNAR_CLOCK_PACKETS) == 0);
@@ -290,7 +291,18 @@ int main(void) {
             putchar((packet >> (8u * (j + 1u))) & 255u);
         if (n < 3) assert(packet >> (8u * (n + 1u)) == 0);
     }
-    assert(calls == 3); /* Reporting never resamples registers. */
+    lunar_pll_snapshot(pll, 1234u);
+    assert(calls == 6 && LUNAR_PLL_PACKETS == 10);
+    for (unsigned i = 0; i < LUNAR_PLL_PACKETS; ++i) {
+        uint32_t packet = lunar_pll_packet(pll, i);
+        unsigned cin = packet & 15u;
+        assert(cin == (i == 9 ? 6u : 4u));
+        unsigned n = cin == 4 ? 3 : cin - 4;
+        for (unsigned j = 0; j < n; ++j)
+            putchar((packet >> (8u * (j + 1u))) & 255u);
+        if (n < 3) assert(packet >> (8u * (n + 1u)) == 0);
+    }
+    assert(calls == 6); /* Reporting never resamples registers. */
 }
 ''')
     exe = tmp_path / "clock"
@@ -298,13 +310,82 @@ int main(void) {
                     "-fsanitize=address,undefined", "-I", str(ROOT / "firmware/native"),
                     "-I", str(ROOT / "sim/web/src"), str(source), "-o", str(exe)], check=True)
     frame = subprocess.check_output([str(exe)])
-    assert len(frame) == codec.CLOCK_FRAME_BYTES
+    assert len(frame) == codec.CLOCK_FRAME_BYTES + codec.PLL_FRAME_BYTES
     expected = dict(zip(codec.CLOCK_FIELDS, [1234, 0xffffffff, 0x80000000, 0x12345678]))
-    assert codec.decode_any_frame(frame) == (3, expected)
+    assert codec.decode_any_frame(frame[:codec.CLOCK_FRAME_BYTES]) == (3, expected)
+    expected_pll = dict(zip(codec.PLL_FIELDS, [1234, 0x10203040, 0x55667788, 0x99aabbcc]))
+    assert codec.decode_any_frame(frame[codec.CLOCK_FRAME_BYTES:]) == (4, expected_pll)
     normal = codec.PREFIX + bytes(5 * len(codec.FIELDS)) + b"\xf7"
     profile = codec.PROFILE_PREFIX + bytes(5 * len(codec.PROFILE_FIELDS)) + b"\xf7"
-    assert [item['schema'] for item in codec.decode_capture(normal + frame + profile)] == [1, 3, 2]
-    for bad in (frame[:-1], frame[:12] + b'\x80' + frame[13:],
-                frame[:12] + b'\x10' + frame[13:]):
+    assert [item['schema'] for item in codec.decode_capture(normal + frame + profile)] == [1, 3, 4, 2]
+    clock_frame = frame[:codec.CLOCK_FRAME_BYTES]
+    pll_frame = frame[codec.CLOCK_FRAME_BYTES:]
+    for bad in (clock_frame[:-1], clock_frame[:12] + b'\x80' + clock_frame[13:],
+                clock_frame[:12] + b'\x10' + clock_frame[13:]):
         with pytest.raises(ValueError):
             codec.decode_any_frame(bad)
+    for bad in (pll_frame[:-1], pll_frame[:8] + b'\x80' + pll_frame[9:],
+                pll_frame[:12] + b'\x10' + pll_frame[13:]):
+        with pytest.raises(ValueError):
+            codec.decode_any_frame(bad)
+
+
+def test_diagnostic_reports_observe_pll_deadline_and_defer_full_frame(tmp_path):
+    app = (ROOT / "firmware/native/app_probe.c").read_text()
+    marker = "static void diagnostic_reports(void)"
+    start = app.index(marker)
+    brace = app.index("{", start)
+    depth = 0
+    end = None
+    for index in range(brace, len(app)):
+        if app[index] == "{":
+            depth += 1
+        elif app[index] == "}":
+            depth -= 1
+            if depth == 0:
+                end = index + 1
+                break
+    assert end is not None
+    function = app[start:end]
+    source = tmp_path / "report_schedule.c"
+    source.write_text(r'''
+#include <stdint.h>
+#include <assert.h>
+#include "diagnostic_telemetry.h"
+static uint32_t fm1_ms, mo_w, mo_r;
+#define MQ 64u
+static struct { unsigned config; } usb = {1};
+static uint32_t clock_snapshot_values[LUNAR_CLOCK_FIELDS];
+static uint32_t pll_snapshot_values[LUNAR_PLL_FIELDS];
+static uint32_t sent[128];
+static unsigned sent_count, ordinary_reports;
+static void midi_out_event(uint32_t packet) { sent[sent_count++] = packet; ++mo_w; }
+static void diagnostic_report(void) { ++ordinary_reports; }
+'''+function+r'''
+static unsigned schema_at(unsigned offset) { return (sent[offset + 2] >> 16) & 255u; }
+int main(void) {
+    fm1_ms = 0; diagnostic_reports(); assert(sent_count == 0);
+    fm1_ms = 4999; diagnostic_reports(); assert(sent_count == 0);
+    fm1_ms = 5000; mo_w = MQ; mo_r = 0; diagnostic_reports();
+    assert(sent_count == 0); /* full queue defers rather than consuming deadline */
+    mo_w = mo_r = 0; diagnostic_reports();
+    assert(sent_count == LUNAR_PLL_PACKETS && schema_at(0) == 4);
+    mo_w = mo_r = 0; fm1_ms = 10000; diagnostic_reports();
+    assert(sent_count == 2 * LUNAR_PLL_PACKETS && schema_at(LUNAR_PLL_PACKETS) == 3);
+    mo_w = mo_r = 0; fm1_ms = 14999; diagnostic_reports();
+    assert(sent_count == 2 * LUNAR_PLL_PACKETS);
+    fm1_ms = 15000; diagnostic_reports();
+    assert(sent_count == 3 * LUNAR_PLL_PACKETS && schema_at(2 * LUNAR_PLL_PACKETS) == 4);
+    assert(ordinary_reports == 4);
+}
+''')
+    source.write_text(source.read_text().replace(
+        "static void diagnostic_reports(void)",
+        "#define LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT 1\n" +
+        "#include \"clock_snapshot.h\"\n#include \"diagnostic_telemetry.h\"\n" +
+        "static void diagnostic_reports(void)", 1))
+    exe = tmp_path / "report_schedule"
+    subprocess.run(["cc", "-std=c99", "-Wall", "-Wextra", "-Werror",
+                    "-fsanitize=address,undefined", "-I", str(ROOT / "firmware/native"),
+                    "-I", str(ROOT / "sim/web/src"), str(source), "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True)

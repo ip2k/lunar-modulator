@@ -9,6 +9,9 @@ PREFIX = b"\xf0\x7dLUNAR\x01"
 CLOCK_PREFIX = b"\xf0\x7dLUNAR\x03"
 CLOCK_FIELDS = ("snapshot_uptime_ms", "clk_con0_raw", "clk_con2_raw", "sys_div_raw")
 CLOCK_FRAME_BYTES = len(CLOCK_PREFIX) + 5 * len(CLOCK_FIELDS) + 1
+PLL_PREFIX = b"\xf0\x7dLUNAR\x04"
+PLL_FIELDS = ("snapshot_uptime_ms", "pll_osc_selector_raw", "pll_predivider_raw", "pll_multiplier_raw")
+PLL_FRAME_BYTES = len(PLL_PREFIX) + 5 * len(PLL_FIELDS) + 1
 PROFILE_PREFIX = b"\xf0\x7dLUNAR\x02"
 FIELDS = (
     "uptime_ms", "render_ticks_max", "draw_ticks_max", "audio_underruns",
@@ -58,6 +61,8 @@ def decode_any_frame(frame: bytes) -> tuple[int, dict[str, int]]:
         return 2, decode_profile_frame(frame)
     if frame.startswith(CLOCK_PREFIX):
         return 3, _decode_values(frame, CLOCK_PREFIX, CLOCK_FIELDS, 3)
+    if frame.startswith(PLL_PREFIX):
+        return 4, _decode_values(frame, PLL_PREFIX, PLL_FIELDS, 4)
     raise ValueError("unknown Lunar diagnostic schema")
 
 
@@ -80,6 +85,8 @@ def decode_capture(data: bytes) -> list[dict[str, int]]:
             size = PROFILE_FRAME_BYTES
         elif clean.startswith(CLOCK_PREFIX, offset):
             size = CLOCK_FRAME_BYTES
+        elif clean.startswith(PLL_PREFIX, offset):
+            size = PLL_FRAME_BYTES
         else:
             raise ValueError("unknown or truncated diagnostic frame prefix")
         if offset + size > len(clean):

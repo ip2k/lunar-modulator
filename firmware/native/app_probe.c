@@ -40,6 +40,7 @@ static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_IND
 #ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
 #include "clock_snapshot.h"
 static uint32_t clock_snapshot_values[LUNAR_CLOCK_FIELDS];
+static uint32_t pll_snapshot_values[LUNAR_PLL_FIELDS];
 #endif
 #endif
 #ifdef LUNAR_DIAGNOSTIC_SONG_PLAY
@@ -311,6 +312,7 @@ static void diagnostic_reports(void)
 {
 #ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
     static uint32_t last_clock_report;
+    static uint32_t last_pll_report;
     /* Repeat the immutable sample for hosts that attach after startup. It is
      * only ten packets, and is deferred until a complete frame fits. */
     if ((uint32_t)(fm1_ms - last_clock_report) >= 10000u && usb.config &&
@@ -318,6 +320,16 @@ static void diagnostic_reports(void)
         for (unsigned i = 0; i < LUNAR_CLOCK_PACKETS; ++i)
             midi_out_event(lunar_clock_packet(clock_snapshot_values, i));
         last_clock_report = fm1_ms;
+        return;
+    }
+    /* A second ten-second cadence, offset by five seconds, carries only raw
+     * PLL inputs. Reserve the whole frame before publishing any packet. */
+    if ((last_pll_report == 0u ? fm1_ms >= 5000u :
+         (uint32_t)(fm1_ms - last_pll_report) >= 10000u) && usb.config &&
+        mo_w - mo_r <= MQ - LUNAR_PLL_PACKETS) {
+        for (unsigned i = 0; i < LUNAR_PLL_PACKETS; ++i)
+            midi_out_event(lunar_pll_packet(pll_snapshot_values, i));
+        last_pll_report = fm1_ms;
         return;
     }
 #endif
@@ -341,6 +353,7 @@ static void app_main(void)
     uint32_t start = fm1_ms;
 #ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
     lunar_clock_snapshot(clock_snapshot_values, start);
+    lunar_pll_snapshot(pll_snapshot_values, start);
 #endif
 #ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
     uint32_t pulse_start = 0;

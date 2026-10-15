@@ -71,6 +71,9 @@ static inline uint32_t lunar_profile_packet(
 #define LUNAR_CLOCK_FIELDS 4u
 #define LUNAR_CLOCK_BYTES (9u + 5u * LUNAR_CLOCK_FIELDS)
 #define LUNAR_CLOCK_PACKETS ((LUNAR_CLOCK_BYTES + 2u) / 3u)
+#define LUNAR_PLL_FIELDS 4u
+#define LUNAR_PLL_BYTES (9u + 5u * LUNAR_PLL_FIELDS)
+#define LUNAR_PLL_PACKETS ((LUNAR_PLL_BYTES + 2u) / 3u)
 static inline uint32_t lunar_clock_packet(const uint32_t values[LUNAR_CLOCK_FIELDS],
                                          unsigned index)
 {
@@ -85,6 +88,31 @@ static inline uint32_t lunar_clock_packet(const uint32_t values[LUNAR_CLOCK_FIEL
         uint8_t byte;
         if (pos < sizeof prefix) byte = prefix[pos];
         else if (pos == LUNAR_CLOCK_BYTES - 1u) byte = 0xf7;
+        else {
+            unsigned data = pos - (unsigned)sizeof prefix;
+            byte = (uint8_t)((values[data / 5u] >> (7u * (data % 5u))) & 127u);
+        }
+        packet |= (uint32_t)byte << (8u * (j + 1u));
+    }
+    return packet;
+}
+
+/* Schema 4: supplemental raw PLL configuration inputs. Keep this a separate
+ * frame so schema-3 consumers remain byte-compatible and strict. */
+static inline uint32_t lunar_pll_packet(const uint32_t values[LUNAR_PLL_FIELDS],
+                                       unsigned index)
+{
+    static const uint8_t prefix[] = {0xf0, 0x7d, 'L', 'U', 'N', 'A', 'R', 4};
+    if (index >= LUNAR_PLL_PACKETS) return 0;
+    unsigned at = index * 3u;
+    unsigned left = LUNAR_PLL_BYTES - at;
+    unsigned n = left < 3u ? left : 3u;
+    uint32_t packet = left > 3u ? 4u : 4u + n;
+    for (unsigned j = 0; j < n; ++j) {
+        unsigned pos = at + j;
+        uint8_t byte;
+        if (pos < sizeof prefix) byte = prefix[pos];
+        else if (pos == LUNAR_PLL_BYTES - 1u) byte = 0xf7;
         else {
             unsigned data = pos - (unsigned)sizeof prefix;
             byte = (uint8_t)((values[data / 5u] >> (7u * (data % 5u))) & 127u);
