@@ -23,14 +23,14 @@ def test_fused_postmix_matches_original_two_pass(optimization, sanitizer, tmp_pa
     executable = tmp_path / "postmix-equivalence"
     command = [
         compiler, "-std=c99", optimization, "-fno-fast-math",
-        "-ffp-contract=off", "-Wall", "-Wextra", "-Werror",
+        "-fno-builtin-fabsf", "-ffp-contract=off", "-Wall", "-Wextra", "-Werror",
         "-I", str(SOURCE), str(HARNESS), "-lm", "-o", str(executable),
     ]
     if sanitizer:
         command[1:1] = [f"-fsanitize={sanitizer}", "-fno-sanitize-recover=all"]
-    subprocess.run(
-        command,
-        check=True, capture_output=True, text=True,
-    )
+    compiled = subprocess.run(command, capture_output=True, text=True)
+    if sanitizer and compiled.returncode and "libubsan" in compiled.stderr and "cannot find" in compiled.stderr:
+        pytest.skip("host compiler is present but its UBSan runtime is not installed")
+    assert compiled.returncode == 0, compiled.stderr
     result = subprocess.run([str(executable)], check=True, capture_output=True, text=True)
     assert result.stdout.strip() == "postmix optimized/reference exact equivalence: PASS (58608 cases)"
