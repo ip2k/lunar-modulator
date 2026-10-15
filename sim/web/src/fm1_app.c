@@ -3253,9 +3253,9 @@ void fm1_app_master(fm1_app_t *a, float position, int show) {
 
 /* The stock octave LED: off at 0, slow blink at 1, fast at 2, solid at 3. */
 static int octave_led(const fm1_app_t *a, int magnitude) {
-  double t = seconds(a);
   if (magnitude <= 0) return 0;
   if (magnitude >= 3) return 1;
+  double t = seconds(a);
   double period = magnitude == 1 ? 1.0 : 0.25;
   return fmod(t, period) < period * 0.5;
 }
