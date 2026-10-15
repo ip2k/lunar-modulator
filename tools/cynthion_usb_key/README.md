@@ -33,7 +33,7 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | Address | Meaning |
 | --- | --- |
 | `0x01` | Magic `0x4c554e52` (`LUNR`) |
-| `0x02` | Register layout version `2` |
+| `0x02` | Register layout version `3` |
 | `0x03` | Status snapshot |
 | `0x04` | Live GPIO: DP input, DM input, DP output, DM output, DP OE, DM OE (bits 0–5) |
 | `0x05` | Self-test failure: reason (bits 0–1), step (2–3), expected state (4–5), last observed state (6–7) |
@@ -42,6 +42,7 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | `0x08` | Last RXCMD line state for each K/J/SE0/SE1 step, two bits per step |
 | `0x09` | Valid-observation mask for the four self-test steps |
 | `0x0a` | Expected sequence `K, J, SE0, SE1`, packed as `0xc6` |
+| `0x0b` | Per-step GPIO input/output/OE snapshots, six bits per step (same layout as `0x04`) |
 
 Status register `0x03` packs state in bits 0–3, PHY ready/fault in bits 4–5,
 the four-step self-test mask in bits 6–9, line-state-valid in bit 10, the
@@ -52,7 +53,8 @@ read-only. Status and live GPIO snapshots are captured in the USB clock domain.
 Failure registers preserve the first self-test fault evidence after the pads
 return high impedance. The expected sequence uses bit 0 = DP and bit 1 = DM;
 register `0x08` packs step 0 into bits 0–1 and then ascends by two bits per
-step. Register `0x07` similarly packs step 0 into bits 0–7. Failure reasons
+step. Register `0x07` similarly packs step 0 into bits 0–7. Register `0x0b`
+packs each step's six-bit GPIO snapshot consecutively starting at bit 0. Failure reasons
 are 1 for RXCMD mismatch/timeout and 2 for loss of the drive interlock.
 
 The protocol's finite attempt limit is 30,000 packets. With the current
