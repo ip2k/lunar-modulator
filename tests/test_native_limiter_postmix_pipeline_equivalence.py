@@ -24,6 +24,7 @@ def test_hot_pipeline_peak_matches_baseline(optimization, sanitizer, tmp_path):
     executable = tmp_path / "limiter-postmix-pipeline-equivalence"
     command = [
         compiler, "-std=c99", optimization, "-DFM1_HOT_DSP_RAM=1",
+        "-DFM1_EXPERIMENT_POSTMIX_PEAK_HANDOFF=1",
         "-fno-fast-math", "-fno-builtin-fabsf", "-ffp-contract=off",
         "-Wall", "-Wextra", "-Werror", "-I", str(INCLUDE), "-I", str(SOURCE),
         str(HARNESS), "-lm", "-o", str(executable),

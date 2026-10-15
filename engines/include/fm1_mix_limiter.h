@@ -83,7 +83,9 @@ static inline void fm1_mix_limiter_process(fm1_mix_limiter_t *l, float *lr, uint
  * written to lr. The caller supplies an accumulator (normally initialized to
  * +0); zero frames leave it unchanged. Keep the baseline API above available
  * for other renderers and reference comparisons. */
-#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM
+#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM && \
+    defined(FM1_EXPERIMENT_POSTMIX_PEAK_HANDOFF) && \
+    FM1_EXPERIMENT_POSTMIX_PEAK_HANDOFF
 static inline void fm1_mix_limiter_process_peak(fm1_mix_limiter_t *l, float *lr,
                                                 uint32_t frames,
                                                 float *output_peak) {

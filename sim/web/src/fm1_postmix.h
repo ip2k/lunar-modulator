@@ -69,7 +69,9 @@ static inline void fm1_postmix_scope_and_gain(float *out, uint32_t frames,
  * post-limiter peak before the output meter observes the buffer.  Preserve
  * the meter's position in fm1_app_render, then do only the scope/gain work
  * here.  Keep the baseline helper above as the reference/non-opt-in path. */
-#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM
+#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM && \
+    defined(FM1_EXPERIMENT_POSTMIX_PEAK_HANDOFF) && \
+    FM1_EXPERIMENT_POSTMIX_PEAK_HANDOFF
 static inline void fm1_postmix_scope_and_gain_peak(float *out, uint32_t frames,
                                                    float *scope, uint32_t scope_size,
                                                    int *scope_pos, float *peak,

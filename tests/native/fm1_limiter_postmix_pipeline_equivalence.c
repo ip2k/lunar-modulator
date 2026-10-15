@@ -88,8 +88,10 @@ static int run_case(uint32_t frames, uint32_t scope_size, uint32_t initial_pos,
 }
 
 int main(void) {
-#if !defined(FM1_HOT_DSP_RAM) || !FM1_HOT_DSP_RAM
-  fprintf(stderr, "pipeline candidate must be compiled with FM1_HOT_DSP_RAM=1\n");
+#if !defined(FM1_HOT_DSP_RAM) || !FM1_HOT_DSP_RAM || \
+    !defined(FM1_EXPERIMENT_POSTMIX_PEAK_HANDOFF) || \
+    !FM1_EXPERIMENT_POSTMIX_PEAK_HANDOFF
+  fprintf(stderr, "pipeline candidate requires both explicit experimental flags\n");
   return 2;
 #endif
   const uint32_t scope_sizes[] = {1u, 3u, 17u, MAX_SCOPE};
