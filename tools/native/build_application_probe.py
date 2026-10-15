@@ -426,7 +426,8 @@ def hot_dsp_ram_linker_script(source, enabled):
 HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
                       'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
                       'Hall::Instance::Render', 'Limiter::HoldStep', 'Limiter::BoxStep',
-                      'Limiter::TapOut', 'Limiter::Render', 'fm1_app_render']
+                      'Limiter::TapOut', 'Limiter::Render', 'fm1_app_render',
+                      'fm1_resampler_push_ready_']
 
 
 def hot_dsp_ram_configuration(enabled, runtime_mode):
