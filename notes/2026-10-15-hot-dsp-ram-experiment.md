@@ -322,3 +322,34 @@ Bench device last observed in ROM83. SAVE remains disarmed and release unaccepte
 Existing transport accepts FA Start (rewind), FC Stop (pause/gate release),
 FB Continue (resume); exact FA rewind and TRS physical acceptance still pending.
 F8 clock synchronization is separate. Goal remains active.
+
+### Corrected buffer-array candidate staged (no launch yet)
+
+[verified: offline artifacts] Independent linked-code review confirms the intended
+710-byte buffer-array FM render body in RAM, with XIP callees remaining.
+The compatibility seal rechecked all ten build outputs and sixteen container
+shards. Original v3 receipt SHA256 is
+7ff489dda3560c02c5778fe53097907868dcc84277922340f5381f4c3e5ce11d;
+compatibility receipt SHA256 is
+3495fab967ddf308e8de0aef8c1444f01a1b8aec32c928d0ebde13c561ed1a20.
+
+[verified: bench filesystem only] New private base
+/home/claude/fm1-hot-ram-fm-buffers-d8586ae8-20261015 contains the frozen
+build and exact d8586ae8 tools. All 174 runtime dependency pins passed, including
+172 retained environment paths; runtime manifest SHA256
+78d5e61c80d792fb62c2c1871c3cd5e8845cc4a0707ced5d0e55695aba552eb0.
+Offline constructor emitted a 1MiB target SHA256
+3571d21401a921df425ff416824d32bca0f8ca4d1856ec007041cc5df875fbbb,
+candidate receipt 6f7a318b8e14ca3d86afb3c36bf725150dd36a63a1ec87e118ee0b11ed04bc53,
+and non-admissible input template
+65f20b47ffa619f52266bd292c1581a8353d1a3f315fb269f59fbf27cf02c4f1.
+Comparison against the previous target file shows 210 changed sectors within
+211 allowed, protected ranges unchanged. That comparison is not a fresh device
+read. Passive USB observation remains ROM83; no new flash/boot command issued.
+
+Next: freeze and independently review the separate rom83-fm-buffers-cycle
+runner; require fresh paired reads of expected current b2d5b950… before any
+write. Single reset only, no retry on ambiguous acknowledgement. Timed return
+to ROM, analog capture and telemetry remain distinct acceptance evidence.
+The full goal remains active; audio starvation, persistence/recovery and web
+release remain unaccepted. SAVE remains disarmed.

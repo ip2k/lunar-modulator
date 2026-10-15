@@ -1,3 +1,19 @@
+## Current checkpoint: corrected FM buffer-array candidate staged
+
+Source d8586ae8 freshly built16/16 on Hera, independently reviewed actual FM
+buffer-array Render710B at01c00544; XIP sample renderers remain. Host checks pass.
+New private base /home/claude/fm1-hot-ram-fm-buffers-d8586ae8-20261015;
+staged runtime174pins verified, offline target3571d214…5fbbb assembled.
+NO NEW DEVICE WRITE OR BOOT at this checkpoint. ROM83 passively observed.
+Fresh cycle rom83-fm-buffers-cycle still needs final runner review/preflight
+and fresh paired current-flash read matching b2d5b950…25ffc1.
+Details/hashes notes/2026-10-15-hot-dsp-ram-experiment.md; ignored preparation
+scratch/hot-ram-fm-buffers-cycle/. Prior consumed campaigns remain immutable.
+Goal ACTIVE; audio starvation persists in last physical trial (~268blocks/s,
+~689needed); SAVE disarmed, no release acceptance. MIDI FA/FC/FB shared USB/TRS
+implemented; exact FA rewind/TRS hardware acceptance still pending.
+Unrelated uv.lock untouched.
+
 ## Next offline source checkpoint: six-body FMVoice experiment
 
 Macro extracted to narrow fm1_hot_dsp.h; vendor FMVoice::Render annotated.
