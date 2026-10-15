@@ -10,15 +10,16 @@ from tools.installer_service.native_profile import (
 
 
 def target_receipt():
-    from tools.native.build_demo_image import (BASE_INSTANCE_POOL_BYTES, SHAPES8_TABLES,
-                                               TARGET_STORAGE)
+    from tools.native.build_demo_image import (BASE_INSTANCE_POOL_BYTES, HALL_O2_STAGE7_TARGET_STORAGE,
+                                               SHAPES8_TABLES)
     return {
         "flash_layout": "expanded-d7000", "app_budget_bytes": 860644,
         "shapes_voices": 8, "indexed_tft": True,
         "flash_plaits_wavetables": False,
-        "target_app_storage": TARGET_STORAGE,
+        "target_app_storage": dict(HALL_O2_STAGE7_TARGET_STORAGE),
         "compressed_wave_tables": [dict(row) for row in SHAPES8_TABLES],
-        "instance_pool_bytes": BASE_INSTANCE_POOL_BYTES + TARGET_STORAGE["pool_credit_bytes"]
+        "instance_pool_bytes": BASE_INSTANCE_POOL_BYTES
+            + HALL_O2_STAGE7_TARGET_STORAGE["pool_credit_bytes"]
             - sum(row["raw_bytes"] for row in SHAPES8_TABLES),
         "runtime_configuration": {
             "runtime_mode": "song-diagnostic", "return_to_rom_seconds": 120,
@@ -110,6 +111,8 @@ def test_native_profile_matches_corrected_stage7_contract_and_binds_raw_receipt(
 @pytest.mark.parametrize("mutate", [
     lambda r: r["catalogue_optimization_overrides"].update({"our/src/fx_hall.o": "-Os"}),
     lambda r: r["catalogue_objects"][1].update(optimization="-Os"),
+    lambda r: r["target_app_storage"].update(rgb565_bytes=220832),
+    lambda r: r.update(instance_pool_bytes=r["instance_pool_bytes"] + 16),
     lambda r: r["catalogue_objects"].pop(),
     lambda r: r["catalogue_objects"].append(dict(r["catalogue_objects"][0])),
     lambda r: r.pop("native_midi_input"),

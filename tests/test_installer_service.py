@@ -17,7 +17,8 @@ from build_demo_image import (BASE_INSTANCE_POOL_BYTES as BUILDER_BASE_INSTANCE_
                               SHAPES_VOICES as BUILDER_SHAPES_VOICES,
                               TARGET_STORAGE as BUILDER_TARGET_STORAGE,
                               WAVETABLE_PROFILE as BUILDER_WAVETABLE_PROFILE)
-from tools.installer_service.api import (BASE_INSTANCE_POOL_BYTES, SHAPES_VOICES,
+from tools.installer_service.api import (BASE_INSTANCE_POOL_BYTES, D7000_DIAGNOSTIC_TARGET_STORAGE,
+    SHAPES_VOICES,
     SCHEMA2_PROFILE_ID, SCHEMA2_TUPLE_SCHEMA, SHAPES8_TABLES, SHAPES8_WAVETABLE_PROFILE,
     TARGET_STORAGE, WAVETABLES, WAVETABLE_PROFILE, FakeJobAdapter, WorkerTemplate,
     canonical_request, create_app)
@@ -274,8 +275,7 @@ def result_receipt(doc, req_sha, artifact, elf=TEST_ELF):
         "compressed_wave_tables": wave_rows, "indexed_tft": True,
         "flash_plaits_wavetables": not d7000, "shapes_voices": 8 if d7000 else 12,
         "instance_pool_bytes": pool_bytes,
-        "target_app_storage": {"rgb565_bytes": 220832, "indexed_bytes": 163744,
-                               "pool_credit_bytes": 57088},
+        "target_app_storage": (D7000_DIAGNOSTIC_TARGET_STORAGE if d7000 else TARGET_STORAGE),
         "content": content,
         "embedded_content": {"prepared_sha256": prepared_sha, "assets": content,
             "asset_count": len(content), "packed_content_bytes": sum(a["bytes"] for a in content),
