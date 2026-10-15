@@ -112,7 +112,8 @@ def test_expanded_candidate_hot_dsp_ram_requires_matching_verified_receipts(samp
         'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
         'Hall::Instance::Render', 'Limiter::HoldStep', 'Limiter::BoxStep', 'Limiter::TapOut',
         'Limiter::Render', 'fm1_app_render', 'fm1_resampler_push_ready_',
-        'Drums::Instance::Render', 'Drums::Instance::RenderBlock']
+        'Drums::Instance::Render', 'Drums::Instance::RenderBlock',
+        'Drums::Instance::RenderVoice']
     assert receipt['hot_dsp_ram'] is True
     assert receipt['elf_verified'] and receipt['link_audit']['passed']
     assert target[0xD9000:] == sample['baseline'][0xD9000:]
@@ -164,9 +165,20 @@ def test_expanded_candidate_accepts_exact_push_ready_hot_dsp_ram_profile(sample)
 
 def test_expanded_candidate_accepts_exact_drums_render_hot_dsp_profile(sample):
     args = inputs(sample, hot_dsp_ram=True)
-    assert candidate.HOT_DSP_RAM_BODIES == candidate.HOT_DSP_RAM_PUSH_READY_BODIES + [
-        'Drums::Instance::Render', 'Drums::Instance::RenderBlock']
+    assert candidate.HOT_DSP_RAM_BODIES == candidate.HOT_DSP_RAM_RENDERBLOCK_BODIES + [
+        'Drums::Instance::RenderVoice']
     receipt = hot_dsp_receipt(args['elf'], body_list=candidate.HOT_DSP_RAM_BODIES)
+    target, result = candidate.construct(
+        **args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
+    assert result['hot_dsp_ram'] is True
+    assert target[0xD9000:] == sample['baseline'][0xD9000:]
+
+
+def test_expanded_candidate_preserves_exact_renderblock_hot_dsp_profile(sample):
+    args = inputs(sample, hot_dsp_ram=True)
+    assert candidate.HOT_DSP_RAM_RENDERBLOCK_BODIES == candidate.HOT_DSP_RAM_PUSH_READY_BODIES + [
+        'Drums::Instance::Render', 'Drums::Instance::RenderBlock']
+    receipt = hot_dsp_receipt(args['elf'], body_list=candidate.HOT_DSP_RAM_RENDERBLOCK_BODIES)
     target, result = candidate.construct(
         **args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
     assert result['hot_dsp_ram'] is True
@@ -196,9 +208,6 @@ def test_expanded_candidate_still_accepts_exact_push_ready_profile(sample):
 def test_expanded_candidate_rejects_partial_drums_profile(sample):
     args = inputs(sample, hot_dsp_ram=True)
     partial = list(candidate.HOT_DSP_RAM_BODIES)
-    partial.remove('Drums::Instance::RenderBlock')
-    # The exact wrapper-only 12-body profile remains accepted separately.
-    assert partial == candidate.HOT_DSP_RAM_PUSH_READY_DRUMS_BODIES
     partial.remove('Limiter::BoxStep')
     receipt = hot_dsp_receipt(args['elf'], body_list=partial)
     with pytest.raises(ValueError):
@@ -217,7 +226,8 @@ def test_expanded_candidate_rejects_partial_push_ready_hot_dsp_profile(sample):
 @pytest.mark.parametrize('fault', ['artifact-off', 'runtime', 'save', 'body', 'missing-render',
                                   'legacy-incomplete', 'missing-fmvoice',
                                   'duplicate-fmvoice', 'missing-fm-template',
-                                  'duplicate-fm-template', 'duplicate-drums-renderblock', 'extent'])
+                                  'duplicate-fm-template', 'duplicate-drums-renderblock',
+                                  'duplicate-drums-rendervoice', 'extent'])
 def test_expanded_candidate_hot_dsp_ram_rejects_receipt_mismatch(sample, fault):
     args = inputs(sample, hot_dsp_ram=True)
     receipt = hot_dsp_receipt(args['elf'])
@@ -236,6 +246,7 @@ def test_expanded_candidate_hot_dsp_ram_rejects_receipt_mismatch(sample, fault):
     elif fault == 'missing-fm-template': receipt['verification']['hot_dsp_ram']['selected_bodies'] = [x for x in candidate.HOT_DSP_RAM_BODIES if x != 'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)']
     elif fault == 'duplicate-fm-template': receipt['verification']['hot_dsp_ram']['selected_bodies'] = candidate.HOT_DSP_RAM_BODIES + ['plaits::fm::Voice<6>::Render(Parameters,float**,size_t)']
     elif fault == 'duplicate-drums-renderblock': receipt['verification']['hot_dsp_ram']['selected_bodies'] = candidate.HOT_DSP_RAM_BODIES + ['Drums::Instance::RenderBlock']
+    elif fault == 'duplicate-drums-rendervoice': receipt['verification']['hot_dsp_ram']['selected_bodies'] = candidate.HOT_DSP_RAM_BODIES + ['Drums::Instance::RenderVoice']
     else: receipt['verification']['hot_dsp_ram']['extent']['bytes'] += 4
     with pytest.raises(ValueError):
         candidate.construct(**args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
