@@ -25,6 +25,23 @@ MAX_ELF = 16 * 1024 * 1024
 MAX_RECEIPT = 65536
 
 
+def build_profile_arguments(request: dict) -> list[str]:
+    """Map only validated layout/profile selections to fixed native flags."""
+    layout = request.get("flash_layout", "expanded-d9000")
+    runtime = request.get("runtime_mode", "diagnostic")
+    if layout == "expanded-d9000" and runtime == "diagnostic":
+        return ["--flash-layout", "expanded-d9000", "--runtime-mode", "diagnostic",
+                "--wavetable-profile", "compressed-required-banks-flash-plaits-v1"]
+    if layout == "expanded-d7000" and runtime == "song-diagnostic":
+        selected = [module for group in ("engines", "effects", "midi", "modulation")
+                    for module in request.get(group, [])]
+        if not {"macro", "shapes"}.issubset(set(selected)):
+            raise ValueError("expanded-d7000 requires the fixed Macro+Shapes8 profile")
+        return ["--flash-layout", "expanded-d7000", "--runtime-mode", "song-diagnostic",
+                "--wavetable-profile", "compressed-required-banks-ram-plaits-braids-shapes8-v1"]
+    raise ValueError("unsupported diagnostic layout/runtime profile")
+
+
 def _unique_object(pairs):
     result = {}
     for key, value in pairs:
@@ -67,6 +84,7 @@ def main() -> int:
     request = json.loads(request_bytes)
     if not isinstance(request, dict):
         raise ValueError("request must be object")
+    profile_args = build_profile_arguments(request)
     archive_bytes = regular_file(SOURCE_ARCHIVE, 128 * 1024 * 1024)
     if not TOOLCHAIN.is_dir() or not (CATALOGUE / "shard-00/objects.json").is_file():
         raise ValueError("fixed worker inputs are unavailable")
@@ -117,6 +135,7 @@ def main() -> int:
         "--toolchain", str(TOOLCHAIN),
         "--catalogue", str(CATALOGUE),
         "--out", str(output / "build"),
+        *profile_args,
     ], check=True, timeout=1200)
     app, elf, receipt = verified_build_outputs(output / "build")
     (RESULT / "app.bin").write_bytes(app)

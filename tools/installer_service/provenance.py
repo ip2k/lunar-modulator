@@ -16,6 +16,8 @@ MAX_TREE_ENTRIES = 8192
 MAX_TREE_BYTES = 512 * 1024 * 1024
 MAX_FILE_BYTES = 256 * 1024 * 1024
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+SCHEMA2_PROFILE_ID = "fm1-092-d7000"
+SCHEMA2_TUPLE_SCHEMA = 2
 
 
 def sha256(raw: bytes) -> str:
@@ -117,10 +119,24 @@ def make_diagnostic_provenance(*, bindings: dict, request_sha256: str,
         "runtime_mode": (receipt.get("runtime_configuration") or {}).get("runtime_mode"),
         "shapes_voices": receipt.get("shapes_voices"),
     }
-    if (profile["flash_layout"] != "expanded-d9000"
-            or profile["runtime_mode"] not in ("diagnostic", "song-diagnostic")
-            or type(profile["shapes_voices"]) is not int
-            or profile["shapes_voices"] != 12):
+    if profile["flash_layout"] == "expanded-d7000":
+        if (profile["runtime_mode"] != "song-diagnostic"
+                or type(profile["shapes_voices"]) is not int
+                or profile["shapes_voices"] != 8):
+            raise ValueError("worker profile is outside the named schema-2 D7000 profile")
+        profile["tuple_schema"] = SCHEMA2_TUPLE_SCHEMA
+        profile["profile_id"] = SCHEMA2_PROFILE_ID
+        compatibility_reason = (
+            "D7000 diagnostic profile matches schema-2 layout/profile; a trusted tuple still requires separately captured operator and build provenance plus an external tuple digest"
+        )
+    elif (profile["flash_layout"] == "expanded-d9000"
+          and profile["runtime_mode"] in ("diagnostic", "song-diagnostic")
+          and type(profile["shapes_voices"]) is int
+          and profile["shapes_voices"] == 12):
+        compatibility_reason = (
+            "diagnostic service emits expanded-d9000/12-voice; trusted schema-2 packager requires an explicitly captured expanded-d7000 tuple"
+        )
+    else:
         raise ValueError("worker profile is outside the fixed diagnostic provenance profile")
     envelope = {
         "schema": 1,
@@ -135,7 +151,7 @@ def make_diagnostic_provenance(*, bindings: dict, request_sha256: str,
         },
         "profile": profile,
         "trusted_fwsc_packager_compatible": False,
-        "compatibility_reason": "diagnostic service emits expanded-d9000/12-voice; trusted schema-2 packager requires an explicitly captured expanded-d7000 tuple",
+        "compatibility_reason": compatibility_reason,
         "installable": False,
         "hardware_admitted": False,
         "hardware_tested": False,
