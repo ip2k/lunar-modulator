@@ -5,7 +5,7 @@ electrical interlocks default low. USB3343 RXCMD status is a line-state report,
 not a protocol-level ACK or a guaranteed periodic sample stream.
 """
 
-from amaranth import Array, Elaboratable, Module, Mux, Signal
+from amaranth import Array, Cat, Elaboratable, Module, Mux, Signal
 from amaranth.lib.cdc import FFSynchronizer
 
 from dongle.sim.params import PARAMS
@@ -26,7 +26,7 @@ class CynthionUsbKey(Elaboratable):
 
     def __init__(self, *, domain="usb", clock_hz=60_000_000,
                  packet_limit=30_000, debounce_us=5_000,
-                 selftest_state_us=20, ack_duration_us=100,
+                 selftest_state_us=1_000, ack_duration_us=100,
                  dp_high_timeout_ms=None, sof_done_low_ms=None, sof_timeout_ms=None,
                  auto_selftest=False, selftest_only=False):
         if clock_hz <= 0 or clock_hz % 1_000_000:
@@ -72,6 +72,18 @@ class CynthionUsbKey(Elaboratable):
         self.state = Signal(4, reset=self.SAFE)
         self.leds = Signal(6)
         self.selftest_mask = Signal(4)
+        self.pad_dp_i = Signal()
+        self.pad_dm_i = Signal()
+        self.selftest_failure_reason = Signal(2)
+        self.selftest_failure_step = Signal(2)
+        self.selftest_failure_expected = Signal(2)
+        self.selftest_failure_observed = Signal(2)
+        self.selftest_failure_gpio = Signal(6)
+        self.selftest_observed_valid = Signal(4)
+        self.selftest_step_events = [Signal(8, name=f"selftest_step_{i}_events")
+                                     for i in range(4)]
+        self.selftest_step_observed = [Signal(2, name=f"selftest_step_{i}_observed")
+                                       for i in range(4)]
 
     def elaborate(self, platform):
         m = Module()
@@ -89,6 +101,8 @@ class CynthionUsbKey(Elaboratable):
         selftest_ticks = Signal(range(self.selftest_state_us + 1))
         selftest_step = Signal(2)
         selftest_seen = Signal()
+        step_events = Array(self.selftest_step_events)
+        step_observed = Array(self.selftest_step_observed)
         tx_bit = Signal(range(self.key_bits))
         selftest_value = Signal(2)
         phase = Signal(range(self.bit_cycles))
@@ -155,6 +169,14 @@ class CynthionUsbKey(Elaboratable):
                   (self.line_state_value == selftest_value)):
             d += [selftest_seen.eq(1),
                   self.selftest_mask.eq(self.selftest_mask | (1 << selftest_step))]
+        with m.If(self.line_state_update & self.line_state_valid &
+                  (self.state == self.SELFTEST)):
+            for index in range(4):
+                with m.If(selftest_step == index):
+                    with m.If(step_events[index] != 0xFF):
+                        d += step_events[index].eq(step_events[index] + 1)
+                    d += [step_observed[index].eq(self.line_state_value),
+                          self.selftest_observed_valid[index].eq(1)]
 
         # Pad state selection is combinationally masked by all three gates.
         with m.If(permitted):
@@ -189,13 +211,40 @@ class CynthionUsbKey(Elaboratable):
                     d += self.state.eq(self.FAULT)
                 with m.Elif(us_tick):
                     d += [self.state.eq(self.SELFTEST), selftest_step.eq(0),
-                          selftest_ticks.eq(0), selftest_seen.eq(0)]
+                          selftest_ticks.eq(0), selftest_seen.eq(0),
+                          self.selftest_mask.eq(0),
+                          self.selftest_failure_reason.eq(0),
+                          self.selftest_failure_step.eq(0),
+                          self.selftest_failure_expected.eq(0),
+                          self.selftest_failure_observed.eq(0),
+                          self.selftest_failure_gpio.eq(0),
+                          self.selftest_observed_valid.eq(0)]
+                    for index in range(4):
+                        d += [step_events[index].eq(0), step_observed[index].eq(0)]
             with m.Case(self.SELFTEST):
                 with m.If(~permitted):
-                    d += self.state.eq(self.FAULT)
+                    d += [self.state.eq(self.FAULT),
+                          self.selftest_failure_reason.eq(2),
+                          self.selftest_failure_step.eq(selftest_step),
+                          self.selftest_failure_expected.eq(selftest_value),
+                          self.selftest_failure_observed.eq(
+                              step_observed[selftest_step]),
+                          self.selftest_failure_gpio.eq(Cat(
+                              self.pad_dp_i, self.pad_dm_i, self.dp_o, self.dm_o,
+                              self.dp_oe & self.phy_isolated,
+                              self.dm_oe & self.phy_isolated))]
                 with m.Elif(us_tick & (selftest_ticks == self.selftest_state_us - 1)):
                     with m.If(~selftest_seen):
-                        d += self.state.eq(self.FAULT)
+                        d += [self.state.eq(self.FAULT),
+                              self.selftest_failure_reason.eq(1),
+                              self.selftest_failure_step.eq(selftest_step),
+                              self.selftest_failure_expected.eq(selftest_value),
+                              self.selftest_failure_observed.eq(
+                                  step_observed[selftest_step]),
+                              self.selftest_failure_gpio.eq(Cat(
+                                  self.pad_dp_i, self.pad_dm_i, self.dp_o, self.dm_o,
+                                  self.dp_oe & self.phy_isolated,
+                                  self.dm_oe & self.phy_isolated))]
                     with m.Elif(selftest_step == 3):
                         with m.If(self.selftest_only):
                             d += self.state.eq(self.DONE)
