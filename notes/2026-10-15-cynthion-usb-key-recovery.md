@@ -30,13 +30,27 @@ checks do not override the failed physical loopback.
 
 ## Current physical state
 
+[verified: second disconnected check] Diagnostic v3 image SHA-256
+`62e4112c6b3da0d7adfaf293bac6c125706166fd86d23c49f303d6b1f2a10668`
+passed routed timing (176.46 MHz / 212.59 MHz against 60 / 120 MHz) and was
+loaded volatily with target ports empty. The new 1 ms dwell still failed at
+step0. JTAG registers1..10: `4c554e52,2,2418,0,61,3a,1,1,1,c6` (hex).
+Failure reason1, expected K2, observed J1, exactly one RXCMD event; GPIO
+failure snapshot has input K2, output K2 and both output enables asserted.
+After failure the live GPIO snapshot is zero and outputs are released.
+The unexpected opposite line report motivates full disconnected four-state
+characterization and a pin/receiver mapping review; no swap is established.
+Literal telemetry is saved in
+`scratch/cynthion-usb-key-20261015/disconnected-diagnostics-v3-status.json`.
+No FM1 was connected. This diagnostic image currently remains loaded.
+
 [verified: owner] Both Cynthion TARGET ports are empty; CONTROL remains on the
 Mac. Preserve this state until disconnected checks pass. The FM1 lost power
 after the interrupted stage7 installation. Its current flash contents are
 unknown and retained-RAM-loader admission is invalid. The original backups and
 interrupted journal remain recovery anchors, not current readback evidence.
 
-[verified: read-only host inspection] Installed Cynthion software is 0.2.5,
+[verified: initial read-only host inspection] Installed Cynthion software is 0.2.5,
 with Apollo 1.1.1. The current analyzer reports bcdDevice `0104`, matching the
 r1.4 mapping in the official getting-started documentation. No `--force-offline`
 or configuration command was used for this inspection.
@@ -106,10 +120,10 @@ deadline. Deadline/fault inhibits ULPI output-enable and STP. These are simulate
 bus checks, not physical receiver or recovery acceptance.
 
 [verified: integration tests] The separate cold-ROM paired-backup adapter and
-unchanged fixed-loader adapter pass 72 offline tests. The cold path preserves
+unchanged fixed-loader adapter pass 75 offline tests. The cold path preserves
 the exact reviewed RAM-loader/read inventory and labels acquired flash
-unclassified. Its observation schema still needs alignment with the final
-gateware status interface before a physical campaign is prepared.
+unclassified. Its schema separates coordinator upload/JTAG evidence from owner
+physical unit selection and key action, without inventing a fixed status ABI.
 
 [verified: Hera preparation] The task-local FPGA toolchain is ready in
 `/home/claude/lunar-cynthion-toolchain-20261015`, mounted as `/work` in bounded
@@ -119,8 +133,10 @@ verified against the official release asset digest before extraction.
 Versions: Yosys 0.70+16 (`3bb533450`), nextpnr-ecp5
 0.11.1-63 (`44a6c739`), ecppack 1.4-86 (`a31ff70`), Python 3.12,
 Cynthion 0.2.5, Amaranth 0.5.10, LUNA USB 0.2.3, Apollo 1.1.1.
-Installed r1.4 platform import succeeds. No synthesis/timing result is yet
-accepted at this checkpoint. Toolchain and build products remain outside Git.
+Installed r1.4 platform import succeeds. Later synthesis/timing results and
+physical failures are recorded above. Toolchain and build products remain
+outside Git. Current focused integration suite passes 94 tests; physical
+loopback acceptance still fails.
 
 ## Primary references
 
