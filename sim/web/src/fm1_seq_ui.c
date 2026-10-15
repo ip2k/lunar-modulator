@@ -781,8 +781,19 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
   u->metro = i.metronome;
   read_track(u, s);
   if (u->view == FM1_SEQ_VIEW_SESSION) {
-    read_session(u, s);
-    u->sess_valid = 1;
+    /* The stopped Session grid changes only after a sequencer command. Keep
+     * its snapshot between commands instead of walking all 64 clip slots on
+     * every audio block. While transport state is active, keep refreshing
+     * the playing positions; the state transition back to stopped also gets
+     * one final refresh. Inputs still refresh an invalid snapshot before use. */
+    const int session_live = u->playing || u->recording || u->counting_in ||
+                             was.playing != u->playing ||
+                             was.recording != u->recording ||
+                             was.counting_in != u->counting_in;
+    if (!u->sess_valid || u->song_gen != gen || session_live) {
+      read_session(u, s);
+      u->sess_valid = 1;
+    }
   } else {
     u->sess_valid = 0;
   }

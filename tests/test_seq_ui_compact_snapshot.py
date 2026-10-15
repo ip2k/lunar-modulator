@@ -29,8 +29,8 @@ def shutil_which(name):
 
 @pytest.mark.parametrize("stem", [
     "track-focus", "step-hold", "play-stop-from-seq", "capture-playing",
-    "capture-stopped-fitted", "session-launch", "session-copy-clear", "song-build",
-    "song-edit-playing",
+    "capture-stopped-fitted", "session-launch", "session-copy-clear",
+    "session-scenes", "session-track-clear", "song-build", "song-edit-playing",
 ])
 def test_compact_sync_matches_full_snapshot_oracle(tools, full_snapshot_sim, tmp_path, stem):
     panel = ROOT / "tests" / "fixtures" / "seq-ui" / f"{stem}.panel"
@@ -48,6 +48,34 @@ def test_compact_sync_matches_full_snapshot_oracle(tools, full_snapshot_sim, tmp
     assert compact == oracle
     assert compact_log.read_bytes() == oracle_log.read_bytes() == verbs.read_bytes()
     assert compact_wav.read_bytes() == oracle_wav.read_bytes()
+
+
+def test_session_snapshot_matches_full_oracle_across_count_in_and_recording(
+        tools, full_snapshot_sim, tmp_path):
+    """The cached grid refreshes on transport transitions and command changes."""
+    panel = tmp_path / "session-recording.panel"
+    panel.write_text(
+        "--button 0.05:SEQ\n"
+        "--button 0.10:SEQ\n"
+        "--button 0.20:REC\n"          # count-in while Session is visible
+        "--key 0.85:0:90:0.05\n"       # recorded note after count-in
+        "--button 1.60:REC\n"          # stop recording
+        "--button 2.00:PLAY/STOP\n"   # playback while Session is visible
+        "--button 2.50:PLAY/STOP\n"   # transition back to stopped
+    )
+    command = ROOT / "tests" / "fixtures" / "seq-ui" / "song.verbs"
+    args = ["--engine", "test-sine", "--cmd", str(command), "--panel", str(panel), "--log-cmds"]
+    outputs = []
+    for name, binary in (("compact", tools["sim"]), ("oracle", full_snapshot_sim)):
+        log = tmp_path / f"session-recording-{name}.verbs"
+        wav = tmp_path / f"session-recording-{name}.wav"
+        result = run(binary, [*args, str(log), "--out", str(wav)])
+        outputs.append((result, log.read_bytes(), wav.read_bytes()))
+    assert outputs[0] == outputs[1]
+    assert outputs[0][0]["seq_view"]["view"] == 5  # Session remains visible
+    assert outputs[0][0]["rec"]["recording"] == 0
+    assert outputs[0][0]["rec"]["counting_in"] == 0
+    assert b" rec " in outputs[0][1]  # the Session REC action reached the sequencer
 
 
 def test_capture_pending_256_preserves_sync_change_flag(tmp_path):
