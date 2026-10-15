@@ -505,7 +505,7 @@ inline float ZeroGain(Instance *s, uint32_t c, float g0) {
 
 // One frame of one channel's lookahead envelope and hold: the gain this frame
 // needs in, the hold's minimum out.
-inline uint32_t HoldStep(Instance *s, const Arrays &a, uint32_t c, float g) {
+FM1_HOT_DSP_RENDER inline uint32_t HoldStep(Instance *s, const Arrays &a, uint32_t c, float g) {
   Channel &k = s->ch[c];
   k.red = Envelope(s, k.red, 1.0f - g, 1);
   // 1 - red can sit an ulp of 1 above g, which is much of g when g is small:
@@ -542,7 +542,7 @@ inline uint32_t HoldStep(Instance *s, const Arrays &a, uint32_t c, float g) {
 // One frame of one channel's boxes in one set: the hold's minimum in, the
 // gain for the frame leaving that set's tap out. Exact integer sums; box 1's
 // mean is a shift.
-FM1_HOT_DSP_RENDER float BoxStep(Instance *s, const Arrays &a, uint32_t set, uint32_t c, uint32_t held) {
+FM1_HOT_DSP_RENDER inline float BoxStep(Instance *s, const Arrays &a, uint32_t set, uint32_t c, uint32_t held) {
   const BoxSet &g = s->set[set];
   Box &k = s->ch[c].box[set];
   uint32_t *r1 = Ring1(s, a, set, c);
@@ -738,7 +738,7 @@ inline float Stage(RoundState &st, float v, float peek, int has_peek, float c, f
 // through the stage for its Mode and Ceiling (zero: Lookahead 0's); ROUND's
 // state is the tap's set's, and its next frame is slot r + 1 (with a
 // lookahead).
-inline float TapOut(Instance *s, const Arrays &a, uint32_t set, uint32_t r, uint32_t c,
+FM1_HOT_DSP_RENDER inline float TapOut(Instance *s, const Arrays &a, uint32_t set, uint32_t r, uint32_t c,
                     float gain, int zero) {
   const float *k = a.ctl + 4 * r;
   float peek = 0.0f;

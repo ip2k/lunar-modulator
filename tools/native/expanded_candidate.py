@@ -20,7 +20,8 @@ from probe_artifact import flatten, artifact_call_payloads, artifact_stub_bounda
 STATUS = 'private-expanded-native-candidate-verified-offline'
 HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
                       'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
-                      'Hall::Instance::Render', 'Limiter::BoxStep', 'Limiter::Render', 'fm1_app_render']
+                      'Hall::Instance::Render', 'Limiter::HoldStep', 'Limiter::BoxStep',
+                      'Limiter::TapOut', 'Limiter::Render', 'fm1_app_render']
 # The c0 profiler-off frozen build predates the BoxStep RAM placement. Keep its
 # exact ordered receipt shape as a compatibility profile; do not accept an
 # arbitrary subset of the current placement list.
@@ -28,7 +29,14 @@ HOT_DSP_RAM_LEGACY_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::Render
                              'plaits::FMVoice::Render',
                              'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
                              'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
-HOT_DSP_RAM_SUPPORTED_BODY_PROFILES = (HOT_DSP_RAM_LEGACY_BODIES, HOT_DSP_RAM_BODIES)
+# Preserve the exact eight-body BoxStep experiment as well as the original
+# seven-body profile; neither permits an arbitrary partial helper placement.
+HOT_DSP_RAM_BOXSTEP_BODIES = [
+    'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
+    'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
+    'Hall::Instance::Render', 'Limiter::BoxStep', 'Limiter::Render', 'fm1_app_render']
+HOT_DSP_RAM_SUPPORTED_BODY_PROFILES = (
+    HOT_DSP_RAM_LEGACY_BODIES, HOT_DSP_RAM_BOXSTEP_BODIES, HOT_DSP_RAM_BODIES)
 
 
 def validate_hot_dsp_ram_receipts(elf, verification, artifact):

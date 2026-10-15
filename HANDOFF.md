@@ -1,3 +1,18 @@
+## Limiter helper source integrated; matched Hera build pending — 2026-10-15
+
+Goal ACTIVE; owner cold-boot audio/display acceptance still FAILED; SAVE disarmed.
+Reviewed worker4dccac3d and20f21059: HoldStep/BoxStep/TapOut placed in diagnostic
+RAM, no arithmetic/state changes. Root retains exact historical7/8body receipt
+profiles plus new10 and existing independent compiler switches. Focused candidate/
+catalogue tests68 PASS; worker limiter48 and112scenario audio/state parity pass.
+Physical target remainsf3a9 froma503, NOT current source. Latest recoveryROM107
+was observed; no new bench action this segment. Matched artifact builds on Hera
+fromexact20f21059; CPU-calibration and compactUI changes remain separate workers.
+Next: review actual linked helpers/copy/guard/fit; construct a NEW fresh-paired-read
+ROM107 campaign and measure physical throughput. Neverreuse consumedROM105launcher.
+Workerbranchfeature/2026-10-15@limiter-helper-ram-a503 remoteSHA20f21059 verified.
+Unrelateduv.lock untouched. Rootlastverifiedpushed3d6becf8 beforethismerge.
+
 ## ROM105 result complete; ROM107 recovery observed — 2026-10-15
 
 Goal ACTIVE; cold-boot audio/display acceptance FAILED; SAVE disarmed.

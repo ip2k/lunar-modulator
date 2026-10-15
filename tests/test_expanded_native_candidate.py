@@ -110,7 +110,8 @@ def test_expanded_candidate_hot_dsp_ram_requires_matching_verified_receipts(samp
     assert candidate.HOT_DSP_RAM_BODIES == [
         'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
         'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
-        'Hall::Instance::Render', 'Limiter::BoxStep', 'Limiter::Render', 'fm1_app_render']
+        'Hall::Instance::Render', 'Limiter::HoldStep', 'Limiter::BoxStep', 'Limiter::TapOut',
+        'Limiter::Render', 'fm1_app_render']
     assert receipt['hot_dsp_ram'] is True
     assert receipt['elf_verified'] and receipt['link_audit']['passed']
     assert target[0xD9000:] == sample['baseline'][0xD9000:]
@@ -128,6 +129,15 @@ def test_expanded_candidate_accepts_exact_legacy_hot_dsp_ram_body_profile(sample
         **args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
     assert candidate_receipt['hot_dsp_ram'] is True
     assert candidate_receipt['elf_verified'] and candidate_receipt['provenance_verified']
+    assert target[0xD9000:] == sample['baseline'][0xD9000:]
+
+
+def test_expanded_candidate_accepts_exact_boxstep_hot_dsp_ram_body_profile(sample):
+    args = inputs(sample, hot_dsp_ram=True)
+    receipt = hot_dsp_receipt(args['elf'], body_list=candidate.HOT_DSP_RAM_BOXSTEP_BODIES)
+    target, result = candidate.construct(
+        **args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
+    assert result['hot_dsp_ram'] is True
     assert target[0xD9000:] == sample['baseline'][0xD9000:]
 
 
