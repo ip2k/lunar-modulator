@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 """Link a private timed shared-app probe; never install or access a device.
 
-Consumes the sixteen compile_catalogue.py -Oz/LTO/shared-resampler outputs.
+Consumes sixteen source-bound -Oz/LTO/shared-resampler catalogue outputs.
+An explicit --hot-dsp-os experiment permits exactly two recorded -Os units.
 Cached object hashes and source manifests are checked against current inputs.
 Hardware admission remains a separate operation.
 """
@@ -18,7 +19,7 @@ import sys
 
 from build_probe import check_pins
 from audit_ram_call_allowlist import audit_ram_call_allowlist
-from compile_catalogue import source_manifest
+from compile_catalogue import source_manifest, optimization_overrides
 from compact_font import compact_header, compact_gfx
 from prepare_wavetables import prepare
 from embed_image_content import content_source
@@ -259,9 +260,11 @@ def replace_once(text, old, new):
     return text.replace(old, new)
 
 
-def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=12):
+def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=12,
+                      hot_dsp_os=False):
     objects, receipts, indices = [], [], set()
     inputs = source_manifest(ROOT)
+    overrides = optimization_overrides('z', hot_dsp_os)
     expected = json.loads((root / 'shard-00/objects.json').read_text())
     for shard in range(16):
         directory = root / ('shard-%02d' % shard)
@@ -273,6 +276,8 @@ def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=1
                         device_sdk_headers=[])
         if any(report.get(k) != v for k, v in required.items()):
             raise SystemExit('Incompatible catalogue report: ' + str(directory))
+        if report.get('optimization_overrides', {}) != overrides:
+            raise SystemExit('Incompatible catalogue optimization overrides')
         if report.get('source_manifest') != inputs:
             raise SystemExit('Catalogue source manifest is stale or absent')
         if json.loads((directory / 'objects.json').read_text()) != expected:
@@ -289,10 +294,16 @@ def checked_catalogue(root, compressed=False, indexed_tft=False, shapes_voices=1
             relative = Path(item['object'])
             if relative.is_absolute() or '..' in relative.parts:
                 raise SystemExit('Invalid catalogue object path')
+            object_opt = overrides.get(item['object'], '-Oz')
+            # Legacy uniform -Oz receipts lack per-object settings. Mixed
+            # receipts must explicitly identify every unit's actual setting.
+            if item.get('optimization', None if hot_dsp_os else '-Oz') != object_opt:
+                raise SystemExit('Catalogue object optimization mismatch')
             obj = directory / 'obj' / relative
             if digest(obj) != item['sha256']:
                 raise SystemExit('Catalogue object hash mismatch: ' + str(obj))
-            receipts.append(dict(path=str(obj), sha256=item['sha256']))
+            receipts.append(dict(path=str(obj), sha256=item['sha256'],
+                                 optimization=object_opt))
             if item['object'] not in ('sim/src/fm1_web.o', 'sim/src/fm1_app.o',
                                        'our/src/registry.o') and not (compressed and
                                        item['object'] in tuple('tp/' + n + '/resources.o' for n in compressed)):
@@ -330,6 +341,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--toolchain', type=Path, required=True)
     parser.add_argument('--catalogue', type=Path, required=True)
+    parser.add_argument('--hot-dsp-os', action='store_true',
+                        help='Require explicit sixop/Hall -Os catalogue receipts; '
+                        'all other catalogue units remain -Oz')
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--firmware-identity',
                         help='Explicit Lunar FM-1_5xx handshake identity; omitted keeps historical FM-1_990 probes')
@@ -482,7 +496,9 @@ def main():
         check_pins(ROOT / 'firmware/third_party' / name)
     wave_namespaces = (wavetable_namespaces(module_selection['selected'], args.flash_plaits_wavetables)
                        if args.compressed_wavetables else [])
-    objects, catalogue_receipts = checked_catalogue(catalogue, wave_namespaces, args.indexed_tft, args.shapes_voices)
+    objects, catalogue_receipts = checked_catalogue(
+        catalogue, wave_namespaces, args.indexed_tft, args.shapes_voices,
+        args.hot_dsp_os)
     state_bin_codec = None
     if args.link_project_save_service:
         state_bin_codec = replace_with_compact_state_bin(
@@ -712,6 +728,7 @@ def main():
                   stack_watermark_verification=stack_receipt,
                   instance_pool_bytes=instance_pool_bytes, target_app_storage=app_storage,
                   catalogue_objects=catalogue_receipts,
+                  catalogue_optimization_overrides=optimization_overrides('z', args.hot_dsp_os),
                   linked_objects=[dict(path=str(p), sha256=digest(p)) for p in objects],
                   key_audit=audit, undefined_symbols=missing, flash_write_range='empty',
                   boot_ota_cleanup=False, entry_core=0, entry_boot_pointer='0x01c7fe08',

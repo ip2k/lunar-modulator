@@ -205,3 +205,27 @@ The review handoff is
 SHA256 `d6ebe62d88d43aac12b550a1b1c7ad810cb2a3fd6f0aed358d49cc180c0b924d`.
 The next offline clock task maps the exact verified SPL helper to pinned register
 definitions; no clock, voltage or cache change follows from this review.
+
+## Explicit mixed-optimization profile
+
+[verified] The isolated full-link replay reproduced the baseline flattened app
+exactly (849700 bytes). Substituting only sixop/Hall `-Os` objects produced
+852996 bytes, leaving 7648 bytes of the 860644-byte application budget. This
+shows link fit, not execution speed or hardware admission. Raw evidence:
+`Hera:/home/claude/mvave-fm1/hot-dsp-link-20261015/comparison.json`.
+
+[verified] `compile_catalogue.py --opt z --hot-dsp-os` now records the exact
+two-object override map and every object's actual optimization. The probe
+builder requires its matching explicit flag, current source manifest, exact
+override map, per-object settings and hashes; default uniform-Oz policy remains.
+A fresh sixteen-shard catalogue is required after these source changes.
+Focused optimization/receipt/telemetry regression passed 79 cases. Independent
+review found no blocker and dry-ran actual GNU make expansion to confirm `-Os`
+reaches both compiler commands. Review:
+`scratch/render-profile-result/hot-dsp-policy-review.md`, SHA256
+`de947e273fdbff4a0ad0c5af6c457de21c081b5510c580c5bca35d5b3b159e5c`.
+
+[verified] Separately pushed postmix fusion `7dabaec1` has bytewise host
+equivalence tests at O0/O2 (288 cases each); at unity gain, no eliminated second
+traversal existed, so it is not expected to solve this full-volume capture.
+Neither change establishes adequate physical playback. SAVE remains disarmed.

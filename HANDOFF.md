@@ -5187,3 +5187,15 @@ ELF identity has not been established. Mixed link result is pending, and no
 experimental object is admitted by production provenance checks. Review worker
 is inspecting unchanged-semantics DSP optimization candidates read-only.
 No speedup, improved musical acceptance or release readiness is claimed.
+
+### Mixed-optimization profile ready for fresh build
+
+Root focused optimization/receipt/telemetry tests: 79 passed. Independent
+GNU-make/provenance review found no blocker. `--hot-dsp-os` is now an explicit
+compiler and probe-builder option; default rejects mixed optimization.
+Postmix fusion 7dabaec1 is pushed and reviewed with host bytewise tests, but
+full-volume unity path has no expected improvement. No new device action.
+Next: transfer exact committed combined source to Hera, sixteen fresh shards,
+link/verify a new timed diagnostic and prepare a fresh reviewed capture campaign.
+Clock worker is mapping exact SPL clock selectors read-only; actual inherited
+CPU clock remains unknown. Do not rerun consumed ROM67 cycle. Goal ACTIVE.

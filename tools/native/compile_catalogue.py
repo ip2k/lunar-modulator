@@ -11,6 +11,18 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def optimization_overrides(base_opt, hot_dsp_os=False):
+    """Explicit experiment: keep -Oz except for the measured sixop/Hall units."""
+    if type(hot_dsp_os) is not bool:
+        raise TypeError('hot DSP optimization option must be a bool')
+    if base_opt not in ('s', 'z'):
+        raise ValueError('Catalogue base optimization must be s or z')
+    if hot_dsp_os and base_opt != 'z':
+        raise ValueError('Hot DSP -Os requires a -Oz base catalogue')
+    return ({'our/src/mi_sixop.o': '-Os', 'our/src/fx_hall.o': '-Os'}
+            if hot_dsp_os else {})
+
+
 def source_manifest(root):
     """Bind cached objects to source/build inputs, excluding build outputs."""
     files = []
@@ -37,6 +49,9 @@ def main():
     parser.add_argument('--shard', type=int, choices=range(16), required=True)
     parser.add_argument('--opt', choices=('s', 'z'), default='s',
                         help='Clang size optimization: s (-Os) or z (-Oz)')
+    parser.add_argument('--hot-dsp-os', action='store_true',
+                        help='Explicit experiment: -Os for sixop/Hall with --opt z; '
+                        'does not establish hardware performance')
     parser.add_argument('--shared-resampler', action='store_true',
                         help='Share the unchanged resampler coefficients')
     parser.add_argument('--shapes-voices', type=int, choices=range(1, 13), default=12,
@@ -46,6 +61,10 @@ def main():
     parser.add_argument('--lto', action='store_true',
                         help='Emit pinned-toolchain bitcode for cross-unit optimization')
     args = parser.parse_args()
+    try:
+        overrides = optimization_overrides(args.opt, args.hot_dsp_os)
+    except ValueError as error:
+        parser.error(str(error))
     inputs = source_manifest(ROOT)
     tc, headers, out = args.toolchain.resolve(), args.cxx_headers.resolve(), args.out.resolve()
     if not (headers / '__config').is_file():
@@ -83,11 +102,16 @@ def main():
     results = []
     for index in range(args.shard, len(objects), 16):
         obj, name = objects[index], relative[index]
-        result = subprocess.run(make + [obj], capture_output=True, text=True)
+        object_opt = overrides.get(name, '-O' + args.opt)
+        # The final command-line assignment overrides the base make variable
+        # before Makefile's immediate COMMON expansion for this invocation.
+        result = subprocess.run(make + ['OPT=' + object_opt, obj],
+                                capture_output=True, text=True)
         log = out / 'logs' / (name + '.log')
         log.parent.mkdir(parents=True, exist_ok=True)
         log.write_text(result.stdout + result.stderr)
-        entry = {'index': index, 'object': name, 'exit': result.returncode}
+        entry = {'index': index, 'object': name, 'exit': result.returncode,
+                 'optimization': object_opt}
         if result.returncode == 0:
             entry['sha256'] = hashlib.sha256(Path(obj).read_bytes()).hexdigest()
             nm = [str(tc / 'pi32v2/bin/nm')]
@@ -101,6 +125,7 @@ def main():
     report = {'shard': args.shard, 'chunks': 16, 'catalogue_objects': len(objects),
               'gpl_mods': 1, 'modules': 'all', 'closed_sdk_archives': [],
               'optimization': '-O' + args.opt, 'lto': args.lto,
+              'optimization_overrides': overrides,
               'shared_resampler': args.shared_resampler,
               'indexed_tft': args.indexed_tft,
               'shapes_voices': args.shapes_voices,
