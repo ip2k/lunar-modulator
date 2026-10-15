@@ -23,6 +23,11 @@ class CynthionUsbKey(Elaboratable):
     """
 
     SAFE, ARMED, SELFTEST, KEY, GAP, WAIT_DP, SOF, DONE, FAULT = range(9)
+    PROTOCOL_FAULT_NONE = 0
+    PROTOCOL_FAULT_PACKET_LIMIT = 1
+    PROTOCOL_FAULT_WAIT_DP_TIMEOUT = 2
+    PROTOCOL_FAULT_SOF_TIMEOUT = 3
+    PROTOCOL_FAULT_INTERLOCK_LOST = 4
 
     def __init__(self, *, domain="usb", clock_hz=60_000_000,
                  packet_limit=30_000, debounce_us=5_000,
@@ -91,6 +96,19 @@ class CynthionUsbKey(Elaboratable):
                                        for i in range(4)]
         self.selftest_step_gpio = [Signal(6, name=f"selftest_step_{i}_gpio")
                                    for i in range(4)]
+        # Read-only protocol diagnostics. The top level snapshots these once
+        # after a terminal state; they do not feed the protocol decisions.
+        self.protocol_failure_reason = Signal(3)
+        self.protocol_failure_origin_state = Signal(4)
+        self.debug_packets = Signal(32)
+        self.debug_receiver_live = Signal()
+        self.debug_ack_ticks = Signal(32)
+        self.debug_ack_confirm = Signal()
+        self.debug_wait_ticks = Signal(32)
+        self.debug_sof_ticks = Signal(32)
+        self.debug_dp_low_ticks = Signal(32)
+        self.debug_key_bit = Signal(8)
+        self.debug_key_phase = Signal(16)
 
     def elaborate(self, platform):
         m = Module()
@@ -139,6 +157,15 @@ class CynthionUsbKey(Elaboratable):
             self.dp_o.eq(0), self.dm_o.eq(0), self.dp_oe.eq(0), self.dm_oe.eq(0),
             self.busy.eq((self.state != self.SAFE) & (self.state != self.DONE) & (self.state != self.FAULT)),
             self.done.eq(self.state == self.DONE), self.fault.eq(self.state == self.FAULT),
+            self.debug_packets.eq(packets),
+            self.debug_receiver_live.eq(receiver_live),
+            self.debug_ack_ticks.eq(ack_ticks),
+            self.debug_ack_confirm.eq(ack_confirm),
+            self.debug_wait_ticks.eq(wait_ticks),
+            self.debug_sof_ticks.eq(sof_ticks),
+            self.debug_dp_low_ticks.eq(dp_low_ticks),
+            self.debug_key_bit.eq(tx_bit),
+            self.debug_key_phase.eq(phase),
             self.leds.eq(Mux(self.state == self.SAFE, 0b000001,
                 Mux((self.state == self.ARMED) | (self.state == self.SELFTEST), 0b000010,
                 Mux((self.state == self.KEY) | (self.state == self.GAP), 0b000100,
@@ -231,7 +258,9 @@ class CynthionUsbKey(Elaboratable):
                           self.selftest_failure_expected.eq(0),
                           self.selftest_failure_observed.eq(0),
                           self.selftest_failure_gpio.eq(0),
-                          self.selftest_observed_valid.eq(0)]
+                          self.selftest_observed_valid.eq(0),
+                          self.protocol_failure_reason.eq(self.PROTOCOL_FAULT_NONE),
+                          self.protocol_failure_origin_state.eq(self.SAFE)]
                     for index in range(4):
                         d += [step_events[index].eq(0), step_observed[index].eq(0),
                               step_gpio[index].eq(0)]
@@ -285,7 +314,10 @@ class CynthionUsbKey(Elaboratable):
                     d += selftest_ticks.eq(selftest_ticks + 1)
             with m.Case(self.KEY):
                 with m.If(~permitted):
-                    d += self.state.eq(self.FAULT)
+                    d += [self.state.eq(self.FAULT),
+                          self.protocol_failure_reason.eq(
+                              self.PROTOCOL_FAULT_INTERLOCK_LOST),
+                          self.protocol_failure_origin_state.eq(self.KEY)]
                 with m.Else():
                     # Keep the key waveform advancing while measuring the
                     # receiver's continuous SE0 report. Otherwise a normal
@@ -314,32 +346,50 @@ class CynthionUsbKey(Elaboratable):
                                   dp_low_ticks.eq(0)]
             with m.Case(self.GAP):
                 with m.If(~permitted):
-                    d += self.state.eq(self.FAULT)
+                    d += [self.state.eq(self.FAULT),
+                          self.protocol_failure_reason.eq(
+                              self.PROTOCOL_FAULT_INTERLOCK_LOST),
+                          self.protocol_failure_origin_state.eq(self.GAP)]
                 with m.Elif(us_tick):
                     with m.If(gap == self.gap_cycles - 1):
                         d += [gap.eq(0), packets.eq(packets + 1)]
                         with m.If(packets + 1 >= self.packet_limit):
-                            d += self.state.eq(self.FAULT)
+                            d += [self.state.eq(self.FAULT),
+                                  self.protocol_failure_reason.eq(
+                                      self.PROTOCOL_FAULT_PACKET_LIMIT),
+                                  self.protocol_failure_origin_state.eq(self.GAP)]
                         with m.Else():
                             d += [self.state.eq(self.KEY), tx_bit.eq(0), phase.eq(0)]
                     with m.Else():
                         d += gap.eq(gap + 1)
             with m.Case(self.WAIT_DP):
                 with m.If(~permitted):
-                    d += self.state.eq(self.FAULT)
+                    d += [self.state.eq(self.FAULT),
+                          self.protocol_failure_reason.eq(
+                              self.PROTOCOL_FAULT_INTERLOCK_LOST),
+                          self.protocol_failure_origin_state.eq(self.WAIT_DP)]
                 with m.Elif(us_tick & self.line_state_valid &
                              (self.line_state_value == 1)):
                     d += [self.state.eq(self.SOF), sof_ticks.eq(0),
                           sof_phase.eq(0), dp_low_ticks.eq(0)]
                 with m.Elif(us_tick & (wait_ticks == self.dp_high_timeout - 1)):
-                    d += self.state.eq(self.FAULT)
+                    d += [self.state.eq(self.FAULT),
+                          self.protocol_failure_reason.eq(
+                              self.PROTOCOL_FAULT_WAIT_DP_TIMEOUT),
+                          self.protocol_failure_origin_state.eq(self.WAIT_DP)]
                 with m.Elif(us_tick):
                     d += wait_ticks.eq(wait_ticks + 1)
             with m.Case(self.SOF):
                 with m.If(~permitted):
-                    d += self.state.eq(self.FAULT)
+                    d += [self.state.eq(self.FAULT),
+                          self.protocol_failure_reason.eq(
+                              self.PROTOCOL_FAULT_INTERLOCK_LOST),
+                          self.protocol_failure_origin_state.eq(self.SOF)]
                 with m.Elif(us_tick & (sof_ticks == self.sof_timeout - 1)):
-                    d += self.state.eq(self.FAULT)
+                    d += [self.state.eq(self.FAULT),
+                          self.protocol_failure_reason.eq(
+                              self.PROTOCOL_FAULT_SOF_TIMEOUT),
+                          self.protocol_failure_origin_state.eq(self.SOF)]
                 with m.Elif(us_tick):
                     d += sof_ticks.eq(sof_ticks + 1)
                     with m.If(sof_phase == self.sof_period - 1):
