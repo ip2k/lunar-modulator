@@ -1,4 +1,4 @@
-## Resampler helper RAM integrated; Drums RAM target pending — 2026-10-15
+## Resampler helper integrated; Drums wrapper reviewed; RenderBlock child pending — 2026-10-15
 
 [verified] Root cherry-picked reviewed ee823c4060d3d637aaecfcd4032b720ef921f0c4
 as f5ab5b966203f00afaaaf80cd4fb1c5870d22de2, pushed to the feature branch and
@@ -15,8 +15,21 @@ This is offline fit/residency proof, NOT measured speed or musical acceptance.
 
 Drums Render RAM child74c199b4c59ae2c9b43f30de83a0cfedfebe3a31 is backed up;
 root93 focused policy/profile/adapter checks pass in isolated child checkout.
-Full16-shard target build and independent source/ELF review are pending. Do
-not deploy without concrete new candidate/package review and fresh paired reads.
+[verified: offline target only] All16 shards and link passed; independent review
+verified provenance and all10 output hashes. App855660B (4984B under cap),
+RAM DSP13924B ending0x1c03bcc (9268B headroom). Critical limitation: only
+180B Instance::Render wrapper moved to RAM; its3640B RenderBlock remains
+XIP0x02069334. This candidate is NOT a substantial drum-loop RAM placement
+and has NO measured speed benefit. Defer hardware trial. Independent review:
+/Users/likwid/.codex/worktrees/drums-render-ram/mvave-fm1-firmware/scratch/drums-render-ram-independent-review.md
+SHA d53ff8353a718fb34f5ad5b817ec225da7f2e9966cc6afd801c38da94e2d955b.
+Root authorized distinct RenderBlock RAM child from74c199b4, with unchanged
+arithmetic/defaults/catalogue and historical complete profiles preserved.
+demo_controller_review owns implementation/16-shard Hera build;
+profile_catalogue_build owns independent review. Root has NOT integrated
+wrapper child yet. physical_storage_compression investigates D7000/D9000
+capacity ownership read-only; no layout change authorized by that task.
+Do not deploy without concrete new candidate/package review and fresh paired reads.
 Passive bench sysfs refreshed port1-1,bus1/dev113,4c4a:8057,WL80UBOOT1.00;
 no writes/boot/MIDI/power actions this segment. Installed reference remains
 28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f.
