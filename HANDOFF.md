@@ -5887,7 +5887,13 @@ acceptance remains FAILED based on owner report; active-note/song acceptance ope
 Private telemetry archive scratch/exact-zero-dsp-result/physical/telemetry-evidence.tar
 SHA256706b1bcc874e33792f6b7b741136c50402bf3946f8d457003cddb49c0158be16;
 comparison.json SHA2566c0f12f6dc487929fe2ef2f1bcdeecd4119bee403912602b167cbec525cb6563.
-180secondKA6 capture still finalizing at this checkpoint.
+180secondKA6 capture finalized successfully (six channels, S32LE,48kHz,
+8640000frames; audio.wav207360044bytes). Private captured-evidence.tar SHA256
+03a28b563e2cb81708fdb87ac06103cd82bddf7811cd16af1e6328727f5d9357;
+verified/extracted under scratch/exact-zero-dsp-result/physical/capture/.
+Idle window15..110seconds: inputs1/2 peak0.004594/0.005005 and
+RMS0.0005074/0.0005299, zero rail samples. No notes were injected; these
+levels do not establish active-note distortion, clipping or musical acceptance.
 
 Follow-on2b9178c42494c5cbb112718857665e9c9a27634c build passed16Hera shards/link,
 app854544/860644bytes,6100free; codegen removes4resampler helper calls. Verified
@@ -5895,3 +5901,20 @@ app854544/860644bytes,6100free; codegen removes4resampler helper calls. Verified
 Next: preserve finalized capture, independently review fresh ROM93-bound candidate
 and continue controlled measurement. Offline reviews examine synthesis/FIR
 instrumentation and target floating-point codegen. SAVE stays disarmed; goal ACTIVE.
+
+
+### Follow-on staging and parallel timing work — 2026-10-15
+
+[verified: file-only staging] Exact2b9178c4 native sources staged under
+/home/claude/fm1-tap-inline-only-2b9178c4-20261015/runtime/firmware/native:
+60files/2directories against frozen source manifest
+8219e6d025ba808581dfd51c450df211a58067c05909e9534fd7abcaee502c14;
+archive25ae1893fc2c812c3b6c477184493012f35503f9cfb154802b8df4fdedcd7664.
+Source-stager focused tests3passed. Candidate construction/sealing and a fresh
+ROM93/current1c04fad... bound one-use campaign remain pending. Do not run the
+consumed ROM91 campaign again. No new flash write/boot at this checkpoint.
+
+Separate authorized workers are adding opt-in schema7 cumulative outer-engine /
+internal-block timing (default compiled away), and comparing Hall-onlyO2 target
+code generation/fit on Hera. Neither has physical timing or musical acceptance.
+SAVE stays disarmed; owner cold-boot musical acceptance FAILED; goal ACTIVE.
