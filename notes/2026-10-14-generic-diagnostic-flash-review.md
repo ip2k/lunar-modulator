@@ -18,7 +18,7 @@ Date: 2026-10-14
 
 ## Limits and remaining gate
 
-[verified] The full prepare() call has not run against a current fresh-read receipt. The frozen run-5 build validates build/source/toolchain/catalogue/profile inputs only; the coordinator has not supplied a fresh paired ROM read for the current device, and historical device-53 evidence is not admissible as that read.
+[verified] The full prepare() has passed in an offline replay, but not against a currently verified paired-read receipt. The frozen run-5 build validates build/source/toolchain/catalogue/profile inputs only; the coordinator has not supplied a fresh paired ROM read for the current device, and historical device-53 evidence is not admissible as that read.
 
 [verified] The archived original FM-1_092 raw A/B pair and six stock reference components are sealed separately. The policy marks the original-092 raw archive available but explicitly leaves a full original-092 restore plan unprepared. The modeled restore direction returns to the transaction's current pre-install baseline; it does not establish restoration to the archived 092 image or prove physical recovery.
 
@@ -33,4 +33,12 @@ Date: 2026-10-14
 - Sibling branch/commit: codex/2026-10-14-generic-diagnostic-flash-policy / 3a9ec8fb1a0937ace7221ed8e65856a87cf97852
 - Review checkout base: 66196f54f3295cfdec14a2924c767235bbd5cc2c
 - Scope: offline source and test review only; no hardware, USB, SG, flash, power, or reset commands.
+
+
+
+## Follow-up: offline prepare replay
+
+[verified] After the initial review, the sibling ran full `prepare()` using the actual run-5 frozen build, exact stock inputs, reconstructed D7000 candidate, and retained full-image bytes SHA-256 `145c0280d652b73515e01e2f1f0d88fe33344645463e89d57a2d0048c6aa4657`. The input record is `/home/claude/.local/share/codex-private/trio-pulse-d7000-corrected-66196-20261014/candidate/offline-replay/input-record.json`, SHA-256 `b72ad381d8362b95d5906ee01b47c7cdb6ca53c5f830b7a97ae24be0ba48db12`. Prepared receipt SHA-256 `5e6e4ab5a998a86792f8f2bffdc479e300afe426073be55f67e513377b65900a`; plan SHA-256 `3b9cc7335cc191133ec90d6ad5bcadf15483ad39d0f30efbaa5694cd2336a192`; 210 changed sectors.
+
+[reported] This replay injected a simulated `verify_read_bundle` result over the retained bytes and synthetic USB/SG mapping. It did not verify the historical device-53 transcript, prove a fresh current paired read, or confer physical admission. Transaction artifacts remain offline analysis outputs.
 
