@@ -51,15 +51,18 @@
 #include <stdint.h>
 
 /* The trusted render path is called after its owner has checked readiness.
- * Keep its FIR body in XIP by default. In the explicit native hot-DSP profile,
- * outline it into RAM so callers do not execute the 61-pair loop from flash.
- * Do not add `used`: this is a static header helper, and forcing it into every
- * translation unit that includes the header would create unused RAM copies. */
+ * Keep its FIR bodies in XIP by default. In the explicit native hot-DSP
+ * profile, outline the ready-pop and stage-1 interpolation helpers into RAM.
+ * Do not add `used`: these are static header helpers, and forcing them into
+ * every translation unit that includes the header would create unused copies. */
 #if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM && defined(__ELF__)
 #define FM1_RESAMPLER_POP_READY_PLACEMENT \
   __attribute__((noinline, section(".ram_dsp")))
+#define FM1_RESAMPLER_INTERMEDIATE_PLACEMENT \
+  __attribute__((noinline, section(".ram_dsp")))
 #else
 #define FM1_RESAMPLER_POP_READY_PLACEMENT
+#define FM1_RESAMPLER_INTERMEDIATE_PLACEMENT
 #endif
 
 #define FM1_RESAMPLER_SPAN 12          /* stage-1 kernel width, intermediate samples */
@@ -377,7 +380,8 @@ FM1_RESAMPLER_FORCE_INLINE float fm1_resampler_tap_(uint32_t t) {
  * received): the sum of x[n] k((P - n) rho) over the inputs the kernel
  * reaches. The taps at or before P walk the half table outwards one way,
  * the later ones the other; two sums, so the two chains overlap. */
-static inline float fm1_resampler_intermediate_(fm1_resampler_t *r) {
+static inline FM1_RESAMPLER_INTERMEDIATE_PLACEMENT
+float fm1_resampler_intermediate_(fm1_resampler_t *r) {
   const uint32_t ts = r->tap_step;
   const uint32_t end = (uint32_t)(FM1_RESAMPLER_KERNEL_LEN - 1) << 16;
   const int64_t rel = r->rel;
