@@ -37,3 +37,21 @@ cycle.stderr, fresh-read and installation receipts, and diagnostic-audio first.
 Positive schema8 timings, status3 and checksum3446819522 are expected;
 these are expectations, not yet hardware results. No clock writes or autoplay;
 120s timed recovery. No musical or frequency acceptance is claimed.
+
+## V1 stopped read-only; corrected V2 started
+
+[verified] PID262731 exited after fresh paired backups matched current23150dca.
+Its manifest explicitly records zero flash and reset operations. Preparation
+refused the bound template's stale candidate path before a write transaction.
+The coordinator rebased candidate/receipt paths to the staged BASE, added an
+explicit candidate-path preflight check and regression test, and regenerated
+template/binding/pin hashes. All22 referenced build/candidate/stock input files
+were separately read and hash-verified on bench01. Nine package tests passed.
+
+[verified: started, not completed] Distinct campaign rom109-cpu-rate-cycle-v2
+started PID263390. Its launch-v2.json and cycle-v2.stdout/stderr do not reuse the
+consumed V1 marker or read evidence; V2 starts its own fresh paired reads.
+Campaign pins1d03f1f73b0d2d8f00faf584561c8c95f044e365f7fde147fb7e50fdd50e6b99.
+The exact overlay is preserved in scratch/cpu-rate-calibration-deployment/
+rom109-v2-correction.tar with its per-member JSON manifest. Do not relaunch V2.
+Pending completed write/readback, one boot, telemetry, and timed recovery.

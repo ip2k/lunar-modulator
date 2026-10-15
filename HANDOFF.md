@@ -1,3 +1,12 @@
+## CPU campaign V2 active; V1 stopped before writes — 2026-10-15
+
+V1 PID262731 stopped after matching23150dca paired reads, zero flash/reset.
+Corrected template candidate paths; all22 actual paths/hashpins verified;9tests
+and remote preflight PASS. Distinct rom109-cpu-rate-cycle-v2 now PID263390,
+sameBASE fm1-cpu-rate-8a8fb2b8-20261015. Use sudo cycle-v2.stdout/stderr; no retry.
+Pins1d03f1f7; see notes/2026-10-15-cpu-calibration-campaign.md for durable
+overlay/evidence. No physical CPU timing yet; goalACTIVE; SAVEoff.
+
 ## CPU timing campaign launched — 2026-10-15
 
 Root started bench01 PID262731, BASE `/home/claude/fm1-cpu-rate-8a8fb2b8-20261015`,
