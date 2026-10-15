@@ -7,11 +7,21 @@
 | Author | Emilie Gillet (Mutable Instruments) |
 | Licence | MIT. Every vendored `.h`/`.cc` carries its MIT header (checked with grep on 2026-09-30); `stmlib/LICENSE` is copied alongside. stmlib's GPL-3 `ui/event_queue.h` is **not** vendored |
 | Copied by | `vendor.py`, which follows `#include`s from the files listed in its `ROOTS` and copies the whole of `plaits/dsp`. Only Rings' reverb and its `fx_engine.h` come from `rings/`, and only Clouds' reverb, diffuser, `fx_engine.h` and `frame.h` from `clouds/` |
-| Local changes | `plaits/dsp/engine2/six_op_engine.h` marks the `FMVoice::Render` wrapper, and `plaits/dsp/fm/voice.h` marks only the `Voice<6>::Render(const Parameters&, float**, size_t)` overload, with the local `fm1_hot_dsp.h` opt-in RAM-section attribute. The DSP algorithm is unchanged; other fixes and adaptations live in our wrappers (`engines/src/mi_*.cc`). |
+| Local changes | `plaits/dsp/engine2/six_op_engine.h` includes `fm1_hot_dsp.h` and marks `FMVoice::Render`; `plaits/dsp/fm/voice.h` includes that header and marks only `Voice<6>::Render(const Parameters&, float**, size_t)`. These are the two target-only RAM-placement edits. No DSP statements are changed. `tests/test_engines_reference_plaits.py` pins each patched file's complete SHA-256, restores only those exact edits, checks the restored file SHA-256 against the pinned upstream source bytes, then checks the original 129-file upstream closure digest. Other fixes and adaptations live in wrappers (`engines/src/mi_*.cc`). |
 
 Re-vendoring:
 
-Reapply the narrow `FMVoice::Render` and `Voice<6>::Render(const Parameters&, float**, size_t)` placement includes/annotations after regenerating the vendor tree.
+`vendor.py` copies byte-for-byte upstream files and overwrites the local placement edits. After re-vendoring, reapply these exact edits, then run the focused closure-pin test. The test intentionally retains the upstream closure digest; do not replace it with a digest of the modified tree.
+
+| File | Exact source edit | SHA-256 after local edit | SHA-256 restored upstream bytes |
+| --- | --- | --- | --- |
+| `plaits/dsp/engine2/six_op_engine.h` | Add `#include "fm1_hot_dsp.h"`; add `FM1_HOT_DSP_RENDER` to `FMVoice::Render(float*, size_t)` | `f027efd939884ff151870f75792d4fc008788cedda5d1ff6a61f6247aedc7c7e` | `266a3e0767ddeec456ea5c12d9a7a2f0707b890b56ea8ed48929bfe7bed93f0b` |
+| `plaits/dsp/fm/voice.h` | Add `#include "fm1_hot_dsp.h"`; add `FM1_HOT_DSP_RENDER` only to the `float**` `Voice<6>::Render` overload | `653e89e876a3ba54c9983828eec1d865e9b0ed907205222297998edbffbc8d8e` | `a0ae403279f12b45ed03b0995d850755297f77d00af84995c10880081d155742` |
+
+The restoration hashes were checked against local checkouts of eurorack
+`08460a69a7e1f7a81c5a2abcc7189c9a6b7208d4` and its pinned stmlib submodule
+`e3bd7c9cc00e4364166f9905c0509b6ffd0535ec`. These annotations place code only;
+the Plaits oracle remains the upstream implementation.
 
 ```bash
 git clone https://github.com/pichenettes/eurorack reference/mi-eurorack

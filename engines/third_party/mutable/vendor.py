@@ -9,7 +9,8 @@ stmlib as a submodule; use that commit). The script starts from the source
 files listed in ROOTS, follows every quoted #include through both trees, and
 copies the closure here with the upstream paths kept, so `-I` pointing at this
 folder resolves "plaits/...", "braids/..." and "stmlib/..." as upstream does.
-It rewrites nothing; local changes, if any, belong in our wrappers.
+It rewrites nothing. The two documented local RAM-placement edits in
+UPSTREAM.md must be reapplied after running this script.
 """
 import re
 import shutil
