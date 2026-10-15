@@ -173,6 +173,15 @@ def test_profile_rejects_unknown_or_non_uint32_values():
         analyzer.analyze_jsonl([row(0, altered, event="render_profile_frame")])
 
 
+@pytest.mark.parametrize("schema", [2.0, True, "2"])
+def test_profile_schema_must_be_an_integer(schema):
+    profile = {name: 0 for name in codec.PROFILE_FIELDS}
+    with pytest.raises(ValueError, match="exactly schema-2 fields"):
+        analyzer.analyze_jsonl([
+            row(0, profile, event="render_profile_frame", schema=schema)
+        ])
+
+
 class _Clock:
     def __init__(self):
         self.now = 0.0

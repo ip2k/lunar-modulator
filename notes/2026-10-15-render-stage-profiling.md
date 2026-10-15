@@ -17,9 +17,11 @@ dispatch is inclusive of callbacks into sound slots, so stage totals overlap
 and must not be added. Postmix covers render work after engines/inserts and
 master FX; display-strip timing is separate.
 
-[verified] Tick totals and maxima are unsigned 32-bit values. Totals wrap
-modulo 2^32; consumers should use differences between reports for interval
-estimates. Profile samples reset only after the complete frame is enqueued.
+[verified] Profile window totals and maxima are unsigned 32-bit values. A
+window total is the accumulated ticks since the prior successfully emitted
+profile frame; it wraps modulo 2^32 if necessary. These are interval values,
+not cumulative counters, so consumers should use each report's window value
+directly. Profile samples reset only after the complete frame is enqueued.
 When the USB-MIDI ring lacks room, the report is skipped and the sample window
 is retained. The reporter snapshots in the main loop, not in the DMA audio
 callback.

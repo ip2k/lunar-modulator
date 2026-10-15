@@ -103,7 +103,8 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
 
         if event_name == "render_profile_frame":
             values = event.get("values")
-            if event.get("schema") != 2 or not isinstance(values, dict) or set(values) != set(PROFILE_FIELDS):
+            schema = event.get("schema")
+            if type(schema) is not int or schema != 2 or not isinstance(values, dict) or set(values) != set(PROFILE_FIELDS):
                 raise ValueError(f"line {line_number}: render profile values must contain exactly schema-2 fields")
             checked = {name: _uint32(values[name], name, line_number) for name in PROFILE_FIELDS}
             delta = None if previous_profile_elapsed is None else elapsed - previous_profile_elapsed
