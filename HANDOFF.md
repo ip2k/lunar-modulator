@@ -1,3 +1,31 @@
+## c0 candidate constructed; limiter target built — 2026-10-15
+
+Goal ACTIVE; owner cold-boot audio/display acceptance FAILED; SAVE disarmed.
+Root completed strict c0 v2 staging, native60/tools249+10 and full175-file
+runtime validation, and offline construction on bench01. Target
+c7afa08c1a66fe82458359cd0750133b755d7247e0904e6fedd18402f71418c6;
+receipt7f75a871c875123bef96b03e10a89297ccdeb28e68f7e511edc2c1fad98a2861.
+BASE /home/claude/fm1-hidden-session-c0f138a0-20261015. Historical installed
+candidate915131c3 compared with newtarget:210 changed sectors,211 allowed,
+protected ranges equal. This is not fresh live-current evidence. Passive
+sysfs observation remains ROM101/bus1/port1-1. No new USB command or write.
+Original nonadmissible input-template.json retained. Separate expectation-only
+input-template.bound-current.json SHA03b67ef5a3197edf0f0877f443a064b587806a89fa9d69dd33105a3003e35ee8
+changes only read.current_flash_sha256 to expected915; timestamp0 and other
+fresh-read placeholders unchanged. Fresh paired reads remain mandatory before
+prepare/write. New bound-ROM101 helper preparation/review is in progress.
+Ignored scratch/hidden-session-deployment/construction-root holds exact receipts
+and file-only binding script. Never relaunch consumed ROM99 campaign.
+
+Separate exactb27d5280 limiter target passed all16 Hera shards/link; app853996B,
+6648B flash slack, .ram_dsp12000B. BoxStep is in RAM at0x01c010ea, Render at
+0x01c0118a, Ring1/2 out-of-line calls absent; host bitwise equivalence passed.
+No physical performance claim. Export is pending. Commit21a0986e refreshes the
+expanded-candidate→SG-adapter→boot source-integrity chain; root verified GitHub
+remote SHA and independently reran26 focused source-pin/staging tests PASS.
+Future limiter deployment must use those repaired runtime pins separately from
+exactb27 build identity; frozen c0 runtime remains unchanged. uv.lock untouched.
+
 ## Export verified; clock uncertainty retained — 2026-10-15
 
 Goal ACTIVE; cold-boot audio/display acceptance FAILED. Root passively
