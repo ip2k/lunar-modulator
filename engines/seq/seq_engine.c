@@ -2199,6 +2199,15 @@ int fm1_seq_get_track(const fm1_seq_t *s, uint8_t t, fm1_seq_track_info_t *o) {
   return 1;
 }
 
+int fm1_seq_get_route(const fm1_seq_t *s, uint8_t t, fm1_seq_route_info_t *o) {
+  const sq_track_t *tr;
+  if (t >= s->n_tracks) return 0;
+  tr = &sq_ctracks(s)[t];
+  o->kind = tr->route_kind;
+  o->index = tr->route_index;
+  return 1;
+}
+
 const char *fm1_seq_lane_label(const fm1_seq_t *s, uint8_t t, uint8_t lane) {
   if (t >= s->n_tracks || lane >= FM1_SEQ_LANES) return "";
   return sq_ctracks(s)[t].label[lane];

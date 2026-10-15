@@ -207,6 +207,41 @@ static fm1_seq_t *make(uint64_t *mem) {
   return fm1_seq_create(mem, &lim, 44118u);
 }
 
+/* The compact dispatcher getter must expose exactly the route held in the
+ * full UI snapshot for every configured track count and valid route. */
+static void compact_route_getter(void) {
+  static uint64_t mem[8192];
+  fm1_seq_limits_t lim;
+  unsigned tracks, t, kind, index;
+  for (tracks = 1; tracks <= FM1_SEQ_MAX_TRACKS; ++tracks) {
+    fm1_seq_t *s;
+    fm1_seq_limits_default(&lim, (uint8_t)tracks);
+    CHECK(fm1_seq_size(&lim) <= sizeof(mem));
+    s = fm1_seq_create(mem, &lim, 44118u);
+    CHECK(s != NULL);
+    if (!s) continue;
+    for (t = 0; t < tracks; ++t) {
+      for (kind = FM1_SEQ_ROUTE_MIDI; kind <= FM1_SEQ_ROUTE_ENGINE; ++kind) {
+        const unsigned count = kind == FM1_SEQ_ROUTE_MIDI ? 16u : 8u;
+        for (index = 0; index < count; ++index) {
+          fm1_seq_track_info_t full;
+          fm1_seq_route_info_t route = { 0xA5u, 0x5Au };
+          const uint8_t route_index = (uint8_t)(kind == FM1_SEQ_ROUTE_MIDI ? index + 1u : index);
+          CHECK(fm1_seq_set_route(s, (uint8_t)t, (uint8_t)kind, route_index));
+          CHECK(fm1_seq_get_track(s, (uint8_t)t, &full));
+          CHECK(fm1_seq_get_route(s, (uint8_t)t, &route));
+          CHECK(route.kind == full.route_kind && route.index == full.route_index);
+        }
+      }
+    }
+    {
+      fm1_seq_route_info_t route = { 0xA5u, 0x5Au };
+      CHECK(!fm1_seq_get_route(s, (uint8_t)tracks, &route));
+      CHECK(route.kind == 0xA5u && route.index == 0x5Au);
+    }
+  }
+}
+
 /* The same script through text lines and through typed inputs: identical
  * events, block by block, and the same set at the end. Dispatches the text
  * side into a tracing sink and checks each block's calls against its events. */
@@ -1186,6 +1221,7 @@ static void midi_transport_pause_resume(void) {
 
 int main(void) {
   uint64_t events = 0, calls = 0, inside = 0;
+  compact_route_getter();
   parsers_and_figures();
   value7_and_labels();
   inputs_and_dispatch(&events, &calls, &inside);
