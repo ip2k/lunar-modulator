@@ -2,6 +2,7 @@
 import hashlib
 import json
 from pathlib import Path
+import types
 from types import SimpleNamespace
 
 import pytest
@@ -77,6 +78,94 @@ def test_entry_expiry_is_admission_time_bounded():
         adapter.validate_entry(encoded(entry()), USB, FW, now=1200.0)
 
 
+def test_prepare_pins_cold_entry_and_builds_exact_read_inventory(tmp_path, monkeypatch):
+    tmp_path.chmod(0o700)
+    loader = b"L" * adapter.fixed.LOADER_SIZE
+    loader_sha = hashlib.sha256(loader).hexdigest()
+    monkeypatch.setattr(adapter.fixed, "LOADER_SHA", loader_sha)
+    monkeypatch.setattr(adapter.fixed, "ORIGINAL_SHA", "f" * 64)
+    reader_path = Path(adapter.fixed.__file__).with_name("fm1_uboot_read.py")
+    reader_source = reader_path.read_bytes()
+    reader = types.ModuleType("_test_cold_reader")
+    exec(compile(reader_source, str(reader_path), "exec"), reader.__dict__)
+    # Create the pinned upload profile expected by the fixed loader adapter.
+    profile_inventory = []
+    for index, offset in enumerate(range(0, len(loader), 512)):
+        payload = loader[offset:offset + 512]
+        cdb, _data, read_size = reader.request(0xFB06, "rom",
+            address=adapter.fixed.RAM + offset, payload=payload)
+        profile_inventory.append({"index": index, "address": adapter.fixed.RAM + offset,
+            "bytes": 512, "cdb_sha256": adapter.fixed.digest(cdb),
+            "payload_sha256": adapter.fixed.digest(payload), "read_size": read_size})
+    profile_bytes = json.dumps({"upload_inventory": profile_inventory,
+        "patched_encrypted_sha256": adapter.fixed.LOADER_SHA,
+        "original_encrypted_sha256": adapter.fixed.ORIGINAL_SHA}).encode()
+    monkeypatch.setattr(adapter.fixed, "PROFILE_SHA", hashlib.sha256(profile_bytes).hexdigest())
+    monkeypatch.setattr(adapter.fixed, "PROFILE_SOURCE_SHA",
+                        hashlib.sha256(b"profile-source").hexdigest())
+    firmware, build = b"firmware image", b"build receipt"
+    firmware_sha = hashlib.sha256(firmware).hexdigest()
+    build_sha = hashlib.sha256(build).hexdigest()
+    ev = entry(firmware=firmware_sha, build=build_sha)
+    entry_bytes = encoded(ev)
+    entry_path = tmp_path / "entry.json"
+    entry_path.write_bytes(entry_bytes)
+
+    paths = {
+        "adapter": tmp_path / "adapter.py", "fixed": tmp_path / "fixed.py",
+        "reader": tmp_path / "reader.py", "loader": tmp_path / "loader.bin",
+        "profile": tmp_path / "profile.json", "profile_source": tmp_path / "profile.py",
+        "firmware": tmp_path / "dongle.uf2", "build": tmp_path / "build.json",
+    }
+    source_data = {"loader": loader, "profile": profile_bytes,
+        "profile_source": b"profile-source", "firmware": firmware, "build": build}
+    source_hash = {name: hashlib.sha256(data).hexdigest()
+                   for name, data in source_data.items()}
+    source_hash["adapter"] = hashlib.sha256(Path(adapter.__file__).read_bytes()).hexdigest()
+    real_pinned_file = adapter.fixed.pinned_file
+
+    def pinned(path, expected):
+        candidate = Path(path)
+        name = next((key for key, value in paths.items() if value == candidate), None)
+        if (candidate in (Path(adapter.__file__).absolute(),
+                          Path(adapter.fixed.__file__).absolute(), reader_path.absolute()) or
+                candidate == entry_path):
+            return real_pinned_file(path, expected)
+        if name is None:
+            raise AssertionError(Path(path))
+        value = source_data[name]
+        assert hashlib.sha256(value).hexdigest() == expected
+        return value
+
+    monkeypatch.setattr(adapter.fixed, "pinned_file", pinned)
+    monkeypatch.setattr(adapter.time, "time", lambda: 1050.0)
+    config = {"schema": 1, "kind": adapter.KIND,
+        "adapter_sha256": source_hash["adapter"],
+        "fixed_adapter_sha256": adapter.FIXED_ADAPTER_SHA256,
+        "reader_sha256": adapter.fixed.READER_SHA,
+        "loader_path": str(paths["loader"]), "profile_path": str(paths["profile"]),
+        "profile_source_path": str(paths["profile_source"]),
+        "entry_path": str(entry_path), "entry_sha256": hashlib.sha256(entry_bytes).hexdigest(),
+        "dongle_firmware_path": str(paths["firmware"]),
+        "dongle_firmware_sha256": firmware_sha,
+        "dongle_build_receipt_path": str(paths["build"]),
+        "dongle_build_receipt_sha256": build_sha,
+        "usb_binding": dict(USB), "receipt_path": str(tmp_path / "receipt")}
+    campaign = tmp_path / "campaign.json"
+    campaign.write_text(json.dumps(config))
+    prepared, receipt, entry_sha, image_sha = adapter.prepare_campaign(campaign, now=1050.0)
+    assert len(prepared.operations) == 8757
+    assert prepared.config["_owner_status_observation"] == ev["owner_attestation"]["status_observation"]
+    assert receipt == tmp_path / "receipt"
+    assert entry_sha == hashlib.sha256(entry_bytes).hexdigest()
+    assert image_sha == firmware_sha
+    assert sum(op.label == "dumpA.bin" for op in prepared.operations) == 4096
+    assert sum(op.label == "dumpB.bin" for op in prepared.operations) == 4096
+    assert {op.cdb[:2] for op in prepared.operations} == {
+        b"\x12\x00", b"\xfb\x06", b"\xfb\x08", b"\xfc\x14",
+        b"\xfc\x0a", b"\xfd\x05"}
+
+
 def operations():
     ops = [SimpleNamespace(label="inquiry")]
     ops += [SimpleNamespace(label="upload") for _ in range(47)]
@@ -114,10 +203,11 @@ class FakeTransport:
 def prepared(tmp_path, *, entered=1990.0):
     return SimpleNamespace(
         config={"usb_binding": dict(USB), "entry_path": str(tmp_path / "entry.json"),
-                "dongle_build_receipt_sha256": BUILD},
+                "dongle_build_receipt_sha256": BUILD,
+                "_owner_status_observation": {"method": "status-leds", "value": "synthetic"}},
         manifest_sha256="d" * 64, entered_at=entered,
         operations=operations(), request_inventory_sha256="e" * 64,
-        owner_status_observation={"method": "status-leds", "value": "synthetic"})
+        )
 
 
 def test_campaign_runs_one_synthetic_paired_full_flash_read(tmp_path, monkeypatch):
