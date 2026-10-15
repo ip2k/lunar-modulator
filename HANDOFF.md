@@ -1,3 +1,34 @@
+# Current checkpoint: clock candidate staged offline — 2026-10-15 UTC
+
+MIDI Start/Stop/Continue remains implemented in shared USB/UART ingress before
+channel filtering. Focused transport/ingress plus sixop cache tests passed
+(39 tests in the current run). Physical USB Stop/Continue evidence is recorded
+in notes/2026-10-15-native-midi-transport.md; exact Start rewind/TRS acceptance
+and MIDI Clock synchronization are not established.
+
+Sixop fixed-note velocity cache and its strengthened Poly/Mono/Legato,
+two-rate, voice-pressure equivalence harness are GitHub SHA-verified at
+b5a879c715c4272cc110bdeb5af47e3f8bf46681. Bitwise host audio matches;
+physical performance benefit remains unmeasured. Unrelated uv.lock untouched.
+
+Bench remains ROM71 (passive same-port identity checked). Clock runtime is now
+prepared with 174 file pins, manifest SHA 044a87ed21a249eaa76ca6c0b60dbcac18e064f69fe14dfccb2ab9432f3444b4.
+Reviewed offline constructor produced private target
+9e864776ac931840e2859dd218a95d446c50b43ec57376b0191cf34e585459bf
+from frozen 5c4502ee clock build. Template SHA
+4c5fb37728e34f2b3f639b97531aa96288c8012507e9217d7518ac66f94b747f;
+candidate receipt SHA 789aad6e856d77d7552f172eda7781efc194919f84e41fb8c2dac92628bf0292.
+Current flash remains e77cc3c1; offline comparison gives 210 changed sectors,
+while the candidate's stock-derived allowed list contains 211. The read record
+is deliberately unusable placeholder evidence. No clock device campaign has
+started. Root is reviewing fresh rom71-clock-cycle runner/capture gates before
+paired reads, installation/readback and one timed diagnostic boot. Private
+campaign files live under /home/claude/fm1-clock-5c4502ee-20261015 on bench01
+and scratch/clock-capture-cycle locally. Previous ROM69 cycle must never rerun.
+
+Goal ACTIVE; severe audio starvation, SAVE, independent recovery, full-song
+physical acceptance and web release gates remain open.
+
 # Current checkpoint: hot-DSP physical result — 2026-10-15 UTC
 
 ROM69 campaign is consumed. Installation/full readback matched e77cc3c1; one
