@@ -1,3 +1,23 @@
+## Hall gain cache integrated; target verification assigned — 2026-10-15
+
+[verified: source/host] Worker84084c07 +66c95bb2 integrated asb94f3c36 +7b373489.
+Root43 Hall checks passed, including O0/O2 bytewise output and normalized
+full-state equivalence. Start/Update coefficient-cache cadence reviewed;
+no additional instance storage. Feature remote independently matched
+7b3734892f6f7758a13e88125813f4e205e99251. Target build/codegen review assigned
+to demo_controller_review from66c95bb2 (source tree matches integrated head).
+No target speed or physical acceptance claim. Details:
+notes/2026-10-15-hall-gain-delta-review.md.
+
+physical_storage_compression implements explicit D7000 request/profile support
+for the existing installer worker, preserving D9000 canonical compatibility and
+non-installable status. profile_catalogue_build located exact092 stock FWSC/app
+and archived banks, but has no proven allocator semantics; bounded offline
+vendor-objdump analysis is assigned in an isolated checkout. No worker device rights.
+No device actions this segment. Installed reference28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f;
+latest physical498.453/689.344 blocks/s, cold-boot listeningFAILED.
+SAVE/autoplayoff; full goalACTIVE. Unrelated uv.lock untouched.
+
 ## Drums voice body integrated; active-audio and installer audits — 2026-10-15
 
 [verified: offline build/review] Source6dbed50e integrated asadb8c4f5 after
