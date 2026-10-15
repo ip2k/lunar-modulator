@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 extern "C" const fm1_engine_t fm1_engine_limit;
@@ -35,7 +36,7 @@ void SetPair(void *fast, void *reference, const char *name, float value) {
   const int index = ParamIndex(fm1_engine_limit, name);
   if (index < 0 || index != ParamIndex(fm1_engine_limit_reference, name)) {
     fprintf(stderr, "parameter mismatch: %s\n", name);
-    return;
+    abort();
   }
   fm1_engine_limit.set_param(fast, static_cast<uint16_t>(index), value);
   fm1_engine_limit_reference.set_param(reference, static_cast<uint16_t>(index), value);
@@ -81,7 +82,7 @@ void Fill(float *dst, uint32_t pos, uint32_t n, uint32_t stereo_case) {
 }
 
 bool RunScenario(uint32_t scenario, float rate, float initial_look,
-                 uint32_t stereo_case, float link) {
+                 uint32_t stereo_case, float link, uint32_t initial_mode) {
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, kMaxFrames };
   const size_t fast_bytes = fm1_engine_limit.instance_size(&host);
   const size_t ref_bytes = fm1_engine_limit_reference.instance_size(&host);
@@ -96,24 +97,30 @@ bool RunScenario(uint32_t scenario, float rate, float initial_look,
   SetPair(fast, reference, "Drive", 15.0f);
   SetPair(fast, reference, "Release", 18.0f);
   SetPair(fast, reference, "Lookahead", initial_look);
-  SetPair(fast, reference, "Mode", static_cast<float>(scenario % 3u));
+  SetPair(fast, reference, "Mode", static_cast<float>(initial_mode));
   SetPair(fast, reference, "Link", link);
   SetPair(fast, reference, "Mix", 1.0f);
 
   const uint32_t blocks[] = { 1, 17, 64, 7, 31, 53 };
   uint32_t pos = 0, block_index = 0;
+  uint32_t next_transition = 997u, transition_count = 0;
   while (pos < kTotalFrames) {
     // Change settings while the limiter is active, including both directions
-    // across zero lookahead, and vary the release/mode/link state.
-    if (pos && pos % 997u == 0u) {
-      SetPair(fast, reference, "Lookahead", (pos / 997u) % 2u ? 0.0f : 3.7f);
-      SetPair(fast, reference, "Ceiling", (pos / 997u) % 2u ? -18.0f : -2.0f);
-      SetPair(fast, reference, "Release", (pos / 997u) % 2u ? 1.0f : 240.0f);
-      SetPair(fast, reference, "Mode", static_cast<float>((pos / 997u) % 3u));
-      SetPair(fast, reference, "Link", (pos / 997u) % 2u ? 1.0f : 0.0f);
+    // across zero lookahead, and vary the release/mode/link state. Blocks are
+    // split below so every boundary is reached exactly despite irregular sizes.
+    if (pos == next_transition) {
+      const uint32_t step = transition_count + 1u;
+      SetPair(fast, reference, "Lookahead", step % 2u ? 0.0f : 3.7f);
+      SetPair(fast, reference, "Ceiling", step % 2u ? -18.0f : -2.0f);
+      SetPair(fast, reference, "Release", step % 2u ? 1.0f : 240.0f);
+      SetPair(fast, reference, "Mode", static_cast<float>((initial_mode + step) % 3u));
+      SetPair(fast, reference, "Link", step % 2u ? 1.0f : 0.0f);
+      ++transition_count;
+      next_transition += 997u;
     }
     uint32_t n = blocks[block_index++ % (sizeof(blocks) / sizeof(blocks[0]))];
     if (n > kTotalFrames - pos) n = kTotalFrames - pos;
+    if (pos < next_transition && n > next_transition - pos) n = next_transition - pos;
     Fill(g_fast_audio, pos, n, stereo_case);
     memcpy(g_reference_audio, g_fast_audio, 2u * n * sizeof(float));
     fm1_engine_limit.render(fast, g_fast_audio, n);
@@ -124,6 +131,12 @@ bool RunScenario(uint32_t scenario, float rate, float initial_look,
     }
     pos += n;
     if (!CheckState(g_fast, g_reference, fast_bytes, scenario, pos)) return false;
+  }
+  const uint32_t expected_transitions = (kTotalFrames - 1u) / 997u;
+  if (transition_count != expected_transitions) {
+    fprintf(stderr, "transition count mismatch scenario=%u got=%u want=%u\n",
+            scenario, transition_count, expected_transitions);
+    return false;
   }
   fm1_engine_limit.destroy(fast);
   fm1_engine_limit_reference.destroy(reference);
@@ -137,17 +150,22 @@ int main() {
   const float rates[] = { 44118.0f, 96000.0f };
   const float looks[] = { 0.0f, 2.0f, 5.0f };
   const float links[] = { 0.0f, 0.5f, 1.0f };
+  const uint32_t modes[] = { 0, 1, 2 };
   for (size_t r = 0; r < sizeof(rates) / sizeof(rates[0]); ++r) {
     for (size_t l = 0; l < sizeof(looks) / sizeof(looks[0]); ++l) {
       for (size_t stereo = 0; stereo < 2; ++stereo) {
         for (size_t link = 0; link < sizeof(links) / sizeof(links[0]); ++link) {
-          if (!RunScenario(scenario, rates[r], looks[l], stereo, links[link])) return 1;
-          ++scenario;
+          for (size_t mode = 0; mode < sizeof(modes) / sizeof(modes[0]); ++mode) {
+            if (!RunScenario(scenario, rates[r], looks[l], stereo, links[link], modes[mode])) return 1;
+            ++scenario;
+          }
         }
       }
     }
   }
-  printf("{\"scenarios\":%u,\"frames_per_scenario\":%u,\"audio_bitwise_equal\":true,"
-         "\"full_instance_state_bitwise_equal\":true}\n", scenario, kTotalFrames);
+  printf("{\"scenarios\":%u,\"frames_per_scenario\":%u,\"transitions_per_scenario\":%u,"
+         "\"audio_bitwise_equal\":true,"
+         "\"full_instance_state_bitwise_equal\":true}\n", scenario, kTotalFrames,
+         (kTotalFrames - 1u) / 997u);
   return 0;
 }

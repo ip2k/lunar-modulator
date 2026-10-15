@@ -80,8 +80,9 @@ def test_equal_peak_ratio_reuse_is_bitwise_equivalent(renderer):  # noqa: F811
     result = json.loads(subprocess.run([str(RATIO_TOOL)], check=True,
                                        capture_output=True, text=True).stdout)
     assert result == {
-        "scenarios": 36,
+        "scenarios": 108,
         "frames_per_scenario": 6000,
+        "transitions_per_scenario": 6,
         "audio_bitwise_equal": True,
         "full_instance_state_bitwise_equal": True,
     }
