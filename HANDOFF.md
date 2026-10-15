@@ -1,3 +1,26 @@
+## Current: ROM89 IRQ-occupancy campaign launched once
+
+Goal ACTIVE; cold-boot musical acceptance FAILED; SAVE remains disarmed.
+One-use campaign `/home/claude/fm1-irq-profile-3e8664b5-20261015`, cycle
+`rom89-irq-profile-cycle`, PID122407. NEVER RELAUNCH. Initial output is
+FRESH_PAIRED_READ_START; no error at this observation. Inspect durable launch,
+read/install/reset/capture journals before further device operations.
+
+Firmware3e8664b5, runtime280f48ad. Exact private target a2c7eee6ca72659435452b59bd381fa8556b05a4fdc898329de3ea4fcdbf41d4.
+Fresh paired reads must match bc593f95…fb566 before209-sector transition within
+211-sector allowed application envelope. Native-source staging gap is closed:
+60 files/2 directories rehashed against frozen source manifest before construction
+and in preflight. All249 tools +174 capture-runtime inputs verified separately.
+Actual staged file-only preflight passed twice;50 focused runner tests passed;
+independent review found no remaining script blocker. Deployment pin-file SHA256
+7f727ce4de9b8aaf6524342b5730ab4d8759df67d1fb30acebdebc9016974828.
+New image is a no-autoplay diagnostic, not a performance fix. Capture is input-only,
+110s telemetry +180s KA6 audio; sole FC0C attempt follows durable full-install
+receipt and recording readiness. Ambiguous reply must never be retried.
+Private runner/deployment/review in scratch/irq-profile-{cycle,deployment,build}.
+Next: confirm paired read/install full-readback, collect schema6 data and analyze
+IRQ union vs render overlap. No additional owner power cycle currently needed.
+
 ## IRQ build stopped safely on stale platform provenance pin
 
 All16 catalogue shards completed; link preflight refused Source pin mismatch:

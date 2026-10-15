@@ -84,3 +84,29 @@ found that the staged candidate audit's source scan resolves to an absent
 `runtime/firmware/native` directory. An exact frozen-source staging and rehash
 step is being prepared to close that gap before construction. The linked ELF
 check alone does not make a missing source scan pass meaningful.
+
+## Candidate construction and one-use launch
+
+[verified: staged filesystem and independent runner review] Exact frozen native
+source inventory now exists at runtime/firmware/native:60 files,2 directories,
+rehashed against source-manifest SHA256 d061242c5da63d9486c49571cd19ed712cf67b687c9f14a62e9fd8b3def2a594.
+The previously absent source scan is no longer vacuous. Candidate target SHA256
+is a2c7eee6ca72659435452b59bd381fa8556b05a4fdc898329de3ea4fcdbf41d4;
+receipt6a228b99f65f975dd240335324bdd599fc37e073dc728d6beb44fa4b6fdac9c7.
+Offline comparison against predecessor found209 transition sectors within211
+allowed sectors; fresh reads remain mandatory before physical mutation.
+
+Runner tests50 passed, compilation passed; independent final review is retained
+at scratch/irq-profile-build/cycle-review.md (5c10396ccb044db98901eb8e8dec5993bda4846ae78d811ebaa3b9247ee55dfe).
+Review caught a Git40 source-tree ID being treated as SHA256; contract corrected,
+with actual template evidence checked. The separately frozen deployment passed
+file-only preflight on bench twice. Pin-file SHA256:
+7f727ce4de9b8aaf6524342b5730ab4d8759df67d1fb30acebdebc9016974828.
+
+[verified: launch receipt/output] Root launched rom89-irq-profile-cycle once,
+PID122407, under private base /home/claude/fm1-irq-profile-3e8664b5-20261015.
+Initial output FRESH_PAIRED_READ_START; installation/boot/capture are not yet
+claimed at this checkpoint. Do not relaunch. The flow requires exact predecessor
+paired reads,209-sector transition and full image readback, then durable install
+result, recording readiness and one boot request. No autoplay or MIDI output;
+no musical acceptance inferred. Inspect retained journals for actual outcome.
