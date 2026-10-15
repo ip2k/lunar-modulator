@@ -34,16 +34,29 @@ static inline void fm1_mix_limiter_init(fm1_mix_limiter_t *l, float sample_rate)
   l->ceiling = 0.98f;
 }
 
+/* The guard is called twice per stereo frame. Size-oriented target builds may
+ * otherwise retain an out-of-line call even for this small comparison-only
+ * helper. Keep ordinary builds unchanged; the opt-in hot-DSP profile requests
+ * inlining without changing the arithmetic or IEEE comparison behavior. */
+#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM && \
+    (defined(__GNUC__) || defined(__clang__))
+#define FM1_MIX_GUARD_INLINE static inline __attribute__((always_inline))
+#else
+#define FM1_MIX_GUARD_INLINE static inline
+#endif
+
 /* Bus guard, applied before the envelope sees a sample. A NaN would otherwise
  * latch the envelope to NaN, after which `envelope > ceiling` is always false
  * and limiting stops for good; an infinity would do the same one sample later.
  * NaN becomes silence, and anything past +/-16 (+24 dBFS, infinities included)
  * is clamped so one wild sample holds the bus down for ~0.3 s, not seconds.
  * Relies on IEEE compares: do not build with -ffast-math/-ffinite-math-only. */
-static inline float fm1_mix_guard(float x) {
+FM1_MIX_GUARD_INLINE float fm1_mix_guard(float x) {
   if (!(x == x)) return 0.0f;
   return x > 16.0f ? 16.0f : (x < -16.0f ? -16.0f : x);
 }
+
+#undef FM1_MIX_GUARD_INLINE
 
 static inline void fm1_mix_limiter_process(fm1_mix_limiter_t *l, float *lr, uint32_t frames) {
   for (uint32_t n = 0; n < frames; ++n) {
