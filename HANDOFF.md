@@ -1,3 +1,16 @@
+## Producer-gap trial completed: sustained starvation, ROM89 recovered
+
+One-use rom87 campaign NEVER RELAUNCH.209 guarded sectors and full readback
+matched bc593f95bbfc9731dbbc906fb67c06d9882fbd51403cdda3dbe9ab95740fb566.
+Single reset ambiguous/not retried; separate nativeUSB88,110s input-only
+telemetry+180s KA6 audio completed. Passive USB now ROM89/path1-1/bus1.
+Source aba42d83; runtime10e7b41d. Original session result+journal retained.
+267.96 produced blocks/s+421.42 underruns/s; all36 steady queue samples0.
+No material performance improvement. Prior owner coldboot/audio acceptance FAILED.
+Evidence: notes/2026-10-15-producer-gap-results.md and private scratch archives.
+Next: nesting-aware IRQ occupancy helper/integration and offline float/idle-path
+audits. Goal ACTIVE; SAVE disarmed. No owner power cycle needed for completed run.
+
 ## One-use producer-gap campaign launched; do not relaunch
 
 BASE /home/claude/fm1-producer-gap-aba42d83-20261015,
