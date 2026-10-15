@@ -146,3 +146,19 @@ frozen build must include current limiter/sixop optimizations. A fresh
 candidate constructor must require exact schema-3/4 verification metadata;
 the generic flash build checker alone does not require clock diagnostics.
 ROM71's consumed campaign must not be reused.
+
+## Completed capture audio measurements
+
+[verified: recorded PCM analysis] The completed 180-second KA6 capture was
+copied privately to Hera with matching SHA-256
+`701186bb9f4404acf5b812c7df950eb49ce0109591502aa8b4f7a74e757a20bc`.
+The existing bounded six-channel PCM analyzer ran in the pinned build image,
+network disabled, docker-batch.slice, 2 CPUs, 1 GiB memory/swap, 128 pids;
+container exited0 without OOM. Inputs1/2 peaks were0.856104/0.825378,
+whole-recording RMS0.056262/0.057923, with zero samples at or above the
+0.999 full-scale clipping threshold. This does not establish musical quality,
+source identity independently of wiring, or analog clipping absence.
+Diagnostic counters still fail playback throughput. Private analysis SHA-256
+`1c74ba03f179b278005b0fa1970aa46d2b5b968c6ae2ec772f0bcf1389938abe`;
+local `scratch/clock-snapshot-result/physical/audio-analysis.json`, Hera
+`/home/claude/mvave-fm1/clock-audio-9e864776-20261015/`.
