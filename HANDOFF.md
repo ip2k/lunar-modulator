@@ -1,3 +1,14 @@
+## ROM97 file-only staging passed; not launched
+
+Goal ACTIVE; physical performance FAILED; SAVE disarmed.
+Exact0e024 candidate13902c8a staged with10 exclusive campaign files; root file-only
+preflight PASSED. No USB writes/reset. Pins78dbcbd201fb8391c79e5fa4e424116a796f34793426d60f0d42352887555b81,
+deployment e80151dd7b8a8dd904b813b064e876964ab33f959c9ea94156b22156233004fa.
+See notes/2026-10-15-fabs-profile-staging.md. Await independent review, final
+preflight and fresh ROM binding before one-use launcher. ROM95 remains consumed.
+Limiter b185f22 pushed/verified; next exact matched Hera16-shard build assigned.
+Resampler6bbd target build passed, no runtime timing claim.
+
 ## Current offline candidates and pending performance comparison
 
 Goal ACTIVE; owner cold-boot musical acceptance FAILED; SAVE disarmed.
