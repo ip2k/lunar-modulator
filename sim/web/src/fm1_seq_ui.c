@@ -703,7 +703,56 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
   fm1_seq_info_t i;
   fm1_seq_track_info_t tr;
   fm1_seq_clip_info_t c;
+#ifdef FM1_SEQ_UI_SYNC_FULL_SNAPSHOT_ORACLE
+  /* Test-only reference path for differential parity against the original. */
   const fm1_seq_ui_t was = *u;
+#else
+  /* Keep only values consumed by the change test.  The session/song range is
+   * copied as bytes so its documented padding-free byte comparison stays
+   * identical to the original full-struct snapshot. */
+  struct {
+    uint8_t capture_mode, capture_n, capture_sel;
+    uint32_t bpm_x100;
+    uint16_t capture_cands[3];
+    uint8_t playing, recording, counting_in, following, rec_track;
+    uint8_t slot, clip_playing;
+    uint16_t step, loop_start, length;
+    uint64_t notes, trigs;
+    uint8_t view, bar, hint;
+    int8_t knob;
+    uint8_t srec, tracks;
+    uint16_t capture_pending;
+    uint16_t muted, swing;
+    uint8_t dq, metro, clip_num, clip_den, clip_quant;
+    int8_t clip_tr;
+    uint8_t route_kind, route_index;
+    uint64_t locks;
+    uint8_t lanes;
+    int8_t take_param;
+    uint8_t take_v;
+    uint8_t song_len, song_follow, song_parked, song_armed, song_entry, song_jump;
+    fm1_seq_ui_hold_t hold;
+    uint8_t session_song[offsetof(fm1_seq_ui_t, song_gen) -
+                         offsetof(fm1_seq_ui_t, sess_clips)];
+    uint8_t sess_valid;
+  } was;
+  typedef char fm1_seq_ui_sync_snapshot_must_be_compact[
+      sizeof was < sizeof *u ? 1 : -1];
+#define SNAP(field) (was.field = u->field)
+  SNAP(capture_mode); SNAP(capture_n); SNAP(capture_sel); SNAP(bpm_x100);
+  memcpy(was.capture_cands, u->capture_cands, sizeof was.capture_cands);
+  SNAP(playing); SNAP(recording); SNAP(counting_in); SNAP(following); SNAP(rec_track);
+  SNAP(slot); SNAP(clip_playing); SNAP(step); SNAP(loop_start); SNAP(length);
+  SNAP(notes); SNAP(trigs); SNAP(view); SNAP(bar); SNAP(hint); SNAP(knob);
+  SNAP(srec); SNAP(capture_pending); SNAP(tracks); SNAP(muted); SNAP(swing);
+  SNAP(dq); SNAP(metro); SNAP(clip_num); SNAP(clip_den); SNAP(clip_quant); SNAP(clip_tr);
+  SNAP(route_kind); SNAP(route_index); SNAP(locks); SNAP(lanes); SNAP(take_param); SNAP(take_v);
+  SNAP(song_len); SNAP(song_follow); SNAP(song_parked); SNAP(song_armed); SNAP(song_entry); SNAP(song_jump);
+  memcpy(&was.hold, &u->hold, sizeof was.hold);
+  memcpy(was.session_song, &u->sess_clips, sizeof was.session_song);
+  SNAP(sess_valid);
+#undef SNAP
+#endif
   fm1_seq_get_info(s, &i);
   u->playing = i.playing;
   u->recording = i.recording;
@@ -813,8 +862,12 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
                     /* Session and the Song page: their grid, the song, its
                      * blinks and anything the input may have renamed. */
                     ((u->view == FM1_SEQ_VIEW_SESSION || u->view == FM1_SEQ_VIEW_SONG) &&
+#ifdef FM1_SEQ_UI_SYNC_FULL_SNAPSHOT_ORACLE
                      (memcmp(&was.sess_clips, &u->sess_clips,
                              (size_t)((const char *)&u->song_gen - (const char *)&u->sess_clips)) != 0 ||
+#else
+                     (memcmp(was.session_song, &u->sess_clips, sizeof was.session_song) != 0 ||
+#endif
                       u->song_gen != gen || was.sess_valid != u->sess_valid));
     u->song_gen = gen;
     return (seq ? FM1_SEQ_UI_SYNC_SEQ : 0) | (overlay ? FM1_SEQ_UI_SYNC_OVERLAY : 0);
