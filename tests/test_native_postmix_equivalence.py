@@ -25,4 +25,4 @@ def test_fused_postmix_matches_original_two_pass(optimization, tmp_path):
         check=True, capture_output=True, text=True,
     )
     result = subprocess.run([str(executable)], check=True, capture_output=True, text=True)
-    assert result.stdout.strip() == "postmix fused/reference exact equivalence: PASS (288 cases)"
+    assert result.stdout.strip() == "postmix optimized/reference exact equivalence: PASS (58608 cases)"
