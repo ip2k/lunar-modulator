@@ -847,17 +847,15 @@ Some settings to start from:
 
 {{status sim desktop planned}}
 
-Lunar's **Drawbar**, **Trio** and **Phase Bend** engines derive from Leo
-Kuroshita's WHEEL, TRIO and PHASE engines (Hügelton Instruments,
-GPL-3.0-only). Their source is incorporated unmodified; the Lunar integration
-preserves its note handling, envelopes and factory sounds
-([chapter 14](14-credits-and-licences.md)).
+Lunar's **Drawbar**, **Trio** and **Phase Bend** engines provide tonewheel
+organ, three-oscillator and phase-distortion sounds. Their controls, note
+handling and factory settings are described below.
 
 !!! note "In builds with the GPL switch on"
-    Felucca is published under the GNU General Public License, so these
-    three engines are built in only while the firmware's GPL switch is on:
-    in the simulator while we test, and in firmware for the person who
-    builds it, never in a shared build ([chapter 14](14-credits-and-licences.md#licences)).
+    These three engines are GPL-3.0-only. They are included only when the
+    firmware's GPL switch is on: in the simulator while we test, and in a
+    firmware build made for personal use, never in a shared build
+    ([chapter 14](14-credits-and-licences.md#licences)).
 
 What the three share:
 
@@ -865,18 +863,18 @@ What the three share:
   voice, from where its level is. With all eight busy, a new note takes the
   oldest released voice, else the oldest held one, never the lowest key
   held.
-- **An envelope**, Felucca's: **Attack** rises to full level in its time,
-  **Decay** falls to the **Sustain** level, and **Release** falls away after
-  the key, each from 1 ms to 10 s in Felucca's 128 steps. Velocity sets the
-  level, and a velocity over 110 is an accent: it opens Trio's filter and
-  Phase Bend's bend with the envelope.
+- **An envelope:** **Attack** rises to full level in its time, **Decay**
+  falls to the **Sustain** level, and **Release** falls away after the key.
+  Each time control spans 1 ms to 10 s in 128 steps. Velocity sets the level;
+  a velocity over 110 is an accent that opens Trio's filter and Phase Bend's
+  bend with the envelope.
 - **Volume** sets the level.
 - Pitch bend bends every note.
-- Notes, knobs and bends take effect at the next 0.7 ms, Felucca's control
-  step, wherever they fall.
+- Notes, knobs and bends take effect on the next control step, about every
+  0.7 ms.
 - They run at the FM-1's rate, 44,100 or 44,118 samples a second, and stay
   off the list in a browser that runs the simulator faster, as Macro does.
-  At 44,118 they play 0.7 cent sharp, as Felucca does on the FM-1.
+  At 44,118 samples a second, pitch is about 0.7 cents sharp.
 
 ### Drawbar
 
@@ -901,8 +899,7 @@ the organs it is after, from 16' (an octave down) to 1' (three octaves up).
 - Drawbars, Sub, Body, Top, Perc, Click, Drive and Rotor move the notes
   that sound, without a click.
 
-Some of Felucca's own Drawbar sounds (Attack 1 ms, Decay 104 ms, Sustain
-100 %):
+Example Drawbar settings (Attack 1 ms, Decay 104 ms, Sustain 100 %):
 
 | Sound | Drawbars | Perc | Click | Drive | Rotor | Release |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -938,7 +935,7 @@ gets gritty when you push its resonance.
 - **Env Amt** lets the envelope open (to the right) or close (to the left)
   the filter.
 
-Felucca's own Trio sounds:
+Example Trio settings:
 
 | Sound | Wave | Int 2, Int 3 | Detune | Mode | Cutoff | Resonance | PW | Env Amt | Attack, Decay, Sustain, Release |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -948,17 +945,16 @@ Felucca's own Trio sounds:
 | Ring Bell | Ring 3 | 0, +18 | 6 | Band-pass | 3,455 Hz | 24 % | 50 % | 0 | 1 ms, 790 ms, 0 %, 331 ms |
 | Chip Choir | Pulse x3 | 0, +12 | 7 | Band-pass | 643 Hz | 75 % | 31 % | 46.9 % | 160 ms, 683 ms, 87 %, 476 ms |
 
-Felucca plays Fat Bass and Sync Lead one note at a time; Trio has no voice
-mode of its own, so play them one note at a time, or let the sequencer do.
+Fat Bass and Sync Lead work well as single-note lines. Trio has no voice
+mode of its own, so play them one note at a time or let the sequencer do it.
 
 {{engine-table trio gpl}}
 
 ### Phase Bend
 
-Phase Bend is phase distortion, as on the Casio CZ: a sine read through a
+Phase Bend uses phase distortion, as on the Casio CZ: a sine read through a
 bent phase, whose bend turns it into a sawtooth, a square, a pulse or one
-of three resonant waves, a sine sweeping inside a window. It is a port of
-CrispyZebra, the same author's phase-distortion oscillator.
+of three resonant waves, a sine sweeping inside a window.
 
 - **Wave** chooses the wave: *Saw*, *Square*, *Pulse*, *Double Sine*, *Saw
   Pulse*, and the resonant *Reso Saw*, *Reso Tri* and *Reso Trap*.
@@ -977,7 +973,7 @@ CrispyZebra, the same author's phase-distortion oscillator.
   ([chapter 4](04-playing.md#glide-and-voice-modes)). Nothing slides until
   Glide Mode is on Legato or Always.
 
-Felucca's own Phase Bend sounds:
+Example Phase Bend settings:
 
 | Sound | Wave, Wave 2 | DCW | Env | Detune | Attack, Decay, Sustain, Release |
 | --- | --- | --- | --- | --- | --- |
@@ -989,6 +985,15 @@ Felucca's own Phase Bend sounds:
 | Wire | Saw Pulse, Reso Tri | 55 % | 31.5 % | 7 | 2.1 ms, 331 ms, 63 %, 78 ms |
 
 {{engine-table phase-bend gpl}}
+
+### Prior art and thanks
+
+These engines are based on Leo Kuroshita's WHEEL, TRIO and PHASE engines
+in Felucca by Hügelton Instruments. The upstream engine sources are
+incorporated unmodified under GPL-3.0-only. The example settings above use
+values from the upstream factory sounds. Phase Bend's oscillator is ported
+from CrispyZebra by Leo Kuroshita. See [chapter 14](14-credits-and-licences.md)
+for upstream credits and licence details.
 
 ## Test Sine
 
