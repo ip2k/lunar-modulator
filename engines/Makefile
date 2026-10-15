@@ -120,7 +120,7 @@ $(BUILD)/fm1-sophie-phase-test: test/sophie_phase_test.c third_party/schwung-mod
 # Compare cached velocity accent against the original per-block computation
 # through the complete Six-Op engine API and note/retrigger/release sequence.
 SIXOP_TEST_OBJ := $(addprefix $(BUILD)/,$(filter-out our/src/mi_sixop.o,$(FM1_OBJ.sixop)))
-$(BUILD)/fm1-sixop-accent-cache-test: test/sixop_accent_cache_test.cc $(SIXOP_TEST_OBJ)
+$(BUILD)/fm1-sixop-accent-cache-test: test/sixop_accent_cache_test.cc src/mi_sixop.cc $(SIXOP_TEST_OBJ)
 	@mkdir -p $(dir $@)
 	$(CXX) $(COMMON) $(OUR_WARN) -o $@ $< $(SIXOP_TEST_OBJ) -lm
 
