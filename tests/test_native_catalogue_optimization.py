@@ -160,6 +160,11 @@ def test_hot_dsp_ram_requires_bounded_runtime_and_copies_extent_at_startup():
         builder.hot_dsp_ram_configuration(True, 'continuous')
     receipt = builder.hot_dsp_ram_configuration(True, 'diagnostic')
     assert receipt['selected_bodies'] == builder.HOT_DSP_RAM_BODIES
+    assert receipt['selected_bodies'] == [
+        'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
+        'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)', 'Hall::Instance::Render',
+        'Limiter::HoldStep', 'Limiter::BoxStep', 'Limiter::TapOut', 'Limiter::Render',
+        'fm1_app_render']
     assert 'SixOp::Instance::RenderBlock' in receipt['selected_bodies']
     assert 'plaits::FMVoice::Render' in receipt['selected_bodies']
     assert 'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)' in receipt['selected_bodies']

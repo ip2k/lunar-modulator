@@ -18,9 +18,13 @@ from audit_link import Elf, audit, collect_sources
 from probe_artifact import flatten, artifact_call_payloads, artifact_stub_boundaries
 
 STATUS = 'private-expanded-native-candidate-verified-offline'
+HOT_DSP_RAM_LEGACY_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
+                             'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
+                             'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
 HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
                       'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
-                      'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
+                      'Hall::Instance::Render', 'Limiter::HoldStep', 'Limiter::BoxStep',
+                      'Limiter::TapOut', 'Limiter::Render', 'fm1_app_render']
 
 
 def validate_hot_dsp_ram_receipts(elf, verification, artifact):
@@ -37,7 +41,7 @@ def validate_hot_dsp_ram_receipts(elf, verification, artifact):
         return False
     runtime = verification.get('runtime_configuration')
     save = verification.get('project_save_service')
-    if (profile.get('selected_bodies') != HOT_DSP_RAM_BODIES or
+    if (profile.get('selected_bodies') not in (HOT_DSP_RAM_LEGACY_BODIES, HOT_DSP_RAM_BODIES) or
             profile.get('all_callees_in_ram') is not False or
             profile.get('flash_write_execution_verified') is not False or
             not isinstance(runtime, dict) or runtime.get('runtime_mode') not in
