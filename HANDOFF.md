@@ -1,3 +1,24 @@
+## Calibration provenance and compact UI integrated — 2026-10-15
+
+Goal ACTIVE; owner cold-boot audio/display acceptance FAILED; SAVE disarmed.
+Integrated inventory correction9f8b4bc1 asfbc5584a; exact local platform hash
+and upstream provenance retained, source-mutation refusal tested. Identity plus
+telemetry suites118 PASS. Independently reviewed compactUI branch through e3657775
+merged ascb2691ce; focused compact/oracle and seqUI suites PASS (6 optional skips).
+No target performance improvement claimed for UI change; matched limiter package
+remains runtime2c368975/build20f21059, unaffected by current source integration.
+Root verified pushedcb2691cecf866250689d23093be85120da24a2a6. Untrackeduv.lock untouched.
+Read-only bench refresh: ROM107, port1-1,4c4a:8057; physical image remainsf3a9.
+CPU calibration raw26-member export at scratch/cpu-rate-calibration-export:
+archive907265b9, receipt9bf9fbc2, appb03eba1a; targetsource8a8fb2b8 exacta503 replay.
+Workercodegen audit says identical fixed-loop kernels in XIP and startup-copied
+RAM; root independent exported-byte/codegen audit remains next. No frequency claim.
+Limiter worker assembles complete fresh ROM107 package at
+scratch/c0-limiter-helper-deployment; root must review/stage/check fresh paired
+reads before one-use execution. No new reset/flash/boot issued this segment.
+Next: limiter matched hardware throughput, separate CPU diagnostic measurement,
+continued bottleneck isolation. No power cycle currently needed.
+
 ## Exact schema8 policy and dependency pins — 2026-10-15
 
 Goal ACTIVE; hardware audio/display acceptance still FAILED; SAVE disarmed.
