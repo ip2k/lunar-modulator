@@ -139,12 +139,11 @@ play its parameters, four to a page (SELECT turns the page).
   cymbal, each with its own tuning, decay, drive and distortion. It is
   fm1-x0x's 808 and its code is GPL, so it is in builds with the GPL switch
   on, as Acid Bass is.
-- **Drawbar, Trio and Phase Bend**, three engines of Felucca, Leo
-  Kuroshita's firmware for the FM-1, 8 voices each: a tonewheel organ with
-  percussion, key click and a rotary speaker; three chip-style oscillators
-  with ring modulation and sync into a gritty filter; and phase distortion
-  with resonant waves. Their code is GPL, so they are in builds with the
-  GPL switch on, as the simulator is while we test.
+- **Drawbar, Trio and Phase Bend**, three Lunar engines with 8 voices each:
+  a tonewheel organ with percussion, key click and a rotary speaker; three
+  chip-style oscillators with ring modulation and sync into a gritty filter;
+  and phase distortion with resonant waves. They derive from GPL-3.0-only
+  upstream work, so they are built only when the GPL switch is on.
 
 Sophie, Drums, Comet Kit and Crater Kit play their pads from the 16 white
 keys, at any octave.
