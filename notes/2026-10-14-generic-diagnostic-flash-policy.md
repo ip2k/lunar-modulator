@@ -35,3 +35,9 @@ Date: 2026-10-14
 ## Next dependency
 
 [reported] Supply a fresh paired-read bundle and externally pinned input record for the generic adapter to exercise full prepare() without reusing the historical device-53 receipt. An independent review should then exercise the RehearsalSG shim against the exact policy API before any separate physical plan is considered.
+
+## Offline full-prepare replay (historical bytes; simulated verifier)
+
+[verified] Full prepare() wiring succeeded using the actual frozen run-5 build artifacts, exact stock baseline/reference files, independently reconstructed candidate, and retained full-image bytes SHA-256 145c0280d652b73515e01e2f1f0d88fe33344645463e89d57a2d0048c6aa4657. Input record: /home/claude/.local/share/codex-private/trio-pulse-d7000-corrected-66196-20261014/candidate/offline-replay/input-record.json, SHA-256 b72ad381d8362b95d5906ee01b47c7cdb6ca53c5f830b7a97ae24be0ba48db12. Prepared receipt SHA-256 5e6e4ab5a998a86792f8f2bffdc479e300afe426073be55f67e513377b65900a; transaction plan SHA-256 3b9cc7335cc191133ec90d6ad5bcadf15483ad39d0f30efbaa5694cd2336a192; 210 changed sectors.
+
+[reported] To preserve the production generic read verifier unchanged, this replay injected a simulated verify_read_bundle result over the retained real 145c bytes and a synthetic USB/SG mapping. It did not validate the historical device-53 transcript with the generic verifier and is not a live/fresh read or admission. The prepared transaction artifacts are offline analysis outputs only.
