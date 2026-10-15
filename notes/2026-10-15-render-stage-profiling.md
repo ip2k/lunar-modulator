@@ -63,3 +63,33 @@ reads and counter updates. This change has not yet been linked with the
 pi32v2 toolchain, measured for flash/stack overhead, or captured on hardware.
 It does not change renderer behavior intentionally, and it does not establish
 that the measured full-song workload meets its realtime deadline.
+
+## Linked candidate checkpoint
+
+[verified] Hera rebuilt 16 shards from source `7036765028d42488e5f353cd0f3e74fd98a70226`;
+all containers exited 0 without OOM, and all 167 object paths/hashes verified.
+The first private receipt collector failed after compilation with `KeyError: 15`;
+a separate verifier captured the retained inspections/logs and checked all outputs
+before container removal. Its verification receipt SHA-256 is
+`88b6acaa28e9a25d64aa139f31d11f595e1974e83c2408ee04fa4aafb554382d`.
+
+[verified] The frozen link at Hera
+`/home/claude/mvave-fm1/render-profile-link-70367650-20261015` produced an
+849,700-byte app (10,944 bytes under the D7000 limit), SHA-256
+`ce7d7dd838d54ca9b860b90d20937f2faf0f56cad500fc31f4f7e5a08c18ce28`.
+ELF SHA-256 is `ad76441f849a01409dc025621515a2777709ecc0193443c4504ce104f07bbdc4`;
+frozen receipt SHA-256 is
+`08e7c209a0871c122ad47976fb253924acbc2db8d0d6d2969c5d97aa74c596af`.
+The source tree is `83355e03a27e2de3981a20e9c755d2c2bdf78770` and the
+private frozen runner SHA-256 is
+`be1095cc0357d327830fe36bab57ef870d31949267ccb5eaaab770ecf17ed9fe`.
+
+[verified] Offline construction against retained stock backups produced target
+`52d6846a1a57c253caa6b4ab4dc927761928271a603be13383961936f8b2420b`,
+with 208 changed sectors relative to installed target `0903762167a1dd9877c190e3b67e6657cfe4c5f7227af65d327456f73f8ba4fe`.
+The prospective input template SHA-256 is
+`9417371ddb2a1fc23df9d0679d25ed6e90cb591b9c303f6967c91fe6cf18b5b5`.
+The coordinator adds an exact enabled schema-2/nine-stage receipt check because
+the generic song diagnostic policy alone also permits non-profiled builds.
+This checkpoint has not installed or booted the profiling image. SAVE remains
+disarmed and performance, physical transport acceptance and release gates remain open.

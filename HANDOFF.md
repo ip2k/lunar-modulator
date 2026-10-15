@@ -5118,3 +5118,22 @@ U46953, produced29104, max render5003.5us/64frames. Independent MIDI
 review integrated f207b6ed (GitHub SHA verified); no core defect found.
 Profiler agent owns source/telemetry changes currently in progress; do not
 stage those with this documentation checkpoint. Goal ACTIVE; SAVE disarmed.
+
+
+### Render profiling linked checkpoint (2026-10-15)
+
+Source profiling commit `70367650`, parser follow-up `97239e71`, MIDI harness
+repair `fab6c0c1` are pushed and remote-verified. Focused MIDI/input/analyzer
+regression: 39 passed. Hera 16-shard catalogue and frozen link succeeded;
+849700-byte app retains 10944 bytes of D7000 headroom. Candidate target
+`52d6846a1a57c253caa6b4ab4dc927761928271a603be13383961936f8b2420b`
+is offline only at this checkpoint. Full evidence and hashes:
+`notes/2026-10-15-render-stage-profiling.md`.
+Prospective fresh ROM67 campaign on bench01:
+`/home/claude/fm1-render-profile-70367650-20261015`, local private preparations
+`scratch/render-profile-cycle/`. Capture helper preparation/review is pending;
+do not execute until all pins/preflight/review pass. Last observed device ROM67,
+installed target remains `09037621...`. No reset or new device write has occurred.
+Next: passive 120-second profiling run after paired fresh reads, exact 208-sector
+install/readback, capture ready before one reset; analyze stage timing to fix
+sustained audio starvation. Overall installable release remains incomplete.
