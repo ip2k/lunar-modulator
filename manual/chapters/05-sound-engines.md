@@ -302,10 +302,11 @@ project's own, and plays voices you load from SysEx files (below).
 [[ALGORITHM]] steps through the voices, and the knobs shape the one you
 have chosen.
 
-Both the engine and its name are borrowed, with thanks: the engine is
-Google's msfa, and the name is that of the FM engine in hugelton's Felucca,
-open firmware for the FM-1, whose port of the same core checks FM6's sound
-in this project's tests.
+### Prior art and thanks
+
+FM6 uses Google's msfa. Its name honors the FM engine in Felucca, the open
+firmware for FM-1 by Hügelton Instruments; that project also ports the same
+core and provides a sound reference used by Lunar's tests.
 
 {{screen fm6 FM6 on its first voice, TINE EP, while a chord sounds.}}
 
