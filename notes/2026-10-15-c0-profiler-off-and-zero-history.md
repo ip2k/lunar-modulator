@@ -16,8 +16,25 @@ The install transcript has clean SG completions and SHA-256
 Independent result: `scratch/c0-profiler-off-result/independent-readback.json`.
 The sole FC0C received host=7, resid=16, info=1: ambiguous, never retried.
 Lunar native USB device104 appeared afterward. Passive capture was armed
-before reset; completion, timed recovery and rate analysis remain pending at
-this checkpoint. No notes or transport commands were sent.
+before reset. Both capture processes completed successfully (110-second
+input-only telemetry and 180-second six-channel audio), and the device returned
+automatically to mask-ROM USB device105. No notes or transport commands were
+sent.
+
+[verified: passive device telemetry] The OFF run produced 51,840 64-frame
+blocks across 109.327 seconds of device uptime: **474.173809 blocks/s** with
+**215.171001 underruns/s**. The required rate is 689.34375 blocks/s. This is
+68.786% of the required production rate, versus the matched detailed-profiler
+ON result of 464.450147 blocks/s: a 2.094% improvement. Detailed profiling
+overhead therefore does not explain most of this measured shortfall. No
+clock frequency or musical quality is established by these counter rates.
+All eleven clock and eleven PLL snapshots were constant; detailed stage/IRQ/
+engine profiling frames were absent as expected. Captured event-stream SHA:
+`83b8a0343d879ee7c701f734aee966506ceaeb1c22cc3c96c60c9e4ecbdede16`.
+Raw SysEx SHA:
+`5d47ea93df823bf74762468be190091f650e74cfc9eb98aba99b1f4ebd90f3e3`.
+Evidence: `scratch/c0-profiler-off-result/physical-capture/` and
+`scratch/c0-profiler-off-result/audio-rate-summary.json`.
 
 [verified: offline build, tests and preparation] The isolated resampler
 experiment skips FIR arithmetic only when both input and intermediate
@@ -55,6 +72,7 @@ the target. Host equivalence and timing are recorded in
 is distinct from the configured master-effect limiter.
 
 SAVE remains disarmed. Physical musical acceptance, release/installability
-and the overall goal remain incomplete. Next: finish the passive OFF capture,
-verify timed recovery, compare throughput with the matched ON run, then admit
-the next isolated experiment only through a fresh reviewed campaign.
+and the overall goal remain incomplete. Next: stage and review the isolated
+zero-history candidate, then admit it only through a new ROM105 campaign with
+fresh paired backups. ROM103 is consumed; its ambiguous reset must never be
+retried.

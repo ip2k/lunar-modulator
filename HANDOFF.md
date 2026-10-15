@@ -1,3 +1,23 @@
+## Profiler-OFF capture complete; ROM105 recovery observed — 2026-10-15
+
+[verified] Goal ACTIVE; cold-boot audio/display acceptance FAILED; SAVE disarmed.
+ROM103 campaign consumed: target1b6a0fc519d784cef96f1946a266fd7cf9d1785bb8f625a75c1a1238b447bbae
+fully read back (4096 pages), sole reset ambiguous/never retried, native104
+observed, telemetry110s rc0, audio180s rc0, timed recovery ROM105 on port1-1.
+OFF throughput474.173809 blocks/device-second and215.171001 underruns/s,
+required689.34375. MatchedON464.450147: only2.094% improvement, stillFAIL.
+Evidence/rate/clock limits: notes/2026-10-15-c0-profiler-off-and-zero-history.md.
+
+Next isolated resampler sourcea503b6ce340ab07a5efef0f1220fd144628dcad7
+is backed up on codex/c0-zero-pop-target-20261015; raw target build all16shards
+and link pass; app853928bytes, 6716bytes free. Candidatef3a9b18e3bead7171659b739545c1e191ac8724875d0b86ff3f953b021953f57
+is offline only; predicted15transitionsectors from1b6a, protectedrangesidentical.
+Worker profile_catalogue_build prepares unique boundROM105 stageable bundle;
+root must review/stage/preflight/fresh-read before any write. No launch yet.
+Other workers investigate configured Limiter exact-silence semantics and rawclock
+interpretation offline. They may not touch bench. Unrelateduv.lock untouched.
+Last pushedroot78e517cfd36ba34a21634fb22c4f9fd3e40ddcbb beforethischeckpoint.
+
 ## Exact c0 OFF candidate constructed; ROM103 installation pending — 2026-10-15
 
 [verified: file-only] Reviewed compatibility fix integrated/pushed as
