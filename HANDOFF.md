@@ -1,3 +1,18 @@
+## Latest coordinator checkpoint: fresh PLL diagnostic build ready for admission
+
+Exact a98de4c2 source built on Hera: 16/16 fresh catalogue shards pass,
+all 13 engines / 54 modules; app 853524 SHA ae07a8fa17526011bc60d2b5528ae26892422bfd079e6588ddf8cb5342038da9.
+7,120 bytes app headroom. Local private scratch/pll-snapshot-result/build;
+Hera pll-snapshot-frozen-a98de4c2-20261015. Root independently verified hashes.
+New bench BASE /home/claude/fm1-pll-a98de4c2-20261015 exact source and
+174-pin runtime verified; manifest c801ccf356ab6d847172e57afed0160cae6a418338e635f5f47f850f5b7a3b52.
+Fresh constructor/one-use campaign under offline review in scratch/pll-capture-cycle.
+No new device operations; old ROM71 campaign consumed, last passive ROM73,
+current installed 9e864776. Do not reuse old campaign.
+Goal ACTIVE: audio/SAVE/recovery/full song/web release unaccepted.
+MIDI Start/Stop/Continue implemented; exact physical Start/TRS acceptance pending.
+Unrelated untracked uv.lock untouched. More evidence in clock diagnostic note.
+
 ## Latest coordinator checkpoint: supplemental raw PLL diagnostic
 
 Source/host review adds separate schema4 startup raw reads of 0x119a0,
@@ -3202,7 +3217,7 @@ availability question remains pending; no physical-cycle request is needed now.
 ### V8 source assembly checkpoint (2026-10-12)
 
 [verified] Closed main proposal108files assembled privately, sourceclosure106
-entries plus3entryparentpins checked; recovery102exactsourcefiles checked.
+entries plus3entryparentpins checked; recovery102exact sourcefiles checked.
 Derived both fileonly stagers, not executed/staged. Public reproduction scripts
 and receipt notes/2026-10-12-v8-source-assembly/. FouractivationpinsNone; historical
 identity/assets unchanged, nohardware. Next: rebind prospective recovery pathspec/
@@ -3511,10 +3526,10 @@ Full release goal and physical migration/rollback/web/CI gates remain open.
 
 [verified] Source hashes for state_names.c, state_registry.c, project_units.c,
 mfx_host.c and fm1_app.c match the immutable production-source-v3 snapshot
-on Hera. The record call at0x2060D08 is names->known from inlined
+on Hera. The record call at 0x2060D08 is names->known from inlined
 fm1_state_note_unknown, NOT an engine note callback; this corrects the earlier
 checkpoint wording. fm1_state_names_default installs fm1_absent_find via the
-compiled pair store at0x204F5FC (r0 at+40, r1 at+44).
+compiled pair store at 0x204F5FC (r0 at+40, r1 at+44).
 
 [verified] run_quiet loads the MIDI process slot at+84 before0x2042BCC and
 sink->note_off at+4 before0x2042C20. Source mfx_sink assigns mfx_off. The latter
@@ -3524,7 +3539,7 @@ All covered caller PCs must match the exact inventory; source hashes are pinned.
 This remains conservative candidate coverage, not complete object provenance.
 
 [verified] Expansion reaches1133functions with36rules and two unresolved sites:
-mod_emit.4780 at0x203A80C and putchar_via_gadget at0x206D8E6. New and historical
+mod_emit.4780 at 0x203A80C and putchar_via_gadget at 0x206D8E6. New and historical
 r3 receipts reproduce byte-for-byte; Python compilation and whitespace checks
 pass. No physical command, runtime or firmware change. Prior verified pushed
 77ba8c2303a0ee19bd654816e749dd377eed3a5e.
@@ -3537,8 +3552,8 @@ open. Full release goal remains active; no live measurement job.
 
 [verified] New inspect-printf-construction.py and receipt bind exact all13-v3
 ELF/disassembly/inventory/source. vsnprintf is the only direct formatter entry;
-console/function-output symbols are absent. Compiled zero at0x206EA8C is stored
-to gadget.function at0x206EA9E and loaded before tail call0x206D8E6. Receipt
+console/function-output symbols are absent. Compiled zero at 0x206EA8C is stored
+to gadget.function at 0x206EA9E and loaded before tail call0x206D8E6. Receipt
 reproduction passes; changing that store is rejected even with updated input
 disassembly hash. New inspect-observer-construction.py asserts native memset
 clears38468bytes of app0x1C0EA10, covering observer30840 loaded by mod_emit.
@@ -4395,7 +4410,7 @@ The owner requires selectable earlier demos in the installer and at least one
 full-length song in the stock image. Eight source choices are retained. Event
 Horizon Showcase completed 108.8 seconds of native host playback and SAVE/reload
 without dropped events or stuck notes; owner listening/default acceptance and
-physical playback remain pending. See notes/2026-10-14-event-showcase-fullsong.md.
+physical playback remain pending. See notes/2026-10-14-event-showcase-full song.md.
 
 The actual production controller now links the all-55-module catalogue (all
 thirteen engines), Event Horizon at startup index 0 and the compact SAVE codec.
@@ -4566,7 +4581,7 @@ clipping. Integration through b3a9c34baac68b710062a02d217859fb01568ccb is verifi
 on the authorized GitHub branch. This page still exports a request; build/OTA
 connection, full-song listening/device acceptance and public release remain.
 
-Hera follow-ups use exact seeded b3a9c34b: fullsong-current-build rebuilds the
+Hera follow-ups use exact seeded b3a9c34b: full song-current-build rebuilds the
 all-55-module single-song 120-second candidate with SAVE linked/disarmed;
 preload-module-dependencies checks missing required modules in the chooser.
 Each owns a separate claim/worktree and returns a durable handoff; neither has

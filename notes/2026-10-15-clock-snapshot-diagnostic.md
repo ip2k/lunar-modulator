@@ -162,3 +162,40 @@ Diagnostic counters still fail playback throughput. Private analysis SHA-256
 `1c74ba03f179b278005b0fa1970aa46d2b5b968c6ae2ec772f0bcf1389938abe`;
 local `scratch/clock-snapshot-result/physical/audio-analysis.json`, Hera
 `/home/claude/mvave-fm1/clock-audio-9e864776-20261015/`.
+
+## Fresh supplemental diagnostic build and runtime
+
+[verified: frozen build receipts and independent artifact hashes] Exact source
+`a98de4c2f0e9d54b6ef4d09eb3e62ec72c76065c` built on Hera with a fresh
+16-shard catalogue: 16 successful exits, no OOM, 167 object receipts and
+162 retained objects. The selected profile has all thirteen engines and
+54 modules, Event Horizon startup project 0 plus its companion SET, current
+limiter/sixop optimizations, schema2 render timing, schemas3/4 raw clocks,
+and diagnostic playback once at 2s. SAVE remains disarmed.
+
+The app is 853,524 bytes against 860,644-byte expanded-d7000 capacity, leaving
+7,120 bytes. SHA-256 `ae07a8fa17526011bc60d2b5528ae26892422bfd079e6588ddf8cb5342038da9`;
+verification `7ba83c4afc28d5735ba3d703bd0a3673d42a7ee6f28a86cafb2e19d4832a37bc`;
+frozen input receipt `40d379fef645e15a1a27a904988bdcbbfa6955cd0a49b2a5f6229ce53bb95a05`.
+Private artifacts: Hera `/home/claude/mvave-fm1/pll-snapshot-frozen-a98de4c2-20261015/`,
+local `scratch/pll-snapshot-result/build/`. Successful compilation does not
+establish installation, clock frequency, playback quality or release readiness.
+
+[verified: filesystem preparation] A separate bench runtime at
+`/home/claude/fm1-pll-a98de4c2-20261015` contains the exact source checkout
+and the new recorder/decoder. Seven synthetic preparer tests passed; after
+preparation all 174 manifest file hashes independently matched. New manifest
+SHA-256 `c801ccf356ab6d847172e57afed0160cae6a418338e635f5f47f850f5b7a3b52`.
+The first ordinary-user copy could not read old root-owned tool files; the
+coordinator copied those two with sudo, then ran the preparer once successfully.
+No device command occurred during this preparation. Current installed image
+remains 9e864776; ROM73 was the last passive observation. Fresh candidate and
+read/installation/capture admission are still required.
+
+[verified: pinned vendor loader listing; inferred causal candidate] The exact
+loader calls an external initializer at 0x01e00428 after storing a parsed
+selector at 0x01c09700. Its body is outside the uploaded listing. No direct
+literal CLK_CON2 write was found in that listing, which does not exclude
+callee effects. The selector meaning, low-nibble 6 provenance and actual
+frequency remain unproven; private `scratch/loader-clock-write-trace.md`
+records exact loader/profile/disassembly identities and call sites.
