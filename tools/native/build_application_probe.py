@@ -145,6 +145,32 @@ def diagnostic_telemetry_flags(enabled):
             if receipt["compile_definition"] else [])
 
 
+def render_stage_profile_configuration(enabled):
+    if type(enabled) is not bool:
+        raise TypeError("render-stage profile option must be a bool")
+    return dict(enabled=enabled,
+                compile_definition=("LUNAR_RENDER_STAGE_PROFILE=1" if enabled else None),
+                schema=2 if enabled else None,
+                stages=["sequence_dispatch", "sound_0", "sound_1", "sound_2",
+                        "sound_3", "master_fx_0", "master_fx_1", "postmix",
+                        "display_strip"] if enabled else [],
+                hardware_tested=False)
+
+
+def validate_render_stage_profile(enabled, runtime_mode, telemetry_explicit):
+    receipt = render_stage_profile_configuration(enabled)
+    if enabled and (not telemetry_explicit or
+                    runtime_mode not in ("diagnostic", "song-diagnostic")):
+        raise ValueError("render-stage profiling requires explicit telemetry and a bounded diagnostic runtime")
+    return receipt
+
+
+def render_stage_profile_flags(enabled):
+    receipt = render_stage_profile_configuration(enabled)
+    return (["-D" + receipt["compile_definition"]]
+            if receipt["compile_definition"] else [])
+
+
 def validate_diagnostic_song_play(enabled, runtime_mode, startup_project_index,
                                   telemetry, trio_pulse):
     if type(enabled) is not bool:
@@ -349,6 +375,8 @@ def main():
                         help='Start the prepared diagnostic song once after 2s of readiness')
     parser.add_argument('--diagnostic-telemetry', action='store_true',
                         help='Opt in to bounded one-second USB-MIDI diagnostic reports; content may be prepared')
+    parser.add_argument('--render-stage-profile', action='store_true',
+                        help='Opt in to schema-2 render-stage reports; requires --diagnostic-telemetry')
     parser.add_argument('--flash-plaits-wavetables', action='store_true',
                         help='With compressed tables, retain original Plaits wave bank in flash '
                         'to recover RAM; decode Braids only when Shapes is selected')
@@ -418,6 +446,8 @@ def main():
     try:
         telemetry_receipt = validate_diagnostic_telemetry(
             telemetry_enabled, args.runtime_mode)
+        render_profile_receipt = validate_render_stage_profile(
+            args.render_stage_profile, args.runtime_mode, args.diagnostic_telemetry)
         song_play_receipt = validate_diagnostic_song_play(
             args.diagnostic_song_play, args.runtime_mode, args.startup_project_index,
             telemetry_enabled, args.diagnostic_trio_pulse)
@@ -530,6 +560,7 @@ def main():
     if args.diagnostic_song_play:
         flags += ['-DLUNAR_DIAGNOSTIC_SONG_PLAY=1']
     flags += diagnostic_telemetry_flags(telemetry_enabled)
+    flags += render_stage_profile_flags(args.render_stage_profile)
     flags += trio_diagnostic_pulse_flags(args.diagnostic_trio_pulse)
     if args.startup_set_index is not None:
         flags += ['-DLUNAR_STARTUP_SET_INDEX=' + str(args.startup_set_index)]
@@ -696,6 +727,8 @@ def main():
                   probe_return_to_rom_seconds=runtime_policy['return_to_rom_seconds'], hardware_candidate=False,
                   catalogue_source_freshness_verified=True,
                   installable=False, hardware_tested=False, elf_sha256=digest(elf))
+    if args.render_stage_profile:
+        report["render_stage_profile"] = render_profile_receipt
     if content_inputs:
         try:
             report['embedded_content'] = embedded_content_receipt(

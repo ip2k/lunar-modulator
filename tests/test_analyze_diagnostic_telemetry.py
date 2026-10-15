@@ -29,6 +29,9 @@ def row(elapsed, data, *, event="diagnostic_frame", **extra):
     }
     if event == "diagnostic_frame":
         item["values"] = data
+    elif event == "render_profile_frame":
+        item["schema"] = 2
+        item["values"] = data
     item.update(extra)
     return json.dumps(item, separators=(",", ":"))
 
@@ -130,8 +133,44 @@ def test_rejects_missing_extra_duplicate_and_malformed_schema_rows():
         analyzer.analyze_jsonl([duplicate])
     with pytest.raises(ValueError, match="invalid JSON"):
         analyzer.analyze_jsonl(["{broken"])
-    with pytest.raises(ValueError, match="no diagnostic_frame"):
+    with pytest.raises(ValueError, match="no diagnostic or render_profile"):
         analyzer.analyze_jsonl([row(0, {}, event="unrelated_message")])
+
+
+def test_profile_frames_are_separate_bounded_observations_and_allow_wrap():
+    first = {name: 0 for name in codec.PROFILE_FIELDS}
+    second = {name: 0 for name in codec.PROFILE_FIELDS}
+    first["uptime_ms"] = 1000
+    first["sound_0_window_ticks"] = 0xFFFFFFF0
+    first["sound_0_max_ticks"] = 2400
+    first["sound_0_calls"] = 500
+    second["uptime_ms"] = 2000
+    second["sound_0_window_ticks"] = 24
+    second["sound_0_max_ticks"] = 3600
+    second["sound_0_calls"] = 10
+    report = analyzer.analyze_jsonl([
+        row(0, first, event="render_profile_frame"),
+        row(1, values(audio_underruns=4)),
+        row(2, second, event="render_profile_frame"),
+    ])
+    assert report["diagnostic_frame_count"] == 1
+    assert report["render_profile_frame_count"] == 2
+    assert report["render_profiles"][0]["stages"]["sound_0"] == {
+        "window_ticks": 0xFFFFFFF0, "window_us": 0xFFFFFFF0 / 24,
+        "max_ticks": 2400, "max_us": 100, "calls": 500,
+    }
+    assert report["render_profiles"][1]["stages"]["sound_0"]["window_ticks"] == 24
+    assert report["render_profiles"][1]["elapsed_since_previous_profile_seconds"] == 2
+
+
+def test_profile_rejects_unknown_or_non_uint32_values():
+    good = {name: 0 for name in codec.PROFILE_FIELDS}
+    altered = dict(good, made_up=1)
+    with pytest.raises(ValueError, match="exactly schema-2 fields"):
+        analyzer.analyze_jsonl([row(0, altered, event="render_profile_frame")])
+    altered = dict(good, sound_0_calls=True)
+    with pytest.raises(ValueError, match="sound_0_calls must be a uint32"):
+        analyzer.analyze_jsonl([row(0, altered, event="render_profile_frame")])
 
 
 class _Clock:

@@ -28,6 +28,7 @@ static uint32_t lunar_selected_startup_project_index = LUNAR_STARTUP_PROJECT_IND
 #include "instance_pool.h"
 #include "midi_input.h"
 #include "midi_diagnostic_readout.h"
+#include "render_stage_profile.h"
 #ifdef LUNAR_DIAGNOSTIC_TRIO_PULSE
 #include "trio_diagnostic_pulse.h"
 #endif
@@ -113,6 +114,22 @@ static lunar_project_save_service save_service = {
 #endif
 static volatile uint32_t render_ticks_max, draw_ticks_max;
 static volatile uint32_t initial_engine_result;
+#ifdef LUNAR_RENDER_STAGE_PROFILE
+typedef struct {
+    uint32_t ticks, maximum, calls;
+} lunar_profile_stage_t;
+static lunar_profile_stage_t lunar_profile_window[LUNAR_RENDER_PROFILE_STAGE_COUNT];
+uint32_t lunar_profile_ticks(void) { return fm1_ticks(); }
+void lunar_profile_finish(unsigned stage, uint32_t start_ticks)
+{
+    if (stage >= LUNAR_RENDER_PROFILE_STAGE_COUNT) return;
+    uint32_t elapsed = fm1_ticks() - start_ticks;
+    lunar_profile_stage_t *sample = &lunar_profile_window[stage];
+    sample->ticks += elapsed;
+    if (elapsed > sample->maximum) sample->maximum = elapsed;
+    ++sample->calls;
+}
+#endif
 
 static void app_audio(int32_t *out, uint32_t n)
 {
@@ -142,9 +159,10 @@ static void refill_audio(void)
 
 static void display_strip(uint32_t *row)
 {
-    if (!fm1_tft_pixels_valid(&app.tft)) return;
+    LUNAR_PROFILE_START(profile_start);
+    if (!fm1_tft_pixels_valid(&app.tft)) goto done;
     if (lcd_busy) {
-        if (!(FM1_LCD_SPI_CON & 0x8000u)) return;
+        if (!(FM1_LCD_SPI_CON & 0x8000u)) goto done;
         lcd_sync();
     }
     /* DMA reads cv_px, never the framebuffer that the app can redraw. */
@@ -152,6 +170,8 @@ static void display_strip(uint32_t *row)
         cv_px[i] = swap16(fm1_tft_pixel(&app.tft, *row * 240u + i));
     lcd_blit(0, *row, 240, 16, cv_px);
     *row = (*row + 16u) % 240u;
+done:
+    LUNAR_PROFILE_FINISH(LUNAR_PROFILE_DISPLAY_STRIP, profile_start);
 }
 
 volatile uint32_t lunar_midi_usb_messages __attribute__((used));
@@ -253,6 +273,41 @@ static void diagnostic_report(void)
     lunar_diagnostic_packets(packets, values);
     for (unsigned i = 0; i < LUNAR_DIAGNOSTIC_PACKETS; ++i)
         midi_out_event(packets[i]);
+}
+
+#ifdef LUNAR_RENDER_STAGE_PROFILE
+static void diagnostic_profile_report(void)
+{
+    static uint32_t last_report;
+    static uint32_t values[LUNAR_PROFILE_FIELDS];
+    uint32_t now = fm1_ms;
+    if ((uint32_t)(now - last_report) < 1000u) return;
+    if (!usb.config || mo_w - mo_r > MQ - LUNAR_PROFILE_PACKETS) return;
+    values[0] = now;
+    for (unsigned i = 0; i < LUNAR_RENDER_PROFILE_STAGE_COUNT; ++i) {
+        values[1u + 3u * i] = lunar_profile_window[i].ticks;
+        values[2u + 3u * i] = lunar_profile_window[i].maximum;
+        values[3u + 3u * i] = lunar_profile_window[i].calls;
+    }
+    for (unsigned i = 0; i < LUNAR_PROFILE_PACKETS; ++i)
+        midi_out_event(lunar_profile_packet(values, i));
+    memset(lunar_profile_window, 0, sizeof lunar_profile_window);
+    last_report = now;
+}
+#endif
+
+/* Both frames share the same USB-MIDI ring. In profile builds each is about
+ * one second apart from itself, but they occupy alternating one-second slots
+ * so the 50-packet profile frame cannot be perpetually crowded out by the
+ * 27-packet compatibility report. */
+static void diagnostic_reports(void)
+{
+#ifdef LUNAR_RENDER_STAGE_PROFILE
+    if (((fm1_ms / 1000u) & 1u) == 0u) diagnostic_report();
+    else diagnostic_profile_report();
+#else
+    diagnostic_report();
+#endif
 }
 #endif
 
@@ -408,7 +463,7 @@ static void app_main(void)
         }
         incoming_midi();
 #ifdef LUNAR_DIAGNOSTIC_TELEMETRY
-        diagnostic_report();
+        diagnostic_reports();
 #endif
 #ifdef LUNAR_PROJECT_SAVE_SERVICE
         (void)lunar_project_save_service_poll(&save_service, &app);

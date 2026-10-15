@@ -2,6 +2,7 @@
  * MIT licence, like the rest of this repository.
  */
 #include "fm1_app.h"
+#include "render_stage_profile.h"
 
 #include <limits.h>
 #include <math.h>
@@ -3326,7 +3327,9 @@ static void seq_flush(fm1_app_t *a);
 static void sink_render(void *ctx, float *lr, uint32_t n) {
   const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
   const fm1_app_unit_t *u = sound_of(c->a, c->sound);
+  LUNAR_PROFILE_START(profile_start);
   u->e->render(u->self, lr, n);
+  LUNAR_PROFILE_FINISH(LUNAR_PROFILE_SOUND_0 + (unsigned)c->sound, profile_start);
 }
 
 static void sink_note_on(void *ctx, uint8_t note, uint8_t velocity) {
@@ -3446,13 +3449,19 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
   if (a->seq) {
     /* With modulation the runtime's ticks run inside the block at their
      * own frames, each sound unit split where a tick writes to it. */
+    LUNAR_PROFILE_START(profile_start);
     seq_flush(a);
     a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);
     fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS,
                                       a->mod ? &a->mod_glue.hook : NULL);
+    LUNAR_PROFILE_FINISH(LUNAR_PROFILE_SEQ_DISPATCH, profile_start);
   } else {
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
-      if (slot[k].sink) sound_of(a, k)->e->render(sound_of(a, k)->self, a->mix[k], n);
+      if (slot[k].sink) {
+        LUNAR_PROFILE_START(profile_start);
+        sound_of(a, k)->e->render(sound_of(a, k)->self, a->mix[k], n);
+        LUNAR_PROFILE_FINISH(LUNAR_PROFILE_SOUND_0 + (unsigned)k, profile_start);
+      }
     }
   }
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
@@ -3462,7 +3471,9 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
     for (int j = 0; j < FM1_APP_INSERTS; ++j) {
       const int iu = fm1_app_insert_unit(k, j);
       if (a->unit[iu].e) {
+        LUNAR_PROFILE_START(profile_start);
         render_fx(a, iu, b, n);
+        LUNAR_PROFILE_FINISH(LUNAR_PROFILE_SOUND_0 + (unsigned)k, profile_start);
         if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k + 1u + (unsigned)j, b, n);
       }
     }
@@ -3491,10 +3502,15 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS, out, n);   /* the Mix */
   for (int u = 1; u <= FM1_APP_FX_SLOTS; ++u) {   /* the master bus, after the mix */
     if (a->unit[u].e) {
+      LUNAR_PROFILE_START(profile_start);
       render_fx(a, u, out, n);
+      LUNAR_PROFILE_FINISH(LUNAR_PROFILE_MASTER_FX_0 + (unsigned)(u - 1), profile_start);
       if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + (unsigned)u, out, n);
     }
   }
+  /* Postmix excludes sound engines/inserts and master FX. It includes the
+   * remaining output processing and UI bookkeeping in this render call. */
+  LUNAR_PROFILE_START(profile_postmix_start);
   if (a->mod) apply_amp(a, out, n);
   /* The metronome's click (O11), from the block's events, as fm1-render
    * adds it: after the effects, before the limiter. */
@@ -3548,6 +3564,7 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   }
   update_leds(a);
   if (a->edit) fm1_edit_block_end(a);    /* module outputs' extremes, when subscribed */
+  LUNAR_PROFILE_FINISH(LUNAR_PROFILE_POSTMIX, profile_postmix_start);
   return out;
 }
 
