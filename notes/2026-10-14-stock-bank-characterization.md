@@ -2,7 +2,7 @@
 
 ## Decision
 
-[verified] A read-only scan of the locally retained historical FM-1_092 archive shows that VM and USR are not uniformly erased. VM has non-erased bytes in two sectors, while USR has dense non-erased data across ten sectors and partial non-erased content in two more. The scan supports treating both reservations as opaque stock state. It does not identify records, settings, presets, or ownership, and it does not authorize reuse of even sectors that read as all `0xFF`.
+[verified] A read-only scan of the locally retained historical FM-1_092 archive shows that VM and USR are not uniformly erased. VM has non-erased bytes in two sectors, while USR has nine wholly non-erased sectors and one partially non-erased sector. The scan supports treating both reservations as opaque stock state. It does not identify records, settings, presets, or ownership, and it does not authorize reuse of even sectors that read as all `0xFF`.
 
 [inferred] Erased sectors within a named VM/USR reservation may be free space in a stock allocator, erased log pages, or unused padding. Without the matching stock allocator/format and a version-matched semantic parser, a static all-`0xFF` observation cannot distinguish those cases or prove the stock firmware will not later use the sector.
 
@@ -46,7 +46,7 @@ All addresses are flash offsets, with half-open sector ranges. “Non-FF count�
 | Reservation | 4 KiB sectors observed | Aggregate observation | What it establishes |
 |---|---|---|---|
 | VM `[0xD9000,0xE9000)` | `[0xD9000,0xDA000)`: 142 non-FF bytes, 75 distinct byte values; `[0xDA000,0xE8000)`: fourteen consecutive sectors all `0xFF`; `[0xE8000,0xE9000)`: 213 non-FF bytes, 87 distinct byte values | 14/16 sectors all `0xFF`; 2 sectors have sparse non-FF bytes | Two concrete sectors contain structured-looking bytes; the two endpoint sectors are not erased. The middle erased run does not prove it is reclaimable. |
-| USR `[0xEA000,0xFC000)` | `[0xEA000,0xF2000)`: eight sectors each have 4,096 non-FF bytes and 106–109 distinct byte values; `[0xF2000,0xFA000)`: eight consecutive sectors all `0xFF`; `[0xFA000,0xFB000)`: 11 non-FF bytes, 11 distinct values; `[0xFB000,0xFC000)`: 3,594 non-FF bytes, 61 distinct values | 8/18 sectors all `0xFF`; 10 are wholly non-FF and 2 are partial | USR is materially populated. The initial dense run and non-FF tail are consistent with serialized records/metadata, but no schema is proven. The erased run is not ownership evidence. |
+| USR `[0xEA000,0xFC000)` | `[0xEA000,0xF2000)`: eight sectors each have 4,096 non-FF bytes and 106–109 distinct byte values; `[0xF2000,0xFA000)`: eight consecutive sectors all `0xFF`; `[0xFA000,0xFB000)`: 4,096 non-FF bytes, 11 distinct values; `[0xFB000,0xFC000)`: 3,594 non-FF bytes, 61 distinct values | 8/18 sectors all `0xFF`; 9 are wholly non-FF and 1 is partial | USR is materially populated. The initial dense run and non-FF tail are consistent with serialized records/metadata, but no schema is proven. The erased run is not ownership evidence. |
 
 Adjacent BTIF `[0xE9000,0xEA000)` contains 10 non-FF bytes in this archive. The unnamed globals gap `[0xFC000,0xFF000)` is all `0xFF` in this historical copy. Neither observation changes their protected/unnamed status or admits them for storage.
 
@@ -68,3 +68,7 @@ The most direct next offline gate is a version-matched parser/allocator analysis
 ## Scope and limits
 
 Read-only analysis of local files and source. No device, USB, MIDI, flash, power, reboot, network transfer, or code build/test was performed. The existing backup verification receipt is prior evidence; the only new check here was local size/hash matching plus the aggregate sector scan. Serena/Rarefaction were not used for binary-sector characterization; prior worktree notes report their configured roots point at the primary checkout, so no shared project selection was changed. Other concurrent worktree changes were left untouched; this task owns only this note.
+
+## Correction — 2026-10-15
+
+[verified] Recounting both matching original full images confirms that sector `0xFA000` contains 4,096 non-FF bytes with 11 distinct values. The original prose confused these counts. Full VM+USR contain 40,813 non-FF bytes; the five-sector tail `[0xF7000,0xFC000)` contains 7,690. Exact-byte compression results and remaining migration barriers are recorded in `notes/2026-10-15-storage-ownership-source-review.md`. No device operation was performed.
