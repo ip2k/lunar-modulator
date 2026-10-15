@@ -80,3 +80,26 @@ bench filesystem hash and preceding ROM111 install result independently agree:
 Prior result:210sectors, simulatedfalse, full verified hash as above. Retained
 result at scratch/current-stage7-independent-review/preceding-rom111-install-session-result.json.
 This is historical evidence only; no fresh ROM113 admission or USB/reset/write.
+
+## Private evidence integration
+
+[verified: source/host] Reviewed ed6adc5f and corrective81858558, including
+actual worker mounts, original receipt/link order, eleven generated inputs,
+pre-read file/aggregate bounds, and canonical path rejection. Integrated as
+2e470147 and0fe454aea992a663d047410208eb56866dfd2eb7; remote matched exactHEAD.
+Combined selection/service/trusted-package suite135passed,14skipped because
+private retained package fixtures are unavailable on this Mac (plus explicit
+optional gates), one Starlette/httpx deprecation. No actual package composition
+was established. Assigned retained-fixture verification on Hera; new service
+receipt optimization/namespace/runtime compatibility needs a separate adapter.
+
+[verified: host] Root reran corrected runtime export/bound-ROM113 package suite:
+14passed. Private Hall preparation now coherently pins its10raw outputs and
+source exports. It is not the newly built stage7 image; that sibling package
+is assigned separately and remains non-admissible until fresh-read checks.
+No device command/write/reset this segment. Overall audio/release unfinished.
+
+[review limit] Returning evidence in memory is bounded per job512MiB but the
+private service can retain64completed records. Before production deployment,
+use a service-wide retention budget or private on-disk evidence handles; current
+per-file/aggregate limits do not establish a suitable process memory ceiling.
