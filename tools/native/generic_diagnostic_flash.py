@@ -402,7 +402,9 @@ def _check_build(record, app, elf, disassembly):
             verification.get("installable") is not False or verification.get("hardware_tested") is not False or
             verification.get("hardware_candidate") is not False):
         raise ValueError("Build freshness/layout/admission contract differs")
-    return verification, artifact, frozen, frozen_raw, song_profile
+    hot_dsp_ram = expanded_candidate.validate_hot_dsp_ram_receipts(
+        elf, verification, artifact)
+    return verification, artifact, frozen, frozen_raw, song_profile, hot_dsp_ram
 
 def prepare(output, input_record_path, input_record_sha256, *, now=None):
     """Validate exact private artifacts and seal one offline transaction plan.
@@ -465,10 +467,12 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
     app = _file(build["app_path"], build["app_sha256"])
     elf = _file(build["elf_path"], build["elf_sha256"])
     disassembly = _file(build["disassembly_path"], build["disassembly_sha256"])
-    verification, artifact, frozen, frozen_raw, song_profile = _check_build(record, app, elf, disassembly)
+    verification, artifact, frozen, frozen_raw, song_profile, hot_dsp_ram = _check_build(record, app, elf, disassembly)
     rebuilt, expected_candidate_receipt = expanded_candidate.construct(
         stock_a, stock_b, stock_manifest, stock_identity, reference, app, elf,
-        "fixed-loader", disassembly.decode("utf-8"), "combined", "expanded-d7000")
+        "fixed-loader", disassembly.decode("utf-8"), "combined", "expanded-d7000",
+        hot_dsp_ram=hot_dsp_ram,
+        hot_dsp_ram_receipt=dict(verification=verification, artifact=artifact))
     if (rebuilt != target or candidate_receipt != expected_candidate_receipt or
             candidate_receipt.get("target_sha256") != digest(target)):
         raise ValueError("Candidate bytes/receipt differ from independent reconstruction")

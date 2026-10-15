@@ -1,3 +1,21 @@
+## Coordinator checkpoint: fresh hot-RAM build and offline target checks passed
+
+Exact e85a42f3 source built on Hera:16/16 fresh shards and link passed; original
+v3 frozen receipt retained under scratch/hot-ram-result. App852928 SHA
+8e74b08991959e5d1b36f80b878227568ac6d25b9e9f229836b3f5680cccbc00;
+ELF8bfd4577643e48e98a384f05cdf78feafa8b988370280a941e5e9e69722756b0.
+Actual selected RAM bodies3196bytes, startup copy/flat mapping independently
+reviewed; transitive callees remain possibly XIP. No physical performance claim.
+Candidate checker now explicitly validates RAM receipts; adapter/boot source
+pins updated including candidate dependency. Coordinator90+49 focused tests pass.
+Fresh established-schema compatibility receipt and new one-use campaign pending.
+Private reviews under scratch/native-hot-dsp-ram. Passive bench lsusb:ROM75 and
+KA6dev51 present. OldROM73 campaign consumed; installed864445bea remains.
+Goal ACTIVE: audio/SAVE/recovery/full-song/web release unaccepted. MIDI FA/FC/FB
+USB/TRS implemented; exact physical FA rewind/TRS acceptance still pending.
+Unrelated uv.lock untouched. This checkpoint is backed up immediately; inspect
+Git for exact commit/remote SHA. Hera hot-dsp claim still owned by coordinator.
+
 ## Coordinator checkpoint: hot DSP RAM source reviewed; fresh Hera build next
 
 Opt-in bounded diagnostic moves selected SixOp, Hall, limiter and app render

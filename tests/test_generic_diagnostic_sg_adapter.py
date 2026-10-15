@@ -105,7 +105,7 @@ def test_wrong_stable_port_refuses_before_injected_transport(tmp_path, monkeypat
 
 def test_changed_source_pin_refuses_before_factory(tmp_path, monkeypatch):
     policy, *_ = setup_policy(tmp_path, monkeypatch)
-    monkeypatch.setitem(adapter.SOURCE_SHA256, "expanded_sg.py", "0" * 64)
+    monkeypatch.setitem(adapter.SOURCE_SHA256, "expanded_candidate.py", "0" * 64)
     called = []
     with pytest.raises(ValueError, match="Reviewed adapter dependency changed"):
         adapter.bind(policy, policy_module=policy_module,

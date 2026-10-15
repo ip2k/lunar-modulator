@@ -14,15 +14,59 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'jieli'))
 import raw_flash_profile as raw
 import expanded_flash_profile as expanded
 from build_raw_diagnostic import _emit_private
-from audit_link import audit, collect_sources
+from audit_link import Elf, audit, collect_sources
 from probe_artifact import flatten, artifact_call_payloads, artifact_stub_boundaries
 
 STATUS = 'private-expanded-native-candidate-verified-offline'
+HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'Hall::Instance::Render',
+                      'Limiter::Render', 'fm1_app_render']
+
+
+def validate_hot_dsp_ram_receipts(elf, verification, artifact):
+    """Bind the RAM section to exact linked receipts and the bounded runtime."""
+    profile = verification.get('hot_dsp_ram') if isinstance(verification, dict) else None
+    enabled = profile.get('enabled') if isinstance(profile, dict) else None
+    if (type(enabled) is not bool or not isinstance(artifact, dict) or
+            artifact.get('hot_dsp_ram') is not enabled):
+        raise ValueError('Explicit matching hot DSP RAM build and artifact receipts required')
+    if not enabled:
+        if profile != dict(enabled=False, selected_bodies=[], all_callees_in_ram=False,
+                           flash_write_execution_verified=False, extent=None):
+            raise ValueError('Disabled hot DSP RAM receipt is malformed')
+        return False
+    runtime = verification.get('runtime_configuration')
+    save = verification.get('project_save_service')
+    if (profile.get('selected_bodies') != HOT_DSP_RAM_BODIES or
+            profile.get('all_callees_in_ram') is not False or
+            profile.get('flash_write_execution_verified') is not False or
+            not isinstance(runtime, dict) or runtime.get('runtime_mode') not in
+            ('diagnostic', 'song-diagnostic') or runtime.get('return_to_rom_seconds') != 120 or
+            not isinstance(save, dict) or save.get('linked') is not True or
+            any(save.get(key) is not False for key in (
+                'storage_admitted', 'flash_io_bound', 'save_service_armed',
+                'runtime_verified', 'hardware_tested'))):
+        raise ValueError('Hot DSP RAM requires bounded diagnostic runtime and disarmed SAVE')
+    extent = profile.get('extent')
+    if not isinstance(extent, dict) or set(extent) != {
+            'section', 'start', 'end', 'bytes', 'flash_load'}:
+        raise ValueError('Exact hot DSP RAM extent receipt required')
+    image = Elf(elf)
+    sections = [row for row in image.sections if row['name'] == '.ram_dsp']
+    start, end, load = (image.symbol_value(name) for name in ('_rd_start', '_rd_end', '_rd_load'))
+    expected = (dict(section='.ram_dsp', start='0x%08x' % start,
+                     end='0x%08x' % end, bytes=end - start,
+                     flash_load='0x%08x' % load)
+                if start is not None and end is not None and load is not None else None)
+    if (len(sections) != 1 or expected != extent or start != sections[0]['addr'] or
+            end - start != sections[0]['size'] or not 0x01C00000 <= start < end <= 0x01C06000):
+        raise ValueError('Hot DSP RAM receipt differs from linked ELF extent')
+    return True
 
 
 def construct(baseline_a, baseline_b, manifest, identity, reference, app, elf,
               baseline_profile, disassembly='', ram_layout='combined',
-              flash_layout='expanded-d9000'):
+              flash_layout='expanded-d9000', hot_dsp_ram=False,
+              hot_dsp_ram_receipt=None):
     """Recompute each gate; caller receipts cannot substitute for checked bytes."""
     validators = {'recorded-original-loader': raw.profile_dump,
                   'fixed-loader': raw.profile_dump_fixed_loader}
@@ -30,7 +74,20 @@ def construct(baseline_a, baseline_b, manifest, identity, reference, app, elf,
         raise ValueError('Explicit supported backup provenance required')
     area_end = expanded.area_end(flash_layout)
     profile = validators[baseline_profile](baseline_a, baseline_b, manifest, identity, reference)
-    image, reconstructed = flatten(elf, ram_layout, flash_layout)
+    if type(hot_dsp_ram) is not bool:
+        raise TypeError('hot_dsp_ram must be a bool')
+    if hot_dsp_ram:
+        if not isinstance(hot_dsp_ram_receipt, dict):
+            raise ValueError('Hot DSP RAM requires linked build and artifact receipts')
+        if not validate_hot_dsp_ram_receipts(
+                elf, hot_dsp_ram_receipt.get('verification'),
+                hot_dsp_ram_receipt.get('artifact')):
+            raise ValueError('Hot DSP RAM profile is not enabled in its receipts')
+    elif hot_dsp_ram_receipt is not None and validate_hot_dsp_ram_receipts(
+            elf, hot_dsp_ram_receipt.get('verification'),
+            hot_dsp_ram_receipt.get('artifact')):
+        raise ValueError('Hot DSP RAM ELF requires explicit candidate selection')
+    image, reconstructed = flatten(elf, ram_layout, flash_layout, hot_dsp_ram)
     if app != reconstructed:
         raise ValueError('Application differs from independently reconstructed ELF')
     link = audit([('native-probe.elf', image)], [('app.bin', app)], True,
@@ -50,6 +107,7 @@ def construct(baseline_a, baseline_b, manifest, identity, reference, app, elf,
                    baseline_sha256=raw.digest(baseline_a), elf_sha256=raw.digest(elf),
                    disassembly_sha256=raw.digest(disassembly.encode()), link_audit=link,
                    ram_layout=ram_layout, flash_layout=flash_layout,
+                   hot_dsp_ram=hot_dsp_ram,
                    target_bytes=len(target), allowed_sectors=sectors,
                    protected_ranges=[[0, raw.APP_BASE], [area_end, raw.FLASH_BYTES]],
                    writable_ranges=[[offset, offset + 4096] for offset in sectors],
@@ -68,13 +126,25 @@ def main():
     parser.add_argument('--baseline-profile', choices=('recorded-original-loader', 'fixed-loader'), required=True)
     parser.add_argument('--ram-layout', choices=('legacy', 'combined'), default='combined')
     parser.add_argument('--flash-layout', choices=tuple(expanded.AREA_ENDS), default='expanded-d9000')
+    parser.add_argument('--hot-dsp-ram', action='store_true')
+    parser.add_argument('--verification', type=Path)
+    parser.add_argument('--artifact', type=Path)
     parser.add_argument('--objdump', required=True, help='vendor pi32v2 objdump executable')
     args = parser.parse_args()
     decoded = subprocess.check_output([args.objdump, '-d', '-mcpu=r3', str(args.elf)], text=True)
+    ram_receipt = None
+    if args.verification is not None or args.artifact is not None:
+        if args.verification is None or args.artifact is None:
+            parser.error('--verification and --artifact must be supplied together')
+        ram_receipt = dict(verification=json.loads(args.verification.read_bytes()),
+                           artifact=json.loads(args.artifact.read_bytes()))
+    if args.hot_dsp_ram and ram_receipt is None:
+        parser.error('--hot-dsp-ram requires --verification and --artifact')
     target, receipt = construct(args.baseline_a.read_bytes(), args.baseline_b.read_bytes(),
                                json.loads(args.manifest.read_bytes()), json.loads(args.identity.read_bytes()),
                                args.reference, args.app.read_bytes(), args.elf.read_bytes(),
-                               args.baseline_profile, decoded, args.ram_layout, args.flash_layout)
+                               args.baseline_profile, decoded, args.ram_layout, args.flash_layout,
+                               args.hot_dsp_ram, ram_receipt)
     print(json.dumps(_emit_private(args.out, target, receipt, STATUS), sort_keys=True))
 
 

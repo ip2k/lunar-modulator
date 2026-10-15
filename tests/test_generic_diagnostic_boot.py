@@ -221,6 +221,6 @@ def test_real_source_pins_and_tamper_refusal(tmp_path, monkeypatch):
         path.write_bytes((boot.ROOT / name).read_bytes())
     monkeypatch.setattr(boot, "ROOT", tmp_path)
     boot._source_evidence()
-    (tmp_path / "native/generic_diagnostic_flash.py").write_bytes(b"tampered")
+    (tmp_path / "native/expanded_candidate.py").write_bytes(b"tampered")
     with pytest.raises(ValueError, match="Reviewed install/reset source changed"):
         boot._source_evidence()

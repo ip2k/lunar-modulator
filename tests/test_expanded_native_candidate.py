@@ -11,12 +11,39 @@ from tests.test_native_probe_artifact import fixture
 from tests.test_raw_flash_profile import sample  # noqa: F401
 
 
-def inputs(s, size=128, layout='combined'):
-    elf = fixture(text_size=size)
-    _, app = candidate.flatten(elf, layout, 'expanded-d9000')
+def inputs(s, size=128, layout='combined', hot_dsp_ram=False):
+    elf = fixture(text_size=size, hot_dsp_ram=hot_dsp_ram)
+    _, app = candidate.flatten(elf, layout, 'expanded-d9000', hot_dsp_ram)
     return dict(baseline_a=s['baseline'], baseline_b=s['baseline'], manifest=copy.deepcopy(s['manifest']),
                 identity=copy.deepcopy(s['identity']), reference=s['reference'], app=app, elf=elf,
                 baseline_profile='recorded-original-loader', ram_layout=layout)
+
+
+def hot_dsp_receipt(elf, *, runtime='song-diagnostic', save_armed=False,
+                    artifact_enabled=True, body_list=None, extent_override=None):
+    image = candidate.Elf(elf)
+    start, end, load = (image.symbol_value(name) for name in
+                        ('_rd_start', '_rd_end', '_rd_load'))
+    extent = dict(section='.ram_dsp', start='0x%08x' % start,
+                  end='0x%08x' % end, bytes=end - start,
+                  flash_load='0x%08x' % load)
+    if extent_override is not None:
+        extent = extent_override
+    return dict(
+        verification=dict(
+            hot_dsp_ram=dict(enabled=True,
+                             selected_bodies=(candidate.HOT_DSP_RAM_BODIES if body_list is None
+                                              else body_list),
+                             all_callees_in_ram=False,
+                             flash_write_execution_verified=False,
+                             extent=extent),
+            runtime_configuration=dict(runtime_mode=runtime,
+                                       return_to_rom_seconds=120),
+            project_save_service=dict(
+                linked=True, storage_admitted=False, flash_io_bound=False,
+                save_service_armed=save_armed, runtime_verified=False,
+                hardware_tested=False)),
+        artifact=dict(hot_dsp_ram=artifact_enabled))
 
 
 @pytest.mark.parametrize('layout', ['legacy', 'combined'])
@@ -70,6 +97,32 @@ def test_expanded_candidate_refuses_unbound_or_unsafe_inputs(sample, kind):
         args['baseline_a'] = args['baseline_b'] = bytes(b)
     with pytest.raises((ValueError, IndexError)):
         candidate.construct(**args)
+
+
+def test_expanded_candidate_hot_dsp_ram_requires_matching_verified_receipts(sample):
+    args = inputs(sample, hot_dsp_ram=True)
+    with pytest.raises(ValueError, match='requires linked build and artifact receipts'):
+        candidate.construct(**args, hot_dsp_ram=True)
+    with pytest.raises(ValueError, match='Hot DSP RAM ELF requires explicit candidate selection'):
+        candidate.construct(**args, hot_dsp_ram_receipt=hot_dsp_receipt(args['elf']))
+    target, receipt = candidate.construct(
+        **args, hot_dsp_ram=True, hot_dsp_ram_receipt=hot_dsp_receipt(args['elf']))
+    assert receipt['hot_dsp_ram'] is True
+    assert receipt['elf_verified'] and receipt['link_audit']['passed']
+    assert target[0xD9000:] == sample['baseline'][0xD9000:]
+
+
+@pytest.mark.parametrize('fault', ['artifact-off', 'runtime', 'save', 'body', 'extent'])
+def test_expanded_candidate_hot_dsp_ram_rejects_receipt_mismatch(sample, fault):
+    args = inputs(sample, hot_dsp_ram=True)
+    receipt = hot_dsp_receipt(args['elf'])
+    if fault == 'artifact-off': receipt['artifact']['hot_dsp_ram'] = False
+    elif fault == 'runtime': receipt['verification']['runtime_configuration']['runtime_mode'] = 'continuous'
+    elif fault == 'save': receipt['verification']['project_save_service']['save_service_armed'] = True
+    elif fault == 'body': receipt['verification']['hot_dsp_ram']['selected_bodies'] = ['fm1_app_render']
+    else: receipt['verification']['hot_dsp_ram']['extent']['bytes'] += 4
+    with pytest.raises(ValueError):
+        candidate.construct(**args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
 
 
 @pytest.mark.parametrize('layout', ['legacy', 'combined'])
