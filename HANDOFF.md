@@ -4974,3 +4974,7 @@ scratch/trio61-usbmon-cycle is not yet reviewed or admitted; do not execute
 until its hash-bound helper/runner pass review and file-only preflight.
 Analyzer f4aa1200 is committed/pushed/SHA-verified with17 focused tests passing.
 Goal ACTIVE; SAVE and physical/recovery/installer/release gates stay open.
+
+## ROM61 subscribed diagnostic live — 2026-10-15
+
+[verified] Compression sector corrections/capacity findings are pushed as214e8443. Reviewed private capture helper1c42f4d5 and runnercf1435b4 staged with matching bench hashes/file-only preflight;45 combined tests pass. ROM61 runner terminal79970 now live, FRESH_READ_START. Poll same handle; never repeat consumed cycle. Private base /home/claude/fm1-trio-subscribed-midi-9ec846-20261015. No flash programming; fresh dual reads then soleFC0C and150s subscribed MIDI/audio/USB trace. Outcome unproven. Native60 prior WAV zero clipping; early auto signal, later stimulus windows near noise. Host-only compressed archive codec under development, no physical placement/SAVE admission. Full goal ACTIVE.
