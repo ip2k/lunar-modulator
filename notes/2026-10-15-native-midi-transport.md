@@ -149,3 +149,15 @@ render stages, fix the measured bottleneck, then repeat physical transport
 and full-song acceptance with explicit state evidence where needed. Private
 measurement files: scratch/song-midi-transport-result/; Hera audio and
 analysis: /home/claude/mvave-fm1/transport-audio-6d971bf-20261015/.
+
+## Direct song-position regression
+
+[verified: host] The app transport harness now runs a real two-scene song
+through the shared transport API. It checks Start at entry zero, a sounding
+sequencer gate released by Stop, unchanged master tick/song position across
+32 rendered blocks while stopped, Continue retaining its saved position, and
+Start rewinding from the second entry. Existing saturated-FIFO ordering checks
+remain. Focused app/USB/UART ingress and realtime parser suites passed 22 tests;
+the coordinator independently reran the modified app harness successfully.
+No production behavior changed. This strengthens host semantic evidence; it
+does not replace physical FA rewind or TRS transport acceptance.
