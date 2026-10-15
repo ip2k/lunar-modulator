@@ -93,3 +93,18 @@ The coordinator adds an exact enabled schema-2/nine-stage receipt check because
 the generic song diagnostic policy alone also permits non-profiled builds.
 This checkpoint has not installed or booted the profiling image. SAVE remains
 disarmed and performance, physical transport acceptance and release gates remain open.
+
+## ROM67 campaign in progress
+
+[verified] The private passive capture helper passed 14 focused tests and
+Python compilation. Its SHA-256 is
+`da4a68693072f61be911d273ff4363f592026c81df52975bdb7806d2a4116fde`;
+the frozen coordinator SHA-256 is
+`bc847700639f2c3eb7a69e57e41048816d833a5d4a1413d5097b311292eaf79f`.
+All four private source hashes matched after transfer, and file-only preflight
+returned `FILE_ONLY_PREFLIGHT_OK`. The single-use campaign is
+`/home/claude/fm1-render-profile-70367650-20261015/rom67-cycle`.
+Its paired fresh reads matched the expected installed image, and the
+208-sector install transaction was started once. Installation/readback, boot
+and capture acceptance remain pending at this checkpoint. Do not rerun the
+consumed coordinator or repeat an ambiguous reset; inspect its durable journal.

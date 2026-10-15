@@ -5137,3 +5137,17 @@ installed target remains `09037621...`. No reset or new device write has occurre
 Next: passive 120-second profiling run after paired fresh reads, exact 208-sector
 install/readback, capture ready before one reset; analyze stage timing to fix
 sustained audio starvation. Overall installable release remains incomplete.
+
+
+### ROM67 profiler campaign started
+
+The coordinator started the single-use
+`/home/claude/fm1-render-profile-70367650-20261015/rom67-cycle` on bench01.
+Paired fresh reads matched current `0903762167a1dd9877c190e3b67e6657cfe4c5f7227af65d327456f73f8ba4fe`;
+installation of target `52d6846a1a57c253caa6b4ab4dc927761928271a603be13383961936f8b2420b`
+is in progress. The root exec session is 4690 (SSH foreground); capture is
+detached only after verified install and before the single timed boot.
+Inspect the campaign, transaction adapter log, capture-helper logs and
+diagnostic-audio outputs. Do not repeat the consumed campaign/reset.
+Capture helper passed 14 offline tests; no new live timing or boot claim yet.
+SAVE remains disarmed.
