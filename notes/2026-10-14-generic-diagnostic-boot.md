@@ -30,9 +30,11 @@ returns a mapping, closed `DurableLog` instances expose `fd is None`, and the
 reset session requires the actual module containing `CompletionFirstReset`.
 The prepared reset object carries `header_type` from the existing RehearsalSG
 preparation. Tests instantiate a real `flash.Policy`/`DiagnosticSession`, a real
-`DurableLog`, and the pinned generic boot/reset classes; only SG discovery,
-file descriptor operations on the fake endpoint, and ioctl are replaced. The
-large synthetic transcript skips fsync latency in the test fixture; this is not
+`DurableLog`, and the pinned generic boot/reset classes. The test stubs
+`Policy.check_files()` and `session.run()` to represent a completed transaction;
+it therefore tests the adapter boundary, not the underlying transaction. SG
+discovery, fake-endpoint file descriptor operations, and ioctl are also mocked.
+The large synthetic transcript skips fsync latency in the fixture; this is not
 a durability test.
 
 Focused tests: `PYTHONPATH=tools:tools/native pytest -q
