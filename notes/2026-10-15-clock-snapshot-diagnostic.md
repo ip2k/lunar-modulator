@@ -49,9 +49,9 @@ performance data, rejects malformed fields/schema/uint32 values, and leaves
 CPU frequency uninterpreted. Analyzer plus recorder regression: 44 tests pass.
 
 [verified] Hera completed a fresh frozen build from exact source
-5c4502ee552f51e40fe54527dc8fe2dea58dd300. App size853324bytes,
-SHA256072f82f37a5b2a8005127fae551f92f4094e96faf283ab925a71d8297bd66820;
-frozen receipt78e3b7d6c00da6f55798fa955909e8b7821fd132cbc19abb7f3b29f6c553f6.
+5c4502ee552f51e40fe54527dc8fe2dea58dd300. App size 853,324 bytes,
+SHA-256 `072f82f37a5b2a8005127fae551f92f4094e96faf283ab925a71d8297bd66820`;
+frozen receipt `78e3b7d6c00da6f55798fa955909e8b7821fd132cbc19abb7f7b3f29f6c553f6`.
 The existing generic build validator passed; container exit0/noOOM. Handoff:
 Hera:/home/claude/.local/share/codex-coordination/handoffs/lunar--clock-snapshot-build-20261015.md.
 Source confirms the three volatile reads; inlined target accesses were not
