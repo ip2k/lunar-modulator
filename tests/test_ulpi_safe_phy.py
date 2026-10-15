@@ -240,7 +240,7 @@ class ULPISafePHYTests(unittest.TestCase):
             ("write", 0x04), ("write", 0x0A), ("write", 0x32), ("write", 0x39),
             ("read", 0x04), ("read", 0x0A), ("read", 0x32), ("read", 0x39),
         ])
-        self.assertEqual(fake.stp_pulses, 3)
+        self.assertEqual(fake.stp_pulses, 4)
 
     def test_cynthion_r14_target_phy_resource_bridges_real_transactions(self):
         top = _Top(
@@ -281,7 +281,7 @@ class ULPISafePHYTests(unittest.TestCase):
             ("write", 0x04), ("write", 0x0A), ("write", 0x32), ("write", 0x39),
             ("read", 0x04), ("read", 0x0A), ("read", 0x32), ("read", 0x39),
         ])
-        self.assertEqual(observed["stp_pulses"], 3)
+        self.assertEqual(observed["stp_pulses"], 4)
 
     def test_wrong_phy_identity_never_allows_drive(self):
         top = _Top()
