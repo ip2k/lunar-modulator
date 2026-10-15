@@ -4,7 +4,9 @@
 selftestmaskF/observedC6/validF, PHYready/noPHYfault, terminalFAULT, GPIO/OEs0.
 No ROM-entry evidence yet; layout3 cannot identify later protocol failure stage.
 Owner asked to leave FM1 powered and connect TARGET-C to bench01 after outputs
-were verified released. Physical response/USB enumeration pending. No loader,
+were verified released. Owner connected TARGET-C; passive bench USB inventory still lacks FM1.
+Both TARGET ports requested empty again before diagnostic reconfiguration;
+confirmation pending. No loader,
 flash read/write or reset issued. Current loaded CONTROL-powered operation
 SHA30a3ca6c...; do not reconfigure while FM1 connected. Worker adding read-only
 failure-stage/progress telemetry; no waveform or arming changes authorized there.

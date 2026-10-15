@@ -246,3 +246,10 @@ Owner was asked to leave FM1 powered and connect TARGET-C to bench01 only after
 this terminal/high-Z result, for fresh USB enumeration. Response/enumeration
 pending. No RAM loader, flash read or repair write has been issued. Worker is
 adding read-only protocol-failure/progress telemetry without changing waveform.
+
+[verified: subsequent owner report] TARGET-C connected to bench01 with FM1
+left powered. Passive `lsusb` still shows only KA6 and root hubs, no FM1 ROM,
+loader or app. First attempt therefore has no established recovery entry.
+Owner was asked to empty both TARGET ports again before any diagnostic image
+configuration. Until confirmed empty, do not configure the FPGA. No FM1 flash
+operation has occurred in this recovery-key work.
