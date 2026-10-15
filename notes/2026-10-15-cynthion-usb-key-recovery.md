@@ -30,6 +30,23 @@ checks do not override the failed physical loopback.
 
 ## Current physical state
 
+[verified: disconnected four-state characterization] V4 image SHA-256
+`c5e46d1cbebaf7213c8337945b8c1066941826779a9fd836e12b90d91dd7accb`
+was loaded volatily with both target ports empty. Expected raw levels
+`[2,1,0,3]` yielded PHY observations `[1,2,0,3]`, one RXCMD event per step,
+valid mask15 and pass mask12. The image completed characterization, then
+FAULT/high-Z. Telemetry is in the local `disconnected-diagnostics-v4-status.json`.
+
+[verified: source cause found] The standard Cynthion platform inherits
+`ulpi_extra_registers = {0x39: 0x06}` from
+[`platform/core.py`](https://github.com/greatscottgadgets/cynthion/blob/dd2340e20de66341b73c6276cf1654800b655db2/cynthion/python/src/gateware/platform/core.py#L55).
+The USB3343 IO/Power register bit1 swaps D+/D- to compensate PCB routing.
+Our standalone initializer bypassed the standard ULPITransceiver and omitted
+that platform setting. An explicit r1.4 profile now writes/reads back 0x39=0x06
+before granting drive permission. GPIO mapping and RXCMD decoding stay intact.
+97 focused integration tests pass, including mismatch rejection; fresh physical
+loopback validation is still pending at this source checkpoint.
+
 [verified: second disconnected check] Diagnostic v3 image SHA-256
 `62e4112c6b3da0d7adfaf293bac6c125706166fd86d23c49f303d6b1f2a10668`
 passed routed timing (176.46 MHz / 212.59 MHz against 60 / 120 MHz) and was
