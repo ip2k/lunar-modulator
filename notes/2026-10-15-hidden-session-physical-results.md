@@ -62,3 +62,37 @@ app4dc4de1be6be39a999a352761e96cab2aba1870790b36c9111a255c8ab71b300.
 Root independently passed5 export integrity tests. Only the detailed engine and
 render-stage profiling options differ from c0 ON; this is a size/build result,
 not physical throughput evidence. Export: scratch/c0-profiler-off-export/HANDOFF.md.
+
+
+## ROM103 preparation checkpoint
+
+[verified: physical read only] Two new full-flash reads through the pinned fixed
+RAM loader matched the installed c7afa08c target above. The read campaign made
+8,757 commands, zero flash operations and zero resets. Manifest:
+`/home/claude/fm1-c0-profiler-off-precampaign-rom103-20261015/read-campaign.json`,
+SHA256 `4c12029de3fa88c56aee36fa0829a8c78e5266124416066d315fa62f61ec2280`.
+The USB binding remained bus1/port1-1/device103. This is a preparation read;
+installation must take another fresh paired backup and verify the device again.
+
+[verified: file-only preparation] The exact c0 OFF bundle (SHA256
+`032e11025a777b688eb80f73109ac08fc63dec7191728324d0555228458d1376`)
+was staged on bench01 under `/home/claude/fm1-c0-profiler-off-20261015`.
+All 249 runtime-tool files and 60 native-source files passed their manifests.
+The constructor checked the complete 175-path runtime manifest, then refused
+before candidate creation: runtime commit15a requires Limiter::BoxStep in its
+RAM function list; exact c0 has the older seven-function list without BoxStep.
+Runtime configuration is still song-diagnostic/120s and all SAVE admission flags
+are false. A bounded verifier compatibility fix is under independent review;
+no candidate, flash write, boot request or new performance result occurred.
+The first stager invocation from /tmp failed during path initialization before
+staging; unchanged pinned bytes ran successfully from a sufficiently deep path.
+Two source-stage argument/precondition refusals happened before any source write;
+the native manifest and explicit private parent directory resolved those errors.
+
+[verified: host only] Exact c0 stopped Event Horizon ran five times on Hera;
+zero note events, active voices, modulation writes or MFX activity. Five unrouted
+modulation modules still advanced each modulation tick. Median desktop render
+block cost was 10,393.2ns; this is not FM1 timing. An empty-rack A/B is next;
+any optimization must preserve phase/RNG and later connection behavior.
+Private evidence: scratch/eh-stopped-host-profile/ and
+scratch/native-dispatch-cost-review.md. Current hardware acceptance remains FAILED.
