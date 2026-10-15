@@ -1,3 +1,13 @@
+## Restart resumed; installer profile fix integrated — 2026-10-15
+
+[verified] Reviewed and integrated pending f138766f as6b6ae4b6; origin SHA
+matched. Full selection/service host suite:121 passed,1 skipped. See
+`notes/2026-10-15-restart-resumed-integration.md`. Fresh passive USB stillROM113;
+no flash/reset. Hall source66c designated for coherent offline runtime export;
+worker regenerates strict manifests/pins, not staging or device operations.
+Private installer evidence retention and current-target audio review assigned.
+Overall release unfinished; physical audio acceptance still FAILED.
+
 ## Restart checkpoint — 2026-10-15 20:35 UTC
 
 Owner requested application restart checkpoint. See
