@@ -11,7 +11,9 @@ entries and native60+2 sources verified. New campaign scaffold under review.
 See notes/2026-10-15-engine-render-profile-staging.md for full hashes/limits.
 Combined93fc Hera build also independently archived/verified, not installed.
 Next: review campaign, fresh paired backup, one-use install/readback/capture;
-parallel fabs-only equivalence/codegen and idle-cost review are in progress.
+fabs-only host equivalence passed all six Mac tests; exact0e024 target build
+passed sixteen Hera shards/link and all26 archived member hashes. Not installed.
+See notes/2026-10-15-fabs-hotpaths.md. Idle-cost review is complete.
 Never relaunch consumed ROM93 tap-inline cycle; its failed performance remains
 about423 produced blocks/s vs689 required, about267 underruns/s while idle.
 
