@@ -68,7 +68,7 @@ not physical throughput evidence. Export: scratch/c0-profiler-off-export/HANDOFF
 
 [verified: physical read only] Two new full-flash reads through the pinned fixed
 RAM loader matched the installed c7afa08c target above. The read campaign made
-8,757 commands, zero flash operations and zero resets. Manifest:
+8,757 commands, zero flash operations and zero resets. Campaign:
 `/home/claude/fm1-c0-profiler-off-precampaign-rom103-20261015/read-campaign.json`,
 SHA256 `4c12029de3fa88c56aee36fa0829a8c78e5266124416066d315fa62f61ec2280`.
 The USB binding remained bus1/port1-1/device103. This is a preparation read;

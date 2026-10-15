@@ -1,3 +1,28 @@
+## ROM103 read complete; OFF construction refused safely — 2026-10-15
+
+Goal ACTIVE; cold-boot musical/performance acceptance FAILED; SAVE disarmed.
+Two new independent 1MiB reads both hash to installed c7afa08c1a66fe82458359cd0750133b755d7247e0904e6fedd18402f71418c6.
+Fresh read receipt: /home/claude/fm1-c0-profiler-off-precampaign-rom103-20261015/fresh-read/manifest.json,
+SHA256 f838dd787bbf1ea34a6059b1ab4ac416058c660337f729edc782f6889556dbe8.
+Read campaign has zero flash/reset operations. A physical install still needs
+its own new fresh paired read. ROM103 binding remains expected, ROM101 consumed.
+
+Exact c0 OFF v1 bundle staged file-only at
+/home/claude/fm1-c0-profiler-off-20261015; 249 tools/60 native sources and175
+runtime paths verified. Offline constructor refused before candidate creation:
+15a validator requires Limiter::BoxStep in RAM; c0 has seven exact bodies
+without it. No candidate or new hardware action. Preserve v1 evidence unchanged.
+Worker demo_controller_review owns isolated strict legacy/current-list validator
+compatibility branch; physical_storage_compression maps source-pin dependencies
+and prepares v2 generator for fresh /home/claude/fm1-c0-profiler-off-v2-20261015.
+Root must review/test/integrate and push the fix, supply its exact runtime SHA,
+then regenerate/stage/construct/rebind independently before one-use campaign.
+All c0 firmware outputs stay unchanged. Root exclusively owns bench actions.
+profile_catalogue_build owns offline empty-rack A/B; preserve phase/RNG semantics.
+See notes/2026-10-15-hidden-session-physical-results.md for evidence and limits.
+Last verified pushed checkpoint9e688080c1fe3a6c54c82c535ca1cce29bac0125.
+Unrelated untracked uv.lock untouched.
+
 ## c0 measured; matched profiler-off build assigned — 2026-10-15
 
 [verified: physical install/readback/passive telemetry] ROM101 campaign finished;
