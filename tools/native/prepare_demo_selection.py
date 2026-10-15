@@ -47,8 +47,8 @@ def _validate_selection_request(request):
                 raise ValueError('expanded-d7000 requires the fixed Macro+Shapes8 profile')
 
 
-def validate_build_profile(request, flash_layout, runtime_mode):
-    """Require explicit request binding whenever the non-legacy layout is used."""
+def validate_build_profile(request, flash_layout, runtime_mode, wavetable_profile):
+    """Require all explicit profile choices to agree before preparing a build."""
     _validate_selection_request(request)
     explicit_profile = _PROFILE_KEYS.issubset(request)
     if flash_layout == 'expanded-d7000' and not explicit_profile:
@@ -56,6 +56,13 @@ def validate_build_profile(request, flash_layout, runtime_mode):
     if explicit_profile and (request['flash_layout'], request['runtime_mode']) != (
             flash_layout, runtime_mode):
         raise ValueError('Build flags differ from digest-bound request profile')
+    if explicit_profile:
+        expected_wavetable_profile = {
+            'expanded-d9000': 'compressed-required-banks-flash-plaits-v1',
+            'expanded-d7000': 'compressed-required-banks-ram-plaits-braids-shapes8-v1',
+        }[flash_layout]
+        if wavetable_profile != expected_wavetable_profile:
+            raise ValueError('Wavetable profile differs from digest-bound build profile')
 
 
 def prepare_selection(root: Path, request: dict, state_tool: Path, output: Path,

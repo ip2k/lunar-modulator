@@ -216,3 +216,37 @@ def test_build_selection_rejects_link_profile_mismatch_before_creating_output(tm
             flash_layout='expanded-d7000',
             wavetable_profile=build_demo_image.SHAPES8_WAVETABLE_PROFILE)
     assert not output.exists()
+
+
+def test_build_selection_rejects_d7000_with_default_d9000_wavetable_profile(tmp_path):
+    request = d7000_selection(tmp_path)
+    output = tmp_path / 'mismatched-wavetable-build'
+    with pytest.raises(ValueError, match='Wavetable profile differs'):
+        build_demo_image.build_selection(
+            request, tmp_path / 'unused-state-tool', tmp_path / 'unused-toolchain',
+            tmp_path / 'unused-catalogue', output, runtime_mode='song-diagnostic',
+            flash_layout='expanded-d7000')
+    assert not output.exists()
+
+
+def test_build_selection_rejects_explicit_d9000_with_shapes8_profile(tmp_path):
+    request = d7000_selection(tmp_path)
+    request['flash_layout'] = 'expanded-d9000'
+    request['runtime_mode'] = 'diagnostic'
+    output = tmp_path / 'mismatched-d9000-wavetable-build'
+    with pytest.raises(ValueError, match='Wavetable profile differs'):
+        build_demo_image.build_selection(
+            request, tmp_path / 'unused-state-tool', tmp_path / 'unused-toolchain',
+            tmp_path / 'unused-catalogue', output,
+            runtime_mode='diagnostic', flash_layout='expanded-d9000',
+            wavetable_profile=build_demo_image.SHAPES8_WAVETABLE_PROFILE)
+    assert not output.exists()
+
+
+def test_legacy_unprofiled_request_keeps_wavetable_profile_flexibility():
+    request = {'version': 1, 'engines': ['macro', 'shapes'], 'effects': [],
+               'midi': [], 'modulation': [], 'project_ids': ['project'],
+               'startup_index': 0}
+    build_demo_image.validate_build_profile(
+        request, 'expanded-d9000', 'diagnostic',
+        build_demo_image.SHAPES8_WAVETABLE_PROFILE)
