@@ -225,3 +225,15 @@ rom81-render-block-cycle launched once, PID84237. Fresh exact ROM81 USB binding
 verified before launch. Installation/boot/capture outcome pending. Do not reuse.
 The build archive required separately staged exact selection.json; constructor
 then succeeded offline, before any device action. SAVE remains disarmed.
+
+## Next offline experiment: inner FM voice placement
+
+[verified: source] Extracted the existing opt-in placement macro into a narrow
+header, and applied it to plaits::FMVoice::Render's declaration. Default builds
+leave the attribute empty; no synthesis arithmetic changed. Vendored license
+headers preserved and UPSTREAM records the local change. Builder/candidate now
+require the sixth named body; stale missing-body and duplicate-body receipts
+are rejected by focused tests. Four focused optimization/candidate/adapter/boot
+suites pass. Target compilation, linked placement and equivalence remain pending;
+this is an experimental source checkpoint, not an admitted installation artifact.
+The active ROM81 campaign uses separately frozen five-body9377348f inputs.

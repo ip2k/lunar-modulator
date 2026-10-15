@@ -18,7 +18,7 @@ from audit_link import Elf, audit, collect_sources
 from probe_artifact import flatten, artifact_call_payloads, artifact_stub_boundaries
 
 STATUS = 'private-expanded-native-candidate-verified-offline'
-HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock',
+HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
                       'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
 
 

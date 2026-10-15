@@ -29,6 +29,7 @@
 #ifndef PLAITS_DSP_ENGINE_SIX_OP_ENGINE_H_
 #define PLAITS_DSP_ENGINE_SIX_OP_ENGINE_H_
 
+#include "fm1_hot_dsp.h"
 #include "stmlib/dsp/hysteresis_quantizer.h"
 
 #include "plaits/dsp/engine/engine.h"
@@ -48,7 +49,7 @@ class FMVoice {
   
   void Init(fm::Algorithms<6>* algorithms, float sample_rate);
   void LoadPatch(const fm::Patch* patch);
-  void Render(float* buffer, size_t size);
+  FM1_HOT_DSP_RENDER void Render(float* buffer, size_t size);
   
   inline void UnloadPatch() {
     patch_ = NULL;

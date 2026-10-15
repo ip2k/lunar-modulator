@@ -1,3 +1,14 @@
+## Next offline source checkpoint: six-body FMVoice experiment
+
+Macro extracted to narrow fm1_hot_dsp.h; vendor FMVoice::Render annotated.
+Builder/candidate six-body metadata and dependency pins updated; focused
+optimization/candidate/adapter/boot suites pass. Target compile/placement and
+behavior comparison pending. Do not substitute this source into active ROM81
+five-body campaign; its frozen9377348f runtime remains separate. Next: fresh
+Hera16-shard build of exact new source, independent ELF and behavior checks.
+ROM81 PID84237 still installing at latest inspection; no errors, no retry.
+Goal ACTIVE, SAVE disarmed; unrelated uv.lock untouched.
+
 ## Coordinator checkpoint: ROM81 five-body trial launched
 
 Exact9377348f source freshly built16/16 on Hera with corrected five-body receipts.

@@ -310,7 +310,7 @@ def hot_dsp_ram_linker_script(source, enabled):
     return source
 
 
-HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock',
+HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
                       'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
 
 
