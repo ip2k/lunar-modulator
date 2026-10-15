@@ -1,3 +1,19 @@
+## USB interruption during stage7 install — 2026-10-15
+
+[verified] Campaign stopped after bench USB disconnect at 15:13:08 Pacific;
+owner confirmed changing cabling and will reconnect USB. Keep FM1 powered;
+no reset/boot/retry has been sent. Passive lsusb still lacks FM1. Frozen BASE
+`/home/claude/fm1-current-stage7-66c95bb-20261015` is consumed; never rerun launcher.
+Transaction `rom113-current-stage7-engine-render-profile-cycle/transaction`
+has state recovery_required, last intent program address607744 (0x94600).
+No installation result, capture, boot or new audio acceptance exists. Flash
+contains an incomplete app; directory-last sector0x4000 was not reached.
+Preserve original paired backups (28483c41...) and target18132474...; do not
+assert original hash describes current flash. Next: reconnect identity/retained
+loader review, fresh paired mixed-image reads, immutable-region checks and
+reviewed resume of this transaction. Root owns device; offline recovery review
+assigned. Audio remains FAILED. CI38815188217 pending at last check.
+
 ## Active ROM113 campaign and installer profile integration — 2026-10-15
 
 Source26320a41d93c3e4ef85b23a4e75fb79a0e1d9e46 is pushed/remote-verified.
