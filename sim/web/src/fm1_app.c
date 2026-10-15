@@ -2,6 +2,7 @@
  * MIT licence, like the rest of this repository.
  */
 #include "fm1_app.h"
+#include "fm1_postmix.h"
 #include "render_stage_profile.h"
 
 #include <limits.h>
@@ -3517,16 +3518,8 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   if (a->seq) fm1_seq_click_mix(&a->click, a->seq, a->seq_ev, a->seq_last_n, n, out);
   fm1_mix_limiter_process(&a->limiter, out, n);
   if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + FM1_APP_FX_SLOTS + 1u, out, n);   /* the output */
-  for (uint32_t i = 0; i < n; ++i) {
-    float m = 0.5f * (out[2 * i] + out[2 * i + 1]);
-    a->scope[a->scope_pos] = m;
-    a->scope_pos = (a->scope_pos + 1) % FM1_APP_SCOPE;
-    float p = fabsf(out[2 * i]) > fabsf(out[2 * i + 1]) ? fabsf(out[2 * i]) : fabsf(out[2 * i + 1]);
-    if (p > a->peak) a->peak = p;
-  }
-  if (a->gain != 1.0f) {
-    for (uint32_t i = 0; i < 2 * n; ++i) out[i] *= a->gain;
-  }
+  fm1_postmix_scope_and_gain(out, n, a->scope, FM1_APP_SCOPE,
+                             &a->scope_pos, &a->peak, a->gain);
   a->frames += n;
   if (a->edit) {                         /* ARP held: Latch, for the next block: the panel's */
     const uint8_t src = a->edit->src;
