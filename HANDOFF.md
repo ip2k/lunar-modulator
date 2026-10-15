@@ -1,3 +1,17 @@
+## Hall ROM111 campaign LAUNCHED; do not retry — 2026-10-15
+
+[verified] Final independent v3 review68b411eca6a4960fd9f91609b7566a2413a60574950b88eb6bf1c9d68326214f
+found no blockers; root destination file-only preflight passed. Immediately before
+launch passive sysfs matched exact port1-1 bus1/dev111 4c4a:8057. One-use
+launch-once.py launched persistent PID282595; stdout FRESH_PAIRED_READ_START.
+BASE /home/claude/fm1-hall-o2-cpu-493a432c-20261015; cycle rom111-hall-o2-cpu-cycle.
+Campaign3cc1d6c92bf5d12b2604d6034b64563e46e0daa56fd25f0b55d6077f1f8e46b5.
+Do NOT relaunch, retry reset, or mutate frozen package. Read sudo-n cycle-v2.stdout/
+stderr and cycle artifacts/process/capture state. Paired reads/current5b3 must
+match before210-sector install target28483c41; full readback and durable install
+result/capture READY before sole boot. Result/performance not yet known.
+Root exclusively owns bench. SAVE/autoplayoff; overall goalACTIVE/listeningFAILED.
+
 ## Hall package destination checks blocked launch — 2026-10-15
 
 [verified] ROM111 Hall candidate has NOT been launched or written. V1 refused

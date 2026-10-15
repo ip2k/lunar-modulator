@@ -116,3 +116,31 @@ SHA b7c8c4cdc77f20bf1fd2b95eb3f0c418f2993f5a48448aab6065cc5943bcf157.
 Bounds checks precede octave LED seconds conversion; localized codegen evidence,
 not a whole-image parent A/B or runtime speedup. Hall-only matched candidate
 remains separate. Goal ACTIVE; cold-boot listening FAILED, SAVE/autoplayoff.
+
+## V3 actual destination preflight passed [verified]
+
+Separate v3 preserves old package copies and rebinds the strict generated verifier
+to the already-reviewed relocated manifest8c6431dd and three telemetry paths.
+All175 runtime dependency hashes and249 maintained tools source files remain
+unchanged. Root independently reviewed the verifier/capture/test diff, reran
+12 tests, verified312 package hashes and applied11-file delta archive
+840bbdf5bfb50ac44d7cb2ca0d21e3078c8ac9d0a539f6c9ef3709335e78e8dd
+over the hash-verified v2 staged files, with no launch marker or cycle.
+Campaign3cc1d6c92bf5d12b2604d6034b64563e46e0daa56fd25f0b55d6077f1f8e46b5;
+inventorya3789145d377f3bcbcdfc1b2edf3d94ac076bea1a373998158d42e140e870d55.
+Actual preflight then caught0775 directory modes introduced by root staging
+parent creation; restored exactly the ten directories inventoried in pinned
+tools-source-manifest3567aeae to required0755. No files or checks changed.
+Actual destination run-cycle --mode preflight now prints FILE_ONLY_PREFLIGHT_OK.
+This is a file-only result; no USB transport, device write, reset or launch yet.
+Fresh passive sysfs still port1-1/bus1/dev111/4c4a:8057. Final independent
+review and immediately rechecked live identity precede the one-use campaign.
+
+## One-use campaign launched [verified; outcome pending]
+
+Independent final review SHA68b411eca6a4960fd9f91609b7566a2413a60574950b88eb6bf1c9d68326214f
+found no blockers. Root immediately rechecked exact passive ROM111 identity,
+then invoked launch-once.py once under sudo-n. Its own file-only preflight
+passed; persistent PID282595 began FRESH_PAIRED_READ_START. No outcome or
+performance claim yet. This campaign is consumed: never relaunch or retry
+an ambiguous reset; inspect existing process/artifacts and independent capture.
