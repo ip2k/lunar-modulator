@@ -1,3 +1,12 @@
+## IRQ build stopped safely on stale platform provenance pin
+
+All16 catalogue shards completed; link preflight refused Source pin mismatch:
+src/platform.c before target link. Failed output retained as result-irq-profile-49170586
+on Hera; no firmware/device action. Inventory local hash and modification reason
+now refreshed for the reviewed instrumentation; upstream hash retained. Next:
+commit/push corrected provenance and fresh bounded exact-source build. Prior
+132tests+15subtests pass; no target timing acceptance. Goal ACTIVE; SAVE disarmed.
+
 ## IRQ occupancy diagnostic integrated; target build next
 
 [verified: host checks] Schema6 nesting-aware IRQ occupancy integrated with

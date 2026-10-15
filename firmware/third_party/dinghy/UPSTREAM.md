@@ -13,7 +13,8 @@ map distinguishes intentional local changes from upstream-original bytes.
 caller-span validation, aligned page-staging changes, test seam, guarded
 watchdog lease, and naming update. `hal/fm1_sys.h` records checked P33 and
 watchdog transfer additions. `src/platform.c` records the guarded UART1 MIDI
-hook and the LUNAR-prefixed configuration/identity macros. `src/usb.c`
+hook, compile-gated IRQ occupancy instrumentation with preserved ICFG and
+unchanged service cadence, and the LUNAR-prefixed configuration/identity macros. `src/usb.c`
 records the Lunar Modulator USB strings and LUNAR-prefixed interface macros.
 `src/bootguard.h`, `src/gfx.c`, `src/ota.c` and `gen/lunar_font.h` record
 their local naming adaptations. The OTA parser retains the exact legacy
