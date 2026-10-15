@@ -46,7 +46,7 @@ import msfa_tables  # noqa: E402
 
 ORACLE = ENGINES / "build" / "fm1-dx7-oracle"
 MSFA = ENGINES / "third_party" / "msfa"
-FELUCCA = ENGINES / "third_party" / "felucca-fm6"
+UPSTREAM_FM6 = ENGINES / "third_party" / "upstream-fm6"
 USER1 = 32                           # the Patch value of User 1 (after the 32 built-in voices)
 SINE = 31                            # PURE SINE
 
@@ -136,7 +136,7 @@ def test_vendored_msfa_files_are_upstreams(renderer):
     assert sorted(pinned) == files
     for name, digest in pinned.items():
         assert hashlib.sha256((MSFA / name).read_bytes()).hexdigest() == digest, name
-    for ours, ref in ((MSFA, "msfa"), (FELUCCA, "Felucca")):
+    for ours, ref in ((MSFA, "msfa"), (UPSTREAM_FM6, "Felucca")):
         # reference/ is git-ignored: in the repository, or two levels up
         # from a worktree under scratch/.
         homes = [ROOT] + ([ROOT.parents[1]] if len(ROOT.parents) > 1 else [])
@@ -157,10 +157,10 @@ def test_the_credits_name_msfa_and_felucca(renderer):
         assert word in credits, word
 
 
-def test_felucca_oracle_file_is_apache_and_upstreams():
-    src = (FELUCCA / "fm6_core.c").read_bytes()
+def test_upstream_engines_oracle_file_is_apache_and_upstreams():
+    src = (UPSTREAM_FM6 / "fm6_core.c").read_bytes()
     assert src.startswith(b"/* SPDX-License-Identifier: Apache-2.0")
-    table = (FELUCCA / "UPSTREAM.md").read_text()
+    table = (UPSTREAM_FM6 / "UPSTREAM.md").read_text()
     digest = re.search(r"`fm6_core.c` \| `([0-9a-f]{64})`", table).group(1)
     assert hashlib.sha256(src).hexdigest() == digest
 

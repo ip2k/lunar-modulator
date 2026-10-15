@@ -14,7 +14,7 @@
 //   - Sophie and PSX Verb are AlignUp(sizeof(shim Instance)) +
 //     AlignUp(the module's arena), with AlignUp to kAlign (schwung_shim.cc);
 //   - Drawbar, Trio and Phase Bend are AlignUp16(sizeof(Instance)) +
-//     AlignUp16(the bridge's world), from sizes_felucca.c (felucca_shim.cc).
+//     AlignUp16(the bridge's world), from sizes_upstream_engines.c (upstream_engine_shim.cc).
 // analyze.py applies those rules to the constants below.
 //
 // Compile-only: the objects are never linked. MIT licence.
@@ -66,9 +66,9 @@ FM1SZ_TYPE(drum909, drum909_t);
 #include "../../engines/src/crater_kit.cc"
 FM1SZ_TYPE(crater, fm1::crater::Instance);
 FM1SZ_TYPE(drum808, drum808_t);
-#elif defined(SZ_FELUCCA)         /* GPL modules: compiled only with FM1_GPL_MODS=1 */
-#include "../../engines/src/felucca_shim.cc"
-FM1SZ_TYPE(felucca_instance, fm1::felucca::Instance);   /* + the world: sizes_felucca.c */
+#elif defined(SZ_UPSTREAM_ENGINES)         /* GPL modules: compiled only with FM1_GPL_MODS=1 */
+#include "../../engines/src/upstream_engine_shim.cc"
+FM1SZ_TYPE(upstream_engine_instance, fm1::upstream_engines::Instance);   /* + the world: sizes_upstream_engines.c */
 #elif defined(SZ_SCHWUNG)
 #include "../../engines/src/schwung_shim.cc"
 #include "../../engines/src/sw_sophie.cc"

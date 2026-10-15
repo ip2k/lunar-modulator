@@ -1,10 +1,10 @@
 """Drawbar, Trio and Phase Bend: three engines of Felucca (Leo Kuroshita,
 Hügelton Instruments; GPL-3.0-only), WHEEL, TRIO and PHASE, vendored
-unmodified in engines/third_party/felucca and played through our API by
-engines/src/felucca_shim.cc and felucca_bridge.c (engines/README.md, "The
+unmodified in engines/third_party/upstream-engines and played through our API by
+engines/src/upstream_engine_shim.cc and upstream_engine_bridge.c (engines/README.md, "The
 Felucca engines"). GPL modules: the whole file skips with the GPL switch off.
 
-- The oracle (fm1-felucca-oracle, engines/test/felucca_oracle.c): Felucca's
+- The oracle (fm1-upstream-engines-oracle, engines/test/upstream_engines_oracle.c): Felucca's
   own voice.c drives the same engine files on one part, with a sound in
   Felucca's integers, and our engine plays it through the API with its
   parameters in units, computed here from Felucca's own curves. Every
@@ -36,8 +36,8 @@ from tests.engine_helpers import ENGINES, GPL_MODS, RATE, cents, pitch_hz, rende
 
 pytestmark = pytest.mark.skipif(not GPL_MODS, reason="GPL modules: built only with FM1_GPL_MODS=1")
 
-ORACLE = ENGINES / "build" / "fm1-felucca-oracle"
-SRC = ENGINES / "third_party" / "felucca" / "src"
+ORACLE = ENGINES / "build" / "fm1-upstream-engines-oracle"
+SRC = ENGINES / "third_party" / "upstream-engines" / "src"
 IDS = ["drawbar", "trio", "phase-bend"]
 FEL = {"drawbar": "eng_wheel.c", "trio": "eng_trio.c", "phase-bend": "eng_phase.c"}
 
@@ -70,7 +70,7 @@ def listing(renderer):
 
 @pytest.fixture(scope="module")
 def oracle(renderer):
-    assert ORACLE.is_file(), "make -C engines builds fm1-felucca-oracle with the switch on"
+    assert ORACLE.is_file(), "make -C engines builds fm1-upstream-engines-oracle with the switch on"
     return ORACLE
 
 
@@ -145,14 +145,14 @@ def units(engine, e, env, fenv):
     return p
 
 
-def fel_args(e, env, fenv):
+def upstream_engine_args(e, env, fenv):
     spec = ",".join([f"E{k}={v}" for k, v in enumerate(e)]
                     + [f"ATK={env[0]}", f"DEC={env[1]}", f"SUS={env[2]}", f"REL={env[3]}", f"FLT={fenv}"])
     return ["--fel", spec]
 
 
 def sound_args(engine, e, env, fenv):
-    out = fel_args(e, env, fenv)
+    out = upstream_engine_args(e, env, fenv)
     for kv in units(engine, e, env, fenv):
         out += ["--param", kv]
     return out
@@ -172,7 +172,7 @@ def test_the_three_engines(listing):
     for eid, name, n in (("drawbar", "Drawbar", 13), ("trio", "Trio", 14), ("phase-bend", "Phase Bend", 16)):
         e = listing[eid]
         assert (e["name"], e["kind"], e["max_voices"], e["pads"]) == (name, "sound", 8, None)
-        assert e["licence"] == "GPL-3.0-only AND MIT" and e["source"] == "engines/third_party/felucca"
+        assert e["licence"] == "GPL-3.0-only AND MIT" and e["source"] == "engines/third_party/upstream-engines"
         assert "Felucca" in e["credits"] and "Leo Kuroshita" in e["credits"]
         assert len(e["params"]) == n
         pages = [p["page"] for p in e["params"]]
@@ -189,7 +189,7 @@ def test_the_oracle_is_felucca(oracle):
     clone = ENGINES.parent / "reference" / "Felucca"
     if not (clone / ".git").exists():
         pytest.skip("no clone of Felucca at reference/Felucca")
-    res = subprocess.run(["python3", str(ENGINES / "third_party" / "felucca" / "vendor.py"), str(clone),
+    res = subprocess.run(["python3", str(ENGINES / "third_party" / "upstream-engines" / "vendor.py"), str(clone),
                           "--check"], capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
 
@@ -225,7 +225,7 @@ def test_the_defaults_are_feluccas(oracle, engine):
     Drawbar, the envelope all five of WHEEL's sounds share (0, 64, 127,
     45), and no envelope to the filter: no --param, the same samples."""
     env = [0, 64, 127, 45] if engine == "drawbar" else [10, 70, 90, 60]
-    r = run_oracle(oracle, engine, "--blocks", "400", *fel_args(edit_defaults(engine), env, 0),
+    r = run_oracle(oracle, engine, "--blocks", "400", *upstream_engine_args(edit_defaults(engine), env, 0),
                    *phrase_args())
     assert r["identical"], r
 

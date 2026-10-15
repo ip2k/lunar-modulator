@@ -1,4 +1,4 @@
-/* dx7_felucca.c -- Felucca's fm6_core.c (third_party/felucca-fm6, an
+/* dx7_upstream_fm6.c -- Felucca's fm6_core.c (third_party/upstream-fm6, an
  * integer C port of Dexed's msfa by Leo Kuroshita, Hugelton Instruments,
  * Apache-2.0) set up and driven as the FM6 engine's desktop oracle
  * (engines/test/dx7_oracle.cc, tests/test_engines_dx7.py). Not part of any
@@ -47,7 +47,7 @@ static int32_t fm6_lfo_unit, fm6_penv_unit, fm6_ams_c0, fm6_ams_k;
 
 #include "fm6_core.c"
 
-void felucca_init(double rate) {
+void upstream_fm6_init(double rate) {
   int i;
   for (i = 0; i < 1025; ++i) {
     SINE[i] = (int16_t)lround(32767.0 * sin(2.0 * M_PI * i / 1024.0));
@@ -70,7 +70,7 @@ void felucca_init(double rate) {
 /* One note of voice p (155 VCED bytes) at key `key` (the voice's transpose
  * applied, as FM6 applies it), velocity vel, released at frame `gate`, for
  * `total` frames, into out as fm6_core's Q24 samples. */
-void felucca_render(const uint8_t *p155, int key, int vel, int gate, int total, int32_t *out) {
+void upstream_fm6_render(const uint8_t *p155, int key, int vel, int gate, int total, int32_t *out) {
   uint8_t p[FP_SIZE + 1];
   fm6_note_t n;
   fm6_lfo_t lfo;

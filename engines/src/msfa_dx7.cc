@@ -51,7 +51,7 @@
 //
 // The engine is Google's msfa and its name is Felucca's: FM6 is the FM
 // engine of hugelton's Felucca, whose Apache-2.0 fm6_core.c is this
-// engine's test oracle (third_party/felucca-fm6). Both borrowed, with
+// engine's test oracle (third_party/upstream-fm6). Both borrowed, with
 // thanks (the owner kept the name, 2026-10-06: "since we're borrowing it").
 //
 // MIT licence (this file). Not affiliated with or endorsed by Yamaha.

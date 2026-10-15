@@ -36,9 +36,9 @@ from tests.engine_helpers import GPL_MODS, RATE, render, renderer  # noqa: F401
 
 GLIDE = ["macro", "macro-heavy", "sixop", "dx7", "shapes"]
 # Phase Bend (Felucca's PHASE, a GPL module) takes them too, in its 32-sample
-# control blocks at the host's rate (src/felucca_shim.cc).
-FELUCCA_GLIDE = ["phase-bend"] if GPL_MODS else []
-GLIDE += FELUCCA_GLIDE
+# control blocks at the host's rate (src/upstream_engine_shim.cc).
+UPSTREAM_ENGINES_GLIDE = ["phase-bend"] if GPL_MODS else []
+GLIDE += UPSTREAM_ENGINES_GLIDE
 NOT_PITCHED = ["drums", "sw-sophie", "test-sine"]
 
 # The host that puts one call on each control block, and a sustained voice
@@ -55,7 +55,7 @@ NATIVE = {
 # the operators that follow the key in msfa's integer pitch, where a pitch
 # offset of the interval is 4 units of 2^24 an octave off, and keeps the
 # scaling of the note that started the envelopes).
-SAME_PATH = ["macro", "macro-heavy", "sixop", "shapes"] + FELUCCA_GLIDE
+SAME_PATH = ["macro", "macro-heavy", "sixop", "shapes"] + UPSTREAM_ENGINES_GLIDE
 
 # Glide Mode Legato (fingered portamento), which every glide here used until
 # Glide Mode came (2026-10-06), and Always (full-time).

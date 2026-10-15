@@ -1,10 +1,10 @@
-// felucca_shim.cc -- "Drawbar", "Trio" and "Phase Bend": three engines of
+// upstream_engine_shim.cc -- "Drawbar", "Trio" and "Phase Bend": three engines of
 // Felucca, open firmware for the M-VAVE FM-1 by Leo Kuroshita (@kurogedelic),
 // Hügelton Instruments (GPL-3.0-only), behind engine API v3. Felucca's
-// WHEEL, TRIO and PHASE are vendored unmodified in third_party/felucca/
-// (UPSTREAM.md) and reached through src/felucca_bridge.c (felucca_bridge.h).
+// WHEEL, TRIO and PHASE are vendored unmodified in third_party/upstream-engines/
+// (UPSTREAM.md) and reached through src/upstream_engine_bridge.c (upstream_engine_bridge.h).
 // They link GPL code, so they are built only while the GPL switch is on
-// (FM1_GPL_MODS, engines/Makefile; mk/felucca.mk) and listed GPL in the
+// (FM1_GPL_MODS, engines/Makefile; mk/upstream_engines.mk) and listed GPL in the
 // licence table (src/registry.cc).
 //
 // What the three are (engines/README.md, "The Felucca engines", has more):
@@ -83,10 +83,10 @@
 #include "note_offsets.h"
 
 #if !FM1_GPL_MODS
-#error "felucca_shim.cc links GPL code: it is built only with FM1_GPL_MODS=1 (engines/mk/felucca.mk)"
+#error "upstream_engine_shim.cc links GPL code: it is built only with FM1_GPL_MODS=1 (engines/mk/upstream_engines.mk)"
 #endif
 
-#include "felucca_bridge.h"
+#include "upstream_engine_bridge.h"
 
 #if defined(FM1_FREESTANDING)
 #include "fm1_placement_new.h"
@@ -95,11 +95,11 @@
 #endif
 
 namespace fm1 {
-namespace felucca {
+namespace upstream_engines {
 
 const int kMaxParams = 16;
-const int kVoices = FEL_VOICES;
-const uint32_t kBlock = FEL_CTL;
+const int kVoices = UPSTREAM_ENGINE_VOICES;
+const uint32_t kBlock = UPSTREAM_ENGINE_CONTROL_SAMPLES;
 // The rates the engines accept: Felucca's 44,100 Hz +/- 0.25 % (top of file).
 const float kMinRate = 43990.0f;
 const float kMaxRate = 44210.0f;
@@ -134,7 +134,7 @@ struct Slot {
 };
 
 struct Def {
-  int fel;                       // FEL_WHEEL, FEL_TRIO, FEL_PHASE
+  int engine_id;                       // UPSTREAM_ENGINE_WHEEL, UPSTREAM_ENGINE_TRIO, UPSTREAM_ENGINE_PHASE
   const fm1_param_t *params;
   const Slot *slots;
   int n;
@@ -263,14 +263,14 @@ const Slot kPhaseSlots[] = {
   { K_GLIDE, -1, 0 }, { K_VMODE, -1, 0 }, { K_GMODE, -1, 0 }, { K_TMODE, -1, 0 },
 };
 
-#define FEL_COUNT(a) static_cast<int>(sizeof(a) / sizeof((a)[0]))
-const Def kDrawbar = { FEL_WHEEL, kDrawbarParams, kDrawbarSlots, FEL_COUNT(kDrawbarParams), -1, -1, -1, -1 };
-const Def kTrio = { FEL_TRIO, kTrioParams, kTrioSlots, FEL_COUNT(kTrioParams), -1, -1, -1, -1 };
-const Def kPhase = { FEL_PHASE, kPhaseParams, kPhaseSlots, FEL_COUNT(kPhaseParams), 12, 13, 14, 15 };
-typedef char slots_match[FEL_COUNT(kDrawbarSlots) == FEL_COUNT(kDrawbarParams) &&
-                         FEL_COUNT(kTrioSlots) == FEL_COUNT(kTrioParams) &&
-                         FEL_COUNT(kPhaseSlots) == FEL_COUNT(kPhaseParams) &&
-                         FEL_COUNT(kTrioParams) <= kMaxParams && FEL_COUNT(kPhaseParams) <= kMaxParams
+#define UPSTREAM_ENGINE_COUNT_OF(a) static_cast<int>(sizeof(a) / sizeof((a)[0]))
+const Def kDrawbar = { UPSTREAM_ENGINE_WHEEL, kDrawbarParams, kDrawbarSlots, UPSTREAM_ENGINE_COUNT_OF(kDrawbarParams), -1, -1, -1, -1 };
+const Def kTrio = { UPSTREAM_ENGINE_TRIO, kTrioParams, kTrioSlots, UPSTREAM_ENGINE_COUNT_OF(kTrioParams), -1, -1, -1, -1 };
+const Def kPhase = { UPSTREAM_ENGINE_PHASE, kPhaseParams, kPhaseSlots, UPSTREAM_ENGINE_COUNT_OF(kPhaseParams), 12, 13, 14, 15 };
+typedef char slots_match[UPSTREAM_ENGINE_COUNT_OF(kDrawbarSlots) == UPSTREAM_ENGINE_COUNT_OF(kDrawbarParams) &&
+                         UPSTREAM_ENGINE_COUNT_OF(kTrioSlots) == UPSTREAM_ENGINE_COUNT_OF(kTrioParams) &&
+                         UPSTREAM_ENGINE_COUNT_OF(kPhaseSlots) == UPSTREAM_ENGINE_COUNT_OF(kPhaseParams) &&
+                         UPSTREAM_ENGINE_COUNT_OF(kTrioParams) <= kMaxParams && UPSTREAM_ENGINE_COUNT_OF(kPhaseParams) <= kMaxParams
                          ? 1 : -1];
 
 // ---- Maps onto Felucca's knobs ---------------------------------------------
@@ -299,7 +299,7 @@ inline int CutoffQ8(float hz) {
 
 // A voice's (or the part's) values in Felucca's units for a block.
 struct Knobs {
-  int16_t e[FEL_EDIT];
+  int16_t e[UPSTREAM_ENGINE_EDIT_COUNT];
   int32_t cutoff, shape, fenv;
   uint8_t adsr[4];
   float gain;
@@ -307,7 +307,7 @@ struct Knobs {
 
 // Every slot of `def` from values[] (ramped, with a voice's offsets).
 void MapAll(const Def &def, const float *values, Knobs *k) {
-  for (int j = 0; j < FEL_EDIT; ++j) k->e[j] = 0;
+  for (int j = 0; j < UPSTREAM_ENGINE_EDIT_COUNT; ++j) k->e[j] = 0;
   k->cutoff = 0;
   k->shape = 64 << 8;
   k->fenv = 0;
@@ -358,7 +358,7 @@ struct Voice {
   uint32_t age;
   Offsets note;                    // per-note offsets (set_param_note)
   glide::Slew glide;               // its glide (glide.h), Phase Bend only
-  int16_t latch[FEL_EDIT];         // the LATCH lists' values at its note-on
+  int16_t latch[UPSTREAM_ENGINE_EDIT_COUNT];         // the LATCH lists' values at its note-on
 };
 
 class Instance {
@@ -367,7 +367,7 @@ class Instance {
     const float r = host ? host->sample_rate : 0.0f;
     if (!(r >= kMinRate && r <= kMaxRate)) return false;
     def_ = def;
-    fel_world_init(World(), def->fel);
+    upstream_engine_world_init(World(), def->engine_id);
     for (int i = 0; i < kMaxParams; ++i) value_[i] = 0.0f;
     for (int i = 0; i < def->n; ++i) value_[i] = def->params[i].def;
     fm1_smooth_init(smooth_, value_, kMaxParams);
@@ -386,7 +386,7 @@ class Instance {
       v.age = 0;
       v.note.Clear();
       v.glide.Clear();
-      for (int j = 0; j < FEL_EDIT; ++j) v.latch[j] = 0;
+      for (int j = 0; j < UPSTREAM_ENGINE_EDIT_COUNT; ++j) v.latch[j] = 0;
     }
     return true;
   }
@@ -423,7 +423,7 @@ class Instance {
       Voice &v = voice_[i];
       if (v.gate && v.key == key) {
         v.gate = false;
-        fel_voice_release(World(), i);
+        upstream_engine_voice_release(World(), i);
       }
     }
   }
@@ -528,7 +528,7 @@ class Instance {
       const Slot &slot = def_->slots[s];
       if (slot.latch && slot.edit >= 0) v->latch[slot.edit] = k.e[slot.edit];
     }
-    fel_voice_start(World(), def_->fel, i, key, velocity, v->age, static_cast<int32_t>(key) * 16, k.e);
+    upstream_engine_voice_start(World(), def_->engine_id, i, key, velocity, v->age, static_cast<int32_t>(key) * 16, k.e);
   }
 
   // Mono and Legato: letting go of the key the voice plays while older keys
@@ -546,7 +546,7 @@ class Instance {
   void Retune(Voice *v, uint8_t key) {
     v->key = key;
     v->note.Clear();
-    fel_voice_retune(World(), static_cast<int>(v - voice_), key);
+    upstream_engine_voice_retune(World(), static_cast<int>(v - voice_), key);
   }
 
   // One control block: the ramps' step, every voice's values and pitch, the
@@ -557,13 +557,13 @@ class Instance {
     glide::Step glide_step(glide_block_ms_, def_->glide >= 0 ? value_[def_->glide] : glide::kMinMs);
     Knobs part;
     MapAll(*def_, value_, &part);
-    fel_vin_t in[kVoices] = {};      // a silent voice's is not read
+    upstream_engine_voice_input_t in[kVoices] = {};      // a silent voice's is not read
     float own_gain[kVoices];
     int n_own = 0;
     for (uint32_t s = 0; s < kBlock; ++s) mix_[s] = 0;
     for (int i = 0; i < kVoices; ++i) {
       Voice &v = voice_[i];
-      fel_vin_t &x = in[i];
+      upstream_engine_voice_input_t &x = in[i];
       x.out = mix_;
       if (!v.active) continue;     // the bridge renders the voices that sound
       Knobs k = part;
@@ -576,7 +576,7 @@ class Instance {
         const Slot &slot = def_->slots[s];
         if (slot.latch && slot.edit >= 0) k.e[slot.edit] = v.latch[slot.edit];
       }
-      for (int j = 0; j < FEL_EDIT; ++j) x.e[j] = k.e[j];
+      for (int j = 0; j < UPSTREAM_ENGINE_EDIT_COUNT; ++j) x.e[j] = k.e[j];
       x.cutoff = k.cutoff;
       x.shape = k.shape;
       x.fenv = k.fenv;
@@ -602,7 +602,7 @@ class Instance {
         ++n_own;
       }
     }
-    fel_block(World(), def_->fel, part.e, in);
+    upstream_engine_block(World(), def_->engine_id, part.e, in);
     for (uint32_t s = 0; s < kBlock; ++s) {
       float y = static_cast<float>(mix_[s]) * part.gain;
       for (int j = 0; j < n_own; ++j) {
@@ -613,7 +613,7 @@ class Instance {
     }
     for (int i = 0; i < kVoices; ++i) {
       Voice &v = voice_[i];
-      if (v.active && !fel_voice_active(World(), i)) {    // its release has ended
+      if (v.active && !upstream_engine_voice_active(World(), i)) {    // its release has ended
         v.active = v.gate = false;
         v.note.Clear();
         v.glide.Clear();
@@ -661,7 +661,7 @@ class Instance {
 };
 
 size_t InstanceSize(const Def &def) {
-  return Instance::WorldOffset() + ((fel_world_size(def.fel) + 15u) & ~static_cast<size_t>(15u));
+  return Instance::WorldOffset() + ((upstream_engine_world_size(def.engine_id) + 15u) & ~static_cast<size_t>(15u));
 }
 
 void *Create(const Def *def, void *mem, const fm1_host_t *host) {
@@ -690,20 +690,20 @@ void *DrawbarCreate(void *mem, const fm1_host_t *host) { return Create(&kDrawbar
 void *TrioCreate(void *mem, const fm1_host_t *host) { return Create(&kTrio, mem, host); }
 void *PhaseCreate(void *mem, const fm1_host_t *host) { return Create(&kPhase, mem, host); }
 
-}  // namespace felucca
+}  // namespace upstream_engines
 }  // namespace fm1
 
-#define FEL_CREDIT "Felucca by Leo Kuroshita (@kurogedelic), Hugelton Instruments (GPL-3.0): "
+#define UPSTREAM_ENGINE_CREDIT "Felucca by Leo Kuroshita (@kurogedelic), Hugelton Instruments (GPL-3.0): "
 
 extern "C" const fm1_engine_t fm1_engine_drawbar = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND,
   "drawbar", "Drawbar",
-  FEL_CREDIT "its WHEEL engine, a tonewheel-style organ of its own design",
-  fm1::felucca::kDrawbarParams, FEL_COUNT(fm1::felucca::kDrawbarParams), fm1::felucca::kVoices,
-  fm1::felucca::DrawbarSize, fm1::felucca::DrawbarCreate, fm1::felucca::Destroy,
-  fm1::felucca::NoteOn, fm1::felucca::NoteOff, fm1::felucca::Bend,
-  fm1::felucca::Set, fm1::felucca::Render,
-  fm1::felucca::SetNote,
+  UPSTREAM_ENGINE_CREDIT "its WHEEL engine, a tonewheel-style organ of its own design",
+  fm1::upstream_engines::kDrawbarParams, UPSTREAM_ENGINE_COUNT_OF(fm1::upstream_engines::kDrawbarParams), fm1::upstream_engines::kVoices,
+  fm1::upstream_engines::DrawbarSize, fm1::upstream_engines::DrawbarCreate, fm1::upstream_engines::Destroy,
+  fm1::upstream_engines::NoteOn, fm1::upstream_engines::NoteOff, fm1::upstream_engines::Bend,
+  fm1::upstream_engines::Set, fm1::upstream_engines::Render,
+  fm1::upstream_engines::SetNote,
   0, NULL,                  // API v3: no effect extension
   0, 0,                     // not a pad kit
   NULL,                     // API v4: no get_param, the host keeps its values
@@ -712,12 +712,12 @@ extern "C" const fm1_engine_t fm1_engine_drawbar = {
 extern "C" const fm1_engine_t fm1_engine_trio = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND,
   "trio", "Trio",
-  FEL_CREDIT "its TRIO engine, three oscillators and a filter in the style of 8-bit sound chips",
-  fm1::felucca::kTrioParams, FEL_COUNT(fm1::felucca::kTrioParams), fm1::felucca::kVoices,
-  fm1::felucca::TrioSize, fm1::felucca::TrioCreate, fm1::felucca::Destroy,
-  fm1::felucca::NoteOn, fm1::felucca::NoteOff, fm1::felucca::Bend,
-  fm1::felucca::Set, fm1::felucca::Render,
-  fm1::felucca::SetNote,
+  UPSTREAM_ENGINE_CREDIT "its TRIO engine, three oscillators and a filter in the style of 8-bit sound chips",
+  fm1::upstream_engines::kTrioParams, UPSTREAM_ENGINE_COUNT_OF(fm1::upstream_engines::kTrioParams), fm1::upstream_engines::kVoices,
+  fm1::upstream_engines::TrioSize, fm1::upstream_engines::TrioCreate, fm1::upstream_engines::Destroy,
+  fm1::upstream_engines::NoteOn, fm1::upstream_engines::NoteOff, fm1::upstream_engines::Bend,
+  fm1::upstream_engines::Set, fm1::upstream_engines::Render,
+  fm1::upstream_engines::SetNote,
   0, NULL,
   0, 0,
   NULL,
@@ -726,13 +726,13 @@ extern "C" const fm1_engine_t fm1_engine_trio = {
 extern "C" const fm1_engine_t fm1_engine_phase_bend = {
   FM1_ENGINE_MAGIC, FM1_ENGINE_API_VERSION, FM1_KIND_SOUND,
   "phase-bend", "Phase Bend",
-  FEL_CREDIT "its PHASE engine, a port of the phase-distortion oscillator of CrispyZebra "
+  UPSTREAM_ENGINE_CREDIT "its PHASE engine, a port of the phase-distortion oscillator of CrispyZebra "
   "by the same author (GPL-3.0)",
-  fm1::felucca::kPhaseParams, FEL_COUNT(fm1::felucca::kPhaseParams), fm1::felucca::kVoices,
-  fm1::felucca::PhaseSize, fm1::felucca::PhaseCreate, fm1::felucca::Destroy,
-  fm1::felucca::NoteOn, fm1::felucca::NoteOff, fm1::felucca::Bend,
-  fm1::felucca::Set, fm1::felucca::Render,
-  fm1::felucca::SetNote,
+  fm1::upstream_engines::kPhaseParams, UPSTREAM_ENGINE_COUNT_OF(fm1::upstream_engines::kPhaseParams), fm1::upstream_engines::kVoices,
+  fm1::upstream_engines::PhaseSize, fm1::upstream_engines::PhaseCreate, fm1::upstream_engines::Destroy,
+  fm1::upstream_engines::NoteOn, fm1::upstream_engines::NoteOff, fm1::upstream_engines::Bend,
+  fm1::upstream_engines::Set, fm1::upstream_engines::Render,
+  fm1::upstream_engines::SetNote,
   0, NULL,
   0, 0,
   NULL,

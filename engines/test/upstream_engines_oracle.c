@@ -1,7 +1,7 @@
-/* felucca_oracle.c -- fm1-felucca-oracle: Drawbar, Trio and Phase Bend
- * (src/felucca_shim.cc) against Felucca's own voice code.
+/* upstream_engines_oracle.c -- fm1-upstream-engines-oracle: Drawbar, Trio and Phase Bend
+ * (src/upstream_engine_shim.cc) against Felucca's own voice code.
  *
- * The oracle is Felucca's voice.c, unmodified (third_party/felucca/src),
+ * The oracle is Felucca's voice.c, unmodified (third_party/upstream-engines/src),
  * driving the same engine files on one part as Felucca's firmware does:
  * its trk_note_on, trk_note_off and track_render, with its envelope, its
  * modulation and its POLY voice allocation. What voice.c needs from files
@@ -9,12 +9,12 @@
  * LFO draws from, the engine table) is stubbed below, inert as on a part
  * with no matrix route, no drum and no LFO depth. The engine under test is
  * the same engine through our API (fm1_engine_find), with its parameters
- * in their units: the test (tests/test_engine_felucca.py) gives both sides
+ * in their units: the test (tests/test_engine_upstream_engines.py) gives both sides
  * the same sound, Felucca's in its integers (--fel) and ours in units
  * computed from Felucca's own curves (--param), so the parameter maps are
  * checked too.
  *
- *   fm1-felucca-oracle ENGINE [--rate HZ] [--blocks N] [--host-block F]
+ *   fm1-upstream-engines-oracle ENGINE [--rate HZ] [--blocks N] [--host-block F]
  *       [--fel E0=..,E7=..,ATK=..,DEC=..,SUS=..,REL=..,FLT=..]
  *       [--param NAME=VALUE]... [--on B:KEY:VEL]... [--off B:KEY]...
  *
@@ -26,17 +26,17 @@
  *
  * It also counts our samples that are not finite or are subnormal, and
  * gives our peak. Felucca's samples are its integers times the shim's output gain at
- * Volume 0.7 (felucca_shim.cc kPartGain), computed by the same expression,
+ * Volume 0.7 (upstream_engine_shim.cc kPartGain), computed by the same expression,
  * so identical means bit for bit.
  *
  * A desktop test tool, built only while the GPL switch is on
- * (mk/felucca.mk): it includes GPL-3.0-only code. MIT licence (this file's
+ * (mk/upstream_engines.mk): it includes GPL-3.0-only code. MIT licence (this file's
  * own text).
  */
 #include "fm1_gpl_mods.h"
 
 #if !FM1_GPL_MODS
-#error "felucca_oracle.c includes GPL code: it is built only with FM1_GPL_MODS=1"
+#error "upstream_engines_oracle.c includes GPL code: it is built only with FM1_GPL_MODS=1"
 #endif
 
 #include <math.h>
@@ -48,9 +48,9 @@
 #include "fm1_engine.h"
 
 /* ---- Felucca: its files, as tests/hostsim.c includes them ------------------- */
-#include "felucca_tables.h"
+#include "upstream_engine_tables.h"
 #define section(x) unused
-#define bootguard fel_oracle_bootguard
+#define bootguard upstream_engine_oracle_bootguard
 #include "core.h"
 #undef bootguard
 #undef section
@@ -88,12 +88,12 @@ static inline uint32_t eng_idx(uint32_t e) { return e < NENGINES ? e : 0u; }
 typedef struct { uint32_t block; int on; uint8_t key, vel; } event_t;
 
 static void usage(void) {
-  fprintf(stderr, "usage: fm1-felucca-oracle drawbar|trio|phase-bend [--rate HZ] [--blocks N]\n"
+  fprintf(stderr, "usage: fm1-upstream-engines-oracle drawbar|trio|phase-bend [--rate HZ] [--blocks N]\n"
                   "         [--host-block F] [--fel K=V,...] [--param NAME=VALUE]...\n"
                   "         [--on B:KEY:VEL]... [--off B:KEY]...\n");
 }
 
-static int fel_key(const char *k) {
+static int upstream_engine_key(const char *k) {
   if (k[0] == 'E' && k[1] >= '0' && k[1] <= '7' && !k[2]) return P_E0 + (k[1] - '0');
   if (!strcmp(k, "ATK")) return P_ATK;
   if (!strcmp(k, "DEC")) return P_DEC;
@@ -105,7 +105,7 @@ static int fel_key(const char *k) {
 
 int main(int argc, char **argv) {
   const fm1_engine_t *e;
-  int fel_engine;
+  int reference_engine;
   float rate = 44100.0f;
   uint32_t blocks = 200, host_block = 32;
   event_t ev[MAX_EVENTS];
@@ -117,18 +117,18 @@ int main(int argc, char **argv) {
   if (argc < 2) { usage(); return 2; }
   e = fm1_engine_find(argv[1]);
   if (!e) { usage(); return 2; }
-  fel_engine = !strcmp(argv[1], "drawbar") ? 7 : !strcmp(argv[1], "trio") ? 6
+  reference_engine = !strcmp(argv[1], "drawbar") ? 7 : !strcmp(argv[1], "trio") ? 6
              : !strcmp(argv[1], "phase-bend") ? 2 : -1;
-  if (fel_engine < 0) { usage(); return 2; }
+  if (reference_engine < 0) { usage(); return 2; }
 
   /* Felucca's part: its defaults where voice.c reads them (params.c TP),
    * then --fel. */
   memset(trk, 0, sizeof trk);
   t->p[P_ATK] = 10; t->p[P_DEC] = 70; t->p[P_SUS] = 90; t->p[P_REL] = 60;
   t->p[P_LRATE] = 60; t->p[P_DETUNE] = 40; t->p[P_LEVEL] = 104;
-  for (i = 0; i < NPART; ++i) t[i].engine = t[i].eng_req = (uint8_t)(i ? 6 : fel_engine);
+  for (i = 0; i < NPART; ++i) t[i].engine = t[i].eng_req = (uint8_t)(i ? 6 : reference_engine);
   {
-    const engine_t *eng = ENGINES[fel_engine];
+    const engine_t *eng = ENGINES[reference_engine];
     for (i = 0; i < 8; ++i) t->p[P_E0 + i] = eng->edit[i].def;
   }
 
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
         int k;
         if (!eq) { usage(); return 2; }
         *eq = 0;
-        k = fel_key(tok);
+        k = upstream_engine_key(tok);
         if (k < 0) { usage(); return 2; }
         t->p[k] = (int16_t)atoi(eq + 1);
       }
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
     const size_t size = e->instance_size(&host);
     void *mem = NULL, *self;
     float *ours = (float *)calloc((size_t)blocks * 32u * 2u, sizeof(float));
-    const float gain = 2584.0f / 4096.0f / 32768.0f / 4.0f;   /* felucca_shim.cc kPartGain */
+    const float gain = 2584.0f / 4096.0f / 32768.0f / 4.0f;   /* upstream_engine_shim.cc kPartGain */
     uint32_t b, f, frames = blocks * 32u, first = 0, diffs = 0, loud = 0, subnormal = 0, nonfinite = 0;
     double max_diff = 0.0, peak = 0.0, ours_peak = 0.0;
     if (posix_memalign(&mem, 16, size) || !ours) return 2;

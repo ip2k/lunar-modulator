@@ -75,8 +75,8 @@ def main():
     extra = flags + ['-D_GNU_SOURCE', '-D_XOPEN_SOURCE=700', '-DFM1_FREESTANDING=1',
                      '-I' + str(tc / 'pi32v2/include')]
     engine_build = out / 'engines'
-    engine_objects = [engine_build / 'our/src/felucca_shim.o',
-                      engine_build / 'gpl/felucca/felucca_bridge.o']
+    engine_objects = [engine_build / 'our/src/upstream_engine_shim.o',
+                      engine_build / 'gpl/upstream_engines/upstream_engine_bridge.o']
     compiler = str(tc / 'common/bin/clang')
     subprocess.run(['make', '-C', str(ROOT / 'engines'), '-j16',
                     'BUILD=' + str(engine_build), 'FM1_GPL_MODS=1', 'FM1_MODULES=trio',

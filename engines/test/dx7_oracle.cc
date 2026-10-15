@@ -1,7 +1,7 @@
 // dx7_oracle.cc -- fm1-dx7-oracle: one DX7 voice rendered by the FM6
 // engine (engine id dx7, through its fm1_engine_t, the voice loaded as a
 // VCED dump into User 1) and by Felucca's fm6_core.c (Leo Kuroshita,
-// Apache-2.0, an integer C port of Dexed's msfa; set up in dx7_felucca.c),
+// Apache-2.0, an integer C port of Dexed's msfa; set up in dx7_upstream_fm6.c),
 // and how far apart they are (tests/test_engines_dx7.py, engines/msfa.md).
 //
 //   fm1-dx7-oracle --vced FILE.syx [--key K] [--vel V] [--gate S] [--seconds S]
@@ -61,8 +61,8 @@
 #include "msfa_ref.h"
 
 extern "C" {
-void felucca_init(double rate);
-void felucca_render(const uint8_t *p155, int key, int vel, int gate, int total, int32_t *out);
+void upstream_fm6_init(double rate);
+void upstream_fm6_render(const uint8_t *p155, int key, int vel, int gate, int total, int32_t *out);
 }
 
 namespace {
@@ -335,9 +335,9 @@ int main(int argc, char **argv) {
   e->destroy(self);
 
   // Felucca's core.
-  felucca_init(rate);
+  upstream_fm6_init(rate);
   std::vector<int32_t> fel(total);
-  felucca_render(&syx[6], key, vel, gate, total, &fel[0]);
+  upstream_fm6_render(&syx[6], key, vel, gate, total, &fel[0]);
   for (int i = 0; i < total; ++i) ref[i] = fel[i];
 
   double num = 0, den = 0, peak_o = 0, peak_r = 0, sum_o = 0, sum_r = 0;

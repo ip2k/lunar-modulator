@@ -114,7 +114,7 @@ ENUM_FLAGS[("crater", "Choke")] = ["latch", "mod"]
 # every list is read at its next step (LATCH); no route reaches a MIDI effect.
 for _name in ("Octaves", "Root", "Scale", "Octave", "Keys", "Rate", "Direction", "Latch"):
     ENUM_FLAGS[("acid-gen", _name)] = ["latch"]
-# Felucca's engines (GPL modules, src/felucca_shim.cc). Drawbar's lists are
+# Felucca's engines (GPL modules, src/upstream_engine_shim.cc). Drawbar's lists are
 # read every block and glide (each partial's gain ramps over the block, the
 # rotor eases between its speeds): clean switches, MOD. Trio's and Phase
 # Bend's would click under a note, so a voice keeps the value it started
