@@ -724,6 +724,16 @@ both: JieLi's OS on cpu0, and the msfa voice render on cpu1, outside the OS
 
 ### MIDI in and out
 
+**Native Lunar transport (2026-10-15).** USB-MIDI and UART/TRS input share
+MIDI Start (`FA`, rewind and play), Stop (`FC`, release sequencer gates and
+pause) and Continue (`FB`, resume) handling before MIDI-channel filtering
+[verified: source and host tests]. They currently use Lunar's internal tempo;
+this does not enable MIDI Clock (`F8`) synchronization. Physical USB captures
+support Stop/Continue behavior; exact Start rewind and TRS transport acceptance
+remain pending. See [native transport evidence](notes/2026-10-15-native-midi-transport.md)
+for queue behavior, tests and hardware limits. The following hardware/research
+notes also describe stock firmware and historical SDK plans.
+
 - **Three inputs:** the stock firmware merges USB-MIDI, the TRS jack (DIN
   MIDI on the chip's UART) and BLE-MIDI through one parser [reported:
   AL-255; [docs/02](docs/02-stock-firmware.md)].
