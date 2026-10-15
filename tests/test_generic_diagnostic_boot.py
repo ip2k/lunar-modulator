@@ -212,6 +212,10 @@ def test_completion_first_reset_sends_exact_fc0c_once(monkeypatch):
 
 
 def test_real_source_pins_and_tamper_refusal(tmp_path, monkeypatch):
+    candidate = boot.ROOT / "native/expanded_candidate.py"
+    assert boot.SOURCE_PINS["native/expanded_candidate.py"] == hashlib.sha256(candidate.read_bytes()).hexdigest()
+    adapter_source = boot.ROOT / "native/generic_diagnostic_sg_adapter.py"
+    assert boot.SOURCE_PINS["native/generic_diagnostic_sg_adapter.py"] == hashlib.sha256(adapter_source.read_bytes()).hexdigest()
     evidence = boot._source_evidence()
     assert len(evidence) == len(boot.SOURCE_PINS) + 1
     # Exercise real hashes against a private copy; no transport is constructed.

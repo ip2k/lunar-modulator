@@ -115,6 +115,12 @@ def test_changed_source_pin_refuses_before_factory(tmp_path, monkeypatch):
     assert not (tmp_path / "never.jsonl").exists()
 
 
+def test_expanded_candidate_pin_matches_current_source():
+    source = ROOT / "tools/native/expanded_candidate.py"
+    actual = hashlib.sha256(source.read_bytes()).hexdigest()
+    assert adapter.SOURCE_SHA256["expanded_candidate.py"] == actual
+
+
 def test_policy_binding_failure_closes_transport_and_log(tmp_path, monkeypatch):
     policy, _, _, binding = setup_policy(tmp_path, monkeypatch)
     transport = FakeTransport(dict(binding, session_id="bound", loader_sha256="f" * 64))

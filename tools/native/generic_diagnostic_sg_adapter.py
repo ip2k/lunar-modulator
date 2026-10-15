@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE_SHA256={
  "generic_diagnostic_flash.py":"48e136b6d71392689b039a71e22dcc653d80dd21085076d78394b5e61f906f74",
- "expanded_candidate.py":"46b03dfd636792473e720314268ad41cc9af9ca54f12d2118216cb8f3bdb8d7d",
+ "expanded_candidate.py":"566f8cbf2965ccc3e20f703fa074bb174542df99b3cd22e2d54f7779183cbb59",
  "expanded_sg.py":"f18e73b658c9d0b06b03b528c6fd4dd4da511a95102ea44252836d885e1a3700",
  "event120_generic_boot.py":"a060459933f8e34b34df8a0978e76e65e3d92f6bb728cbeb3306f4ffb132d820",
  "fm1_bound_diagnostic.py":"25e57ffda466c898df88370069cf4d7fce02134e141ba95516347c30953d1a36",
