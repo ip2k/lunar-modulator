@@ -1,6 +1,9 @@
 """Native identity override stays bounded and leaves historical probes intact."""
+import hashlib
 import importlib.util
+import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -11,6 +14,33 @@ spec = importlib.util.spec_from_file_location(
     "native_firmware_identity", ROOT / "tools/native/firmware_identity.py")
 identity = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(identity)
+
+probe_spec = importlib.util.spec_from_file_location(
+    "native_build_probe", ROOT / "tools/native/build_probe.py")
+probe = importlib.util.module_from_spec(probe_spec)
+probe_spec.loader.exec_module(probe)
+
+
+def test_dinghy_inventory_pins_cpu_calibration_source_and_rejects_mutation(tmp_path):
+    dinghy = ROOT / "firmware/third_party/dinghy"
+    inventory = json.loads((dinghy / "inventory.json").read_text())
+    platform = dinghy / "src/platform.c"
+    local_sha = hashlib.sha256(platform.read_bytes()).hexdigest()
+    record = inventory["local_modifications"]["src/platform.c"]
+
+    assert inventory["files"]["src/platform.c"] == local_sha
+    assert record["local_sha256"] == local_sha
+    assert record["upstream_sha256"] == (
+        "6cfb23b317af3d95da4d6eeeb8a34de59ee77a626d7d17484398feeb2535bfd7")
+    assert "LUNAR_DIAGNOSTIC_CPU_RATE" in record["reason"]
+    probe.check_pins(dinghy)
+
+    altered = tmp_path / "dinghy"
+    shutil.copytree(dinghy, altered)
+    altered_platform = altered / "src/platform.c"
+    altered_platform.write_bytes(altered_platform.read_bytes() + b"\n/* tampered */\n")
+    with pytest.raises(SystemExit, match="Source pin mismatch: src/platform.c"):
+        probe.check_pins(altered)
 
 
 def test_default_preserves_pinned_probe_source():
