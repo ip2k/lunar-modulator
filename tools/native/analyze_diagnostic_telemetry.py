@@ -10,9 +10,9 @@ import sys
 from typing import Any, Iterable
 
 try:
-    from .diagnostic_telemetry import FIELDS, PROFILE_FIELDS, PROFILE_STAGES
+    from .diagnostic_telemetry import CLOCK_FIELDS, FIELDS, PROFILE_FIELDS, PROFILE_STAGES
 except ImportError:  # Direct ``python tools/native/analyze_diagnostic_telemetry.py`` use.
-    from diagnostic_telemetry import FIELDS, PROFILE_FIELDS, PROFILE_STAGES
+    from diagnostic_telemetry import CLOCK_FIELDS, FIELDS, PROFILE_FIELDS, PROFILE_STAGES
 
 UINT32_MAX = 0xFFFFFFFF
 TICKS_PER_US = 24
@@ -74,6 +74,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
     previous_values: dict[str, int] | None = None
     frames: list[dict[str, Any]] = []
     profiles: list[dict[str, Any]] = []
+    clock_snapshots: list[dict[str, Any]] = []
     previous_profile_elapsed: float | None = None
     event_counts: dict[str, int] = {}
     total_bytes = 0
@@ -103,6 +104,20 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         if previous_elapsed is not None and elapsed < previous_elapsed:
             raise ValueError(f"line {line_number}: elapsed_seconds moved backwards")
         previous_elapsed = elapsed
+
+        if event_name == "clock_snapshot_frame":
+            values = event.get("values")
+            if (type(event.get("schema")) is not int or event["schema"] != 3
+                    or not isinstance(values, dict) or set(values) != set(CLOCK_FIELDS)):
+                raise ValueError(f"line {line_number}: clock snapshot values must contain exactly schema-3 fields")
+            checked = {name: _uint32(values[name], name, line_number) for name in CLOCK_FIELDS}
+            clock_snapshots.append({
+                "wall_time_utc": event.get("wall_time_utc"),
+                "elapsed_seconds": elapsed,
+                "values": checked,
+                "frequency_interpreted": False,
+            })
+            continue
 
         if event_name == "render_profile_frame":
             values = event.get("values")
@@ -192,8 +207,8 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         })
         previous_values = checked
 
-    if not frames and not profiles:
-        raise ValueError("event log contains no diagnostic or render_profile frame rows")
+    if not frames and not profiles and not clock_snapshots:
+        raise ValueError("event log contains no diagnostic or render_profile frame rows or clock snapshots")
 
     return {
         "schema": 1,
@@ -210,8 +225,10 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         "event_counts": event_counts,
         "diagnostic_frame_count": len(frames),
         "render_profile_frame_count": len(profiles),
+        "clock_snapshot_frame_count": len(clock_snapshots),
         "frames": frames,
         "render_profiles": profiles,
+        "clock_snapshots": clock_snapshots,
         "interpretation_limits": [
             "Counters are cumulative and sampled non-atomically; use modular deltas between frames.",
             "Missing reports create longer intervals; rates are interval averages, not reconstructed event times.",
@@ -219,6 +236,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
             "USB messages and UART bytes are ingress observations; accepted_noteons is handler dispatch, not audible acceptance.",
             "Stack margins are observed minima only; sentinel or zero samples means unavailable.",
             "No device identity, image identity, WAV alignment, or hardware/perceptual acceptance is inferred.",
+            "Clock snapshots are repeated reports of a startup sample; register selectors are not decoded into CPU frequency.",
         ],
     }
 

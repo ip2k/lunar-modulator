@@ -41,3 +41,19 @@ No target build, register observation, clock frequency, audio improvement or
 hardware acceptance is established by this source/host result. A frozen build
 and a separately reviewed fresh diagnostic cycle remain required. The earlier
 f524e019 hot-DSP candidate does not contain this option or protocol.
+
+[verified] The offline analyzer now validates and preserves schema-3 clock
+snapshots as raw startup observations, separate from diagnostic counter deltas
+and schema-2 render windows. It accepts clock-only logs without manufacturing
+performance data, rejects malformed fields/schema/uint32 values, and leaves
+CPU frequency uninterpreted. Analyzer plus recorder regression: 44 tests pass.
+
+[verified] Hera completed a fresh frozen build from exact source
+5c4502ee552f51e40fe54527dc8fe2dea58dd300. App size853324bytes,
+SHA256072f82f37a5b2a8005127fae551f92f4094e96faf283ab925a71d8297bd66820;
+frozen receipt78e3b7d6c00da6f55798fa955909e8b7821fd132cbc19abb7f3b29f6c553f6.
+The existing generic build validator passed; container exit0/noOOM. Handoff:
+Hera:/home/claude/.local/share/codex-coordination/handoffs/lunar--clock-snapshot-build-20261015.md.
+Source confirms the three volatile reads; inlined target accesses were not
+reliably mapped in disassembly. No physical clock observation or performance
+improvement has been established.

@@ -5219,3 +5219,22 @@ notes/2026-10-15-clock-snapshot-diagnostic.md. No device observation yet; f524
 candidate excludes this later change. Existing MIDI transport focused tests
 passed again (USB/TRS parser + app FIFO); exact FA rewind and TRS physical
 acceptance remain open. Goal active, audio starvation unresolved, SAVE disarmed.
+
+### Fresh campaign construction and clock analysis
+
+Hot-DSP offline construction succeeded: target
+ e77cc3c12ba29dbc703f57dd3b3c775ea7aaf8254ecb943437ed9991ecd8c65e,
+input-template6d859d52d04e4dfa4745022c8ab67f3744eb35b9dc0f22d1440898b9ea174a46,
+210 changed sectors from installed52d6846a; stock comparison211. Root passively
+re-observed ROM69/KA6 and independently verified target/template/reader hashes
+on bench01. No new device write/reset yet. Agent finishing the fresh single-use
+runner under scratch/hot-dsp-cycle; root review and file-only preflight required
+before execution. Old ROM67 runner remains consumed.
+
+Clock snapshot build at exact5c4502ee passed existing build policy, app853324B.
+Shared handoff lunar--clock-snapshot-build-20261015.md on Hera contains fullpins.
+Later analyzer-only changes retain/validate raw clock frames without frequency
+inference or changing counter-rate calculations; analyzer+recorder44tests pass.
+Existing telemetry/flash/boot/SG tests and16 private capture-helper tests pass.
+Limiter performance review is read-only/in progress. Audio starvation unresolved,
+SAVE disarmed, physical TRS transport and full musical acceptance open. Goal ACTIVE.
