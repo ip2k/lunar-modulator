@@ -720,7 +720,8 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
     uint64_t notes, trigs;
     uint8_t view, bar, hint;
     int8_t knob;
-    uint8_t srec, capture_pending, tracks;
+    uint8_t srec, tracks;
+    uint16_t capture_pending;
     uint16_t muted, swing;
     uint8_t dq, metro, clip_num, clip_den, clip_quant;
     int8_t clip_tr;
