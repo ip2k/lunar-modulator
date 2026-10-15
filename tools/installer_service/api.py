@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, ValidationError, field_validator, model_validator
 
 from tools.native.module_selection import wavetable_namespaces
+from tools.native.flash_layout import app_budget
 from tools.native.runtime_mode import runtime_configuration
 from .provenance import make_diagnostic_provenance, sha256 as provenance_sha256
 
@@ -28,6 +29,25 @@ TARGET_STORAGE = {"rgb565_bytes": 220832, "indexed_bytes": 163744,
                   "pool_credit_bytes": 57088}
 BASE_INSTANCE_POOL_BYTES = 192000
 SHAPES_VOICES = 12
+SCHEMA2_PROFILE_ID = "fm1-092-d7000"
+SCHEMA2_TUPLE_SCHEMA = 2
+SHAPES8_WAVETABLE_PROFILE = "compressed-required-banks-ram-plaits-braids-shapes8-v1"
+SHAPES8_TABLES = (
+    {"namespace": "plaits", "symbol": "wav_integrated_waves", "width": 2,
+     "raw_bytes": 50688,
+     "raw_sha256": "bd1d04177e240247de3224ef8e6f52afd907d8ae1a9971e0ce4ba68258e7ecea",
+     "packed_bytes": 32513,
+     "packed_sha256": "2cbdd706ef8cd7b97e705b139eab7a328ff4cb03257326faf34c396ac5b21255",
+     "fnv32": 2231692768,
+     "generated_source_sha256": "b5dacba5b7df4af0c5966f5bd8906bd2c30486ccf8ef156db02248e6d469787c"},
+    {"namespace": "braids", "symbol": "wt_waves", "width": 1,
+     "raw_bytes": 33024,
+     "raw_sha256": "c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634",
+     "packed_bytes": 24159,
+     "packed_sha256": "d05f3f0b852719327983c82418a1b6b9e4c2414430078267653a77feb2ed1952",
+     "fnv32": 3119621762,
+     "generated_source_sha256": "c3c20d193d012125c53b2d2cba811c33c559462c070fed2702dc896727f2b82e"},
+)
 
 
 class DuplicateKey(ValueError): pass
@@ -63,6 +83,10 @@ class BuildRequest(BaseModel):
     project_ids: list[StrictStr] = Field(min_length=1, max_length=8)
     startup_index: StrictInt = Field(ge=0)
     set_ids: list[StrictStr] = Field(default_factory=list, max_length=8)
+    # Omitted D9000 requests retain their historical canonical bytes. D7000
+    # must be an explicit, schema-2-shaped diagnostic profile selection.
+    flash_layout: Literal["expanded-d9000", "expanded-d7000"] = "expanded-d9000"
+    runtime_mode: Literal["diagnostic", "song-diagnostic"] = "diagnostic"
 
     @field_validator("engines", "effects", "midi", "modulation", "project_ids", "set_ids")
     @classmethod
@@ -75,6 +99,14 @@ class BuildRequest(BaseModel):
     def startup_in_range(self):
         if self.startup_index >= len(self.project_ids):
             raise ValueError("startup_index is outside project_ids")
+        if self.flash_layout == "expanded-d7000":
+            if self.runtime_mode != "song-diagnostic":
+                raise ValueError("expanded-d7000 requires the schema-2 song-diagnostic runtime")
+            selected = set(self.engines + self.effects + self.midi + self.modulation)
+            if not {"macro", "shapes"}.issubset(selected):
+                raise ValueError("expanded-d7000 requires the fixed Macro+Shapes8 profile")
+        elif self.runtime_mode != "diagnostic":
+            raise ValueError("legacy expanded-d9000 requests use the bounded diagnostic runtime")
         return self
 
 
@@ -178,8 +210,43 @@ class Admission:
     worker_image_digest: str
 
 
-def _verify_wavetable_receipt(receipt: dict, selected: list[str]) -> None:
+def _verify_wavetable_receipt(receipt: dict, selected: list[str], flash_layout: str) -> None:
     """Bind the fixed compiled wavetable profile to admitted module choices."""
+    if flash_layout == "expanded-d7000":
+        expected_rows = [dict(row) for row in SHAPES8_TABLES]
+        rows = receipt.get("compressed_wave_tables")
+        if (receipt.get("wavetable_profile") != SHAPES8_WAVETABLE_PROFILE
+                or receipt.get("indexed_tft") is not True
+                or receipt.get("flash_plaits_wavetables") is not False
+                or type(receipt.get("shapes_voices")) is not int
+                or receipt["shapes_voices"] != 8
+                or rows != expected_rows
+                or not {"macro", "shapes"}.issubset(set(selected))):
+            raise ValueError("worker Shapes8 D7000 profile differs from fixed policy")
+        integer_fields = ("width", "raw_bytes", "packed_bytes", "fnv32")
+        digest_fields = ("raw_sha256", "packed_sha256", "generated_source_sha256")
+        for actual, expected in zip(rows, expected_rows):
+            if (not isinstance(actual, dict) or set(actual) != set(expected)
+                    or any(type(actual.get(key)) is not int or actual[key] != expected[key]
+                           for key in integer_fields)
+                    or any(type(actual.get(key)) is not str or actual[key] != expected[key]
+                           for key in digest_fields)
+                    or type(actual.get("namespace")) is not str
+                    or actual["namespace"] != expected["namespace"]
+                    or type(actual.get("symbol")) is not str
+                    or actual["symbol"] != expected["symbol"]):
+                raise ValueError("worker D7000 wavetable identity is malformed or stale")
+        storage = receipt.get("target_app_storage")
+        if (not isinstance(storage, dict) or storage != TARGET_STORAGE
+                or any(type(storage.get(key)) is not int for key in TARGET_STORAGE)):
+            raise ValueError("worker target storage profile differs from fixed layout")
+        raw_bytes = sum(row["raw_bytes"] for row in expected_rows)
+        expected_pool = BASE_INSTANCE_POOL_BYTES + TARGET_STORAGE["pool_credit_bytes"] - raw_bytes
+        if type(receipt.get("instance_pool_bytes")) is not int or receipt["instance_pool_bytes"] != expected_pool:
+            raise ValueError("worker instance pool does not match the D7000 Shapes8 profile")
+        return
+    if flash_layout != "expanded-d9000":
+        raise ValueError("worker selected an unsupported flash layout")
     expected_namespaces = wavetable_namespaces(selected, flash_plaits=True)
     rows = receipt.get("compressed_wave_tables")
     if (receipt.get("wavetable_profile") != WAVETABLE_PROFILE
@@ -277,10 +344,13 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
     false_fields = ("installable", "hardware_admitted", "hardware_tested",
                     "native_ram_verified", "native_playback_verified",
                     "full_song_default_accepted")
+    flash_layout = request.get("flash_layout", "expanded-d9000")
+    runtime_mode = request.get("runtime_mode", "diagnostic")
+    selected_budget = app_budget(flash_layout) if flash_layout == "expanded-d7000" else MAX_ARTIFACT_BYTES
     _verify_runtime_configuration(receipt)
     if (type(receipt.get("version")) is not int or receipt["version"] != 1
             or receipt.get("status") != "linked-private-diagnostic"
-            or receipt.get("flash_layout") != "expanded-d9000"
+            or receipt.get("flash_layout") != flash_layout
             or receipt.get("request_sha256") != admission.request_sha256
             or receipt.get("project_ids") != projects
             or receipt.get("set_ids", []) != set_ids
@@ -293,8 +363,12 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
             or type(receipt.get("app_bytes")) is not int
             or receipt["app_bytes"] != len(result.artifact)
             or type(receipt.get("app_budget_bytes")) is not int
+            or (flash_layout == "expanded-d7000"
+                and receipt["app_budget_bytes"] != app_budget("expanded-d7000"))
             or not 0 < receipt["app_bytes"] <= receipt["app_budget_bytes"]
-            or receipt["app_budget_bytes"] > MAX_ARTIFACT_BYTES
+            or receipt["app_budget_bytes"] > selected_budget
+            or (flash_layout == "expanded-d7000"
+                and receipt["runtime_configuration"].get("runtime_mode") != runtime_mode)
             or any(receipt.get(key) is not False for key in false_fields)):
         raise ValueError("worker receipt does not bind the admitted diagnostic build")
     if any(not isinstance(receipt.get(key), str) or not SHA256.fullmatch(receipt[key])
@@ -304,7 +378,7 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
     if (not isinstance(receipt.get("module_selection"), dict)
             or receipt["module_selection"].get("selected") != expected_selected):
         raise ValueError("worker module selection differs from admission")
-    _verify_wavetable_receipt(receipt, expected_selected)
+    _verify_wavetable_receipt(receipt, expected_selected, flash_layout)
     _verify_diagnostic_provenance(provenance, admission, result, receipt,
                                   artifact_sha, elf_sha)
     expected_parents = {set_id: trusted_set_parents[set_id] for set_id in set_ids}
@@ -401,13 +475,28 @@ def _verify_diagnostic_provenance(provenance, admission, result, receipt, app_sh
                         "artifact_receipt_sha256": receipt.get("artifact_receipt_sha256")}
     if not isinstance(outputs, dict) or outputs != expected_outputs:
         raise ValueError("worker provenance does not bind the exact build outputs")
+    flash_layout = admission.request.get("flash_layout", "expanded-d9000")
+    # D9000 historically accepted any canonical bounded runtime mode carried
+    # by the worker receipt; keep that behavior while D7000 binds the request.
+    runtime_mode = (admission.request.get("runtime_mode", "diagnostic")
+                    if flash_layout == "expanded-d7000"
+                    else receipt["runtime_configuration"]["runtime_mode"])
     profile = provenance.get("profile")
-    expected_profile = {"flash_layout": "expanded-d9000",
-                        "runtime_mode": receipt["runtime_configuration"]["runtime_mode"],
-                        "shapes_voices": SHAPES_VOICES}
+    if flash_layout == "expanded-d7000":
+        expected_profile = {"flash_layout": "expanded-d7000",
+                            "runtime_mode": runtime_mode,
+                            "shapes_voices": 8,
+                            "tuple_schema": SCHEMA2_TUPLE_SCHEMA,
+                            "profile_id": SCHEMA2_PROFILE_ID}
+    else:
+        expected_profile = {"flash_layout": "expanded-d9000",
+                            "runtime_mode": runtime_mode,
+                            "shapes_voices": SHAPES_VOICES}
     if profile != expected_profile:
         raise ValueError("worker provenance profile differs from verified diagnostic build")
-    reason = ("diagnostic service emits expanded-d9000/12-voice; trusted schema-2 packager requires an explicitly captured expanded-d7000 tuple")
+    reason = ("D7000 diagnostic profile matches schema-2 layout/profile; a trusted tuple still requires separately captured operator and build provenance plus an external tuple digest"
+              if flash_layout == "expanded-d7000" else
+              "diagnostic service emits expanded-d9000/12-voice; trusted schema-2 packager requires an explicitly captured expanded-d7000 tuple")
     if (provenance.get("trusted_fwsc_packager_compatible") is not False
             or provenance.get("compatibility_reason") != reason
             or any(provenance.get(key) is not False

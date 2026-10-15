@@ -12,16 +12,21 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tools/native"))
 from build_demo_image import (BASE_INSTANCE_POOL_BYTES as BUILDER_BASE_INSTANCE_POOL_BYTES,
                               BRAIDS_TABLE as BUILDER_BRAIDS_TABLE,
+                              SHAPES8_TABLES as BUILDER_SHAPES8_TABLES,
+                              SHAPES8_WAVETABLE_PROFILE as BUILDER_SHAPES8_PROFILE,
                               SHAPES_VOICES as BUILDER_SHAPES_VOICES,
                               TARGET_STORAGE as BUILDER_TARGET_STORAGE,
                               WAVETABLE_PROFILE as BUILDER_WAVETABLE_PROFILE)
 from tools.installer_service.api import (BASE_INSTANCE_POOL_BYTES, SHAPES_VOICES,
+    SCHEMA2_PROFILE_ID, SCHEMA2_TUPLE_SCHEMA, SHAPES8_TABLES, SHAPES8_WAVETABLE_PROFILE,
     TARGET_STORAGE, WAVETABLES, WAVETABLE_PROFILE, FakeJobAdapter, WorkerTemplate,
     canonical_request, create_app)
 from tools.installer_service.catalogue import load_trusted_catalogue
 from tools.native.runtime_mode import runtime_configuration
+from tools.native.flash_layout import app_budget
 
-MODULES = {"sound-a": "sound", "shapes": "sound", "fx-a": "audio_fx", "midi-a": "midi_fx", "mod-a": "mod"}
+MODULES = {"sound-a": "sound", "macro": "sound", "shapes": "sound",
+           "fx-a": "audio_fx", "midi-a": "midi_fx", "mod-a": "mod"}
 PROJECTS = {"song-one", "song-two"}
 SETS = {"companion-one": "song-one"}
 TEMPLATE = WorkerTemplate("sha256:" + "a" * 64, "lunar-private-builds")
@@ -52,6 +57,12 @@ def test_service_and_builder_share_the_fixed_wavetable_contract():
     assert TARGET_STORAGE == BUILDER_TARGET_STORAGE
     assert BASE_INSTANCE_POOL_BYTES == BUILDER_BASE_INSTANCE_POOL_BYTES
     assert SHAPES_VOICES == BUILDER_SHAPES_VOICES
+    assert SHAPES8_WAVETABLE_PROFILE == BUILDER_SHAPES8_PROFILE
+    assert SHAPES8_TABLES == BUILDER_SHAPES8_TABLES
+    sys.path.insert(0, str(ROOT / "tools/jieli"))
+    from trusted_fwsc_package import PROFILE_ID, TUPLE_SCHEMA
+    assert SCHEMA2_PROFILE_ID == PROFILE_ID
+    assert SCHEMA2_TUPLE_SCHEMA == TUPLE_SCHEMA
 
 
 def test_accepts_canonical_request_with_opaque_id_and_fixed_template():
@@ -65,6 +76,108 @@ def test_accepts_canonical_request_with_opaque_id_and_fixed_template():
     assert digest == hashlib.sha256(data).hexdigest()
     assert template == TEMPLATE
     assert c.get(response.json()["status_url"]).json()["status"] == "queued"
+
+
+def d7000_request_doc():
+    return {**request_doc(), "engines": ["macro", "shapes"],
+            "flash_layout": "expanded-d7000", "runtime_mode": "song-diagnostic"}
+
+
+def test_explicit_d7000_request_binds_layout_and_schema2_profile():
+    doc = d7000_request_doc()
+    c, adapter = client()
+    accepted = accept_and_succeed(c, adapter, doc=doc)
+    build_id = accepted.json()["id"]
+    request_bytes, request_sha, _ = adapter.submissions[build_id]
+    assert json.loads(request_bytes) == doc
+    assert request_sha == hashlib.sha256(request_bytes).hexdigest()
+    legacy_bytes = canonical_request(request_doc())
+    assert b'"flash_layout"' not in legacy_bytes
+    assert b'"runtime_mode"' not in legacy_bytes
+
+    response = c.get(accepted.json()["status_url"])
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["app_budget_bytes"] == app_budget("expanded-d7000") == 860644
+    profile = result["provenance"]["profile"]
+    assert profile == {"flash_layout": "expanded-d7000", "runtime_mode": "song-diagnostic",
+                       "shapes_voices": 8, "tuple_schema": SCHEMA2_TUPLE_SCHEMA,
+                       "profile_id": SCHEMA2_PROFILE_ID}
+    assert result["provenance"]["trusted_fwsc_packager_compatible"] is False
+
+
+@pytest.mark.parametrize("patch", [
+    {"runtime_mode": "diagnostic"},
+    {"engines": ["sound-a"]},
+    {"flash_layout": "protected"},
+])
+def test_d7000_requires_explicit_schema2_runtime_and_fixed_modules(patch):
+    doc = d7000_request_doc()
+    doc.update(patch)
+    c, adapter = client()
+    assert c.post("/api/v1/builds", json=doc).status_code == 422
+    assert adapter.jobs == {}
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda receipt: receipt.update(flash_layout="expanded-d9000"),
+    lambda receipt: receipt.update(app_budget_bytes=1048576),
+    lambda receipt: receipt.update(app_budget_bytes=860645),
+    lambda receipt: receipt.update(shapes_voices=12),
+    lambda receipt: receipt.update(wavetable_profile="compressed-required-banks-flash-plaits-v1"),
+    lambda receipt: receipt["compressed_wave_tables"][0].update(packed_sha256="0" * 64),
+    lambda receipt: receipt["compressed_wave_tables"][0].update(width=True),
+])
+def test_d7000_result_rejects_layout_budget_or_profile_tampering(mutation):
+    c, adapter = client()
+    accepted = accept_and_succeed(c, adapter, doc=d7000_request_doc())
+    build_id = accepted.json()["id"]
+    snapshot = adapter.jobs[build_id]
+    result = snapshot.result
+    receipt = json.loads(result.receipt)
+    mutation(receipt)
+    adapter.jobs[build_id] = type(snapshot)(snapshot.status, type(result)(
+        result.artifact, json.dumps(receipt).encode(), result.elf, result.provenance))
+    assert c.get(accepted.json()["status_url"]).status_code == 502
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda envelope: envelope["profile"].update(tuple_schema=3),
+    lambda envelope: envelope["profile"].update(profile_id="other-profile"),
+    lambda envelope: envelope.update(trusted_fwsc_packager_compatible=True),
+])
+def test_d7000_provenance_cannot_claim_an_unanchored_schema2_tuple(mutation):
+    c, adapter = client()
+    accepted = accept_and_succeed(c, adapter, doc=d7000_request_doc())
+    build_id = accepted.json()["id"]
+    snapshot = adapter.jobs[build_id]
+    result = snapshot.result
+    envelope = json.loads(result.provenance)
+    mutation(envelope)
+    adapter.jobs[build_id] = type(snapshot)(snapshot.status, type(result)(
+        result.artifact, result.receipt, result.elf,
+        json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode("ascii")))
+    assert c.get(accepted.json()["status_url"]).status_code == 502
+
+
+def test_d7000_result_must_fit_the_actual_named_layout_budget():
+    c, adapter = client()
+    oversized = b"x" * (app_budget("expanded-d7000") + 1)
+    accepted = accept_and_succeed(c, adapter, artifact=oversized, doc=d7000_request_doc())
+    assert c.get(accepted.json()["status_url"]).status_code == 502
+
+
+def test_default_d9000_encoding_remains_legacy_and_worker_flags_are_fixed():
+    from tools.installer_service.docker_worker import build_profile_arguments
+    legacy_bytes = canonical_request(request_doc())
+    assert b'"flash_layout"' not in legacy_bytes
+    assert b'"runtime_mode"' not in legacy_bytes
+    assert build_profile_arguments(request_doc()) == [
+        "--flash-layout", "expanded-d9000", "--runtime-mode", "diagnostic",
+        "--wavetable-profile", "compressed-required-banks-flash-plaits-v1"]
+    assert build_profile_arguments(d7000_request_doc()) == [
+        "--flash-layout", "expanded-d7000", "--runtime-mode", "song-diagnostic",
+        "--wavetable-profile", SHAPES8_WAVETABLE_PROFILE]
 
 
 def test_rejects_duplicate_json_keys_before_queueing():
@@ -139,21 +252,26 @@ def result_receipt(doc, req_sha, artifact, elf=TEST_ELF):
                    "packed_bytes": 24159, "packed_sha256": "9" * 64,
                    "fnv32": 3119621762, "generated_source_sha256": "a" * 64}]
                  if "shapes" in selected else [])
-    pool_bytes = 249088 - (33024 if wave_rows else 0)
+    d7000 = doc.get("flash_layout") == "expanded-d7000"
+    if d7000:
+        wave_rows = [dict(row) for row in SHAPES8_TABLES]
+    pool_bytes = 249088 - sum(row["raw_bytes"] for row in wave_rows)
+    flash_layout = "expanded-d7000" if d7000 else "expanded-d9000"
+    runtime_mode = doc.get("runtime_mode", "diagnostic")
     return json.dumps({
         "version": 1, "status": "linked-private-diagnostic",
-        "flash_layout": "expanded-d9000",
+        "flash_layout": flash_layout,
         "request_sha256": req_sha, "prepared_profile_sha256": prepared_sha,
         "project_ids": doc["project_ids"], "set_ids": set_ids,
         "set_parents": {set_id: "song-one" for set_id in set_ids},
         "selected_content": selected_content, "startup_index": doc["startup_index"],
         "startup_project_id": doc["project_ids"][doc["startup_index"]],
         "runtime_hook_linked": len(doc["project_ids"]) > 1,
-        "runtime_configuration": runtime_configuration("diagnostic"),
+        "runtime_configuration": runtime_configuration(runtime_mode),
         "module_selection": {"selected": selected},
-        "wavetable_profile": "compressed-required-banks-flash-plaits-v1",
+        "wavetable_profile": SHAPES8_WAVETABLE_PROFILE if d7000 else "compressed-required-banks-flash-plaits-v1",
         "compressed_wave_tables": wave_rows, "indexed_tft": True,
-        "flash_plaits_wavetables": True, "shapes_voices": 12,
+        "flash_plaits_wavetables": not d7000, "shapes_voices": 8 if d7000 else 12,
         "instance_pool_bytes": pool_bytes,
         "target_app_storage": {"rgb565_bytes": 220832, "indexed_bytes": 163744,
                                "pool_credit_bytes": 57088},
@@ -164,7 +282,7 @@ def result_receipt(doc, req_sha, artifact, elf=TEST_ELF):
             "native_playback_verified": False, "sequence_semantics_verified": False},
         "app_sha256": hashlib.sha256(artifact).hexdigest(),
         "elf_sha256": hashlib.sha256(elf).hexdigest(),
-        "app_bytes": len(artifact), "app_budget_bytes": 1048576,
+        "app_bytes": len(artifact), "app_budget_bytes": app_budget(flash_layout) if d7000 else 1048576,
         "installable": False, "hardware_admitted": False, "hardware_tested": False,
         "native_ram_verified": False, "native_playback_verified": False,
         "full_song_default_accepted": False,
