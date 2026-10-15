@@ -1,4 +1,4 @@
-"""Host-only regression tests for the isolated GPL Felucca loader probe.
+"""Host-only regression tests for the isolated GPL expanded-loader probe.
 
 These compile the fake-NOR fixture, never a target loader or flash transport.
 """
