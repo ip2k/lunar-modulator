@@ -1,3 +1,14 @@
+## Cynthion cold-recovery preparation — 2026-10-15
+
+[verified: owner] Both TARGET ports are empty; CONTROL remains on the Mac.
+Custom gateware development is active; do not reconnect/power-cycle FM1 yet.
+Exact r1.4 source shows 1k series monitor paths and Bank6 +3V3. USB3343
+non-driving receive mode is a source-supported candidate, not live acceptance.
+Protocol FSM and ULPI initialization/readback are assigned to separate offline
+workers. Root owns all device operations. No custom upload/key waveform yet.
+See notes/2026-10-15-cynthion-usb-key-recovery.md for gates/restoration plan.
+Power loss invalidates retained-loader admission; current flash remains unknown.
+
 ## Latest source/CI checkpoint — 2026-10-15
 
 [verified] Browser full-catalogue WASM refreshed on Hera and integrated as
