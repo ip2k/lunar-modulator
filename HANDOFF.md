@@ -1,3 +1,29 @@
+## Hall matched candidate prepared; audio acceptance still failed — 2026-10-15
+
+[verified] Owner reports cold-boot Lunar still has very laggy waveform and
+distorted audio. No listening acceptance. Root passive sysfs refreshed ROM
+port1-1 bus1/dev111,4c4a:8057. No further physical action requested.
+Expected current flash remains5b3ebc0b; fresh paired reads still required.
+
+Exact CPU8a baseline with Hall-only Os-to-O2 build493a432c8c109df0f99ebba6e93b71c3ac646c22
+is backed up at origin/codex/2026-10-15-hall-o2-cpu-baseline (remote SHA verified).
+App855712B (+1292B); all16 build shards and ten outputs verified. New private
+candidate28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f
+is constructed under scratch/hall-o2-cpu-deployment/rom111-preparation/.
+Root independently checked210 transition sectors, allowed-sector subset,
+identical first0x4000 and tail from0xd7000. No new installation or speed claim.
+Worker prepares distinct one-use BASE /home/claude/fm1-hall-o2-cpu-493a432c-20261015,
+cycle rom111-hall-o2-cpu-cycle. Never rerun any consumed older campaign.
+
+Resampler readiness force-inline change4582c4ca (same body/arithmetic) reviewed
+and integrated on this feature branch as fd56686f. Worker reports186 focused
+checks passed; root independently reran the same186 checks successfully.
+Separate matched Hera codegen check pending;
+no measured performance benefit claimed. Compact-getter matched target build
+passed and removes route snapshot helper calls, same app size; no hardware test.
+GoalACTIVE: real-time audio, listening, persistence/recovery, installer, review,
+CI/main integration and release gates remain open. uv.lock untouched.
+
 ## CPU measurement completed; real-time deficit remains — 2026-10-15
 
 [verified] Distinct fresh-read/boot-only campaign PID270568 completed its
