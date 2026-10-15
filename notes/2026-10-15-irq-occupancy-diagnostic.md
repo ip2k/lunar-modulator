@@ -37,3 +37,30 @@ Hera build with no autoplay and schema6, exact image/recovery admission, then
 controlled note capture. Compare a matched profiling-disabled image before
 attributing sustained overhead to the original firmware. SAVE remains disarmed;
 no new hardware operation is authorized by a host test result alone.
+
+## Frozen target build and runtime checkpoint
+
+[verified: Hera build and locally rehashed outputs] Firmware source
+`3e8664b58e65aac90c3ca6258f89f874075691e3` completed all sixteen catalogue
+shards (167 objects) and target link. App size is 853,368 of 860,644 bytes
+(7,276 bytes free). ELF SHA256 is
+`dcacd894f5b1c8c1828c5c35024142cf8b1d225942747ed02228281f5d5b5cb3`;
+app SHA256 is
+`66ba7cd0d7640a314fed80c00b6723a3a0c76734b12097869193968550a8bb7e`.
+Independent disassembly review confirmed saved-ICFG restoration and timestamp
+ordering at the instrumented handlers. Key audit passed 12 checks with no
+failures or pending checks. This is static evidence, not timing acceptance.
+
+Private evidence is retained under `scratch/irq-profile-result/`; archive
+SHA256 `faeaf854929a24d09a05a9f7230a5f5fb553e815445813e1b1119f2688b9798b`.
+The original frozen receipt is preserved; all ten output digests were rechecked.
+Independent review is `scratch/irq-profile-build/target-review-3e8664b5.md`.
+Build omits autoplay and producer-gap telemetry, retains all thirteen engines,
+and keeps SAVE disarmed. No new image has been installed.
+
+[verified: passive bench sysfs] FM1 is bus1/path1-1/dev89, 4c4a:8057,
+WL80UBOOT1.00. Fresh paired reads must still match the previous full target
+`bc593f95bbfc9731dbbc906fb67c06d9882fbd51403cdda3dbe9ab95740fb566`
+before a separately reviewed installation. Prior ROM87 campaign is consumed.
+The reviewed diagnostic flash/adapter/boot source pins were refreshed for the
+new no-autoplay policy; 18 focused flash/adapter/boot checks pass.

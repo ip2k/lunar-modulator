@@ -5720,3 +5720,18 @@ Bench device last observed in ROM83. SAVE remains disarmed and release unaccepte
 Existing transport accepts FA Start (rewind), FC Stop (pause/gate release),
 FB Continue (resume); exact FA rewind and TRS physical acceptance still pending.
 F8 clock synchronization is separate. Goal remains active.
+
+
+### IRQ occupancy measurement ready for campaign preparation
+
+Owner cold boot still has severe audio distortion and display lag. Firmware
+source 3e8664b58e65aac90c3ca6258f89f874075691e3 passes fresh sixteen-shard
+Hera build, memory fit and independent target-code review. This image measures
+IRQ union occupancy/render overlap without autoplay; it is not an audio fix.
+See notes/2026-10-15-irq-occupancy-diagnostic.md for exact artifact hashes,
+limits and next admission steps. Runtime source-pin refresh passes18 tests.
+Bench passively observed ROM89/path1-1; prior campaign consumed. No new write.
+Next: freeze runtime tools, prepare separately reviewed candidate/campaign,
+fresh paired reads matching bc593f95..., then controlled capture. SAVE remains
+disarmed; hardware musical acceptance, persistence/recovery and web shipping
+remain unfinished. Overall goal ACTIVE.
