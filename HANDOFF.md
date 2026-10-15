@@ -1,3 +1,16 @@
+## ROM97 measured: modest improvement, still deadline failure
+
+Goal ACTIVE; musical acceptance FAILED; SAVE disarmed. ROM97/ROM95 CONSUMED.
+13902c8a installed/readback verified, native98 captured; input-only telemetry110s
+and KA6 recording180s both rc0; automatic ROM99 observed.446.075 blocks/s vs
+689.344 required,243.264 underruns/s; throughput+4.066% still fails. Hall-12.187%,
+postmix-7.525%; bundled changes cannot isolatefabs. See
+notes/2026-10-15-fabs-profile-results.md and private scratch evidence.
+Next exact16249740 ready-popRAM build passed16 shards and independent fitreview;
+portable export assigned before freshROM99 campaign construction/review.
+No ownerwatch/powercycle needed for passive measurement. HALlimiter followup
+offline assigned separately. Current installed13902c8a; don't reuse campaigns.
+
 ## ROM97 installed/read back; native98 capture in progress
 
 Goal ACTIVE; musical acceptance FAILED; SAVE disarmed. ROM97 campaign CONSUMED.
