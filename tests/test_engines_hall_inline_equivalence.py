@@ -143,3 +143,64 @@ def test_forced_inline_matches_noinline_output_and_full_state(optimization, tmp_
         outputs[mode] = result.stdout
     assert len(outputs["inline"]) > 100_000
     assert outputs["inline"] == outputs["reference"], "rendered samples or full instance bytes differ"
+
+
+@pytest.mark.parametrize("optimization", ["-O0", "-O2"])
+def test_cached_gain_delta_matches_original_output_and_full_state(optimization, tmp_path):
+    compiler = shutil.which("clang++") or shutil.which("g++")
+    if not compiler:
+        pytest.skip("a C++ compiler is required for the Hall equivalence harness")
+
+    harness_text = textwrap.dedent(HARNESS)
+    # Include explicit silent spans and resumed signal while retaining the
+    # existing randomized parameter transitions, edge values, rates and tails.
+    harness_text = harness_text.replace(
+        """      switch ((pos + f) % 8191u) {
+""",
+        """      const uint32_t cycle = (pos + f) % 4096u;
+      if (cycle >= 2048u && cycle < 3072u) input = 0.0f;
+      switch ((pos + f) % 8191u) {
+""",
+    )
+    # The only expected state difference is the intentionally repurposed
+    # gain_lo cache. Zero it only while writing each snapshot, then restore it
+    # so the reference and candidate continue from their real state.
+    harness_text = harness_text.replace(
+        """      // Instance includes all scalar/filter/modulation state and both delay rings.
+      if (!Write(instance, bytes)) return false;
+""",
+        """      // Compare all instance bytes except the repurposed gain cache.
+      fm1::hall::Instance *hall = static_cast<fm1::hall::Instance *>(instance);
+      float cached_gain[8];
+      std::memcpy(cached_gain, hall->gain_lo, sizeof cached_gain);
+      std::memset(hall->gain_lo, 0, sizeof hall->gain_lo);
+      const bool wrote_state = Write(instance, bytes);
+      std::memcpy(hall->gain_lo, cached_gain, sizeof cached_gain);
+      if (!wrote_state) return false;
+""",
+    )
+    assert "const uint32_t cycle" in harness_text
+    assert "memcpy(hall->gain_lo" in harness_text
+    harness = tmp_path / "hall_gain_delta_equivalence.cc"
+    harness.write_text(harness_text)
+
+    outputs = {}
+    variants = (
+        ("reference", "-DFM1_HALL_TEST_GAIN_DELTA_REFERENCE=1"),
+        ("cached", None),
+    )
+    for mode, define in variants:
+        exe = tmp_path / f"hall-gain-delta-{mode}"
+        command = [compiler, "-std=c++11", optimization, "-fno-fast-math",
+                   "-ffp-contract=off", "-I", str(ENGINES / "include"),
+                   "-I", str(ENGINES / "src")]
+        if define:
+            command.append(define)
+        command += [str(harness), "-o", str(exe)]
+        subprocess.run(command, check=True, capture_output=True, text=True)
+        result = subprocess.run([str(exe)], check=True, capture_output=True)
+        outputs[mode] = result.stdout
+    assert len(outputs["cached"]) > 100_000
+    assert outputs["cached"] == outputs["reference"], (
+        "rendered samples or normalized full instance bytes differ"
+    )
