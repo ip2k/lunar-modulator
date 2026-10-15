@@ -1,0 +1,15 @@
+# Engine-render diagnostic: file-only construction checkpoint
+
+[verified] Goal remains active; owner cold-boot report is very laggy display and distorted/sluggish audio. Musical/performance acceptance failed; SAVE remains disarmed. Latest tap-inline physical timing is documented in `notes/2026-10-15-tap-inline-physical-timing.md`.
+
+[verified] Independent coordinator review fetched the combined 93fc DSP-profile build from Hera and checked all 26 bounded regular archive members against their exact pins and raw receipt outputs. Archive SHA-256: ae14ad2dcb9db8ae4f8b62d85169edc19d2415c272868e4a9c9660ecf59972eb. This build has not run on hardware; successful compilation and codegen changes do not establish runtime speed.
+
+[verified] A separate frozen 6b8576bd schema-7 profiling build was staged file-only on bench01 at `/home/claude/fm1-engine-render-profile-6b8576bd-20261015`. Capture tools are exact 93fc2577, independently bound to their complete 249-file/10-directory source inventory. All 175 capture runtime entries were rehashed on bench01: 172 external dependencies and three exact telemetry tools. Runtime manifest SHA-256: b7c57b9b53a15b436fd3bca9f1e2083f89d748b8b1aa69d3b41232ac692c7b60. Native source staging and recheck verified 60 files and two directories against frozen manifest a66f3711c4d464c7a242495d48a33a53f22a3cfd2d2c2fda99c6241bb8b2ff67. Initial staging refused because the assigned firmware parent was absent; creating that ordinary directory allowed the unchanged verifier to complete.
+
+[verified] File-only construction completed, without invoking prepare or transport: target 1,048,576 bytes, SHA-256 eddc85316ab708255f2f23510b502fc3df90a14dbd4c7122177ef179054dc162; candidate receipt f5ce3bae47e474472273fe6c4719c928ff0c1ffb7f9c54cc736ab0077a3a12bb; input template 2183fd3381516965dea1217fdec814c85cf08f558dc61b3a58949ac27348ad29. It contains engine schema 7, stage schema 2, read-only clock schemas 3/4, disabled autoplay and no IRQ/producer-gap profiles. Fresh-read fields are deliberate invalid placeholders. No installation, reboot, new hardware acceptance or installability claim follows from construction.
+
+[verified] Read-only USB observation found ROM95, 4c4a:8057, bus1/path1-1; the KA6 remains attached. This observation is not fresh paired-read admission. Existing physical flash is last verified as 07761c6c8bbe8c706e323d42266196dff5b530113f451bcc8ca7eeaade65f4c7; installation requires new paired reads and a reviewed one-use campaign.
+
+[verified] Coordinator reran source/runtime scaffold tests: 20 tests and 22 subtests passed; construction/sealer tests: nine tests and 19 subtests passed. Private exports, scaffolds, exact stage payload pins and output hashes are under ignored `scratch/engine-render-profile-deployment/`. No vendor image or binary is committed.
+
+[inferred] Next: independently review and bind the new campaign, take paired backups, install/read back once and capture schema-7 counters. Separate Hera work tests explicit fabs intrinsics with sample/state equivalence; it must not be described as a speed improvement before a matched physical capture.

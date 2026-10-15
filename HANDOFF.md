@@ -1,3 +1,20 @@
+## Current: schema-7 candidate constructed; not installed
+
+Goal ACTIVE; cold-boot musical acceptance FAILED; SAVE disarmed.
+Authoritative checkout is this installable-firmware worktree. ROM95 remains
+4c4a:8057 bus1/path1-1 by read-only observation. No new reboot/flash performed.
+Fresh profiling candidate eddc8531...054dc162 was constructed file-only at
+/home/claude/fm1-engine-render-profile-6b8576bd-20261015. Fresh paired-read
+fields remain invalid placeholders; no transport admission or acceptance.
+Exact6b firmware, exact93fc tools, full249+10 tools inventory, all175 runtime
+entries and native60+2 sources verified. New campaign scaffold under review.
+See notes/2026-10-15-engine-render-profile-staging.md for full hashes/limits.
+Combined93fc Hera build also independently archived/verified, not installed.
+Next: review campaign, fresh paired backup, one-use install/readback/capture;
+parallel fabs-only equivalence/codegen and idle-cost review are in progress.
+Never relaunch consumed ROM93 tap-inline cycle; its failed performance remains
+about423 produced blocks/s vs689 required, about267 underruns/s while idle.
+
 ## Current: ROM89 completed; stopped transport still starves audio
 
 Goal ACTIVE; musical/performance acceptance FAILED; SAVE disarmed.
