@@ -1,4 +1,24 @@
-## Current: ROM89 IRQ-occupancy campaign launched once
+## Current: ROM89 completed; stopped transport still starves audio
+
+Goal ACTIVE; musical/performance acceptance FAILED; SAVE disarmed.
+ROM89 campaign consumed: NEVER RELAUNCH.209 guarded sectors and full readback
+matched a2c7eee6ca72659435452b59bd381fa8556b05a4fdc898329de3ea4fcdbf41d4.
+Single reset reply ambiguous/not retried; separate nativeUSB90 observed.
+110s input-only telemetry and180s KA6 recording completed. Passive ROM91 now
+bus1/path1-1,4c4a:8057. No additional owner power cycle needed.
+
+Stopped transport/no injected notes:315.564 produced blocks/s+373.764 underruns/s.
+Median schema6 IRQunion2.179m ticks/firmware-second vs render mainline19.559m;
+IRQ body work does not explain the whole deficit. Schema2 is render-stage;
+schema5 producer-gap is absent in this build. Measured drums/sixop/Hall/limiter
+and dispatch costs remain high while stopped. Independent offline reviews now
+target drums and dispatch; no performance fix has been installed.
+Evidence/limits: notes/2026-10-15-irq-occupancy-results.md and private
+scratch/irq-profile-result/physical. Archive61186d21…d8b1b; eventsbe05e557…b82b.
+Next: review measured-cost optimization candidates, equivalence checks, fresh
+matched target build and hardware comparison, then song/notes/release gates.
+
+## ROM89 IRQ-occupancy campaign launched once
 
 Goal ACTIVE; cold-boot musical acceptance FAILED; SAVE remains disarmed.
 One-use campaign `/home/claude/fm1-irq-profile-3e8664b5-20261015`, cycle
