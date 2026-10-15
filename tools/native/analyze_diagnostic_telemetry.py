@@ -12,11 +12,13 @@ from typing import Any, Iterable
 try:
     from .diagnostic_telemetry import (CLOCK_FIELDS, FIELDS, PLL_FIELDS, PROFILE_FIELDS,
                                       PROFILE_STAGES, PRODUCER_GAP_FIELDS,
-                                      IRQ_PROFILE_FIELDS, ENGINE_PROFILE_FIELDS)
+                                      IRQ_PROFILE_FIELDS, ENGINE_PROFILE_FIELDS,
+                                      CPU_RATE_FIELDS)
 except ImportError:  # Direct ``python tools/native/analyze_diagnostic_telemetry.py`` use.
     from diagnostic_telemetry import (CLOCK_FIELDS, FIELDS, PLL_FIELDS, PROFILE_FIELDS,
                                       PROFILE_STAGES, PRODUCER_GAP_FIELDS,
-                                      IRQ_PROFILE_FIELDS, ENGINE_PROFILE_FIELDS)
+                                      IRQ_PROFILE_FIELDS, ENGINE_PROFILE_FIELDS,
+                                      CPU_RATE_FIELDS)
 
 UINT32_MAX = 0xFFFFFFFF
 TICKS_PER_US = 24
@@ -83,6 +85,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
     producer_gap_frames: list[dict[str, Any]] = []
     irq_profile_frames: list[dict[str, Any]] = []
     engine_profile_frames: list[dict[str, Any]] = []
+    cpu_rate_frames: list[dict[str, Any]] = []
     previous_profile_elapsed: float | None = None
     previous_irq_values: dict[str, int] | None = None
     previous_engine_profile_values: dict[str, int] | None = None
@@ -211,6 +214,34 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
             previous_engine_profile_values = checked
             continue
 
+        if event_name == "cpu_rate_frame":
+            values = event.get("values")
+            schema = event.get("schema")
+            if (type(schema) is not int or schema != 8 or not isinstance(values, dict)
+                    or set(values) != set(CPU_RATE_FIELDS)):
+                raise ValueError(f"line {line_number}: CPU-rate values must contain exactly schema-8 fields")
+            checked = {name: _uint32(values[name], name, line_number)
+                       for name in CPU_RATE_FIELDS}
+            if checked["iterations_per_trial"] != 4096 or checked["trials_per_kernel"] != 4:
+                raise ValueError(f"line {line_number}: CPU-rate workload differs from schema-8 contract")
+            if checked["status"] & ~3:
+                raise ValueError(f"line {line_number}: CPU-rate status has unknown bits")
+            cpu_rate_frames.append({
+                "frame_index": event.get("frame_index"),
+                "wall_time_utc": event.get("wall_time_utc"),
+                "elapsed_seconds": elapsed,
+                "values": checked,
+                "timing_units": "raw TIMER4 ticks; no CPU-frequency or instruction-rate interpretation",
+                "checks": {
+                    "both_elapsed_nonzero": bool(checked["status"] & 1),
+                    "checksums_match": bool(checked["status"] & 2),
+                    "reported_ticks_nonzero": checked["xip_elapsed_ticks"] > 0 and checked["ram_elapsed_ticks"] > 0,
+                    "reported_checksums_match": checked["xip_checksum"] == checked["ram_checksum"],
+                },
+                "limits": "fixed integer workload comparison only; XIP/cache and interrupt conditions affect timing",
+            })
+            continue
+
         if event_name == "render_profile_frame":
             values = event.get("values")
             schema = event.get("schema")
@@ -299,7 +330,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         })
         previous_values = checked
 
-    if not frames and not profiles and not clock_snapshots and not pll_snapshots and not producer_gap_frames and not irq_profile_frames and not engine_profile_frames:
+    if not frames and not profiles and not clock_snapshots and not pll_snapshots and not producer_gap_frames and not irq_profile_frames and not engine_profile_frames and not cpu_rate_frames:
         raise ValueError("event log contains no diagnostic or render_profile rows, clock snapshots, PLL snapshots, producer-gap frames, or IRQ profile frames")
 
     return {
@@ -322,6 +353,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         "producer_gap_frame_count": len(producer_gap_frames),
         "irq_profile_frame_count": len(irq_profile_frames),
         "engine_profile_frame_count": len(engine_profile_frames),
+        "cpu_rate_frame_count": len(cpu_rate_frames),
         "frames": frames,
         "render_profiles": profiles,
         "clock_snapshots": clock_snapshots,
@@ -329,6 +361,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         "producer_gap_frames": producer_gap_frames,
         "irq_profile_frames": irq_profile_frames,
         "engine_profile_frames": engine_profile_frames,
+        "cpu_rate_frames": cpu_rate_frames,
         "interpretation_limits": [
             "Schema-1 counters are cumulative and sampled non-atomically; use modular deltas between frames.",
             "Missing reports create longer intervals; rates are interval averages, not reconstructed event times.",
@@ -337,6 +370,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
             "Stack margins are observed minima only; sentinel or zero samples means unavailable.",
             "No device identity, image identity, WAV alignment, or hardware/perceptual acceptance is inferred.",
             "Schema-3 clock and schema-4 PLL frames repeat startup raw samples; register fields are not decoded into CPU frequency.",
+            "Schema-8 compares a fixed integer workload in XIP and SRAM using raw TIMER4 ticks; it is not an instruction counter or calibrated CPU frequency.",
         ],
     }
 

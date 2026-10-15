@@ -282,3 +282,20 @@ def test_records_schema6_irq_profile_in_mixed_capture(tmp_path):
     assert receipt["irq_profile_frame_count"] == 1
     assert receipt["valid_frame_count"] == 2
     assert (out / "raw.syx").read_bytes() == FRAME + IRQ_PROFILE_FRAME
+
+
+def test_records_cpu_rate_frame_as_passive_schema8_event(tmp_path):
+    from tools.native.diagnostic_telemetry import CPU_RATE_FIELDS, CPU_RATE_PREFIX
+    frame = CPU_RATE_PREFIX + bytes(5 * len(CPU_RATE_FIELDS)) + b"\xf7"
+    clock = FakeClock()
+    fake = FakeMido([SimpleNamespace(type="sysex", data=frame[1:-1])])
+    out = tmp_path / "cpu-rate"
+    receipt = recorder.record("FM-1 MIDI", IMAGE_SHA, out, 0.05,
+                              mido_module=fake, monotonic=clock.monotonic,
+                              wall_time=clock.wall_time, sleep=clock.sleep)
+    rows = [json.loads(line) for line in (out / "events.jsonl").read_text().splitlines()]
+    assert rows[0]["event"] == "cpu_rate_frame" and rows[0]["schema"] == 8
+    assert rows[0]["values"] == dict.fromkeys(CPU_RATE_FIELDS, 0)
+    assert receipt["cpu_rate_frame_count"] == 1
+    assert receipt["midi_output_opened"] is False
+    assert (out / "raw.syx").read_bytes() == frame

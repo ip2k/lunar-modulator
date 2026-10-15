@@ -23,12 +23,14 @@ if __package__:
                                       PRODUCER_GAP_FRAME_BYTES,
                                       IRQ_PROFILE_FRAME_BYTES,
                                       ENGINE_PROFILE_FRAME_BYTES,
+                                      CPU_RATE_FRAME_BYTES,
                                       decode_any_frame)
 else:  # Direct ``python tools/native/record_diagnostic_telemetry.py`` use.
     from diagnostic_telemetry import (FRAME_BYTES, PROFILE_FRAME_BYTES, CLOCK_FRAME_BYTES, PLL_FRAME_BYTES,
                                       PRODUCER_GAP_FRAME_BYTES,
                                       IRQ_PROFILE_FRAME_BYTES,
                                       ENGINE_PROFILE_FRAME_BYTES,
+                                      CPU_RATE_FRAME_BYTES,
                                       decode_any_frame)
 
 MAX_TIMEOUT_SECONDS = 180.0
@@ -94,6 +96,7 @@ def record(
     producer_gap_frames = 0
     irq_profile_frames = 0
     engine_profile_frames = 0
+    cpu_rate_frames = 0
     event_count = 0
     started_wall = _stamp(wall_time)
     started_mono = monotonic()
@@ -123,7 +126,8 @@ def record(
                                                  CLOCK_FRAME_BYTES - 2, PLL_FRAME_BYTES - 2,
                                                  PRODUCER_GAP_FRAME_BYTES - 2,
                                                  IRQ_PROFILE_FRAME_BYTES - 2,
-                                                 ENGINE_PROFILE_FRAME_BYTES - 2):
+                                                 ENGINE_PROFILE_FRAME_BYTES - 2,
+                                                 CPU_RATE_FRAME_BYTES - 2):
                                 raise ValueError("diagnostic SysEx payload has wrong length")
                             frame = bytes((0xF0, *data, 0xF7))
                             schema, values = decode_any_frame(frame)
@@ -148,11 +152,14 @@ def record(
                             irq_profile_frames += 1
                         if schema == 7:
                             engine_profile_frames += 1
+                        if schema == 8:
+                            cpu_rate_frames += 1
                         write_event(events, {
                             "event": {1: "diagnostic_frame", 2: "render_profile_frame",
                                       3: "clock_snapshot_frame", 4: "pll_snapshot_frame",
                                       5: "producer_gap_frame", 6: "irq_profile_frame",
-                                      7: "engine_profile_frame"}[schema],
+                                      7: "engine_profile_frame",
+                                      8: "cpu_rate_frame"}[schema],
                             "schema": schema,
                             "frame_index": valid_frames - 1,
                             "raw_offset": offset,
@@ -192,6 +199,7 @@ def record(
         "producer_gap_frame_count": producer_gap_frames,
         "irq_profile_frame_count": irq_profile_frames,
         "engine_profile_frame_count": engine_profile_frames,
+        "cpu_rate_frame_count": cpu_rate_frames,
         "raw_bytes": raw_path.stat().st_size,
         "raw_sha256": raw_hash.hexdigest(),
         "events_jsonl_sha256": hashlib.sha256(events_path.read_bytes()).hexdigest(),

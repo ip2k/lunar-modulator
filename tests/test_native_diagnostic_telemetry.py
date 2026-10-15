@@ -164,6 +164,92 @@ int main(void) {
     subprocess.run([str(exe)], check=True)
 
 
+def test_schema8_cpu_rate_wire_roundtrip_and_packet_bounds(tmp_path):
+    from tools.native.diagnostic_telemetry import (
+        CPU_RATE_FIELDS, CPU_RATE_FRAME_BYTES, CPU_RATE_PREFIX,
+    )
+    assert len(CPU_RATE_FIELDS) == 8
+    assert CPU_RATE_FRAME_BYTES == 49
+    assert CPU_RATE_PREFIX == bytes((0xF0, 0x7D, *b"LUNAR", 8))
+
+    source = tmp_path / "cpu_rate.c"
+    source.write_text(r'''
+#include "diagnostic_telemetry.h"
+#include <assert.h>
+#include <stdio.h>
+int main(void) {
+    const uint32_t values[LUNAR_CPU_RATE_FIELDS] = {
+        1234u, 4096u, 4u,
+        0xffffffffu, 0x80000000u, 0x12345678u, 0x12345678u, 3u
+    };
+    assert(LUNAR_CPU_RATE_BYTES == 49u);
+    assert(LUNAR_CPU_RATE_PACKETS == 17u && LUNAR_CPU_RATE_PACKETS <= 64u);
+    for (unsigned i = 0; i < LUNAR_CPU_RATE_PACKETS; ++i) {
+        uint32_t packet = lunar_cpu_rate_packet(values, i);
+        unsigned cin = packet & 15u;
+        unsigned n = cin == 4u ? 3u : cin - 4u;
+        assert(i + 1 == LUNAR_CPU_RATE_PACKETS ? cin == 5u : cin == 4u);
+        for (unsigned j = 0; j < n; ++j)
+            putchar((packet >> (8u * (j + 1u))) & 255u);
+    }
+    assert(lunar_cpu_rate_packet(values, LUNAR_CPU_RATE_PACKETS) == 0);
+}
+''')
+    exe = tmp_path / "cpu_rate"
+    subprocess.run(["cc", "-std=c99", "-Wall", "-Wextra", "-Werror",
+                    "-fsanitize=address,undefined", "-I", str(ROOT / "firmware/native"),
+                    "-I", str(ROOT / "sim/web/src"), str(source), "-o", str(exe)], check=True)
+    frame = subprocess.check_output([str(exe)])
+    assert len(frame) == CPU_RATE_FRAME_BYTES
+    decoded = codec.decode_cpu_rate_frame(frame)
+    assert decoded == dict(zip(CPU_RATE_FIELDS, [
+        1234, 4096, 4, 0xffffffff, 0x80000000, 0x12345678, 0x12345678, 3]))
+    mixed = codec.decode_capture(frame + b"\xf8\xfe" + frame)
+    assert [row["schema"] for row in mixed] == [8, 8]
+
+    for mutation in ("short", "bad-prefix", "high-digit", "overflow-digit", "bad-end"):
+        bad = bytearray(frame)
+        if mutation == "short": bad.pop()
+        elif mutation == "bad-prefix": bad[7] = 7
+        elif mutation == "high-digit": bad[8] = 0x80
+        elif mutation == "overflow-digit": bad[len(CPU_RATE_PREFIX) + 4] = 16
+        else: bad[-1] = 0
+        with pytest.raises(ValueError):
+            codec.decode_cpu_rate_frame(bytes(bad))
+
+
+def test_fixed_integer_kernel_matches_in_xip_and_ram_and_wraps_timer(tmp_path):
+    source = tmp_path / "cpu_kernel.c"
+    source.write_text(r'''
+#include <assert.h>
+#include <stdint.h>
+static uint32_t fm1_ms = 123u;
+static uint32_t tick = UINT32_MAX - 50u;
+static unsigned reads;
+static uint32_t fake_ticks(void) { uint32_t value = tick; tick += 100u; ++reads; return value; }
+#define LUNAR_CPU_RATE_READ_TICKS() fake_ticks()
+/* Mach-O host test cannot express the target ELF .ram_text section name. */
+#define LUNAR_CPU_RATE_RAM_SECTION
+#include "cpu_rate_calibration.h"
+int main(void) {
+    lunar_cpu_rate_calibrate();
+    assert(reads == 16u);
+    assert(lunar_cpu_rate_result.uptime_ms == 123u);
+    assert(lunar_cpu_rate_result.iterations == 4096u && lunar_cpu_rate_result.trials == 4u);
+    assert(lunar_cpu_rate_result.xip_ticks == 400u);
+    assert(lunar_cpu_rate_result.ram_ticks == 400u);
+    assert(lunar_cpu_rate_result.xip_checksum == lunar_cpu_rate_result.ram_checksum);
+    assert(lunar_cpu_rate_result.status == (LUNAR_CPU_RATE_TIMINGS_VALID | LUNAR_CPU_RATE_CHECKSUMS_MATCH));
+}
+''')
+    exe = tmp_path / "cpu_kernel"
+    subprocess.run(["cc", "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
+                    "-fsanitize=address,undefined", "-I", str(ROOT / "firmware/native"),
+                    "-I", str(ROOT / "firmware/third_party/dinghy/hal"),
+                    str(source), "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True)
+
+
 def test_schema6_irq_profile_frame_is_canonical_and_mixed_capture_decodes():
     from tools.native.diagnostic_telemetry import (
         IRQ_PROFILE_FIELDS, IRQ_PROFILE_FRAME_BYTES, IRQ_PROFILE_PREFIX,
