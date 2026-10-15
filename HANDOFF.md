@@ -1,21 +1,33 @@
-## Current: schema-7 candidate constructed; not installed
+## Current: ROM95 schema-7 campaign launched once
 
 Goal ACTIVE; cold-boot musical acceptance FAILED; SAVE disarmed.
-Authoritative checkout is this installable-firmware worktree. ROM95 remains
-4c4a:8057 bus1/path1-1 by read-only observation. No new reboot/flash performed.
-Fresh profiling candidate eddc8531...054dc162 was constructed file-only at
-/home/claude/fm1-engine-render-profile-6b8576bd-20261015. Fresh paired-read
-fields remain invalid placeholders; no transport admission or acceptance.
-Exact6b firmware, exact93fc tools, full249+10 tools inventory, all175 runtime
-entries and native60+2 sources verified. New campaign scaffold under review.
-See notes/2026-10-15-engine-render-profile-staging.md for full hashes/limits.
-Combined93fc Hera build also independently archived/verified, not installed.
-Next: review campaign, fresh paired backup, one-use install/readback/capture;
-fabs-only host equivalence passed all six Mac tests; exact0e024 target build
-passed sixteen Hera shards/link and all26 archived member hashes. Not installed.
-See notes/2026-10-15-fabs-hotpaths.md. Idle-cost review is complete.
-Never relaunch consumed ROM93 tap-inline cycle; its failed performance remains
-about423 produced blocks/s vs689 required, about267 underruns/s while idle.
+One-use campaign /home/claude/fm1-engine-render-profile-6b8576bd-20261015,
+cycle rom95-engine-render-profile-cycle, runner PID156148. NEVER RELAUNCH.
+Fresh v2 file-only preflight passed; initial output FRESH_PAIRED_READ_START.
+Inspect durable read/install/capture journals before any further device action.
+
+Candidate eddc85316ab708255f2f23510b502fc3df90a14dbd4c7122177ef179054dc162,
+exact6b firmware/exact93fc tools. Expected current image07761c6c…e65f4c7;
+fresh paired reads required;210 transition sectors within211-sector envelope.
+Independent v2 review passed7 focused tests+6 mutation subtests. V1 preflight
+correctly refused a stale boot-helper pin before transport; v1 remains frozen.
+V2 pins428bc2394b214154dcb6e3c2e909cf3ac4e143abdec619cda9f2503c06e0b2c7;
+deploymentd88e6f34a7474ba53e59fd96555af5a54c3a619d698e3fc5c89a6950ec7de006.
+Boot helper exact93fc digest167db640…b1bce9. All existing staged v1 files were
+verified against their complete frozen inventory before atomic v2 replacement.
+Capture remains passive:110s telemetry/180s KA6 audio; no MIDI output,
+notes, playback, SAVE or owner watch. Sole FC0C only after durable verified
+install result and recording readiness. Never retry an ambiguous reset reply.
+See notes/2026-10-15-engine-render-profile-staging.md and ignored scratch/
+engine-render-profile-deployment/bound-rom95{,-v2}, independent-review.md.
+
+Exact0e024 fabs build passed16 Hera shards/link and root verified all26 archive
+member hashes; not installed. App854104bytes, SHA8e511ed0…c92464aa.
+See notes/2026-10-15-fabs-hotpaths.md. Offline construction remains in progress.
+Last completed tap-inline measured423blocks/s vs689required; no meaningful gain.
+Owner cold-boot report confirms continuing severe waveform/audio failure.
+Next: collect schema7 nested engine-vs-wrapper timing, then matched optimization
+comparison. Overall firmware/web release goal remains unfinished.
 
 ## Current: ROM89 completed; stopped transport still starves audio
 
