@@ -126,3 +126,41 @@ Coordinator optimization/artifact/catalogue receipt suites pass (126 tests).
 Fresh target build, exact guard disassembly and physical acceptance remain
 pending; no new image has been installed for this correction. SAVE remains
 disarmed and the overall firmware/web release goal remains active.
+
+## Guard-corrected build and fresh campaign preparation
+
+[verified] Exact source `1ce8948370a410ad418a7c6491dedd92093bb223`
+(tree `06a45885598c1fd7d9f639f87c1094f3ed61aa6a`) completed 16/16 Hera
+shards and link. App is 852,944 bytes, SHA-256
+`9bd1d9c539b2c1b69ba66c96b1ae4a2b7819706c120f2134f88610a3c86b91db`;
+ELF `f042c8ca2a440bd589d433fac983091c5c48319281b9a1c8694f0eb8c05fe7b7`.
+Raw ten-output receipt `4afac8c20e03fdbebeeea9f7b99ced0c45284dcb495d3cb672230272e0ccc1e3`
+retained unchanged; separate compatibility seal
+`9c74c94572becc1c4a12bc54b6d0a9e722dcc0084fc66292814ac73f1f7fcbce`
+checks the complete build before the existing generic gate.
+
+[verified: independent ELF review] Both section copies precede guard setup;
+PC_LIMIT1_H becomes `_rd_end - 1` before app_main. RAM DSP remains 3,196 bytes,
+with 20,032 bytes free in RAMTEXT; flash headroom is 7,700 bytes. Selected
+bodies retain XIP callees. Static evidence does not establish runtime speed.
+Review: private `scratch/native-hot-dsp-ram/guard-elf-review.md`.
+
+Fresh private base `/home/claude/fm1-hot-ram-guard-1ce89483-20261015`,
+cycle `rom79-hot-ram-guard-cycle` (unconsumed at this checkpoint).
+Offline target `0c32c1a9120cf79ff8b3f88fabc08f7d1e443a3708760c17b31052831b8e6d20`;
+candidate receipt `b304c182c6c19aa2ede61026f2c16fea00313cc4963370bfc33abc914ae2d40e`;
+template `59242eff465e4ff2ebc8d11ad52a68b3e96a1504db53c47c88d9a70d6cac67f9`.
+211 allowed sectors, 209 changed from prior installed 58c9aebb image.
+Runtime checks all 249 source files/10 directories and 174 capture inputs;
+source inventory `3b12738cac9de94bcc5edbb2415a84d91e7325e816fdd9b4193ff4452b9a6219`,
+runtime manifest `7227d8c4e5f1da2b798ad8ae2d0c89b76b111b50455c34f9191ec6519c388dea`.
+Fresh staged file-only preflight passed, and independent runner/helper review
+found no blocker. Fifteen source-inventory/staging/preflight tests pass.
+An attempted reuse of older passive-capture tests exposed API/fixture mismatch;
+those tests are being adapted to the current completed-install helper before
+claiming capture-suite validation. No hardware action follows from test reuse.
+
+Private helpers `scratch/hot-ram-guard-cycle/` require fresh ROM79 binding and
+paired complete reads, journaled header-last update/full readback, ready analog
+recording before one boot, no retry, input-only telemetry and bounded cleanup.
+SAVE remains disarmed; no physical acceptance or installable-release claim.

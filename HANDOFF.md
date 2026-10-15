@@ -1,3 +1,17 @@
+## Coordinator checkpoint: guard-corrected build and fresh campaign ready
+
+Source1ce89483 built16/16 on Hera; ELF guard correction independently verified.
+Fresh private base /home/claude/fm1-hot-ram-guard-1ce89483-20261015.
+Target0c32c1a9120cf79ff8b3f88fabc08f7d1e443a3708760c17b31052831b8e6d20,
+211allowed/209changed from58c9aebb. File-only preflight and independent runner
+review passed. Cycle rom79-hot-ram-guard-cycle UNCONSUMED at this checkpoint;
+inspect output/journal before any action, never reuse consumed ROM75 campaign.
+Requires exact ROM79 and paired reads before write; ready KA6 capture then one
+boot, no retry. SAVE disarmed. Capture legacy test fixtures being adapted;
+15staging/source/gate tests pass. Details notes/2026-10-15-hot-dsp-ram-experiment.md.
+Goal ACTIVE; runtime audio, persistence/recovery and web release still open.
+Unrelated uv.lock untouched.
+
 ## Coordinator checkpoint: hot-RAM boot failed; USB rescue recovered to ROM79
 
 ROM75 one-use campaign consumed:210changed sectors, full readback verified
