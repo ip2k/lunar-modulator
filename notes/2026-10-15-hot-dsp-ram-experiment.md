@@ -237,3 +237,25 @@ are rejected by focused tests. Four focused optimization/candidate/adapter/boot
 suites pass. Target compilation, linked placement and equivalence remain pending;
 this is an experimental source checkpoint, not an admitted installation artifact.
 The active ROM81 campaign uses separately frozen five-body9377348f inputs.
+
+## Six-body target link reviewed; wrapper placement is insufficient
+
+[verified: frozen build and independent ELF review] Exact a7dc8fbe built on
+Hera in sixteen bounded catalogue shards. All ten receipt-bound output hashes
+match. App852604bytes fits860644bytes; .ram_dsp3816bytes and its flattened
+copy agree. Startup copy, PC bounds and the narrow existing flash-writer audit
+pass static checks. Independent evidence is saved at
+scratch/native-hot-dsp-ram/fmvoice-elf-review.md.
+
+[verified: disassembly] FMVoice::Render is only a28byte RAM wrapper calling
+plaits::fm::Voice<6>::Render in XIP at0206679c. The compute-heavy implementation
+was not relocated. Do not infer a speedup or admit another physical trial from
+the wrapper's placement. Follow-up is to review the concrete template render
+body and its callees. No DSP arithmetic changed; no six-body device write.
+Installability, performance, SAVE and hardware acceptance flags remain false.
+
+[verified: physical observation] The five-body ROM81 installation reached its
+single boot request, which returned an ambiguous acknowledgement. No retry was
+issued. Native USB82 appeared and the independently launched capture helper
+is recording. Preserve the consumed campaign; capture completion, final
+readback evidence and automatic ROM return still need inspection.
