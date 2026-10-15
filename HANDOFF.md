@@ -1,3 +1,14 @@
+## One-use producer-gap campaign launched; do not relaunch
+
+BASE /home/claude/fm1-producer-gap-aba42d83-20261015,
+cycle rom87-producer-gap-cycle, persistent PID105896. Launch receipt consumed.
+Actual full file-only preflight passed;61 focused tests+30subtests passed and
+independent final runner review found no blocker. Fresh paired reads must match
+3571d214…5fbbb before209-sector transition to bc593f95…fb566.
+Capture input-only, audio180s/telemetry110s; one boot, no reset retry.
+Inspect durable launch/journals/capture; do not infer musical acceptance.
+Goal ACTIVE; SAVE disarmed. Last pushed checkpoint before launch47c5c4bf.
+
 ## Producer-gap candidate constructed; physical campaign not yet launched
 
 Private candidate bc593f95…fb566 constructed and verified offline;209 changed
