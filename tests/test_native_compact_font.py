@@ -19,7 +19,7 @@ def test_original_and_packed_pixels_match(tmp_path, chunk):
     compiler = shutil.which('cc')
     if not compiler:
         pytest.skip('C compiler required')
-    header = (PLATFORM / 'gen/felucca_font.h').read_text()
+    header = (PLATFORM / 'gen/lunar_font.h').read_text()
     gfx = (PLATFORM / 'src/gfx.c').read_text()
     # Host section spelling differs from the target's ELF RAM pool. Apply the
     # same placement-only adaptation to both renderers before comparing pixels.
@@ -49,7 +49,7 @@ int main(void) {
     for packed in (False, True):
         directory = tmp_path / str(packed)
         directory.mkdir()
-        (directory / 'felucca_font.h').write_text(font.compact_header(header) if packed else header)
+        (directory / 'lunar_font.h').write_text(font.compact_header(header) if packed else header)
         (directory / 'gfx.c').write_text(font.compact_gfx(gfx) if packed else gfx)
         (directory / 'test.c').write_text(harness)
         binary = directory / 'test'
@@ -60,7 +60,7 @@ int main(void) {
 
 
 def test_rejects_changed_alpha_and_decoder():
-    header = (PLATFORM / 'gen/felucca_font.h').read_text()
+    header = (PLATFORM / 'gen/lunar_font.h').read_text()
     with pytest.raises(ValueError, match='non-binary'):
         font.compact_header(header.replace('0x0f', '0x0e', 1))
     with pytest.raises(ValueError, match='decoder'):

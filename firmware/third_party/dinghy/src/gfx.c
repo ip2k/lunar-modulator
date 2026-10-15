@@ -11,8 +11,8 @@ typedef struct {               /* proportional, see tools/gen_font.py */
     const uint8_t *bw;         /* bitmap width per glyph (starts FONT_PAD left of the pen) */
     const uint16_t *off;       /* byte offset of each glyph */
     const uint8_t *data;
-} felucca_font_t;
-#include "felucca_font.h"
+} lunar_font_t;
+#include "lunar_font.h"
 
 #ifndef CV_MAX
 #define CV_MAX (240u * 124u)      /* the graph strip is 240 x 124 */
@@ -125,7 +125,7 @@ static void cv_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c)
 
 /* glyph index of a character: lower case folds to upper case when the font
  * has none, anything missing (and C1 controls) draws as '?' */
-static uint32_t glyph(const felucca_font_t *f, uint32_t ch)
+static uint32_t glyph(const lunar_font_t *f, uint32_t ch)
 {
     if (ch >= 'a' && ch <= 'z' && f->last < 'a')
         ch -= 32u;
@@ -135,7 +135,7 @@ static uint32_t glyph(const felucca_font_t *f, uint32_t ch)
 }
 
 /* text, alpha-blended onto black with colour c; returns the end x */
-static int32_t cv_text(int32_t x, int32_t y, const felucca_font_t *f, const char *s, uint16_t c)
+static int32_t cv_text(int32_t x, int32_t y, const lunar_font_t *f, const char *s, uint16_t c)
 {
     uint16_t ramp[16];
     uint32_t r = c >> 11, g = (c >> 5) & 63u, b = c & 31u, a;
@@ -159,7 +159,7 @@ static int32_t cv_text(int32_t x, int32_t y, const felucca_font_t *f, const char
     return x;
 }
 
-static int32_t text_w(const felucca_font_t *f, const char *s)
+static int32_t text_w(const lunar_font_t *f, const char *s)
 {
     int32_t w = 0;
     for (; *s; s++)
@@ -168,7 +168,7 @@ static int32_t text_w(const felucca_font_t *f, const char *s)
 }
 
 /* one-shot: text in a box, cleared to black, blitted */
-static void draw_text_box(uint32_t x, uint32_t y, uint32_t w, const felucca_font_t *f, const char *s,
+static void draw_text_box(uint32_t x, uint32_t y, uint32_t w, const lunar_font_t *f, const char *s,
                           uint16_t c, int align)
 {
     int32_t tw = text_w(f, s), tx = 0;

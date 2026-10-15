@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* FM-1 SPI NOR at runtime: erase / program / read. Used only when
- * FELUCCA_FLASH is 1.
+ * LUNAR_FLASH is 1.
  *
  * Everything that executes while the SFC (XIP) is switched off lives in
  * .ram_text and touches only SFRs, the stack and RAM buffers: no .rodata, no

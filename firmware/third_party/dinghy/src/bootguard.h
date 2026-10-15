@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* Warm-reset guard, retained in RAM only. Never writes the bootloader/flash.
  * This cannot rescue an image that fails before reaching the application. */
-#ifndef FELUCCA_BOOTGUARD_H
-#define FELUCCA_BOOTGUARD_H
+#ifndef LUNAR_BOOTGUARD_H
+#define LUNAR_BOOTGUARD_H
 #include <stdint.h>
 #define BOOTGUARD_MAGIC 0x42475232u
 typedef struct { uint32_t magic, failed, pending; } bootguard_t;

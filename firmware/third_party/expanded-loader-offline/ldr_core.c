@@ -17,7 +17,7 @@
 #ifndef LDR_APP_HI
 #define LDR_APP_HI 0xD9000u
 #endif
-#if !defined(FELUCCA_EXPANDED_OFFLINE_TEST)
+#if !defined(LUNAR_EXPANDED_OFFLINE_TEST)
 #error "This profile probe is host-test-only and must not be built for target use"
 #endif
 #define LDR_NSEC ((LDR_APP_HI - LDR_APP_LO) >> 12)
@@ -44,7 +44,7 @@ static void ldr_sfc(uint8_t *p, uint32_t n, uint32_t base_off, uint32_t key)
 /* chip key from the device's flash head: JLFS top entries (ENC 0xFFFF) -> isd_config.ini blob */
 static int ldr_chip_key(uint32_t *key)
 {
-#if defined(FELUCCA_EXPANDED_OFFLINE_TEST)
+#if defined(LUNAR_EXPANDED_OFFLINE_TEST)
     *key = 0; /* isolated fixture key; no recorded device key is read */
     return 0;
 #else

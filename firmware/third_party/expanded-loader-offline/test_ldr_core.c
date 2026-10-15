@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define FELUCCA_EXPANDED_OFFLINE_TEST 1
+#define LUNAR_EXPANDED_OFFLINE_TEST 1
 #define APP_LO 0x4000u
 #ifndef APP_HI
 #define APP_HI 0xD9000u

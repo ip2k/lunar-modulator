@@ -12,7 +12,7 @@ The tracked `firmware/third_party/dinghy` code is not the same loader as the exp
 
 - `firmware/third_party/dinghy/src/ota.c`: `ffc981586704b41f62c763248037d1fe373c84c3566c0486de795296f9841855`
 - `firmware/third_party/dinghy/hal/fm1_flash.h`: `ee9700389d8bf842606b7210e52e125c085a44fbb5d30301cf189d823c4d5e90`
-- test-only `firmware/third_party/felucca-expanded-offline/ldr_core.c`: `bfd254398b982c70ea9d73412c6072e1741a9f1ee2c35f53867ac05983d765e8`
+- test-only `firmware/third_party/expanded-loader-offline/ldr_core.c`: `bfd254398b982c70ea9d73412c6072e1741a9f1ee2c35f53867ac05983d765e8`
 - test-only fake-NOR harness: `26048928f137f3f41ff3cb53bf0e3f2c0d45b4cd204b540d84a066715079f770`
 - pytest wrapper: `43af74297c3bd5484710f47d2ffe38e567d8b0657dbec8abf6d36494b506da30`
 

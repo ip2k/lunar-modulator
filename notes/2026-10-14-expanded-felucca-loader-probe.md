@@ -6,7 +6,7 @@ This is a host-only feasibility probe of maintained code, not an FM-1 loader, in
 
 The reviewed primary source is Felucca v1.6 at pinned upstream commit `1727537624390cc3f9c7dff2456b43b3a8edb005` ([upstream repository](https://github.com/hugelton/Felucca), [portable loader core](https://github.com/hugelton/Felucca/blob/1727537624390cc3f9c7dff2456b43b3a8edb005/firmware/loader/ldr_core.c), GPL-3.0-only). SLOOP's pinned current `ldr_core.c` retains the same `0x93000` app high bound and record scan assumptions. Felucca's target `loader.c` uses a distinct HAL and fixed `FL_RANGE_OK` windows; none of that target adapter or HAL was changed.
 
-The isolated derivative is in `firmware/third_party/felucca-expanded-offline/`. It carries the upstream license and pin in `UPSTREAM.md`. Its source has a compile-time host-probe guard, sets the app high bound to `0xD9000`, walks the app data sectors before sector `0x4000` (the expanded image directory), and omits the host-finish/update-record clearing and flash-record scan. Its test harness provides fake NOR and synthetic OTA bytes, not a live endpoint. The chip-key extraction path is replaced only in this test build with a fixed zero fixture key; therefore these tests do not establish chip-key/package identity handling.
+The isolated derivative is in `firmware/third_party/expanded-loader-offline/`. It carries the upstream license and pin in `UPSTREAM.md`. Its source has a compile-time host-probe guard, sets the app high bound to `0xD9000`, walks the app data sectors before sector `0x4000` (the expanded image directory), and omits the host-finish/update-record clearing and flash-record scan. Its test harness provides fake NOR and synthetic OTA bytes, not a live endpoint. The chip-key extraction path is replaced only in this test build with a fixed zero fixture key; therefore these tests do not establish chip-key/package identity handling.
 
 ## Measured target footprint context
 
@@ -18,9 +18,9 @@ Command on Hera:
 
 ```sh
 gcc -std=c99 -O2 -Wall -Wextra -Werror \
-  firmware/third_party/felucca-expanded-offline/test_ldr_core.c \
-  -o /tmp/felucca-expanded-offline-test
-/tmp/felucca-expanded-offline-test
+  firmware/third_party/expanded-loader-offline/test_ldr_core.c \
+  -o /tmp/lunar-expanded-loader-test
+/tmp/lunar-expanded-loader-test
 ```
 
 Result: `offline core test passed` (17 assertions). The fake flash read hook also now rejects offsets beyond the 1 MiB device and lengths crossing its end; it accepts the final in-range byte. The core validates the synthetic whole-image CRC and per-sector consistency, writes within `[0x4000,0xD9000)`, leaves prefix and suffix bytes unchanged, puts the directory sector last, rejects a corrupted package before erasing and rejects a host chunk changed after whole-image validation before erasing, retries a readback mismatch, and the fake host can repeat the transaction after an injected erase/page-program interruption. A second case injects a readback mismatch on the final directory sector. The fixture no longer globally removes `__attribute__`; no such compiler compatibility shim is needed. These show behavior of this source copy with deterministic fake hooks only. The retry is explicitly a host restarting the test with the same full target bytes; it does not show that the actual SPL will re-enter the loader or that the device can resume autonomously. The probe also omits real FWSC decryption/identity, SysEx timing, USB endpoint behavior, and every target flash call.

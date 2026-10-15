@@ -44,8 +44,8 @@ extern void lunar_native_midi_uart_init(void);
 #ifndef APP_NAME
 #define APP_NAME "DINGHY"
 #endif
-#ifndef FELUCCA_ID
-#define FELUCCA_ID "FM-1_990"                   /* package identity: 99N = Dinghy build N (tools/build.py) */
+#ifndef LUNAR_ID
+#define LUNAR_ID "FM-1_990"                   /* package identity: 99N = Dinghy build N (tools/build.py) */
 #endif
 #ifndef APP_VER
 #define APP_VER "0.0"
@@ -63,10 +63,10 @@ static volatile uint32_t fm1_ms;                /* milliseconds since power-on (
 #define FS 44100u                               /* the sample rate */
 #define HALF_FRAMES 256u                        /* I2S half buffer: 5.8 ms (as sloopDX: the USB audio band is set for it) */
 #define HALF_WORDS (HALF_FRAMES * 2u)
-#define FELUCCA_OTA 1
-#define FELUCCA_CDC 0
-#define FELUCCA_UAC 1
-#define FELUCCA_UART 0
+#define LUNAR_OTA 1
+#define LUNAR_CDC 0
+#define LUNAR_UAC 1
+#define LUNAR_UART 0
 #include "usb.c"
 
 /* ---- flash: read anywhere; erase / program only the update's staging area and the settings sector */
@@ -91,7 +91,7 @@ static int st_read(uint32_t off, void *dst, uint32_t n)
 }
 
 static uint8_t recovery_active;
-#define OTA_IDENTITY (recovery_active ? "FM-1_000" : FELUCCA_ID)
+#define OTA_IDENTITY (recovery_active ? "FM-1_000" : LUNAR_ID)
 #include "ota.c"
 static void recovery_poll(void);
 static uint32_t ota_now_ms(void) { return fm1_ms; }
