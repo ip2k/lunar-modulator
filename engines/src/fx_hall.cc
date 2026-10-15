@@ -330,8 +330,12 @@ struct Instance {
   // Derived at an update.
   float c_size, c_decay, c_damping, c_freeze, c_lowcut;   // what they came from
   float scale;                               // Size's length factor
-  // gain_lo stores the cached (DC - Nyquist) shelf gain; gain_hi stores Nyquist.
-  float gain_lo[kLines], gain_hi[kLines];
+#if defined(FM1_HALL_TEST_GAIN_DELTA_REFERENCE)
+  float gain_lo[kLines];                     // reference-only DC gain
+#else
+  float gain_delta[kLines];                  // cached (DC - Nyquist) shelf gain
+#endif
+  float gain_hi[kLines];                     // Nyquist gain
   float shelf_k;                             // its crossover, one-pole
   float hp_k;                                // Low Cut, one-pole
   float ap_gain[kAllPasses];
@@ -419,7 +423,7 @@ struct Instance {
 #if defined(FM1_HALL_TEST_GAIN_DELTA_REFERENCE)
       gain_lo[i] = g;
 #else
-      gain_lo[i] = g - h;
+      gain_delta[i] = g - h;
 #endif
       gain_hi[i] = h;
     }
@@ -552,7 +556,7 @@ struct Instance {
 #if defined(FM1_HALL_TEST_GAIN_DELTA_REFERENCE)
         y[i] = gain_hi[i] * r[i] + (gain_lo[i] - gain_hi[i]) * shelf[i];
 #else
-        y[i] = gain_hi[i] * r[i] + gain_lo[i] * shelf[i];
+        y[i] = gain_hi[i] * r[i] + gain_delta[i] * shelf[i];
 #endif
       }
       float wet_l = (r[0] - r[2]) + (r[5] - r[7]);

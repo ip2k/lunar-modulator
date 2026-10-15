@@ -162,25 +162,27 @@ def test_cached_gain_delta_matches_original_output_and_full_state(optimization, 
       switch ((pos + f) % 8191u) {
 """,
     )
-    # The only expected state difference is the intentionally repurposed
-    # gain_lo cache. Zero it only while writing each snapshot, then restore it
-    # so the reference and candidate continue from their real state.
+    # Normalize the reference gain cache to (g-h) before snapshotting, so the
+    # cache itself is compared against the candidate while preserving all
+    # other instance bytes. Restore the reference state before continuing.
     harness_text = harness_text.replace(
-        """      // Instance includes all scalar/filter/modulation state and both delay rings.
-      if (!Write(instance, bytes)) return false;
-""",
-        """      // Compare all instance bytes except the repurposed gain cache.
+        "      if (!Write(instance, bytes)) return false;",
+        """      // Compare the cached gain delta and all remaining instance bytes.
       fm1::hall::Instance *hall = static_cast<fm1::hall::Instance *>(instance);
+#if defined(FM1_HALL_TEST_GAIN_DELTA_REFERENCE)
       float cached_gain[8];
       std::memcpy(cached_gain, hall->gain_lo, sizeof cached_gain);
-      std::memset(hall->gain_lo, 0, sizeof hall->gain_lo);
+      for (unsigned i = 0; i < 8; ++i) hall->gain_lo[i] -= hall->gain_hi[i];
       const bool wrote_state = Write(instance, bytes);
       std::memcpy(hall->gain_lo, cached_gain, sizeof cached_gain);
+#else
+      const bool wrote_state = Write(instance, bytes);
+#endif
       if (!wrote_state) return false;
 """,
     )
     assert "const uint32_t cycle" in harness_text
-    assert "memcpy(hall->gain_lo" in harness_text
+    assert "hall->gain_lo[i] -= hall->gain_hi[i]" in harness_text
     harness = tmp_path / "hall_gain_delta_equivalence.cc"
     harness.write_text(harness_text)
 
