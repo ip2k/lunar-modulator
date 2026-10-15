@@ -54,22 +54,30 @@ bool CheckState(const void *fast, const void *reference, size_t bytes,
   return false;
 }
 
-void Fill(float *dst, uint32_t pos, uint32_t n, uint32_t stereo_case) {
+void Fill(float *dst, uint32_t pos, uint32_t n, uint32_t stereo_case,
+          bool threshold_case) {
   for (uint32_t i = 0; i < n; ++i) {
     const uint32_t f = pos + i;
     float left = Noise(), right = Noise();
+    if (threshold_case) {
+      // With 0 dB ceiling and unity drive, hit the exact aim, below it,
+      // above it, and a zero peak. Unequal stereo exercises separate gains.
+      static const float levels[] = { 0.0f, 1.0f, 1.5f, 0.5f };
+      left = levels[f & 3u];
+      right = stereo_case == 0 ? left : left * 0.75f;
+    }
     // Exercise equal peaks both through mono/unlinked material and through
     // linked maxima; the unequal case keeps the two unlinked peaks distinct.
-    if (stereo_case == 0) right = left;
-    if (stereo_case == 1) {
+    if (!threshold_case && stereo_case == 0) right = left;
+    if (!threshold_case && stereo_case == 1) {
       left *= 0.35f;
       right *= 1.4f;
     }
     // Loud bursts followed by silence exercise attack, hold and release.
-    if ((f / 700u) % 2u == 0u && (f % 700u) < 280u) {
+    if (!threshold_case && (f / 700u) % 2u == 0u && (f % 700u) < 280u) {
       left *= 12.0f;
       right *= 12.0f;
-    } else if ((f % 700u) >= 280u && (f % 700u) < 560u) {
+    } else if (!threshold_case && (f % 700u) >= 280u && (f % 700u) < 560u) {
       left = right = 0.0f;
     }
     // Guarded non-finite and out-of-range inputs must retain old behavior.
@@ -82,7 +90,9 @@ void Fill(float *dst, uint32_t pos, uint32_t n, uint32_t stereo_case) {
 }
 
 bool RunScenario(uint32_t scenario, float rate, float initial_look,
-                 uint32_t stereo_case, float link, uint32_t initial_mode) {
+                 uint32_t stereo_case, float link, uint32_t initial_mode,
+                 bool threshold_case = false) {
+  const uint32_t test_stereo = stereo_case;
   fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, kMaxFrames };
   const size_t fast_bytes = fm1_engine_limit.instance_size(&host);
   const size_t ref_bytes = fm1_engine_limit_reference.instance_size(&host);
@@ -93,12 +103,13 @@ bool RunScenario(uint32_t scenario, float rate, float initial_look,
   void *reference = fm1_engine_limit_reference.create(g_reference, &host);
   if (!fast || !reference || !CheckState(g_fast, g_reference, fast_bytes, scenario, 0)) return false;
 
-  SetPair(fast, reference, "Ceiling", -4.0f);
-  SetPair(fast, reference, "Drive", 15.0f);
+  SetPair(fast, reference, "Ceiling", threshold_case ? 0.0f : -4.0f);
+  SetPair(fast, reference, "Drive", threshold_case ? 0.0f : 15.0f);
   SetPair(fast, reference, "Release", 18.0f);
-  SetPair(fast, reference, "Lookahead", initial_look);
-  SetPair(fast, reference, "Mode", static_cast<float>(initial_mode));
-  SetPair(fast, reference, "Link", link);
+  SetPair(fast, reference, "Lookahead",
+          initial_look);
+  SetPair(fast, reference, "Mode", threshold_case ? 0.0f : static_cast<float>(initial_mode));
+  SetPair(fast, reference, "Link", threshold_case ? 0.0f : link);
   // Preserve a negative zero through API clamping on some scenarios, and
   // exercise NaN-to-default parameter handling on the others.
   SetPair(fast, reference, "Mix", (scenario & 1u) ? -0.0f : NAN);
@@ -125,7 +136,7 @@ bool RunScenario(uint32_t scenario, float rate, float initial_look,
     uint32_t n = blocks[block_index++ % (sizeof(blocks) / sizeof(blocks[0]))];
     if (n > kTotalFrames - pos) n = kTotalFrames - pos;
     if (pos < next_transition && n > next_transition - pos) n = next_transition - pos;
-    Fill(g_fast_audio, pos, n, stereo_case);
+    Fill(g_fast_audio, pos, n, test_stereo, threshold_case);
     memcpy(g_reference_audio, g_fast_audio, 2u * n * sizeof(float));
     fm1_engine_limit.render(fast, g_fast_audio, n);
     fm1_engine_limit_reference.render(reference, g_reference_audio, n);
@@ -165,6 +176,15 @@ int main() {
           }
         }
       }
+    }
+  }
+  // Preserve the original 108 matrix cases above. Add four independent
+  // exact threshold-boundary cases: below/equal/above/zero, both lookahead
+  // settings and equal/unequal stereo.
+  for (uint32_t look = 0; look < 2; ++look) {
+    for (uint32_t stereo = 0; stereo < 2; ++stereo) {
+      if (!RunScenario(scenario, 44118.0f, look ? 2.0f : 0.0f, stereo, 0.0f, 0, true)) return 1;
+      ++scenario;
     }
   }
   printf("{\"scenarios\":%u,\"frames_per_scenario\":%u,\"transitions_per_scenario\":%u,"

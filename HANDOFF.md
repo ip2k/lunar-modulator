@@ -5820,3 +5820,27 @@ Hera coordinator claim lunar--exact-zero-dsp-20261015 was created for a fresh
 SAVE remains disarmed. Next: freeze/push source, fresh target build/fit/codegen
 review, separately bound one-use ROM91 campaign and matched throughput capture.
 Active-note/full-song performance and all release gates remain open.
+
+### Exact-zero candidate prepared; follow-on codegen experiment
+
+[verified: filesystem/static checks only] Source44fbb17fb1e7065cfc09177f83bd551223259541
+passed the fresh16-shard Hera build; app854208/860644bytes,6436free.
+Raw receipt5602608fae34ca122bdb40d3de282353efc5adcedcbaf346e755883575c7c2ad.
+Private BASE /home/claude/fm1-exact-zero-dsp-44fbb17f-20261015 now holds
+candidate1c04fadcbf4a682214e7e4370ac54a1fa4a09ef57a6f9f527da77bffd2f7a291,
+receiptc511edafe2ce10e066de94b71871a8d6538609b2221e9e8b2fa1c6e86a82b909,
+template5bc5e635e037a846cb73ecccb15be84e602194e52c77764dc35f987414de1230.
+Offline target comparison gives210changed sectors inside211allowed, with
+protected regions identical. Passive USB remains ROM91 bus1/path1-1. No new
+physical read/write/boot yet. Next: independently review newly bound one-use
+campaign, paired fresh reads matching a2c7eee6..., guarded write/full readback,
+matched stopped-transport capture. This candidate remains diagnostic only.
+
+Follow-on source experiment requests force-inline for the resampler tap helper
+and makes the limiter gain division's branch explicit. Existing arithmetic
+is retained. Resampler host suites153passed and spectral sweep passed;
+limiter O2/O0/UBSan112scenarios x6000frames preserve bitwise audio and complete
+instance state (original108scenarios retained, four boundary cases added).
+Target code generation, linked fit and performance are not yet verified for
+this follow-on source. It is separate from the44fbb17f physical candidate.
+SAVE stays disarmed; cold-boot musical acceptance remains FAILED; goal ACTIVE.

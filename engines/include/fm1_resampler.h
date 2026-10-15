@@ -336,10 +336,16 @@ static inline uint32_t fm1_resampler_push(fm1_resampler_t *r, const float *in, u
 }
 
 /* The kernel at table position t (16.16), linearly interpolated. */
-static inline float fm1_resampler_tap_(uint32_t t) {
+#if defined(__GNUC__) || defined(__clang__)
+#define FM1_RESAMPLER_FORCE_INLINE static inline __attribute__((__always_inline__))
+#else
+#define FM1_RESAMPLER_FORCE_INLINE static inline
+#endif
+FM1_RESAMPLER_FORCE_INLINE float fm1_resampler_tap_(uint32_t t) {
   const float *k = &fm1_resampler_kernel[t >> 16];
   return k[0] + (float)(t & 0xFFFFu) * (1.0f / 65536.0f) * (k[1] - k[0]);
 }
+#undef FM1_RESAMPLER_FORCE_INLINE
 
 /* One intermediate sample at input position rel (relative to the inputs
  * received): the sum of x[n] k((P - n) rho) over the inputs the kernel
