@@ -1,3 +1,18 @@
+## Latest coordinator checkpoint: MIDI semantics and physical clock capture
+
+Active goal remains feature-complete physical/web-installable Lunar; not accepted.
+MIDI semantic regression committed/pushed b9c44bde1e9d403bacf29188a52f4feb25a7d50a:
+Start rewinds, Stop releases/freeze, Continue resumes;22 focused tests pass.
+USB FC/FB physical evidence exists; physical FA rewind/TRS remain pending.
+Clock candidate9e864776ac931840e2859dd218a95d446c50b43ec57376b0191cf34e585459bf
+installed/readback verified; native72 then timed ROM73. One ambiguous reset,
+no retry. The rom71-clock-cycle is consumed: do not rerun it. Recording complete.
+Clock words0x1c1/0x6/0x10200; throughput259.2143 blocks/s still fails689.34375.
+CPU MHz remains unproven. Core soft reset does not guarantee SPL rerun; owner
+asked optional cold power cycle. Pending offline exact SDK case6/loader trace.
+Details/evidence: notes/2026-10-15-clock-snapshot-diagnostic.md and private
+scratch/clock-snapshot-result/physical/. SAVE remains disarmed.
+
 # Current checkpoint: clock candidate staged offline — 2026-10-15 UTC
 
 MIDI Start/Stop/Continue remains implemented in shared USB/UART ingress before

@@ -83,3 +83,41 @@ adapter and the deployed file. Eight focused coordinator tests passed.
 Installation completion, readback, boot, clock observation and audio results
 remain pending at this checkpoint. Do not rerun this consumed cycle or retry
 an ambiguous reset. Inspect its durable journal and capture first.
+
+## Completed physical clock capture
+
+[verified] The transaction journal completed, with full-image readback SHA-256
+`9e864776ac931840e2859dd218a95d446c50b43ec57376b0191cf34e585459bf`.
+Its record hash is
+`c033bb2c8d91b76b3b931768a4c1a107e87726d273125519a9c37132d7bf71b1`.
+The sole reset returned an ambiguous SG response (host7, residual16); no retry
+was sent. Independently, capture observed native USB device72 and the device
+subsequently returned to ROM73 after its timed diagnostic. Audio180s and
+telemetry110s completed with exit0. Boot campaign SHA-256:
+`998c24a95e05de3b43ef93806cdb2f27e0b5f8e957653ab3474e00956995197d`.
+
+[verified] All 11 schema-3 reports replay the same startup sample: CLK_CON0
+449 (`0x1c1`), CLK_CON2 6 (`0x6`), SYS_DIV66048 (`0x10200`), uptime0.
+There are55 diagnostic and56 render-profile frames (122 valid total). Events
+SHA-256 `7d1916940bca089725852d49a13ba7224ca2ed52810abe31abcbac3ccae1221c`;
+raw SysEx `14ee22e523ff7e705b2e3ff85c61ddccba136a3ce45ecca37f778e3ef0080b31`;
+recorder receipt `f99a0ffe72ad2a986d5fecb8cc43f599502d14447fc92ec2b15c98b5361371d1`.
+Over107.957 device seconds, production averaged259.2143 blocks/s versus
+689.34375 required; underruns averaged430.1250/s. Maximum render116558 ticks
+(4856.58us with the existing24ticks/us conversion), budget1450.66us.
+User/system observed minimum stack margins5884/7724 bytes,105 samples, are
+not worst-case proof. Audio performance remains failed; SAVE stays disarmed.
+
+[verified: source] Native audio initialization clears only CLK_CON2[11:8],
+preserving its low nibble6. The reviewed post-install reset primitive is a
+core soft reset, which does not establish that the stock SPL reran. The exact
+stock SPL's documented requested-rate branches do not assign low nibble6.
+[inferred] Loader-era clock inheritance is a plausible explanation needing
+further tracing or a cold-boot comparison; these words do not measure CPU MHz.
+The owner has been asked for an optional cold power-cycle comparison; offline
+work continues without treating elapsed time as a response.
+
+Private local analysis/evidence: `scratch/clock-snapshot-result/physical/`.
+Pinned static branch audit: `scratch/stock-spl-clock-branch-map.md`; Hera
+handoff `lunar--stock-spl-clock-decode-20261015.md` SHA-256
+`887e201cc8c4f79a6d09df55eebe05df5f4a00aa31491a953e227fc0e006cd36`.
