@@ -82,3 +82,36 @@ KA6 capture, then issue exactly one reset. This avoids rewriting the image and
 does not represent detached receipts as same-process install proof. Capture
 must validate that API's actual read/boot evidence and same-port native USB.
 No physical timing, audio improvement, or musical acceptance is claimed.
+
+## Distinct read/boot-only follow-up launched
+
+[verified: launched, not yet measured] PID270568 at
+`/home/claude/fm1-cpu-rate-boot-only-20261015`, evidence root
+`rom109-cpu-rate-read-boot-cycle`. Never relaunch this attempt. Target/current
+both5b3ebc0b; ROM109 same connection. The new runner takes fresh matching dual
+reads, starts KA6 recording, then invokes the established one-use generic boot
+API once. No flash erase/program and no installation-history claim.
+
+Eight focused helper/gate tests passed, including actual pinned verifier
+imports, current==target/environment pins, incomplete journal prefixes,
+ambiguous SG evidence and duplicate/partial trailing rows. Bench file-only
+preflight passed. It reuses the immutable175-dependency capture inventory,
+not the consumed V2 install campaign's preflight. A first file-only check
+correctly refused that consumed campaign before any new device access; root
+replaced that coupling with explicit helper/runtime/source checks.
+
+Externally anchored launch pins: runner
+`c90ca4b377a7ac7ff8756cdba9b99143d63f40ea4bb6f6572b2eecfb720fb12d`,
+capture helper `79b07ae2b9484678b0e2242932fd3213dc837f1b335f12046558dc97cca7f16b`,
+gate `e74b595f50c91afdc2d571ac749e25eeb4884c23ad6310ff9294ce4eac374da1`.
+Private source copies exist on Mac scratch and bench BASE. Independent audit
+predates the final consumed-preflight correction; its runner hash is superseded
+by the launch pin above. Root verified the final file-only check on bench.
+
+[verified: offline only] Matched Hall-Os/O2 builds at cc501db both passed16
+shards/link; only Hall's catalogue object differs. O2 app855616B leaves5028B;
+this proves fit/codegen, not runtime speed. Compact sequencer route getter
+f0277c94174a3936b71d9346af70f5444cebcb11 is backed up on
+origin/fix/2026-10-15@compact-seq-dispatch with matching remote SHA. Root reran
+the route oracle, sequencer core and render tests successfully. Neither change
+has been physically accepted or integrated into the current diagnostic.
