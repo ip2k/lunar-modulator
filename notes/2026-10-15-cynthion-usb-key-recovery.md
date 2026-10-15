@@ -1,8 +1,32 @@
 # Cynthion USB_KEY recovery preparation
 
-Status: source review and offline gateware development; **not ready for an FM1
-connection or power cycle**. No custom bitstream has been uploaded, no key has
-been driven, and no FM1 recovery acceptance exists.
+Status: first disconnected hardware check failed; **not ready for an FM1
+connection or power cycle**. A disconnected-only bitstream has been uploaded
+volatily. No FM1 was attached or keyed, and no FM1 recovery acceptance exists.
+
+## First disconnected hardware check
+
+[verified: coordinator execution] The disconnected-only image, SHA-256
+`676c84d4d7ed519282d8c9e073a79889b774d2ac88780cdf8d7a44fad8f22152`
+(115790 bytes), was loaded using `cynthion run --bitstream`. The CLI reported
+configuration complete; no FPGA configuration flash or MCU firmware was written.
+The image cannot enter KEY and holds all VBUS/discharge outputs off.
+
+[verified: read-only JTAG] Registers 1/2/3 returned `0x4c554e52`, `1`, `0x2418`:
+FAULT state8, PHY ready, no PHY fault, self-test mask0, valid SE0 observation,
+self-test mode, CONTROL target power off. Thus register initialization/readback
+passed but the first K-state loopback did not. Terminal FAULT releases the GPIO
+outputs. This disconnected image remains loaded. Logs and literal telemetry:
+`scratch/cynthion-usb-key-20261015/disconnected-upload.log` and
+`scratch/cynthion-usb-key-20261015/disconnected-status.json` (local artifacts).
+
+[inferred] Possible causes include GPIO drive/sense behavior or insufficient
+observation dwell; none is established. Next revision adds longer dwell and
+latched GPIO/RXCMD diagnostics without making KEY reachable in self-test mode.
+
+[verified: offline integration] 91 focused tests pass across actual-LUNA ULPI
+simulation, protocol regressions and the two backup admission paths. These
+checks do not override the failed physical loopback.
 
 ## Current physical state
 

@@ -4,8 +4,12 @@
 Custom gateware development is active; do not reconnect/power-cycle FM1 yet.
 Exact r1.4 source shows 1k series monitor paths and Bank6 +3V3. USB3343
 non-driving receive mode is a source-supported candidate, not live acceptance.
-Protocol FSM and ULPI initialization/readback are assigned to separate offline
-workers. Root owns all device operations. No custom upload/key waveform yet.
+Root owns all device operations. First disconnected-only bitstream was loaded
+volatily: PHY initialization passed, four-state loopback failed at its first
+state (FAULT, mask0). Outputs are released; no FM1 was attached or keyed.
+Read-only telemetry and upload log are saved under
+scratch/cynthion-usb-key-20261015/. Worker is adding longer dwell and latched
+GPIO/RXCMD diagnostics; do not bypass the loopback gate.
 See notes/2026-10-15-cynthion-usb-key-recovery.md for gates/restoration plan.
 Power loss invalidates retained-loader admission; current flash remains unknown.
 
