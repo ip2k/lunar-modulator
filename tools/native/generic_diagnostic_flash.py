@@ -332,6 +332,28 @@ def _exact_engine_render_profile_receipt(value):
             and value == expected)
 
 
+def _exact_clock_snapshot_receipt(value):
+    expected = {
+        "enabled": True, "schema": 3, "supplemental_schema": 4,
+        "supplemental_registers": ["pll_osc_selector_raw", "pll_predivider_raw",
+                                   "pll_multiplier_raw"],
+        "supplemental_register_addresses": ["0x119a0", "0x119a8", "0x119ac"],
+        "supplemental_frequency_interpreted": False,
+        "compile_definition": "LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT=1",
+        "sample": "post-platform-init", "register_writes": False,
+        "frequency_interpreted": False, "hardware_tested": False,
+    }
+    return (isinstance(value, dict) and set(value) == set(expected)
+            and type(value.get("enabled")) is bool
+            and type(value.get("schema")) is int
+            and type(value.get("supplemental_schema")) is int
+            and type(value.get("supplemental_frequency_interpreted")) is bool
+            and type(value.get("register_writes")) is bool
+            and type(value.get("frequency_interpreted")) is bool
+            and type(value.get("hardware_tested")) is bool
+            and value == expected)
+
+
 def _exact_song_play_receipt(value, enabled):
     expected = {
         "enabled": enabled,
@@ -405,6 +427,16 @@ def _validate_diagnostic_mode(record, build, verification, prepared_profile):
         # Its exact schema-2 stage receipt and exclusion of IRQ/producer-gap
         # profiles were checked above; do not broaden this exception to other
         # disabled-song receipts.
+        pass
+    elif (not engine_profile_present
+          and "render_stage_profile" not in verification
+          and "diagnostic_irq_profile" not in verification
+          and "diagnostic_producer_gaps" not in verification
+          and _exact_clock_snapshot_receipt(verification.get("diagnostic_clock_snapshot"))
+          and _exact_song_play_receipt(song_play, False)):
+        # Standard telemetry with clock snapshots has no autoplay and no
+        # render-profiler slots. Keep both profiling receipts absent: this is
+        # the matched profiler-off measurement profile.
         pass
     else:
         raise ValueError("EH+SET diagnostic playback must be the bounded one-shot PLAY profile")

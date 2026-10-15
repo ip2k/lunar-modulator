@@ -182,6 +182,61 @@ def test_song_profile_accepts_exact_schema7_plus_schema2_and_preserves_default_r
             module._validate_diagnostic_mode(record, {}, incompatible, b"")
 
 
+def test_song_profile_accepts_exact_profiler_off_clock_diagnostic_without_autoplay(monkeypatch):
+    monkeypatch.setattr(module, "_validate_event_horizon_set_profile",
+                        lambda *_args: {"validated": True})
+    base = {
+        "diagnostic_trio_pulse": {
+            "enabled": False, "compile_definition": None, "note": None,
+            "velocity": None, "start_ms": None, "end_ms": None,
+            "once": True, "hardware_tested": False,
+        },
+        "diagnostic_telemetry": {
+            "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TELEMETRY=1",
+            "interval_ms": 1000, "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+        },
+        "diagnostic_song_play": builder.validate_diagnostic_song_play(
+            False, "song-diagnostic", None, True, False),
+        "diagnostic_clock_snapshot": json.loads(json.dumps(
+            builder.validate_clock_snapshot(True, "song-diagnostic", True))),
+    }
+    record = {"kind": module.SONG_INPUT_KIND}
+    assert module._validate_diagnostic_mode(record, {}, base, b"") == {"validated": True}
+
+    for changed in (
+        dict(base, diagnostic_clock_snapshot=dict(base["diagnostic_clock_snapshot"], schema=True)),
+        dict(base, diagnostic_clock_snapshot=dict(base["diagnostic_clock_snapshot"],
+                                                  supplemental_schema=3)),
+        dict(base, diagnostic_clock_snapshot=dict(base["diagnostic_clock_snapshot"],
+                                                  register_writes=True)),
+        dict(base, diagnostic_clock_snapshot=dict(base["diagnostic_clock_snapshot"],
+                                                  supplemental_register_addresses=["0x119a0"])),
+        dict(base, render_stage_profile=builder.render_stage_profile_configuration(True)),
+        dict(base, diagnostic_song_play=dict(base["diagnostic_song_play"], once=True)),
+    ):
+        with pytest.raises(ValueError, match="bounded one-shot PLAY"):
+            module._validate_diagnostic_mode(record, {}, changed, b"")
+
+    irq = {
+        "enabled": True, "schema": 6,
+        "compile_definition": "LUNAR_DIAGNOSTIC_IRQ_PROFILE=1",
+        "frame_bytes": 119, "packets_per_frame": 40,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    producer = {
+        "enabled": True, "schema": 5,
+        "compile_definition": "LUNAR_DIAGNOSTIC_PRODUCER_GAPS=1",
+        "frame_bytes": 59, "packets_per_frame": 20,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    for incompatible in (
+        dict(base, diagnostic_irq_profile=dict(irq, frame_bytes=118)),
+        dict(base, diagnostic_producer_gaps=producer),
+    ):
+        with pytest.raises(ValueError):
+            module._validate_diagnostic_mode(record, {}, incompatible, b"")
+
+
 def test_input_pulse_profile_rejects_schema7_engine_profile():
     verification = {
         "diagnostic_trio_pulse": {
