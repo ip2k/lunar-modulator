@@ -1,3 +1,30 @@
+## Resampler helper RAM integrated; Drums RAM target pending — 2026-10-15
+
+[verified] Root cherry-picked reviewed ee823c4060d3d637aaecfcd4032b720ef921f0c4
+as f5ab5b966203f00afaaaf80cd4fb1c5870d22de2, pushed to the feature branch and
+remote SHA verified. Root71 resampler/receipt/adapter/boot checks passed after
+integration. Independent review78 checks passed and exact48b source/profile/
+selection/toolchain/16 shards/all10 target-output hashes checked. Helper target
+app855672B SHA22f56f09b6cfc403b453e8add9f4cfeb8d4a44ff18c05ef9db0e766816c77cec:
+-240B app/+624B DSP RAM versus exact48b. Four helper copies/callers confirmed
+(Shapes,Drums,Macro fromXIP;SixOp fromRAM). DSP extent ends0x1c03b18, leaving
+9448B to0x1c06000; the earlier9960B headroom claim was arithmetic error and is
+superseded. Review scratch/resampler-push-ready-ram-independent-review.md in
+/Users/likwid/.codex/worktrees/resampler-push-ready-ram/mvave-fm1-firmware.
+This is offline fit/residency proof, NOT measured speed or musical acceptance.
+
+Drums Render RAM child74c199b4c59ae2c9b43f30de83a0cfedfebe3a31 is backed up;
+root93 focused policy/profile/adapter checks pass in isolated child checkout.
+Full16-shard target build and independent source/ELF review are pending. Do
+not deploy without concrete new candidate/package review and fresh paired reads.
+Passive bench sysfs refreshed port1-1,bus1/dev113,4c4a:8057,WL80UBOOT1.00;
+no writes/boot/MIDI/power actions this segment. Installed reference remains
+28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f.
+Future packaging plan scratch/resampler-ram-deployment/rom113-preparation/HANDOFF.md
+has all target-dependent digests PENDING. Prior ROM111 campaign consumed.
+Goal ACTIVE; cold-boot listening FAILED. SAVE/autoplayoff; no owner action
+currently required. Existing untracked uv.lock untouched.
+
 ## Hall measurement complete; real-time audio still fails — 2026-10-15
 
 [verified] ROM111 one-use campaign is CONSUMED. Fresh paired 1 MiB reads
@@ -43,7 +70,7 @@ against exact48b baseline855912B/RAM13120B: app-240B/RAM+624B. Earlier +240/+103
 comparison used stale baseline and is superseded. Independent source/target
 review assigned profile_catalogue_build; do not call matched until provenance
 is checked. Worker demo_controller_review prepares separate Drums::Render RAM
-child (linked body3858B numerically fits helper-build9960B DSP headroom), exact
+child (linked body3858B numerically fits helper-build9448B DSP headroom), exact
 12-body receipt profile preserving7/8/10/11 histories; target fit still required.
 No algorithm, resampling quality or musical features removed.
 
