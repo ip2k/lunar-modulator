@@ -1,3 +1,16 @@
+## Coordinator checkpoint: hot-RAM candidate staged, file-only gate passed
+
+Fresh private bench base /home/claude/fm1-hot-ram-e85a42f3-20261015.
+Candidate58c9aebbd9d167d5f2f069d0e9d73d5c76bb03d1a0e4d70dfaec49f324c0070d
+constructed offline, 211allowed/210changed from verified864445bea.
+174 recorder pins plus all249tools/10dirs checked. Staged --preflight passed.
+One-use rom75-hot-ram-cycle not yet consumed at this checkpoint; inspect its
+durable journal/output before any attempt. No automatic retry of reset/flash.
+Raw v3 receipt retained, separate compatibility seal passes generic gate.
+Details notes/2026-10-15-hot-dsp-ram-experiment.md and scratch/hot-ram-cycle.
+Goal ACTIVE, audio starvation/SAVE/recovery independence/web release unresolved.
+Unrelated uv.lock untouched.
+
 ## Coordinator checkpoint: fresh hot-RAM build and offline target checks passed
 
 Exact e85a42f3 source built on Hera:16/16 fresh shards and link passed; original

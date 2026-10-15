@@ -63,3 +63,30 @@ The four candidate/diagnostic/manifest suites pass 90 tests. This is not physica
 installation, runtime execution or performance acceptance. Private actual-ELF
 review and original frozen receipts remain under `scratch/native-hot-dsp-ram/`
 and `scratch/hot-ram-result/`; no vendor binaries are committed.
+
+## Fresh bench staging and constructed candidate
+
+[verified: file-only bench checks] Fresh private staging at
+`/home/claude/fm1-hot-ram-e85a42f3-20261015` preserves 172 pinned recorder
+dependencies and two telemetry sources. A separate exact inventory checks all
+249 tools files and ten directories before candidate construction and runtime
+use. Tools archive is from coordinator commit bd687343; firmware remains exact
+e85a42f3. Original ten-output v3 receipt is unchanged; a separate compatibility
+seal verifies all outputs and container inspections before presenting the five
+outputs expected by the existing generic gate. Nine seal, five staging, six
+source-inventory and four one-use gate tests pass.
+
+Constructed 1 MiB target SHA-256
+`58c9aebbd9d167d5f2f069d0e9d73d5c76bb03d1a0e4d70dfaec49f324c0070d`;
+candidate receipt `6da5eb7594d033f3bceab3481a8628aefbdf30093a10f3b4b1b171386b055880`;
+input template `993504bc82288c4c992c46144b779f500276ff0b32fa0a2b96b430a267aca612`.
+There are 211 allowed sectors and 210 changed sectors relative to the prior
+installed 864445bea image. The bench staged `run-cycle.py --preflight` passed
+file-only checks. No fresh ROM read or device write is claimed by this checkpoint.
+The ROM75 cycle is prepared for paired full reads, journaled header-last update,
+full readback, one bounded boot and analogue/telemetry capture. Prior ROM73
+journal was re-read: complete, no pending intent, verified target 864445bea.
+
+SAVE remains disarmed. Selected RAM bodies are not a full transitive residency
+proof; performance, recovery independence, musical and release acceptance remain
+open. Private campaign tools and tests are in `scratch/hot-ram-cycle/`.
