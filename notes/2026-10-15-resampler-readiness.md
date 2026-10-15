@@ -1,0 +1,7 @@
+# Reuse renderer resampler readiness
+
+[verified: source review] Drums and SixOp already compute `needed()` for each output frame and decrement the count by each bounded feed. Their `RenderBlock()` methods generate mix data without mutating the resampler. The internal trusted-ready helpers reuse that invariant; the public push/pop entry points retain their defensive checks. Filter taps, arithmetic order, buffers and sample rates are unchanged.
+
+[verified: host tests] The differential harness compares every output float bit and the complete initialized resampler state after each feed/pop, including partial input chunks, ring wraps, pass mode, conversion ratios through 4:1, silence/impulse, signed zeros, NaNs and infinities. Existing resampler regression suites also pass: 170 tests. The supported conversion interval is input/output 1 through 4; ratios below 1 remain rejected. Coordinator reran these with the deployment helper tests: 182 passed in total. `git diff --check` passed.
+
+[verified: limits] This removes repeated readiness checks only. Target machine code, image fit, and physical performance have not yet been verified. It does not establish that these checks explain the large outer-render residual. The current physical image remains the 6b8576bd diagnostic, whose performance failed; SAVE stays disarmed. Next: exact-source 16-shard Hera build, target disassembly review, then a separate guarded physical comparison.

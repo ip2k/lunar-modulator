@@ -315,11 +315,11 @@ static inline uint32_t fm1_resampler_needed(const fm1_resampler_t *r) {
   return v > 0 ? (uint32_t)(((uint64_t)v + 0xFFFFFFFFu) >> 32) : 0u;
 }
 
-/* Takes up to n samples, never more than fm1_resampler_needed(r); returns
- * how many it took. */
-static inline uint32_t fm1_resampler_push(fm1_resampler_t *r, const float *in, uint32_t n) {
-  uint32_t i, need = fm1_resampler_needed(r);
-  if (n > need) n = need;
+/* Internal fast path for a caller that has already computed needed(r) and
+ * passes n <= that value. The resampler must not have been mutated since the
+ * readiness check. Returns how many samples it took. */
+static inline uint32_t fm1_resampler_push_ready_(fm1_resampler_t *r, const float *in, uint32_t n) {
+  uint32_t i;
   if (r->mode != FM1_RESAMPLER_CONVERT) {
     if (n) { r->in[0] = in[0]; r->held = 1; }
     return n;
@@ -333,6 +333,14 @@ static inline uint32_t fm1_resampler_push(fm1_resampler_t *r, const float *in, u
   }
   r->rel -= (int64_t)n << 32;
   return n;
+}
+
+/* Takes up to n samples, never more than fm1_resampler_needed(r); returns
+ * how many it took. General callers should use this checked entry point. */
+static inline uint32_t fm1_resampler_push(fm1_resampler_t *r, const float *in, uint32_t n) {
+  const uint32_t need = fm1_resampler_needed(r);
+  if (n > need) n = need;
+  return fm1_resampler_push_ready_(r, in, n);
 }
 
 /* The kernel at table position t (16.16), linearly interpolated. */
@@ -378,9 +386,9 @@ static inline float fm1_resampler_intermediate_(fm1_resampler_t *r) {
   return (sb + sa) * r->gain;
 }
 
-/* The next output sample. Returns 0 and changes nothing if r still needs
- * input (fm1_resampler_needed > 0). */
-static inline float fm1_resampler_pop(fm1_resampler_t *r) {
+/* Internal fast path for a caller that has established fm1_resampler_needed(r)
+ * == 0 and has not mutated the resampler since that check. */
+static inline float fm1_resampler_pop_ready_(fm1_resampler_t *r) {
   const float *h = fm1_resampler_lowpass, *e;
   float y0 = 0.0f, y1 = 0.0f, y2 = 0.0f, y3 = 0.0f;
   uint32_t j;
@@ -389,7 +397,6 @@ static inline float fm1_resampler_pop(fm1_resampler_t *r) {
     r->held = 0;
     return r->in[0];
   }
-  if (fm1_resampler_needed(r)) return 0.0f;
   for (j = 0; j < 2; ++j) {             /* intermediate samples 2k and 2k + 1 */
     const float x = fm1_resampler_intermediate_(r);
     const uint32_t slot = r->mid_w;
@@ -411,6 +418,14 @@ static inline float fm1_resampler_pop(fm1_resampler_t *r) {
   }
   for (; j < FM1_RESAMPLER_LP_PAIRS; ++j) y0 += h[j] * (e[j] + e[FM1_RESAMPLER_LP_LEN - 1 - j]);
   return ((y0 + y1) + (y2 + y3)) + h[FM1_RESAMPLER_LP_PAIRS] * e[FM1_RESAMPLER_LP_PAIRS];
+}
+
+/* The next output sample. Returns 0 and changes nothing if r still needs
+ * input (fm1_resampler_needed > 0). General callers should use this checked
+ * entry point. */
+static inline float fm1_resampler_pop(fm1_resampler_t *r) {
+  if (r->mode == FM1_RESAMPLER_CONVERT && fm1_resampler_needed(r)) return 0.0f;
+  return fm1_resampler_pop_ready_(r);
 }
 
 /* Array form: takes inputs from in[0..n_in) as outputs need them and writes

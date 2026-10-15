@@ -521,13 +521,13 @@ class Instance {
           FM1_ENGINE_PROFILE_BLOCK_END();
           pending_ = kBlockSize;
         }
-        const uint32_t took = fm1_resampler_push(
+        const uint32_t took = fm1_resampler_push_ready_(
             &resampler_, &mix_[kBlockSize - pending_],
             need < pending_ ? need : static_cast<uint32_t>(pending_));
         pending_ -= took;
         need -= took;
       }
-      out_lr[2 * f] = out_lr[2 * f + 1] = fm1_resampler_pop(&resampler_);
+      out_lr[2 * f] = out_lr[2 * f + 1] = fm1_resampler_pop_ready_(&resampler_);
     }
     FM1_ENGINE_PROFILE_RENDER_END(FM1_ENGINE_PROFILE_DRUMS);
   }

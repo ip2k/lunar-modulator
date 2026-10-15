@@ -1,3 +1,17 @@
+## Resampler readiness optimization awaiting target build
+
+Goal ACTIVE; cold-boot musical acceptance FAILED; SAVE disarmed.
+Drums/SixOp now reuse their checked input-need count in internal feed/pop helpers;
+public APIs remain defensive and FIR arithmetic/order unchanged. Host resampler
+regressions170pass; together with deployment helper suite182pass. Target build,
+codegen, fit and physical performance remain pending. See
+notes/2026-10-15-resampler-readiness.md. No hardware claim from host tests.
+
+Next0e024 file-only staging now has all249tools/10dirs and native60files/2dirs.
+Fresh172external-dependency rehash passed. Corrected constructor is a separate
+pinned overlay; full175-runtime verification and offline construction still next.
+Current physical eddc8531 image, ROM97 last observed; do not reuse ROM95 cycle.
+
 ## Current: ROM95 schema-7 completed; performance still fails
 
 Goal ACTIVE; owner cold-boot musical acceptance FAILED; SAVE disarmed.
