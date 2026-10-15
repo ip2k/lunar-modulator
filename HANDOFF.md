@@ -1,3 +1,12 @@
+## Restart checkpoint — 2026-10-15 20:35 UTC
+
+Owner requested application restart checkpoint. See
+`notes/2026-10-15-codex-restart-checkpoint.md` for exact source, pending pushed
+installer fix, frozen Hall build, constructor incompatibility, worker handoffs,
+physical state and resume steps. No new flash/reset; ROM111 is consumed.
+Audio acceptance still FAILED; full release goal unfinished. Honor restart
+boundary before launching further work. Unrelated `uv.lock` untouched.
+
 ## D7000 service boundary corrected and integrated — 2026-10-15
 
 [verified: host/integration] Worker06d43fa2+cd8ecf36 reviewed and integrated as
