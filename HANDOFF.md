@@ -1,3 +1,32 @@
+# Naming migration integrated — 2026-10-15 UTC
+
+Owner requested Lunar product naming and neutral integration identifiers, keeping
+upstream recognition in prior-art/thanks material. Integrated source checkpoint
+ad9a0f0b5ac42c8365b0b374121bb73ade042906 was pushed and its GitHub SHA verified.
+USB manufacturer/product strings are Lunar Modulator / Lunar Modulator Update;
+platform macros/font, engine bridge/shim/build targets, vendored directory names,
+OTA adapter directory and two upstream feature macros now use Lunar/neutral names.
+This has NOT been built into a fresh native image or flashed to the FM1.
+
+Remaining upstream names include required copyright/licence/provenance notices,
+historical bench evidence and explanatory source attribution. The exact protocol
+literal FELUCCA-LOADER-1 is deliberately preserved for loader compatibility.
+Do not claim all textual occurrences have been removed. Manual sound-engine
+credits now have explicit Prior art and thanks subsections.
+
+Validation: 113 focused platform/identity/font/build-policy tests passed after a
+portable descriptor-fixture correction. All platform inventory pins match.
+Final source-adaptation, engine and USB identity suites passed with one skip;
+the adaptation test reconstructs the pinned upstream core.h hash, proving only
+the two macro names changed. Worker clean GPL host build and engine suites
+passed (507 passed, one skipped) before the final macro adaptation. No new
+pi32v2 build, hardware acceptance or current-head CI result is claimed.
+Hera exchange ref coordinator-lunar-names-20261015 contains exact ad9a0f0b.
+Next: fresh source-bound native diagnostic build on Hera, then review and admit
+it for recorded MIDI/audio investigation. Existing frozen runner remains pinned
+to historical 66196f54 and must not be silently repurposed. Goal remains ACTIVE;
+SAVE, independent recovery, all13 musical acceptance and web release are open.
+
 # Current checkpoint: Lunar identity cleanup and recorded Trio boot — 2026-10-15 UTC
 
 Owner requested inherited product/internal names be removed in favor of Lunar,
