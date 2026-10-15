@@ -107,7 +107,9 @@ def test_lunar_platform_usb_configuration_emits_expected_audio_descriptor(tmp_pa
         "\n#define LUNAR_UAC_48K 1\n#define LUNAR_USB_PID 1\n"
         "#define UAC_MAXP 196u\n" + descriptor_source +
         "\n#include <stdio.h>\n"
-        "int main(void) { printf(\"%u %u %u %u\\n\", "
+        "int main(void) { if (DEV_DESC[8] != 0x09 || DEV_DESC[9] != 0x12 "
+        "|| DEV_DESC[10] != 1 || DEV_DESC[11] != 0) return 1; "
+        "printf(\"%u %u %u %u\\n\", "
         "(unsigned)sizeof DEV_DESC, (unsigned)sizeof CFG_DESC, "
         "CFG_DESC[4], (unsigned)(CFG_DESC[2] | (CFG_DESC[3] << 8))); "
         "for (unsigned i=0;i<sizeof CFG_DESC;i++) printf(\"%02x\", CFG_DESC[i]); "
