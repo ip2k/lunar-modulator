@@ -65,6 +65,12 @@
 #define FM1_RESAMPLER_INTERMEDIATE_PLACEMENT
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#define FM1_RESAMPLER_FORCE_INLINE static inline __attribute__((__always_inline__))
+#else
+#define FM1_RESAMPLER_FORCE_INLINE static inline
+#endif
+
 #define FM1_RESAMPLER_SPAN 12          /* stage-1 kernel width, intermediate samples */
 #define FM1_RESAMPLER_PHASES 128       /* kernel table entries per intermediate sample */
 #define FM1_RESAMPLER_KERNEL_LEN (FM1_RESAMPLER_SPAN / 2 * FM1_RESAMPLER_PHASES + 1)
@@ -329,7 +335,7 @@ static inline int fm1_resampler_init(fm1_resampler_t *r, float in_rate, float ou
 }
 
 /* Input samples r must receive before the next fm1_resampler_pop. */
-static inline uint32_t fm1_resampler_needed(const fm1_resampler_t *r) {
+FM1_RESAMPLER_FORCE_INLINE uint32_t fm1_resampler_needed(const fm1_resampler_t *r) {
   int64_t v;
   if (r->mode != FM1_RESAMPLER_CONVERT) return r->mode == FM1_RESAMPLER_PASS && !r->held;
   v = r->rel + r->lead;
@@ -365,11 +371,6 @@ static inline uint32_t fm1_resampler_push(fm1_resampler_t *r, const float *in, u
 }
 
 /* The kernel at table position t (16.16), linearly interpolated. */
-#if defined(__GNUC__) || defined(__clang__)
-#define FM1_RESAMPLER_FORCE_INLINE static inline __attribute__((__always_inline__))
-#else
-#define FM1_RESAMPLER_FORCE_INLINE static inline
-#endif
 FM1_RESAMPLER_FORCE_INLINE float fm1_resampler_tap_(uint32_t t) {
   const float *k = &fm1_resampler_kernel[t >> 16];
   return k[0] + (float)(t & 0xFFFFu) * (1.0f / 65536.0f) * (k[1] - k[0]);
