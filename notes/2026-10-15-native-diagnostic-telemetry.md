@@ -58,3 +58,39 @@ No image containing this telemetry has yet been installed or hardware-tested.
 It is an investigation aid for the unresolved silent external MIDI and audio
 timing failures, not evidence that either problem is fixed. SAVE and release
 admission remain disarmed.
+
+## Passive recorder and joined ingress verification
+
+[verified: host tests] `tools/native/record_diagnostic_telemetry.py` opens only
+one exact named MIDI input, never a MIDI output. It records complete validated
+frames in `raw.syx`, timestamped observations in `events.jsonl`, and hashes both
+in a success receipt. The output directory must be new; zero valid frames is a
+failure without a success receipt. The supplied image hash is an operator
+expectation, not measured device identity. Hardware acceptance remains false.
+
+Recording is limited to 180 seconds, 4,096 frames and 8,192 events. Every yielded
+message checks the deadline, including continuous traffic; payload length is
+checked before copying SysEx. Backend enumeration/opening or an individual
+iterator advance can still block: this is a capture-loop deadline, not a hard
+process deadline. A supervising physical-cycle helper must enforce its own
+process timeout and preserve failed captures. Tests exercise continuous input
+and an oversized payload that must be rejected without iteration.
+
+[verified: host tests] The joined ingress regression uses the actual USB packet
+decoder/ring reader, UART drain/parser and common application event handler.
+USB note-on/velocity-zero note-off, UART running status and channel rejection
+pass. Synth callbacks are deliberately stubbed; this does not prove voice
+activation or audible output. The coordinator reran recorder, diagnostic,
+joined ingress and existing MIDI suites: **56 passed**. No target or device
+acceptance follows from these host checks.
+
+[verified: bench preparation] A private environment at
+`/home/claude/.cache/lunar-venvs/telemetry-capture-20261015` on bench01 uses
+extracted Debian arm64 packages rather than system package installation:
+python3-rtmidi 1.5.8-3+b3, python3-mido 1.3.3-0.1, python3-packaging 25.0-1,
+and libjack-jackd2-0 1.9.22~dfsg-4. Imports pass with `PYTHONPATH` pointing at
+`packages/usr/lib/python3/dist-packages` and `LD_LIBRARY_PATH` pointing at
+`packages/usr/lib/aarch64-linux-gnu`. The virtualenv interpreter is `bin/python`.
+No MIDI port was opened for this dependency check. Passive inventory still
+showed FM1 ROM device 057, KA6 device 051 and Pico device 038. A fresh identity
+and paired flash reads remain required before any new installation.

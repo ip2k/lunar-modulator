@@ -1,3 +1,29 @@
+# Passive diagnostic capture checkpoint — 2026-10-15 UTC
+
+Coordinator reviewed passive telemetry recorder and joined USB/UART ingress
+regressions. Recorder opens one exact input only, bounds frames/events/time,
+checks deadline during continuous traffic, and rejects oversized SysEx before
+copy. Success receipt includes raw/events hashes, backend/API, monotonic elapsed
+and termination reason; expected image hash is not device identity. Zero valid
+frames produces no success receipt. Backend open/iterator blocking still needs
+an outer process deadline. Only receipt.json establishes completed capture.
+
+Focused recorder/telemetry/joined-ingress/MIDI suite: 56 passed. Actual parsers
+and shared handler are exercised, synth callbacks stubbed; no audible or target
+acceptance claim. Independent source review and bench installed backend confirm
+RtMidi leaves SysEx enabled. Bench private extracted-package environment imports
+successfully; no system package installation or MIDI port open. Passive inventory:
+ROM57, KA6 device51, Pico38. No boot/flash/device writes in this checkpoint.
+
+Fresh exact 9ec846b0 target link reported by Hera worker: 807740 bytes within
+860644 budget, historical 54 modules/all13 engines retained, plate excluded.
+Root artifact/provenance/resource review and fresh physical admission remain
+pending; historical frozen runner pins unchanged. SAVE, independent recovery,
+full-song hardware acceptance, installer/release gates remain open. Goal ACTIVE.
+Current source branch feature/2026-10-11@installable-firmware; parent 9ec846b0
+was GitHub SHA-verified. This checkpoint commit is backed up immediately after
+creation; use git/remote SHA for the resulting commit identity.
+
 # Diagnostic telemetry source checkpoint — 2026-10-15 UTC
 
 Added pulse-diagnostic-only 1 Hz outbound SysEx measurements for MIDI input,
