@@ -27,16 +27,18 @@ def entry(*, usb=None, observed=1030.0, firmware=FW, build=BUILD):
             "rom_device_is_selected_unit": True,
             "identity_basis": "owner-attested-physical-selection",
             "usb_serial": None,
-            "status_observation": {"method": "status-leds",
-                                   "value": "operator recorded amber indicator, then dark"},
         },
         "dongle_upload": {
             "firmware_sha256": firmware,
             "build_receipt_sha256": build,
-            "owner_confirmed_exact_image_uploaded": True,
+            "coordinator_uploaded_exact_image": True,
         },
         "attempt_started_at": 1000.0,
+        "uploaded_at": 1005.0,
+        "owner_key_action_at": 1008.0,
         "status_observed_at": 1010.0,
+        "status_observation": {"method": "owner-leds",
+                                "value": "operator recorded amber indicator, then dark"},
         "rom_enumeration": {"observed_at": observed,
                             "candidates": [dict(USB if usb is None else usb)]},
         "target_port": {"path": USB["path"], "was_absent_before_attempt": True},
@@ -52,17 +54,26 @@ def test_owner_observation_and_fresh_rom_binding_validate():
     assert adapter.validate_entry(encoded(entry()), USB, FW, now=1050.0) == 1030.0
 
 
+def test_coordinator_jtag_status_is_literal_and_does_not_require_an_abi():
+    ev = entry()
+    ev["status_observation"] = {"method": "coordinator-read-jtag",
+                                "value": "operator captured raw status bytes 02 00 01"}
+    assert adapter.validate_entry(encoded(ev), USB, FW, now=1050.0) == 1030.0
+
+
 @pytest.mark.parametrize("mutate", [
     lambda e: e["owner_attestation"].update(performed_usb_key_once=False),
     lambda e: e["owner_attestation"].update(selected_physical_unit=False),
     lambda e: e["owner_attestation"].update(rom_device_is_selected_unit=False),
     lambda e: e["owner_attestation"].update(usb_serial="guessed-serial"),
-    lambda e: e["owner_attestation"]["status_observation"].update(value=""),
-    lambda e: e["dongle_upload"].update(owner_confirmed_exact_image_uploaded=False),
+    lambda e: e["status_observation"].update(value=""),
+    lambda e: e["status_observation"].update(method="invented-console-ack"),
+    lambda e: e["dongle_upload"].update(coordinator_uploaded_exact_image=False),
     lambda e: e["dongle_upload"].update(firmware_sha256="c" * 64),
     lambda e: e["dongle_upload"].update(build_receipt_sha256="not-a-hash"),
     lambda e: e["rom_enumeration"].update(observed_at=999.0),
     lambda e: e["rom_enumeration"]["candidates"].append(dict(USB)),
+    lambda e: e.update(owner_key_action_at=1004.0),
     lambda e: e["target_port"].update(was_absent_before_attempt=False),
     lambda e: e["rom_usb"].update(devnum="18"),
 ])
@@ -155,7 +166,7 @@ def test_prepare_pins_cold_entry_and_builds_exact_read_inventory(tmp_path, monke
     campaign.write_text(json.dumps(config))
     prepared, receipt, entry_sha, image_sha = adapter.prepare_campaign(campaign, now=1050.0)
     assert len(prepared.operations) == 8757
-    assert prepared.config["_owner_status_observation"] == ev["owner_attestation"]["status_observation"]
+    assert prepared.config["_status_observation"] == ev["status_observation"]
     assert receipt == tmp_path / "receipt"
     assert entry_sha == hashlib.sha256(entry_bytes).hexdigest()
     assert image_sha == firmware_sha
@@ -204,7 +215,10 @@ def prepared(tmp_path, *, entered=1990.0):
     return SimpleNamespace(
         config={"usb_binding": dict(USB), "entry_path": str(tmp_path / "entry.json"),
                 "dongle_build_receipt_sha256": BUILD,
-                "_owner_status_observation": {"method": "status-leds", "value": "synthetic"}},
+                "_owner_physical_attestation": {"selected_physical_unit": True,
+                                                 "performed_usb_key_once": True},
+                "_status_observation": {"method": "owner-leds", "value": "synthetic"},
+                "_coordinator_upload_record": {"coordinator_uploaded_exact_image": True}},
         manifest_sha256="d" * 64, entered_at=entered,
         operations=operations(), request_inventory_sha256="e" * 64,
         )
