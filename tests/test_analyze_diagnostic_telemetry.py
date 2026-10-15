@@ -88,6 +88,30 @@ def test_stack_sentinel_and_zero_samples_are_unavailable():
     assert stack["system"] == {"bytes": None, "status": "unavailable"}
 
 
+def test_buffered_reports_keep_device_rates_separate_from_host_arrival():
+    report = analyzer.analyze_jsonl([
+        row(0, values(uptime_ms=10000, produced_audio_blocks=200)),
+        row(0.5, values(uptime_ms=42000, produced_audio_blocks=8200)),
+    ])
+    first, second = report["frames"]
+    assert first["counter_rates_per_device_second"] is None
+    assert second["device_seconds_since_previous_frame"] == 32
+    assert second["counter_rates_per_second"]["produced_audio_blocks"] == 16000
+    assert second["counter_rates_per_device_second"]["produced_audio_blocks"] == 250
+
+
+def test_device_uptime_wrap_and_zero_interval():
+    report = analyzer.analyze_jsonl([
+        row(0, values(uptime_ms=0xFFFFFF00, produced_audio_blocks=100)),
+        row(1, values(uptime_ms=744, produced_audio_blocks=350)),
+        row(2, values(uptime_ms=744, produced_audio_blocks=351)),
+    ])
+    wrapped, same = report["frames"][1:]
+    assert wrapped["device_seconds_since_previous_frame"] == 1
+    assert wrapped["counter_rates_per_device_second"]["produced_audio_blocks"] == 250
+    assert same["counter_rates_per_device_second"]["produced_audio_blocks"] is None
+
+
 def test_equal_monotonic_timestamps_have_null_rate_not_division_or_invention():
     first = values(usb_messages=5)
     second = values(usb_messages=7)

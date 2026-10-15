@@ -5151,3 +5151,27 @@ Inspect the campaign, transaction adapter log, capture-helper logs and
 diagnostic-audio outputs. Do not repeat the consumed campaign/reset.
 Capture helper passed 14 offline tests; no new live timing or boot claim yet.
 SAVE remains disarmed.
+
+
+### Physical profiling completed; performance repair active
+
+ROM67 installation/readback succeeded for target52d6846a..., native68 appeared,
+and timed recovery returned ROM69 on port1-1. One ambiguous reset was not retried.
+Consumed campaign: bench01:/home/claude/fm1-render-profile-70367650-20261015/rom67-cycle.
+Original capture helper hit missing-journal race; separate late passive recording
+completed180s audio/110s telemetry with41+41reports. Evidence/hashes/results:
+notes/2026-10-15-render-stage-profiling.md. Do not rerun consumed coordinator.
+Current installed target52d6846a... remains diagnostic, SAVE disarmed.
+
+Physical rendering remains inadequate:248.84blocks/s vs689.34required;
+final U49205, produced27616. Sixop/drums and Hall/limiter dominate measured
+costs. Sequence timing includes sounds. Analyzer adds device-time rates to avoid
+queued-report arrival distortion; combined analyzer/private helper40tests pass.
+Fixed private helper only local, hash5a4e7774...; next campaign needs fresh pins.
+
+Hera offline workers: profile_catalogue_build compares targeted optimization
+levels without changing frozen source/artifacts; physical_storage_compression
+investigates authoritative clock register sources read-only. Mac root exclusively
+owns bench/device actions. Next review both handoffs, choose controlled speed
+experiment, build/check fresh artifact and retain timed recovery. USB Stop/Continue
+physically supported; exact FA rewind and TRS still open. Overall goal ACTIVE.

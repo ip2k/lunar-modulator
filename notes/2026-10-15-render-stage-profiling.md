@@ -108,3 +108,76 @@ Its paired fresh reads matched the expected installed image, and the
 208-sector install transaction was started once. Installation/readback, boot
 and capture acceptance remain pending at this checkpoint. Do not rerun the
 consumed coordinator or repeat an ambiguous reset; inspect its durable journal.
+
+
+## Completed physical profiling campaign
+
+[verified] The single-use ROM67 campaign installed all 208 changed sectors and
+verified the complete target readback as
+`52d6846a1a57c253caa6b4ab4dc927761928271a603be13383961936f8b2420b`.
+Install command log SHA-256:
+`28c5206b8f63765de2eb033539e5cc478bae5beaf73bd29456b6d3e31d6fa2eb`;
+transaction journal SHA-256:
+`53ff863a471fcee2abcc3fbf0df645d9b2990289da35a1fb4f90c395ad559c9f`.
+One reset request had an ambiguous SG reply; it was not retried. Native USB
+1209:0001 appeared as device68 on port1-1, then automatically returned to
+4c4a:8057 recovery device69. Boot campaign receipt SHA-256:
+`9c5bb0cf450692e3b1cea7ff9f91b6d27659f02e2d81fb83bb5d3d842d509846`.
+No owner power cycle or perceptual acceptance was required or claimed.
+
+[verified] The original private helper failed its journal-creation race:
+missing boot evidence raised ValueError rather than the FileNotFoundError
+expected by its bounded polling loop. Its initial audio recorder was terminated;
+`diagnostic-audio` is failed capture evidence, not a startup recording.
+A separate passive capture in `late-diagnostic-audio` started about40s after
+boot, validated completed-install/native gates, and completed180s analogue
+capture plus110s telemetry without sending MIDI. Audio SHA-256:
+`5c586713b4c455c96c33cc06a832e66d23a21a829f014868f163bf261c5e8909`;
+events SHA-256:
+`5c03b3514f37dd8207ee59b5cd4f09e3b2b8ab35c2b00a340c861c2441364477`.
+Both are retained under bench01:
+`/home/claude/fm1-render-profile-70367650-20261015/late-diagnostic-audio`.
+The fixed local helper SHA-256 is
+`5a4e7774d8ca9fc0152fabcfaccb532b4dd33365e392c1a6b868caea6b243b1f`;
+16 tests include real filesystem creation-after-poll and unsafe evidence types.
+This fix is not deployed into the consumed campaign. Use a fresh campaign for
+future capture, with its own frozen hashes; never modify consumed evidence.
+
+[verified] The final log contains41 compatibility and41 profiling frames.
+First/last compatibility device uptime10057/120006ms gives109.949s, rather
+than the shorter host receipt interval distorted by queued startup reports.
+Produced blocks rose256→27616 (248.84/s), underruns774→49205 (440.49/s).
+Expected64-frame output at44118Hz is689.34blocks/s. Final maximum render
+121237ticks (5051.54us at24ticks/us), draw168745ticks (7031.04us).
+Observed stack margins user5888/system7720bytes over106samples; no MIDI input.
+Performance acceptance fails.
+
+[verified] Excluding only the first startup profile window and dividing summed
+window ticks by27384 master-effect calls (one per rendered block) yields:
+
+| Stage | Mean microseconds per rendered block |
+| --- | ---: |
+| Sequence dispatch, inclusive of sound rendering | 2295.96 |
+| Sound0 drums | 612.84 |
+| Sound1 sixop | 743.39 |
+| Sound2 Trio | 98.78 |
+| Sound3 acid | 251.38 |
+| Master0 Hall | 516.28 |
+| Master1 limiter | 469.12 |
+| Postmix | 350.34 |
+| Display strip, amortized over rendered blocks | 10.23 |
+
+Sound totals are nested within sequence dispatch: do not add them twice.
+Window totals reset after successful enqueue, so do not difference consecutive
+profile counters. Early queued windows are long and valid for block-normalized
+cost, not fixed two-second windows. Timer conversion assumes the documented
+24MHz oscillator; CPU clock inherited from SPL has not been read/calibrated.
+No source-backed evidence yet establishes clock or cache as the cause.
+
+[verified] The analyzer now retains existing host receipt rates and adds explicit
+`counter_rates_per_device_second`/device interval fields. Buffered delivery,
+uptime uint32 wrap and zero intervals have regression coverage. Device rates
+require continuous uptime; intervening reboot/reset must use separate logs.
+Combined analyzer/private helper regression:40 passed. Hera is comparing targeted
+sixop/Hall optimization settings offline and investigating clock register sources.
+Overall release remains incomplete; SAVE remains disarmed.

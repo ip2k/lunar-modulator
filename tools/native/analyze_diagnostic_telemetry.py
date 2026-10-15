@@ -64,6 +64,9 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
     """Validate recorder JSONL and derive frame-to-frame, wrap-safe summaries.
 
     ``elapsed_seconds`` is the recorder's monotonic clock from capture start.
+    Host arrival rates and device uptime rates are reported separately, since
+    buffered reports can arrive together. Device uptime must be continuous;
+    reconnects/reboots must be analyzed as separate logs.
     Counter deltas use uint32 modular arithmetic; maxima and sampled values are
     retained as observations and are never differenced as cumulative counters.
     """
@@ -142,6 +145,8 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         elapsed_delta = None if not frames else elapsed - float(frames[-1]["elapsed_seconds"])
         deltas: dict[str, int] | None = None
         rates: dict[str, float | None] | None = None
+        device_seconds: float | None = None
+        device_rates: dict[str, float | None] | None = None
         if previous_values is not None:
             deltas = {
                 name: (checked[name] - previous_values[name]) & UINT32_MAX
@@ -149,6 +154,11 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
             }
             rates = {
                 name: (delta / elapsed_delta if elapsed_delta and elapsed_delta > 0 else None)
+                for name, delta in deltas.items()
+            }
+            device_seconds = deltas["uptime_ms"] / 1000.0
+            device_rates = {
+                name: (delta / device_seconds if device_seconds > 0 else None)
                 for name, delta in deltas.items()
             }
 
@@ -177,6 +187,8 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
             },
             "counter_deltas": deltas,
             "counter_rates_per_second": rates,
+            "device_seconds_since_previous_frame": device_seconds,
+            "counter_rates_per_device_second": device_rates,
         })
         previous_values = checked
 
@@ -187,6 +199,10 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         "schema": 1,
         "source": "record_diagnostic_telemetry.py events.jsonl",
         "time_basis": "elapsed_seconds from telemetry recorder monotonic clock; align explicitly with WAV and helper timestamps before correlation",
+        "counter_rate_time_bases": {
+            "counter_rates_per_second": "host receipt intervals; buffered delivery can distort rates",
+            "counter_rates_per_device_second": "uint32 uptime_ms deltas; requires continuous device uptime and timer calibration",
+        },
         "sample_rate_hz": SAMPLE_RATE_HZ,
         "audio_block_frames": BLOCK_FRAMES,
         "expected_audio_blocks_per_second": SAMPLE_RATE_HZ / BLOCK_FRAMES,
@@ -199,6 +215,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         "interpretation_limits": [
             "Counters are cumulative and sampled non-atomically; use modular deltas between frames.",
             "Missing reports create longer intervals; rates are interval averages, not reconstructed event times.",
+            "Buffered reports distort host receipt rates; device rates assume no intervening reboot or timer reset.",
             "USB messages and UART bytes are ingress observations; accepted_noteons is handler dispatch, not audible acceptance.",
             "Stack margins are observed minima only; sentinel or zero samples means unavailable.",
             "No device identity, image identity, WAV alignment, or hardware/perceptual acceptance is inferred.",
