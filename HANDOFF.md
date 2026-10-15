@@ -1,3 +1,24 @@
+## Limiter-only Os prepared; c0 physical write remains live — 2026-10-15
+
+[verified: source and host checks only] Reviewed and independently validated
+df4155997103ec512da8b3f1fb2b8469b1aa3275, pushed by its worker and verified
+against origin. Adds independent --limiter-os selection for fx_limit.o only,
+strict shard/per-object optimization receipts, and final verification metadata.
+98 focused catalogue/receipt/telemetry tests passed. Exact base seeded in Hera
+bare repo refs/heads/coordinator/limiter-os-base-df415599. Worker assigned a new
+isolated 16-shard build, same b27 profile plus this option; no device access.
+
+[verified: local staging tests only] Independently ran six v4 limiter bundle
+tests, all passed. v4 fixes zero/sentinel construction placeholders; v3 remains
+frozen and must not be deployed. See scratch/limiter-boxstep-staging-v4/HANDOFF.md.
+Neither this bundle nor the Os trial has physical acceptance.
+
+Root c0 campaign PID199099 is still running; journal remains running and
+progressed to program address580096 with empty stderr. Do not relaunch, reset,
+or interfere. Follow its readback and armed passive capture to completion.
+Cold-boot owner musical acceptance FAILED; SAVE disarmed; overall goal ACTIVE.
+Root owns all bench writes. Unrelated untracked uv.lock remains untouched.
+
 ## c0 ROM101 one-use campaign started — 2026-10-15
 
 Goal ACTIVE; owner cold-boot audio/display acceptance FAILED; SAVE disarmed.
