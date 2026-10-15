@@ -96,6 +96,7 @@ class CynthionUsbKey(Elaboratable):
         packets = Signal(range(self.packet_limit + 1))
         receiver_live = Signal()
         ack_ticks = Signal(range(self.ack_duration_us + 1))
+        ack_confirm = Signal()
         wait_ticks = Signal(range(self.dp_high_timeout + 1))
         sof_ticks = Signal(range(self.sof_timeout + 1))
         dp_low_ticks = Signal(range(self.sof_done_low + 1))
@@ -103,6 +104,9 @@ class CynthionUsbKey(Elaboratable):
 
         m.d.comb += [
             us_tick.eq(div == self.cycles_per_us - 1),
+            ack_confirm.eq(us_tick & receiver_live & self.line_state_valid &
+                           (self.line_state_value == 0) &
+                           (ack_ticks == self.ack_duration_us - 1)),
             key_bit.eq(Array([(self.key_word >> n) & 1
                               for n in reversed(range(self.key_bits))])[tx_bit]),
             # Start from a driven K state, then exercise J, SE0, and SE1. A
@@ -140,8 +144,11 @@ class CynthionUsbKey(Elaboratable):
         # candidate ACK detector.
         with m.If(self.line_state_update & self.line_state_valid &
                   (self.state == self.KEY) & (phase >= 8) & self.dp_o):
-            with m.If(((self.line_state_value == 1) & key_bit) |
-                      ((self.line_state_value == 2) & ~key_bit)):
+            # Driven waveform is DP low / DM=data for 8 us, then DP high /
+            # DM=data for 12 us. Thus low-phase bit 1 is K and high-phase
+            # bit 0 is J; high-phase bit 1 is SE1, not K.
+            with m.If(((self.line_state_value == 1) & ~key_bit) |
+                      ((self.line_state_value == 3) & key_bit)):
                 d += receiver_live.eq(1)
         with m.If(self.line_state_update & self.line_state_valid &
                   (self.state == self.SELFTEST) &
@@ -203,27 +210,31 @@ class CynthionUsbKey(Elaboratable):
             with m.Case(self.KEY):
                 with m.If(~permitted):
                     d += self.state.eq(self.FAULT)
-                with m.Elif(us_tick & self.line_state_valid & receiver_live &
-                             (self.line_state_value == 0)):
-                    # Count retained SE0 only while the waveform remains
-                    # actively driven. GAP releases are explicitly excluded.
-                    with m.If(ack_ticks == self.ack_duration_us - 1):
-                        d += [self.state.eq(self.WAIT_DP), wait_ticks.eq(0),
-                              sof_ticks.eq(0), dp_low_ticks.eq(0)]
-                    with m.Else():
-                        d += ack_ticks.eq(ack_ticks + 1)
                 with m.Else():
+                    # Keep the key waveform advancing while measuring the
+                    # receiver's continuous SE0 report. Otherwise a normal
+                    # data-bit SE0 would freeze us low and self-confirm ACK.
                     with m.If(self.line_state_update & (self.line_state_value != 0)):
                         d += ack_ticks.eq(0)
                     with m.If(us_tick):
+                        with m.If(receiver_live & self.line_state_valid &
+                                  (self.line_state_value == 0)):
+                            with m.If(~ack_confirm):
+                                d += ack_ticks.eq(ack_ticks + 1)
+                        with m.Else():
+                            d += ack_ticks.eq(0)
                         with m.If(phase == self.bit_cycles - 1):
                             d += phase.eq(0)
                             with m.If(tx_bit == self.key_bits - 1):
-                                d += [self.state.eq(self.GAP), gap.eq(0)]
+                                with m.If(~ack_confirm):
+                                    d += [self.state.eq(self.GAP), gap.eq(0)]
                             with m.Else():
                                 d += tx_bit.eq(tx_bit + 1)
                         with m.Else():
                             d += phase.eq(phase + 1)
+                        with m.If(ack_confirm):
+                            d += [self.state.eq(self.WAIT_DP), wait_ticks.eq(0),
+                                  sof_ticks.eq(0), dp_low_ticks.eq(0)]
             with m.Case(self.GAP):
                 with m.If(~permitted):
                     d += self.state.eq(self.FAULT)

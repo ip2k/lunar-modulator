@@ -1,3 +1,6 @@
+import pytest
+
+pytest.importorskip("amaranth")
 from amaranth.sim import Simulator
 
 from tools.cynthion_usb_key.gateware import CynthionUsbKey
@@ -87,6 +90,43 @@ def test_missing_interlock_keeps_all_key_outputs_high_z():
         for _ in range(20):
             await ctx.tick(domain="usb")
         assert ctx.get(dut.state) == dut.SAFE
+        assert ctx.get(dut.dp_oe) == 0
+        assert ctx.get(dut.dm_oe) == 0
+
+    sim.add_testbench(bench)
+    sim.run()
+
+
+def test_disconnected_line_echo_cannot_falsely_ack_a_data_bit():
+    dut = CynthionUsbKey(clock_hz=1_000_000, packet_limit=1,
+                         selftest_state_us=3, ack_duration_us=100,
+                         auto_selftest=True, selftest_only=False)
+    sim = Simulator(dut)
+    sim.add_clock(1e-6, domain="usb")
+    seen_states = set()
+
+    async def bench(ctx):
+        ctx.set(dut.phy_isolated, 1)
+        ctx.set(dut.bank6_3v3_confirmed, 1)
+        ctx.set(dut.ack_sense_valid, 1)
+        line_state = None
+        for _ in range(1_000):
+            state = ctx.get(dut.state)
+            seen_states.add(state)
+            driven = ctx.get(dut.dp_oe) or ctx.get(dut.dm_oe)
+            # Disconnected target model: RXCMD echoes driven line states;
+            # released lines resolve to SE0 through the target pulldowns.
+            observed = ((ctx.get(dut.dp_o) | (ctx.get(dut.dm_o) << 1))
+                        if driven else 0)
+            changed = line_state is None or observed != line_state
+            ctx.set(dut.line_state_value, observed)
+            ctx.set(dut.line_state_valid, 1)
+            ctx.set(dut.line_state_update, int(changed))
+            if changed:
+                line_state = observed
+            await ctx.tick(domain="usb")
+        assert dut.WAIT_DP not in seen_states
+        assert ctx.get(dut.state) == dut.FAULT
         assert ctx.get(dut.dp_oe) == 0
         assert ctx.get(dut.dm_oe) == 0
 

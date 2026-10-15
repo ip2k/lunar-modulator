@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from amaranth import Cat, ClockSignal, Elaboratable, Module, ResetSignal, Signal
+from amaranth import Cat, ClockSignal, DomainRenamer, Elaboratable, Module, ResetSignal, Signal
 from amaranth.build import Attrs, Pins, Resource
 from cynthion.gateware.platform.cynthion_r1_4 import CynthionPlatformRev1D4
 from luna.gateware.interface.jtag import JTAGRegisterInterface
@@ -112,7 +112,11 @@ class CynthionUsbKeyTop(Elaboratable):
         # Read-only ECP5 JTAG register endpoint (LUNA's supported debug path).
         # It exposes coarse, non-authoritative status only; no write register
         # can arm keying or change electrical gates.
-        debug = JTAGRegisterInterface(default_read_value=0xBAD0C0DE)
+        # Its scan command path uses the domain named "sync" internally. Move
+        # that interface into the USB clock domain so the status snapshot is
+        # sampled coherently with protocol/PHY state, without a multi-bit CDC.
+        debug = DomainRenamer({"sync": "usb"})(
+            JTAGRegisterInterface(default_read_value=0xBAD0C0DE))
         m.submodules.debug_registers = debug
         debug.add_read_only_register(1, read=0x4C554E52)  # "LUNR"
         debug.add_read_only_register(2, read=1)           # register layout v1
@@ -120,17 +124,18 @@ class CynthionUsbKeyTop(Elaboratable):
         status_bits = Cat(core.state, safe_phy.ready, safe_phy.fault,
                           core.selftest_mask, safe_phy.line_state_valid,
                           safe_phy.line_state_value)
-        m.d.sync += status_snapshot.eq(status_bits)
+        m.d.usb += status_snapshot.eq(status_bits)
         debug.add_read_only_register(3, read=status_snapshot)
 
         for bit in range(6):
             m.d.comb += platform.request("led", bit).o.eq(core.leds[bit])
 
         # Explicitly keep every TARGET-A VBUS source switch disabled, with no
-        # discharge path. Cynthion's r1.4 convention is target-C off=1,
-        # control/aux off=0; there is deliberately no USB control-plane path.
+        # discharge path. r1.4's switches are active high; the platform's
+        # analyzer selects TARGET-C passthrough by default, so all four need a
+        # literal zero here. There is deliberately no USB control-plane path.
         m.d.comb += [
-            platform.request("target_c_vbus_en").o.eq(1),
+            platform.request("target_c_vbus_en").o.eq(0),
             platform.request("control_vbus_en").o.eq(0),
             platform.request("aux_vbus_en").o.eq(0),
             platform.request("target_a_discharge").o.eq(0),
