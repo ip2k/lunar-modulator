@@ -177,7 +177,8 @@ def test_default_d9000_encoding_remains_legacy_and_worker_flags_are_fixed():
         "--wavetable-profile", "compressed-required-banks-flash-plaits-v1"]
     assert build_profile_arguments(d7000_request_doc()) == [
         "--flash-layout", "expanded-d7000", "--runtime-mode", "song-diagnostic",
-        "--wavetable-profile", SHAPES8_WAVETABLE_PROFILE]
+        "--wavetable-profile", SHAPES8_WAVETABLE_PROFILE,
+        "--diagnostic-profile", "hall-o2-stage7-v1"]
 
 
 def test_rejects_duplicate_json_keys_before_queueing():

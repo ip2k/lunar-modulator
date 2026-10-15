@@ -58,7 +58,8 @@ def build_profile_arguments(request: dict) -> list[str]:
         if not {"macro", "shapes"}.issubset(set(selected)):
             raise ValueError("expanded-d7000 requires the fixed Macro+Shapes8 profile")
         return ["--flash-layout", "expanded-d7000", "--runtime-mode", "song-diagnostic",
-                "--wavetable-profile", "compressed-required-banks-ram-plaits-braids-shapes8-v1"]
+                "--wavetable-profile", "compressed-required-banks-ram-plaits-braids-shapes8-v1",
+                "--diagnostic-profile", "hall-o2-stage7-v1"]
     raise ValueError("unsupported diagnostic layout/runtime profile")
 
 
@@ -155,10 +156,14 @@ def retain_private_evidence(build_root: Path, request_bytes: bytes) -> dict[str,
     retain("prepared_profile.json", build_root / "selection/prepared/profile.json", 4 * 1024 * 1024)
     retain("source_profile.json", build_root / "selection/staged/profile.json", 4 * 1024 * 1024)
     retain("artifact_receipt.json", build_root / "link/artifact/artifact.json")
-    retain("build_receipt.json", build_root / "link/verification.json")
+    build_receipt_raw = retain("build_receipt.json", build_root / "link/verification.json")
     retain("image_receipt.json", build_root / "image.json", MAX_RECEIPT)
     receipt = json.loads(evidence["build_receipt.json"].decode("utf-8"),
                          object_pairs_hook=_unique_object)
+    if receipt.get("flash_layout") == "expanded-d7000":
+        from native_profile import evidence_manifest, validate_receipt
+        validate_receipt(receipt)
+        retain_bytes("native_profile.json", evidence_manifest(build_receipt_raw))
     catalogue_rows = receipt.get("catalogue_objects")
     linked_rows = receipt.get("linked_objects")
     if (not isinstance(catalogue_rows, list) or not isinstance(linked_rows, list)

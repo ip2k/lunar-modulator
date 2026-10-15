@@ -138,6 +138,14 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
             or _sha256(evidence["build_receipt.json"]) != image.get("verification_sha256")
             or _sha256(evidence["artifact_receipt.json"]) != image.get("artifact_receipt_sha256")):
         raise ValueError("private receipts do not bind request, profiles, and link evidence")
+    if build.get("flash_layout") == "expanded-d7000":
+        from .native_profile import evidence_manifest, validate_receipt
+        profile_raw = evidence.get("native_profile.json")
+        if profile_raw is None or profile_raw != evidence_manifest(evidence["build_receipt.json"]):
+            raise ValueError("private native diagnostic profile binding is missing or stale")
+        validate_receipt(build)
+    elif "native_profile.json" in evidence:
+        raise ValueError("private native diagnostic profile is outside the fixed D7000 build")
     catalogue = json.loads(evidence["catalogue_manifest.json"].decode("ascii"),
                            object_pairs_hook=_unique_object, parse_constant=_reject_constant)
     linked = json.loads(evidence["linked_objects.json"].decode("ascii"),

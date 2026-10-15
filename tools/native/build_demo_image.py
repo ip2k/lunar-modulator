@@ -23,6 +23,8 @@ from flash_layout import app_budget
 ROOT = Path(__file__).resolve().parents[2]
 WAVETABLE_PROFILE = 'compressed-required-banks-flash-plaits-v1'
 SHAPES8_WAVETABLE_PROFILE = 'compressed-required-banks-ram-plaits-braids-shapes8-v1'
+HALL_O2_STAGE7_PROFILE = 'hall-o2-stage7-v1'
+HALL_O2_STAGE7_REQUIRED_MODULES = frozenset(('macro', 'sixop', 'drums', 'hall'))
 BRAIDS_TABLE = dict(namespace='braids', symbol='wt_waves', width=1, raw_bytes=33024,
                     raw_sha256='c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634')
 SHAPES8_TABLES = (
@@ -232,19 +234,47 @@ def wavetable_build_flags(profile):
     raise ValueError('Unsupported named wavetable profile')
 
 
+def diagnostic_profile_flags(profile):
+    """Return only the fixed lower-level flags for a named private profile."""
+    if profile is None:
+        return []
+    if profile != HALL_O2_STAGE7_PROFILE:
+        raise ValueError('Unsupported named diagnostic build profile')
+    return [
+        '--hot-dsp-os', '--hall-o2', '--hot-dsp-ram', '--enable-trs-midi',
+        '--diagnostic-telemetry',
+        '--render-stage-profile', '--diagnostic-engine-render-profile',
+        '--diagnostic-clock-snapshot',
+    ]
+
+
 def read_report(path):
     return json.loads(bounded_read(path, 16 * 1048576), object_pairs_hook=unique_object)
 
 
 def build_selection(request, state_tool, toolchain, catalogue, output, *,
                     runtime_mode='diagnostic', wavetable_profile=WAVETABLE_PROFILE,
-                    firmware_identity=None, flash_layout='expanded-d9000'):
+                    firmware_identity=None, flash_layout='expanded-d9000',
+                    diagnostic_profile=None):
     if runtime_mode not in ('diagnostic', 'song-diagnostic', 'continuous'):
         raise ValueError('Unsupported private runtime mode')
     profile_flags = wavetable_build_flags(wavetable_profile)
-    identity_configuration(firmware_identity)
     if flash_layout not in ('expanded-d7000', 'expanded-d9000'):
         raise ValueError('Unsupported private image flash layout')
+    if diagnostic_profile is not None and (flash_layout != 'expanded-d7000'
+                                           or runtime_mode != 'song-diagnostic'):
+        raise ValueError('Named diagnostic profile requires expanded-d7000 song-diagnostic')
+    if diagnostic_profile is not None:
+        selected = set(request.get('engines', []) + request.get('effects', [])
+                       + request.get('midi', []) + request.get('modulation', []))
+        if not HALL_O2_STAGE7_REQUIRED_MODULES.issubset(selected):
+            missing = ', '.join(sorted(HALL_O2_STAGE7_REQUIRED_MODULES - selected))
+            raise ValueError('Named diagnostic profile requires caller-selected modules: ' + missing)
+        if firmware_identity not in (None, 'FM-1_500'):
+            raise ValueError('Named diagnostic profile requires explicit FM-1_500 identity')
+        firmware_identity = 'FM-1_500'
+    identity_configuration(firmware_identity)
+    diagnostic_flags = diagnostic_profile_flags(diagnostic_profile)
     validate_build_profile(request, flash_layout, runtime_mode, wavetable_profile)
     identity_flags = (['--firmware-identity', firmware_identity]
                       if firmware_identity is not None else [])
@@ -261,7 +291,8 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
                     '--build', str(output / 'link'), '--runtime-mode', runtime_mode,
                     '--stack-watermark', '--flash-layout', flash_layout,
                     *identity_flags,
-                    *profile_flags, '--prepared-profile', str(prepared_dir),
+                    *profile_flags, *diagnostic_flags,
+                    '--prepared-profile', str(prepared_dir),
                     '--expected-profile-sha256', manifest_sha, '--link-project-loader',
                     '--link-project-save-service',
                     '--startup-project-index', str(selection['startup_index']),
@@ -295,6 +326,9 @@ def main():
                         choices=(WAVETABLE_PROFILE, SHAPES8_WAVETABLE_PROFILE),
                         default=WAVETABLE_PROFILE, help='Named reviewed memory profile')
     parser.add_argument('--firmware-identity', help='Operator-selected Lunar 5xx identity')
+    parser.add_argument('--diagnostic-profile',
+                        choices=(HALL_O2_STAGE7_PROFILE,),
+                        help='Fixed reviewed private native diagnostic profile')
     parser.add_argument('--flash-layout', choices=('expanded-d7000', 'expanded-d9000'),
                         default='expanded-d9000', help='Private link budget, not flash admission')
     args = parser.parse_args()
@@ -304,7 +338,8 @@ def main():
                                  args.out, runtime_mode=args.runtime_mode,
                                  wavetable_profile=args.wavetable_profile,
                                  firmware_identity=args.firmware_identity,
-                                 flash_layout=args.flash_layout)
+                                 flash_layout=args.flash_layout,
+                                 diagnostic_profile=args.diagnostic_profile)
     except (ValueError, OSError, KeyError, TypeError, subprocess.CalledProcessError) as error:
         parser.error(str(error))
     print(json.dumps(result, indent=2))
