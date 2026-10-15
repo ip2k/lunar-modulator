@@ -103,3 +103,46 @@ implemented. Review: `scratch/c0-configured-limiter-silence-review.md`.
 The ROM105 bundle remains offline pending complete runtime-path hash closure,
 independent review, target file-only preflight and fresh paired current reads.
 No new device operation or musical acceptance follows from these reviews.
+
+## ROM105 staging and preflight corrections
+
+[verified: remote file staging only] The original frozen 53-file archive
+`011c3501ff19c3bebc5f722d73711b81e64d247fc30301584cef38861bd8ab65`
+was staged privately at
+`/home/claude/fm1-c0-zero-pop-target-a503b6ce-20261015` on bench01.
+Its native and tools source staging checks passed. File-only preflight
+refused before any device operation: it selected the native-export staging
+helper (`build/stage_native_sources.py`, caac926d…) instead of the pinned
+full-source verifier (`stage_native_sources.py`, 03cfcf36…). A separate
+review also found the launcher rejected the nested paths present in its own
+deployment inventory. Both corrections require an explicit old/new hash
+overlay and independent review; the frozen archive is retained unchanged.
+
+[verified: passive observation] USB port 1-1 still identified as ROM105,
+`4c4a:8057`, bus 1, device 105. No new flash write or boot occurred during
+this failed preflight. The installed image remains 1b6a… pending fresh paired
+reads in a new one-use campaign.
+
+[verified: recorded audio artifact transfer] The existing ROM103 WAV was
+copied from bench01 for offline analysis, with matching local/remote SHA-256
+`f74b09b88e46418888f2ef5bfe76c7435fcae78a3325259879c4bc5af03380b4`.
+It was omitted from the earlier metadata-only capture tar. This copy does
+not create new physical observations or establish musical acceptance.
+
+[verified: correction and launch] Independent review and the coordinator's
+seven overlay tests passed. The three-file correction index is
+`c6aa27c48fb8ffb17ce1d0ad4d8f8b2e052ba539fa541ea055b3331c5a86a0fa`;
+the guarded applier is
+`464b8ea8a571e90d09cddea63faf9e06bc221513b830e1f991aaf8efb69250f0`.
+It preserves original file bytes and leaves campaign/image pins unchanged.
+Remote file-only preflight then passed. The one-use launcher passed its own
+preflight and started PID 231468, campaign `rom105-c0-zero-pop-cycle`.
+Fresh paired reads began; this entry alone does not establish completed
+reads, installation, reset, or capture. Never retry this consumed launcher.
+
+[verified: passive waveform analysis] The previous ROM103 recording has no
+clipped input samples on channels 1/2. Whole-record RMS is approximately
+0.00529/0.00546 full scale, with two unexplained bursts and no accepted notes
+or scheduled musical stimulus. It cannot establish musical quality. Private
+analysis: `scratch/c0-profiler-off-result/audio-capture-review.md` and
+`audio-waveform-analysis.json` in that directory.

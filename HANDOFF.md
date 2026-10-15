@@ -1,3 +1,20 @@
+## ROM105 one-use campaign started — 2026-10-15
+
+Goal ACTIVE; cold-boot audio/display acceptance FAILED; SAVE disarmed.
+BASE `/home/claude/fm1-c0-zero-pop-target-a503b6ce-20261015` on bench01.
+Original 53-file archive011c retained; reviewed three-file correction index
+c6aa27c4 fixes verifier selection and nested inventory launcher validation.
+Seven root overlay tests and remote file-only preflight PASS.
+One-use launcher started PID231468, cycle `rom105-c0-zero-pop-cycle`.
+Fresh paired reads in progress at this checkpoint; NO installation result
+claimed yet. Never retry launcher/reset. Root alone owns bench/device.
+Candidatef3a9, expected current1b6a, ROM105 exactbinding; full hashes and
+correction evidence in notes/2026-10-15-c0-profiler-off-and-zero-history.md.
+Next: inspect terminal campaign/capture evidence, independently verify full
+readback, analyze actual rates and observe recovery; no musical acceptance
+from counter improvement alone. Unrelated uv.lock untouched.
+Last verified pushed checkpoint633a7c1 before this note.
+
 ## Resampler source integrated; ROM105 deployment remains pending — 2026-10-15
 
 Goal ACTIVE; cold-boot audio/display acceptance FAILED; SAVE disarmed.
