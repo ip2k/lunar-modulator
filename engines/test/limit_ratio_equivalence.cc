@@ -99,7 +99,9 @@ bool RunScenario(uint32_t scenario, float rate, float initial_look,
   SetPair(fast, reference, "Lookahead", initial_look);
   SetPair(fast, reference, "Mode", static_cast<float>(initial_mode));
   SetPair(fast, reference, "Link", link);
-  SetPair(fast, reference, "Mix", 1.0f);
+  // Preserve a negative zero through API clamping on some scenarios, and
+  // exercise NaN-to-default parameter handling on the others.
+  SetPair(fast, reference, "Mix", (scenario & 1u) ? -0.0f : NAN);
 
   const uint32_t blocks[] = { 1, 17, 64, 7, 31, 53 };
   uint32_t pos = 0, block_index = 0;
@@ -112,9 +114,11 @@ bool RunScenario(uint32_t scenario, float rate, float initial_look,
       const uint32_t step = transition_count + 1u;
       SetPair(fast, reference, "Lookahead", step % 2u ? 0.0f : 3.7f);
       SetPair(fast, reference, "Ceiling", step % 2u ? -18.0f : -2.0f);
+      SetPair(fast, reference, "Drive", step % 2u ? -12.0f : 24.0f);
       SetPair(fast, reference, "Release", step % 2u ? 1.0f : 240.0f);
       SetPair(fast, reference, "Mode", static_cast<float>((initial_mode + step) % 3u));
       SetPair(fast, reference, "Link", step % 2u ? 1.0f : 0.0f);
+      SetPair(fast, reference, "Mix", step % 2u ? 0.0f : 1.0f);
       ++transition_count;
       next_transition += 997u;
     }

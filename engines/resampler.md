@@ -32,7 +32,7 @@ python -m pytest tests/test_engines_resampler.py
 ```c
 #include "fm1_resampler.h"
 
-fm1_resampler_t rs;                                /* 1,288 B on 64-bit and on i386 */
+fm1_resampler_t rs;                                /* 1,296 B on 64-bit and on i386 */
 if (!fm1_resampler_init(&rs, 96000.0f, host->sample_rate)) /* refuse the host */;
 
 /* per output sample */
@@ -232,7 +232,12 @@ cut it if stage B needs to [inferred]: store the kernel as pre-scaled
 multiply from every kernel tap (about 52 operations per output) for 3 KB
 more flash; and design the low-pass as equiripple (table above), 10 fewer
 multiply-adds and 5 samples less delay, at the cost of a Remez design in the
-generator. Memory: 3,324 B of `const` tables (flash), 1,288 B of state.
+generator. Memory: 3,324 B of `const` tables (flash), 1,296 B of state.
+The two ring occupancy counts skip FIR arithmetic only while every retained
+sample is numerically zero; phase and ring positions continue advancing.
+NaN and infinity keep the original arithmetic path. This exact-zero shortcut
+assumes the default round-to-nearest floating-point environment and adds eight
+bytes of aligned state compared with the original 1,288-byte structure.
 
 ## Shapes through it
 

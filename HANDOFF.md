@@ -5793,3 +5793,30 @@ Next: finish and independently review one-use ROM89 schema6/no-autoplay runner,
 fresh paired reads matching bc593f95..., guarded install/full readback, passive
 capture, inspect IRQ/render occupancy. Original ROM87 campaign remains consumed.
 SAVE disarmed; goal ACTIVE, release/hardware musical acceptance incomplete.
+
+
+### Exact idle DSP fast paths — 2026-10-15
+
+Owner cold-boot acceptance remains FAILED: laggy sine display and distorted
+notes persist after power cycle. Passive bench inspection now sees ROM91 on
+bus1/path1-1, VID4c4a PID8057. No new hardware command has been issued.
+
+Three bounded changes preserve existing arithmetic for active/transient paths:
+resampler skips FIR math only with exactly zero retained histories (phase and
+ring advancement preserved, +8 aligned bytes per instance); limiter skips all
+six per-sample parameter glides only when finite and already equal to targets;
+modulation checks route masks once per module and retains clamp/enum processing.
+Resampler/reference + modulation regression command passed (201 collected tests);
+focused resampler and instance-size check passed2 tests. Limiter differential
+passed108 scenarios x6000frames with identical audio and full instance bytes;
+agent also ran O0 and UBSan. Corrected modulation parity tests force incoming
+global and voice zero-amount routes onto the same LFO parameter; all35 modulation
+runtime tests pass. These are host correctness checks, not target timing or
+audio acceptance.
+
+Hera coordinator claim lunar--exact-zero-dsp-20261015 was created for a fresh
+16-shard exact-source build, output root
+/home/claude/mvave-fm1/exact-zero-dsp-20261015. No build launched yet.
+SAVE remains disarmed. Next: freeze/push source, fresh target build/fit/codegen
+review, separately bound one-use ROM91 campaign and matched throughput capture.
+Active-note/full-song performance and all release gates remain open.

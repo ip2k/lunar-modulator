@@ -134,6 +134,7 @@
 #include "fm1_dynamics.h"
 #include "fm1_engine.h"
 
+#include <float.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -255,6 +256,14 @@ struct Glide {
     else value += k * e;
   }
 };
+
+// Step's first subtraction is not a no-op for infinities (inf - inf is NaN),
+// so only finite equal values count as settled. Equality intentionally treats
+// signed zero as equal: Step returns for either zero sign without changing the
+// stored value.
+inline bool Settled(const Glide &g) {
+  return g.value == g.target && g.value <= FLT_MAX && g.value >= -FLT_MAX;
+}
 
 // One channel's pair of box filters in one set.
 struct Box {
@@ -743,16 +752,29 @@ FM1_HOT_DSP_RENDER void Render(Instance *s, float *lr, uint32_t frames) {
     if (s->d_target != s->d) SetLookahead(s, a, s->d_target);
     s->primed = 1;
   }
+#if defined(FM1_LIMIT_DISABLE_SETTLED_GLIDE_SKIP)
+  const bool settled = false;
+#else
+  // Set cannot run during this render call. When every glide is settled,
+  // each Step would only calculate an exact zero difference and return.
+  // If any glide is moving or non-finite, retain the complete original
+  // per-sample sequence for the whole call.
+  const bool settled = Settled(s->drive) && Settled(s->ceiling) &&
+                       Settled(s->link) && Settled(s->mix) &&
+                       Settled(s->soft) && Settled(s->round);
+#endif
   const uint32_t n = s->n;
   for (uint32_t f = 0; f < frames; ++f) {
     if (s->fade_pos == 0 && s->d_target != s->d) StartChange(s, a);
-    const float kg = s->k_glide;
-    s->drive.Step(kg);
-    s->ceiling.Step(kg);
-    s->link.Step(kg);
-    s->mix.Step(kg);
-    s->soft.Step(kg);
-    s->round.Step(kg);
+    if (!settled) {
+      const float kg = s->k_glide;
+      s->drive.Step(kg);
+      s->ceiling.Step(kg);
+      s->link.Step(kg);
+      s->mix.Step(kg);
+      s->soft.Step(kg);
+      s->round.Step(kg);
+    }
     const float drive = s->drive.value, c = s->ceiling.value;
     const float link = s->link.value, mix = s->mix.value, soft = s->soft.value;
     const float round = s->round.value;

@@ -398,6 +398,29 @@ def test_a_zero_amount_writes_nothing(renderer, tmp_path):
     assert all(t["s"][0]["v"] == t["s"][0]["b"] for t in ticks)
 
 
+@pytest.mark.parametrize("route", [
+    "mod 2 lfo rate=0.4\nslot 1 lfo2 > lfo1:rate amt=0\n",
+    "slot 1 vel > lfo1:rate amt=0 voice\nslot 2 lfo1 > snd:Colour amt=0 voice\n",
+])
+def test_unrouted_module_parameters_match_zero_route_clamp_and_enum(renderer, tmp_path, route):
+    """An incoming zero-amount parameter route forces LFO1 through the slow path.
+
+    The route must target LFO1's own parameter; an LFO1-to-sound cable leaves
+    LFO1's parameter-route mask clear and would only test the fast path twice.
+    """
+    args = ["--engine", "macro", "--note", "0:60:100:0.5", "--seconds", "0.6"]
+    params = "mod 1 lfo rate=0.75 shape=3.6 depth=1.4\n"
+    _, plain_audio, plain_ticks = run(renderer, tmp_path, args, mod=params, name="unrouted")
+    zero_summary, zero_audio, zero_ticks = run(renderer, tmp_path, args,
+                                               mod=params + route, name="zero-route")
+    assert zero_summary["mod_refused"] == 0 and zero_summary["mod_active"] == route.count("slot ")
+    assert plain_audio == zero_audio
+    # Extra source modules/voice-instance data are intentionally omitted: the
+    # compared module is LFO1, whose effective parameter values are what this
+    # test protects.
+    assert [tick["m"][0] for tick in plain_ticks] == [tick["m"][0] for tick in zero_ticks]
+
+
 @pytest.mark.parametrize("dst", ["snd:Model", "snd:LPG"])
 def test_nolock_and_enum_without_mod_are_refused(renderer, tmp_path, dst):
     """M4: Macro's Model is NOLOCK and its LPG an ENUM without MOD; a cable

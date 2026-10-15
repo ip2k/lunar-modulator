@@ -262,6 +262,10 @@ typedef struct fm1_resampler {
   uint32_t mode;      /* FM1_RESAMPLER_OFF, _PASS or _CONVERT */
   uint32_t held;      /* pass-through: in[0] holds a sample not yet popped */
   uint32_t in_w, mid_w;   /* next write slot of each ring */
+  /* Number of numerically nonzero samples in each logical ring. NaN counts
+   * as nonzero; both signed zeros count as zero. These let the FIR stages
+   * skip arithmetic only when every retained sample is zero. */
+  uint8_t in_nonzero, mid_nonzero;
   /* Rings, each written twice (at w and w + CAP) so any window of CAP
    * consecutive samples is contiguous. */
   float in[2 * FM1_RESAMPLER_IN_CAP];
@@ -281,6 +285,7 @@ static inline int fm1_resampler_init(fm1_resampler_t *r, float in_rate, float ou
   r->mode = FM1_RESAMPLER_OFF;
   r->held = 0;
   r->in_w = r->mid_w = 0;
+  r->in_nonzero = r->mid_nonzero = 0;
   for (i = 0; i < 2 * FM1_RESAMPLER_IN_CAP; ++i) r->in[i] = 0.0f;
   for (i = 0; i < 2 * FM1_RESAMPLER_MID_CAP; ++i) r->mid[i] = 0.0f;
   if (!(in_rate > 0.0f && out_rate > 0.0f && in_rate < 1e30f && out_rate < 1e30f)) return 0;
@@ -320,7 +325,10 @@ static inline uint32_t fm1_resampler_push(fm1_resampler_t *r, const float *in, u
     return n;
   }
   for (i = 0; i < n; ++i) {
-    r->in[r->in_w] = r->in[r->in_w + FM1_RESAMPLER_IN_CAP] = in[i];
+    const uint32_t slot = r->in_w;
+    if (r->in[slot] != 0.0f) --r->in_nonzero;
+    if (in[i] != 0.0f) ++r->in_nonzero;
+    r->in[slot] = r->in[slot + FM1_RESAMPLER_IN_CAP] = in[i];
     if (++r->in_w == FM1_RESAMPLER_IN_CAP) r->in_w = 0;
   }
   r->rel -= (int64_t)n << 32;
@@ -341,6 +349,12 @@ static inline float fm1_resampler_intermediate_(fm1_resampler_t *r) {
   const uint32_t ts = r->tap_step;
   const uint32_t end = (uint32_t)(FM1_RESAMPLER_KERNEL_LEN - 1) << 16;
   const int64_t rel = r->rel;
+  /* Every term in the reference FIR is zero. Its accumulators start at +0,
+   * so under the default round-to-nearest mode the exact result is +0. */
+  if (r->in_nonzero == 0) {
+    r->rel = rel + r->step;
+    return 0.0f;
+  }
   const uint32_t frac = (uint32_t)((uint64_t)rel & 0xFFFFFFFFu);
   /* The input at floor(P): the newest input is at in_w - 1 + CAP. */
   const float *before = &r->in[r->in_w + FM1_RESAMPLER_IN_CAP - 1] + (rel >> 32) + 1;
@@ -372,9 +386,13 @@ static inline float fm1_resampler_pop(fm1_resampler_t *r) {
   if (fm1_resampler_needed(r)) return 0.0f;
   for (j = 0; j < 2; ++j) {             /* intermediate samples 2k and 2k + 1 */
     const float x = fm1_resampler_intermediate_(r);
-    r->mid[r->mid_w] = r->mid[r->mid_w + FM1_RESAMPLER_MID_CAP] = x;
+    const uint32_t slot = r->mid_w;
+    if (r->mid[slot] != 0.0f) --r->mid_nonzero;
+    if (x != 0.0f) ++r->mid_nonzero;
+    r->mid[slot] = r->mid[slot + FM1_RESAMPLER_MID_CAP] = x;
     if (++r->mid_w == FM1_RESAMPLER_MID_CAP) r->mid_w = 0;
   }
+  if (r->mid_nonzero == 0) return 0.0f;
   /* Output k is the low-pass centred on intermediate sample 2k - 60, the
    * middle of the last 123 (2k - 121 .. 2k + 1, oldest at e[0]); the pairs
    * from the outside in, over four sums so their chains overlap. */

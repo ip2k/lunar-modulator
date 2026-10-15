@@ -1172,6 +1172,19 @@ static void gate_merge(fm1_mod_t *m, uint32_t slots, fm1_mod_gate_t *g) {
  * poly), and then the VOICE ones, read in the voice. */
 static void module_params(fm1_mod_t *m, unsigned pos, const fm1_mod_kind_t *kd, float *peff) {
   unsigned i;
+  /* The plan's routed masks cover both global and voice parameter slots.
+   * When neither has a route for this position, avoid the per-parameter
+   * destination lookup and LOG-law check. Keep clamp/ENUM normalization
+   * identical to the routed path. */
+  if (!(m->plan.routed[pos] |
+        (m->vctx != MOD_NONE ? m->plan.vrouted[pos] : 0u))) {
+    for (i = 0; i < kd->n_params; ++i) {
+      const fm1_param_t *p = &kd->params[i];
+      const float v = fm1_param_clamp(p, m->base[pos][i]);
+      peff[i] = p->type == FM1_PARAM_ENUM ? mod_round(v) : v;
+    }
+    return;
+  }
   for (i = 0; i < kd->n_params; ++i) {
     const fm1_param_t *p = &kd->params[i];
     const uint8_t d = m->plan.pdest[pos][i];
