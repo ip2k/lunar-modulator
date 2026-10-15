@@ -1,3 +1,20 @@
+## Export verified; clock uncertainty retained — 2026-10-15
+
+Goal ACTIVE; cold-boot audio/display acceptance FAILED. Root passively
+reobserved ROM101 and reran all5 c0 export tests PASS. Exact c0 private export
+archive89880e72a476fa749b709408bfb36eca768ae0be5483289e2a7235aa1194506c
+is complete at scratch/hidden-session-export. Full constructor/runtime staging
+adaptation and a separate fail-closed ROM101 scaffold are assigned. Do not use
+the minimal4file staging evidence package as a complete deployment bundle.
+Actual candidate construction, root binding, fresh paired reads, full readback
+and new one-use capture are still required. No new device boot/write occurred.
+Clock review finds SDK-derived cached360MHz, not measuredCPUfrequency; no
+clock reprogramming justified. See notes/2026-10-15-native-clock-frequency-review.md.
+Separate limiter Ring inlining/BoxStepRAM trial assigned, with bitwise parity
+required; it must not silently replace the frozen c0 physical comparison.
+Root owns staging/binding/bench. uv.lock untouched. Verify this checkpoint's
+push independently before reporting it backed up.
+
 ## ROM99 physical comparison complete; ROM101 recovery — 2026-10-15
 
 Goal ACTIVE, real-time/audio/display acceptance FAILED; SAVE disarmed. ROM99
