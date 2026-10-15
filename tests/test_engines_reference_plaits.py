@@ -762,29 +762,84 @@ def vendored_closure():
     return sorted(seen)
 
 
-def vendored_digest(files):
+def vendored_digest(files, *, upstream_source=False):
     h = hashlib.sha256()
     for rel in files:
-        h.update(rel.encode() + b"\0" + hashlib.sha256((MUTABLE / rel).read_bytes()).digest())
+        contents = (MUTABLE / rel).read_bytes()
+        if upstream_source:
+            contents = normalized_upstream_source(rel, contents)
+        h.update(rel.encode() + b"\0" + hashlib.sha256(contents).digest())
     return h.hexdigest()
 
 
+# These exact local edits are the only permitted divergence from the upstream
+# source pin: compile-time RAM-placement annotations, never DSP code changes.
+# Pin both the local patched files and the upstream bytes restored by removing
+# the explicit include/annotation pairs. This keeps the upstream rendering
+# oracle independent from the target-only placement experiment.
+UPSTREAM_LOCAL_PATCHES = {
+    "plaits/dsp/engine2/six_op_engine.h": {
+        "patched_sha256": "f027efd939884ff151870f75792d4fc008788cedda5d1ff6a61f6247aedc7c7e",
+        "upstream_sha256": "266a3e0767ddeec456ea5c12d9a7a2f0707b890b56ea8ed48929bfe7bed93f0b",
+        "replacements": (
+            (b'#include "fm1_hot_dsp.h"\n', b""),
+            (b"FM1_HOT_DSP_RENDER void Render(", b"void Render("),
+        ),
+        "strip_final_newline": True,
+    },
+    "plaits/dsp/fm/voice.h": {
+        "patched_sha256": "653e89e876a3ba54c9983828eec1d865e9b0ed907205222297998edbffbc8d8e",
+        "upstream_sha256": "a0ae403279f12b45ed03b0995d850755297f77d00af84995c10880081d155742",
+        "replacements": (
+            (b'#include "fm1_hot_dsp.h"\n\n', b""),
+            (b"FM1_HOT_DSP_RENDER inline void Render(", b"inline void Render("),
+        ),
+        "strip_final_newline": False,
+    },
+}
+
+
+def normalized_upstream_source(rel, contents):
+    """Restore only the pinned target-placement edits to their pinned upstream bytes."""
+    patch = UPSTREAM_LOCAL_PATCHES.get(rel)
+    if patch is None:
+        return contents
+    assert hashlib.sha256(contents).hexdigest() == patch["patched_sha256"], (
+        f"unexpected local change in {rel}; review the placement patch separately")
+    for local, upstream in patch["replacements"]:
+        assert contents.count(local) == 1, f"expected one pinned placement edit in {rel}"
+        contents = contents.replace(local, upstream, 1)
+    if patch["strip_final_newline"]:
+        assert contents.endswith(b"\n")
+        contents = contents[:-1]
+    assert hashlib.sha256(contents).hexdigest() == patch["upstream_sha256"], (
+        f"normalized {rel} does not match the pinned upstream blob")
+    return contents
+
+
 # SHA-256 over (path, SHA-256 of contents) of vendored_closure(): the files as
-# vendored from eurorack 08460a69 and stmlib e3bd7c9c, byte-identical to local
-# checkouts of those commits (reference-plaits.md, "What the comparison covers").
+# vendored from eurorack 08460a69 and stmlib e3bd7c9c. Only the exact local
+# target-placement edits above are normalized before comparing this upstream pin.
 VENDORED_FILES = 129
 VENDORED_DIGEST = "28654e0480717756681e0cb219f4850dfa7b3856198b7686f8e7eb20dbdf8165"
 
 
-def test_vendored_plaits_code_is_pinned(wavs):
+def test_vendored_plaits_code_is_pinned():
     """fm1-ref-plaits and fm1-render link the same compiled vendored DSP, so a
     local change to it moves both sides together and no render comparison
-    can see it. The files are pinned here instead: a re-vendor at a new
-    upstream commit updates the digest; nothing else should."""
+    can see it. Keep the upstream source closure pinned independently of the
+    two exact compile-time RAM-placement edits."""
     files = vendored_closure()
-    assert (len(files), vendored_digest(files)) == (VENDORED_FILES, VENDORED_DIGEST), (
+    assert (len(files), vendored_digest(files, upstream_source=True)) == (VENDORED_FILES, VENDORED_DIGEST), (
         "third_party/mutable differs from the pinned upstream files that the Plaits "
-        "reference comparison relies on; UPSTREAM.md says they carry no local changes")
+        "reference comparison relies on, or a local placement patch changed")
+
+
+@pytest.mark.parametrize("rel", sorted(UPSTREAM_LOCAL_PATCHES))
+def test_vendored_placement_patch_rejects_unreviewed_file_changes(rel):
+    contents = (MUTABLE / rel).read_bytes()
+    with pytest.raises(AssertionError, match="unexpected local change"):
+        normalized_upstream_source(rel, contents + b"// unreviewed change\n")
 
 
 # --- native rate ---------------------------------------------------------------------------
