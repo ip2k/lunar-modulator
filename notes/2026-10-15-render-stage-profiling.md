@@ -181,3 +181,27 @@ require continuous uptime; intervening reboot/reset must use separate logs.
 Combined analyzer/private helper regression:40 passed. Hera is comparing targeted
 sixop/Hall optimization settings offline and investigating clock register sources.
 Overall release remains incomplete; SAVE remains disarmed.
+
+## Offline compiler and inherited-clock investigation
+
+[verified] Hera's isolated sixop/Hall compile comparison reproduced both frozen
+`-Oz` LTO object hashes exactly. Switching those two units to `-Os` changes sixop
+bitcode size40024→35328bytes and Hall17516→18388bytes. These are intermediate
+bitcode sizes, not linked flash size or measured execution speed. Non-LTO Hall
+assembly text grows44423→53484bytes (+20.4%); the earlier worker description of
+that change as a decrease was incorrect. Raw results are retained at
+`Hera:/home/claude/mvave-fm1/hot-dsp-opt-20261015/summary.json`.
+An isolated full-link replay is in progress; experimental substitutions do not
+satisfy the production builder's uniform-`-Oz` catalogue provenance gate.
+
+[verified] The read-only clock/cache review found no CPU-clock setter in the
+native startup. TIMER4's oscillator reference does not establish CPU frequency.
+The pinned SDK invokes `clk_early_init()` before its clock getters, so those
+getters do not establish the stock SPL's inherited clock. Almost all linked code
+is XIP (`.text`0xcf168bytes); `.ram_text` is0x544bytes. Neither section placement
+nor cache-idle polling establishes actual cache behavior or a slow CPU.
+The review handoff is
+`Hera:/home/claude/.local/share/codex-coordination/handoffs/lunar--clock-readonly-20261015.md`,
+SHA256 `d6ebe62d88d43aac12b550a1b1c7ad810cb2a3fd6f0aed358d49cc180c0b924d`.
+The next offline clock task maps the exact verified SPL helper to pinned register
+definitions; no clock, voltage or cache change follows from this review.

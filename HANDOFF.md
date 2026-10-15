@@ -5175,3 +5175,15 @@ investigates authoritative clock register sources read-only. Mac root exclusivel
 owns bench/device actions. Next review both handoffs, choose controlled speed
 experiment, build/check fresh artifact and retain timed recovery. USB Stop/Continue
 physically supported; exact FA rewind and TRS still open. Overall goal ACTIVE.
+
+### Offline performance follow-up
+
+No further device operations since ROM69. Clock/cache review is complete and
+does not establish a slow CPU; see the profiling note for its verified handoff
+hash. The same worker now owns a fresh offline SPL-clock decode task. Catalogue
+worker is replaying the exact frozen link then substituting only sixop/Hall
+`-Os` objects in a separate experiment. Baseline flattened app reproduced exactly;
+ELF identity has not been established. Mixed link result is pending, and no
+experimental object is admitted by production provenance checks. Review worker
+is inspecting unchanged-semantics DSP optimization candidates read-only.
+No speedup, improved musical acceptance or release readiness is claimed.
