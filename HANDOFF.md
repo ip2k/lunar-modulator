@@ -5052,3 +5052,17 @@ runtime7a8f2ed6/source6d971bf1; capture helper9bdfda67,180sWAV/110stelemetry,
 already retained. Goal ACTIVE; hardware transport/song acceptance, SAVE,
 recovery and web release remain open. MIDI counters alone do not prove transport
 state; private follow-up plan saved in scratch/song-midi-cycle.
+
+### ROM63 install completed; capture callback safely stopped before reset
+
+Journal state complete/intent null/verified SHA09037621, journal SHA
+f45b2f44e8c74b16afa2ec011155b7e68bef9f91bb45403ccda113fa5c9b2f48.
+Capture helper rejected eight symlinks in the pinned runtime manifest before
+starting audio; no boot directory/reset request exists. Device remains ROM63.
+Do NOT repeat the209-sector install. Fix runtime-file validation to resolve
+pinned runtime symlinks while retaining digest/size/regular-target checks; keep
+campaign-evidence no-symlink checks. Run explicit file-only preflight before any
+new read. New planned passive-only read/boot base:
+`/home/claude/fm1-song-passive-6d971bf-20261015`, target09037621, ROM63.
+Delegate preparing ignored scratch/song-midi-passive-retry; separate prospective
+ROM65transport helper is offline only and must be rebound after actual return.

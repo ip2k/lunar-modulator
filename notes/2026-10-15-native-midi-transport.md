@@ -64,3 +64,15 @@ field. USB message and UART byte counters establish ingress only. Follow-up
 Start/Stop/Continue tests must correlate timestamped sends with captured audio;
 full musical position/resumption acceptance still needs stronger observation.
 Private offline test plan: `scratch/song-midi-cycle/transport-test-plan.md`.
+
+[verified] ROM63 installation completed and full readback matched target
+0903762167a1dd9877c190e3b67e6657cfe4c5f7227af65d327456f73f8ba4fe.
+Journal state complete, intent null, plan93d667716afe52658e96edf7d87a87e9b9d93d7a370a8436416ad1a4fb6a5d72;
+journal SHA256f45b2f44e8c74b16afa2ec011155b7e68bef9f91bb45403ccda113fa5c9b2f48.
+The capture callback then stopped before boot: its regular-file check rejected
+symlinks present in the already digest-pinned runtime manifest (including the
+private Python executable symlink). No completed-boot directory or reset request
+was created; passive enumeration remains ROM63. Preserve this consumed install
+campaign. Next is a new fresh paired-read, ROM-only boot campaign against the
+installed target, with file-only runtime preflight before any device operation.
+No hardware playback or MIDI transport acceptance is claimed yet.
