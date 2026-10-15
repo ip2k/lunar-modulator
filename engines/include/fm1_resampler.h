@@ -420,6 +420,22 @@ float fm1_resampler_pop_ready_(fm1_resampler_t *r) {
     r->held = 0;
     return r->in[0];
   }
+  /* With both histories empty, the two intermediate samples and decimator
+   * output are exactly +0. Keep phase and duplicated-ring state advancing as
+   * the ordinary two-sample path does, but avoid two out-of-line stage calls.
+   * Checking mid_nonzero as well as in_nonzero preserves the FIR tail. */
+  if (r->in_nonzero == 0 && r->mid_nonzero == 0) {
+    uint32_t slot;
+    r->rel = r->rel + r->step;
+    slot = r->mid_w;
+    r->mid[slot] = r->mid[slot + FM1_RESAMPLER_MID_CAP] = 0.0f;
+    if (++r->mid_w == FM1_RESAMPLER_MID_CAP) r->mid_w = 0;
+    r->rel = r->rel + r->step;
+    slot = r->mid_w;
+    r->mid[slot] = r->mid[slot + FM1_RESAMPLER_MID_CAP] = 0.0f;
+    if (++r->mid_w == FM1_RESAMPLER_MID_CAP) r->mid_w = 0;
+    return 0.0f;
+  }
   for (j = 0; j < 2; ++j) {             /* intermediate samples 2k and 2k + 1 */
     const float x = fm1_resampler_intermediate_(r);
     const uint32_t slot = r->mid_w;
