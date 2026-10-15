@@ -7,8 +7,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / "native"))
 import inspect_fwsc  # noqa: E402
 import model_092_app_replacement as nested_model  # noqa: E402
+from compile_catalogue import optimization_overrides  # noqa: E402
 
 PROFILE_ID = "fm1-092-d7000"
 RUNTIME_POLICY_SHA256 = "fe457ad4056aeb8e6b3ec9df606ac79ab757adc142bd2db9780357fb72f1e905"
@@ -135,38 +137,80 @@ def _validate_catalogue(raw, expected_sha256, verification, catalogue_files):
         raise ValueError("catalogue manifest digest differs from the trusted build tuple")
     manifest = _json_object(raw, "catalogue manifest", canonical=True)
     _require_exact_keys(manifest, {"schema", "objects"}, "catalogue manifest")
-    if (type(manifest["schema"]) is not int or manifest["schema"] != 1
+    schema = manifest["schema"]
+    if (type(schema) is not int or schema not in (1, 2)
             or not isinstance(manifest["objects"], list)):
         raise ValueError("catalogue manifest schema or objects list is invalid")
+    if schema == 2:
+        override_map = verification.get("catalogue_optimization_overrides")
+        if not isinstance(override_map, dict) or any(
+                not isinstance(path, str) or not isinstance(opt, str)
+                for path, opt in override_map.items()):
+            raise ValueError("schema-2 catalogue requires an explicit optimization override map")
+        allowed_maps = {
+            tuple(sorted(optimization_overrides("z", hot_dsp_os=hot, limiter_os=limiter,
+                                                 hall_o2=hall).items()))
+            for hot in (False, True) for limiter in (False, True) for hall in (False, True)
+        }
+        if tuple(sorted(override_map.items())) not in allowed_maps:
+            raise ValueError("catalogue optimization override map is not a supported policy")
+        limiter_flag = verification.get("catalogue_limiter_os")
+        hall_flag = verification.get("catalogue_hall_o2")
+        if (type(limiter_flag) is not bool or type(hall_flag) is not bool
+                or ("our/src/fx_limit.o" in override_map) is not limiter_flag
+                or (override_map.get("our/src/fx_hall.o") == "-O2") is not hall_flag):
+            raise ValueError("catalogue optimization flags conflict with the override map")
+    else:
+        override_map = verification.get("catalogue_optimization_overrides")
+        if "catalogue_optimization_overrides" in verification:
+            raise ValueError("legacy catalogue manifest cannot discard optimization overrides")
     expected, previous = {}, None
     for row in manifest["objects"]:
-        if not isinstance(row, dict) or set(row) != {"path", "sha256"}:
-            raise ValueError("catalogue manifest rows require exactly path and sha256")
+        row_keys = {"path", "sha256", "optimization"} if schema == 2 else {"path", "sha256"}
+        if not isinstance(row, dict) or set(row) != row_keys:
+            raise ValueError("catalogue manifest row fields do not match its schema")
         path = row["path"]
         if (not isinstance(path, str) or not path.startswith("/catalogue/")
                 or "\\" in path or ".." in Path(path).parts):
             raise ValueError("catalogue manifest path is outside its trusted namespace")
         _require_hash(row, "sha256", "catalogue manifest row")
+        if schema == 2:
+            optimization = row["optimization"]
+            relative_path = path[len("/catalogue/"):]
+            if (optimization not in ("-Oz", "-Os", "-O2")
+                    or optimization != override_map.get(relative_path, "-Oz")):
+                raise ValueError("catalogue object optimization differs from the supported policy")
         if previous is not None and path <= previous:
             raise ValueError("catalogue manifest paths must be unique and sorted")
-        expected[path] = row["sha256"]
+        expected[path] = ((row["sha256"], row["optimization"])
+                          if schema == 2 else row["sha256"])
         previous = path
     receipt_rows = verification.get("catalogue_objects")
     if not isinstance(receipt_rows, list):
         raise ValueError("build receipt is missing catalogue_objects")
     receipt = {}
     for row in receipt_rows:
-        if not isinstance(row, dict) or set(row) != {"path", "sha256"}:
-            raise ValueError("build receipt catalogue rows are malformed")
-        if row["path"] in receipt:
+        row_keys = {"path", "sha256", "optimization"} if schema == 2 else {"path", "sha256"}
+        if not isinstance(row, dict) or set(row) != row_keys:
+            raise ValueError("build receipt catalogue row fields do not match the manifest schema")
+        if not isinstance(row["path"], str) or row["path"] in receipt:
             raise ValueError("build receipt repeats a catalogue path")
-        receipt[row["path"]] = row["sha256"]
+        if schema == 2:
+            relative_path = row["path"][len("/catalogue/"):] if isinstance(row["path"], str) else ""
+            optimization = row["optimization"]
+            if (optimization not in ("-Oz", "-Os", "-O2")
+                    or optimization != override_map.get(relative_path, "-Oz")):
+                raise ValueError("build receipt catalogue optimization differs from the supported policy")
+            receipt[row["path"]] = (row["sha256"], optimization)
+        else:
+            receipt[row["path"]] = row["sha256"]
     if receipt != expected:
         raise ValueError("manifest must exactly match all build receipt catalogue objects")
     if not isinstance(catalogue_files, Mapping) or set(catalogue_files) != set(expected):
         raise ValueError("catalogue byte mapping must contain exactly all manifest objects")
-    for path, digest in expected.items():
+    for path, expected_value in expected.items():
         raw_file = catalogue_files[path]
+        digest = expected_value[0] if schema == 2 else expected_value
         if not isinstance(raw_file, bytes) or sha256(raw_file) != digest:
             raise ValueError("catalogue bytes differ from their trusted manifest digest")
     return manifest

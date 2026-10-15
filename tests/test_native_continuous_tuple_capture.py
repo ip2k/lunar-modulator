@@ -71,6 +71,53 @@ def test_catalogue_manifest_rehashes_exact_receipt_inventory(tmp_path):
         _catalogue_manifest(tmp_path, verification)
 
 
+def test_catalogue_manifest_preserves_and_checks_current_optimization_contract(tmp_path):
+    overrides = {"our/src/fx_hall.o": "-O2"}
+    payloads = {"our/src/fx_hall.o": b"hall", "our/src/mi_sixop.o": b"sixop"}
+    rows = []
+    for relative, content in payloads.items():
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+        rows.append({"path": "/catalogue/" + relative, "sha256": sha(content),
+                     "optimization": overrides.get(relative, "-Oz")})
+    receipt = {"catalogue_objects": rows, "catalogue_optimization_overrides": overrides,
+               "catalogue_limiter_os": False, "catalogue_hall_o2": True}
+    original_rows = json.loads(json.dumps(receipt["catalogue_objects"]))
+    manifest = json.loads(_catalogue_manifest(tmp_path, receipt))
+    assert manifest["schema"] == 2
+    assert manifest["objects"] == sorted(rows, key=lambda row: row["path"])
+    assert receipt["catalogue_objects"] == original_rows
+
+    mutations = []
+    mutations.append(dict(receipt, catalogue_objects=[dict(rows[0], optimization="-Os"), rows[1]]))
+    mutations.append({"catalogue_objects": rows})
+    mutations.append(dict(receipt, catalogue_optimization_overrides={"our/src/unknown.o": "-Os"}))
+    mutations.append(dict(receipt, catalogue_hall_o2=False))
+    mutations.append(dict(receipt, catalogue_objects=[dict(rows[0], optimization="-O3"), rows[1]]))
+    mutations.append(dict(receipt, catalogue_objects=[rows[0], dict(rows[1], extra="ignored")]))
+    mutations.append(dict(receipt, catalogue_objects=[rows[0], rows[0]]))
+    for invalid in mutations:
+        with pytest.raises(ValueError):
+            _catalogue_manifest(tmp_path, invalid)
+
+
+def test_catalogue_manifest_rejects_metadata_free_rows_when_overrides_would_be_lost(tmp_path):
+    path = tmp_path / "our/src/fx_limit.o"
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"limiter")
+    receipt = {"catalogue_objects": [{"path": "/catalogue/our/src/fx_limit.o",
+                                      "sha256": sha(b"limiter")}],
+               "catalogue_optimization_overrides": {"our/src/fx_limit.o": "-Os"},
+               "catalogue_limiter_os": True, "catalogue_hall_o2": False}
+    with pytest.raises(ValueError, match="cannot discard optimization metadata"):
+        _catalogue_manifest(tmp_path, receipt)
+    with pytest.raises(ValueError, match="cannot discard optimization metadata"):
+        _catalogue_manifest(tmp_path, {"catalogue_objects": receipt["catalogue_objects"],
+                                       "catalogue_optimization_overrides": {},
+                                       "catalogue_limiter_os": False, "catalogue_hall_o2": False})
+
+
 
 def test_unsupported_runtime_is_refused_before_creating_build_output(tmp_path):
     output = tmp_path / "should-not-exist"

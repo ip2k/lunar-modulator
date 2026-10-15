@@ -268,6 +268,66 @@ def test_catalogue_must_match_receipt_and_exact_bytes():
         packager._validate_catalogue(raw_bad, packager.sha256(raw_bad), verification, original)
 
 
+def test_catalogue_schema2_binds_per_object_optimization_and_exact_bytes():
+    payload = b"catalogue object"
+    path = "/catalogue/our/src/fx_hall.o"
+    overrides = {"our/src/fx_hall.o": "-O2"}
+    row = {"path": path, "sha256": packager.sha256(payload), "optimization": "-O2"}
+    raw = packager.canonical_json({"schema": 2, "objects": [row]})
+    verification = {"catalogue_objects": [row], "catalogue_optimization_overrides": overrides,
+                    "catalogue_limiter_os": False, "catalogue_hall_o2": True}
+    manifest = packager._validate_catalogue(raw, packager.sha256(raw), verification, {path: payload})
+    assert manifest["objects"] == [row]
+
+    bad_manifest_rows = [
+        dict(row, optimization="-Os"),
+        {"path": path, "sha256": row["sha256"]},
+        dict(row, optimization="-O3"),
+        dict(row, optimization="-Oz", ignored=True),
+    ]
+    for bad_row in bad_manifest_rows:
+        bad_raw = packager.canonical_json({"schema": 2, "objects": [bad_row]})
+        with pytest.raises(ValueError):
+            packager._validate_catalogue(bad_raw, packager.sha256(bad_raw), verification,
+                                         {path: payload})
+
+    invalid_receipts = [
+        {"catalogue_objects": [{key: value for key, value in row.items() if key != "optimization"}],
+         "catalogue_optimization_overrides": overrides},
+        {"catalogue_objects": [dict(row, optimization="-Os")],
+         "catalogue_optimization_overrides": overrides},
+        {"catalogue_objects": [row], "catalogue_optimization_overrides": {"other.o": "-O2"}},
+        {"catalogue_objects": [row], "catalogue_optimization_overrides": {"our/src/fx_hall.o": "-O3"}},
+        dict(verification, catalogue_hall_o2=False),
+    ]
+    for invalid in invalid_receipts:
+        with pytest.raises(ValueError):
+            packager._validate_catalogue(raw, packager.sha256(raw), invalid, {path: payload})
+
+
+def test_catalogue_schema1_remains_compatible_only_without_optimization_metadata():
+    payload = b"historical catalogue object"
+    path = "/catalogue/old/object.o"
+    row = {"path": path, "sha256": packager.sha256(payload)}
+    raw = packager.canonical_json({"schema": 1, "objects": [row]})
+    assert packager._validate_catalogue(
+        raw, packager.sha256(raw), {"catalogue_objects": [row]}, {path: payload})["schema"] == 1
+
+    optimized = dict(row, optimization="-Oz")
+    receipt = {"catalogue_objects": [optimized]}
+    with pytest.raises(ValueError, match="manifest schema"):
+        packager._validate_catalogue(raw, packager.sha256(raw), receipt, {path: payload})
+    with pytest.raises(ValueError, match="cannot discard optimization overrides"):
+        packager._validate_catalogue(
+            raw, packager.sha256(raw), {"catalogue_objects": [row],
+                                        "catalogue_optimization_overrides": {"old/object.o": "-Os"}},
+            {path: payload})
+    with pytest.raises(ValueError, match="cannot discard optimization overrides"):
+        packager._validate_catalogue(
+            raw, packager.sha256(raw), {"catalogue_objects": [row],
+                                        "catalogue_optimization_overrides": {}}, {path: payload})
+
+
 def test_provenance_files_and_receipt_mutations_refuse():
     values = _inputs()
     tuple_data = packager._validate_tuple(values["build_tuple"], TUPLE_SHA)
