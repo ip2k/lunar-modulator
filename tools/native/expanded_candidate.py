@@ -18,7 +18,8 @@ from audit_link import Elf, audit, collect_sources
 from probe_artifact import flatten, artifact_call_payloads, artifact_stub_boundaries
 
 STATUS = 'private-expanded-native-candidate-verified-offline'
-HOT_DSP_RAM_BODIES = ['SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
+HOT_DSP_RAM_PRE_PUSH_READY_BODIES = [
+                      'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
                       'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
                       'Hall::Instance::Render', 'Limiter::HoldStep', 'Limiter::BoxStep',
                       'Limiter::TapOut', 'Limiter::Render', 'fm1_app_render']
@@ -35,8 +36,13 @@ HOT_DSP_RAM_BOXSTEP_BODIES = [
     'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
     'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
     'Hall::Instance::Render', 'Limiter::BoxStep', 'Limiter::Render', 'fm1_app_render']
+# Exact profile after moving the internal resampler push helper. Retain the
+# prior lists above as complete historical profiles; reject partial mixtures.
+HOT_DSP_RAM_BODIES = HOT_DSP_RAM_PRE_PUSH_READY_BODIES + ['fm1_resampler_push_ready_']
+HOT_DSP_RAM_PUSH_READY_BODIES = HOT_DSP_RAM_BODIES
 HOT_DSP_RAM_SUPPORTED_BODY_PROFILES = (
-    HOT_DSP_RAM_LEGACY_BODIES, HOT_DSP_RAM_BOXSTEP_BODIES, HOT_DSP_RAM_BODIES)
+    HOT_DSP_RAM_LEGACY_BODIES, HOT_DSP_RAM_BOXSTEP_BODIES,
+    HOT_DSP_RAM_PRE_PUSH_READY_BODIES, HOT_DSP_RAM_BODIES)
 
 
 def validate_hot_dsp_ram_receipts(elf, verification, artifact):

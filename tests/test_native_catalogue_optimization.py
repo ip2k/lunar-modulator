@@ -261,11 +261,12 @@ def test_hot_dsp_ram_requires_bounded_runtime_and_copies_extent_at_startup():
         'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
         'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)', 'Hall::Instance::Render',
         'Limiter::HoldStep', 'Limiter::BoxStep', 'Limiter::TapOut', 'Limiter::Render',
-        'fm1_app_render']
+        'fm1_app_render', 'fm1_resampler_push_ready_']
     assert 'SixOp::Instance::RenderBlock' in receipt['selected_bodies']
     assert 'plaits::FMVoice::Render' in receipt['selected_bodies']
     assert 'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)' in receipt['selected_bodies']
     assert 'Limiter::BoxStep' in receipt['selected_bodies']
+    assert 'fm1_resampler_push_ready_' in receipt['selected_bodies']
     assert receipt['all_callees_in_ram'] is False
     disabled = builder.hot_dsp_ram_configuration(False, 'continuous')
     assert disabled['enabled'] is False

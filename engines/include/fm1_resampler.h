@@ -51,17 +51,20 @@
 #include <stdint.h>
 
 /* The trusted render path is called after its owner has checked readiness.
- * Keep its FIR bodies in XIP by default. In the explicit native hot-DSP
- * profile, outline the ready-pop and stage-1 interpolation helpers into RAM.
+ * Keep its FIR/push bodies in XIP by default. In the explicit native hot-DSP
+ * profile, outline ready-push, ready-pop and stage-1 interpolation helpers into RAM.
  * Do not add `used`: these are static header helpers, and forcing them into
  * every translation unit that includes the header would create unused copies. */
 #if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM && defined(__ELF__)
 #define FM1_RESAMPLER_POP_READY_PLACEMENT \
   __attribute__((noinline, section(".ram_dsp")))
+#define FM1_RESAMPLER_PUSH_READY_PLACEMENT \
+  __attribute__((noinline, section(".ram_dsp")))
 #define FM1_RESAMPLER_INTERMEDIATE_PLACEMENT \
   __attribute__((noinline, section(".ram_dsp")))
 #else
 #define FM1_RESAMPLER_POP_READY_PLACEMENT
+#define FM1_RESAMPLER_PUSH_READY_PLACEMENT
 #define FM1_RESAMPLER_INTERMEDIATE_PLACEMENT
 #endif
 
@@ -345,7 +348,8 @@ FM1_RESAMPLER_FORCE_INLINE uint32_t fm1_resampler_needed(const fm1_resampler_t *
 /* Internal fast path for a caller that has already computed needed(r) and
  * passes n <= that value. The resampler must not have been mutated since the
  * readiness check. Returns how many samples it took. */
-static inline uint32_t fm1_resampler_push_ready_(fm1_resampler_t *r, const float *in, uint32_t n) {
+static inline FM1_RESAMPLER_PUSH_READY_PLACEMENT uint32_t
+fm1_resampler_push_ready_(fm1_resampler_t *r, const float *in, uint32_t n) {
   uint32_t i;
   if (r->mode != FM1_RESAMPLER_CONVERT) {
     if (n) { r->in[0] = in[0]; r->held = 1; }
