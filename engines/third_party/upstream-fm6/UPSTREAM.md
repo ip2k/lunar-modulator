@@ -5,10 +5,10 @@
 | Upstream | https://github.com/hugelton/Felucca at `727f272015da26eb2d0291bd652eba28ff57cb37` (Felucca 1.0 source, 2026-10-05), `firmware/src/fm6_core.c` and `LICENSES/Apache-2.0-msfa.txt` |
 | What it is | An integer C port of msfa as Dexed carries it (Dexed's `Source/msfa`): envelopes with Dexed's static stages, pitch envelope, LFO, the note set-up and the 32 algorithms, in 32-sample blocks |
 | Authors | Google Inc. (2012), Pascal Gauthier (2016-2025), ported by Leo Kuroshita (@kurogedelic), Hügelton Instruments (2026) |
-| Licence | Apache-2.0: the file's own SPDX header, and `LICENSE` here is Felucca's `LICENSES/Apache-2.0-msfa.txt`, its notice and the licence text. The rest of Felucca is GPL-3.0-only and is **not** vendored or used; the tables the file expects are computed by our own `engines/test/dx7_felucca.c` |
+| Licence | Apache-2.0: the file's own SPDX header, and `LICENSE` here is Felucca's `LICENSES/Apache-2.0-msfa.txt`, its notice and the licence text. The rest of Felucca is GPL-3.0-only and is **not** vendored or used; the tables the file expects are computed by our own `engines/test/dx7_upstream_fm6.c` |
 | Copied by | `vendor.py` (`--check` compares) |
 | Local changes | **None.** |
-| Used by | `engines/test/dx7_felucca.c` and `fm1-dx7-oracle` (`engines/test/dx7_oracle.cc`), a desktop test tool. It is in no engine and no firmware or browser build. Vendoring it as an oracle was the owner's decision (2026-10-05) |
+| Used by | `engines/test/dx7_upstream_fm6.c` and `fm1-dx7-oracle` (`engines/test/dx7_oracle.cc`), a desktop test tool. It is in no engine and no firmware or browser build. Vendoring it as an oracle was the owner's decision (2026-10-05) |
 
 | File | sha256 |
 | --- | --- |
@@ -19,7 +19,7 @@ Re-vendoring:
 
 ```bash
 git clone https://github.com/hugelton/Felucca reference/Felucca
-python3 engines/third_party/felucca-fm6/vendor.py reference/Felucca --check
+python3 engines/third_party/upstream-fm6/vendor.py reference/Felucca --check
 ```
 
 ## Where it differs from FM6 on purpose (engines/msfa.md, "The oracle")

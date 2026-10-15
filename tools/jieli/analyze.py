@@ -441,9 +441,9 @@ def main(out):
 
             v["sw_sophie"] = up(c["schwung_instance"]) + up(c["sophie_arena"])
             v["sw_psxverb"] = up(c["schwung_instance"]) + up(c["psxverb_arena"])
-        if "felucca_instance" in c and "felucca_world" in c:     # GPL modules (felucca_shim.cc)
-            v["drawbar"] = r16(c["felucca_instance"]) + r16(c["felucca_world_wheel"])
-            v["trio"] = v["phase_bend"] = r16(c["felucca_instance"]) + r16(c["felucca_world"])
+        if "upstream_engine_instance" in c and "upstream_engine_world" in c:     # GPL modules (upstream_engine_shim.cc)
+            v["drawbar"] = r16(c["upstream_engine_instance"]) + r16(c["upstream_engine_world_wheel"])
+            v["trio"] = v["phase_bend"] = r16(c["upstream_engine_instance"]) + r16(c["upstream_engine_world"])
         inst[t] = v
     report["sizes"]["instance_size"] = inst
     for t in ("i386", "x86_64"):

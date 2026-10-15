@@ -50,21 +50,21 @@
       "name": "Drawbar",
       "kind": "sound",
       "licence": "GPL-3.0-only AND MIT",
-      "source": "engines/third_party/felucca"
+      "source": "engines/third_party/upstream-engines"
     },
     {
       "id": "trio",
       "name": "Trio",
       "kind": "sound",
       "licence": "GPL-3.0-only AND MIT",
-      "source": "engines/third_party/felucca"
+      "source": "engines/third_party/upstream-engines"
     },
     {
       "id": "phase-bend",
       "name": "Phase Bend",
       "kind": "sound",
       "licence": "GPL-3.0-only AND MIT",
-      "source": "engines/third_party/felucca"
+      "source": "engines/third_party/upstream-engines"
     },
     {
       "id": "acid-gen",

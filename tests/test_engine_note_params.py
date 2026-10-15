@@ -39,8 +39,8 @@ PER_NOTE_KITS = ["drums"]
 PER_NOTE_MONO = ["acid-bass"] if GPL_MODS else []
 # Felucca's engines (GPL modules) take them on their voices' own values; a
 # voice's phases and noise are its slot's, so two notes are not the two
-# played apart: tests/test_engine_felucca.py checks them on lone notes.
-PER_NOTE_FELUCCA = ["drawbar", "trio", "phase-bend"] if GPL_MODS else []
+# played apart: tests/test_engine_upstream_engines.py checks them on lone notes.
+PER_NOTE_UPSTREAM_ENGINES = ["drawbar", "trio", "phase-bend"] if GPL_MODS else []
 
 # A sustained, deterministic voice per engine (no shared random numbers, so
 # notes rendered apart are the notes rendered together), and a parameter
@@ -119,7 +119,7 @@ def test_which_engines_take_per_note_offsets(listing):
     """Sophie keeps its voices inside the module, out of the shim's reach;
     effects have no notes; Test Sine stays the engine without them."""
     assert sorted(e for e, v in listing.items() if v["per_note"]) == \
-        sorted(PER_NOTE + PER_NOTE_KITS + PER_NOTE_MONO + PER_NOTE_FELUCCA)
+        sorted(PER_NOTE + PER_NOTE_KITS + PER_NOTE_MONO + PER_NOTE_UPSTREAM_ENGINES)
     assert [p["name"] for p in poly(listing, "sixop")] == ["Brightness", "Envelope", "Volume"]
     assert [p["name"] for p in poly(listing, "dx7")] == ["Brightness", "Env Time", "Feedback",
                                                          "Volume"]

@@ -2,10 +2,10 @@
 """Copy Felucca's fm6_core.c (Apache-2.0) into this folder, or check it.
 
 Usage:
-    python3 engines/third_party/felucca-fm6/vendor.py FELUCCA_CHECKOUT          # copy
-    python3 engines/third_party/felucca-fm6/vendor.py FELUCCA_CHECKOUT --check  # compare
+    python3 engines/third_party/upstream-fm6/vendor.py UPSTREAM_SOURCE_CHECKOUT          # copy
+    python3 engines/third_party/upstream-fm6/vendor.py UPSTREAM_SOURCE_CHECKOUT --check  # compare
 
-FELUCCA_CHECKOUT is a clone of https://github.com/hugelton/Felucca (any
+UPSTREAM_SOURCE_CHECKOUT is a clone of https://github.com/hugelton/Felucca (any
 commit; the files are read from the commit pinned in UPSTREAM.md with
 `git show`). Only the two files below are taken: the rest of Felucca is
 GPL-3.0-only and is not vendored. Nothing is rewritten. MIT licence, like

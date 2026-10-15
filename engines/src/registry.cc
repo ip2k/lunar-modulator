@@ -59,7 +59,7 @@ extern const fm1_engine_t fm1_engine_test_ext;
 extern const fm1_engine_t fm1_engine_acid_bass;   // fm1-x0x's 303 (mk/fm1-x0x.mk)
 extern const fm1_engine_t fm1_engine_comet_kit;   // fm1-x0x's 909 (mk/fm1-x0x.mk)
 extern const fm1_engine_t fm1_engine_crater;      // fm1-x0x's 808 (mk/x0x-crater.mk)
-extern const fm1_engine_t fm1_engine_drawbar;     // Felucca's WHEEL (mk/felucca.mk)
+extern const fm1_engine_t fm1_engine_drawbar;     // Felucca's WHEEL (mk/upstream_engines.mk)
 extern const fm1_engine_t fm1_engine_trio;        // Felucca's TRIO
 extern const fm1_engine_t fm1_engine_phase_bend;  // Felucca's PHASE
 #endif
@@ -142,9 +142,9 @@ const fm1_licence_t fm1_licences[] = {
   FM1_IF(FM1_WITH_CRATER, { "crater", "GPL-3.0-only AND MIT", "engines/third_party/fm1-x0x" })
   // Felucca (Leo Kuroshita, Hügelton Instruments; GPL-3.0-only): three of its
   // engines, unmodified, under our MIT shim and bridge.
-  FM1_IF(FM1_WITH_DRAWBAR, { "drawbar", "GPL-3.0-only AND MIT", "engines/third_party/felucca" })
-  FM1_IF(FM1_WITH_TRIO, { "trio", "GPL-3.0-only AND MIT", "engines/third_party/felucca" })
-  FM1_IF(FM1_WITH_PHASE_BEND, { "phase-bend", "GPL-3.0-only AND MIT", "engines/third_party/felucca" })
+  FM1_IF(FM1_WITH_DRAWBAR, { "drawbar", "GPL-3.0-only AND MIT", "engines/third_party/upstream-engines" })
+  FM1_IF(FM1_WITH_TRIO, { "trio", "GPL-3.0-only AND MIT", "engines/third_party/upstream-engines" })
+  FM1_IF(FM1_WITH_PHASE_BEND, { "phase-bend", "GPL-3.0-only AND MIT", "engines/third_party/upstream-engines" })
 #endif
   { NULL, NULL, NULL }    // the end: a list may leave every row out
 };

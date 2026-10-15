@@ -11,15 +11,15 @@ build with the switch off compiles none of it (`tests/test_gpl_switch.py`).
 | Upstream | https://github.com/hugelton/Felucca at `b0dcd53a251d5f5392fea9478b48244d322eeb2a` (2026-10-06, after Felucca 1.0.2): `firmware/src/{core.h, dsp.c, eng_wheel.c, eng_trio.c, eng_phase.c, voice.c}`, `tools/gen_tables.py`, `LICENSE`, `LICENSING.md` |
 | What it is | Felucca is open firmware for the M-VAVE FM-1 by **Leo Kuroshita (@kurogedelic), Hügelton Instruments**, bare metal, integer DSP. These are three of its fourteen engines, all of its own design: **WHEEL**, a tonewheel-style additive organ (nine drawbar partials, 16 registrations, percussion, key click, drive, a two-rotor rotary); **TRIO**, three oscillators with ring modulation and hard sync into a gritty 12 dB multimode filter, in the style of the sound chips of early 8-bit home computers; **PHASE**, phase distortion, a C port of the oscillator of **CrispyZebra** (<https://github.com/hugelton/CrispyZebra>, the same author's, GPL-3.0). `core.h` holds the types they share, `dsp.c` the fixed-point blocks they use, `voice.c` the voice code that drives them on the device, and `LICENSING.md` is Felucca's own account of its licences |
 | Licence | `GPL-3.0-only` (every source file's SPDX line; `LICENSE` is the GPL version 3 as the FSF publishes it) |
-| Copied by | `vendor.py` (`--check` compares every file, and runs `tools/gen_tables.py` again to compare `gen/felucca_tables.h`) |
+| Copied by | `vendor.py` (`--check` compares every file, and runs `tools/gen_tables.py` again to compare `gen/upstream_engine_tables.h`) |
 | Local changes | **None.** Every file is upstream's, byte for byte |
-| Generated | `gen/felucca_tables.h`: the output of upstream's own `tools/gen_tables.py` at that commit, as Felucca's build makes it (its `tools/build.py` and `tests/run_tests.sh` write it to `build/gen/`), committed so that no build here needs Python. Its tables are for 44,100 Hz and a 32-sample control block |
-| Used by | `engines/src/felucca_bridge.c`, which includes `core.h`, the tables, `dsp.c` and the three engines as Felucca's `felucca.c` does, and `engines/src/felucca_shim.cc` above it: the sound engines **Drawbar** (`drawbar`, WHEEL), **Trio** (`trio`, TRIO) and **Phase Bend** (`phase-bend`, PHASE), built through `engines/mk/felucca.mk` only while the switch is on. `voice.c` is used only by the test oracle `fm1-felucca-oracle` (`engines/test/felucca_oracle.c`), a desktop tool |
-| Not taken | Felucca's other engines (ANALOG, DIGITAL, LOFI, SAMPLE, VOICE, GRAIN, PHYS, DRUM, NOISE, SLICE; FM6 is ours from msfa, with Felucca's `fm6_core.c` as its oracle in `../felucca-fm6/`), its parts, mixer, effects, sequencer, UI, platform and tools, and its sample material. `notes/2026-10-06-fm1-x0x.md` §3 ranks them |
+| Generated | `gen/upstream_engine_tables.h`: the output of upstream's own `tools/gen_tables.py` at that commit, as Felucca's build makes it (its `tools/build.py` and `tests/run_tests.sh` write it to `build/gen/`), committed so that no build here needs Python. Its tables are for 44,100 Hz and a 32-sample control block |
+| Used by | `engines/src/upstream_engine_bridge.c`, which includes `core.h`, the tables, `dsp.c` and the three engines as Felucca's `felucca.c` does, and `engines/src/upstream_engine_shim.cc` above it: the sound engines **Drawbar** (`drawbar`, WHEEL), **Trio** (`trio`, TRIO) and **Phase Bend** (`phase-bend`, PHASE), built through `engines/mk/upstream_engines.mk` only while the switch is on. `voice.c` is used only by the test oracle `fm1-upstream-engines-oracle` (`engines/test/upstream_engines_oracle.c`), a desktop tool |
+| Not taken | Felucca's other engines (ANALOG, DIGITAL, LOFI, SAMPLE, VOICE, GRAIN, PHYS, DRUM, NOISE, SLICE; FM6 is ours from msfa, with Felucca's `fm6_core.c` as its oracle in `../upstream-fm6/`), its parts, mixer, effects, sequencer, UI, platform and tools, and its sample material. `notes/2026-10-06-fm1-x0x.md` §3 ranks them |
 
 ## How the files are compiled (no change to them)
 
-`engines/src/felucca_bridge.c` makes two definitions around `core.h`, so
+`engines/src/upstream_engine_bridge.c` makes two definitions around `core.h`, so
 that it compiles off the FM-1 and each of our instances holds its own part;
 neither changes what an engine computes:
 
@@ -44,12 +44,12 @@ values as its ARM build does.
 
 ## The shim's voice code against Felucca's
 
-Above the engines, `felucca_bridge.c` and `felucca_shim.cc` do in our own
+Above the engines, `upstream_engine_bridge.c` and `upstream_engine_shim.cc` do in our own
 code what `voice.c` does for a part: voice allocation (POLY, Felucca's
 ROTATE order and its steal), the envelope on Felucca's tables, the
 modulation an engine reads (`vmod_t`) and the retrigger of a sounding voice.
-`fm1-felucca-oracle` runs the real `voice.c`, with the three engines, beside
-our engines through the API, and `tests/test_engine_felucca.py` holds them
+`fm1-upstream-engines-oracle` runs the real `voice.c`, with the three engines, beside
+our engines through the API, and `tests/test_engine_upstream_engines.py` holds them
 to the same samples, bit for bit, on every factory sound of the three
 engines, through steals and retriggers, at host blocks of 1, 7, 32 and 64
 and at 44,100 and 44,118 Hz [verified 2026-10-06]. What `voice.c` reaches
@@ -88,17 +88,17 @@ voice 92 bytes; an instance of Drawbar 4,976 bytes, of Trio or Phase Bend
 | `src/eng_phase.c` | `172dc2beab85c618068d58eaf06ac4c757b3fa07ed8f918d2523e992bccfe204` |
 | `src/voice.c` | `d58be394655cf0fc61df201d10a4283262625367a825bc07ba10349863baebd7` |
 | `tools/gen_tables.py` | `a1896486ffa6605c5ccb1dfbccac2e5c79e96e3a65cc938a5df52a99c15e3ad8` |
-| `gen/felucca_tables.h` (generated) | `a975289289c52b9f9fd2ff985a147b199f8a3afa9fb416e95f99cb83131993cb` |
+| `gen/upstream_engine_tables.h` (generated) | `a975289289c52b9f9fd2ff985a147b199f8a3afa9fb416e95f99cb83131993cb` |
 
 Re-vendoring:
 
 ```bash
 git clone https://github.com/hugelton/Felucca reference/Felucca
-python3 engines/third_party/felucca/vendor.py reference/Felucca --check
+python3 engines/third_party/upstream-engines/vendor.py reference/Felucca --check
 ```
 
 The engine files and `gen_tables.py` are the same at Felucca 1.0
-(`727f272`), the commit `../felucca-fm6/` is pinned at; `core.h` gained the
+(`727f272`), the commit `../upstream-fm6/` is pinned at; `core.h` gained the
 retirement of SAMPLE's PERC set after it, which these engines do not read.
 
 ## Credits and names

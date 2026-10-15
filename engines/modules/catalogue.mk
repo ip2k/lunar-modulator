@@ -70,7 +70,7 @@ FM1_OBJ.acid-bass := our/src/acid_bass.o gpl/fm1-x0x/dsp/bass303.o
 FM1_OBJ.comet := our/src/comet_kit.o gpl/fm1-x0x/dsp/drum909.o
 FM1_OBJ.crater := our/src/crater_kit.o gpl/fm1-x0x/dsp/drum808.o
 # Felucca's three engines share one shim and one bridge.
-FM1_OBJ.drawbar := our/src/felucca_shim.o gpl/felucca/felucca_bridge.o
+FM1_OBJ.drawbar := our/src/upstream_engine_shim.o gpl/upstream_engines/upstream_engine_bridge.o
 FM1_OBJ.trio := $(FM1_OBJ.drawbar)
 FM1_OBJ.phase-bend := $(FM1_OBJ.drawbar)
 FM1_OBJ.test-sine := our/src/test_sine.o

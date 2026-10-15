@@ -34,8 +34,8 @@ RENDER_EXTRA_OBJ += $(MSFA_OBJ)
 -include $(MSFA_OBJ:.o=.d)
 
 # fm1-dx7-oracle (test/dx7_oracle.cc): one voice through FM6 and through
-# Felucca's fm6_core.c (third_party/felucca-fm6, Apache-2.0; set up in
-# test/dx7_felucca.c), and how far apart they are; also msfa's start-up
+# Felucca's fm6_core.c (third_party/upstream-fm6, Apache-2.0; set up in
+# test/dx7_upstream_fm6.c), and how far apart they are; also msfa's start-up
 # tables (tests/test_engines_dx7.py). A desktop test tool: fm6_core.c is in
 # no engine. It is C, built with the vendored-code flags.
 #
@@ -44,7 +44,7 @@ RENDER_EXTRA_OBJ += $(MSFA_OBJ)
 # their tables as plain arrays (src/msfa_prelude.h), as upstream builds them;
 # test/msfa_ref.cc runs their init for the oracle.
 MSFA_REF_OBJ := $(patsubst %,$(BUILD)/tp/msfa-ref/%.o,sin exp2 freqlut) $(BUILD)/our/test/msfa_ref.o
-DX7_ORACLE_OBJ := $(BUILD)/our/test/dx7_oracle.o $(BUILD)/tp/felucca-fm6/dx7_felucca.o $(MSFA_REF_OBJ)
+DX7_ORACLE_OBJ := $(BUILD)/our/test/dx7_oracle.o $(BUILD)/tp/upstream-fm6/dx7_upstream_fm6.o $(MSFA_REF_OBJ)
 
 $(BUILD)/tp/msfa-ref/%.o: src/msfa_unit.cc src/msfa_prelude.h $(MSFA_DIR)/%.cc
 	@mkdir -p $(dir $@)
@@ -53,9 +53,9 @@ $(BUILD)/tp/msfa-ref/%.o: src/msfa_unit.cc src/msfa_prelude.h $(MSFA_DIR)/%.cc
 
 $(BUILD)/our/test/dx7_oracle.o $(BUILD)/our/test/msfa_ref.o: COMMON += -isystem $(MSFA_DIR)
 
-$(BUILD)/tp/felucca-fm6/dx7_felucca.o: test/dx7_felucca.c third_party/felucca-fm6/fm6_core.c
+$(BUILD)/tp/upstream-fm6/dx7_upstream_fm6.o: test/dx7_upstream_fm6.c third_party/upstream-fm6/fm6_core.c
 	@mkdir -p $(dir $@)
-	$(CC) -std=c99 $(OPT) $(EXTRA) -w -fwrapv -Ithird_party/felucca-fm6 -MMD -MP -c $< -o $@
+	$(CC) -std=c99 $(OPT) $(EXTRA) -w -fwrapv -Ithird_party/upstream-fm6 -MMD -MP -c $< -o $@
 
 all: $(BUILD)/fm1-dx7-oracle
 

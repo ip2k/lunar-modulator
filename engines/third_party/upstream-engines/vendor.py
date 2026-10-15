@@ -3,13 +3,13 @@
 folder, or check them.
 
 Usage:
-    python3 engines/third_party/felucca/vendor.py FELUCCA_CHECKOUT          # copy
-    python3 engines/third_party/felucca/vendor.py FELUCCA_CHECKOUT --check  # compare
+    python3 engines/third_party/upstream-engines/vendor.py UPSTREAM_SOURCE_CHECKOUT          # copy
+    python3 engines/third_party/upstream-engines/vendor.py UPSTREAM_SOURCE_CHECKOUT --check  # compare
 
-FELUCCA_CHECKOUT is a clone of https://github.com/hugelton/Felucca (any
+UPSTREAM_SOURCE_CHECKOUT is a clone of https://github.com/hugelton/Felucca (any
 commit; the files are read from the commit pinned below with `git show`).
 Nothing is rewritten: every file is upstream's, byte for byte. The one file
-made here, gen/felucca_tables.h, is the output of upstream's own
+made here, gen/upstream_engine_tables.h, is the output of upstream's own
 tools/gen_tables.py at that commit (copied to tools/), run with this
 machine's python3; `--check` runs it again and compares. Felucca's build
 makes the same file the same way (its build.py and tests/run_tests.sh).
@@ -33,9 +33,9 @@ FILES = {
     "firmware/src/eng_trio.c": "src/eng_trio.c",       # TRIO: our Trio
     "firmware/src/eng_phase.c": "src/eng_phase.c",     # PHASE: our Phase Bend
     "firmware/src/voice.c": "src/voice.c",             # the test oracle's voices only (engines/test)
-    "tools/gen_tables.py": "tools/gen_tables.py",      # makes gen/felucca_tables.h
+    "tools/gen_tables.py": "tools/gen_tables.py",      # makes gen/upstream_engine_tables.h
 }
-GENERATED = "gen/felucca_tables.h"
+GENERATED = "gen/upstream_engine_tables.h"
 
 
 def sha256(data: bytes) -> str:
@@ -44,7 +44,7 @@ def sha256(data: bytes) -> str:
 
 def tables(gen_tables: Path) -> bytes:
     with tempfile.TemporaryDirectory() as tmp:
-        out = Path(tmp) / "felucca_tables.h"
+        out = Path(tmp) / "upstream_engine_tables.h"
         subprocess.run([sys.executable, str(gen_tables), str(out)], check=True,
                        stdout=subprocess.DEVNULL)
         return out.read_bytes()
