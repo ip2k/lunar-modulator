@@ -5012,3 +5012,13 @@ source commit argument; generate it only after the final source checkpoint and
 independent review. No fresh link, flash, or boot has occurred. Device remains
 last observed ROM63; preserve all consumed campaigns. SAVE/recovery/release
 acceptance gates remain open and the overall goal ACTIVE.
+
+[verified] MIDI implementation checkpoint6d971bf1 was pushed and GitHub SHA
+verified. Root reran172 focused tests plus the new real-app FIFO/UI regression
+(173 total); stopped UI assertions explicitly check synchronization as well.
+Hera16 shards/167objects all passed without OOM, hashes verified. Frozen linked
+EH+SET app46842613 is849276B within860644B, source6d971bf1; receipts and independent
+review pass. Evidence `/home/claude/mvave-fm1/song-midi-link-6d971bf-20261015`.
+Passive bench enumeration confirms ROM63 at1-1, KA6dev51, Pico38; no new device
+command sent. Preparing fresh candidate and passive full-song capture; no
+physical transport/song acceptance. SAVE disarmed, overall goal ACTIVE.

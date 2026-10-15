@@ -18,6 +18,18 @@ test_seq_song.py, test_native_midi_ingress_integration.py,
 test_native_midi_stream.py and test_native_midi_uart_stream.py. They cover
 pause/resume timing, scene progression, no Start event on Continue, paused
 replacement-source rejection, USB/UART routing before channel filtering,
-running-status interleaving and ignored clock messages. App FIFO pressure/UI
-regression is pending separately. No target link or physical transport result
+running-status interleaving and ignored clock messages. The separate real-app FIFO regression also passes, including Stop retention
+at saturation, held command order, local panel supersession and both running
+and stopped UI synchronization. No target link or physical transport result
 is claimed. SAVE remains disarmed; installable-release acceptance is open.
+
+[verified] Hera completed all16 bounded catalogue shards at source
+6d971bf1c53e78fb6b1abc3f058ef7467840e77e:167 unique objects, all exits zero,
+no OOM, object hashes checked. The frozen Event Horizon+SET diagnostic linked
+and passed native audit: app849276bytes of860644, SHA256
+46842613d95445ba1088b276f7cc6d0e57b4a9b25b0b284e56552012a8603809.
+All13 sound engines/54 modules, telemetry, one-shot autoplay and TRS MIDI are
+linked. Private evidence is on Hera at
+`/home/claude/mvave-fm1/song-midi-link-6d971bf-20261015`.
+Independent read-only receipt review found no EH+SET policy mismatch. This
+remains a private diagnostic build, not hardware-admitted/installable firmware.
