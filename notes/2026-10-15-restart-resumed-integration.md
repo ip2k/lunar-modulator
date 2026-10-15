@@ -33,3 +33,29 @@ by rg. Rarefaction still selects the primary Developer checkout and its bounded
 named query found no symbol; do not infer missing callers from that result or
 retarget a shared server while other work is active. Native ABI/codegen checks
 continue to require the real pi32v2 tools and hardware evidence.
+
+## Recovery regression and independent package review
+
+[verified: host] Expanded candidate, generic diagnostic boot, SG adapter and
+flash suites completed:82 passed. This does not establish physical recovery.
+
+[verified: offline bytes] Independently regenerated the exact66c95bb tools
+archive and compared it bytewise with the worker export; checked all manifest
+file sizes/hashes and the constructed target/receipt hash. Protected stock
+regions0..0x4000 and0xD7000..end match the archived baseline. Evidence:
+`scratch/hall-gain-target-independent-review/root-construction-review.json`.
+The remaining source/campaign bindings are still being regenerated; no package
+staging, fresh-read admission, device write or reset occurred.
+
+[verified: review finding] Private installer evidence worker commit ed6adc5f
+is NOT integrated. Its new collector admits /catalogue and /output/build/link,
+but the actual worker mounts /input/catalogue and builds under
+/tmp/lunar-worker/output/build. Synthetic fixtures therefore do not prove the
+real service boundary. Root requested corrected actual-path fixtures, original
+receipt ordering, actual generated provenance coverage, canonical path checks,
+and file/aggregate caps before allocation. Worker owns corrections and checks.
+
+[reported: worker] Fresh current-source stage2/engine7 profiling catalogue
+completed16 Hera shards; bounded target link is running. It preserves all13
+engines, Event Horizon+SET, no autoplay/SAVE and120-second recovery. No current
+stage timing or hardware improvement has been measured from that build.
