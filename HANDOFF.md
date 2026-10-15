@@ -1,3 +1,31 @@
+## Drums block placement integrated; voice-body experiment running — 2026-10-15
+
+[verified: source/integration] Reviewed wrapper74c199b4 and RenderBlocke42cc2ab
+integrated as381d9dc1 and7732eb3fefa7619333cacd0ffdcc8487b8941ac8 on
+feature/2026-10-11@installable-firmware. Root92 focused catalogue/candidate/
+adapter/boot checks passed. Feature branch pushed; remote SHA verified7732eb3f.
+Independent target review in sibling drums-renderblock-ram checkout:
+scratch/drums-renderblock-ram-independent-review.md SHA
+2bfc1ce59e062acdad37fbdf032c61f12201af4a149fac23b75c14bd8b9f360b.
+Exact e42 linked target app855568B, DSP14360B ending0x1c03d80,8832B headroom;
+all16 shards/link and ten output hashes reviewed. RenderBlock436B is RAM,
+RenderVoice3104B still XIP. No performance benefit or musical acceptance proven.
+Defer physical campaign until larger actual voice-body placement is evaluated.
+
+[verified: delegation] demo_controller_review now owns isolated RenderVoice-RAM
+child from exacte42 (preserve arithmetic/defaults/all13/EH and prior profiles;
+bounded Hera build). physical_storage_compression audits remaining linked
+callee costs/closure read-only; profile_catalogue_build audits audio scheduling
+read-only and remains independent target reviewer. No worker device rights.
+ROM113 preparation scaffold remains PENDING; do not stage its stale9377348f
+artifacts or reuse consumedROM111. No device action this segment. Installed
+reference remains28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f.
+Latest physical498.453/689.344 blocks/s remains failed; cold-boot listeningFAILED.
+SAVE/autoplayoff. GoalACTIVE; full13/EH/persistence/recovery/webrelease unchanged.
+Serena config activeLunar but no absolute path; Rarefaction root primarycheckout,
+not this worktree, no compiledb. Shared session not retargeted; source/linked
+artifact inspection fallback. Existing untrackeduv.lock untouched.
+
 ## Resampler helper integrated; Drums wrapper reviewed; RenderBlock child pending — 2026-10-15
 
 [verified] Root cherry-picked reviewed ee823c4060d3d637aaecfcd4032b720ef921f0c4
