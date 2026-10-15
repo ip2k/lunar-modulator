@@ -6,6 +6,16 @@ a board from its build script. Build with `python -m tools.cynthion_usb_key.buil
 target GPIOs high impedance and requires the physical USER button to be stably
 released and then pressed before its finite attempt can begin.
 
+Every image leaves VBUS controls off by default. An operation image may be
+built with `--target-power-from-control`; this enables only the r1.4
+CONTROL-to-TARGET-A VBUS switch. TARGET-C passthrough, AUX VBUS, and discharge
+remain off. This is an explicit build-time choice, not a runtime control. It
+does not establish that a particular unit, cable, or power source is suitable;
+the owner must review the hardware sequence. Keep TARGET-C unplugged while the
+key attempt can drive lines; connect it only after terminal high impedance.
+The disconnected-selftest mode rejects this power option and always leaves
+all switches off.
+
 `--mode disconnected-selftest` creates a separate image that automatically
 drives the four USB line states through the N4/P3 series resistors after the
 target PHY has passed its non-driving configuration/readback sequence. This
@@ -24,16 +34,30 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | `0x03` | Status snapshot |
 
 Status register `0x03` packs state in bits 0–3, PHY ready/fault in bits 4–5,
-the four-step self-test mask in bits 6–9, line-state-valid in bit 10, and the
-USB3343 line-state value in bits 11–12. This is diagnostic telemetry and is not
-a safety interlock or hardware acceptance result. All registers are read-only.
+the four-step self-test mask in bits 6–9, line-state-valid in bit 10, the
+USB3343 line-state value in bits 11–12, disconnected-selftest mode in bit 13,
+and CONTROL-to-TARGET-A power selection in bit 14. This is diagnostic telemetry
+and is not a safety interlock or hardware acceptance result. All registers are
+read-only.
 The snapshot is captured in the USB clock domain to avoid a multi-bit clock
 domain crossing.
 
-All VBUS switches and the target-A discharge control are set to zero. On r1.4
-these switches are active high; in particular, leaving
-`target_c_vbus_en` high would enable the TARGET-C-to-TARGET-A path. No
-CONTROL-to-TARGET-A power mode is included in this image.
+The protocol's finite attempt limit is 30,000 packets. With the current
+16-bit word at 20 us per bit and 160 us release gap, the maximum packet train
+is 30,000 × (16 × 20 + 160) us = 14.4 seconds, plus self-test and transition
+time. The bound ends in fault without candidate ACK evidence; it is not a
+success signal or an estimate of ROM acceptance.
+
+On r1.4 these switches are active high; in particular, leaving
+`target_c_vbus_en` high would enable the TARGET-C-to-TARGET-A path. It is always
+set to zero here, even when CONTROL power is selected.
+
+The prototype currently emits SOF by pulling D+ low through the onboard 1 kΩ
+series resistor. Against the reported 1.5 kΩ ROM pull-up, an ideal divider
+would leave about 1.32 V at the target side, above the USB full-speed single-
+ended low maximum of 0.8 V. This is a source-derived concern, not a measured
+result; post-ACK SOF acceptance is therefore unproven. The prototype does not
+switch to PHY transmit mode.
 
 The target PHY configuration, electrical assumptions, remaining review gates,
 and offline verification limits are recorded in the task handoff. This
