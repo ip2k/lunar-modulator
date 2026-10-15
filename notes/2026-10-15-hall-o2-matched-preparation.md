@@ -64,3 +64,55 @@ exact-work elimination. Saved under `scratch/cpu8a-render-cost-review/` and
 changing filter quality, or claiming current limiter code matches the older
 CPU target. Hardware performance, listening, persistence/recovery, installer,
 review/CI, integration and shipment remain unfinished.
+
+## Staged-destination preflight caught manifest mismatch [verified]
+
+The v1 package passed nine focused synthetic checks and independent file-only
+review, but did not pass the actual destination preflight. Root staged its
+313 files from archive22e4c842c070f13c03e57b5f32bc87a872349d181b3f09030d0358c86dfd26e2
+into the new BASE, verified the312-entry deployment inventory and restored
+archive modes; staged61 native source files via its verified helper. No device
+operation or launch occurred. The first helper call refused a missing ordinary
+firmware parent; root created that directory and source staging then passed.
+
+The actual file-only preflight refused build/source-tree-manifest.json:
+its full manifest SHA7d815fa894446912d5b44c34fb9cb841476219ca84d374b47f31c378d8d14580
+was incorrectly pinned as the compact export manifest
+4d9f9f2b9c49827a6925128d4064696fc93007fa759a574b1ce8935982a342e5.
+The compact manifest belongs to archive staging; the full manifest belongs to
+source/build verification. The original archive/package remains preserved.
+Worker prepares a separate v2 package correcting that pin and dependent hash
+chain, with an explicit full-versus-compact path regression check. This failure
+was before USB, flash or reset. Actual destination preflight is still required;
+synthetic/package hash checks alone do not establish readiness.
+
+## V2 destination preflight stopped at stale capture verifier [verified]
+
+Root applied only the six independently reviewed v2 package files after
+verifying the original staged inventory, no launch marker, and the delta archive
+SHA3c41862ea6d47f5fe33cbeafe381d7ef3bc5c73ce9f013902b0dedd5f9bd3efd.
+All312 v2 deployment hashes matched. Independent review report SHA
+2953daf8ab8438e21c90d7342669b08e7b77b18d9e1b50b36f24386302a9dc88
+and ten focused tests passed. Actual destination file-only preflight with
+campaign92a1cbb1f4449aaef465f3e9c7cda1fa8aa7104dab3d73926d8f746af9fa4c66
+then refused: Runtime digest does not equal the externally frozen manifest pin.
+No device operation, launch marker, erase/program, or reset occurred.
+
+The campaign relocated three telemetry paths in the runtime manifest, producing
+8c6431ddb63f4f5d289676ed25de962ad653388c595d429a9cdccc5e0c3b6025,
+but its copied strict verifier retained the old CPU campaign manifest digest
+a795da42 and old telemetry paths. Worker prepares distinct v3 with consistently
+rebound campaign-local verifier/expected documents and refreshed hash chain.
+The maintained249-file runtime source archive/tree and175 dependency hashes
+must stay unchanged. Destination preflight remains mandatory before hardware.
+
+## Combined optimization build [verified; no hardware performance claim]
+
+Hera source48b5664a375b78785b76b681469864c7797d29fd build passed16 catalogue
+shards and all ten output hashes. Receipt29c82036de5b7e9536ecc061115d9dab56d36d41273a0223846007dd467e6531;
+app855912B SHA d1722912d7d4595aca9b3193ee403ea341d2498ec499741395be4e2572d9443c.
+Review /home/claude/mvave-fm1/hall-o2-led-target-48b5664a-20261015/review-handoff.md
+SHA b7c8c4cdc77f20bf1fd2b95eb3f0c418f2993f5a48448aab6065cc5943bcf157.
+Bounds checks precede octave LED seconds conversion; localized codegen evidence,
+not a whole-image parent A/B or runtime speedup. Hall-only matched candidate
+remains separate. Goal ACTIVE; cold-boot listening FAILED, SAVE/autoplayoff.

@@ -1,3 +1,18 @@
+## Hall package destination checks blocked launch — 2026-10-15
+
+[verified] ROM111 Hall candidate has NOT been launched or written. V1 refused
+full-vs-compact manifest mismatch; six-file v2 fixed that binding, but actual
+bench file-only preflight then refused stale capture-runtime verifier pins.
+All312 v2 inventory hashes and ten tests passed; this does not establish execution
+readiness. Worker physical_storage_compression prepares separate v3 consistent
+manifest/verifier/telemetry-path/hash-chain rebinding without changing maintained
+runtime tools or dependencies. See notes/2026-10-15-hall-o2-matched-preparation.md.
+BASE /home/claude/fm1-hall-o2-cpu-493a432c-20261015 is inert staging; no launch
+marker/cycle. Root alone owns bench actions. Fresh passive ROM identity plus
+paired reads/current5b3ebc0b, complete destination preflight, reviewed package,
+full readback and capture READY remain required. Musical acceptance FAILED.
+Goal ACTIVE; no physical intervention requested. uv.lock remains untouched.
+
 ## Performance changes integrated; Hall hardware package pending — 2026-10-15
 
 [verified] Root head48b5664a375b78785b76b681469864c7797d29fd is pushed to the
