@@ -161,8 +161,16 @@ class CynthionUsbKey(Elaboratable):
             self.debug_receiver_live.eq(receiver_live),
             self.debug_ack_ticks.eq(ack_ticks),
             self.debug_ack_confirm.eq(ack_confirm),
-            self.debug_wait_ticks.eq(wait_ticks),
-            self.debug_sof_ticks.eq(sof_ticks),
+            # The threshold cycle faults before the free-running counter's
+            # nonterminal increment. Report the configured elapsed threshold
+            # on that terminal path so the read-only receipt reflects the
+            # timeout duration rather than the preceding zero-based count.
+            self.debug_wait_ticks.eq(Mux(
+                self.protocol_failure_reason == self.PROTOCOL_FAULT_WAIT_DP_TIMEOUT,
+                self.dp_high_timeout, wait_ticks)),
+            self.debug_sof_ticks.eq(Mux(
+                self.protocol_failure_reason == self.PROTOCOL_FAULT_SOF_TIMEOUT,
+                self.sof_timeout, sof_ticks)),
             self.debug_dp_low_ticks.eq(dp_low_ticks),
             self.debug_key_bit.eq(tx_bit),
             self.debug_key_phase.eq(phase),

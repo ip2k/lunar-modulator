@@ -314,8 +314,8 @@ def test_terminal_protocol_fault_reports_timeout_stage_and_progress(
     stage, expected_reason, expected_origin
 ):
     dut = CynthionUsbKey(clock_hz=1_000_000, selftest_state_us=2,
-                         ack_duration_us=1, dp_high_timeout_ms=0.003,
-                         sof_timeout_ms=0.003, auto_selftest=True)
+                         ack_duration_us=1, dp_high_timeout_ms=1,
+                         sof_timeout_ms=1, auto_selftest=True)
     sim = Simulator(dut)
     sim.add_clock(1e-6, domain="usb")
 
@@ -330,7 +330,7 @@ def test_terminal_protocol_fault_reports_timeout_stage_and_progress(
             await ctx.tick(domain="usb")
             assert ctx.get(dut.state) == dut.SOF
 
-        for _ in range(8):
+        for _ in range(1_100):
             await ctx.tick(domain="usb")
             if ctx.get(dut.state) == dut.FAULT:
                 break
@@ -338,10 +338,11 @@ def test_terminal_protocol_fault_reports_timeout_stage_and_progress(
         assert ctx.get(dut.state) == dut.FAULT
         assert ctx.get(dut.protocol_failure_reason) == expected_reason
         assert ctx.get(dut.protocol_failure_origin_state) == expected_origin
-        assert ctx.get(dut.debug_wait_ticks) > 0
         if stage == "sof":
-            assert ctx.get(dut.debug_sof_ticks) == 3
+            assert ctx.get(dut.debug_wait_ticks) == 0
+            assert ctx.get(dut.debug_sof_ticks) == 1_000
         else:
+            assert ctx.get(dut.debug_wait_ticks) == 1_000
             assert ctx.get(dut.debug_sof_ticks) == 0
         assert ctx.get(dut.dp_oe) == 0
         assert ctx.get(dut.dm_oe) == 0
