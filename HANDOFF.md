@@ -1,3 +1,25 @@
+## Exact c0 OFF candidate constructed; ROM103 installation pending — 2026-10-15
+
+[verified: file-only] Reviewed compatibility fix integrated/pushed as
+2a8b7aa6ced69d4798c9bc4c6405c4b5ab977925 (tree7547cfbdbbfdbf304c12114690f8cc731fafca04).
+Root independently reran58 candidate/adapter/boot tests and5 v3 staging tests.
+Frozen local package scratch/c0-profiler-off-staging-v3/ retains exact c0 OFF
+firmware. Bundle ebbe5bb4ca07f7f4e1f20120107fe40cc9bc374baf944710c10324c74e8109b0
+was staged into fresh bench BASE /home/claude/fm1-c0-profiler-off-v2-20261015.
+All249 tools,60 native sources and175 runtime dependencies verified.
+Constructor SUCCEEDED: target1b6a0fc519d784cef96f1946a266fd7cf9d1785bb8f625a75c1a1238b447bbae;
+receipt a193f531f6b87e74c68cae0c28bf2f2ed0238dfcd5b4f89fda5ede57cb42872c;
+template1a00ad7979b62e27845cf1b7d744c8e86a85896a97eb97af70ba54ae2fc7295e.
+Root fetched/hash-verified all3 files under scratch/c0-profiler-off-deployment/constructed-v2.
+Independent geometry:210 changed sectors versus installed c7; protected
+[0,0x4000) and[0xD7000,1MiB) match both stock and current exactly.
+
+NO FLASH WRITE OR BOOT in this checkpoint. ROM103 passively reconfirmed.
+Next: finish/review v2 scaffold/binder against actual constructor template
+(includes exact diagnostic kind), bind pins, file-only preflight, then one
+fresh paired-read/install/full-readback/passive-capture campaign. Never retry
+ambiguous reset. SAVE disarmed; cold-boot acceptance FAILED; goal ACTIVE.
+
 ## ROM103 read complete; OFF construction refused safely — 2026-10-15
 
 Goal ACTIVE; cold-boot musical/performance acceptance FAILED; SAVE disarmed.
