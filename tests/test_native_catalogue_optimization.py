@@ -17,10 +17,19 @@ def test_profile_is_narrow_and_requires_size_base():
     assert compiler.optimization_overrides('z') == {}
     assert compiler.optimization_overrides('z', True) == {
         'our/src/mi_sixop.o': '-Os', 'our/src/fx_hall.o': '-Os'}
+    assert compiler.optimization_overrides('z', False, True) == {
+        'our/src/fx_limit.o': '-Os'}
+    assert compiler.optimization_overrides('z', True, True) == {
+        'our/src/mi_sixop.o': '-Os', 'our/src/fx_hall.o': '-Os',
+        'our/src/fx_limit.o': '-Os'}
     with pytest.raises(ValueError, match='-Oz base'):
         compiler.optimization_overrides('s', True)
+    with pytest.raises(ValueError, match='-Oz base'):
+        compiler.optimization_overrides('s', False, True)
     with pytest.raises(TypeError):
         compiler.optimization_overrides('z', 1)
+    with pytest.raises(TypeError):
+        compiler.optimization_overrides('z', False, 1)
 
 
 @pytest.mark.parametrize('enabled', (False, True))
@@ -56,12 +65,100 @@ def test_compiler_records_settings_actually_passed_to_make(tmp_path, monkeypatch
     report = json.loads((out / 'report.json').read_text())
     overrides = compiler.optimization_overrides('z', enabled)
     assert report['optimization_overrides'] == overrides
+    assert report['limiter_os'] is False
     assert len(calls) == len(report['results']) == 3
     for command, item in zip(calls, report['results']):
         expected = overrides.get(item['object'], '-Oz')
         assert command[-2] == 'OPT=' + expected
         assert item['optimization'] == expected
         assert item['sha256'] == hashlib.sha256(command[-2].encode()).hexdigest()
+
+
+def test_compiler_limiter_override_is_independent_and_receipted(tmp_path, monkeypatch):
+    headers = tmp_path / 'headers'
+    headers.mkdir()
+    (headers / '__config').write_text('#define _LIBCPP_HAS_THREAD_API_PTHREAD\n')
+    out = tmp_path / 'out'
+    names = ['our/src/fx_limit.o'] + [f'c/unit-{i}.o' for i in range(15)]
+    calls = []
+
+    def check_output(command, **kwargs):
+        if command[-1] == 'print-objs':
+            return '\n'.join(str(out / 'obj' / name) for name in names)
+        return ''
+
+    def run(command, **kwargs):
+        calls.append(command)
+        obj = Path(command[-1])
+        obj.parent.mkdir(parents=True, exist_ok=True)
+        obj.write_bytes(command[-2].encode())
+        return subprocess.CompletedProcess(command, 0, '', '')
+
+    monkeypatch.setattr(compiler, 'source_manifest', lambda root: {'x.c': 'current'})
+    monkeypatch.setattr(compiler.subprocess, 'check_output', check_output)
+    monkeypatch.setattr(compiler.subprocess, 'run', run)
+    monkeypatch.setattr(sys, 'argv', ['compile_catalogue', '--toolchain', str(tmp_path),
+                        '--cxx-headers', str(headers), '--out', str(out), '--shard', '0',
+                        '--opt', 'z', '--limiter-os'])
+    assert compiler.main() == 0
+    report = json.loads((out / 'report.json').read_text())
+    assert report['limiter_os'] is True
+    assert report['optimization_overrides'] == {'our/src/fx_limit.o': '-Os'}
+    assert len(calls) == len(report['results']) == 1
+    assert calls[0][-2] == 'OPT=-Os'
+    assert report['results'][0]['optimization'] == '-Os'
+
+
+def test_linker_requires_explicit_limiter_override_receipt(tmp_path, monkeypatch):
+    monkeypatch.setattr(builder, 'source_manifest', lambda root: {'x.c': 'current'})
+    names = ['our/src/fx_limit.o'] + [f'c/unit-{i}.o' for i in range(15)]
+    overrides = compiler.optimization_overrides('z', limiter_os=True)
+    for shard, name in enumerate(names):
+        directory = tmp_path / f'shard-{shard:02d}'
+        (directory / 'obj' / name).parent.mkdir(parents=True)
+        (directory / 'obj' / name).write_bytes(b'object')
+        (directory / 'cxx').mkdir()
+        (directory / 'cxx/__config').write_bytes(b'config')
+        (directory / 'objects.json').write_text(json.dumps(names))
+        report = dict(shard=shard, chunks=16, catalogue_objects=16,
+                      gpl_mods=1, modules='all', optimization='-Oz', lto=True,
+                      optimization_overrides=dict(overrides), limiter_os=True,
+                      shared_resampler=True, indexed_tft=False, shapes_voices=12,
+                      closed_sdk_archives=[], hot_dsp_ram=False,
+                      engine_render_profile=False, device_sdk_headers=[],
+                      source_manifest={'x.c': 'current'},
+                      configured_sha256=hashlib.sha256(b'config').hexdigest(),
+                      results=[dict(index=shard, object=name, exit=0,
+                                    optimization=overrides.get(name, '-Oz'),
+                                    sha256=hashlib.sha256(b'object').hexdigest())])
+        (directory / 'report.json').write_text(json.dumps(report))
+
+    # The experimental map cannot be consumed unless the linker caller also
+    # opts in and every shard declares and applies that exact object setting.
+    with pytest.raises(SystemExit):
+        builder.checked_catalogue(tmp_path)
+    objects, receipts = builder.checked_catalogue(tmp_path, limiter_os=True)
+    assert len(objects) == len(receipts) == 16
+    assert [r['optimization'] for r in receipts] == ['-Os'] + ['-Oz'] * 15
+
+    report_path = tmp_path / 'shard-00/report.json'
+    report = json.loads(report_path.read_text())
+    report['optimization_overrides'] = {}
+    report_path.write_text(json.dumps(report))
+    with pytest.raises(SystemExit, match='optimization overrides'):
+        builder.checked_catalogue(tmp_path, limiter_os=True)
+
+    report['optimization_overrides'] = dict(overrides)
+    report['limiter_os'] = 1
+    report_path.write_text(json.dumps(report))
+    with pytest.raises(SystemExit, match='limiter optimization selection'):
+        builder.checked_catalogue(tmp_path, limiter_os=True)
+
+    report['limiter_os'] = True
+    report['results'][0].pop('optimization')
+    report_path.write_text(json.dumps(report))
+    with pytest.raises(SystemExit, match='optimization mismatch'):
+        builder.checked_catalogue(tmp_path, limiter_os=True)
 
 
 @pytest.mark.parametrize('enabled', (False, True))
