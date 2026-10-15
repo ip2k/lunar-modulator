@@ -15,7 +15,7 @@ class CynthionUsbKey(Elaboratable):
     """Finite D+ clock attempt, preceded by an RXCMD four-state self-test.
 
     FS line-state encoding is DP | (DM << 1): SE0/J/K/SE1 = 0/1/2/3. A fresh
-    RXCMD update must agree with a driven high-phase J/K state before the
+    RXCMD update must agree with a driven high-phase J/SE1 state before the
     receiver is considered live. A candidate ACK requires SE0 while the key
     waveform is actively driven for 100 us; released GAP SE0 never counts.
     This contract is only a simulation target: change-reported RXCMD status
