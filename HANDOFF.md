@@ -1,20 +1,15 @@
-## Cynthion cold-recovery preparation — 2026-10-15
+## Cynthion first FM1 key attempt — 2026-10-15
 
-[verified: owner] Both TARGET ports are empty; CONTROL remains on the Mac.
-[verified: coordinator hardware test] Corrected disconnected image f5b95db8...
-passed all four GPIO-to-PHY loopback states: observed [2,1,0,3], mask15,
-DONE, PHYready, no fault and GPIO outputs released. The omitted inherited
-USB3343 register0x39=0x06 board setting caused the prior J/K reversal.
-The corrected CONTROL-powered operation image30a3ca6c... is now loaded
-volatily. JTAG status0x4410: SAFE/disarmed, PHYready, no fault, GPIO OEs0.
-No FM1 has been attached or keyed in coordinator evidence. Owner has been
-given the TARGET-A-only / USER press / immediate FM1-on sequence; physical
-response is pending. Do not connect TARGET-C until terminal high impedance
-is observed. Recovery/ROM enumeration remains unverified.
-Root owns all device operations. Literal JTAG/upload evidence is under
-scratch/cynthion-usb-key-20261015/phy-swap-v1/.
-See notes/2026-10-15-cynthion-usb-key-recovery.md for gates/restoration plan.
-Power loss invalidates retained-loader admission; current flash remains unknown.
+[verified: owner] USER pressed once, FM1 switched on. Root JTAG status0x47d8:
+selftestmaskF/observedC6/validF, PHYready/noPHYfault, terminalFAULT, GPIO/OEs0.
+No ROM-entry evidence yet; layout3 cannot identify later protocol failure stage.
+Owner asked to leave FM1 powered and connect TARGET-C to bench01 after outputs
+were verified released. Physical response/USB enumeration pending. No loader,
+flash read/write or reset issued. Current loaded CONTROL-powered operation
+SHA30a3ca6c...; do not reconfigure while FM1 connected. Worker adding read-only
+failure-stage/progress telemetry; no waveform or arming changes authorized there.
+Cold adapter9a6ea558... is integrated; exact physical timestamps must remain
+honest. See recovery note for literal result and unexpired admission gates.
 
 ## Latest source/CI checkpoint — 2026-10-15
 

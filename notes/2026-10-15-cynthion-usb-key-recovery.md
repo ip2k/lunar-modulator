@@ -229,3 +229,20 @@ rejected. Cold adapter SHA-256:
 `9a6ea5583c985a1c2d0604f0bb5ddc4692ebafcb046d5ba36b61000c1326cc1c`.
 Combined focused integration suite:100 passed,43 upstream warnings. Physical
 key action, actual ROM enumeration and paired backup remain pending.
+
+## First owner-controlled FM1 attempt
+
+[verified: owner report] USER was pressed once and FM1 switched on as requested;
+no precise physical action timestamp was supplied. [verified: coordinator JTAG
+at Unix1792106565.965976] Registers1..11 hex:
+`4c554e52,3,47d8,0,0,0,01010101,c6,f,c6,ff0d7a`.
+The four-state self-test passed while connected, PHYready1/noPHYfault,
+terminalFAULT8 and liveGPIO0 with both output enables released. No self-test
+failure was latched. The current layout does not identify which later protocol
+phase faulted; do not infer ACK/SOF completion or ROM entry. Literal result:
+`scratch/cynthion-usb-key-20261015/control-power-operation/owner-attempt-1-status.json`.
+
+Owner was asked to leave FM1 powered and connect TARGET-C to bench01 only after
+this terminal/high-Z result, for fresh USB enumeration. Response/enumeration
+pending. No RAM loader, flash read or repair write has been issued. Worker is
+adding read-only protocol-failure/progress telemetry without changing waveform.
