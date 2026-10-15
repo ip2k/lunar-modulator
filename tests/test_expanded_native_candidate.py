@@ -116,7 +116,23 @@ def test_expanded_candidate_hot_dsp_ram_requires_matching_verified_receipts(samp
     assert target[0xD9000:] == sample['baseline'][0xD9000:]
 
 
-@pytest.mark.parametrize('fault', ['artifact-off', 'runtime', 'save', 'body', 'missing-boxstep', 'missing-fmvoice',
+def test_expanded_candidate_accepts_exact_legacy_hot_dsp_ram_body_profile(sample):
+    args = inputs(sample, hot_dsp_ram=True)
+    legacy_bodies = [
+        'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
+        'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
+        'Hall::Instance::Render', 'Limiter::Render', 'fm1_app_render']
+    assert candidate.HOT_DSP_RAM_LEGACY_BODIES == legacy_bodies
+    receipt = hot_dsp_receipt(args['elf'], body_list=legacy_bodies)
+    target, candidate_receipt = candidate.construct(
+        **args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
+    assert candidate_receipt['hot_dsp_ram'] is True
+    assert candidate_receipt['elf_verified'] and candidate_receipt['provenance_verified']
+    assert target[0xD9000:] == sample['baseline'][0xD9000:]
+
+
+@pytest.mark.parametrize('fault', ['artifact-off', 'runtime', 'save', 'body', 'missing-render',
+                                  'legacy-incomplete', 'missing-fmvoice',
                                   'duplicate-fmvoice', 'missing-fm-template',
                                   'duplicate-fm-template', 'extent'])
 def test_expanded_candidate_hot_dsp_ram_rejects_receipt_mismatch(sample, fault):
@@ -126,14 +142,34 @@ def test_expanded_candidate_hot_dsp_ram_rejects_receipt_mismatch(sample, fault):
     elif fault == 'runtime': receipt['verification']['runtime_configuration']['runtime_mode'] = 'continuous'
     elif fault == 'save': receipt['verification']['project_save_service']['save_service_armed'] = True
     elif fault == 'body': receipt['verification']['hot_dsp_ram']['selected_bodies'] = ['fm1_app_render']
-    elif fault == 'missing-boxstep':
+    elif fault == 'missing-render':
         receipt['verification']['hot_dsp_ram']['selected_bodies'] = [
-            x for x in candidate.HOT_DSP_RAM_BODIES if x != 'Limiter::BoxStep']
+            x for x in candidate.HOT_DSP_RAM_BODIES if x != 'Limiter::Render']
+    elif fault == 'legacy-incomplete':
+        receipt['verification']['hot_dsp_ram']['selected_bodies'] = [
+            x for x in candidate.HOT_DSP_RAM_LEGACY_BODIES if x != 'Hall::Instance::Render']
     elif fault == 'missing-fmvoice': receipt['verification']['hot_dsp_ram']['selected_bodies'] = [x for x in candidate.HOT_DSP_RAM_BODIES if x != 'plaits::FMVoice::Render']
     elif fault == 'duplicate-fmvoice': receipt['verification']['hot_dsp_ram']['selected_bodies'] = candidate.HOT_DSP_RAM_BODIES + ['plaits::FMVoice::Render']
     elif fault == 'missing-fm-template': receipt['verification']['hot_dsp_ram']['selected_bodies'] = [x for x in candidate.HOT_DSP_RAM_BODIES if x != 'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)']
     elif fault == 'duplicate-fm-template': receipt['verification']['hot_dsp_ram']['selected_bodies'] = candidate.HOT_DSP_RAM_BODIES + ['plaits::fm::Voice<6>::Render(Parameters,float**,size_t)']
     else: receipt['verification']['hot_dsp_ram']['extent']['bytes'] += 4
+    with pytest.raises(ValueError):
+        candidate.construct(**args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
+
+
+@pytest.mark.parametrize('fault', ['callee-claim', 'flash-write', 'runtime-timeout',
+                                  'save-admitted', 'save-armed', 'save-runtime', 'extent'])
+def test_legacy_hot_dsp_body_profile_keeps_existing_safety_gates(sample, fault):
+    args = inputs(sample, hot_dsp_ram=True)
+    receipt = hot_dsp_receipt(args['elf'], body_list=candidate.HOT_DSP_RAM_LEGACY_BODIES)
+    verification = receipt['verification']
+    if fault == 'callee-claim': verification['hot_dsp_ram']['all_callees_in_ram'] = True
+    elif fault == 'flash-write': verification['hot_dsp_ram']['flash_write_execution_verified'] = True
+    elif fault == 'runtime-timeout': verification['runtime_configuration']['return_to_rom_seconds'] = 121
+    elif fault == 'save-admitted': verification['project_save_service']['storage_admitted'] = True
+    elif fault == 'save-armed': verification['project_save_service']['save_service_armed'] = True
+    elif fault == 'save-runtime': verification['project_save_service']['runtime_verified'] = True
+    else: verification['hot_dsp_ram']['extent']['bytes'] += 4
     with pytest.raises(ValueError):
         candidate.construct(**args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
 
