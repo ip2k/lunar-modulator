@@ -33,7 +33,7 @@
     "src/platform.c": "98025f78140e3cb985d9e7b2ef738ca32909f6e963ee068fe42d35a6cd553636",
     "src/recovery.c": "f2c7c0c0fd1592f8390ee0066f96033843a3e2eaabbf995013ee9b0735429929",
     "src/uac_fir.h": "b4393a8efc4ce5427334692b9857d31446a36416dc6ca7941aea5bd4add4ca56",
-    "src/usb.c": "68cbe458df1119a4517a384840f22f6359107453e571b3612672e01d52325857"
+    "src/usb.c": "fc25d9ce8d4100a95ef9ec07a52bc25befe894df6e63e7f48d073727bdf6320d"
   },
   "local_modifications": {
     "hal/fm1_flash.h": {
@@ -50,6 +50,11 @@
       "upstream_sha256": "6cfb23b317af3d95da4d6eeeb8a34de59ee77a626d7d17484398feeb2535bfd7",
       "local_sha256": "98025f78140e3cb985d9e7b2ef738ca32909f6e963ee068fe42d35a6cd553636",
       "reason": "Adds a compile-time guarded native UART1 MIDI initialization hook immediately before TIMER5 starts, preserving unchanged behavior when LUNAR_UART1_MIDI is not defined."
+    },
+    "src/usb.c": {
+      "upstream_sha256": "68cbe458df1119a4517a384840f22f6359107453e571b3612672e01d52325857",
+      "local_sha256": "fc25d9ce8d4100a95ef9ec07a52bc25befe894df6e63e7f48d073727bdf6320d",
+      "reason": "Replaces inherited USB manufacturer and application/update product string descriptors with Lunar Modulator identity, preserving USB protocol fields and required source attribution."
     }
   }
 }

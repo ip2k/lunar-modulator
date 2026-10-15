@@ -55,3 +55,30 @@ def test_cli_refuses_invalid_identity_before_creating_build(tmp_path):
     assert result.returncode != 0
     assert "native Lunar identity" in result.stderr
     assert not out.exists()
+
+
+@pytest.mark.parametrize("loader, product", [(False, "Lunar Modulator"),
+                                            (True, "Lunar Modulator Update")])
+def test_usb_string_descriptor_wire_identity(tmp_path, loader, product):
+    # Compile the real declarations so descriptor byte counts are checked
+    # independently of C spelling and for both application/loader branches.
+    source = (ROOT / "firmware/third_party/dinghy/src/usb.c").read_text()
+    start = source.index("static const uint8_t STR0")
+    end = source.index("static int get_desc", start)
+    fixture = tmp_path / "strings.c"
+    fixture.write_text("#include <stdint.h>\n#include <stdio.h>\n" +
+                       ("#define FELUCCA_LOADER 1\n" if loader else "") +
+                       source[start:end] +
+                       "int main(void) { fwrite(STR1, 1, sizeof STR1, stdout); "
+                       "fwrite(STR2, 1, sizeof STR2, stdout); return 0; }\n")
+    executable = tmp_path / "strings"
+    subprocess.run(["cc", str(fixture), "-o", str(executable)], check=True)
+    data = subprocess.check_output([str(executable)])
+    decoded = []
+    while data:
+        size, descriptor_type = data[:2]
+        assert descriptor_type == 3 and size >= 2 and size % 2 == 0
+        assert size <= len(data)
+        decoded.append(data[2:size].decode("utf-16le"))
+        data = data[size:]
+    assert decoded == ["Lunar Modulator", product]
