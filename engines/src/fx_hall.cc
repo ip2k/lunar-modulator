@@ -202,7 +202,18 @@ inline float TauCoefficient(float tau, float rate, float every) {
   return 1.0f - HallExp2(-kLog2e * every / (tau * rate));
 }
 
-inline float Guard(float x) {
+// These small operations execute per sample. Keep their arithmetic and
+// ordering explicit; the noinline mode exists only for the exact-state host
+// equivalence test.
+#if defined(FM1_HALL_TEST_NOINLINE_HELPERS) && (defined(__clang__) || defined(__GNUC__))
+#define HALL_SAMPLE_INLINE inline __attribute__((noinline))
+#elif defined(__clang__) || defined(__GNUC__)
+#define HALL_SAMPLE_INLINE inline __attribute__((always_inline))
+#else
+#define HALL_SAMPLE_INLINE inline
+#endif
+
+HALL_SAMPLE_INLINE float Guard(float x) {
   if (x > -kInputLimit && x < kInputLimit) return x;  // NaN fails both
   if (x >= kInputLimit) return kInputLimit;
   if (x <= -kInputLimit) return -kInputLimit;
@@ -219,7 +230,7 @@ inline float Flush(float y) { return (y > -kFlush && y < kFlush) ? 0.0f : y; }
 
 // A word: saturated at the 16-bit limits, as FxEngine's stores are (a hard
 // clip, reached only 6 dB over full scale), and truncated towards zero.
-inline int16_t Word(float s) {
+HALL_SAMPLE_INLINE int16_t Word(float s) {
   s = s > 32767.0f ? 32767.0f : s;
   s = s < -32767.0f ? -32767.0f : s;
   return static_cast<int16_t>(s);
@@ -232,7 +243,7 @@ inline int16_t Word(float s) {
 // leaves plain magnitude truncation, so nothing small recirculates for ever
 // and the tail ends in exact zeros; Freeze takes it to 0.5, rounding
 // everywhere, so a held sound does not fade.
-inline int16_t LineWord(float s, float bias) {
+HALL_SAMPLE_INLINE int16_t LineWord(float s, float bias) {
   const float a = s < 0.0f ? -s : s;
   const float b = a >= kRoundAbove ? 0.5f : bias;
   return Word(s < 0.0f ? s - b : s + b);
@@ -252,7 +263,7 @@ inline float ClampDelay(float t, float max) {
 struct Glide {
   float value, target;
   void Snap() { value = target; }
-  void Step(float k, float epsilon) {
+  HALL_SAMPLE_INLINE void Step(float k, float epsilon) {
     const float d = target - value;
     if (d > -epsilon && d < epsilon) value = target;
     else value += k * d;
