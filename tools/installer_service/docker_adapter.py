@@ -16,10 +16,12 @@ import subprocess
 import tempfile
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .api import (MAX_ARTIFACT_BYTES, MAX_BODY_BYTES, MAX_ELF_BYTES, QueueFull,
-                  WorkerResult, WorkerSnapshot)
+                  WorkerResult, WorkerSnapshot, _unique_object, _reject_constant)
+from .provenance import (make_diagnostic_provenance, sha256 as _sha256,
+                         tree_manifest)
 
 _BUILD_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 _IMAGE = "lunar-recovery-pytest@sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d"
@@ -40,6 +42,7 @@ class DockerWorkerConfig:
     timeout_seconds: int = 1500
     max_log_bytes: int = 1024 * 1024
     max_artifact_bytes: int = MAX_ARTIFACT_BYTES
+    source_tree_oid: str = field(init=False, repr=False)
 
     def __post_init__(self):
         if not re.fullmatch(r"[0-9a-f]{40}", self.source_commit):
@@ -57,10 +60,14 @@ class DockerWorkerConfig:
             raise ValueError("Docker mount path contains unsupported delimiter")
         head = subprocess.run(["git", "-C", str(self.source_root), "rev-parse", "HEAD"],
                               capture_output=True, text=True, timeout=5, check=True).stdout.strip()
+        tree = subprocess.run(["git", "-C", str(self.source_root), "rev-parse",
+                               self.source_commit + "^{tree}"],
+                              capture_output=True, text=True, timeout=5, check=True).stdout.strip()
         dirty = subprocess.run(["git", "-C", str(self.source_root), "status", "--porcelain", "--untracked-files=no"],
                                capture_output=True, text=True, timeout=5, check=True).stdout
         if head != self.source_commit or dirty:
             raise ValueError("source checkout must match pinned clean commit")
+        object.__setattr__(self, "source_tree_oid", tree)
         if not re.fullmatch(r"[1-8]", self.cpu_limit):
             raise ValueError("CPU cap must be 1 through 8")
         if not re.fullmatch(r"[1-9][0-9]?(?:[mMgG])", self.memory_limit):
@@ -149,6 +156,28 @@ class DockerJobAdapter:
                 digest_path = request_dir / "docker_worker.sha256"
                 digest_path.write_text(worker_digest + "\n", encoding="ascii")
                 os.chmod(digest_path, 0o400)
+                catalogue_manifest = tree_manifest(self.config.catalogue_root)
+                toolchain_manifest = tree_manifest(self.config.toolchain_root)
+                for name, raw in (("catalogue-tree-manifest.json", catalogue_manifest),
+                                  ("toolchain-tree-manifest.json", toolchain_manifest)):
+                    path = request_dir / name
+                    path.write_bytes(raw)
+                    os.chmod(path, 0o400)
+                binding = {
+                    "schema": 1,
+                    "source_commit": self.config.source_commit,
+                    "source_tree_oid": self.config.source_tree_oid,
+                    "source_archive_sha256": _sha256(archive_path.read_bytes()),
+                    "worker_sha256": worker_digest,
+                    "worker_image_digest": template.image_digest,
+                    "catalogue_manifest_sha256": _sha256(catalogue_manifest),
+                    "toolchain_manifest_sha256": _sha256(toolchain_manifest),
+                    "request_sha256": request_sha256,
+                }
+                binding_path = request_dir / "host-bindings.json"
+                binding_path.write_bytes(json.dumps(binding, sort_keys=True,
+                    separators=(",", ":")).encode("ascii"))
+                os.chmod(binding_path, 0o400)
             except Exception:
                 if "base" in locals():
                     shutil.rmtree(base, ignore_errors=True)
@@ -267,7 +296,44 @@ class DockerJobAdapter:
             if (len(artifact) != artifact_size or len(elf) != elf_size
                     or len(receipt) != receipt_size):
                 raise ValueError("worker output changed while being collected")
-            outcome = WorkerSnapshot("succeeded", WorkerResult(artifact, receipt, elf))
+            input_dir = base / "input"
+            binding_raw = (input_dir / "host-bindings.json").read_bytes()
+            binding = json.loads(binding_raw, object_pairs_hook=_unique_object,
+                                 parse_constant=_reject_constant)
+            expected_binding_keys = {"schema", "source_commit", "source_tree_oid",
+                "source_archive_sha256", "worker_sha256", "worker_image_digest",
+                "catalogue_manifest_sha256", "toolchain_manifest_sha256", "request_sha256"}
+            catalogue_manifest = (input_dir / "catalogue-tree-manifest.json").read_bytes()
+            toolchain_manifest = (input_dir / "toolchain-tree-manifest.json").read_bytes()
+            if (not isinstance(binding, dict) or set(binding) != expected_binding_keys
+                    or type(binding.get("schema")) is not int or binding["schema"] != 1
+                    or binding.get("source_commit") != self.config.source_commit
+                    or binding.get("source_tree_oid") != self.config.source_tree_oid
+                    or binding.get("worker_image_digest") != self.config.image_reference.split("@", 1)[1]
+                    or _sha256(catalogue_manifest) != binding.get("catalogue_manifest_sha256")
+                    or _sha256(toolchain_manifest) != binding.get("toolchain_manifest_sha256")
+                    or tree_manifest(self.config.catalogue_root) != catalogue_manifest
+                    or tree_manifest(self.config.toolchain_root) != toolchain_manifest
+                    or _sha256((input_dir / "request.json").read_bytes()) != binding.get("request_sha256")
+                    or _sha256((input_dir / "source.tar").read_bytes()) != binding.get("source_archive_sha256")
+                    or _sha256((input_dir / "docker_worker.py").read_bytes()) != binding.get("worker_sha256")):
+                raise ValueError("build provenance inputs changed during worker execution")
+            try:
+                receipt_object = json.loads(receipt.decode("utf-8"), object_pairs_hook=_unique_object,
+                                         parse_constant=_reject_constant)
+            except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+                raise ValueError("worker image receipt is malformed") from exc
+            if not isinstance(receipt_object, dict):
+                raise ValueError("worker image receipt must be an object")
+            provenance = make_diagnostic_provenance(
+                bindings={key: value for key, value in binding.items()
+                          if key not in ("request_sha256", "schema")},
+                request_sha256=binding["request_sha256"], artifact=artifact, elf=elf,
+                receipt_raw=receipt, receipt=receipt_object)
+            provenance_path = result_dir / "provenance.json"
+            provenance_path.write_bytes(provenance)
+            os.chmod(provenance_path, 0o600)
+            outcome = WorkerSnapshot("succeeded", WorkerResult(artifact, receipt, elf, provenance))
         except Exception:
             outcome = WorkerSnapshot("failed")
         finally:

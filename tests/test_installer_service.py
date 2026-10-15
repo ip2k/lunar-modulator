@@ -142,6 +142,7 @@ def result_receipt(doc, req_sha, artifact, elf=TEST_ELF):
     pool_bytes = 249088 - (33024 if wave_rows else 0)
     return json.dumps({
         "version": 1, "status": "linked-private-diagnostic",
+        "flash_layout": "expanded-d9000",
         "request_sha256": req_sha, "prepared_profile_sha256": prepared_sha,
         "project_ids": doc["project_ids"], "set_ids": set_ids,
         "set_parents": {set_id: "song-one" for set_id in set_ids},
@@ -207,6 +208,61 @@ def test_success_verifies_exact_request_and_app_bytes():
     assert result["remaining_bytes"] == result["app_budget_bytes"] - len(b"diagnostic-app")
     assert result["installable"] is False
     assert result["hardware_tested"] is False
+
+
+@pytest.mark.parametrize("mutation", ["request", "artifact", "image", "compatible", "installable"])
+def test_service_rejects_stale_or_overstated_diagnostic_provenance(mutation):
+    c, adapter = client()
+    accepted = accept_and_succeed(c, adapter)
+    build_id = accepted.json()["id"]
+    snapshot = adapter.jobs[build_id]
+    result = snapshot.result
+    envelope = json.loads(result.provenance)
+    if mutation == "request":
+        envelope["bindings"]["request_sha256"] = "f" * 64
+    elif mutation == "artifact":
+        envelope["outputs"]["artifact_sha256"] = "f" * 64
+    elif mutation == "image":
+        envelope["bindings"]["worker_image_digest"] = "sha256:" + "f" * 64
+    elif mutation == "compatible":
+        envelope["trusted_fwsc_packager_compatible"] = True
+    else:
+        envelope["installable"] = True
+    adapter.jobs[build_id] = type(snapshot)(snapshot.status, type(result)(
+        result.artifact, result.receipt, result.elf,
+        json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode("ascii")))
+    response = c.get(accepted.json()["status_url"])
+    assert response.status_code == 502
+
+
+def test_success_status_exposes_only_bounded_provenance_bindings():
+    c, adapter = client()
+    accepted = accept_and_succeed(c, adapter)
+    response = c.get(accepted.json()["status_url"])
+    assert response.status_code == 200
+    summary = response.json()["result"]["provenance"]
+    assert summary["kind"] == "private-diagnostic-build-provenance"
+    assert summary["source_tree_oid"] == "2" * 40
+    assert summary["trusted_fwsc_packager_compatible"] is False
+    assert set(summary) == {"sha256", "kind", "source_commit", "source_tree_oid",
+                            "source_archive_sha256", "worker_sha256", "worker_image_digest",
+                            "catalogue_manifest_sha256", "toolchain_manifest_sha256",
+                            "request_sha256", "output_bindings", "profile",
+                            "trusted_fwsc_packager_compatible"}
+    assert "artifact" not in summary and "receipt" not in summary
+
+
+@pytest.mark.parametrize("provenance", [b"", b" " * (65536 + 1)])
+def test_service_rejects_empty_or_oversized_provenance_before_json_parse(provenance):
+    c, adapter = client()
+    accepted = accept_and_succeed(c, adapter)
+    build_id = accepted.json()["id"]
+    snapshot = adapter.jobs[build_id]
+    result = snapshot.result
+    adapter.jobs[build_id] = type(snapshot)(snapshot.status, type(result)(
+        result.artifact, result.receipt, result.elf, provenance))
+    response = c.get(accepted.json()["status_url"])
+    assert response.status_code == 502
 
 
 def test_shapes_receipt_binds_compressed_braids_bank_and_pool():
@@ -643,9 +699,35 @@ def _docker_lifecycle_adapter(tmp_path):
     base = runtime / build_id
     (base / "input").mkdir(parents=True)
     (base / "result").mkdir()
-    (base / "result/app.bin").write_bytes(b"app")
+    app_bytes = b"app"
+    request_bytes = canonical_request(request_doc())
+    request_sha = hashlib.sha256(request_bytes).hexdigest()
+    receipt = result_receipt(request_doc(), request_sha, app_bytes, TEST_ELF)
+    (base / "input/request.json").write_bytes(request_bytes)
+    archive_bytes = b"fixture source archive"
+    (base / "input/source.tar").write_bytes(archive_bytes)
+    pinned_worker = subprocess.run(
+        ["git", "-C", str(source), "show", commit + ":tools/installer_service/docker_worker.py"],
+        check=True, capture_output=True).stdout
+    (base / "input/docker_worker.py").write_bytes(pinned_worker)
+    from tools.installer_service.provenance import sha256 as prov_sha, tree_manifest
+    catalogue_manifest = tree_manifest(catalogue)
+    toolchain_manifest = tree_manifest(toolchain)
+    (base / "input/catalogue-tree-manifest.json").write_bytes(catalogue_manifest)
+    (base / "input/toolchain-tree-manifest.json").write_bytes(toolchain_manifest)
+    bindings = {
+        "schema": 1, "source_commit": commit, "source_tree_oid": config.source_tree_oid,
+        "source_archive_sha256": prov_sha(archive_bytes),
+        "worker_sha256": prov_sha(pinned_worker),
+        "worker_image_digest": config.image_reference.split("@", 1)[1],
+        "catalogue_manifest_sha256": prov_sha(catalogue_manifest),
+        "toolchain_manifest_sha256": prov_sha(toolchain_manifest),
+        "request_sha256": request_sha,
+    }
+    (base / "input/host-bindings.json").write_text(json.dumps(bindings), encoding="ascii")
+    (base / "result/app.bin").write_bytes(app_bytes)
     (base / "result/elf.bin").write_bytes(TEST_ELF)
-    (base / "result/image.json").write_bytes(b"{}")
+    (base / "result/image.json").write_bytes(receipt)
     adapter.semaphore.acquire()
     adapter.job_dirs[build_id] = base
     adapter.jobs[build_id] = __import__(
@@ -755,6 +837,19 @@ def test_docker_adapter_retains_bounded_elf_and_rejects_bad_elf_outputs(tmp_path
     for bad in ("missing", "empty", "oversized", "symlink"):
         failed = run_case(tmp_path / bad, bad)
         assert failed.status == "failed", bad
+
+
+def test_docker_adapter_rejects_catalogue_changed_after_submission(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from tools.installer_service import docker_adapter as module
+
+    adapter, build_id, _base = _docker_lifecycle_adapter(tmp_path)
+    (adapter.config.catalogue_root / "late-object.o").write_bytes(b"changed after pin")
+    proc = _FakeDockerClientProcess(initial_returncode=0)
+    monkeypatch.setattr(module.subprocess, "Popen", lambda *a, **k: proc)
+    monkeypatch.setattr(module.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0))
+    adapter._run(build_id)
+    assert adapter.get(build_id).status == "failed"
 
 
 def test_docker_log_overflow_fails_even_if_client_exits_zero(tmp_path, monkeypatch):

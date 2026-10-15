@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, Validat
 
 from tools.native.module_selection import wavetable_namespaces
 from tools.native.runtime_mode import runtime_configuration
+from .provenance import make_diagnostic_provenance, sha256 as provenance_sha256
 
 MAX_BODY_BYTES = 65536
 MAX_ARTIFACT_BYTES = 1048576
@@ -99,6 +100,7 @@ class WorkerResult:
     artifact: bytes
     receipt: bytes
     elf: bytes
+    provenance: bytes
 
 
 @dataclass(frozen=True)
@@ -140,8 +142,29 @@ class FakeJobAdapter:
     def set_running(self, build_id):
         self.jobs[build_id] = WorkerSnapshot("running")
 
-    def succeed(self, build_id, artifact, receipt, elf=b"diagnostic-elf"):
-        self.jobs[build_id] = WorkerSnapshot("succeeded", WorkerResult(artifact, receipt, elf))
+    def succeed(self, build_id, artifact, receipt, elf=b"diagnostic-elf", provenance=None):
+        if provenance is None:
+            # Negative-path tests deliberately inject malformed receipts and
+            # artifacts. Keep the fake adapter from raising before the status
+            # endpoint can exercise its controlled refusal path.
+            try:
+                parsed = json.loads(receipt)
+                bindings = {
+                    "source_commit": "1" * 40,
+                    "source_tree_oid": "2" * 40,
+                    "source_archive_sha256": "3" * 64,
+                    "worker_sha256": "4" * 64,
+                    "worker_image_digest": self.submissions[build_id][2].image_digest,
+                    "catalogue_manifest_sha256": "6" * 64,
+                    "toolchain_manifest_sha256": "7" * 64,
+                }
+                provenance = make_diagnostic_provenance(
+                    bindings=bindings, request_sha256=parsed["request_sha256"],
+                    artifact=artifact, elf=elf, receipt_raw=receipt, receipt=parsed)
+            except (ValueError, KeyError, TypeError, UnicodeDecodeError, RecursionError):
+                provenance = b"{}"
+        self.jobs[build_id] = WorkerSnapshot(
+            "succeeded", WorkerResult(artifact, receipt, elf, provenance))
 
     def fail(self, build_id):
         self.jobs[build_id] = WorkerSnapshot("failed")
@@ -152,6 +175,7 @@ class Admission:
     request_sha256: str
     request: dict
     created_at: float
+    worker_image_digest: str
 
 
 def _verify_wavetable_receipt(receipt: dict, selected: list[str]) -> None:
@@ -216,9 +240,10 @@ def _verify_runtime_configuration(receipt: dict) -> None:
 
 def _verify_result(admission: Admission, result: WorkerResult, trusted_set_parents=None) -> dict:
     if (not isinstance(result.artifact, bytes) or not isinstance(result.elf, bytes)
-            or not isinstance(result.receipt, bytes) or not result.artifact or not result.elf
+            or not isinstance(result.receipt, bytes) or not isinstance(result.provenance, bytes)
+            or not result.artifact or not result.elf or not result.provenance
             or len(result.artifact) > MAX_ARTIFACT_BYTES or len(result.elf) > MAX_ELF_BYTES
-            or len(result.receipt) > 65536):
+            or len(result.receipt) > 65536 or len(result.provenance) > 65536):
         raise ValueError("worker result exceeds configured cap or is malformed")
     try:
         receipt = json.loads(result.receipt, object_pairs_hook=_unique_object,
@@ -228,6 +253,14 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
         raise ValueError("worker receipt is invalid JSON") from exc
     if not isinstance(receipt, dict):
         raise ValueError("worker receipt is not an object")
+    try:
+        provenance = json.loads(result.provenance.decode("ascii"), object_pairs_hook=_unique_object,
+                                parse_constant=_reject_constant)
+    except (UnicodeDecodeError, json.JSONDecodeError, DuplicateKey, ValueError,
+            RecursionError) as exc:
+        raise ValueError("worker provenance is invalid JSON") from exc
+    if not isinstance(provenance, dict):
+        raise ValueError("worker provenance is not an object")
     artifact_sha = hashlib.sha256(result.artifact).hexdigest()
     elf_sha = hashlib.sha256(result.elf).hexdigest()
     request = admission.request
@@ -247,6 +280,7 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
     _verify_runtime_configuration(receipt)
     if (type(receipt.get("version")) is not int or receipt["version"] != 1
             or receipt.get("status") != "linked-private-diagnostic"
+            or receipt.get("flash_layout") != "expanded-d9000"
             or receipt.get("request_sha256") != admission.request_sha256
             or receipt.get("project_ids") != projects
             or receipt.get("set_ids", []) != set_ids
@@ -271,6 +305,8 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
             or receipt["module_selection"].get("selected") != expected_selected):
         raise ValueError("worker module selection differs from admission")
     _verify_wavetable_receipt(receipt, expected_selected)
+    _verify_diagnostic_provenance(provenance, admission, result, receipt,
+                                  artifact_sha, elf_sha)
     expected_parents = {set_id: trusted_set_parents[set_id] for set_id in set_ids}
     expected_identity = ([{"kind": "project", "id": project} for project in projects]
                          + [{"kind": "set", "id": set_id,
@@ -326,9 +362,76 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
     return {"status": receipt["status"], "artifact_sha256": artifact_sha,
             "artifact_bytes": len(result.artifact), "elf_sha256": elf_sha,
             "elf_bytes": len(result.elf), "installable": False,
+            "provenance": _provenance_summary(provenance, result.provenance),
             "app_budget_bytes": receipt["app_budget_bytes"],
             "remaining_bytes": receipt["app_budget_bytes"] - len(result.artifact),
             "hardware_tested": False}
+
+
+def _verify_diagnostic_provenance(provenance, admission, result, receipt, app_sha, elf_sha):
+    """Cross-check the host envelope without promoting it to a package tuple."""
+    expected_top = {"schema", "kind", "bindings", "outputs", "profile",
+                    "trusted_fwsc_packager_compatible", "compatibility_reason",
+                    "installable", "hardware_admitted", "hardware_tested"}
+    if set(provenance) != expected_top or type(provenance.get("schema")) is not int or \
+            provenance["schema"] != 1 or provenance.get("kind") != "private-diagnostic-build-provenance":
+        raise ValueError("worker provenance schema is malformed")
+    bindings = provenance.get("bindings")
+    binding_keys = {"source_commit", "source_tree_oid", "source_archive_sha256",
+                    "worker_sha256", "worker_image_digest", "catalogue_manifest_sha256",
+                    "toolchain_manifest_sha256", "request_sha256"}
+    if not isinstance(bindings, dict) or set(bindings) != binding_keys:
+        raise ValueError("worker provenance input bindings are malformed")
+    if (not isinstance(bindings.get("source_commit"), str)
+            or not re.fullmatch(r"[0-9a-f]{40}", bindings["source_commit"])
+            or not isinstance(bindings.get("source_tree_oid"), str)
+            or not re.fullmatch(r"[0-9a-f]{40}", bindings["source_tree_oid"])
+            or not isinstance(bindings.get("worker_image_digest"), str)
+            or not re.fullmatch(r"sha256:[0-9a-f]{64}", bindings["worker_image_digest"])
+            or any(not isinstance(bindings.get(key), str) or not SHA256.fullmatch(bindings[key])
+                   for key in binding_keys - {"source_commit", "source_tree_oid", "worker_image_digest"})
+            or bindings.get("request_sha256") != admission.request_sha256
+            or bindings.get("worker_image_digest") != admission.worker_image_digest):
+        raise ValueError("worker provenance is stale or has malformed host bindings")
+    outputs = provenance.get("outputs")
+    expected_outputs = {"artifact_sha256": app_sha, "artifact_bytes": len(result.artifact),
+                        "elf_sha256": elf_sha, "elf_bytes": len(result.elf),
+                        "image_receipt_sha256": provenance_sha256(result.receipt),
+                        "verification_sha256": receipt.get("verification_sha256"),
+                        "artifact_receipt_sha256": receipt.get("artifact_receipt_sha256")}
+    if not isinstance(outputs, dict) or outputs != expected_outputs:
+        raise ValueError("worker provenance does not bind the exact build outputs")
+    profile = provenance.get("profile")
+    expected_profile = {"flash_layout": "expanded-d9000",
+                        "runtime_mode": receipt["runtime_configuration"]["runtime_mode"],
+                        "shapes_voices": SHAPES_VOICES}
+    if profile != expected_profile:
+        raise ValueError("worker provenance profile differs from verified diagnostic build")
+    reason = ("diagnostic service emits expanded-d9000/12-voice; trusted schema-2 packager requires an explicitly captured expanded-d7000 tuple")
+    if (provenance.get("trusted_fwsc_packager_compatible") is not False
+            or provenance.get("compatibility_reason") != reason
+            or any(provenance.get(key) is not False
+                   for key in ("installable", "hardware_admitted", "hardware_tested"))):
+        raise ValueError("worker provenance overstates package or hardware status")
+
+
+def _provenance_summary(provenance, raw):
+    bindings = provenance["bindings"]
+    return {
+        "sha256": provenance_sha256(raw),
+        "kind": provenance["kind"],
+        "source_commit": bindings["source_commit"],
+        "source_tree_oid": bindings["source_tree_oid"],
+        "source_archive_sha256": bindings["source_archive_sha256"],
+        "worker_sha256": bindings["worker_sha256"],
+        "worker_image_digest": bindings["worker_image_digest"],
+        "catalogue_manifest_sha256": bindings["catalogue_manifest_sha256"],
+        "toolchain_manifest_sha256": bindings["toolchain_manifest_sha256"],
+        "request_sha256": bindings["request_sha256"],
+        "output_bindings": provenance["outputs"],
+        "profile": provenance["profile"],
+        "trusted_fwsc_packager_compatible": False,
+    }
 
 
 def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
@@ -441,7 +544,7 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
                                     headers={"Retry-After": "30"})
             except Exception:
                 return JSONResponse({"detail": "build service unavailable"}, 503)
-            admissions[build_id] = Admission(digest, doc, now)
+            admissions[build_id] = Admission(digest, doc, now, template.image_digest)
         return JSONResponse({"id": build_id, "status": "queued",
                              "status_url": f"/api/v1/builds/{build_id}"}, 202)
 
