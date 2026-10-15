@@ -21,10 +21,18 @@ Next worker prepares standalone CPU schema8 fixed-work flash/RAM diagnostic,
 expected-current23150, fresh pair still required, ROM109 new one-use lifecycle.
 New campaign BASE /home/claude/fm1-cpu-rate-8a8fb2b8-20261015;
 immutable 2c runtime tool paths remain at canonical
-/home/claude/fm1-cpu-rate-calibration-8a8fb2-20261015/runtime/tools (not staged yet).
+/home/claude/fm1-cpu-rate-calibration-8a8fb2-20261015/runtime/tools.
+[verified] Root staged and verified this canonical tree:249 source files/10
+directories and all175 actual capture dependencies passed, without hardware
+commands. Evidence: scratch/cpu-rate-calibration-deployment/root-canonical-*.json.
+The distinct ROM109 campaign package/new BASE is still being finalized; do not
+launch mutable files. Expected schema8 kernel checksum independently calculated
+as3446819522 (0xcd724ac2), status3 and positive elapsed values required. This is
+an expected value, not a physical measurement. Passive sysfs still showed ROM109.
 Root reran17 CPU package/provenance tests PASS. No CPU diagnostic admitted yet.
 Root exclusively owns hardware; worker offline only. Goal ACTIVE; uv.lock untouched.
-Prior root pushed6c46fd68. This checkpoint must be pushed and SHA verified.
+Limiter-result checkpoint d50e496ea44b689b06d486fcd811ac66d977a224 was pushed
+and its remote SHA verified. This subsequent handoff update needs its own backup.
 
 ## ROM107 limiter campaign started — 2026-10-15
 
