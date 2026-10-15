@@ -111,7 +111,8 @@ def test_expanded_candidate_hot_dsp_ram_requires_matching_verified_receipts(samp
         'SixOp::Instance::Render', 'SixOp::Instance::RenderBlock', 'plaits::FMVoice::Render',
         'plaits::fm::Voice<6>::Render(Parameters,float**,size_t)',
         'Hall::Instance::Render', 'Limiter::HoldStep', 'Limiter::BoxStep', 'Limiter::TapOut',
-        'Limiter::Render', 'fm1_app_render', 'fm1_resampler_push_ready_']
+        'Limiter::Render', 'fm1_app_render', 'fm1_resampler_push_ready_',
+        'Drums::Instance::Render']
     assert receipt['hot_dsp_ram'] is True
     assert receipt['elf_verified'] and receipt['link_audit']['passed']
     assert target[0xD9000:] == sample['baseline'][0xD9000:]
@@ -159,6 +160,38 @@ def test_expanded_candidate_accepts_exact_push_ready_hot_dsp_ram_profile(sample)
         **args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
     assert result['hot_dsp_ram'] is True
     assert target[0xD9000:] == sample['baseline'][0xD9000:]
+
+
+def test_expanded_candidate_accepts_exact_drums_render_hot_dsp_profile(sample):
+    args = inputs(sample, hot_dsp_ram=True)
+    assert candidate.HOT_DSP_RAM_BODIES == candidate.HOT_DSP_RAM_PUSH_READY_BODIES + [
+        'Drums::Instance::Render']
+    receipt = hot_dsp_receipt(args['elf'], body_list=candidate.HOT_DSP_RAM_BODIES)
+    target, result = candidate.construct(
+        **args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
+    assert result['hot_dsp_ram'] is True
+    assert target[0xD9000:] == sample['baseline'][0xD9000:]
+
+
+def test_expanded_candidate_still_accepts_exact_push_ready_profile(sample):
+    args = inputs(sample, hot_dsp_ram=True)
+    receipt = hot_dsp_receipt(
+        args['elf'], body_list=candidate.HOT_DSP_RAM_PUSH_READY_BODIES)
+    _, result = candidate.construct(
+        **args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
+    assert result['hot_dsp_ram'] is True
+
+
+def test_expanded_candidate_rejects_drums_profile_missing_drums_body(sample):
+    args = inputs(sample, hot_dsp_ram=True)
+    partial = list(candidate.HOT_DSP_RAM_BODIES)
+    partial.remove('Drums::Instance::Render')
+    # The exact prior 11-body profile remains a historical accepted build.
+    assert partial == candidate.HOT_DSP_RAM_PUSH_READY_BODIES
+    partial.remove('Limiter::BoxStep')
+    receipt = hot_dsp_receipt(args['elf'], body_list=partial)
+    with pytest.raises(ValueError):
+        candidate.construct(**args, hot_dsp_ram=True, hot_dsp_ram_receipt=receipt)
 
 
 def test_expanded_candidate_rejects_partial_push_ready_hot_dsp_profile(sample):
