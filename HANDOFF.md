@@ -1,3 +1,21 @@
+## CPU V2 installed; capture refused before reset — 2026-10-15
+
+[verified] PID263390 exited after complete install/readback of target5b3ebc0b.
+Independent transcript check matched all4096 final page hashes; every SG
+completion clean; log SHA b5f0f658684a264711a3d7bd3d35b8681813ccafcf011949b2e17a904e0b5e5d.
+Durable install result reports210 sectors. Capture helper rejected the exact
+`rom109-cpu-rate-cycle-v2` name because its separate regex requires a `-cycle`
+suffix. Capture never became ready; no post-install snapshot/boot marker/log
+was created. Never rerun V2. Original immutable files/markers preserved.
+No CPU measurement yet. Preparing a distinct fresh-read/boot-only campaign
+using event120_generic_boot, with no flash erase/program and no install-history
+claim. Private preparation: scratch/cpu-rate-calibration-deployment/boot-only-followup/.
+Bench intended newBASE /home/claude/fm1-cpu-rate-boot-only-20261015;
+not yet launched. Root owns hardware. GoalACTIVE; cold-boot acceptanceFAILED.
+Workers: Hall-O2 cc501db backed up origin/codex/2026-10-15-hall-o2-target-build;
+mute-cache e976da5 backed up origin/fix/2026-10-15@universal-mute-mask;
+both remote SHAs verified, neither integrated or physically accepted.
+
 ## CPU campaign V2 active; V1 stopped before writes — 2026-10-15
 
 V1 PID262731 stopped after matching23150dca paired reads, zero flash/reset.

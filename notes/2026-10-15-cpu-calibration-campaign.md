@@ -55,3 +55,30 @@ Campaign pins1d03f1f73b0d2d8f00faf584561c8c95f044e365f7fde147fb7e50fdd50e6b99.
 The exact overlay is preserved in scratch/cpu-rate-calibration-deployment/
 rom109-v2-correction.tar with its per-member JSON manifest. Do not relaunch V2.
 Pending completed write/readback, one boot, telemetry, and timed recovery.
+
+## V2 install completed; capture gate rejected campaign suffix
+
+[verified] V2 PID263390 exited after installing target5b3ebc0b and completing
+full-image readback. Root independently compared all4096 final256-byte page
+response hashes to the exact1MiB candidate; all matched and all SG completion
+fields were clean. Transcript SHA256:
+`b5f0f658684a264711a3d7bd3d35b8681813ccafcf011949b2e17a904e0b5e5d`.
+Result envelope SHA256 field:
+`f5ede68721bf2ebf1224ed6c4f0ace9482b1effc7221b9edf4af3a2fcb1c09f2`.
+Result reports210 sectors with directory sector0x4000 last.
+
+[verified] Capture failed at require_campaign_pins before creating audio
+output: the frozen contract accepts `rom109-cpu-rate-cycle-v2`, but its helper's
+separate regex only accepts names ending in `-cycle`. This caused
+`fresh CPU-rate cycle identity/runtime pins are unset`. The completed-install
+runner stopped before its post-install snapshot and reset gate. No boot marker
+or command journal exists in V2. Do not relaunch or mutate this consumed attempt.
+Local evidence: scratch/cpu-rate-calibration-result/install-evidence.tar.
+
+[inferred: next action, not executed] Use the established generic fresh-read
+boot API in a distinct campaign. Take matching fresh reads of the now-installed
+target, validate the same ROM109 connection and passive snapshot, start passive
+KA6 capture, then issue exactly one reset. This avoids rewriting the image and
+does not represent detached receipts as same-process install proof. Capture
+must validate that API's actual read/boot evidence and same-port native USB.
+No physical timing, audio improvement, or musical acceptance is claimed.
