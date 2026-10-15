@@ -17,6 +17,45 @@ from stage_demo_profile import stage_profile
 from verify_image_profile import load_prepared_profile
 
 ROOT = Path(__file__).resolve().parents[2]
+_SELECTION_KEYS = {'version', *GROUPS, 'project_ids', 'startup_index'}
+_PROFILE_KEYS = {'flash_layout', 'runtime_mode'}
+
+
+def _validate_selection_request(request):
+    """Validate the digest-bound request while keeping profile keys out of modules."""
+    keys = set(request) if isinstance(request, dict) else set()
+    if (not isinstance(request, dict) or type(request.get('version')) is not int
+            or request['version'] != 1
+            or keys not in (_SELECTION_KEYS, _SELECTION_KEYS | {'set_ids'},
+                            _SELECTION_KEYS | _PROFILE_KEYS,
+                            _SELECTION_KEYS | _PROFILE_KEYS | {'set_ids'})):
+        raise ValueError('Expected a version-1 demo selection request')
+    if keys & _PROFILE_KEYS:
+        layout = request['flash_layout']
+        runtime = request['runtime_mode']
+        if (layout, runtime) not in (
+                ('expanded-d9000', 'diagnostic'),
+                ('expanded-d7000', 'song-diagnostic')):
+            raise ValueError('Unsupported flash layout/runtime profile pair')
+        if layout == 'expanded-d7000':
+            if any(not isinstance(request[group], list)
+                   or any(not isinstance(module, str) for module in request[group])
+                   for group in GROUPS):
+                raise ValueError('Invalid module groups for expanded-d7000 profile')
+            selected = {module for group in GROUPS for module in request[group]}
+            if not {'macro', 'shapes'}.issubset(selected):
+                raise ValueError('expanded-d7000 requires the fixed Macro+Shapes8 profile')
+
+
+def validate_build_profile(request, flash_layout, runtime_mode):
+    """Require explicit request binding whenever the non-legacy layout is used."""
+    _validate_selection_request(request)
+    explicit_profile = _PROFILE_KEYS.issubset(request)
+    if flash_layout == 'expanded-d7000' and not explicit_profile:
+        raise ValueError('expanded-d7000 requires an explicit request profile binding')
+    if explicit_profile and (request['flash_layout'], request['runtime_mode']) != (
+            flash_layout, runtime_mode):
+        raise ValueError('Build flags differ from digest-bound request profile')
 
 
 def prepare_selection(root: Path, request: dict, state_tool: Path, output: Path,
@@ -26,11 +65,7 @@ def prepare_selection(root: Path, request: dict, state_tool: Path, output: Path,
     request_bytes = (json.dumps(request, sort_keys=True, separators=(',', ':')) + '\n').encode()
     # Snapshot request values before invoking the exporter or external codec.
     request = json.loads(request_bytes)
-    if (not isinstance(request, dict) or type(request.get('version')) is not int
-            or request['version'] != 1
-            or set(request) not in ({'version', *GROUPS, 'project_ids', 'startup_index'},
-                                    {'version', *GROUPS, 'project_ids', 'startup_index', 'set_ids'})):
-        raise ValueError('Expected a version-1 demo selection request')
+    _validate_selection_request(request)
     modules = {key: request[key] for key in ('version', *GROUPS)}
     projects = export_preload_projects(root)
     sets = export_preload_sets(root, projects)
