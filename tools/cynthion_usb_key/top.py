@@ -74,7 +74,15 @@ class CynthionUsbKeyTop(Elaboratable):
             ulpi.nxt.eq(target_phy.nxt.i),
             target_phy.stp.o.eq(ulpi.stp),
         ]
-        safe_phy = ULPISafePHY(ulpi)
+        # Cynthion r1.4 routes D+/D- crossed into the USB3343. This is the
+        # platform's documented 0x39 setting, now applied and read back by the
+        # standalone initializer rather than inherited via ULPITransceiver.
+        safe_phy = ULPISafePHY(
+            ulpi,
+            usb_io_power_management=(
+                ULPISafePHY.USB_IO_POWER_MANAGEMENT_CYNTHION_R14
+            ),
+        )
         m.submodules.safe_phy = safe_phy
 
         start = Signal()

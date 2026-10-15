@@ -40,6 +40,7 @@ class ULPISafePHY(Elaboratable):
     REG_FUNCTION_CONTROL = 0x04
     REG_OTG_CONTROL = 0x0A
     REG_USB_IF_CHARGER_DETECTION = 0x32
+    REG_USB_IO_POWER_MANAGEMENT = 0x39
 
     # USB334x identity: VID 0x0424, PID 0x0009.
     IDENTITY = (
@@ -57,9 +58,14 @@ class ULPISafePHY(Elaboratable):
     # discharge/charge, VBUS driver and external indicator selection.
     OTG_CONTROL_SAFE = 0x00
 
-    # Charger-detection pullups are bits 4 and 5; zeroing the register also
-    # preserves its default 3.3 V regulator selection in bits 7:6.
+    # Disable charger-detection circuitry at 0x32. Its DP/DM pullups are
+    # separate bits 5:4 in USB IO & Power Management at 0x39.
     USB_IF_CHARGER_DETECTION_SAFE = 0x00
+
+    # Preserve the USB3343 default UART regulator selection (3.0 V), while
+    # leaving the board-specific D+/D- swap disabled unless selected by caller.
+    USB_IO_POWER_MANAGEMENT_DEFAULT = 0x04
+    USB_IO_POWER_MANAGEMENT_CYNTHION_R14 = 0x06
 
     def __init__(
         self,
@@ -68,6 +74,7 @@ class ULPISafePHY(Elaboratable):
         startup_cycles=60_000,
         transaction_timeout_cycles=6_000,
         deadline_cycles=180_000,
+        usb_io_power_management=USB_IO_POWER_MANAGEMENT_DEFAULT,
     ):
         if startup_cycles < 1:
             raise ValueError("startup_cycles must be positive")
@@ -75,11 +82,17 @@ class ULPISafePHY(Elaboratable):
             raise ValueError("transaction_timeout_cycles must be positive")
         if deadline_cycles <= startup_cycles:
             raise ValueError("deadline_cycles must exceed startup_cycles")
+        if usb_io_power_management not in (
+            self.USB_IO_POWER_MANAGEMENT_DEFAULT,
+            self.USB_IO_POWER_MANAGEMENT_CYNTHION_R14,
+        ):
+            raise ValueError("unsupported USB3343 board power-management profile")
 
         self.ulpi = ulpi
         self.startup_cycles = startup_cycles
         self.transaction_timeout_cycles = transaction_timeout_cycles
         self.deadline_cycles = deadline_cycles
+        self.usb_io_power_management = usb_io_power_management
 
         # One-shot initialization request and fail-closed status.
         self.start = Signal()
@@ -140,6 +153,7 @@ class ULPISafePHY(Elaboratable):
 
         # The verified sequence first authenticates the PHY identity, then
         # selects the disabled-driver mode, clears external pull controls,
+        # configures the explicitly selected board-specific D+/D- routing,
         # and finally reads every safety-critical register back.
         transactions = []
         for address, expected in self.IDENTITY:
@@ -149,12 +163,16 @@ class ULPISafePHY(Elaboratable):
             ("write", self.REG_OTG_CONTROL, self.OTG_CONTROL_SAFE, 0, 0),
             ("write", self.REG_USB_IF_CHARGER_DETECTION,
              self.USB_IF_CHARGER_DETECTION_SAFE, 0, 0),
+            ("write", self.REG_USB_IO_POWER_MANAGEMENT,
+             self.usb_io_power_management, 0, 0),
             ("read", self.REG_FUNCTION_CONTROL, 0, 0xFF,
              self.FUNCTION_CONTROL_SAFE),
             ("read", self.REG_OTG_CONTROL, 0, 0xFF,
              self.OTG_CONTROL_SAFE),
             ("read", self.REG_USB_IF_CHARGER_DETECTION, 0, 0xFF,
              self.USB_IF_CHARGER_DETECTION_SAFE),
+            ("read", self.REG_USB_IO_POWER_MANAGEMENT, 0, 0xFF,
+             self.usb_io_power_management),
         ])
 
         transaction_index = Signal(range(len(transactions) + 1))

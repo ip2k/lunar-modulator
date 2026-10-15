@@ -8,11 +8,13 @@ from amaranth.sim import Simulator
 from luna.gateware.interface.ulpi import ULPIInterface
 
 from gateware.ulpi_safe_phy import ULPISafePHY
+from tools.cynthion_usb_key.top import CynthionUsbKeyPlatform
 
 
 class _Top(Elaboratable):
     def __init__(self, *, startup_cycles=2, transaction_timeout_cycles=8,
-                 deadline_cycles=120, platform_pin_record=False):
+                 deadline_cycles=120, platform_pin_record=False,
+                 usb_io_power_management=ULPISafePHY.USB_IO_POWER_MANAGEMENT_DEFAULT):
         self.ulpi = ULPIInterface()
         self.platform_pin_record = platform_pin_record
         self.platform = None
@@ -24,6 +26,7 @@ class _Top(Elaboratable):
             startup_cycles=startup_cycles,
             transaction_timeout_cycles=transaction_timeout_cycles,
             deadline_cycles=deadline_cycles,
+            usb_io_power_management=usb_io_power_management,
         )
 
     def elaborate(self, platform):
@@ -66,6 +69,7 @@ class _FakeUSB3343:
             0x04: 0x41,
             0x0A: 0x06,
             0x32: 0x00,
+            0x39: 0x04,
         }
         if initial:
             self.registers.update(initial)
@@ -167,6 +171,14 @@ class _FakeUSB3343:
 
 
 class ULPISafePHYTests(unittest.TestCase):
+    def test_r14_profile_matches_installed_platform_trace_swap(self):
+        self.assertEqual(
+            CynthionUsbKeyPlatform.ulpi_extra_registers[
+                ULPISafePHY.REG_USB_IO_POWER_MANAGEMENT
+            ],
+            ULPISafePHY.USB_IO_POWER_MANAGEMENT_CYNTHION_R14,
+        )
+
     def _simulate(self, top, process):
         sim = Simulator(top)
         sim.add_clock(1 / 60_000_000, domain="usb")
@@ -205,8 +217,12 @@ class ULPISafePHYTests(unittest.TestCase):
         self.assertEqual(observed["ready"], 1)
         self.assertEqual(observed["fault"], 0)
         self.assertEqual(observed["drive"], 1)
-        self.assertEqual(observed["writes"], [(0x04, 0x49), (0x0A, 0x00), (0x32, 0x00)])
-        self.assertEqual(observed["reads"], [0x00, 0x01, 0x02, 0x03, 0x04, 0x0A, 0x32])
+        self.assertEqual(observed["writes"], [
+            (0x04, 0x49), (0x0A, 0x00), (0x32, 0x00), (0x39, 0x04),
+        ])
+        self.assertEqual(observed["reads"], [
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x0A, 0x32, 0x39,
+        ])
         self.assertFalse(observed["premature_drive"])
         self.assertEqual(observed["line_value"], 2)  # D- high, D+ low (K)
         self.assertEqual(observed["line_valid"], 1)
@@ -215,13 +231,16 @@ class ULPISafePHYTests(unittest.TestCase):
         self.assertEqual(observed["drive_after_rxcmd"], 1)
         self.assertEqual(fake.commands, [
             ("read", 0x00), ("read", 0x01), ("read", 0x02), ("read", 0x03),
-            ("write", 0x04), ("write", 0x0A), ("write", 0x32),
-            ("read", 0x04), ("read", 0x0A), ("read", 0x32),
+            ("write", 0x04), ("write", 0x0A), ("write", 0x32), ("write", 0x39),
+            ("read", 0x04), ("read", 0x0A), ("read", 0x32), ("read", 0x39),
         ])
         self.assertEqual(fake.stp_pulses, 3)
 
     def test_cynthion_r14_target_phy_resource_bridges_real_transactions(self):
-        top = _Top(platform_pin_record=True)
+        top = _Top(
+            platform_pin_record=True,
+            usb_io_power_management=ULPISafePHY.USB_IO_POWER_MANAGEMENT_CYNTHION_R14,
+        )
         fake = _FakeUSB3343(top)
         observed = {}
 
@@ -245,12 +264,16 @@ class ULPISafePHYTests(unittest.TestCase):
         self.assertEqual(observed["drive"], 1)
         self.assertEqual(observed["clk"], 1)
         self.assertEqual(observed["stp"], 0)
-        self.assertEqual(observed["writes"], [(0x04, 0x49), (0x0A, 0x00), (0x32, 0x00)])
-        self.assertEqual(observed["reads"], [0x00, 0x01, 0x02, 0x03, 0x04, 0x0A, 0x32])
+        self.assertEqual(observed["writes"], [
+            (0x04, 0x49), (0x0A, 0x00), (0x32, 0x00), (0x39, 0x06),
+        ])
+        self.assertEqual(observed["reads"], [
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x0A, 0x32, 0x39,
+        ])
         self.assertEqual(observed["commands"], [
             ("read", 0x00), ("read", 0x01), ("read", 0x02), ("read", 0x03),
-            ("write", 0x04), ("write", 0x0A), ("write", 0x32),
-            ("read", 0x04), ("read", 0x0A), ("read", 0x32),
+            ("write", 0x04), ("write", 0x0A), ("write", 0x32), ("write", 0x39),
+            ("read", 0x04), ("read", 0x0A), ("read", 0x32), ("read", 0x39),
         ])
         self.assertEqual(observed["stp_pulses"], 3)
 
@@ -295,6 +318,36 @@ class ULPISafePHYTests(unittest.TestCase):
 
         self._simulate(top, bench)
         self.assertEqual(observed, {"ready": 0, "fault": 1, "drive": 0})
+
+    def test_cynthion_line_swap_readback_mismatch_never_allows_drive(self):
+        top = _Top(
+            usb_io_power_management=ULPISafePHY.USB_IO_POWER_MANAGEMENT_CYNTHION_R14,
+        )
+
+        def read_override(address, count, value):
+            if address == 0x39 and count >= 0:
+                return value ^ 0x02
+            return None
+
+        fake = _FakeUSB3343(top, read_override=read_override)
+        observed = {}
+
+        async def bench(ctx):
+            await fake.run(ctx)
+            observed.update(
+                ready=ctx.get(top.dut.ready),
+                fault=ctx.get(top.dut.fault),
+                drive=ctx.get(top.dut.drive_allowed),
+                writes=list(fake.writes),
+                reads=list(fake.reads),
+            )
+
+        self._simulate(top, bench)
+        self.assertEqual(observed["ready"], 0)
+        self.assertEqual(observed["fault"], 1)
+        self.assertEqual(observed["drive"], 0)
+        self.assertIn((0x39, 0x06), observed["writes"])
+        self.assertIn(0x39, observed["reads"])
 
     def test_unacknowledged_ulpi_request_times_out_fail_closed(self):
         top = _Top(transaction_timeout_cycles=5, deadline_cycles=80)
