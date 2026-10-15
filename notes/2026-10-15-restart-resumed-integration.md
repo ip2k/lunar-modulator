@@ -225,3 +225,36 @@ loader review, fresh paired mixed-image reads, immutable-region checks and
 reviewed resume of this transaction. Root owns device; offline recovery review
 assigned. Audio remains FAILED. CI38815188217 pending at last check.
 
+
+### Interrupted-write evidence and CPU simulation follow-up
+
+[verified] Private interrupted transaction archive copied off bench into ignored
+`scratch/current-stage7-interruption-20261015/interrupted-evidence.tar`, SHA-256
+`c56f4f2944a643f5bf50faa77596decdab1b25f86e318c3dd41caa2c1a2ae67a`.
+Root offline replay and independent review agree on an expected stopped-image
+SHA-256 `3fdaaebd73159132f7338db0f7c544935533d914fc59411cc27fe2326bbbb270`.
+This is NOT actual device readback. The log contains15,923 matched successful
+submit/completion pairs; last program0x94500, next journal intent0x94600 has no
+program submit. Boot directory/protected ranges are unchanged in the model.
+Fresh paired actual reads and explicit reconnect admission remain required.
+No reset or loader-upload fallback is authorized by the offline replay.
+
+[verified] Installed Hera pi32v2 toolchain inventory contains compiler/linker/
+inspection tools, no observed CPU simulator. Primary JieLi AC79 compiler/debug
+manuals and QEMU's supported system targets do not establish a usable public
+pi32v2 cycle-accurate simulator. This does not prove no private vendor simulator
+exists. Containers and host CPU throttling cannot reproduce pi32v2 instruction,
+cache, IRQ and DMA timing. Proposed near-term approach: functional host renders,
+actual-device stage profiling, then explicitly modeled deadline/queue replay.
+TIMER4 24MHz conversion is nominal source configuration until independently
+calibrated. A standalone RAM DSP benchmark is plausible but needs a reviewed
+runner, memory-ownership/link audit and bounded upload/result-readback path;
+existing exact recovery probe does not provide that general facility. Offline
+reports: `scratch/cpu-speed-replay-design-20261015/HANDOFF.md` and
+`scratch/ram-dsp-microbench-feasibility-20261015.md`.
+
+[verified] CI38815188217's32-bit engine test job completed4289pass,16skip,
+2xfail,1failure: vendored Plaits closure pin differs after documented diagnostic
+RAM-placement annotations. Build passed; virtual app job was skipped after the
+failure. Assigned focused provenance-preserving fix; do not simply accept a
+new digest or weaken the upstream DSP reference check. Other CI jobs pending.
