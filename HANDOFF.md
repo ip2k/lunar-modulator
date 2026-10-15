@@ -1,3 +1,19 @@
+## ROM99 preparation recovery and next performance work
+
+Goal ACTIVE; physical audio/display acceptance FAILED; SAVE disarmed.
+Current installed image13902c8a; automatic USB ROM99 observed. ROM97 campaign
+is CONSUMED: never relaunch. Exact16249740 target/source export passed independent
+review; its source-only transfer tar is not a complete deployment package.
+During offline preparation an agent accidentally copied old ROM97 scripts over
+scratch/resampler-ram-deployment/bound-rom99. Treat that directory as contaminated;
+no bench action occurred. A separate bound-rom99-rebuilt scaffold and complete
+staging helpers are assigned; root must review/bind them before any device action.
+Next comparison retains exact162 source; HAL guard361c27 is a separate built
+follow-up (128 target helper calls/block removed, no runtime speedup claim).
+Read-only dispatch audit found a full info getter used only for BPM/playing;
+a bounded post-advance getter optimization and parity checks are assigned.
+No owner power cycle/watch needed for current passive comparison preparation.
+
 ## ROM97 measured: modest improvement, still deadline failure
 
 Goal ACTIVE; musical acceptance FAILED; SAVE disarmed. ROM97/ROM95 CONSUMED.
