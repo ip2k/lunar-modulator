@@ -103,3 +103,26 @@ No device command/write/reset this segment. Overall audio/release unfinished.
 private service can retain64completed records. Before production deployment,
 use a service-wide retention budget or private on-disk evidence handles; current
 per-file/aggregate limits do not establish a suitable process memory ceiling.
+
+## Matched-profile correction and retained-package verification
+
+[verified: independent comparison] Fresh schema2/7 target above was NOT a
+matched Hall profile: catalogue_hall_o2=false/Hall-Os, whereas the designated
+Hall build uses Hall-O2. Stopped its offline packaging before a seal/candidate.
+All original outputs remain preserved; do not relabel their optimization.
+Reviewed exact corrected runner diff: add --hall-o2 in compile and link,
+require per-shard and linked exact override maps and true catalogue_hall_o2.
+Runner60448560af6f6bbe479a1510b1af4e4cd84e6186f3d01fdd0e0f61425915f446
+assigned bounded fresh16-shard build in Hera current-stage7-hall-o2-20261015.
+No prior catalogue/link outputs reused; same source/profile/settings retained.
+
+[reported: worker; shared handoff read by root] Actual retained trusted-package
+fixtures on Hera provide11required paths,167catalogue objects,11generated
+inputs.20tests pass, zero skips, with actual in-memory package composition.
+Follow-up obeyed owner16-way request:20unique collected nodes partitioned
+2,2,2,2,1x12;16pytest processes, all exits0, exact union/no duplicates/skips.
+Hera evidence: /home/claude/.local/share/codex-coordination/handoffs/evidence/mvave-fm1-trusted-fwsc-16shards-20261015.
+No new service-generated tuple/composition or hardware acceptance follows.
+
+[verified: passive bench] FM1 still bus1/device113 WL80UBOOT1.00. KA6 remains
+ALSA card2. No USB/vendor command, flash/reset or fresh-read admission occurred.

@@ -1,3 +1,20 @@
+## Restart continuation: evidence integrated, matched profile building — 2026-10-15
+
+Current source integration0fe454ae (pushed/verified) retains private installer
+build evidence with actual paths/order/generated-input and pre-read size checks.
+Host135pass14skip; retained-package Hera20pass0skip also verified in16chunks.
+Recovery82pass; corrected Hall offline package14pass. Details and limits:
+notes/2026-10-15-restart-resumed-integration.md.
+
+Stage2/7 first build used Hall-Os and is NOT a matched Hall-O2 comparison;
+packaging stopped. Reviewed corrected runner60448560 is assigned fresh16-shard
+Hera build at current-stage7-hall-o2-20261015. Separate metadata-schema repair
+and service/native target-profile audit underway. Root owns device exclusively.
+FM1 passiveROM113, KA6card2; no device write/reset this restart continuation.
+Installed28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f.
+Audio stillFAILED; full13/defaultsong/selectableinstaller/persistence/recovery/
+review/CI/release goal unfinished and actively resumed by owner.
+
 ## Restart resumed; installer profile fix integrated — 2026-10-15
 
 [verified] Reviewed and integrated pending f138766f as6b6ae4b6; origin SHA
