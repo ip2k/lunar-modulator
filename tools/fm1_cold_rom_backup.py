@@ -100,8 +100,9 @@ def validate_entry(data: bytes, usb_binding: dict, dongle_sha256: str,
         {"observed_at", "candidates"}, "ROM enumeration")
     observed = _timestamp(enumeration["observed_at"], "ROM enumeration")
     if (not started <= uploaded <= key_action <= status <= observed or
+            not 0 <= now - key_action <= MAX_ENTRY_AGE_SECONDS or
             not 0 <= now - observed <= MAX_ENTRY_AGE_SECONDS or
-            observed - started > MAX_ENTRY_AGE_SECONDS):
+            observed - key_action > MAX_ENTRY_AGE_SECONDS):
         raise ValueError("Cold-ROM entry is stale or has invalid event ordering")
 
     port = _same_keys(entry["target_port"], {"path", "was_absent_before_attempt"}, "target port")
