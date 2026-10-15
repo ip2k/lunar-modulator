@@ -1,3 +1,25 @@
+# ROM55 capture cycle prepared; boot adapter corrections pending — 2026-10-15
+
+Owner missed prior watched run; no physical power cycle requested. Passive ROM55
+4c4a:8057 still present on bench01. No new loader upload, read, flash, or boot.
+Private scripts saved in ignored scratch/trio55-cycle and staged under
+/home/claude/fm1-trio-pulse-66196-20261014. They require fresh paired reads,
+210-sector exact target c240999c, full readback, live analogue recorder before
+boot, then separated TRS/USB note windows. Capture helper SHA c56eac643777c419ac116ef37765c1841592cc5dc66c23ccf631a0511d3d27c4.
+Not executed. No claim of new hardware validation.
+Worker boot checkpoint7c9ec525 GitHub-backed on its own branch, NOT integrated:
+root and independent reviewer found class/module reset-helper mismatch,
+missing Prepared.header_type, wrong DurableLog.closed interface, and snapshot
+clock sampled before provider. Mock-only5tests missed these; corrections and
+real-interface regressions assigned to same worker before physical use.
+Read-only clock/note-path audits found no direct format/PLL-init mismatch;
+actual CPU clock, gain and render/underrun counts remain unmeasured. Existing
+short Trio success does not accept full app performance. CI38658340689 remains
+in progress at8f7abbcc; browser3engines, GPLmatrix, dongles passed, main/ASAN/
+32bit jobs pending. Goal ACTIVE; audio, SAVE, independent recovery and browser
+release acceptance still open. Next: review corrected boot bridge, integrate
+and push; fresh ROM55 read/install/readback/recorded bounded boot once ready.
+
 # Reviewed SG bridge integrated; post-install boot gap — 2026-10-15 00:17 UTC
 
 Root integrated adapter fd3c62e1 as8c0aae24 and independent review2db62971
