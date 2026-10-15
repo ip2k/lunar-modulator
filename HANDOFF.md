@@ -1,3 +1,13 @@
+## CPU timing campaign launched — 2026-10-15
+
+Root started bench01 PID262731, BASE `/home/claude/fm1-cpu-rate-8a8fb2b8-20261015`,
+cycle rom109-cpu-rate-cycle. Full file-only preflight and8 package tests passed.
+Fresh paired reads must precede writes; one launch/reset only, no retry.
+Current23150dca/target5b3ebc0b, ROM109. See
+`notes/2026-10-15-cpu-calibration-campaign.md` for exact hashes/overlay and recovery.
+Pending actual installation, telemetry and timed recovery; no measurement yet.
+Owner cold-boot audio/display acceptance FAILED; SAVE disarmed; goal ACTIVE.
+
 ## ROM107 limiter result and next calibration — 2026-10-15
 
 [verified] Owner cold-boot audio/display acceptance remains FAILED. Matched limiter
