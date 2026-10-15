@@ -1,3 +1,27 @@
+## Performance changes integrated; Hall hardware package pending — 2026-10-15
+
+[verified] Root head48b5664a375b78785b76b681469864c7797d29fd is pushed to the
+feature branch and remote SHA verified. Hall build-option integration70754dd6
+passed123 root checks and independent review (89 focused checks); positional
+limiter compatibility preserved. The exact matched Hall493a diagnostic remains
+separate from these combined root changes; do not substitute its build inputs.
+
+[verified] Matched resampler target builds passed16 shards each and linking:
+readiness helper calls10 to0, image854340 to854636 bytes (+296), RAM DSP+56.
+This is codegen evidence, no runtime speed claim. Detailed report:
+/Users/likwid/.codex/worktrees/resampler-needed-inline/scratch/resampler-needed-inline/target-build-review.md.
+Constant octave LED time conversion skip integrated48b5664a; root29 focused
+simulator checks passed. Preserves blink arithmetic; no physical timing yet.
+
+Worker physical_storage_compression prepares distinct ROM111 one-use runnable
+package, rebinding cycle regex, native firmware source pins and BASE while
+retaining compatible frozen runtime tools. Root and independent offline review
+required before staging/executing. Source candidate28483c41, expected current
+5b3ebc0b; fresh paired reads, full readback, durable install result, capture READY
+before single boot; ambiguous reset terminal/no retry. No new device write or
+boot this segment. No listening request or power cycle needed currently.
+GoalACTIVE; musical acceptance FAILED, SAVE/autoplayoff. uv.lock untouched.
+
 ## Hall matched candidate prepared; audio acceptance still failed — 2026-10-15
 
 [verified] Owner reports cold-boot Lunar still has very laggy waveform and
