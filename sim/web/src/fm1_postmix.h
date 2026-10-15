@@ -6,6 +6,14 @@
 #include <math.h>
 #include <stdint.h>
 
+/* Keep the fallback for non-GCC/Clang consumers while making the explicit
+ * builtin available to target builds that disable implicit builtins. */
+#if defined(__GNUC__) || defined(__clang__)
+#define FM1_POSTMIX_ABS_F32(x) __builtin_fabsf(x)
+#else
+#define FM1_POSTMIX_ABS_F32(x) fabsf(x)
+#endif
+
 /* The renderer supplies a valid position in [0, scope_size).  An explicit
  * wrap avoids a remainder operation while preserving arbitrary scope sizes.
  * Keep the stores in the caller's frame loop: besides removing a call per
@@ -37,8 +45,8 @@ static inline void fm1_postmix_scope_and_gain(float *out, uint32_t frames,
       const float mono = 0.5f * (left + right);
       scope[*scope_pos] = mono;
       fm1_postmix_advance_scope(scope_pos, scope_size);
-      const float left_abs = fabsf(left);
-      const float right_abs = fabsf(right);
+      const float left_abs = FM1_POSTMIX_ABS_F32(left);
+      const float right_abs = FM1_POSTMIX_ABS_F32(right);
       const float sample_peak = left_abs > right_abs ? left_abs : right_abs;
       if (sample_peak > *peak) *peak = sample_peak;
       out[2 * i] = left * gain;
@@ -49,12 +57,14 @@ static inline void fm1_postmix_scope_and_gain(float *out, uint32_t frames,
       const float mono = 0.5f * (out[2 * i] + out[2 * i + 1]);
       scope[*scope_pos] = mono;
       fm1_postmix_advance_scope(scope_pos, scope_size);
-      const float left_abs = fabsf(out[2 * i]);
-      const float right_abs = fabsf(out[2 * i + 1]);
+      const float left_abs = FM1_POSTMIX_ABS_F32(out[2 * i]);
+      const float right_abs = FM1_POSTMIX_ABS_F32(out[2 * i + 1]);
       const float sample_peak = left_abs > right_abs ? left_abs : right_abs;
       if (sample_peak > *peak) *peak = sample_peak;
     }
   }
 }
+
+#undef FM1_POSTMIX_ABS_F32
 
 #endif

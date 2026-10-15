@@ -13,6 +13,15 @@
 #include <math.h>
 #include <stdint.h>
 
+/* JieLi builds disable implicit builtins globally. Use the explicit compiler
+ * builtin for per-sample absolute value when available; preserve the standard
+ * library fallback for other compilers. */
+#if defined(__GNUC__) || defined(__clang__)
+#define FM1_MIX_LIMITER_ABS_F32(x) __builtin_fabsf(x)
+#else
+#define FM1_MIX_LIMITER_ABS_F32(x) fabsf(x)
+#endif
+
 typedef struct fm1_mix_limiter {
   float envelope;
   float release;   /* per-sample coefficient */
@@ -40,8 +49,8 @@ static inline void fm1_mix_limiter_process(fm1_mix_limiter_t *l, float *lr, uint
   for (uint32_t n = 0; n < frames; ++n) {
     lr[2 * n] = fm1_mix_guard(lr[2 * n]);
     lr[2 * n + 1] = fm1_mix_guard(lr[2 * n + 1]);
-    float a = fabsf(lr[2 * n]);
-    float b = fabsf(lr[2 * n + 1]);
+    float a = FM1_MIX_LIMITER_ABS_F32(lr[2 * n]);
+    float b = FM1_MIX_LIMITER_ABS_F32(lr[2 * n + 1]);
     float peak = a > b ? a : b;
     if (peak > l->envelope) {
       l->envelope = peak;
@@ -55,5 +64,7 @@ static inline void fm1_mix_limiter_process(fm1_mix_limiter_t *l, float *lr, uint
     }
   }
 }
+
+#undef FM1_MIX_LIMITER_ABS_F32
 
 #endif /* FM1_MIX_LIMITER_H_ */
