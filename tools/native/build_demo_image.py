@@ -245,7 +245,7 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
     identity_configuration(firmware_identity)
     if flash_layout not in ('expanded-d7000', 'expanded-d9000'):
         raise ValueError('Unsupported private image flash layout')
-    validate_build_profile(request, flash_layout, runtime_mode)
+    validate_build_profile(request, flash_layout, runtime_mode, wavetable_profile)
     identity_flags = (['--firmware-identity', firmware_identity]
                       if firmware_identity is not None else [])
     output = Path(output)
