@@ -1,18 +1,22 @@
 # SPDX-License-Identifier: MIT
 """Ordered catalogue demo preparation through the real packed-state codec."""
 import json
+import hashlib
 import os
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools/native'))
 from export_image_catalogue import export_catalogue
+import prepare_demo_selection as selection_module
 from prepare_demo_selection import prepare_selection
 from prepare_image_profile import sha
 from verify_image_profile import load_prepared_profile
+import build_demo_image
 
 
 def selection(tmp_path):
@@ -108,4 +112,107 @@ def test_client_catalogue_override_is_refused_before_output(tmp_path):
                    projects=[{'source_path': '/etc/passwd'}])
     with pytest.raises(ValueError, match='selection request'):
         prepare_selection(ROOT, request, tmp_path / 'unused-tool', output)
+    assert not output.exists()
+
+
+def d7000_selection(tmp_path):
+    catalogue = export_catalogue(ROOT, tmp_path / 'catalogue-d7000')
+    engines = sorted(set(catalogue['groups']['engines']) | {'macro', 'shapes'})
+    return dict(version=1, **{**catalogue['groups'], 'engines': engines},
+                project_ids=['replacement-showcase-candidate-event-horizon'],
+                startup_index=0, flash_layout='expanded-d7000',
+                runtime_mode='song-diagnostic')
+
+
+@pytest.mark.parametrize('mutation', [
+    'wrong-runtime', 'missing-runtime', 'missing-layout', 'missing-fixed-module', 'unknown-key',
+])
+def test_prepare_selection_rejects_unbound_or_invalid_profile_before_output(tmp_path, mutation):
+    request = d7000_selection(tmp_path)
+    if mutation == 'wrong-runtime':
+        request['runtime_mode'] = 'diagnostic'
+    elif mutation == 'missing-runtime':
+        del request['runtime_mode']
+    elif mutation == 'missing-layout':
+        del request['flash_layout']
+    elif mutation == 'missing-fixed-module':
+        request['engines'] = ['trio']
+    else:
+        request['unknown'] = True
+    output = tmp_path / 'rejected-selection'
+    with pytest.raises(ValueError):
+        prepare_selection(ROOT, request, tmp_path / 'unused-state-tool', output)
+    assert not output.exists()
+
+
+def test_build_selection_reaches_native_link_with_original_d7000_request_digest(tmp_path, monkeypatch):
+    request = d7000_selection(tmp_path)
+    output = tmp_path / 'build'
+    reports = {}
+
+    def fake_prepare(profile_path, _state_tool, prepared_dir, *, recompress_content=False):
+        assert recompress_content is True
+        selection = json.loads(profile_path.with_name('selection.json').read_text())
+        content = []
+        for source in selection['sources']:
+            content.append({
+                'source': source['staged_path'],
+                'source_sha256': source['source_sha256'],
+                'kind': source['kind'],
+                'dependency_scan_complete': True,
+                'bytes': 1,
+                'packed_sha256': sha(source['id'].encode()),
+            })
+        report = {'content': content, 'packed_content_bytes': len(content),
+                  'state_tool_sha256': sha(b'stub-state-tool')}
+        prepared_dir.mkdir()
+        (prepared_dir / 'profile.json').write_text('{"prepared":true}\n')
+        reports['report'] = report
+        return report
+
+    def fake_load_prepared(_directory, _expected_sha256):
+        return SimpleNamespace(report=reports['report'], packed_content=[b'x'])
+
+    class ReachedNativeLink(RuntimeError):
+        pass
+
+    def intercept_native_link(command, *, check):
+        assert check is True
+        assert '--flash-layout' in command
+        assert command[command.index('--flash-layout') + 1] == 'expanded-d7000'
+        assert '--runtime-mode' in command
+        assert command[command.index('--runtime-mode') + 1] == 'song-diagnostic'
+        assert '--shapes-voices' in command
+        assert command[command.index('--shapes-voices') + 1] == '8'
+        assert '--compressed-wavetables' in command
+        assert '--flash-plaits-wavetables' not in command
+        raise ReachedNativeLink
+
+    monkeypatch.setattr(selection_module, 'prepare', fake_prepare)
+    monkeypatch.setattr(selection_module, 'load_prepared_profile', fake_load_prepared)
+    monkeypatch.setattr(build_demo_image.subprocess, 'run', intercept_native_link)
+    with pytest.raises(ReachedNativeLink):
+        build_demo_image.build_selection(
+            request, tmp_path / 'unused-state-tool', tmp_path / 'unused-toolchain',
+            tmp_path / 'unused-catalogue', output, runtime_mode='song-diagnostic',
+            flash_layout='expanded-d7000',
+            wavetable_profile=build_demo_image.SHAPES8_WAVETABLE_PROFILE)
+
+    saved_request = (output / 'selection/request.json').read_bytes()
+    selection_receipt = json.loads((output / 'selection/selection.json').read_text())
+    assert json.loads(saved_request) == request
+    assert selection_receipt['request_sha256'] == hashlib.sha256(saved_request).hexdigest()
+    assert selection_receipt['request_sha256'] == hashlib.sha256(
+        (json.dumps(request, sort_keys=True, separators=(',', ':')) + '\n').encode()).hexdigest()
+
+
+def test_build_selection_rejects_link_profile_mismatch_before_creating_output(tmp_path):
+    request = d7000_selection(tmp_path)
+    output = tmp_path / 'mismatched-build'
+    with pytest.raises(ValueError, match='Build flags differ'):
+        build_demo_image.build_selection(
+            request, tmp_path / 'unused-state-tool', tmp_path / 'unused-toolchain',
+            tmp_path / 'unused-catalogue', output, runtime_mode='diagnostic',
+            flash_layout='expanded-d7000',
+            wavetable_profile=build_demo_image.SHAPES8_WAVETABLE_PROFILE)
     assert not output.exists()

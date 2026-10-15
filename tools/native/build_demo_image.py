@@ -12,7 +12,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from prepare_demo_selection import prepare_selection
+from prepare_demo_selection import prepare_selection, validate_build_profile
 from prepare_image_profile import bounded_read, sha, unique_object
 from verify_image_profile import load_prepared_profile
 from runtime_mode import runtime_configuration
@@ -245,6 +245,7 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
     identity_configuration(firmware_identity)
     if flash_layout not in ('expanded-d7000', 'expanded-d9000'):
         raise ValueError('Unsupported private image flash layout')
+    validate_build_profile(request, flash_layout, runtime_mode)
     identity_flags = (['--firmware-identity', firmware_identity]
                       if firmware_identity is not None else [])
     output = Path(output)
