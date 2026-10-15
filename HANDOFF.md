@@ -1,3 +1,19 @@
+## Active ROM113 campaign and installer profile integration — 2026-10-15
+
+Source26320a41d93c3e4ef85b23a4e75fb79a0e1d9e46 is pushed/remote-verified.
+Private diagnostic profile and target-ABI storage policy integrated; root315pass,
+1skip plus17real-codec selection tests. Actual corrected verification passes
+profile/builder/API gates. CI run38815188217 started; no CI result claimed.
+
+Bench BASE `/home/claude/fm1-current-stage7-66c95bb-20261015` is now consumed:
+launch PID347366, cycle `rom113-current-stage7-engine-render-profile-cycle`.
+350-file remote inventory verified, full file-only preflight passed. Fresh
+paired1MiB reads match prior28483c41 image. Bounded install/fullreadback running;
+do not rerun launcher/reset. Target18132474c60584d1ff1559076501e3647255cabe6b98957454bd6504ebb9fcd1.
+Install result must persist before capture READY and sole FC0C; ambiguousreset
+STOP withoutretry. Capturehelper may continue independently180s. Rootownsdevice.
+Hardware audio stillFAILED pendingnew evidence; overallreleaseunfinished.
+
 ## Restart continuation: matched profile built; package and hardware test next — 2026-10-15
 
 Corrected Hall-O2 stage2/schema7 build is independently rehashed: receipt

@@ -178,3 +178,33 @@ focused tests, one existing conditional skip, but root's validation against the
 actual corrected target receipt failed target_app_storage. It is not integrated.
 Worker is checking the real storage-profile difference and regression fixture;
 do not weaken provenance checks or infer actual-target compatibility from mocks.
+
+## Actual profile correction and ROM113 campaign started
+
+[verified: source/host] Reviewed1f749165+748116d5 and integrated553e587f+
+26320a41d93c3e4ef85b23a4e75fb79a0e1d9e46; exactremoteSHA verified. Namedprivate
+D7000profile forwards matched native options and binds rawreceipt bytes to
+versionedsidecar. Requiredcaller modules failclosed withoutinjection. Actual
+targetABI storage is220848RGB565/163760indexed, alignedcredit57088 andpool165376.
+Separatepolicy preserves legacyD9000values. Actualcorrected receipt passes
+profile,builder,APIstoragegates. Root315passed1skip (Starlettedeprecation),
+17selectiontests passed withactualfm1-state. FullCI38815188217dispatched;
+noCIresult, actualservicebuild, subsetRAMpolicy orreleaseacceptance claimed.
+
+[verified: bench] Added exactpreparedprofile andselectionreceipt missingfrom
+originalpackage. Fullfixture now exercises realbuildvalidator;11tests+6subtests
+pass. Restaged350files; remoteinventorySHA330726af73e48d08ead2f7642545f032dba60ca5df18ce943efa7a973625ef76
+and all350hashes independentlyverified; exactbenchfile-onlypreflight passes.
+Campaignpins007e348128fec4bd7341f60b3ce66faea77a38386a25d5cfd5c4a85b783ae3c6.
+Rootlaunchedonce PID347366. Bothfresh1MiBreads match28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f.
+Boundedinstallation/readback isrunning; noreset observedyet. BASEandcycle are
+consumed; inspectdurableevidence ratherthanretrying. Capture/boot results pending.
+
+[verified: inventory/research] Hera's installedpi32v2toolchain hascompiler,
+linker,disassembler utilities butnoCPU simulator executable. PublicJieLiAC79
+development/debug docs andQEMUsupportedtargets revealnoavailablepi32v2system
+simulator; thisdoesnotproveprivatevendortoolsdonotexist. Recommendbounded
+hardware-calibrated deadline replay alongsidehostaudiorenders, preserving
+uncertaintyaboutcache/memory/interrupttiming. Fullcycleaccurateemulatorwould
+needinstructiontimingandSoCmodels absentfromtheSDKreview. Read-onlydesign
+taskassigned; notimplemented orrepresentedashardwareaccuracy.
