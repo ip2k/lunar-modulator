@@ -11,10 +11,12 @@ from typing import Any, Iterable
 
 try:
     from .diagnostic_telemetry import (CLOCK_FIELDS, FIELDS, PLL_FIELDS, PROFILE_FIELDS,
-                                      PROFILE_STAGES, PRODUCER_GAP_FIELDS)
+                                      PROFILE_STAGES, PRODUCER_GAP_FIELDS,
+                                      IRQ_PROFILE_FIELDS)
 except ImportError:  # Direct ``python tools/native/analyze_diagnostic_telemetry.py`` use.
     from diagnostic_telemetry import (CLOCK_FIELDS, FIELDS, PLL_FIELDS, PROFILE_FIELDS,
-                                      PROFILE_STAGES, PRODUCER_GAP_FIELDS)
+                                      PROFILE_STAGES, PRODUCER_GAP_FIELDS,
+                                      IRQ_PROFILE_FIELDS)
 
 UINT32_MAX = 0xFFFFFFFF
 TICKS_PER_US = 24
@@ -79,7 +81,9 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
     clock_snapshots: list[dict[str, Any]] = []
     pll_snapshots: list[dict[str, Any]] = []
     producer_gap_frames: list[dict[str, Any]] = []
+    irq_profile_frames: list[dict[str, Any]] = []
     previous_profile_elapsed: float | None = None
+    previous_irq_values: dict[str, int] | None = None
     event_counts: dict[str, int] = {}
     total_bytes = 0
     row_count = 0
@@ -153,6 +157,32 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
                 "timing_units": "raw device timer ticks; do not infer duration without calibrated timer rate",
                 "queue_depth_semantics": "best-effort main-loop samples; audio IRQ may advance the read counter",
             })
+            continue
+
+        if event_name == "irq_profile_frame":
+            values = event.get("values")
+            schema = event.get("schema")
+            if (type(schema) is not int or schema != 6 or not isinstance(values, dict)
+                    or set(values) != set(IRQ_PROFILE_FIELDS)):
+                raise ValueError(f"line {line_number}: IRQ profile values must contain exactly schema-6 fields")
+            checked = {name: _uint32(values[name], name, line_number)
+                       for name in IRQ_PROFILE_FIELDS}
+            delta_fields = tuple(name for name in IRQ_PROFILE_FIELDS
+                                 if not name.endswith("_max_ticks"))
+            deltas = (None if previous_irq_values is None else {
+                name: (checked[name] - previous_irq_values[name]) & UINT32_MAX
+                for name in delta_fields
+            })
+            irq_profile_frames.append({
+                "frame_index": event.get("frame_index"),
+                "wall_time_utc": event.get("wall_time_utc"),
+                "elapsed_seconds": elapsed,
+                "values": checked,
+                "counter_deltas": deltas,
+                "timing_units": "raw device timer ticks; do not infer duration without calibrated timer rate",
+                "counter_semantics": "non-maximum fields are cumulative uint32 counters since boot; modular deltas are shown; max fields are retained observations",
+            })
+            previous_irq_values = checked
             continue
 
         if event_name == "render_profile_frame":
@@ -243,8 +273,8 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         })
         previous_values = checked
 
-    if not frames and not profiles and not clock_snapshots and not pll_snapshots and not producer_gap_frames:
-        raise ValueError("event log contains no diagnostic or render_profile rows, clock snapshots, PLL snapshots, or producer-gap frames")
+    if not frames and not profiles and not clock_snapshots and not pll_snapshots and not producer_gap_frames and not irq_profile_frames:
+        raise ValueError("event log contains no diagnostic or render_profile rows, clock snapshots, PLL snapshots, producer-gap frames, or IRQ profile frames")
 
     return {
         "schema": 1,
@@ -264,13 +294,15 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         "clock_snapshot_frame_count": len(clock_snapshots),
         "pll_snapshot_frame_count": len(pll_snapshots),
         "producer_gap_frame_count": len(producer_gap_frames),
+        "irq_profile_frame_count": len(irq_profile_frames),
         "frames": frames,
         "render_profiles": profiles,
         "clock_snapshots": clock_snapshots,
         "pll_snapshots": pll_snapshots,
         "producer_gap_frames": producer_gap_frames,
+        "irq_profile_frames": irq_profile_frames,
         "interpretation_limits": [
-            "Counters are cumulative and sampled non-atomically; use modular deltas between frames.",
+            "Schema-1 counters are cumulative and sampled non-atomically; use modular deltas between frames.",
             "Missing reports create longer intervals; rates are interval averages, not reconstructed event times.",
             "Buffered reports distort host receipt rates; device rates assume no intervening reboot or timer reset.",
             "USB messages and UART bytes are ingress observations; accepted_noteons is handler dispatch, not audible acceptance.",

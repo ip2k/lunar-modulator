@@ -21,6 +21,9 @@ assert len(PROFILE_FRAME) == PROFILE_FRAME_BYTES
 from tools.native.diagnostic_telemetry import PLL_FIELDS, PLL_FRAME_BYTES, PLL_PREFIX
 PLL_FRAME = PLL_PREFIX + bytes(5 * len(PLL_FIELDS)) + b"\xf7"
 assert len(PLL_FRAME) == PLL_FRAME_BYTES
+from tools.native.diagnostic_telemetry import IRQ_PROFILE_FIELDS, IRQ_PROFILE_FRAME_BYTES, IRQ_PROFILE_PREFIX
+IRQ_PROFILE_FRAME = IRQ_PROFILE_PREFIX + bytes(5 * len(IRQ_PROFILE_FIELDS)) + b"\xf7"
+assert len(IRQ_PROFILE_FRAME) == IRQ_PROFILE_FRAME_BYTES == 119
 
 
 class FakeClock:
@@ -226,3 +229,22 @@ def test_records_clock_snapshot_separately_without_opening_output(tmp_path):
     assert receipt["valid_frame_count"] == 1
     assert receipt["midi_output_opened"] is False
     assert (out / "raw.syx").read_bytes() == frame
+
+
+def test_records_schema6_irq_profile_in_mixed_capture(tmp_path):
+    clock = FakeClock()
+    fake = FakeMido([
+        SimpleNamespace(type="sysex", data=FRAME[1:-1]),
+        SimpleNamespace(type="sysex", data=IRQ_PROFILE_FRAME[1:-1]),
+    ])
+    out = tmp_path / "irq"
+    receipt = recorder.record("FM-1 MIDI", IMAGE_SHA, out, 0.05,
+                              mido_module=fake, monotonic=clock.monotonic,
+                              wall_time=clock.wall_time, sleep=clock.sleep)
+    rows = [json.loads(line) for line in (out / "events.jsonl").read_text().splitlines()]
+    assert [row["event"] for row in rows] == ["diagnostic_frame", "irq_profile_frame"]
+    assert [row["schema"] for row in rows] == [1, 6]
+    assert rows[1]["values"] == dict.fromkeys(IRQ_PROFILE_FIELDS, 0)
+    assert receipt["irq_profile_frame_count"] == 1
+    assert receipt["valid_frame_count"] == 2
+    assert (out / "raw.syx").read_bytes() == FRAME + IRQ_PROFILE_FRAME

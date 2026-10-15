@@ -20,6 +20,15 @@ PRODUCER_GAP_FIELDS = (
     "display_calls",
 )
 PRODUCER_GAP_FRAME_BYTES = len(PRODUCER_GAP_PREFIX) + 5 * len(PRODUCER_GAP_FIELDS) + 1
+IRQ_PROFILE_PREFIX = b"\xf0\x7dLUNAR\x06"
+IRQ_PROFILE_FIELDS = (
+    "uptime_ms", "busy_ticks", "alnk_count", "alnk_ticks", "alnk_max_ticks",
+    "timer5_count", "timer5_ticks", "timer5_max_ticks", "input_count",
+    "input_ticks", "input_max_ticks", "usb_count", "usb_ticks", "usb_max_ticks",
+    "uac_count", "uac_ticks", "uac_max_ticks", "render_calls",
+    "render_elapsed_ticks", "render_irq_ticks", "overflow_count", "mismatch_count",
+)
+IRQ_PROFILE_FRAME_BYTES = len(IRQ_PROFILE_PREFIX) + 5 * len(IRQ_PROFILE_FIELDS) + 1
 PROFILE_PREFIX = b"\xf0\x7dLUNAR\x02"
 FIELDS = (
     "uptime_ms", "render_ticks_max", "draw_ticks_max", "audio_underruns",
@@ -67,6 +76,11 @@ def decode_producer_gap_frame(frame: bytes) -> dict[str, int]:
     return _decode_values(frame, PRODUCER_GAP_PREFIX, PRODUCER_GAP_FIELDS, 5)
 
 
+def decode_irq_profile_frame(frame: bytes) -> dict[str, int]:
+    """Require one complete schema-6 IRQ timing profile frame."""
+    return _decode_values(frame, IRQ_PROFILE_PREFIX, IRQ_PROFILE_FIELDS, 6)
+
+
 def decode_any_frame(frame: bytes) -> tuple[int, dict[str, int]]:
     if frame.startswith(PREFIX):
         return 1, decode_frame(frame)
@@ -78,6 +92,8 @@ def decode_any_frame(frame: bytes) -> tuple[int, dict[str, int]]:
         return 4, _decode_values(frame, PLL_PREFIX, PLL_FIELDS, 4)
     if frame.startswith(PRODUCER_GAP_PREFIX):
         return 5, decode_producer_gap_frame(frame)
+    if frame.startswith(IRQ_PROFILE_PREFIX):
+        return 6, decode_irq_profile_frame(frame)
     raise ValueError("unknown Lunar diagnostic schema")
 
 
@@ -104,6 +120,8 @@ def decode_capture(data: bytes) -> list[dict[str, int]]:
             size = PLL_FRAME_BYTES
         elif clean.startswith(PRODUCER_GAP_PREFIX, offset):
             size = PRODUCER_GAP_FRAME_BYTES
+        elif clean.startswith(IRQ_PROFILE_PREFIX, offset):
+            size = IRQ_PROFILE_FRAME_BYTES
         else:
             raise ValueError("unknown or truncated diagnostic frame prefix")
         if offset + size > len(clean):

@@ -175,6 +175,30 @@ def diagnostic_producer_gaps_flags(enabled):
             if receipt["compile_definition"] else [])
 
 
+def diagnostic_irq_profile_configuration(enabled):
+    if type(enabled) is not bool:
+        raise TypeError("diagnostic IRQ profile option must be a bool")
+    return dict(enabled=enabled, schema=6 if enabled else None,
+                compile_definition="LUNAR_DIAGNOSTIC_IRQ_PROFILE=1" if enabled else None,
+                frame_bytes=119 if enabled else None,
+                packets_per_frame=40 if enabled else None,
+                transport="USB-MIDI-SysEx" if enabled else None,
+                hardware_tested=False)
+
+
+def validate_diagnostic_irq_profile(enabled, runtime_mode, telemetry_explicit):
+    receipt = diagnostic_irq_profile_configuration(enabled)
+    if enabled and (runtime_mode != "song-diagnostic" or not telemetry_explicit):
+        raise ValueError("diagnostic IRQ profile requires explicit telemetry and song-diagnostic runtime")
+    return receipt
+
+
+def diagnostic_irq_profile_flags(enabled):
+    receipt = diagnostic_irq_profile_configuration(enabled)
+    return (["-D" + receipt["compile_definition"]]
+            if receipt["compile_definition"] else [])
+
+
 def render_stage_profile_configuration(enabled):
     if type(enabled) is not bool:
         raise TypeError("render-stage profile option must be a bool")
@@ -524,6 +548,8 @@ def main():
                         help='Opt in to bounded one-second USB-MIDI diagnostic reports; content may be prepared')
     parser.add_argument('--diagnostic-producer-gaps', action='store_true',
                         help='Opt in to schema-5 producer/display timing reports for prepared song playback')
+    parser.add_argument('--diagnostic-irq-profile', action='store_true',
+                        help='Opt in to schema-6 IRQ timing reports in song-diagnostic mode; requires telemetry')
     parser.add_argument('--diagnostic-clock-snapshot', action='store_true',
                         help='Report raw post-platform clock registers; no clock changes or MHz claim')
     parser.add_argument('--render-stage-profile', action='store_true',
@@ -612,6 +638,8 @@ def main():
             args.diagnostic_producer_gaps, args.runtime_mode,
             args.diagnostic_telemetry, args.startup_project_index,
             args.diagnostic_song_play)
+        irq_profile_receipt = validate_diagnostic_irq_profile(
+            args.diagnostic_irq_profile, args.runtime_mode, args.diagnostic_telemetry)
     except ValueError as error:
         parser.error(str(error))
     if args.flash_plaits_wavetables and not args.compressed_wavetables:
@@ -727,6 +755,7 @@ def main():
         flags += ['-DLUNAR_DIAGNOSTIC_SONG_PLAY=1']
     flags += diagnostic_telemetry_flags(telemetry_enabled)
     flags += diagnostic_producer_gaps_flags(args.diagnostic_producer_gaps)
+    flags += diagnostic_irq_profile_flags(args.diagnostic_irq_profile)
     flags += render_stage_profile_flags(args.render_stage_profile)
     if args.diagnostic_clock_snapshot:
         flags += ["-DLUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT=1"]
@@ -906,6 +935,8 @@ def main():
                   installable=False, hardware_tested=False, elf_sha256=digest(elf))
     if args.diagnostic_producer_gaps:
         report["diagnostic_producer_gaps"] = producer_gap_receipt
+    if args.diagnostic_irq_profile:
+        report["diagnostic_irq_profile"] = irq_profile_receipt
     if args.diagnostic_clock_snapshot:
         report["diagnostic_clock_snapshot"] = clock_snapshot_receipt
     if args.render_stage_profile:

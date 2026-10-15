@@ -164,6 +164,31 @@ int main(void) {
     subprocess.run([str(exe)], check=True)
 
 
+def test_schema6_irq_profile_frame_is_canonical_and_mixed_capture_decodes():
+    from tools.native.diagnostic_telemetry import (
+        IRQ_PROFILE_FIELDS, IRQ_PROFILE_FRAME_BYTES, IRQ_PROFILE_PREFIX,
+    )
+    assert len(IRQ_PROFILE_FIELDS) == 22
+    assert IRQ_PROFILE_FRAME_BYTES == 119
+    assert IRQ_PROFILE_PREFIX == bytes((0xF0, 0x7D, *b"LUNAR", 6))
+
+    values = list(range(22))
+    values[0] = 0xFFFFFFFF
+    frame = bytearray(IRQ_PROFILE_PREFIX)
+    for value in values:
+        frame.extend((value >> (7 * digit)) & 0x7F for digit in range(5))
+    frame.append(0xF7)
+    frame = bytes(frame)
+    assert len(frame) == IRQ_PROFILE_FRAME_BYTES
+    assert codec.decode_any_frame(frame) == (6, dict(zip(IRQ_PROFILE_FIELDS, values)))
+    assert codec.decode_capture(frame)[0]["schema"] == 6
+
+    noncanonical = bytearray(frame)
+    noncanonical[len(IRQ_PROFILE_PREFIX) + 4] = 16
+    with pytest.raises(ValueError, match="noncanonical"):
+        codec.decode_any_frame(bytes(noncanonical))
+
+
 def test_profile_report_retains_samples_when_ring_is_full(tmp_path):
     app = (ROOT / "firmware/native/app_probe.c").read_text()
     start = app.index("static void diagnostic_profile_report(void)")

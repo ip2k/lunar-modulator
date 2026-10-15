@@ -1,3 +1,16 @@
+## IRQ occupancy diagnostic integrated; target build next
+
+[verified: host checks] Schema6 nesting-aware IRQ occupancy integrated with
+render/IRQ overlap, atomic snapshots, encoder/decoder/recorder/analyzer and exact
+build/flash receipts. No autoplay diagnostic is explicitly gated by the exact
+schema6 receipt; schema5 and prior PLAY policies remain guarded. 132 tests and
+15 subtests passed, including disabled instrumentation and C encoder sanitizers.
+Target compilation/code generation and live timing remain unverified. No new
+image flashed. Next: freeze this source, bounded16-shard build on Hera, inspect
+fit/codegen, then separate fresh ROM89 image/recovery admission and capture.
+Owner coldboot performance acceptance FAILED; goal ACTIVE; SAVE disarmed.
+See notes/2026-10-15-irq-occupancy-diagnostic.md. Unrelated uv.lock untouched.
+
 ## Producer-gap trial completed: sustained starvation, ROM89 recovered
 
 One-use rom87 campaign NEVER RELAUNCH.209 guarded sectors and full readback

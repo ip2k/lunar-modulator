@@ -340,3 +340,44 @@ def test_reads_actual_recorder_events_jsonl_schema(tmp_path):
     assert report["frames"][1]["render_max_us"] == 20
     assert report["frames"][1]["counter_deltas"]["usb_messages"] == 2
     assert report["frames"][1]["elapsed_seconds"] > report["frames"][0]["elapsed_seconds"]
+
+
+def test_irq_profile_rows_validate_exact_fields_and_compute_wrap_safe_cumulative_deltas():
+    from tools.native.diagnostic_telemetry import IRQ_PROFILE_FIELDS
+    first = dict.fromkeys(IRQ_PROFILE_FIELDS, 0)
+    first.update(uptime_ms=1000, busy_ticks=0xFFFFFFF0, alnk_count=7,
+                 alnk_max_ticks=42, render_irq_ticks=24)
+    second = dict.fromkeys(IRQ_PROFILE_FIELDS, 0)
+    second.update(uptime_ms=2000, busy_ticks=8, alnk_count=10,
+                  alnk_max_ticks=50, render_irq_ticks=96)
+    rows = [
+        {"event": "irq_profile_frame", "schema": 6, "frame_index": index,
+         "elapsed_seconds": index, "values": values}
+        for index, values in enumerate((first, second))
+    ]
+    report = analyzer.analyze_jsonl(json.dumps(row) for row in rows)
+    assert report["irq_profile_frame_count"] == 2
+    observed = report["irq_profile_frames"][1]
+    assert observed["counter_deltas"]["busy_ticks"] == 24
+    assert observed["counter_deltas"]["alnk_count"] == 3
+    assert "alnk_max_ticks" not in observed["counter_deltas"]
+    assert observed["values"]["alnk_max_ticks"] == 50
+    assert "do not infer duration" in observed["timing_units"]
+
+
+@pytest.mark.parametrize("mutation", ["schema", "missing", "extra", "bool"])
+def test_irq_profile_rejects_wrong_schema_or_nonexact_values(mutation):
+    from tools.native.diagnostic_telemetry import IRQ_PROFILE_FIELDS
+    values = dict.fromkeys(IRQ_PROFILE_FIELDS, 0)
+    event = {"event": "irq_profile_frame", "schema": 6,
+             "elapsed_seconds": 0, "values": values}
+    if mutation == "schema":
+        event["schema"] = 5
+    elif mutation == "missing":
+        values.pop(IRQ_PROFILE_FIELDS[-1])
+    elif mutation == "extra":
+        values["unexpected"] = 1
+    else:
+        values[IRQ_PROFILE_FIELDS[0]] = True
+    with pytest.raises(ValueError):
+        analyzer.analyze_jsonl([json.dumps(event)])

@@ -272,13 +272,45 @@ def _exact_producer_gap_receipt(value):
             and value == expected)
 
 
+def _exact_irq_profile_receipt(value):
+    expected = {
+        "enabled": True, "schema": 6,
+        "compile_definition": "LUNAR_DIAGNOSTIC_IRQ_PROFILE=1",
+        "frame_bytes": 119, "packets_per_frame": 40,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    return (isinstance(value, dict) and set(value) == set(expected)
+            and type(value.get("enabled")) is bool
+            and type(value.get("schema")) is int
+            and type(value.get("frame_bytes")) is int
+            and type(value.get("packets_per_frame")) is int
+            and type(value.get("hardware_tested")) is bool
+            and value == expected)
+
+
+def _exact_song_play_receipt(value, enabled):
+    expected = {
+        "enabled": enabled,
+        "compile_definition": "LUNAR_DIAGNOSTIC_SONG_PLAY=1" if enabled else None,
+        "start_ms": 2000 if enabled else None,
+        "once": enabled,
+        "hardware_tested": False,
+    }
+    return (isinstance(value, dict) and set(value) == set(expected)
+            and type(value.get("enabled")) is bool
+            and type(value.get("once")) is bool
+            and type(value.get("hardware_tested")) is bool
+            and (value.get("start_ms") is None or type(value.get("start_ms")) is int)
+            and value == expected)
+
+
 def _validate_diagnostic_mode(record, build, verification, prepared_profile):
     """Select one exact diagnostic contract without broadening the pulse path."""
     profile_kind = record.get("kind")
     pulse = verification.get("diagnostic_trio_pulse")
     if profile_kind == INPUT_KIND:
-        if "diagnostic_producer_gaps" in verification:
-            raise ValueError("Producer-gap telemetry is only valid for the EH+SET song profile")
+        if "diagnostic_producer_gaps" in verification or "diagnostic_irq_profile" in verification:
+            raise ValueError("Song-only timing telemetry is only valid for the EH+SET song profile")
         if pulse != {"enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TRIO_PULSE=1",
                      "note": 60, "velocity": 100, "start_ms": 3000, "end_ms": 5000,
                      "once": True, "hardware_tested": False}:
@@ -294,14 +326,22 @@ def _validate_diagnostic_mode(record, build, verification, prepared_profile):
             "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TELEMETRY=1",
             "interval_ms": 1000, "transport": "USB-MIDI-SysEx", "hardware_tested": False}:
         raise ValueError("EH+SET diagnostic telemetry must be enabled")
-    if verification.get("diagnostic_song_play") != {
-            "enabled": True,
-            "compile_definition": "LUNAR_DIAGNOSTIC_SONG_PLAY=1",
-            "start_ms": 2000, "once": True, "hardware_tested": False}:
-        raise ValueError("EH+SET diagnostic playback must be the bounded one-shot PLAY profile")
     if ("diagnostic_producer_gaps" in verification
             and not _exact_producer_gap_receipt(verification["diagnostic_producer_gaps"])):
         raise ValueError("EH+SET producer-gap telemetry receipt differs")
+    if ("diagnostic_irq_profile" in verification
+            and not _exact_irq_profile_receipt(verification["diagnostic_irq_profile"])):
+        raise ValueError("EH+SET IRQ profile telemetry receipt differs")
+    song_play = verification.get("diagnostic_song_play")
+    if _exact_song_play_receipt(song_play, True):
+        pass
+    elif ("diagnostic_irq_profile" in verification
+          and "diagnostic_producer_gaps" not in verification
+          and _exact_irq_profile_receipt(verification["diagnostic_irq_profile"])
+          and _exact_song_play_receipt(song_play, False)):
+        pass
+    else:
+        raise ValueError("EH+SET diagnostic playback must be the bounded one-shot PLAY profile")
     return _validate_event_horizon_set_profile(build, verification, prepared_profile)
 
 
@@ -570,6 +610,7 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
               "diagnostic_telemetry": verification.get("diagnostic_telemetry"),
               "diagnostic_song_play": verification.get("diagnostic_song_play"),
               "diagnostic_producer_gaps": verification.get("diagnostic_producer_gaps"),
+              "diagnostic_irq_profile": verification.get("diagnostic_irq_profile"),
               "current_profile_end": CURRENT_END, "candidate_profile_end": TARGET_END,
               "reclaimed_stock_range": [TARGET_END, CURRENT_END],
               "writable_ranges": writable_ranges, "changed_sector_count": len(sectors),

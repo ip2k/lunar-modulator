@@ -191,15 +191,45 @@ static void midi_send(uint32_t st, uint32_t d1, uint32_t d2)   /* from the main 
     midi_out_event((st >> 4) | st << 8 | (d1 & 0x7Fu) << 16 | (d2 & 0x7Fu) << 24);
 }
 
+/* Diagnostic-only accounting: preserve the exact ICFG state at each short
+ * mutation, including when the higher-priority timer nests in ALNK0. */
+#if defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE) && LUNAR_DIAGNOSTIC_IRQ_PROFILE
+#include "irq_profile.h"
+static volatile lunar_irq_profile_t lunar_irq_profile;
+static int lunar_irq_enter(lunar_irq_profile_source_t source)
+{
+    uint32_t flags = irq_save(), now = fm1_ticks();
+    int entered = lunar_irq_profile_enter(&lunar_irq_profile, source, now);
+    irq_restore(flags);
+    return entered;
+}
+static void lunar_irq_leave(lunar_irq_profile_source_t source, int entered)
+{
+    if (entered) {
+        uint32_t flags = irq_save(), now = fm1_ticks();
+        lunar_irq_profile_leave(&lunar_irq_profile, source, now);
+        irq_restore(flags);
+    }
+}
+#define LUNAR_IRQ_ENTER(name, source) int name = lunar_irq_enter(source)
+#define LUNAR_IRQ_LEAVE(name, source) lunar_irq_leave(source, name)
+#else
+#define LUNAR_IRQ_ENTER(name, source) ((void)0)
+#define LUNAR_IRQ_LEAVE(name, source) ((void)0)
+#endif
+
 /* ---- the timer: 10 kHz key scan, milliseconds, USB at 2 kHz. It outranks the audio ISR; nested in a
  * render it only scans, counts and feeds the USB audio stream (as sloopDX main.c) */
 static volatile uint8_t in_audio;
 void fm1_timer5_irq(void)
 {
     static uint32_t sub, owed, last, acc;
+    LUNAR_IRQ_ENTER(timer_profile, LUNAR_IRQ_PROFILE_TIMER5);
     uint32_t t0 = fm1_ticks(), usb_due = sub % 5u == 0u;
     fm1_timer5_ack();
+    LUNAR_IRQ_ENTER(input_profile, LUNAR_IRQ_PROFILE_INPUT);
     fm1_input_tick();
+    LUNAR_IRQ_LEAVE(input_profile, LUNAR_IRQ_PROFILE_INPUT);
     acc += t0 - last;
     last = t0;
     while (acc >= 1000u * FM1_TICKS_PER_US) {
@@ -211,13 +241,21 @@ void fm1_timer5_irq(void)
     if (++sub == 10u)
         sub = 0;
     if (in_audio) {
-        if (usb_due)
+        if (usb_due) {
+            LUNAR_IRQ_ENTER(uac_profile, LUNAR_IRQ_PROFILE_UAC);
             uac_service();
+            LUNAR_IRQ_LEAVE(uac_profile, LUNAR_IRQ_PROFILE_UAC);
+        }
+        LUNAR_IRQ_LEAVE(timer_profile, LUNAR_IRQ_PROFILE_TIMER5);
         return;
     }
-    if (owed)
+    if (owed) {
+        LUNAR_IRQ_ENTER(usb_profile, LUNAR_IRQ_PROFILE_USB);
         usb_poll();
+        LUNAR_IRQ_LEAVE(usb_profile, LUNAR_IRQ_PROFILE_USB);
+    }
     owed = 0;
+    LUNAR_IRQ_LEAVE(timer_profile, LUNAR_IRQ_PROFILE_TIMER5);
 }
 extern void isr_timer5(void);
 
@@ -229,6 +267,7 @@ static void app_main(void);
 
 void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) */
 {
+    LUNAR_IRQ_ENTER(alnk_profile, LUNAR_IRQ_PROFILE_ALNK0);
     uint8_t p;
     in_audio = 1;
     p = fm1_audio_pending();
@@ -251,6 +290,7 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) 
         fm1_audio_ack_half();
     }
     in_audio = 0;
+    LUNAR_IRQ_LEAVE(alnk_profile, LUNAR_IRQ_PROFILE_ALNK0);
 }
 extern void isr_alnk0(void);
 

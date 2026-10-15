@@ -118,6 +118,37 @@ def test_producer_gap_builder_wires_opt_in_flag_and_optional_receipt():
     assert 'report["diagnostic_producer_gaps"] = producer_gap_receipt' in source
 
 
+def test_irq_profile_is_opt_in_schema6_song_telemetry_without_autoplay():
+    import pytest
+
+    disabled = builder.diagnostic_irq_profile_configuration(False)
+    assert disabled == {
+        "enabled": False, "schema": None, "compile_definition": None,
+        "frame_bytes": None, "packets_per_frame": None,
+        "transport": None, "hardware_tested": False,
+    }
+    assert builder.diagnostic_irq_profile_flags(False) == []
+    enabled = builder.validate_diagnostic_irq_profile(True, "song-diagnostic", True)
+    assert enabled == {
+        "enabled": True, "schema": 6,
+        "compile_definition": "LUNAR_DIAGNOSTIC_IRQ_PROFILE=1",
+        "frame_bytes": 119, "packets_per_frame": 40,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    assert builder.diagnostic_irq_profile_flags(True) == [
+        "-DLUNAR_DIAGNOSTIC_IRQ_PROFILE=1"]
+    source = (ROOT / "tools/native/build_application_probe.py").read_text()
+    assert "--diagnostic-irq-profile" in source
+    assert "diagnostic_irq_profile_flags(args.diagnostic_irq_profile)" in source
+    assert 'report["diagnostic_irq_profile"] = irq_profile_receipt' in source
+    for mode, telemetry in (("diagnostic", True), ("continuous", True),
+                            ("song-diagnostic", False)):
+        with pytest.raises(ValueError, match="explicit telemetry and song-diagnostic"):
+            builder.validate_diagnostic_irq_profile(True, mode, telemetry)
+    with pytest.raises(TypeError):
+        builder.diagnostic_irq_profile_configuration(1)
+
+
 def test_render_profile_is_explicit_telemetry_only_and_schema2_opt_in():
     disabled = builder.render_stage_profile_configuration(False)
     assert disabled["enabled"] is False

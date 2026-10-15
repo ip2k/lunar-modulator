@@ -12,8 +12,9 @@
  * - Call enter/leave in strict ISR nesting order. Serialize each short state
  *   mutation against preemption by another tracked IRQ (for example, by
  *   briefly masking the higher-priority tracked source around the mutation).
- *   Timestamp immediately before enter and immediately before leave, outside
- *   that serialization window, so the measurement includes ISR work.
+ *   Sample the timestamp inside that serialization window, immediately before
+ *   the mutation. Sampling before masking permits preemption to make the
+ *   timestamp older than a nested interval and double-count busy time.
  * - Main-loop snapshots must be copied while all tracked IRQs are quiesced.
  *   The counters are multiword and a plain concurrent copy can tear. No helper
  *   here disables interrupts or claims an atomic snapshot.

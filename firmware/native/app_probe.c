@@ -12,6 +12,9 @@
 #if defined(LUNAR_DIAGNOSTIC_PRODUCER_GAPS) && !defined(LUNAR_DIAGNOSTIC_TELEMETRY)
 #error "Producer-gap profiling requires diagnostic telemetry"
 #endif
+#if defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE) && !defined(LUNAR_DIAGNOSTIC_TELEMETRY)
+#error "IRQ profiling requires diagnostic telemetry"
+#endif
 #include <stdint.h>
 #include <string.h>
 #define APP_NAME "LUNAR MODULATOR"
@@ -157,6 +160,10 @@ static void app_audio(int32_t *out, uint32_t n)
         lunar_audio_pop(&audio_queue, out + i * 2u);
 }
 
+#ifdef LUNAR_DIAGNOSTIC_IRQ_PROFILE
+static uint32_t irq_render_calls, irq_render_elapsed_ticks, irq_render_irq_ticks;
+#endif
+
 static void refill_audio(void)
 {
     /* A slow engine must still yield to USB, watchdog and timed recovery. */
@@ -173,9 +180,24 @@ static void refill_audio(void)
         lunar_producer_gap_queue(&producer_gap_profile,
             audio_queue.written - audio_queue.read);
 #endif
+#ifdef LUNAR_DIAGNOSTIC_IRQ_PROFILE
+        uint32_t irq_flags = irq_save();
+        uint32_t start = fm1_ticks(), busy_start = lunar_irq_profile.busy_ticks;
+        irq_restore(irq_flags);
+#else
         uint32_t start = fm1_ticks();
+#endif
         const float *p = fm1_app_render(&app, LUNAR_AUDIO_BLOCK_FRAMES);
+#ifdef LUNAR_DIAGNOSTIC_IRQ_PROFILE
+        irq_flags = irq_save();
         uint32_t elapsed = fm1_ticks() - start;
+        irq_render_irq_ticks += lunar_irq_profile.busy_ticks - busy_start;
+        irq_restore(irq_flags);
+        ++irq_render_calls;
+        irq_render_elapsed_ticks += elapsed;
+#else
+        uint32_t elapsed = fm1_ticks() - start;
+#endif
         if (elapsed > render_ticks_max) render_ticks_max = elapsed;
 #ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
         int published = lunar_audio_push(&audio_queue, p);
@@ -368,6 +390,36 @@ static void diagnostic_producer_gap_report(void)
 }
 #endif
 
+#ifdef LUNAR_DIAGNOSTIC_IRQ_PROFILE
+static void diagnostic_irq_report(void)
+{
+    static uint32_t last_report;
+    uint32_t now = fm1_ms;
+    if ((uint32_t)(now - last_report) < 1000u || !usb.config ||
+        mo_w - mo_r > MQ - LUNAR_IRQ_PACKETS) return;
+    uint32_t values[LUNAR_IRQ_FIELDS];
+    /* Freeze only the bounded multiword counter copy, never packet encoding
+     * or USB output. Main-loop render counters have no concurrent writer. */
+    uint32_t flags = irq_save();
+    values[0] = now;
+    values[1] = lunar_irq_profile.busy_ticks;
+    for (unsigned i = 0; i < LUNAR_IRQ_PROFILE_SOURCE_COUNT; ++i) {
+        values[2u + 3u * i] = lunar_irq_profile.source[i].count;
+        values[3u + 3u * i] = lunar_irq_profile.source[i].total_ticks;
+        values[4u + 3u * i] = lunar_irq_profile.source[i].max_ticks;
+    }
+    values[20] = lunar_irq_profile.overflow_count;
+    values[21] = lunar_irq_profile.mismatch_count;
+    irq_restore(flags);
+    values[17] = irq_render_calls;
+    values[18] = irq_render_elapsed_ticks;
+    values[19] = irq_render_irq_ticks;
+    for (unsigned i = 0; i < LUNAR_IRQ_PACKETS; ++i)
+        midi_out_event(lunar_irq_packet(values, i));
+    last_report = now;
+}
+#endif
+
 static void diagnostic_reports(void)
 {
 #ifdef LUNAR_DIAGNOSTIC_CLOCK_SNAPSHOT
@@ -393,7 +445,26 @@ static void diagnostic_reports(void)
         return;
     }
 #endif
-#if defined(LUNAR_DIAGNOSTIC_PRODUCER_GAPS)
+#if defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE)
+    switch ((fm1_ms / 1000u) % 4u) {
+    case 0: diagnostic_report(); break;
+    case 1:
+#ifdef LUNAR_RENDER_STAGE_PROFILE
+        diagnostic_profile_report();
+#else
+        diagnostic_report();
+#endif
+        break;
+    case 2:
+#ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
+        diagnostic_producer_gap_report();
+#else
+        diagnostic_report();
+#endif
+        break;
+    default: diagnostic_irq_report(); break;
+    }
+#elif defined(LUNAR_DIAGNOSTIC_PRODUCER_GAPS)
 #ifdef LUNAR_RENDER_STAGE_PROFILE
     switch ((fm1_ms / 1000u) % 3u) {
     case 0: diagnostic_report(); break;

@@ -154,4 +154,31 @@ static inline uint32_t lunar_producer_gap_packet(
     return packet;
 }
 
+/* Schema 6: cumulative IRQ occupancy and render elapsed/IRQ ticks. Per-source
+ * times are inclusive; busy_ticks is the nesting union. Counters wrap uint32. */
+#define LUNAR_IRQ_FIELDS 22u
+#define LUNAR_IRQ_BYTES (9u + 5u * LUNAR_IRQ_FIELDS)
+#define LUNAR_IRQ_PACKETS ((LUNAR_IRQ_BYTES + 2u) / 3u)
+static inline uint32_t lunar_irq_packet(
+    const uint32_t values[LUNAR_IRQ_FIELDS], unsigned index)
+{
+    static const uint8_t prefix[] = {0xf0, 0x7d, 'L', 'U', 'N', 'A', 'R', 6};
+    if (index >= LUNAR_IRQ_PACKETS) return 0;
+    unsigned at = index * 3u, left = LUNAR_IRQ_BYTES - at;
+    unsigned n = left < 3u ? left : 3u;
+    uint32_t packet = left > 3u ? 4u : 4u + n;
+    for (unsigned j = 0; j < n; ++j) {
+        unsigned pos = at + j;
+        uint8_t byte;
+        if (pos < sizeof prefix) byte = prefix[pos];
+        else if (pos == LUNAR_IRQ_BYTES - 1u) byte = 0xf7;
+        else {
+            unsigned data = pos - (unsigned)sizeof prefix;
+            byte = (uint8_t)((values[data / 5u] >> (7u * (data % 5u))) & 127u);
+        }
+        packet |= (uint32_t)byte << (8u * (j + 1u));
+    }
+    return packet;
+}
+
 #endif

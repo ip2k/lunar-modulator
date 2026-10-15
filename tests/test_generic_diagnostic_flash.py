@@ -5,7 +5,80 @@ from pathlib import Path
 import pytest
 
 from tools.native import generic_diagnostic_flash as module
+from tools.native import build_application_probe as builder
 from tools.fm1_flash_transaction import create_transaction, digest, encoded
+
+
+def test_schema6_irq_receipt_is_exact_and_strictly_typed():
+    receipt = {
+        "enabled": True, "schema": 6,
+        "compile_definition": "LUNAR_DIAGNOSTIC_IRQ_PROFILE=1",
+        "frame_bytes": 119, "packets_per_frame": 40,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    assert module._exact_irq_profile_receipt(receipt)
+    for key, value in (("schema", True), ("frame_bytes", True),
+                       ("packets_per_frame", 41), ("hardware_tested", True)):
+        changed = dict(receipt, **{key: value})
+        assert not module._exact_irq_profile_receipt(changed)
+    assert not module._exact_irq_profile_receipt(dict(receipt, extra=False))
+
+
+def test_song_profile_may_omit_autoplay_only_for_exact_irq_profile(monkeypatch):
+    irq = {
+        "enabled": True, "schema": 6,
+        "compile_definition": "LUNAR_DIAGNOSTIC_IRQ_PROFILE=1",
+        "frame_bytes": 119, "packets_per_frame": 40,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    base = {
+        "diagnostic_trio_pulse": {
+            "enabled": False, "compile_definition": None, "note": None,
+            "velocity": None, "start_ms": None, "end_ms": None,
+            "once": True, "hardware_tested": False,
+        },
+        "diagnostic_telemetry": {
+            "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TELEMETRY=1",
+            "interval_ms": 1000, "transport": "USB-MIDI-SysEx",
+            "hardware_tested": False,
+        },
+    }
+    monkeypatch.setattr(module, "_validate_event_horizon_set_profile",
+                        lambda *_args: {"validated": True})
+    record = {"kind": module.SONG_INPUT_KIND}
+    disabled_play = builder.validate_diagnostic_song_play(
+        False, "song-diagnostic", None, True, False)
+    assert disabled_play == {
+        "enabled": False, "compile_definition": None, "start_ms": None,
+        "once": False, "hardware_tested": False,
+    }
+    actual_builder_receipt = dict(base, diagnostic_irq_profile=irq,
+                                  diagnostic_song_play=disabled_play)
+    assert module._validate_diagnostic_mode(record, {}, actual_builder_receipt, b"") == {"validated": True}
+
+    with pytest.raises(ValueError, match="bounded one-shot PLAY"):
+        module._validate_diagnostic_mode(record, {}, base, b"")
+    with pytest.raises(ValueError, match="bounded one-shot PLAY"):
+        module._validate_diagnostic_mode(
+            record, {}, dict(base, diagnostic_song_play=disabled_play), b"")
+    with pytest.raises(ValueError, match="IRQ profile telemetry receipt differs"):
+        module._validate_diagnostic_mode(record, {},
+                                        dict(base, diagnostic_irq_profile=dict(irq, frame_bytes=118)), b"")
+    valid_producer = {
+        "enabled": True, "schema": 5,
+        "compile_definition": "LUNAR_DIAGNOSTIC_PRODUCER_GAPS=1",
+        "frame_bytes": 59, "packets_per_frame": 20,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    with pytest.raises(ValueError, match="bounded one-shot PLAY"):
+        module._validate_diagnostic_mode(record, {},
+                                        dict(base, diagnostic_producer_gaps=valid_producer), b"")
+
+    malformed_play = dict(disabled_play, once=True)
+    with pytest.raises(ValueError, match="bounded one-shot PLAY"):
+        module._validate_diagnostic_mode(record, {},
+                                        dict(base, diagnostic_irq_profile=irq,
+                                             diagnostic_song_play=malformed_play), b"")
 
 
 class MemoryROM:
