@@ -1,3 +1,17 @@
+## Performance follow-ups and ROM99 preparation
+
+Goal ACTIVE; audio/display acceptance FAILED; SAVE disarmed. Physical device
+still ROM99 (root passively checked). Exact162 comparison remains frozen;
+do not silently substitute newer source. Post-advance tempo/playing getter
+725f33c1 pushed/verified; exact target build running on Hera. Shared resampler
+RAM-table placement trial has 11 focused checks and independent source review;
+target placement/performance remain unproven. See notes/2026-10-15-resampler-ram-tables.md.
+Root found incompatible manifest/template/build paths in the first complete
+exact162 staging package6d2e2d; no bench staging or device operation occurred.
+Agent is preparing a separately named corrected package with actual integration
+checks. Prior contaminated bound-rom99 remains forbidden; rebuilt scaffold is
+fail-closed awaiting exact candidate/runtime/USB/geometry binding.
+
 ## ROM99 preparation recovery and next performance work
 
 Goal ACTIVE; physical audio/display acceptance FAILED; SAVE disarmed.

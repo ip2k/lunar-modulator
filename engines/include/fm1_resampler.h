@@ -7,7 +7,7 @@
  * Any real ratio from 1 to 4 (input rate at or above the output rate, up to
  * four times it); equal rates pass samples through bit for bit.
  *
- * Design: two stages, all coefficients const (flash on the FM-1).
+ * Design: two stages, all coefficients const (RAM in hot-DSP native builds).
  *   1. A polyphase windowed-sinc interpolator from the input rate to twice
  *      the output rate. Its kernel (sinc x Kaiser, beta 11, 12 intermediate
  *      samples wide, cut off at 0.96 of the output rate) is tabulated at 128
@@ -93,7 +93,13 @@ extern "C" {
 #endif
 extern const float fm1_resampler_kernel[FM1_RESAMPLER_KERNEL_LEN];
 extern const float fm1_resampler_lowpass[FM1_RESAMPLER_LP_PAIRS + 1];
+#if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM && defined(__ELF__)
+/* The native linker/startup copies .ram_dsp* alongside the filter code.
+ * Only the shared definitions move: header-only users keep their placement. */
+#define FM1_RESAMPLER_TABLE_STORAGE __attribute__((section(".ram_dsp.tables"), aligned(4)))
+#else
 #define FM1_RESAMPLER_TABLE_STORAGE
+#endif
 #else
 #define FM1_RESAMPLER_TABLE_STORAGE static
 #endif
