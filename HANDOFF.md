@@ -1,3 +1,20 @@
+## Exact schema8 policy and dependency pins — 2026-10-15
+
+Goal ACTIVE; hardware audio/display acceptance still FAILED; SAVE disarmed.
+Reviewed and added exact standalone CPU-rate receipt admission: fixed schema8,
+strict field types/values, song-only, no playback/pulse or competing profilers;
+optional clock receipt must also match exactly. Tests reject each missing/wrong
+field, bool-as-int, mixed profilers, playback and non-song use. Refreshed reviewed
+flash/candidate dependency pins through SG then boot; full focused policy/SG/boot
+suite51 PASS including source-tamper refusal. Earlier six failures exposed stale
+pins and are resolved; no hardware or boot action issued. CPU target codegen audit
+still pending; this source policy alone is not physical admission.
+Limiter20f export ready: scratch/c0-limiter-helper-export/bundle,26 rawmembers,
+archive9d3495b5; rawreceipt920fe480, app356283b8. Worker constructs new single-use
+ROM107 deployment from this corrected runtime commit; root must independently
+review all pins/fresh paired reads/target before flashing. Current physicalf3a9.
+Last root verified pushed6b720bd8; unrelateduv.lock untouched.
+
 ## Fixed-work calibration source integrated — 2026-10-15
 
 Goal ACTIVE; owner cold-boot audio/display acceptance still FAILED; SAVE disarmed.

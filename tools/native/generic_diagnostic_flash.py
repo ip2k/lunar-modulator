@@ -370,6 +370,22 @@ def _exact_song_play_receipt(value, enabled):
             and value == expected)
 
 
+def _exact_cpu_rate_receipt(value):
+    expected = {
+        "enabled": True, "schema": 8,
+        "compile_definition": "LUNAR_DIAGNOSTIC_CPU_RATE=1",
+        "frame_bytes": 49, "packets_per_frame": 17,
+        "kernel": "fixed integer workload in XIP and .ram_text",
+        "iterations_per_trial": 4096, "trials_per_kernel": 4,
+        "timing": "raw TIMER4 ticks; no CPU frequency interpretation",
+        "starts": "post-recovery, pre-platform flash probe",
+        "register_writes": False, "hardware_tested": False,
+    }
+    return (isinstance(value, dict) and set(value) == set(expected)
+            and all(type(value[key]) is type(want) and value[key] == want
+                    for key, want in expected.items()))
+
+
 def _validate_diagnostic_mode(record, build, verification, prepared_profile):
     """Select one exact diagnostic contract without broadening the pulse path."""
     profile_kind = record.get("kind")
@@ -377,7 +393,8 @@ def _validate_diagnostic_mode(record, build, verification, prepared_profile):
     if profile_kind == INPUT_KIND:
         if ("diagnostic_producer_gaps" in verification or
                 "diagnostic_irq_profile" in verification or
-                "diagnostic_engine_render_profile" in verification):
+                "diagnostic_engine_render_profile" in verification or
+                "diagnostic_cpu_rate" in verification):
             raise ValueError("Song-only timing telemetry is only valid for the EH+SET song profile")
         if pulse != {"enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TRIO_PULSE=1",
                      "note": 60, "velocity": 100, "start_ms": 3000, "end_ms": 5000,
@@ -394,6 +411,16 @@ def _validate_diagnostic_mode(record, build, verification, prepared_profile):
             "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TELEMETRY=1",
             "interval_ms": 1000, "transport": "USB-MIDI-SysEx", "hardware_tested": False}:
         raise ValueError("EH+SET diagnostic telemetry must be enabled")
+    if "diagnostic_cpu_rate" in verification:
+        if (not _exact_cpu_rate_receipt(verification["diagnostic_cpu_rate"])
+                or not _exact_song_play_receipt(verification.get("diagnostic_song_play"), False)
+                or any(key in verification for key in (
+                    "diagnostic_producer_gaps", "diagnostic_irq_profile",
+                    "diagnostic_engine_render_profile", "render_stage_profile"))
+                or ("diagnostic_clock_snapshot" in verification and not
+                    _exact_clock_snapshot_receipt(verification["diagnostic_clock_snapshot"]))):
+            raise ValueError("Exact standalone CPU-rate diagnostic with playback disabled required")
+        return _validate_event_horizon_set_profile(build, verification, prepared_profile)
     if ("diagnostic_producer_gaps" in verification
             and not _exact_producer_gap_receipt(verification["diagnostic_producer_gaps"])):
         raise ValueError("EH+SET producer-gap telemetry receipt differs")

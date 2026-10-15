@@ -237,6 +237,52 @@ def test_song_profile_accepts_exact_profiler_off_clock_diagnostic_without_autopl
             module._validate_diagnostic_mode(record, {}, incompatible, b"")
 
 
+def test_cpu_rate_admission_is_exact_and_standalone(monkeypatch):
+    monkeypatch.setattr(module, "_validate_event_horizon_set_profile",
+                        lambda *_args: {"validated": True})
+    cpu = builder.diagnostic_cpu_rate_configuration(True)
+    base = {
+        "diagnostic_trio_pulse": {
+            "enabled": False, "compile_definition": None, "note": None,
+            "velocity": None, "start_ms": None, "end_ms": None,
+            "once": True, "hardware_tested": False,
+        },
+        "diagnostic_telemetry": {
+            "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TELEMETRY=1",
+            "interval_ms": 1000, "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+        },
+        "diagnostic_song_play": builder.validate_diagnostic_song_play(
+            False, "song-diagnostic", None, True, False),
+        "diagnostic_cpu_rate": cpu,
+    }
+    record = {"kind": module.SONG_INPUT_KIND}
+    assert module._exact_cpu_rate_receipt(cpu)
+    assert module._validate_diagnostic_mode(record, {}, base, b"") == {"validated": True}
+    # Every field is required and type-checked, including bool versus integer.
+    for key, value in cpu.items():
+        bad = dict(cpu)
+        del bad[key]
+        assert not module._exact_cpu_rate_receipt(bad)
+        replacement = int(value) if type(value) is bool else (True if type(value) is int else None)
+        bad = dict(cpu, **{key: replacement})
+        assert not module._exact_cpu_rate_receipt(bad)
+        with pytest.raises(ValueError, match="standalone CPU-rate"):
+            module._validate_diagnostic_mode(record, {}, dict(base, diagnostic_cpu_rate=bad), b"")
+    for key in ("diagnostic_producer_gaps", "diagnostic_irq_profile",
+                "diagnostic_engine_render_profile", "render_stage_profile"):
+        with pytest.raises(ValueError, match="standalone CPU-rate"):
+            module._validate_diagnostic_mode(record, {}, dict(base, **{key: {}}), b"")
+    with pytest.raises(ValueError, match="standalone CPU-rate"):
+        module._validate_diagnostic_mode(record, {}, dict(base, diagnostic_song_play=
+            builder.validate_diagnostic_song_play(True, "song-diagnostic", 0, True, False)), b"")
+    with pytest.raises(ValueError, match="Song-only"):
+        module._validate_diagnostic_mode({"kind": module.INPUT_KIND}, {}, base, b"")
+    with pytest.raises(ValueError, match="standalone CPU-rate"):
+        module._validate_diagnostic_mode(record, {}, dict(base, diagnostic_clock_snapshot={}), b"")
+    clock = json.loads(json.dumps(builder.validate_clock_snapshot(True, "song-diagnostic", True)))
+    assert module._validate_diagnostic_mode(record, {}, dict(base, diagnostic_clock_snapshot=clock), b"") == {"validated": True}
+
+
 def test_input_pulse_profile_rejects_schema7_engine_profile():
     verification = {
         "diagnostic_trio_pulse": {
