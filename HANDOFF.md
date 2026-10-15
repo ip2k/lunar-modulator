@@ -5066,3 +5066,42 @@ new read. New planned passive-only read/boot base:
 `/home/claude/fm1-song-passive-6d971bf-20261015`, target09037621, ROM63.
 Delegate preparing ignored scratch/song-midi-passive-retry; separate prospective
 ROM65transport helper is offline only and must be rebound after actual return.
+
+## MIDI transport passive run active
+
+New bench01 base `/home/claude/fm1-song-passive-6d971bf-20261015`: paired
+reads matched installed090376 target; single ROM63 reset reply ambiguous,
+no retry. Native64 independently observed; audio180s+telemetry110s running.
+No MIDI outputs opened. Inspect capture.jsonl/telemetry and wait actual ROM
+return before assigning next prospectiveROM65 transport run. No reflashing.
+See notes/2026-10-15-native-midi-transport.md. Prior consumed install base
+retained. Goal active; SAVE disarmed; hardware acceptance pending.
+
+## Completed passive capture and fresh transport run
+
+[verified] Passive capture finished successfully: arecord exit0 at180s and
+telemetry recorder exit0 at110s. The FM1 returned automatically to ROM65 on
+port1-1. WAV SHA256 d4523fa5e0fa94aded0c192e61ec8c6328269005786eb3e5ad73d98669b2cf6f;
+telemetry JSONL c0ea9b7bbfc8ef0d911c19d15d3e03f764e1af0125a795d93912ebf9c208cba5;
+raw SysEx 579195e0322ba446dd246bbf9aca227990a8651a0b8bf216cc543eab50e5186e.
+At uptime119087ms, U=48741, produced=27448, render max=121529ticks
+(5063.71us versus1450.66us per64frames), draw max=174070ticks.
+Stack observed minima user5888/system7724bytes; no MIDI input was sent.
+These counters demonstrate sustained queue starvation and failed performance
+acceptance, even though boot and timed recovery succeeded.
+
+[verified] After actual ROM65 return, staged a separate no-flash transport
+campaign at bench01:/home/claude/fm1-song-transport-6d971bf-20261015.
+File-only preflight passed, all33 helper tests passed, reader/reset/runtime
+pins externally verified. Runner56cc971e94613d8b8e3bb95e46685a8ab810202a7478593163402a9fa4f8275b;
+helpercc35c742c922703135a97ae99f614aeebc49fc68fa6fd8fc3aa385e4fe140c11.
+Fresh paired reads passed and the sole reset request was sent; SG reply
+ambiguous, no retry. Capture remains active at this checkpoint. Planned USB
+bytes are FC/FB/FA/FC/FB at12/22/40/60/70s after telemetry launch.
+Inspect capture receipts and actual native/ROM enumeration before conclusions.
+No physical MIDI or musical playback acceptance is claimed.
+
+Goal ACTIVE; SAVE disarmed. Agent demo_controller_review is implementing opt-in
+per-stage profiling offline; root owns transport capture and notes. Do not
+repeat consumed ROM63/65 campaigns. Next inspect completed transport capture,
+then profile/repair render workload before hardware playback acceptance.

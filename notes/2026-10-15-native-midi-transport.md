@@ -76,3 +76,42 @@ was created; passive enumeration remains ROM63. Preserve this consumed install
 campaign. Next is a new fresh paired-read, ROM-only boot campaign against the
 installed target, with file-only runtime preflight before any device operation.
 No hardware playback or MIDI transport acceptance is claimed yet.
+
+[verified] New passive ROM63 campaign at bench01
+`/home/claude/fm1-song-passive-6d971bf-20261015` passed file-only preflight
+including174 runtime pins and externally checked reader/reset source hashes.
+Fresh paired full reads matched0903762167a1dd9877c190e3b67e6657cfe4c5f7227af65d327456f73f8ba4fe.
+Audio was ready before a single FC0C arg1 request. Its reply was ambiguous
+(host7/resid16); no retry was issued. Independently observed native USB64
+1209:0001 on the same port and exact Lunar ALSA input; passive telemetry
+started. This is an in-progress180s audio/110s telemetry capture, no MIDI
+output opened or bytes sent. Read manifeste1b3319cab36fea9bfde3e89c1011712cf7bbd9ee07798427cca35e41e346090;
+boot campaign3ebdd08f25b92efaf46ceb5ad3ff7d23497ffcda5ae4ade3a34d4e771608a830.
+Physical audio/transport acceptance remains pending analysis. No flash write
+was performed by this new campaign. The full173 focused MIDI/core/app tests
+passed again. Frozen private helper hashes and review are in
+`scratch/song-midi-passive-retry/handoff.md` and `review.md`.
+
+## Completed passive capture and fresh transport run
+
+[verified] Passive capture finished successfully: arecord exit0 at180s and
+telemetry recorder exit0 at110s. The FM1 returned automatically to ROM65 on
+port1-1. WAV SHA256 d4523fa5e0fa94aded0c192e61ec8c6328269005786eb3e5ad73d98669b2cf6f;
+telemetry JSONL c0ea9b7bbfc8ef0d911c19d15d3e03f764e1af0125a795d93912ebf9c208cba5;
+raw SysEx 579195e0322ba446dd246bbf9aca227990a8651a0b8bf216cc543eab50e5186e.
+At uptime119087ms, U=48741, produced=27448, render max=121529ticks
+(5063.71us versus1450.66us per64frames), draw max=174070ticks.
+Stack observed minima user5888/system7724bytes; no MIDI input was sent.
+These counters demonstrate sustained queue starvation and failed performance
+acceptance, even though boot and timed recovery succeeded.
+
+[verified] After actual ROM65 return, staged a separate no-flash transport
+campaign at bench01:/home/claude/fm1-song-transport-6d971bf-20261015.
+File-only preflight passed, all33 helper tests passed, reader/reset/runtime
+pins externally verified. Runner56cc971e94613d8b8e3bb95e46685a8ab810202a7478593163402a9fa4f8275b;
+helpercc35c742c922703135a97ae99f614aeebc49fc68fa6fd8fc3aa385e4fe140c11.
+Fresh paired reads passed and the sole reset request was sent; SG reply
+ambiguous, no retry. Capture remains active at this checkpoint. Planned USB
+bytes are FC/FB/FA/FC/FB at12/22/40/60/70s after telemetry launch.
+Inspect capture receipts and actual native/ROM enumeration before conclusions.
+No physical MIDI or musical playback acceptance is claimed.
