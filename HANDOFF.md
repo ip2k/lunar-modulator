@@ -1,3 +1,14 @@
+## ROM97 campaign launched once — DO NOT RELAUNCH
+
+Goal ACTIVE; performance FAILED pending measurement; SAVE disarmed.
+One-use BASE/home/claude/fm1-fabs-profile-0e02422f-20261015 launcher PID166192.
+Fresh passive ROM97 binding and exact staged campaign inventory rechecked;
+independent review passed; final file-only preflight passed. Launch returned once.
+Inspect cycle.stdout/stderr, rom97-engine-render-profile-cycle/fresh-read and
+transaction journals before any further device action. Candidate13902c8a,
+currenteddc8531; pins78dbcbd/deploymente80151. No reset retry authorized.
+Record actual backed-up/readback/boot/capture evidence separately from this dispatch.
+
 ## ROM97 file-only staging passed; not launched
 
 Goal ACTIVE; physical performance FAILED; SAVE disarmed.
