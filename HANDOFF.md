@@ -1,3 +1,25 @@
+# Reviewed SG bridge integrated; post-install boot gap — 2026-10-15 00:17 UTC
+
+Root integrated adapter fd3c62e1 as8c0aae24 and independent review2db62971
+as540b3dcc. Fourteen focused policy/adapter/SG tests pass locally; worker refs
+and coordinator540b3dcc verified on GitHub. Sources staged on bench in
+/home/claude/fm1-trio-pulse-66196-20261014/runtime; no read/upload/write/boot.
+Passive ROM55, KA6 card2/K6 and MIDI24:0 still present. Full offline prepare
+replay used real build/candidate/stock/current bytes but a stub read verifier;
+physical fresh read remains required. Frozen run5 receipt136dad34 and target
+c240999c remain UNINSTALLED. Auto C4 window starts before initialization and
+can skip; explicit MIDI and existing N/R/D/U footer are fallback evidence.
+Generic boot verifier requires another complete ROM-upload transcript and
+cannot accept completed flash transaction directly. Bounded same-process
+completed-install boot adapter assigned to installer worker; independent
+review assigned to storage worker. Do not consume ROM55 fresh read until full
+read/prepare/install/readback/boot cycle is ready. Fresh inputs must replace
+synthetic read section and old created_at in staged evidence/input-template.
+CI38658340689 at8f7abbcc remains in progress, not current-head proof. Goal ACTIVE;
+physical audio/performance, SAVE, independent recovery, browser install and
+release acceptance remain open. Next: review boot adapter, integrate/push,
+then fresh ROM55 paired read and bounded install with KA6 capture.
+
 # Frozen diagnostic rebuild and flash factory in progress — 2026-10-14
 
 Owner missed device54 watched run; no powercycle requested. Automatic C4 pulse
