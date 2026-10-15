@@ -10,6 +10,7 @@
 #ifndef FM1_MIX_LIMITER_H_
 #define FM1_MIX_LIMITER_H_
 
+#include <float.h>
 #include <math.h>
 #include <stdint.h>
 
@@ -58,7 +59,29 @@ FM1_MIX_GUARD_INLINE float fm1_mix_guard(float x) {
 
 #undef FM1_MIX_GUARD_INLINE
 
+/* Skip the per-sample limiter only for its exact fixed point: canonical
+ * positive-zero envelope, finite nonnegative release, nonnegative ceiling,
+ * and a block containing only signed zeros. A nonzero envelope must still
+ * run every frame so its release tail advances; non-finite samples and unusual
+ * public state fall through to the reference path. */
+static inline int fm1_mix_limiter_can_skip_silence(const fm1_mix_limiter_t *l) {
+  return l->envelope == 0.0f && !signbit(l->envelope) &&
+         l->release >= 0.0f && l->release <= FLT_MAX &&
+         (l->release != 0.0f || !signbit(l->release)) &&
+         l->ceiling >= 0.0f;
+}
+
 static inline void fm1_mix_limiter_process(fm1_mix_limiter_t *l, float *lr, uint32_t frames) {
+  if (frames == 0) return;
+  if (fm1_mix_limiter_can_skip_silence(l)) {
+    const float *sample = lr;
+    uint32_t remaining = frames;
+    while (remaining != 0) {
+      if (*sample++ != 0.0f || *sample++ != 0.0f) break;
+      --remaining;
+    }
+    if (remaining == 0) return;
+  }
   for (uint32_t n = 0; n < frames; ++n) {
     lr[2 * n] = fm1_mix_guard(lr[2 * n]);
     lr[2 * n + 1] = fm1_mix_guard(lr[2 * n + 1]);

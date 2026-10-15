@@ -36,7 +36,7 @@ def test_mix_limiter_matches_fabsf_reference(optimization, sanitizer, hot_dsp_ra
         pytest.skip("host compiler is present but its UBSan runtime is not installed")
     assert compiled.returncode == 0, compiled.stderr
     result = subprocess.run([str(executable)], check=True, capture_output=True, text=True)
-    assert result.stdout.strip() == "mix limiter optimized/reference exact equivalence: PASS (4608 cases)"
+    assert result.stdout.strip() == "mix limiter optimized/reference exact equivalence: PASS (4608 randomized cases plus 23 explicit edge cases)"
 
 
 def test_hot_dsp_profile_inlines_guard_at_o0(tmp_path):

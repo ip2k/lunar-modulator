@@ -102,7 +102,95 @@ static int one_case(uint32_t chunk, unsigned scenario, float initial_envelope,
   return 1;
 }
 
+
+static int compare_explicit_case(float envelope, float release, float ceiling,
+                                 const uint32_t *sample_bits, uint32_t frames) {
+  float actual[32] = {0.0f}, reference[32] = {0.0f};
+  if (frames > 16u) return 0;
+  for (uint32_t i = 0; i < 2u * frames; ++i) {
+    uint32_t bits = sample_bits ? sample_bits[i] : (i & 1u ? 0x80000000u : 0u);
+    memcpy(&actual[i], &bits, sizeof(bits));
+  }
+  memcpy(reference, actual, sizeof(actual));
+  fm1_mix_limiter_t got = {envelope, release, ceiling};
+  reference_limiter_t expected = {envelope, release, ceiling};
+  fm1_mix_limiter_process(&got, actual, frames);
+  reference_process(&expected, reference, frames);
+  return memcmp(actual, reference, sizeof(actual)) == 0 &&
+         memcmp(&got, &expected, sizeof(got)) == 0;
+}
+
+static int compare_silence_signal_tail_sequence(void) {
+  float actual[32] = {0.0f}, reference[32] = {0.0f};
+  fm1_mix_limiter_t got = {0.0f, 0.01f, 0.98f};
+  reference_limiter_t expected = {0.0f, 0.01f, 0.98f};
+  for (unsigned phase = 0; phase < 4; ++phase) {
+    memset(actual, 0, sizeof(actual));
+    if (phase == 1) {
+      actual[0] = 0.75f;
+      actual[1] = -0.5f;
+    }
+    memcpy(reference, actual, sizeof(actual));
+    fm1_mix_limiter_process(&got, actual, 16u);
+    reference_process(&expected, reference, 16u);
+    if (memcmp(actual, reference, sizeof(actual)) != 0 ||
+        memcmp(&got, &expected, sizeof(got)) != 0) return 0;
+  }
+  return 1;
+}
+
+static int explicit_edge_cases(void) {
+  static const uint32_t signal[] = {
+      0x00000000u, 0x80000000u, 0x3f000000u, 0xbf000000u,
+      0x00000000u, 0x80000000u,
+  };
+  static const uint32_t nan_inf[] = {
+      0x7fc12345u, 0xff800000u, 0x00000000u, 0x80000000u,
+  };
+  static const float unusual_release[] = {
+      0.0f, -0.0f, -0.25f, 0.25f, INFINITY, -INFINITY, NAN,
+  };
+  static const float unusual_ceiling[] = {
+      0.98f, -0.0f, -0.25f, INFINITY, -INFINITY, NAN,
+  };
+  static const float unusual_envelope[] = {
+      -0.0f, 0.5f, INFINITY, NAN,
+  };
+  unsigned checks = 0;
+  /* Exact-zero fixed point, signed-zero preservation, then resumed signal,
+   * release tail, and subsequent silence must all match the old loop. */
+  if (!compare_explicit_case(0.0f, 0.01f, 0.98f, NULL, 8u)) return 0;
+  ++checks;
+  if (!compare_silence_signal_tail_sequence()) return 0;
+  ++checks;
+  if (!compare_explicit_case(0.0f, 0.01f, 0.98f, signal, 3u)) return 0;
+  ++checks;
+  if (!compare_explicit_case(0.5f, 0.01f, 0.98f, NULL, 8u)) return 0;
+  ++checks;
+  if (!compare_explicit_case(-0.0f, 0.01f, 0.98f, NULL, 8u)) return 0;
+  ++checks;
+  if (!compare_explicit_case(0.0f, 0.01f, 0.98f, nan_inf, 2u)) return 0;
+  ++checks;
+  for (unsigned i = 0; i < sizeof(unusual_release) / sizeof(unusual_release[0]); ++i) {
+    if (!compare_explicit_case(0.0f, unusual_release[i], 0.98f, NULL, 8u)) return 0;
+    ++checks;
+  }
+  for (unsigned i = 0; i < sizeof(unusual_ceiling) / sizeof(unusual_ceiling[0]); ++i) {
+    if (!compare_explicit_case(0.0f, 0.01f, unusual_ceiling[i], NULL, 8u)) return 0;
+    ++checks;
+  }
+  for (unsigned i = 0; i < sizeof(unusual_envelope) / sizeof(unusual_envelope[0]); ++i) {
+    if (!compare_explicit_case(unusual_envelope[i], 0.01f, 0.98f, NULL, 8u)) return 0;
+    ++checks;
+  }
+  return checks == 23u;
+}
+
 int main(void) {
+  if (!explicit_edge_cases()) {
+    fprintf(stderr, "explicit limiter edge-case mismatch\n");
+    return 1;
+  }
   static const uint32_t chunks[] = {1u, 3u, 7u, 64u, 129u, FRAMES};
   static const float envelopes[] = {0.0f, 0.5f, 0.98f, 1.25f};
   static const float rates[] = {44118.0f, 48000.0f, 96000.0f};
@@ -121,6 +209,6 @@ int main(void) {
       }
     }
   }
-  printf("mix limiter optimized/reference exact equivalence: PASS (%u cases)\n", checks);
+  printf("mix limiter optimized/reference exact equivalence: PASS (%u randomized cases plus 23 explicit edge cases)\n", checks);
   return 0;
 }
