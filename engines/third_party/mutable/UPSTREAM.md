@@ -7,11 +7,11 @@
 | Author | Emilie Gillet (Mutable Instruments) |
 | Licence | MIT. Every vendored `.h`/`.cc` carries its MIT header (checked with grep on 2026-09-30); `stmlib/LICENSE` is copied alongside. stmlib's GPL-3 `ui/event_queue.h` is **not** vendored |
 | Copied by | `vendor.py`, which follows `#include`s from the files listed in its `ROOTS` and copies the whole of `plaits/dsp`. Only Rings' reverb and its `fx_engine.h` come from `rings/`, and only Clouds' reverb, diffuser, `fx_engine.h` and `frame.h` from `clouds/` |
-| Local changes | `plaits/dsp/engine2/six_op_engine.h` marks the `FMVoice::Render` wrapper, and `plaits/dsp/fm/voice.h` marks only the `Voice<6>::Render(const Parameters&, float*, size_t)` overload, with the local `fm1_hot_dsp.h` opt-in RAM-section attribute. The DSP algorithm is unchanged; other fixes and adaptations live in our wrappers (`engines/src/mi_*.cc`). |
+| Local changes | `plaits/dsp/engine2/six_op_engine.h` marks the `FMVoice::Render` wrapper, and `plaits/dsp/fm/voice.h` marks only the `Voice<6>::Render(const Parameters&, float**, size_t)` overload, with the local `fm1_hot_dsp.h` opt-in RAM-section attribute. The DSP algorithm is unchanged; other fixes and adaptations live in our wrappers (`engines/src/mi_*.cc`). |
 
 Re-vendoring:
 
-Reapply the narrow `FMVoice::Render` and `Voice<6>::Render(const Parameters&, float*, size_t)` placement includes/annotations after regenerating the vendor tree.
+Reapply the narrow `FMVoice::Render` and `Voice<6>::Render(const Parameters&, float**, size_t)` placement includes/annotations after regenerating the vendor tree.
 
 ```bash
 git clone https://github.com/pichenettes/eurorack reference/mi-eurorack

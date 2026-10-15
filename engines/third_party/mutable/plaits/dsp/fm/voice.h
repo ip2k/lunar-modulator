@@ -142,7 +142,7 @@ class Voice {
     Render(parameters, buffers, size);
   }
   
-  FM1_HOT_DSP_RENDER inline void Render(
+  inline void Render(
       const Parameters& parameters,
       float* temp,
       size_t size) {
@@ -150,7 +150,7 @@ class Voice {
     Render(parameters, buffers, size);
   }
 
-  inline void Render(
+  FM1_HOT_DSP_RENDER inline void Render(
       const Parameters& parameters,
       float* buffers[4],
       size_t size) {

@@ -5538,3 +5538,19 @@ before preparing any separate freshly bound device campaign. SAVE disarmed;
 full recovery/persistence/web release and physical MIDI acceptance remain open.
 MIDI FA start/rewind,FC pause/gate release,FB continue implemented for USB/UART;
 37parser/routing checks passed again. F8 clock synchronization is separate.
+
+
+### Corrected FM buffer-array overload (target review follow-up)
+
+[verified: target disassembly] The 9b49b1c5 experiment moved only the 32-byte
+float* temporary-buffer adapter. Its float** buffer-array overload remained
+in XIP at 0x0206679c (1,956 bytes). The earlier description of that experiment
+as relocating the compute body was premature. No seven-body image was flashed.
+Independent review is saved privately at scratch/native-hot-dsp-ram/fm-template-elf-review.md.
+
+[verified: source and host tests] The opt-in annotation now targets only
+Render(Parameters,float**,size_t), and receipt names/source pins match it.
+The source regression binds the annotation to the exact buffer-array signature.
+All 63 focused builder/candidate/adapter/boot checks pass. Fresh target build,
+actual compute-body RAM placement review and subsequent physical evidence are
+still required. DSP arithmetic is unchanged; no performance claim is made.
