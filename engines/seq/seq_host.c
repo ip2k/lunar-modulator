@@ -233,6 +233,11 @@ static uint8_t dest_of(const fm1_seq_track_info_t *ti) {
                                                 : (uint8_t)(0x80u | ti->route_index);
 }
 
+static uint8_t dest_of_route(const fm1_seq_route_info_t *route) {
+  return route->kind == FM1_SEQ_ROUTE_ENGINE ? route->index
+                                             : (uint8_t)(0x80u | route->index);
+}
+
 /* Where event k goes: the track's route now, except that a note-off from
  * the block's inputs goes where the track's notes went at the last
  * dispatch (Rerouting, fm1_seq_host.h). 0xFF: nowhere (no such track). */
@@ -355,9 +360,16 @@ static void dispatched(fm1_seq_host_t *h) {
   uint32_t k;
   for (k = 0; h->mfx && k < h->n; ++k) h->ev[k].kind &= (uint8_t)~FM1_MFX_TAKEN;
   for (t = 0; t < FM1_SEQ_MAX_TRACKS; ++t) {
+#ifdef FM1_SEQ_HOST_FULL_TRACK_SNAPSHOT_ORACLE
     fm1_seq_track_info_t ti;
     h->dest[t] = h->seq && fm1_seq_get_track(h->seq, (uint8_t)t, &ti) ? dest_of(&ti)
                                                                       : FM1_SEQ_HOST_NO_DEST;
+#else
+    fm1_seq_route_info_t route;
+    h->dest[t] = h->seq && fm1_seq_get_route(h->seq, (uint8_t)t, &route)
+                     ? dest_of_route(&route)
+                     : FM1_SEQ_HOST_NO_DEST;
+#endif
   }
   h->cmd_n = 0;
   h->n = 0;
