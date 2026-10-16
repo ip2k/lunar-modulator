@@ -451,3 +451,14 @@ uncontrolled. Independent report saved in scratch event-history/attempt5-trace-r
 Owner asked to empty both TARGET ports before reloading same diagnostic for
 a clean trial. Next trial adds a SAFE check after connectingA but beforeUSER;
 do not request another press until root confirms no accidental early arm.
+
+## Attempt 6 staged connection check
+
+[verified: owner] Both TARGET ports empty before reload. Root rechecked pinned
+bit SHA776843f9…bc3e0b, loaded it volatily and read layout5/status4010/GPIO0/
+terminal0/history0: SAFE, PHY ready, no fault, outputs released.
+Owner asked to connect A with FM1 RIGHT and C empty WITHOUT pressing USER.
+Post-connection SAFE check is required before requesting the physical key/switch
+sequence, to detect accidental early arming. Connection reply pending.
+Saved attempt-6-upload.log and attempt-6-disarmed-status.json in scratch event-history.
+No FM1 commands or flash access issued.

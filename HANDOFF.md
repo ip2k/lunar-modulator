@@ -1,3 +1,18 @@
+## Attempt 6 freshly disarmed; connection-only step pending — 2026-10-16
+
+[verified: owner] Both TARGET ports empty before root reloaded the SAME pinned
+layout5 bit 776843f932f060a96d1f32052726269c5de1a81c3983d6f15d3b7d24c1bc3e0b.
+JTAG status4010, GPIO0, terminal0, history0: SAFE, PHY ready, no fault,
+both output enables zero. No attempt has run since this reload.
+Owner asked: keep C empty, switch FM1 RIGHT, connect FM1 to A WITHOUT USER,
+leave RIGHT and reply Connected. Next root must read SAFE after connection;
+ONLY THEN request USER press/release and immediate RIGHT→LEFT. Do not claim
+clean arming until this post-connection check passes. Do not reconfigure while
+FM1 attached without obtaining the empty-target gate.
+Evidence: scratch/cynthion-usb-key-20261016/event-history/
+attempt-6-upload.log and attempt-6-disarmed-status.json.
+No FM1 commands or flash access issued.
+
 ## Attempt 5 enumeration absent; clean retry pending — 2026-10-16
 
 [verified: passive bench USB at 07:35:42 UTC] No FM1 app, loader or ROM device
