@@ -4,7 +4,7 @@ pytest.importorskip("amaranth")
 pytest.importorskip("cynthion")
 from amaranth.sim import Simulator
 
-from tools.cynthion_usb_key.gateware import CynthionUsbKey
+from tools.cynthion_usb_key.gateware import CynthionUsbKey, UsbKeyEventHistory
 from tools.cynthion_usb_key.top import CynthionUsbKeyPlatform, CynthionUsbKeyTop
 
 
@@ -187,6 +187,101 @@ def test_missing_interlock_keeps_all_key_outputs_high_z():
         assert ctx.get(dut.state) == dut.SAFE
         assert ctx.get(dut.dp_oe) == 0
         assert ctx.get(dut.dm_oe) == 0
+
+    sim.add_testbench(bench)
+    sim.run()
+
+
+def test_event_history_wrap_order_and_terminal_freeze():
+    history = UsbKeyEventHistory()
+    sim = Simulator(history)
+    sim.add_clock(1e-6, domain="usb")
+
+    async def bench(ctx):
+        ctx.set(history.tick_us, 1)
+        for value in range(40):
+            ctx.set(history.payload, value)
+            ctx.set(history.event, 1)
+            await ctx.tick(domain="usb")
+            ctx.set(history.event, 0)
+        assert ctx.get(history.count) == 32
+        assert ctx.get(history.next_index) == 8
+        assert ctx.get(history.timestamp_us) == 40
+
+        # Reconstruct oldest-to-newest using (next - count) mod depth.
+        for offset, expected in enumerate(range(8, 40)):
+            slot = (ctx.get(history.next_index) + offset) % history.DEPTH
+            packed = ctx.get(history.entries[slot])
+            assert packed & 0xFFFFFFFF == expected
+            assert packed >> 32 & ((1 << 52) - 1) == expected
+
+        # A simultaneous terminal event is captured, then the ring freezes.
+        ctx.set(history.payload, 0xABCDE)
+        ctx.set(history.event, 1)
+        ctx.set(history.terminal, 1)
+        await ctx.tick(domain="usb")
+        ctx.set(history.event, 0)
+        assert ctx.get(history.frozen) == 1
+        assert ctx.get(history.next_index) == 9
+        terminal_entry = ctx.get(history.entries[8])
+        assert terminal_entry & 0xFFFFFFFF == 40
+        assert terminal_entry >> 32 & ((1 << 52) - 1) == 0xABCDE
+
+        snapshot = [ctx.get(entry) for entry in history.entries]
+        for value in (0x111, 0x222):
+            ctx.set(history.payload, value)
+            ctx.set(history.event, 1)
+            await ctx.tick(domain="usb")
+        assert [ctx.get(entry) for entry in history.entries] == snapshot
+        assert ctx.get(history.next_index) == 9
+        assert ctx.get(history.count) == 32
+
+    sim.add_testbench(bench)
+    sim.run()
+
+
+def test_full_event_history_does_not_gate_protocol_outputs():
+    dut = CynthionUsbKey(clock_hz=1_000_000, packet_limit=100,
+                         selftest_state_us=2, auto_selftest=True)
+    sim = Simulator(dut)
+    sim.add_clock(1e-6, domain="usb")
+
+    async def bench(ctx):
+        ctx.set(dut.phy_isolated, 1)
+        ctx.set(dut.bank6_3v3_confirmed, 1)
+        ctx.set(dut.ack_sense_valid, 1)
+        for _ in range(10):
+            await ctx.tick(domain="usb")
+            if ctx.get(dut.state) == dut.SELFTEST:
+                break
+        for index, expected in enumerate((2, 1, 0, 3)):
+            ctx.set(dut.line_state_value, expected)
+            ctx.set(dut.line_state_valid, 1)
+            ctx.set(dut.line_state_update, 1)
+            await ctx.tick(domain="usb")
+            ctx.set(dut.line_state_update, 0)
+            for _ in range(5):
+                await ctx.tick(domain="usb")
+                if index < 3 and (ctx.get(dut.dp_o), ctx.get(dut.dm_o)) == (
+                    (2, 1, 0, 3)[index + 1] & 1,
+                    (2, 1, 0, 3)[index + 1] >> 1,
+                ):
+                    break
+        assert ctx.get(dut.state) == dut.KEY
+
+        # Exercise more than one full buffer while leaving the lines in
+        # alternating non-SE0 states; key transmission must keep advancing.
+        for index in range(80):
+            ctx.set(dut.line_state_value, 1 + (index & 1) * 2)
+            ctx.set(dut.line_state_update, 1)
+            await ctx.tick(domain="usb")
+        assert ctx.get(dut.history_count) == 32
+        assert ctx.get(dut.history_frozen) == 0
+        newest_slot = (ctx.get(dut.history_next_index) - 1) % 32
+        assert ctx.get(dut.history_entries[newest_slot]) >> 84 == 0
+        assert ctx.get(dut.state) == dut.KEY
+        assert ctx.get(dut.dp_oe) == 1
+        assert ctx.get(dut.dm_oe) == 1
 
     sim.add_testbench(bench)
     sim.run()
