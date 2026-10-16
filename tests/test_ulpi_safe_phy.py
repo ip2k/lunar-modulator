@@ -92,8 +92,10 @@ class _FakeUSB3343:
         self.premature_drive = False
         self.link_enabled_on_fault = None
         self.fault_cycle = None
+        self.diagnostic_done_seen = False
 
-    async def run(self, ctx, *, max_cycles=200, trigger_diagnostic=False):
+    async def run(self, ctx, *, max_cycles=200, trigger_diagnostic=False,
+                  hold_request_after_done=False):
         ctx.set(self.dir, 0)
         ctx.set(self.nxt, 0)
         ctx.set(self.data_in, 0)
@@ -104,17 +106,21 @@ class _FakeUSB3343:
         wait_count = 0
         payload = 0
         diagnostic_triggered = False
+        diagnostic_done_seen = False
 
         for cycle in range(max_cycles):
             await ctx.tick("usb")
             ctx.set(self.dut.start, 0)
-            if diagnostic_triggered:
+            if diagnostic_triggered and not hold_request_after_done:
                 ctx.set(self.dut.diagnostic_read_request, 0)
             if (trigger_diagnostic and ctx.get(self.dut.ready)
                     and not diagnostic_triggered):
                 ctx.set(self.dut.diagnostic_read_request, 1)
                 diagnostic_triggered = True
             if ctx.get(self.dut.diagnostic_done):
+                diagnostic_done_seen = True
+                self.diagnostic_done_seen = True
+            if diagnostic_done_seen and not hold_request_after_done:
                 return
             if ctx.get(self.data_oe):
                 self.bus_output.append((cycle, ctx.get(self.data_out)))
@@ -194,6 +200,8 @@ class _FakeUSB3343:
                     and not trigger_diagnostic):
                 return
 
+        if hold_request_after_done and diagnostic_done_seen:
+            return
         raise AssertionError("initializer neither completed nor faulted within simulation bound")
 
 
@@ -450,10 +458,11 @@ class ULPISafePHYTests(unittest.TestCase):
                 await ctx.tick("usb")
             observed["age_before"] = ctx.get(top.dut.line_state_age_cycles)
 
-            await fake.run(ctx, trigger_diagnostic=True)
+            await fake.run(ctx, max_cycles=160, trigger_diagnostic=True,
+                           hold_request_after_done=True)
             observed.update(
                 attempted=ctx.get(top.dut.diagnostic_attempted),
-                done=ctx.get(top.dut.diagnostic_done),
+                done=fake.diagnostic_done_seen,
                 error=ctx.get(top.dut.diagnostic_error),
                 value=ctx.get(top.dut.diagnostic_value),
                 line_value=ctx.get(top.dut.line_state_value),
