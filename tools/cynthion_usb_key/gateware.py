@@ -343,7 +343,12 @@ class CynthionUsbKey(Elaboratable):
                             d += phase.eq(0)
                             with m.If(tx_bit == self.key_bits - 1):
                                 with m.If(~ack_confirm):
-                                    d += [self.state.eq(self.GAP), gap.eq(0)]
+                                    # Candidate duration belongs to one
+                                    # actively driven key packet. Do not add
+                                    # cached SE0 time from either side of the
+                                    # released inter-packet interval.
+                                    d += [self.state.eq(self.GAP), gap.eq(0),
+                                          ack_ticks.eq(0)]
                             with m.Else():
                                 d += tx_bit.eq(tx_bit + 1)
                         with m.Else():
