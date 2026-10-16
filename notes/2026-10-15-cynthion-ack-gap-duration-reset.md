@@ -40,7 +40,7 @@ references were checked directly against this exact commit's files.
 - Exact base: `3f183ef0909d499f7b0750e0c058138d885c4703`
 - Branch: `fix/2026-10-15@ack-gap-duration-reset`
 - Worktree: `/Users/likwid/.codex/worktrees/cynthion-ack-gap-reset`
-- State: implementation, focused tests, and note are committed on the branch;
-  push to authorized `origin` and remote-SHA verification are the next steps.
-- Next: push the explicit branch refspec to `origin`, verify its exact SHA, and
-  send the branch to root for review/integration.
+- State: implementation, focused tests, and note are committed; the explicit
+  branch push to authorized `origin` was verified against the same remote SHA.
+- Next: root reviews and chooses the integration point; no hardware/build action
+  is part of this change.
