@@ -33,7 +33,7 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | Address | Meaning |
 | --- | --- |
 | `0x01` | Magic `0x4c554e52` (`LUNR`) |
-| `0x02` | Register layout version `4` |
+| `0x02` | Register layout version `5` |
 | `0x03` | Status snapshot |
 | `0x04` | Live GPIO: DP input, DM input, DP output, DM output, DP OE, DM OE (bits 0–5) |
 | `0x05` | Self-test failure: reason (bits 0–1), step (2–3), expected state (4–5), last observed state (6–7) |
@@ -50,6 +50,9 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | `0x10` | Latched SOF elapsed microseconds |
 | `0x11` | Latched SOF continuous-SE0 elapsed microseconds |
 | `0x12` | Latched KEY position: bit index bits 0–7, bit phase bits 8–23 |
+| `0x13` | Event ring metadata: next-write slot bits 0–4, saturated count bits 5–10, frozen bit 11 |
+| `0x14` | Event ring timestamp clock in microseconds (32-bit, wraps after about 71 minutes) |
+| `0x20`–`0x7f` | 32 event-ring entries, three read-only words per physical slot |
 
 Status register `0x03` packs state in bits 0–3, PHY ready/fault in bits 4–5,
 the four-step self-test mask in bits 6–9, line-state-valid in bit 10, the
@@ -100,3 +103,20 @@ Generic USB3343 instances retain the register's `0x04` default profile unless
 the board-specific r1.4 profile is explicitly selected. This follows the
 platform's `ulpi_extra_registers` setting and Microchip USB334x datasheet
 §7.1.3.5; it does not change the GPIO or RXCMD line-state bit order.
+
+Layout v5 adds a 32-entry diagnostic ring that records only on a qualified
+RXCMD line-state update or an FSM state transition. It is not a periodic
+sampler. Each physical slot occupies three consecutive JTAG words beginning
+at `0x20 + 3*slot`: word 0 is timestamp in microseconds; word 1 contains
+payload bits 0–31; word 2 contains payload bits 32–51 (upper bits are zero).
+Payload bits are state 0–3, RXCMD-update event flag 4 (zero means state
+transition), line-state-valid 5, line state 6–7, GPIO input/output/OE snapshot
+8–13 (same layout as register `0x04`), key bit index 14–17, key phase 18–33,
+ACK elapsed ticks 34–49, receiver-live flag 50, and candidate-ACK-confirm flag
+51. The timestamp counts USB-domain microseconds from startup and wraps at
+32 bits. Register `0x13` gives next-write slot and saturated count; the oldest
+retained slot is `(next_write - count) mod 32`, then walk forward modulo 32.
+When the FSM reaches DONE or FAULT, the terminal transition is recorded and
+the ring freezes. The recorder is passive and does not gate protocol outputs.
+The ring is diagnostic evidence only; RXCMD events remain event-on-change
+reports and must not be interpreted as continuous line sampling.

@@ -11,6 +11,48 @@ from amaranth.lib.cdc import FFSynchronizer
 from dongle.sim.params import PARAMS
 
 
+class UsbKeyEventHistory(Elaboratable):
+    """Diagnostic-only ring of fixed-width USB_KEY state snapshots.
+
+    Each entry is 96 bits: microsecond timestamp (32 bits) followed by a
+    52-bit packed snapshot; the remaining 12 bits are zero. A terminal input
+    freezes the ring after optionally recording that same-cycle event.
+    """
+
+    DEPTH = 32
+    ENTRY_BITS = 96
+
+    def __init__(self, *, domain="usb"):
+        self.domain = domain
+        self.tick_us = Signal()
+        self.event = Signal()
+        self.terminal = Signal()
+        self.payload = Signal(52)
+        self.timestamp_us = Signal(32)
+        self.next_index = Signal(5)
+        self.count = Signal(6)
+        self.frozen = Signal()
+        self.entries = [Signal(self.ENTRY_BITS, name=f"history_entry_{i}")
+                        for i in range(self.DEPTH)]
+
+    def elaborate(self, platform):
+        m = Module()
+        d = m.d[self.domain]
+        entries = Array(self.entries)
+        with m.If(~self.frozen):
+            with m.If(self.tick_us):
+                d += self.timestamp_us.eq(self.timestamp_us + 1)
+            with m.If(self.event):
+                d += [entries[self.next_index].eq(
+                          Cat(self.timestamp_us, self.payload)),
+                      self.next_index.eq(self.next_index + 1),
+                      self.count.eq(Mux(self.count < self.DEPTH,
+                                        self.count + 1, self.count))]
+            with m.If(self.terminal):
+                d += self.frozen.eq(1)
+        return m
+
+
 class CynthionUsbKey(Elaboratable):
     """Finite D+ clock attempt, preceded by an RXCMD four-state self-test.
 
@@ -109,6 +151,13 @@ class CynthionUsbKey(Elaboratable):
         self.debug_dp_low_ticks = Signal(32)
         self.debug_key_bit = Signal(8)
         self.debug_key_phase = Signal(16)
+        self.history_next_index = Signal(5)
+        self.history_count = Signal(6)
+        self.history_frozen = Signal()
+        self.history_timestamp_us = Signal(32)
+        self.history_entries = [Signal(UsbKeyEventHistory.ENTRY_BITS,
+                                       name=f"debug_history_entry_{i}")
+                               for i in range(UsbKeyEventHistory.DEPTH)]
 
     def elaborate(self, platform):
         m = Module()
@@ -142,6 +191,35 @@ class CynthionUsbKey(Elaboratable):
         sof_phase = Signal(range(self.sof_period))
         dp_low_ticks = Signal(range(self.sof_done_low + 1))
         key_bit = Signal()
+        history = UsbKeyEventHistory(domain=self.domain)
+        m.submodules.event_history = history
+        history_last_state = Signal(4, reset=self.SAFE)
+        history_phase = Signal(16)
+        history_ack_ticks = Signal(16)
+        history_gpio = Cat(self.pad_dp_i, self.pad_dm_i, self.dp_o, self.dm_o,
+                           self.dp_oe & self.phy_isolated,
+                           self.dm_oe & self.phy_isolated)
+        history_payload = Cat(
+            self.state, self.line_state_update, self.line_state_valid,
+            self.line_state_value, history_gpio, tx_bit, history_phase,
+            history_ack_ticks, receiver_live, ack_confirm)
+        m.d.comb += [
+            history.tick_us.eq(us_tick),
+            history.event.eq(self.line_state_update |
+                             (self.state != history_last_state)),
+            history.terminal.eq((self.state == self.DONE) |
+                                (self.state == self.FAULT)),
+            history.payload.eq(history_payload),
+            history_phase.eq(phase),
+            history_ack_ticks.eq(ack_ticks),
+            self.history_next_index.eq(history.next_index),
+            self.history_count.eq(history.count),
+            self.history_frozen.eq(history.frozen),
+            self.history_timestamp_us.eq(history.timestamp_us),
+        ]
+        for index in range(UsbKeyEventHistory.DEPTH):
+            m.d.comb += self.history_entries[index].eq(history.entries[index])
+        d += history_last_state.eq(self.state)
 
         m.d.comb += [
             us_tick.eq(div == self.cycles_per_us - 1),
