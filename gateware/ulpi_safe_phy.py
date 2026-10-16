@@ -106,6 +106,15 @@ class ULPISafePHY(Elaboratable):
         self.line_state_value = Signal(2)
         self.line_state_valid = Signal()
         self.line_state_update = Signal()
+        self.line_state_age_cycles = Signal(32)
+
+        # Optional one-shot terminal diagnostic. It only reads the PHY's
+        # Debug register; status is separate from initialization ``fault``.
+        self.diagnostic_read_request = Signal()
+        self.diagnostic_attempted = Signal()
+        self.diagnostic_done = Signal()
+        self.diagnostic_error = Signal()
+        self.diagnostic_value = Signal(8)
 
     def elaborate(self, platform):
         m = Module()
@@ -186,8 +195,16 @@ class ULPISafePHY(Elaboratable):
             window.read_request.eq(0),
             window.write_request.eq(0),
             self.line_state_update.eq(0),
+            self.diagnostic_done.eq(0),
             direction_delayed.eq(direction_in),
         ]
+
+        with m.If(self.line_state_valid & ~self.line_state_update):
+            with m.If(self.line_state_age_cycles != 0xFFFFFFFF):
+                m.d.usb += self.line_state_age_cycles.eq(
+                    self.line_state_age_cycles + 1)
+        with m.If(self.line_state_update):
+            m.d.usb += self.line_state_age_cycles.eq(0)
 
         with m.If(attempted & ~self.ready & ~self.fault):
             with m.If(deadline_counter == self.deadline_cycles - 1):
@@ -200,6 +217,7 @@ class ULPISafePHY(Elaboratable):
         # configuration RXCMDs; expose only observations after safe readback.
         with m.If(
             self.ready
+            & ~self.diagnostic_attempted
             & direction_delayed
             & direction_in
             & ~next_in
@@ -282,7 +300,42 @@ class ULPISafePHY(Elaboratable):
                     m.next = "COMPLETE"
 
             with m.State("COMPLETE"):
-                pass
+                with m.If(self.diagnostic_read_request
+                          & ~self.diagnostic_attempted):
+                    m.d.usb += [
+                        self.diagnostic_attempted.eq(1),
+                        transaction_counter.eq(0),
+                    ]
+                    m.next = "DIAGNOSTIC_ISSUE"
+
+            with m.State("DIAGNOSTIC_ISSUE"):
+                with m.If(~window.busy):
+                    m.d.usb += [
+                        window.address.eq(0x15),
+                        window.read_request.eq(1),
+                        transaction_counter.eq(0),
+                    ]
+                    m.next = "DIAGNOSTIC_WAIT"
+                with m.Elif(transaction_counter == self.transaction_timeout_cycles - 1):
+                    m.d.usb += [self.diagnostic_done.eq(1),
+                                self.diagnostic_error.eq(1)]
+                    m.next = "COMPLETE"
+                with m.Else():
+                    m.d.usb += transaction_counter.eq(transaction_counter + 1)
+
+            with m.State("DIAGNOSTIC_WAIT"):
+                with m.If(window.done):
+                    m.d.usb += [
+                        self.diagnostic_value.eq(window.read_data),
+                        self.diagnostic_done.eq(1),
+                    ]
+                    m.next = "COMPLETE"
+                with m.Elif(transaction_counter == self.transaction_timeout_cycles - 1):
+                    m.d.usb += [self.diagnostic_done.eq(1),
+                                self.diagnostic_error.eq(1)]
+                    m.next = "COMPLETE"
+                with m.Else():
+                    m.d.usb += transaction_counter.eq(transaction_counter + 1)
 
             with m.State("FAILED"):
                 m.d.usb += [self.ready.eq(0), self.fault.eq(1)]

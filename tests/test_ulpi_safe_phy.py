@@ -56,7 +56,8 @@ def _port(record, name, direction):
 class _FakeUSB3343:
     """Minimal ULPI responder that exercises LUNA's real register window."""
 
-    def __init__(self, top, *, response=True, initial=None, read_override=None):
+    def __init__(self, top, *, response=True, initial=None, read_override=None,
+                 diagnostic_response=True):
         self.top = top
         self.ulpi = top.ulpi
         self.dir = _port(self.ulpi, "dir", "i")
@@ -76,10 +77,12 @@ class _FakeUSB3343:
             0x0A: 0x06,
             0x32: 0x00,
             0x39: 0x04,
+            0x15: 0x02,
         }
         if initial:
             self.registers.update(initial)
         self.read_override = read_override
+        self.diagnostic_response = diagnostic_response
         self.read_counts = {}
         self.reads = []
         self.writes = []
@@ -90,7 +93,7 @@ class _FakeUSB3343:
         self.link_enabled_on_fault = None
         self.fault_cycle = None
 
-    async def run(self, ctx, *, max_cycles=200):
+    async def run(self, ctx, *, max_cycles=200, trigger_diagnostic=False):
         ctx.set(self.dir, 0)
         ctx.set(self.nxt, 0)
         ctx.set(self.data_in, 0)
@@ -100,15 +103,25 @@ class _FakeUSB3343:
         command_kind = None
         wait_count = 0
         payload = 0
+        diagnostic_triggered = False
 
         for cycle in range(max_cycles):
             await ctx.tick("usb")
             ctx.set(self.dut.start, 0)
+            if diagnostic_triggered:
+                ctx.set(self.dut.diagnostic_read_request, 0)
+            if (trigger_diagnostic and ctx.get(self.dut.ready)
+                    and not diagnostic_triggered):
+                ctx.set(self.dut.diagnostic_read_request, 1)
+                diagnostic_triggered = True
+            if ctx.get(self.dut.diagnostic_done):
+                return
             if ctx.get(self.data_oe):
                 self.bus_output.append((cycle, ctx.get(self.data_out)))
             if not ctx.get(self.dut.ready) and ctx.get(self.dut.drive_allowed):
                 self.premature_drive = True
-            if ctx.get(self.dut.ready) or ctx.get(self.dut.fault):
+            if ((ctx.get(self.dut.ready) or ctx.get(self.dut.fault))
+                    and not trigger_diagnostic):
                 if ctx.get(self.dut.fault):
                     self.link_enabled_on_fault = ctx.get(self.data_oe)
                     self.fault_cycle = cycle
@@ -124,8 +137,15 @@ class _FakeUSB3343:
                     address = command & 0x3F
                     command_kind = "read" if (command & 0xC0) == 0xC0 else "write"
                     self.commands.append((command_kind, address))
-                    ctx.set(self.nxt, 1)
-                    mode = "accept_read_command" if command_kind == "read" else "accept_write_command"
+                    if address == 0x15 and not self.diagnostic_response:
+                        ctx.set(self.nxt, 0)
+                        mode = "stall"
+                    else:
+                        ctx.set(self.nxt, 1)
+                        mode = "accept_read_command" if command_kind == "read" else "accept_write_command"
+
+            elif mode == "stall":
+                ctx.set(self.nxt, 0)
 
             elif mode == "accept_read_command":
                 value = self.registers.get(address, 0)
@@ -170,7 +190,8 @@ class _FakeUSB3343:
                 if ctx.get(self.stop):
                     mode = "idle"
 
-            if ctx.get(self.dut.ready) or ctx.get(self.dut.fault):
+            if ((ctx.get(self.dut.ready) or ctx.get(self.dut.fault))
+                    and not trigger_diagnostic):
                 return
 
         raise AssertionError("initializer neither completed nor faulted within simulation bound")
@@ -410,6 +431,82 @@ class ULPISafePHYTests(unittest.TestCase):
         self.assertEqual(observed["enabled_on_fault"], 0)
         self.assertTrue(any(byte == 0xC0 for _, byte in observed["bytes"]))
         self.assertTrue(all(cycle < observed["fault_cycle"] for cycle, _ in observed["bytes"]))
+
+    def test_terminal_debug_read_is_one_shot_and_separate_from_phy_fault(self):
+        top = _Top()
+        fake = _FakeUSB3343(top)
+        observed = {}
+
+        async def bench(ctx):
+            await fake.run(ctx)
+            ctx.set(top.ulpi.data.i, 1)
+            ctx.set(top.ulpi.dir, 1)
+            ctx.set(top.ulpi.nxt, 0)
+            await ctx.tick("usb")
+            await ctx.tick("usb")
+            ctx.set(top.ulpi.dir, 0)
+            await ctx.tick("usb")
+            for _ in range(4):
+                await ctx.tick("usb")
+            observed["age_before"] = ctx.get(top.dut.line_state_age_cycles)
+
+            await fake.run(ctx, trigger_diagnostic=True)
+            observed.update(
+                attempted=ctx.get(top.dut.diagnostic_attempted),
+                done=ctx.get(top.dut.diagnostic_done),
+                error=ctx.get(top.dut.diagnostic_error),
+                value=ctx.get(top.dut.diagnostic_value),
+                line_value=ctx.get(top.dut.line_state_value),
+                line_valid=ctx.get(top.dut.line_state_valid),
+                fault=ctx.get(top.dut.fault),
+                ready=ctx.get(top.dut.ready),
+                drive=ctx.get(top.dut.drive_allowed),
+                reads=list(fake.reads),
+                commands=list(fake.commands),
+            )
+
+        self._simulate(top, bench)
+        self.assertGreater(observed["age_before"], 0)
+        self.assertEqual(observed["attempted"], 1)
+        self.assertEqual(observed["done"], 1)
+        self.assertEqual(observed["error"], 0)
+        self.assertEqual(observed["value"], 0x02)
+        self.assertEqual(observed["line_value"], 1)
+        self.assertEqual(observed["line_valid"], 1)
+        self.assertEqual(observed["fault"], 0)
+        self.assertEqual(observed["ready"], 1)
+        self.assertEqual(observed["drive"], 1)
+        self.assertEqual(observed["commands"].count(("read", 0x15)), 1)
+
+    def test_terminal_debug_timeout_latches_error_without_changing_init_fault(self):
+        top = _Top(transaction_timeout_cycles=8, deadline_cycles=120)
+        fake = _FakeUSB3343(top, diagnostic_response=False)
+        observed = {}
+
+        async def bench(ctx):
+            await fake.run(ctx)
+            await fake.run(ctx, max_cycles=100, trigger_diagnostic=True)
+            observed.update(
+                attempted=ctx.get(top.dut.diagnostic_attempted),
+                done=ctx.get(top.dut.diagnostic_done),
+                error=ctx.get(top.dut.diagnostic_error),
+                value=ctx.get(top.dut.diagnostic_value),
+                fault=ctx.get(top.dut.fault),
+                ready=ctx.get(top.dut.ready),
+                drive=ctx.get(top.dut.drive_allowed),
+                reads=list(fake.reads),
+                commands=list(fake.commands),
+            )
+
+        self._simulate(top, bench)
+        self.assertEqual(observed["attempted"], 1)
+        self.assertEqual(observed["done"], 1)
+        self.assertEqual(observed["error"], 1)
+        self.assertEqual(observed["value"], 0)
+        self.assertEqual(observed["fault"], 0)
+        self.assertEqual(observed["ready"], 1)
+        self.assertEqual(observed["drive"], 1)
+        self.assertEqual(observed["commands"].count(("read", 0x15)), 1)
 
 if __name__ == "__main__":
     unittest.main()
