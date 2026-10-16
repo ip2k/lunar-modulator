@@ -562,3 +562,29 @@ by an inference of ROM acceptance.
 Evidence: scratch/cynthion-usb-key-20261016/debug-readback-control-power/
 owner-attempt-7-status.json. Source/artifact remain pinned as in prior entry.
 
+
+## Attempt 7 enumeration absent; power evidence next — 2026-10-16
+
+[verified: passive USB at 21:24:29 UTC / 2:24 p.m. Pacific] Owner confirmed
+TARGET C connected with FM1 switch LEFT unchanged. bench01 reports only USB
+root hubs and Komplete Audio 6; no FM1 app, OTA loader or ROM device. This
+check occurs well after the key attempt; it cannot satisfy the cold-ROM
+adapter's 120-second fresh-entry admission gate even if a device appeared.
+No FM1 commands were sent. Raw inventory saved in scratch/cynthion-usb-key-
+20261016/debug-readback-control-power/owner-attempt-7-enumeration.txt.
+
+Current: both TARGET ports connected; CONTROL to Mac; switch LEFT. Loaded
+layout6 image terminal FAULT/high-Z. Do not reconfigure with targets attached.
+[reported: completed independent waveform review] No identical retry is
+recommended. Verify target power independently before attributing persistent
+SE0 to key timing/ROM. GPIO SOF through1k remains an unmeasured low-level
+concern and was never reached during attempt7. Review saved under scratch/
+cynthion-usb-key-20261016/attempt7-waveform-review/HANDOFF.md.
+
+Next: existing agent researching maintained Cynthion power-monitor support,
+actual chip/channel mappings and whether read-only VBUS evidence is available;
+no source or hardware mutation assigned. Root asked owner whether charging LED
+is lit and whether a USB power meter/multimeter is available. Keep connections
+and switch unchanged pending response. Do not infer a measured target voltage
+from CONTROL power selection or Apollo's untraced ADC API.
+
