@@ -337,3 +337,18 @@ contains onlyKA6/root hubs, noFM1. No loader, flashread/write or boot/reset
 command was sent. Current operation image remains terminalFAULT/highZ. Owner
 asked to keepstate; no further powercycle requested while offline review
 examines ACKrelease/pullup assumptions and possiblefalseACK duringpowertransition.
+
+## Independent TARGET-C cable test preparation
+
+[verified: owner] FM1 detached from TARGET A; only CONTROL→Mac and
+TARGET C→bench01 are connected. Pre-test bench inventory has root hubs and
+KA6 only; recovery status remains layout4/47d8, terminal855, GPIO0. Raw
+evidence is under `scratch/cynthion-usb-key-20261015/target-c-cable-test/`.
+
+[verified: installed source] Stock analyzer uses CONTROL PHY on r1.4; its
+built-in test device uses AUX PHY. Neither establishes TARGET-C cable data
+continuity. A bounded temporary adapter uses maintained LUNA USBDevice and
+its standard control endpoint on target_phy, inherited 0x39=0x06 wiring fix,
+no direct data GPIOs, and all four VBUS/discharge controls zero. It will be
+loaded only with FM1 detached; cable acceptance requires actual enumeration
+and descriptor retrieval from bench01. No verdict yet.

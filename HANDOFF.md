@@ -1,3 +1,15 @@
+## TARGET-C cable verification in progress — 2026-10-15
+
+[verified: owner] FM1 is detached from TARGET A; CONTROL remains connected to
+Mac and TARGET C remains connected to bench01. The previous recovery image
+is terminal FAULT with both GPIO outputs released (read again before this test).
+A temporary LUNA standard-descriptor device on target_phy is being built on
+Hera to verify the bench01 cable independently. All four VBUS forwarding and
+discharge controls are explicitly off; no FM1 is attached. Standard analyzer
+uses CONTROL on r1.4 and cannot establish TARGET-C cable data continuity.
+No cable verdict yet; wait for actual bench enumeration/descriptor read.
+Do not reconnect FM1 while this USB device probe is loaded.
+
 ## Cynthion attempt3: WAIT_DP failure — 2026-10-15
 
 [verified: owner] RIGHT→LEFT/USER sequence done, then TARGETC→bench01 connected
