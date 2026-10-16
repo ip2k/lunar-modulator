@@ -588,3 +588,15 @@ is lit and whether a USB power meter/multimeter is available. Keep connections
 and switch unchanged pending response. Do not infer a measured target voltage
 from CONTROL power selection or Apollo's untraced ADC API.
 
+
+## Owner reports green charge indicator in both switch positions — 2026-10-16
+
+[verified: owner report] Charging indicator is lit with the switch in either
+position and is now green, reported fully charged. This is charging-status
+evidence, not a measured CPU supply or proof of the ON switch direction.
+No physical change was requested by root; present cabling/switch state should
+be confirmed if needed before another operation. No device commands issued.
+The power-monitor researcher was updated: prioritize useful current/switch
+power evidence over another build that only confirms charging VBUS. Await
+bounded source review before choosing another physical test.
+
