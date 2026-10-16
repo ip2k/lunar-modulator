@@ -3,7 +3,7 @@
 import argparse
 import hashlib
 import json
-import subprocess
+import os
 from pathlib import Path
 
 from cynthion.gateware.platform.cynthion_r1_4 import CynthionPlatformRev1D4
@@ -19,6 +19,9 @@ def main():
     parser.add_argument("--build-dir", type=Path, required=True)
     args = parser.parse_args()
     args.build_dir.mkdir(parents=True, exist_ok=True)
+    source_sha = os.environ.get("SOURCE_COMMIT")
+    if not source_sha:
+        parser.error("SOURCE_COMMIT must identify the exact source commit")
 
     platform = CynthionPlatformRev1D4()
     if platform.ulpi_extra_registers != EXPECTED_PLATFORM_ULPI_REGISTERS:
@@ -33,9 +36,6 @@ def main():
     bitstream = args.build_dir / "cynthion_target_usb_probe.bit"
     if not bitstream.is_file():
         raise SystemExit(f"build did not produce bitstream: {bitstream}")
-    source_sha = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], text=True
-    ).strip()
     receipt = {
         "purpose": "temporary standard-descriptor TARGET-C cable diagnostic",
         "hardware_programmed": False,
@@ -55,8 +55,8 @@ def main():
         "bitstream_path": str(bitstream.resolve()),
         "bitstream_sha256": hashlib.sha256(bitstream.read_bytes()).hexdigest(),
         "timing_reports": sorted(
-            p.name for p in args.build_dir.glob("*timing*")
-            if p.is_file()
+            p.name for p in args.build_dir.iterdir()
+            if p.is_file() and p.suffix in {".tim", ".rpt"}
         ),
     }
     receipt_path = args.build_dir / "cynthion_target_usb_probe_receipt.json"
