@@ -536,3 +536,29 @@ Next: owner press/release USER once then immediately move switch RIGHT to LEFT,
 leave LEFT. Read terminal receipt, event ring and read-only Debug 0x15 snapshot
 after reply; do not reconfigure with FM1 attached. No FM1 commands issued.
 
+
+## Attempt 7: direct PHY Debug read agrees with SE0 cache — 2026-10-16
+
+[verified: owner and JTAG] Owner reported USER press and RIGHT-to-LEFT action
+after root verified post-connection SAFE. All four self-tests passed (F/C6,
+event counts01010101). Terminal status47d8/receipt855, 832 packets,
+WAIT_DP500000us, SOF0. Both output enables were zero at readback.
+
+[verified: direct read] Layout6 diagnostic status3 means snapshot valid,
+attempted, no transaction error. USB3343 Debug0x15 returned0 (SE0), matching
+cached-valid SE0. Snapshot RXCMD age30015603 USB cycles (500260.05us at60MHz),
+GPIO0. Thus the direct PHY read does not reveal a J state hidden by stale
+RXCMD at that instant. It does not establish ROM acknowledgment or the source
+of the low lines. The trace again records GAP SE0, next KEY160us later,
+candidate ACK100us later with no new RXCMD, then500ms WAIT timeout.
+No SOF was sent. No FM1 loader/flash/boot/reset command was issued.
+
+Current: FM1 on TARGET A, switch LEFT; CONTROL to Mac; TARGET C empty until
+owner's requested connection to bench01. Both GPIO drivers released. Next:
+passive USB enumeration after C-connected reply before any reconfiguration.
+Read-only follow-up analysis assigned to compare the actual key waveform and
+power assumptions with successful Pico references; no repeat trial authorized
+by an inference of ROM acceptance.
+Evidence: scratch/cynthion-usb-key-20261016/debug-readback-control-power/
+owner-attempt-7-status.json. Source/artifact remain pinned as in prior entry.
+
