@@ -318,3 +318,22 @@ noPHYfault/GPIOOEs0/terminalregs0. Exact evidence local in
 
 Owner requested RIGHT→LEFT fresh experiment, TARGETCempty. No claim that RIGHT
 is OFF or LEFT is ON. Pending ownerreport/status; no deviceflashoperation.
+
+## Attempt3: candidate ACK then WAIT_DP timeout
+
+[verified: owner] USER pressed and FM1 switch movedRIGHT→LEFT. Owner subsequently
+connectedTARGETC tobench01 without changingLEFT. Actual ONdirection unverified.
+[verified: coordinator JTAG at Unix1792119615.494011] Layout4/status47d8,
+selftestmaskF/observedC6/validF/oneeventeach, terminal855(reason2,originWAIT_DP5),
+packets4222, ACKprogress18d(receiver_live1,ack_ticks99), WAIT500000us,
+SOF0/SOFlow0, keyprogressc, GPIO0/OEsreleased. CandidateACK was detected;
+no qualifying J/D+pullup followed within500ms, so no calibration pulses were sent.
+Literal local `fault-telemetry-operation/owner-attempt-3-status.json`.
+[acceptance limit] This is not proof of ROMack/keyrecognition: a power transition
+or other clamp could also produceSE0. ONswitch direction is stillunknown.
+
+[verified: passive USB after ownerTARGETCreconnect] bench01.local `lsusb` still
+contains onlyKA6/root hubs, noFM1. No loader, flashread/write or boot/reset
+command was sent. Current operation image remains terminalFAULT/highZ. Owner
+asked to keepstate; no further powercycle requested while offline review
+examines ACKrelease/pullup assumptions and possiblefalseACK duringpowertransition.

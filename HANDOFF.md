@@ -1,18 +1,16 @@
-## Cynthion attempt3 awaiting owner — 2026-10-15
+## Cynthion attempt3: WAIT_DP failure — 2026-10-15
 
-Attempt2 ownerDone after long idle: layout4/status4418, selftestmask0/failure21,
-GPIOsnapshot3a, stepRXCMDcounts0, packets0, terminalFAULT/GPIOOEs0. Cached
-linevalid1/SE0 stayed unchanged; no key packets sent. Root has not established
-why connected target prevented loopback. Owner confirmed both TARGET ports
-empty again. Immediate disconnectedf5b95... reload passed27d7/maskF/observedC6.
-Root then freshly loaded operationde036dfc... while ports empty; layout4,
-SAFE/PHYready/noPHYfault/GPIOOEs0, terminalregs0. Current loaded image.
-Owner asked explicit RIGHT→LEFT experiment (TARGETCempty, switchRIGHT,
-connectTARGETA/wait5s, USERonce then slideLEFTwithin10s). Response pending.
-Do not reconfigure connected. All physical writes remain root-owned. No FM1
-loader/flashread/write/reset commands in this recovery work. Read-only JTAG
-55-second state watch started (execsession90413); localJSONL persistschanges.
-SwitchONdirection unverified. See recovery note and local attemptsnapshots.
+[verified: owner] RIGHT→LEFT/USER sequence done, then TARGETC→bench01 connected
+withswitchLEFTunchanged. JTAG47d8/selftestF/observedC6/validF, terminal855:
+candidateACK after4222packets, WAIT_DP500000us timeout, SOF0, GPIOOEs0.
+PassiveUSBstillnoFM1. CandidateACK is notprovenROMack; ONswitchdirectionunknown.
+Current de036... operation image is terminalFAULT/highZ. TARGETs nowconnected;
+do not reconfigure until owner confirmsbothTARGETsempty. No furtherpowercycle
+requested while offline source review narrows ACKrelease/possiblepowerclamp.
+NoFM1loader/flashread/write/boot/resetcommandissued. Source d5f2a9b3 beforethis
+note pushedverified; physical acceptance and fullfirmwaregoalunfinished.
+Evidence: scratch/cynthion-usb-key-20261015/fault-telemetry-operation/
+owner-attempt-3-status.json and notes/2026-10-15-cynthion-usb-key-recovery.md.
 
 ## Latest source/CI checkpoint — 2026-10-15
 
