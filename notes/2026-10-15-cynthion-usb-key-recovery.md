@@ -404,3 +404,16 @@ NoFM1loader/flashread/write/boot/resetcommand issued. BothGPIOoutputsreleased.
 BothTARGETportsnowconnected; owneraskeddisconnectbothbeforefurtherprogramming.
 Read-only eventhistory instrumentation is assigned to exposeRXCMD/stateevents
 aroundcandidateACK; no waveformorpolicychange authorizedthroughthat task.
+
+## Layout5 event-history diagnostic loaded — 2026-10-16
+
+[verified: source review and local checks] Passive32-slot64-bit ring records
+RXCMD/stateevents; no protocol/powerdiff beyond diagnostic instrumentation.
+Wider96-bit prototypefailedtiming and wasnotloaded. Finalsourceeb26a73e,
+integrated16f274a4; combinedfocused109tests pass. Root checked finalbitSHA
+`776843f932f060a96d1f32052726269c5de1a81c3983d6f15d3b7d24c1bc3e0b`,
+netlistCONTROL1/C0/AUX0/discharge0, and routed74.68MHzUSB/212.68MHzfabric.
+[verified: owner] Bothtargetsempty beforeupload. Volatileupload successful;
+JTAG4410/layout5/GPIO0/terminal0; SAFE,PHYready,noPHYfault,OEs0,ringunfrozen.
+OwneraskedrepeatRIGHT→LEFT/USERwithCempty; replypending. NoFM1commandissued.
+Evidence:scratch/cynthion-usb-key-20261016/event-history/.

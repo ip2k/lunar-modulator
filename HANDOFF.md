@@ -1,3 +1,21 @@
+## Event-history diagnostic loaded disarmed — 2026-10-16
+
+[verified: owner] Both TARGET ports empty before root upload; CONTROL→Mac.
+Root reviewed layout5 event ring source eb26a73e648d4536bfd7362fbffa2097baf99356,
+integrated at16f274a43f410b9f8970d722f7bd9f064d3d5104 (pushed, remote verified).
+Combined focused suite109passed. Root independently checked artifact hashes,
+CONTROL1/C0/AUX0/discharge0 synthesized drivers, and routed timing74.68MHzUSB
+vs60MHz/212.68MHzfabricvs120MHz. Volatile loaded bit:
+776843f932f060a96d1f32052726269c5de1a81c3983d6f15d3b7d24c1bc3e0b.
+JTAG layout5 status4410/GPIO0/terminal0 confirms SAFE, PHYready/noPHYfault,
+outputs released; ring active/unfrozen. Evidence at
+scratch/cynthion-usb-key-20261016/event-history/{upload.log,disarmed-status.json}.
+Owner asked repeatRIGHT→LEFT afterUSER withTARGETCempty; physical reply pending.
+Do not reconfigure once FM1attached without obtaining empty-target confirmation.
+After response, read1..20 plus0x20..0x5f; frozen ring metadata19 encodes nextslot
+bits0..4/count5..10/frozen11. Two words/slot timestampus+payload; decode via
+README. No FM1 commands or recovery acceptance claimed.
+
 ## Attempt4 repeats WAIT_DP timeout; no USB — 2026-10-16
 
 [verified: owner] USER and RIGHT→LEFT done, then C→bench01 connected withLEFT
