@@ -389,3 +389,18 @@ Layout4 status4010/GPIO0/terminal0 confirms SAFE, PHYready, noPHYfault, OEs0.
 Saved receipt/upload/disarmed snapshot under scratch ack-gap-reset-operation.
 Owner physical instructions repeat RIGHT→LEFT after USER with TARGETC empty;
 reply pending. No recovery acceptance or FM1 command claimed.
+
+### Attempt4 — repeated WAIT_DP timeout with counter reset
+
+[verified: owner] USER and RIGHT→LEFT sequence completed; TARGETC subsequently
+connected tobench01 withswitchLEFTunchanged. Snapshot Unix1792134990.535808:
+layout4 status47d8, GPIO0, selftestF/C6/events01010101, terminal855, packets1649,
+ack18d (receiverlive1,99ticks), WAIT500000us, SOF0, keybit5. Allfourline tests
+pass; no qualifyingJ beforetimeout. CandidateACK is not provenROMacceptance.
+[verified: passivebench USB at2026-10-16 07:17:14UTC] NoFM1app/loader/ROM
+enumeration afterCconnection. Verified cable result remains independent proof.
+NoFM1loader/flashread/write/boot/resetcommand issued. BothGPIOoutputsreleased.
+
+BothTARGETportsnowconnected; owneraskeddisconnectbothbeforefurtherprogramming.
+Read-only eventhistory instrumentation is assigned to exposeRXCMD/stateevents
+aroundcandidateACK; no waveformorpolicychange authorizedthroughthat task.

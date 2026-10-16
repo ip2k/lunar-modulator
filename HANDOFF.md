@@ -1,3 +1,17 @@
+## Attempt4 repeats WAIT_DP timeout; no USB — 2026-10-16
+
+[verified: owner] USER and RIGHT→LEFT done, then C→bench01 connected withLEFT
+unchanged. Source4ee ACK-gap-reset operation bit42e805... terminal snapshot:
+layout4/47d8, selftestF/C6/events01010101, GPIO0, terminal855, packets1649,
+ack18d, WAIT500000us, SOF0, keybit5. CandidateACK is not provenROMacceptance.
+Passive bench enumeration afterCconnection has noFM1. No FM1 commands sent.
+Current image remains terminalFAULT/highZ; BOTH TARGETS CONNECTED. Owner asked
+both empty whileCONTROLstaysconnected before nextprogramming. Do not reconfigure
+until that confirmation. Assigned installer_evidence_contract isolated read-only
+bounded event-history instrumentation + tests/offlineHera build; protocol unchanged.
+Raw receipt: scratch/cynthion-usb-key-20261015/ack-gap-reset-operation/
+owner-attempt-4-status.json and owner-attempt-4-enumeration.txt.
+
 ## Recovery revision loaded disarmed — 2026-10-16
 
 [verified: owner] Both TARGET ports empty before root programming; CONTROL→Mac.
