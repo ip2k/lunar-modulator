@@ -14,20 +14,20 @@ from dongle.sim.params import PARAMS
 class UsbKeyEventHistory(Elaboratable):
     """Diagnostic-only ring of fixed-width USB_KEY state snapshots.
 
-    Each entry is 96 bits: microsecond timestamp (32 bits) followed by a
-    52-bit packed snapshot; the remaining 12 bits are zero. A terminal input
+    Each entry is 64 bits: microsecond timestamp (32 bits) followed by a
+    32-bit packed snapshot. A terminal input
     freezes the ring after optionally recording that same-cycle event.
     """
 
     DEPTH = 32
-    ENTRY_BITS = 96
+    ENTRY_BITS = 64
 
     def __init__(self, *, domain="usb"):
         self.domain = domain
         self.tick_us = Signal()
         self.event = Signal()
         self.terminal = Signal()
-        self.payload = Signal(52)
+        self.payload = Signal(32)
         self.timestamp_us = Signal(32)
         self.next_index = Signal(5)
         self.count = Signal(6)
@@ -186,6 +186,7 @@ class CynthionUsbKey(Elaboratable):
         receiver_live = Signal()
         ack_ticks = Signal(range(self.ack_duration_us + 1))
         ack_confirm = Signal()
+        ack_confirmed_latched = Signal()
         wait_ticks = Signal(range(self.dp_high_timeout + 1))
         sof_ticks = Signal(range(self.sof_timeout + 1))
         sof_phase = Signal(range(self.sof_period))
@@ -194,15 +195,14 @@ class CynthionUsbKey(Elaboratable):
         history = UsbKeyEventHistory(domain=self.domain)
         m.submodules.event_history = history
         history_last_state = Signal(4, reset=self.SAFE)
-        history_phase = Signal(16)
-        history_ack_ticks = Signal(16)
+        history_phase = Signal(11)
         history_gpio = Cat(self.pad_dp_i, self.pad_dm_i, self.dp_o, self.dm_o,
                            self.dp_oe & self.phy_isolated,
                            self.dm_oe & self.phy_isolated)
         history_payload = Cat(
             self.state, self.line_state_update, self.line_state_valid,
             self.line_state_value, history_gpio, tx_bit, history_phase,
-            history_ack_ticks, receiver_live, ack_confirm)
+            receiver_live, ack_confirmed_latched, (ack_ticks != 0))
         m.d.comb += [
             history.tick_us.eq(us_tick),
             history.event.eq(self.line_state_update |
@@ -211,7 +211,6 @@ class CynthionUsbKey(Elaboratable):
                                 (self.state == self.FAULT)),
             history.payload.eq(history_payload),
             history_phase.eq(phase),
-            history_ack_ticks.eq(ack_ticks),
             self.history_next_index.eq(history.next_index),
             self.history_count.eq(history.count),
             self.history_frozen.eq(history.frozen),
@@ -434,7 +433,7 @@ class CynthionUsbKey(Elaboratable):
                         with m.If(ack_confirm):
                             d += [self.state.eq(self.WAIT_DP), wait_ticks.eq(0),
                                   sof_ticks.eq(0), sof_phase.eq(0),
-                                  dp_low_ticks.eq(0)]
+                              dp_low_ticks.eq(0), ack_confirmed_latched.eq(1)]
             with m.Case(self.GAP):
                 with m.If(~permitted):
                     d += [self.state.eq(self.FAULT),

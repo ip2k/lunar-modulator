@@ -213,7 +213,7 @@ def test_event_history_wrap_order_and_terminal_freeze():
             slot = (ctx.get(history.next_index) + offset) % history.DEPTH
             packed = ctx.get(history.entries[slot])
             assert packed & 0xFFFFFFFF == expected
-            assert packed >> 32 & ((1 << 52) - 1) == expected
+            assert packed >> 32 & 0xFFFFFFFF == expected
 
         # A simultaneous terminal event is captured, then the ring freezes.
         ctx.set(history.payload, 0xABCDE)
@@ -225,7 +225,7 @@ def test_event_history_wrap_order_and_terminal_freeze():
         assert ctx.get(history.next_index) == 9
         terminal_entry = ctx.get(history.entries[8])
         assert terminal_entry & 0xFFFFFFFF == 40
-        assert terminal_entry >> 32 & ((1 << 52) - 1) == 0xABCDE
+        assert terminal_entry >> 32 == 0xABCDE
 
         snapshot = [ctx.get(entry) for entry in history.entries]
         for value in (0x111, 0x222):
@@ -278,7 +278,7 @@ def test_full_event_history_does_not_gate_protocol_outputs():
         assert ctx.get(dut.history_count) == 32
         assert ctx.get(dut.history_frozen) == 0
         newest_slot = (ctx.get(dut.history_next_index) - 1) % 32
-        assert ctx.get(dut.history_entries[newest_slot]) >> 84 == 0
+        assert ctx.get(dut.history_entries[newest_slot]) >> 64 == 0
         assert ctx.get(dut.state) == dut.KEY
         assert ctx.get(dut.dp_oe) == 1
         assert ctx.get(dut.dm_oe) == 1

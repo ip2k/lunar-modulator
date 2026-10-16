@@ -204,19 +204,18 @@ class CynthionUsbKeyTop(Elaboratable):
         debug.add_read_only_register(17, read=sof_low_progress_snapshot)
         debug.add_read_only_register(18, read=key_progress_snapshot)
 
-        # Layout v5 adds a read-only 32-entry event ring. Each entry is three
-        # consecutive 32-bit words at 0x20 + 3*slot: timestamp_us, packed
-        # payload low word, packed payload high word. The next-write pointer
+        # Layout v5 adds a read-only 32-entry event ring. Each entry is two
+        # consecutive 32-bit words at 0x20 + 2*slot: timestamp_us and packed
+        # state snapshot. The next-write pointer
         # and saturated count let the reader recover chronological order after
         # wrap without adding an address-selection write path.
         debug.add_read_only_register(19, read=Cat(
             core.history_next_index, core.history_count, core.history_frozen))
         debug.add_read_only_register(20, read=core.history_timestamp_us)
         for index, entry in enumerate(core.history_entries):
-            base = 0x20 + index * 3
+            base = 0x20 + index * 2
             debug.add_read_only_register(base, read=entry[:32])
             debug.add_read_only_register(base + 1, read=entry[32:64])
-            debug.add_read_only_register(base + 2, read=entry[64:96])
 
         for bit in range(6):
             m.d.comb += platform.request("led", bit).o.eq(core.leds[bit])
