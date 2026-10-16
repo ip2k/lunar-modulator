@@ -14,7 +14,13 @@ FM1 detached, CONTROL→Mac, TARGET C→bench01. Before loading recovery image,
 ask for TARGET C disconnection and keep FM1 detached; prior terminal recovery
 status no longer describes loaded FPGA. Raw logs/artifacts:
 `scratch/cynthion-usb-key-20261015/target-c-cable-test/`.
-Cable proof does not establish ROM recovery; ACK counter-gap fix/review pending.
+Cable proof does not establish ROM recovery. Probe adapter/helper and ACK
+KEY→GAP counter reset integrated at 4ee635ee8dbb33ef543e50eab2e79297edd7b80d,
+pushed and remote-verified. Combined focused suite: 107 passed,96 warnings.
+Offline Hera build of next operation image is assigned to installer_evidence_contract;
+no device programming authorized until TARGET C is disconnected and both targets
+are confirmed empty. Async physical-port question pending. Root source/hardware
+notes distinguish cable proof from unproven ROM recovery.
 
 ## Cynthion attempt3: WAIT_DP failure — 2026-10-15
 
