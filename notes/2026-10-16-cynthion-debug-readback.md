@@ -30,6 +30,8 @@ line-state event.
   `ea634822258a7075ba60f2d980d85300484c7d935351a4cec3d0822437112664`.
 - Routed timing file: `cynthion_usb_key.tim`, SHA-256
   `d10e43de54b924cae36c3f6e808093130572774c824a68a5e340bfc3f808c3ce`.
+- Machine-readable receipt: `build-receipt.json` in the output directory;
+  netlist SHA-256 `938a1157d82ca04a853b75e0d0704aa406d249a572b135494c99931d4e25c244`.
 - Timing passes: USB 60 MHz domain maximum 69.05 MHz; 120 MHz domain maximum
   212.63 MHz.
 - Resource use: 4,371/24,288 LUT4s and 2,552/24,288 flip-flops.
