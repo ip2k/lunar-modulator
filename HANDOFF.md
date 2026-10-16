@@ -1,3 +1,14 @@
+## Attempt 7 post-connection SAFE verified — 2026-10-16
+
+[verified: owner and JTAG] FM1 connected to TARGET A, switch RIGHT,
+TARGET C empty, no USER press. Root snapshot layout6/status4410/GPIO0/
+terminal0/diagnostic0 confirms still SAFE, PHY ready, no fault, OEs off.
+Saved attempt-7-connected-status.json under scratch/cynthion-usb-key-20261016/
+debug-readback-control-power/. No accidental arming observed.
+Next: owner press/release USER once then immediately move switch RIGHT to LEFT,
+leave LEFT. Read terminal receipt, event ring and read-only Debug 0x15 snapshot
+after reply; do not reconfigure with FM1 attached. No FM1 commands issued.
+
 ## Attempt 7 diagnostic loaded SAFE; connection-only step pending — 2026-10-16
 
 [verified: owner] Both TARGET ports empty, CONTROL to Mac, before volatile
