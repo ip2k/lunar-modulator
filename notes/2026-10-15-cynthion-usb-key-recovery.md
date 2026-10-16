@@ -378,3 +378,14 @@ analyzer, CONTROL→Mac, TARGET C→bench01, TARGET A empty. Raw evidence is in
 `target-c-cable-test/{bench-before,bench-after,bench-repeat,bench-after-restore}.txt`,
 `upload.log`, `restore-analyzer.log`, and `root-netlist-review.json` below
 `scratch/cynthion-usb-key-20261015/`.
+
+## ACK gap-reset operation image loaded, 2026-10-16
+
+[verified: owner] Both TARGET ports empty before programming. Root independently
+checked hashes/netlist for exact source4ee635ee and loaded volatile bit
+`42e805e0cc91becab26c72b9cc2dd3f34c3772d00f3f0b2b224152e6b3662767`.
+Routed clocks PASS164.26/205.13MHz vs60/120MHz. CONTROL1,C0,AUX0,discharge0.
+Layout4 status4010/GPIO0/terminal0 confirms SAFE, PHYready, noPHYfault, OEs0.
+Saved receipt/upload/disarmed snapshot under scratch ack-gap-reset-operation.
+Owner physical instructions repeat RIGHT→LEFT after USER with TARGETC empty;
+reply pending. No recovery acceptance or FM1 command claimed.

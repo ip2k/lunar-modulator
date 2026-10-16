@@ -1,3 +1,18 @@
+## Recovery revision loaded disarmed — 2026-10-16
+
+[verified: owner] Both TARGET ports empty before root programming; CONTROL→Mac.
+Root independently verified artifact hashes, routed timing and synthesized power
+controls for source4ee635ee8dbb33ef543e50eab2e79297edd7b80d operation profile.
+Loaded volatile bit SHA42e805e0cc91becab26c72b9cc2dd3f34c3772d00f3f0b2b224152e6b3662767.
+JTAG layout4 status4010, GPIO0, terminal0: SAFE, PHYready, noPHYfault, OEs0.
+Power profile CONTROL1,C0,AUX0,discharge0; raw physical behavior not inferred.
+Owner asked to keep Cempty, set FM1RIGHT, connectA, wait5s, USERpress/release,
+then switchLEFT and leave there. This repeats attempt3 with ACK gap-reset fix.
+Physical reply pending; do not claim key sent or recovery acceptance yet.
+Evidence: scratch/cynthion-usb-key-20261015/ack-gap-reset-operation/.
+Do not reconfigure again once FM1attached without obtaining empty-target gate.
+No FM1loader/flashread/write/boot/reset command issued.
+
 ## TARGET-C cable physically verified — 2026-10-15 20:10 Pacific
 
 [verified: physical USB] With FM1 detached from TARGET A, CONTROL→Mac and
