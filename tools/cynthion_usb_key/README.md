@@ -33,7 +33,7 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | Address | Meaning |
 | --- | --- |
 | `0x01` | Magic `0x4c554e52` (`LUNR`) |
-| `0x02` | Register layout version `5` |
+| `0x02` | Register layout version `6` |
 | `0x03` | Status snapshot |
 | `0x04` | Live GPIO: DP input, DM input, DP output, DM output, DP OE, DM OE (bits 0–5) |
 | `0x05` | Self-test failure: reason (bits 0–1), step (2–3), expected state (4–5), last observed state (6–7) |
@@ -53,6 +53,11 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | `0x13` | Event ring metadata: next-write slot bits 0–4, saturated count bits 5–10, frozen bit 11 |
 | `0x14` | Event ring timestamp clock in microseconds (32-bit, wraps after about 71 minutes) |
 | `0x20`–`0x5f` | 32 event-ring entries, two read-only words per physical slot |
+| `0x60` | Terminal Debug-read receipt: snapshot-valid bit 0, attempted bit 1, diagnostic read error bit 2 |
+| `0x61` | Raw USB3343 Debug register `0x15`, zero if the read failed |
+| `0x62` | Cached RXCMD snapshot: valid bit 0, line-state bits 1–2 |
+| `0x63` | Age of cached RXCMD in 60 MHz USB clock cycles at diagnostic completion; saturates at `0xffffffff` |
+| `0x64` | GPIO input/output/OE snapshot when the diagnostic read completes (same layout as `0x04`) |
 
 Status register `0x03` packs state in bits 0–3, PHY ready/fault in bits 4–5,
 the four-step self-test mask in bits 6–9, line-state-valid in bit 10, the
@@ -120,3 +125,16 @@ reaches DONE or FAULT, the terminal transition is recorded and the ring
 freezes. The recorder is passive and does not gate protocol outputs. The ring
 is diagnostic evidence only; RXCMD events remain event-on-change reports and
 must not be interpreted as continuous line sampling.
+
+Layout v6 adds one read-only USB3343 Debug register `0x15` read after a
+terminal `WAIT_DP` timeout. The ULPI transaction uses the existing register
+window and a bounded timeout; it never writes PHY state or retries. `0x60`
+reports completion and any diagnostic transaction error separately from the
+PHY initialization fault in status register `0x03`. The raw `0x15` byte,
+cached event-on-change RXCMD state, its age in 60 MHz USB clock cycles, and
+the GPIO input/output/OE snapshot are latched when this diagnostic completes.
+The age counter saturates rather than wraps. A failed diagnostic read leaves
+the raw-value register at zero and still preserves the other captured fields.
+The core remains in its terminal high-impedance state throughout; this receipt
+is diagnostic evidence only and does not establish a ROM ACK or change any
+keying decision.

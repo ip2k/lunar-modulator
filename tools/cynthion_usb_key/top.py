@@ -118,6 +118,10 @@ class CynthionUsbKeyTop(Elaboratable):
             core.line_state_value.eq(safe_phy.line_state_value),
             core.line_state_valid.eq(safe_phy.line_state_valid),
             core.line_state_update.eq(safe_phy.line_state_update),
+            safe_phy.diagnostic_read_request.eq(
+                (core.state == core.FAULT)
+                & (core.protocol_failure_reason
+                   == core.PROTOCOL_FAULT_WAIT_DP_TIMEOUT)),
             dp.o.eq(core.dp_o), dp.oe.eq(core.dp_oe & safe_phy.drive_allowed),
             dm.o.eq(core.dm_o), dm.oe.eq(core.dm_oe & safe_phy.drive_allowed),
         ]
@@ -132,7 +136,7 @@ class CynthionUsbKeyTop(Elaboratable):
             JTAGRegisterInterface(default_read_value=0xBAD0C0DE))
         m.submodules.debug_registers = debug
         debug.add_read_only_register(1, read=0x4C554E52)  # "LUNR"
-        debug.add_read_only_register(2, read=5)           # register layout v5
+        debug.add_read_only_register(2, read=6)           # register layout v6
         status_snapshot = Signal(32)
         status_bits = Cat(core.state, safe_phy.ready, safe_phy.fault,
                           core.selftest_mask, safe_phy.line_state_valid,
@@ -216,6 +220,34 @@ class CynthionUsbKeyTop(Elaboratable):
             base = 0x20 + index * 2
             debug.add_read_only_register(base, read=entry[:32])
             debug.add_read_only_register(base + 1, read=entry[32:64])
+
+        # A WAIT_DP timeout triggers exactly one bounded, read-only USB3343
+        # Debug-register observation. Keep it distinct from PHY initialization
+        # fault state; the protocol core remains terminal and pad OEs stay low.
+        diagnostic_snapshot_valid = Signal()
+        diagnostic_status_snapshot = Signal(32)
+        diagnostic_value_snapshot = Signal(32)
+        diagnostic_line_snapshot = Signal(32)
+        diagnostic_age_snapshot = Signal(32)
+        diagnostic_gpio_snapshot = Signal(32)
+        with m.If(safe_phy.diagnostic_done & ~diagnostic_snapshot_valid):
+            m.d.usb += [
+                diagnostic_snapshot_valid.eq(1),
+                diagnostic_status_snapshot.eq(Cat(
+                    Const(1), safe_phy.diagnostic_attempted,
+                    safe_phy.diagnostic_error)),
+                diagnostic_value_snapshot.eq(safe_phy.diagnostic_value),
+                diagnostic_line_snapshot.eq(Cat(
+                    safe_phy.line_state_valid, safe_phy.line_state_value)),
+                diagnostic_age_snapshot.eq(safe_phy.line_state_age_cycles),
+                diagnostic_gpio_snapshot.eq(Cat(
+                    dp.i, dm.i, core.dp_o, core.dm_o, dp.oe, dm.oe)),
+            ]
+        debug.add_read_only_register(0x60, read=diagnostic_status_snapshot)
+        debug.add_read_only_register(0x61, read=diagnostic_value_snapshot)
+        debug.add_read_only_register(0x62, read=diagnostic_line_snapshot)
+        debug.add_read_only_register(0x63, read=diagnostic_age_snapshot)
+        debug.add_read_only_register(0x64, read=diagnostic_gpio_snapshot)
 
         for bit in range(6):
             m.d.comb += platform.request("led", bit).o.eq(core.leds[bit])
