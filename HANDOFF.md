@@ -1,3 +1,18 @@
+## Attempt 5: captured timeout; accidental arm reported — 2026-10-16
+
+[verified: owner] RIGHT→LEFT sequence reported done, followed by a warning that
+USER may have been pressed accidentally while plugging TARGET A. Treat the
+run as timing-confounded, not a clean controlled recovery attempt.
+[verified: JTAG] Layout5/47d8, self-test F/C6/events01010101, terminal855,
+packets23022, WAIT500000us, SOF0, GPIO0. Ring frozen, 32 retained events.
+Last events: GAP/cached SE0 → KEY/no new RXCMD for100us → WAIT_DP; no new
+RXCMD during the 500ms wait. This is not proof of ROM acknowledgment.
+Raw and decoded history: scratch/cynthion-usb-key-20261016/event-history/
+owner-attempt-5-status.json. Independent trace review assigned read-only.
+Owner asked to leave switchLEFT and connect C→bench01 for passive enumeration
+before resetting this test; confirmation pending. Do not reconfigure while
+FM1 attached. Current image terminalFAULT/highZ; no FM1 commands issued.
+
 ## Event-history diagnostic loaded disarmed — 2026-10-16
 
 [verified: owner] Both TARGET ports empty before root upload; CONTROL→Mac.

@@ -417,3 +417,23 @@ netlistCONTROL1/C0/AUX0/discharge0, and routed74.68MHzUSB/212.68MHzfabric.
 JTAG4410/layout5/GPIO0/terminal0; SAFE,PHYready,noPHYfault,OEs0,ringunfrozen.
 OwneraskedrepeatRIGHT→LEFT/USERwithCempty; replypending. NoFM1commandissued.
 Evidence:scratch/cynthion-usb-key-20261016/event-history/.
+
+## Attempt 5: event trace captured, accidental USER press possible
+
+[verified: owner] The requested RIGHT→LEFT/USER sequence was reported complete.
+Owner then warned that USER might have been pressed while plugging TARGET A.
+This run cannot establish the intended arm/switch timing.
+
+[verified: JTAG] Layout5, status47d8, GPIO0, self-testF/C6/events01010101,
+terminal855, packets23022, WAIT500000us, SOF0, keybit5. Ring frozen with32events.
+The retained trace ends with GAP at212043310us/cachedSE0, KEY at212043470us,
+WAIT_DP at212043570us, and FAULT at212543570us. No RXCMD update was captured
+between that KEY entry and terminalFAULT. Earlier retained high-phase samples
+include PHYlineK while GPIOpad inputs read bothhigh; these are not simultaneous
+analog voltage measurements at the same side of the series resistors.
+Do not infer ROM acceptance or electrical failure from this alone.
+
+Owner asked to connect TARGETC tobench01 without changing switchLEFT so root
+can check passive enumeration before reset. No FM1loader/flash/boot/reset
+command issued. Exact raw/decoded snapshot saved in scratch event-history/
+owner-attempt-5-status.json. Read-only independent review assigned.
