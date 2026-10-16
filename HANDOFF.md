@@ -1,3 +1,22 @@
+## Debug readback integrated; TARGET ports empty — 2026-10-16
+
+[verified: owner] Both TARGET ports disconnected, CONTROL to Mac retained.
+The physical gate for a future volatile diagnostic reload is satisfied.
+[verified: source/tests] Integrated e3b4cfa1 as beb7a475; pushed and remote SHA
+verified. Combined focused suite: 111 passed, 114 warnings. Layout 6 adds
+one bounded read-only PHY Debug 0x15 transaction after terminal WAIT_DP timeout,
+with independent diagnostic error, cached RXCMD age and GPIO snapshots.
+No key waveform, ACK acceptance, arming or VBUS source behavior changed.
+
+Do NOT load the first worker bit ea634822…: its CONTROL power selection is 0,
+unlike the reviewed operation profile. Worker is routing the correct
+--target-power-from-control build on Hera. Root must verify exact source,
+bit hash, routed timing and netlist CONTROL1/C0/AUX0/discharge0 before loading.
+Standalone PHY tests establish read success/error and cache preservation;
+additional one-shot/integration coverage requested. Both TARGET ports remain
+empty; no repeat physical recovery action requested yet. Current loaded FPGA
+still contains the prior terminal layout5 image. No FM1 commands issued.
+
 ## Attempt 6: clean arm, timeout and no USB enumeration — 2026-10-16
 
 [verified: owner and JTAG] Post-connection SAFE was checked before the explicit
