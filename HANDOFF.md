@@ -1,3 +1,34 @@
+## Attempt 6: clean arm, timeout and no USB enumeration — 2026-10-16
+
+[verified: owner and JTAG] Post-connection SAFE was checked before the explicit
+USER press and RIGHT-to-LEFT switch action. The attempt then ended in FAULT:
+layout 5, status 0x47d8, terminal 0x855, 791 packets, WAIT_DP 500000 us,
+SOF 0, final GPIO output enables zero. All four receiver self-tests passed.
+The frozen ring records GAP/RXCMD SE0 at 191655514 us, KEY at 191655674 us,
+and candidate ACK/WAIT_DP at 191655774 us without an intervening RXCMD.
+No RXCMD update appears during the subsequent 500 ms wait.
+
+[verified: passive bench USB, 07:46:07 UTC] After the owner connected TARGET C
+with the FM1 switch LEFT unchanged, bench01 showed only root hubs and the
+Komplete Audio 6. No FM1 application, OTA loader or ROM USB device appeared.
+No FM1 loader, flash, boot or reset commands were issued.
+
+[inferred] This clean trial rules out accidental early USER arming as the
+explanation for this trial, but does not establish ROM acknowledgment. Review
+of the USB3343 primary datasheet supports the configured non-driving FS mode,
+board DP/DM swap and RXCMD decoding. A fresh-SE0-after-KEY requirement could
+reject an acknowledgment that starts in GAP, so no protocol change is justified
+yet. Next diagnostic: bounded read-only PHY Debug register 0x15 after the
+WAIT_DP timeout, compared with cached line state, RXCMD age and GPIO/OE.
+This must preserve terminal high impedance, waveform and power safeguards.
+
+Current: both TARGET ports connected, CONTROL to Mac, switch LEFT; terminal
+FAULT with both data outputs released. Do not reconfigure until the owner has
+confirmed both TARGET ports empty. Independent diagnostic implementation is
+assigned; no repeat physical attempt requested yet.
+Evidence: scratch/cynthion-usb-key-20261016/event-history/owner-attempt-6-status.json,
+owner-attempt-6-enumeration.txt and attempt6-source-review.md.
+
 ## Attempt 6 post-connection SAFE verified — 2026-10-16
 
 [verified: owner] FM1 connected to TARGET A with switch RIGHT, TARGET C empty,
