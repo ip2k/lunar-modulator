@@ -462,3 +462,12 @@ Post-connection SAFE check is required before requesting the physical key/switch
 sequence, to detect accidental early arming. Connection reply pending.
 Saved attempt-6-upload.log and attempt-6-disarmed-status.json in scratch event-history.
 No FM1 commands or flash access issued.
+
+### Attempt 6 connection gate passed
+
+[verified: owner and JTAG] FM1 connected to A, switch RIGHT, C empty, no USER
+press reported. Post-connection snapshot layout5/status4410/GPIO0/terminal0
+confirms SAFE, PHY ready/no fault, output enables zero. No accidental early
+arming observed. Saved attempt-6-connected-status.json. Owner now asked to
+press/release USER once and immediately switch RIGHT→LEFT, then leave LEFT.
+Physical reply pending; no FM1 commands or flash access issued.

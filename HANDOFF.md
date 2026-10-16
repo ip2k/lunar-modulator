@@ -1,3 +1,15 @@
+## Attempt 6 post-connection SAFE verified — 2026-10-16
+
+[verified: owner] FM1 connected to TARGET A with switch RIGHT, TARGET C empty,
+without pressing USER. Root read layout5/status4410/GPIO0/terminal0 after
+connection: still SAFE, PHY ready/no fault, both output enables zero. No key
+attempt had started. Saved attempt-6-connected-status.json under scratch
+cynthion-usb-key-20261016/event-history/.
+Owner now asked USER press/release once, immediately switch RIGHT→LEFT,
+leave LEFT and reply Done. Physical action reply pending. Next: read terminal
+registers and frozen ring before requesting C connection. Do not reconfigure
+with FM1 attached. No FM1 commands or flash access issued.
+
 ## Attempt 6 freshly disarmed; connection-only step pending — 2026-10-16
 
 [verified: owner] Both TARGET ports empty before root reloaded the SAME pinned
