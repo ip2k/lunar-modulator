@@ -20,6 +20,12 @@ line-state event.
 - Focused validation: 28 tests passed across `test_ulpi_safe_phy.py`,
   `test_cynthion_usb_key_gateware.py`, and
   `test_cynthion_usb_key_protocol_review.py`; `git diff --check` passed.
+- Commit `62ca873fb1c54975902376cdc7d557674c06d0e8` adds a held-request
+  regression: the request remains high after completion while simulation
+  continues, and exactly one Debug `0x15` read command is observed. The
+  diagnostic test remains at the `ULPISafePHY` boundary; there is no new
+  integrated top/JTAG/pad-gating simulation. Existing core tests cover
+  terminal OEs-off, and root reviewed the unchanged top-level gates.
 - Routed FPGA build: completed on Hera from `e3b4cfa156f357e09474a7002286e527db1b938b`.
 
 ## Hera build receipt
@@ -44,6 +50,29 @@ line-state event.
   attempt with an invalid default HOME was preserved separately; the clean
   HOME rerun above completed without those warnings and produced the same bit
   hash.
+
+## CONTROL-powered operation build
+
+The preceding build was the all-switches-off profile. For the reviewed
+operation profile, a separate fresh routed build was made from commit
+`62ca873fb1c54975902376cdc7d557674c06d0e8` with
+`--target-power-from-control`. It is not loaded or tested on hardware.
+
+- Output directory:
+  `/home/claude/.local/share/codex-builds/cynthion-debug-readback-20261016-control-power`.
+- `cynthion_usb_key.bit`: 174,763 bytes, SHA-256
+  `b3b2037bf2e7e743c0d8ade268a22c5e8f9ef3859426bf7f10e3951c56c56a2e`.
+- Machine-readable `build-receipt.json` verifies the source commit, build
+  profile, artifact and report hashes, and synthesized VBUS/discharge outputs.
+- Routed timing: USB 60 MHz domain 66.68 MHz; 120 MHz domain 212.77 MHz.
+- Synthesized outputs: CONTROL VBUS 1, TARGET C VBUS 0, AUX VBUS 0, TARGET A
+  discharge 0.
+- Timing report SHA-256:
+  `25a2c1b57d5a7749d5af5b22d9956e3723b2ce69e5fa03fb061a2834df6a5179`;
+  netlist input SHA-256
+  `c804c8419b4f46f25f812f1da4abd5f5a4e11fd7e1a88938aba623a852071378`.
+- Built offline on Hera in the same bounded container profile (4 CPUs, 8 GiB
+  memory/swap, no network), with the source checkout read-only.
 
 ## Limits and next step
 
