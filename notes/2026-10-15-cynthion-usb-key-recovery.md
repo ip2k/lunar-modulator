@@ -352,3 +352,29 @@ its standard control endpoint on target_phy, inherited 0x39=0x06 wiring fix,
 no direct data GPIOs, and all four VBUS/discharge controls zero. It will be
 loaded only with FM1 detached; cable acceptance requires actual enumeration
 and descriptor retrieval from bench01. No verdict yet.
+
+### Cable test result — physical PASS
+
+[verified: bench01 USB, 2026-10-16 03:10:25 UTC] Root loaded the frozen first
+probe artifact (119,595 bytes), SHA-256
+`c72a4e4e201809c0680948c43f88c9572e31cb0da037bf7031ee16f1346aecfe`.
+Source is worker commit `7a1529f34440dab6366d29df68e2862f5a7042a1`.
+Synthesized netlist independently confirms four switch/discharge outputs driven
+zero and no direct target GPIO ports. Routed clocks pass: USB 103.28 MHz
+against 60 MHz; fabric 209.86 MHz against 120 MHz.
+
+Bench01 enumerated `1209:cc01` at bus003/device043, product
+“Cynthion TARGET-C descriptor probe”, negotiated full speed (12 Mbps). Two
+`lsusb -v` reads retrieved device/configuration/string descriptors and device
+status. This establishes bidirectional USB data over the connected TARGET-C
+cable at the speed used by FM1; it does not establish FM1 ROM recovery.
+FM1 remained detached, with no device commands or flash access.
+
+[verified: upload and subsequent inventory, 03:11:01 UTC] Restored pinned
+official analyzer SHA-256
+`5afd1741247da483876bbc7b0d87606ef34503558f31f638162409cb2f0ea5da`
+volatily. The probe disappeared from bench01 as expected. CURRENT: official
+analyzer, CONTROL→Mac, TARGET C→bench01, TARGET A empty. Raw evidence is in
+`target-c-cable-test/{bench-before,bench-after,bench-repeat,bench-after-restore}.txt`,
+`upload.log`, `restore-analyzer.log`, and `root-netlist-review.json` below
+`scratch/cynthion-usb-key-20261015/`.

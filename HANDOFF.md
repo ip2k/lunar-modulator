@@ -1,14 +1,20 @@
-## TARGET-C cable verification in progress — 2026-10-15
+## TARGET-C cable physically verified — 2026-10-15 20:10 Pacific
 
-[verified: owner] FM1 is detached from TARGET A; CONTROL remains connected to
-Mac and TARGET C remains connected to bench01. The previous recovery image
-is terminal FAULT with both GPIO outputs released (read again before this test).
-A temporary LUNA standard-descriptor device on target_phy is being built on
-Hera to verify the bench01 cable independently. All four VBUS forwarding and
-discharge controls are explicitly off; no FM1 is attached. Standard analyzer
-uses CONTROL on r1.4 and cannot establish TARGET-C cable data continuity.
-No cable verdict yet; wait for actual bench enumeration/descriptor read.
-Do not reconnect FM1 while this USB device probe is loaded.
+[verified: physical USB] With FM1 detached from TARGET A, CONTROL→Mac and
+TARGET C→bench01, temporary LUNA descriptor probe c72a4e4e201809c0680948c43f88c9572e31cb0da037bf7031ee16f1346aecfe
+was loaded volatily. Bench01 enumerated 1209:cc01 at 12 Mbps (bus003/device043),
+read device/configuration/string descriptors and status twice successfully.
+The cable carries USB data at FM1's operating speed. All four power controls
+were independently checked constant0 in synthesized netlist; raw target GPIOs
+were unrequested. No FM1 commands or flash access occurred.
+
+Pinned official analyzer 5afd1741247da483876bbc7b0d87606ef34503558f31f638162409cb2f0ea5da
+restored successfully; probe disappeared from bench01. CURRENT: standard analyzer,
+FM1 detached, CONTROL→Mac, TARGET C→bench01. Before loading recovery image,
+ask for TARGET C disconnection and keep FM1 detached; prior terminal recovery
+status no longer describes loaded FPGA. Raw logs/artifacts:
+`scratch/cynthion-usb-key-20261015/target-c-cable-test/`.
+Cable proof does not establish ROM recovery; ACK counter-gap fix/review pending.
 
 ## Cynthion attempt3: WAIT_DP failure — 2026-10-15
 
