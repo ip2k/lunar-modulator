@@ -502,3 +502,25 @@ confirmed both TARGET ports empty. Independent diagnostic implementation is
 assigned; no repeat physical attempt requested yet.
 Evidence: scratch/cynthion-usb-key-20261016/event-history/owner-attempt-6-status.json,
 owner-attempt-6-enumeration.txt and attempt6-source-review.md.
+
+## Attempt 7 diagnostic loaded SAFE; connection-only step pending — 2026-10-16
+
+[verified: owner] Both TARGET ports empty, CONTROL to Mac, before volatile
+configuration. Root independently checked exact source match against worker
+62ca873f, artifact/receipt hashes, netlist CONTROL1/C0/AUX0/discharge0 and
+final routed timing 66.68 MHz USB against 60, 212.77 MHz against 120.
+Loaded bit b3b2037bf2e7e743c0d8ade268a22c5e8f9ef3859426bf7f10e3951c56c56a2e.
+Do not use earlier all-power-off build ea634822 for this profile.
+
+[verified: JTAG] Layout6/status4010/GPIO0/terminal0/diagnostic0: SAFE, PHY
+ready, no PHY fault, OEs off. No recovery attempt has started. Combined111
+tests passed before test-only hardening; updated PHY suite11passed. Held-high
+request test verifies one read only. No new full top/JTAG simulation; existing
+core tests and root wiring review cover the separate terminal gating contract.
+Source integrated d612aa80, pushed and remote verified.
+
+Next physical step: keep C empty, switch FM1 RIGHT, connect FM1 to A WITHOUT
+pressing USER, leave RIGHT. Root must verify SAFE after connection before
+requesting USER press and RIGHT-to-LEFT. No FM1 commands or flash access issued.
+Evidence: scratch/cynthion-usb-key-20261016/debug-readback-control-power/
+build-receipt.json, attempt-7-upload.log, attempt-7-disarmed-status.json.
