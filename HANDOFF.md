@@ -1,16 +1,18 @@
-## Cynthion diagnostic retry ready — 2026-10-15
+## Cynthion attempt3 awaiting owner — 2026-10-15
 
-Owner confirmed both TARGET ports empty, CONTROL on Mac. Coordinator loaded
-reviewed operation image de036dfc... volatily: layout4, JTAG0x4410 SAFE,
-PHYready/noPHYfault, GPIO/OEs0, terminalregs12..18 all0. This is currently loaded.
-Source069c2b00 integrates terminal provenance + fixed tests;102focused testsPASS.
-Final routed USB166.25MHz/fabric219.20MHz pass60/120MHz. Compiled power controls:
-CONTROL1/TARGETC0/AUX0/discharge0. No waveform/arming policy change.
-Owner asked for fresh explicit LEFT→RIGHT attempt: switchLEFT, connectTARGETA,
-wait5sec, press/releaseUSER, switchRIGHT within10sec; TARGETC staysempty. Reply
-pending. Actual FM1 ON direction remains unverified. First attempt endedFAULT
-withselftestF/GPIOreleased and no subsequentUSB; noloader/flashread/write issued.
-Do not reconfigure while FM1 connected. Root owns device. See recovery note.
+Attempt2 ownerDone after long idle: layout4/status4418, selftestmask0/failure21,
+GPIOsnapshot3a, stepRXCMDcounts0, packets0, terminalFAULT/GPIOOEs0. Cached
+linevalid1/SE0 stayed unchanged; no key packets sent. Root has not established
+why connected target prevented loopback. Owner confirmed both TARGET ports
+empty again. Immediate disconnectedf5b95... reload passed27d7/maskF/observedC6.
+Root then freshly loaded operationde036dfc... while ports empty; layout4,
+SAFE/PHYready/noPHYfault/GPIOOEs0, terminalregs0. Current loaded image.
+Owner asked explicit RIGHT→LEFT experiment (TARGETCempty, switchRIGHT,
+connectTARGETA/wait5s, USERonce then slideLEFTwithin10s). Response pending.
+Do not reconfigure connected. All physical writes remain root-owned. No FM1
+loader/flashread/write/reset commands in this recovery work. Read-only JTAG
+55-second state watch started (execsession90413); localJSONL persistschanges.
+SwitchONdirection unverified. See recovery note and local attemptsnapshots.
 
 ## Latest source/CI checkpoint — 2026-10-15
 

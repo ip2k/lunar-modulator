@@ -294,3 +294,27 @@ status and build artifacts are in
 CONTROL remains Mac, TARGETC empty, FM1 switchLEFT then connectTARGETA; wait5s,
 USERpress/release once then slideRIGHT within10s, leave and report. The switch
 ON direction is still unverified; no new key attempt is claimed before report.
+
+## Attempt2 and immediate disconnected recheck
+
+[verified: owner] Explicit LEFT→RIGHT attempt reported done. Precise physical
+action time unknown. [verified: JTAG at Unix1792119288.19189] Layout4/status4418,
+GPIO0/failure21/failureGPIO3a/stepcounts0/observed0/validmask0/terminal801,
+packets0/ACK0/WAIT0/SOF0. PHYready/noPHYfault, cached linevalid1/SE0. First
+expectedK step had no RXCMDupdate; no key packet was sent. GPIO snapshot saw
+inputK/outputK/bothOEs1 at failure; terminal releases outputs. Actual cause
+unproven, possibly target-side clamp/physical powerstate or transient receiver
+state. No fresh recovery/USB acceptance exists.
+
+Owner confirmed TARGETs empty. Root volatily reloaded the known disconnected
+f5b95... image; at Unix1792119327.303909 it passed27d7/maskF/observedC6, one
+event perstate, GPIO0. That bounds the failure to the connected/idle context,
+not a persistent receiver failure. Root reloaded unchanged operationde036...;
+at the timestamp in the savedJSON SAFE0/PHYready,
+noPHYfault/GPIOOEs0/terminalregs0. Exact evidence local in
+`fault-telemetry-operation/owner-attempt-2-status.json`,
+`phy-swap-v1/recheck-after-attempt-2-status.json`, and
+`fault-telemetry-operation/attempt-3-disarmed-status.json`.
+
+Owner requested RIGHT→LEFT fresh experiment, TARGETCempty. No claim that RIGHT
+is OFF or LEFT is ON. Pending ownerreport/status; no deviceflashoperation.
