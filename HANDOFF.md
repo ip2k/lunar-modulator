@@ -1,3 +1,18 @@
+## Attempt 5 enumeration absent; clean retry pending — 2026-10-16
+
+[verified: passive bench USB at 07:35:42 UTC] No FM1 app, loader or ROM device
+after owner connected TARGET C with switch LEFT unchanged. No FM1 commands sent.
+Independent trace review suggests cached GAP SE0 may have triggered candidate
+ACK after 100us in KEY without a fresh RXCMD; not conclusive ROM/electrical proof.
+Owner accidental USER press makes intended arm timing unverified.
+Current: layout5 diagnostic terminalFAULT/highZ; both TARGET ports connected.
+Owner asked to empty both TARGETs, keeping CONTROL→Mac; confirmation pending.
+Next: reload SAME pinned bit only after empty confirmation. Then ask connectA
+with switchRIGHT WITHOUT pressingUSER, read SAFE before explicitly requesting
+USER+RIGHT→LEFT. This extra state check detects accidental early arming.
+Evidence: scratch/cynthion-usb-key-20261016/event-history/
+owner-attempt-5-enumeration.txt and attempt5-trace-review.md.
+
 ## Attempt 5: captured timeout; accidental arm reported — 2026-10-16
 
 [verified: owner] RIGHT→LEFT sequence reported done, followed by a warning that

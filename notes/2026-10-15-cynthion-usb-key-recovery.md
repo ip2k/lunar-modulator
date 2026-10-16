@@ -437,3 +437,17 @@ Owner asked to connect TARGETC tobench01 without changing switchLEFT so root
 can check passive enumeration before reset. No FM1loader/flash/boot/reset
 command issued. Exact raw/decoded snapshot saved in scratch event-history/
 owner-attempt-5-status.json. Read-only independent review assigned.
+
+### Attempt 5 enumeration and independent review
+
+[verified: passive bench USB, 2026-10-16 07:35:42 UTC] No FM1 app/loader/ROM
+appeared after TARGET C connection with switch LEFT unchanged. No FM1 commands.
+[verified: trace/source review] Last GAP SE0 event preceded KEY by160us;
+without another RXCMD update, candidateACK occurred100us intoKEY. This is
+consistent with stale cached SE0 causing a false candidate, but does not prove
+that cause or establish electrical/ROM behavior. AccidentalUSER timing remains
+uncontrolled. Independent report saved in scratch event-history/attempt5-trace-review.md.
+
+Owner asked to empty both TARGET ports before reloading same diagnostic for
+a clean trial. Next trial adds a SAFE check after connectingA but beforeUSER;
+do not request another press until root confirms no accidental early arm.
