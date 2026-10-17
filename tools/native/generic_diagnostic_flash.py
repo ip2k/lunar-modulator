@@ -338,6 +338,26 @@ def _exact_engine_render_profile_receipt(value):
             and value == expected)
 
 
+def _exact_resampler_stage_profile_receipt(value):
+    """Accept only the builder's complete schema-9, 63-packet receipt."""
+    try:
+        from .diagnostic_telemetry import RESAMPLER_STAGE_FIELDS
+    except ImportError:
+        from diagnostic_telemetry import RESAMPLER_STAGE_FIELDS
+    expected = {
+        "enabled": True, "schema": 9,
+        "compile_definition": "LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE=1",
+        "frame_bytes": 189, "packets_per_frame": 63, "sample_stride": 32,
+        "counters": list(RESAMPLER_STAGE_FIELDS),
+        "counter_semantics": "cumulative-uint32-raw-24MHz-TIMER4-wall-and-tracked-IRQ-union-ticks",
+        "hardware_tested": False,
+    }
+    return (isinstance(value, dict) and set(value) == set(expected)
+            and all(type(value.get(key)) is type(want)
+                    for key, want in expected.items())
+            and value == expected)
+
+
 def _exact_clock_snapshot_receipt(value):
     expected = {
         "enabled": True, "schema": 3, "supplemental_schema": 4,
@@ -400,6 +420,7 @@ def _validate_diagnostic_mode(record, build, verification, prepared_profile):
         if ("diagnostic_producer_gaps" in verification or
                 "diagnostic_irq_profile" in verification or
                 "diagnostic_engine_render_profile" in verification or
+                "diagnostic_resampler_stage_profile" in verification or
                 "diagnostic_cpu_rate" in verification):
             raise ValueError("Song-only timing telemetry is only valid for the EH+SET song profile")
         if pulse != {"enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TRIO_PULSE=1",
@@ -417,6 +438,25 @@ def _validate_diagnostic_mode(record, build, verification, prepared_profile):
             "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TELEMETRY=1",
             "interval_ms": 1000, "transport": "USB-MIDI-SysEx", "hardware_tested": False}:
         raise ValueError("EH+SET diagnostic telemetry must be enabled")
+    resampler_profile_present = "diagnostic_resampler_stage_profile" in verification
+    if resampler_profile_present:
+        if not _exact_resampler_stage_profile_receipt(
+                verification["diagnostic_resampler_stage_profile"]):
+            raise ValueError("EH+SET resampler-stage profile receipt differs")
+        if ("diagnostic_cpu_rate" in verification or
+                "diagnostic_producer_gaps" in verification or
+                not _exact_irq_profile_receipt(verification.get("diagnostic_irq_profile")) or
+                not _exact_engine_render_profile_receipt(
+                    verification.get("diagnostic_engine_render_profile")) or
+                not _exact_render_stage_profile_receipt(verification.get("render_stage_profile")) or
+                ("diagnostic_clock_snapshot" in verification and not
+                 _exact_clock_snapshot_receipt(verification["diagnostic_clock_snapshot"]))):
+            raise ValueError("Schema-9 resampler profiling requires exact schema-7/2/6 receipts only")
+        song_play = verification.get("diagnostic_song_play")
+        if not (_exact_song_play_receipt(song_play, True) or
+                _exact_song_play_receipt(song_play, False)):
+            raise ValueError("Schema-9 diagnostics require exact bounded PLAY or explicit no-autoplay")
+        return _validate_event_horizon_set_profile(build, verification, prepared_profile)
     if "diagnostic_cpu_rate" in verification:
         if (not _exact_cpu_rate_receipt(verification["diagnostic_cpu_rate"])
                 or not _exact_song_play_receipt(verification.get("diagnostic_song_play"), False)
