@@ -338,3 +338,45 @@ at most4concurrent containers. It has not completed at this checkpoint. The
 host codec is explicitly reused and is outside new host-compile coverage.
 CI run38998982780 completed SUCCESS across all15jobs; this is implementation
 CI, not physical or public-release acceptance.
+
+
+## Fresh full target trace on Aeon
+
+[verified] Owner routing excludes Hera during RAID/M.2/NIC maintenance. All16
+catalogue shards completed on Aeon, at most4 concurrent bounded containers.
+Actual totals are167 distinct objects and167 successful compiler receipts:
+shards00–06 each11, shards07–15 each10. Root independently rehashed all167
+objects against their receipts and checked the pinned compiler identity.
+Catalogue aggregate SHA256:
+`dcbdc81ff921257451db7d5a865c2fb4f25611a6751ca5b1ed5e9d42b45a9dce`.
+
+[verified] Highlevel retry2 container
+`d0c426f1d09cb9d28a8a343336e66b84a41b9bd78d9de626cff016f296b6645f`
+exited0 without OOM. Its852720-byte application SHA256 is
+`888ef842ea67fb46a010226456568452bc32b3ceca13362caaab7119774db437`;
+987308-byte ELF SHA256 is
+`fed2d7e47ff1120a4d5c15acdb57f21cfe6144e71dd6bf689408943dbd0e6c3b`.
+Both equal the retained continuous producer. Root independently rehashed all121
+application/runtime compiler outputs, both storage-IR outputs, both linker
+outputs and all output-mount linker inputs. Final link records284 inputs;
+arithmetic relocatable link records33. Compiler and dependency exits are0 and
+receipts report trace_complete=true. This is new invocation evidence for a
+fresh reproduction, not a recovered historical invocation trace.
+
+The initial highlevel attempt stopped at the recorder's missing real receipt
+directory guard; no parser was loosened. Retry1 produced identical firmware
+but its ELF string table contained a different absolute crt0.o path. Retry2
+used the original `/output/build` path and reproduced the ELF exactly. Failed
+and intermediate attempts remain private evidence. A root audit initially read
+the object hash field for storage-IR receipts; selecting their `ir_sha256` field
+confirmed both actual files match. No output mutation was found.
+
+Evidence root:
+`/home/claude/mvave-fm1/private-compilertrace-full-build-20261017/full-trace-run2/`.
+Canonical outputs are `build/link/artifact/app.bin` and
+`build/link/lunar-app-probe.elf`; receipts are under
+`trace/highlevel-retry2/records` and `trace/highlevel-retry2-ldrecords`.
+Final consumed-header union/provenance review is still pending. The reused
+host state codec remains outside new host-compiler dependency coverage.
+No source-complete, distribution, installable-release or physical acceptance
+flag is promoted by this result.

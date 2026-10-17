@@ -8456,3 +8456,17 @@ hubs and KA6 only. These do not prove FM1 attachment, CPU power or recovery.
 Private summary: scratch/aeon-routing-resume-20261017/passive-0407utc.json.
 Existing physical connection question remains unanswered; no device writes.
 Overall goal remains ACTIVE; recovery, audio, storage and release gates open.
+
+
+### Fresh traced target reproduction complete on Aeon
+
+[verified] All16 catalogue shards passed:167actual objects/167complete compiler
+receipts, independently rehashed. Highlevel retry2 exited0/noOOM and reproduced
+both retained app888ef842... and ELFfed2d7e... exactly. Root checked121compiler
+outputs,2IR outputs, both linker outputs and output-mount link inputs. Evidence,
+failed-attempt distinctions and full hashes are in
+notes/2026-10-17-tuple-bound-libcxx-source.md. Final consumed toolchain-header
+union/provenance review remains next; reused hostcodec is outside new host
+compile coverage. Aeon only; do not contact Hera during maintenance. Physical
+monitor connection question is still pending. Recovery/audio/storage/public
+release acceptance remains open; overall goal ACTIVE.
