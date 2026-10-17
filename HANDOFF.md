@@ -1,3 +1,22 @@
+## Owner routing reaffirmed; preflight integration held for bootstrap fix — 2026-10-17 UTC
+
+[verified: live SSH] Aeon 192.168.1.25 is reachable as claude. Owner reserves
+Hera for MDADM/M.2 and 25G NIC work; no new Hera jobs or availability probes.
+Both active workers notified and using Aeon/offline work only. Mac retains
+exclusive device ownership. No change to pending physical monitor question.
+
+Reviewed D7000 preflight worker079441ec; integration is held because its new
+shared-contract import runs before standalone /input/docker_worker.py extracts
+the verified source tree. The deployed shallow path also invalidates parents[2].
+Worker is correcting bootstrap ordering and adding a standalone regression.
+Do not cherry-pick079441ec without the corrective commit and review.
+
+Exact092 vendor listing generated on Aeon, but raw-file origin versus metadata
+entry mapping still requires review before treating any absolute address as
+proved. Byte-identical section extraction alone does not establish origin.
+Vendor files remain ignored; source availability note records exact hashes.
+Overall firmware/recovery/web-release goal remains ACTIVE and unaccepted.
+
 ## Schema9 private admission and Aeon receipts integrated — 2026-10-17 UTC
 
 [verified: independent host checks] Reviewed worker cc46a1a3 and integrated as
