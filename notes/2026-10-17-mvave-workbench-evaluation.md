@@ -237,11 +237,13 @@ Pinned branch sources:
 
 ## Installation and recovery are separate decisions
 
-[verified] The supplied `uboot.boot` hashes to
+[verified] The Open-build packager resource `sdk/tools/pack/uboot.boot` hashes to
 `b88747cb72afc554d6ca078594a89f4fdcea5a74d26345b633f8e2524e7e3415`
 (14,488 bytes). Lunar's `tools/jieli/package_guard.py` requires
 `730e54f0a439f58d147be4364ad21e19566945ada9d3a7bbc8371dce5068d3ef`
-(14,384 bytes). The new kit cannot pass that unchanged stock-SPL condition.
+(14,384 bytes). An image made with that Open-build SPL cannot pass Lunar's unchanged
+stock-SPL condition. This resource is distinct from the bundled stock V15
+recovery package examined below.
 Its partition/package policy also reserves 536,576 user bytes and 32 KiB minimum
 VM (`sdk/Package.cs:13`); this is not Lunar's E7 layout.
 
@@ -269,6 +271,75 @@ responsive update loader cannot recover a non-enumerating unit. See
 [inferred] Keep Lunar's backup, package bounds, stock resource checks,
 interruption/recovery evidence and explicit hardware admission. This research
 authorizes no device traffic and proposes no replacement of those gates.
+
+## Workbench does not supply the missing recovery entry
+
+**The workbench has no demonstrated recovery path for the owner's last recorded
+non-enumerating state.** It can retry an update if a compatible USB-MIDI `ota-*`
+loader still responds; force mode cannot create missing MIDI ports, bypass the
+identity handshake or communicate with a raw mask-ROM device. This is a
+source-based capability assessment, not a new observation of the unit. [verified
+source; inferred applicability] ([Updater](https://github.com/m-vave/fm1_open/blob/b178ac43c25f010c60a878056fb5331fe693fd62/sdk/WebUpdate.js#L224-L317),
+[resume path](https://github.com/m-vave/fm1_open/blob/b178ac43c25f010c60a878056fb5331fe693fd62/sdk/WebUpdate.js#L402-L434))
+
+| Freshly established device state | What Workbench provides | Recovery boundary |
+| --- | --- | --- |
+| Normal compatible app, paired USB-MIDI IN/OUT and identity reply | App-to-loader update or stock restore | An update path; it requires a functioning endpoint and can replace user data |
+| Responsive compatible `ota-*` USB-MIDI loader | Resume transfer with the matching complete page/package | The documented interrupted-update retry case; still requires identity and protocol responses |
+| Raw `UBOOT1.00` / mask-ROM USB without the MIDI updater | No raw-USB downloader path in the inspected page | Use independently reviewed ROM recovery tooling and its separate admission; `ota-*` is not UBOOT |
+| No USB enumeration, missing MIDI direction or no identity response | Connection/handshake fails | Force mode cannot rescue this state through Workbench |
+
+[verified source] The updater explicitly requires an identity response even in
+force mode; the manual directs firmware without its USB-MIDI protocol to a
+separate matching recovery tool. No standalone ROM recovery utility was found
+in the kit inventory or page. The vendor identity request is part of that
+updater's protocol and **is not automatically an approved Lunar device
+command**. No query, soft key, loader upload, install or recovery operation was
+performed for this research. ([Handshake checks](https://github.com/m-vave/fm1_open/blob/b178ac43c25f010c60a878056fb5331fe693fd62/sdk/WebUpdate.js#L278-L317),
+[manual](https://github.com/m-vave/fm1_open/blob/b178ac43c25f010c60a878056fb5331fe693fd62/sdk/Update.html.in#L254-L257))
+
+[verified source] Even the label “stock restore” has a narrower case: if the
+responding identity is already `FM-1_015`, the page restores factory voice banks
+without reflashing the application. Otherwise its completion checks the target
+identity, not a complete raw-flash read-back hash. It is not equivalent to
+Lunar's historical owner-unit full-baseline restoration. ([Restore branches](https://github.com/m-vave/fm1_open/blob/b178ac43c25f010c60a878056fb5331fe693fd62/sdk/WebUpdate.js#L376-L439))
+
+[verified bytes] The kit does improve authoritative stock-asset provenance.
+Its `sdk/firmware/FM-1_015.fwsc` is **699,956 bytes**, SHA-256
+`db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a`,
+byte-identical to both existing V15 research copies. An independent scratch
+parser checked container/table, unencrypted-entry and boot-bank CRCs and decoded its
+14,384-byte stock
+SPL to Lunar's required `730e54f0…d3ef`; its 19,969-byte OTA payload hashes to
+`ef1f2db89b011fa53e71df363f0122de0ea896618c53fb53e8da676322004541`.
+Encrypted auxiliary plaintext CRCs were not independently validated; the
+complete package hash matched. These are static format/hash checks, not
+execution or restore proof. The
+public stock FWSC is **not the owner's complete flash dump** and supplies no
+new route into a silent unit. Its stock SPL match does not make the different
+Open-build SPL safe or compatible. ([Manifest](https://github.com/m-vave/fm1_open/blob/b178ac43c25f010c60a878056fb5331fe693fd62/sdk/manifest.json),
+[evidence receipt](2026-10-17-mvave-workbench-evidence.json))
+
+[reported retained bench evidence; original backups rehashed offline] The owner
+already has matching **1,048,576-byte full-flash backups**, SHA-256
+`96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4`,
+and historical complete stock-baseline restore/read-back evidence. That earlier
+success is distinct from the later interrupted stage7 installation, whose
+current mixed flash contents remain unknown. The latest retained passive
+observation, **2026-10-17 16:46 UTC**, records blank screen/red charge light and
+supply current, with **no FM1 app, OTA or mask-ROM USB identity observed**.
+Current state and cabling were not rechecked by this evaluation; supply current
+does not prove CPU execution. ([Pinned recovery handoff](https://github.com/ip2k/lunar-modulator/blob/1f12ad5b8d6a865268af94179a3442183a680602/HANDOFF.md#L16-L26),
+[completed baseline restore](https://github.com/ip2k/lunar-modulator/blob/1f12ad5b8d6a865268af94179a3442183a680602/HANDOFF.md#L4982-L4989),
+[passive observation](https://github.com/ip2k/lunar-modulator/blob/1f12ad5b8d6a865268af94179a3442183a680602/notes/2026-10-17-fm1-passive-power-check.md))
+
+[inferred] The useful next research output is an offline recovery asset/state
+matrix and a separately reviewed diagnosis gate. Any future device session
+must first establish fresh owner-confirmed topology and passive USB state under
+the current policy. Only an actually responsive app/OTA endpoint would reopen
+the workbench contingency. ROM entry or absent enumeration needs the existing
+independent recovery investigation; neither source archives nor known firmware
+bytes solve that missing transport. This report supplies no flashing procedure.
 
 ## Options compared
 

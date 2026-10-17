@@ -9,7 +9,8 @@ upstream messages, new hardware traffic or a change of firmware architecture.
 Deliver an offline pilot proving which M-VAVE sources/tools save work while
 preserving Lunar's SDK-free GPL application, reusable MIT core, songs and
 editor. Its outputs are a pinned inventory, source-only format prototype,
-board/audio comparison, reproducible test fixtures, and a go/no-go decision.
+board/audio comparison, offline recovery asset/state comparison, reproducible
+test fixtures, and a go/no-go decision.
 Do not promise that this pilot repairs recovery or yields installable firmware.
 
 Use upstream `b178ac43c25f010c60a878056fb5331fe693fd62` and the kit digest in
@@ -56,7 +57,7 @@ coordinator where workers lack GitHub credentials, and verify remote SHAs.
 
 | ID / worker | Owned work and output | Dependencies | Acceptance / stop condition |
 | --- | --- | --- | --- |
-| W1 Luna, Aeon (Hera later) | Pin vendor source/kit; inventory file licences, hashes, build inputs and native/public split in `notes/workbench/inventory.*` | Exact pins/base | Reproduce 150-file comparison and 65 manifest checks; distinguish licences from binary provenance; no binaries committed |
+| W1 Luna, Aeon (Hera later) | Pin vendor source/kit; inventory file licences, hashes, build inputs and native/public split in `notes/workbench/inventory.*`; offline stock-FWSC/SPL/OTA versus owner-backup provenance table | Exact pins/base | Reproduce 150-file comparison and 65 manifest checks; distinguish licences from binary provenance and stock recovery FWSC from the Open-build SPL/full-flash owner backup; no binaries committed |
 | W2 Sol, Aeon | Native integration feasibility in `notes/workbench/native-seams.md`: symbols/sections; APP startup/control/audio; timestamped MIDI RX/TX ownership; USB/BLE roles, contexts and lifetimes; exact compiler/build-host feasibility and resource map plan | W1 | Demonstrate a supported engine-free platform seam or explicitly fail this option. `fm1_midi_post` and untimestamped APP SysEx are insufficient. Preserve the 49,152-byte minimum heap and package bounds; no binary surgery or link-conflict suppression |
 | W3 Sol, Aeon | Compare public board/audio/LCD/panel code against current native adapter; report only in `notes/workbench/board-delta.md` | W1 and pinned native candidate | Explain 44,118-Hz hardware vs 44,100-Hz simulator clocks, 128-vs-64-frame contracts, float/Q23 conversion, DMA ownership, flash stalls and deadline/overrun metrics; distinguish source facts from timing proof |
 | W4 Luna, Aeon (Hera later) | Format inventory and synthetic fixtures under `tests/fixtures/workbench/` plus a loss matrix | W1 | Cover `.fm1/.fm1t/.fm1s/.syx`, sizes/checksums/versioning, shared samples, tuning reservation, invalid/truncated/boundary files; no owner's recorded data |
@@ -109,13 +110,31 @@ callback is not a drop-in fix for Lunar's measured 64-frame producer shortfall.
 | ID / worker | Owned work and output | Dependencies | Acceptance / stop condition |
 | --- | --- | --- | --- |
 | W9 Luna, Aeon (Hera later) | Attribution, source manifest and developer docs for selected imports; new third-party notice subtree only | Final W5/W7 retained files | Every imported file has exact pin/licence/patch record; public source archive describes actual image inputs; no completeness flag promoted by merely supplying a URL |
-| W10 Sol, Aeon | Mock-only library/update adapter and package comparison in isolated tools/tests | W1/W8 and separate protocol-scope decision | Separate `7D FM 02` library and `00 59` update protocols; identity, corrupt/reordered/truncated replies, timeout/disconnect, full-bank replacement and read-back failures; stock-SPL/layout guard unchanged |
+| W10 Sol, Aeon | Mock-only library/update adapter, recovery-state matrix and package comparison in isolated tools/tests | W1/W8 and separate protocol-scope decision | Separate `7D FM 02` library and `00 59` update protocols; identity, corrupt/reordered/truncated replies, timeout/disconnect, full-bank replacement and read-back failures; responsive-app/OTA vs raw-ROM/no-enumeration cases; force still needs identity; stock-SPL/layout guard unchanged |
 | W11 Sol, independent review on Aeon or Mac | Review only; coordinator integrates changes in a dedicated branch | W5–W10 selected scope | Review precise head; resolve main/installable overlap; target link/resource audits, GPL-on/off tests where applicable, relevant browser/state/engine regressions and required CI; merge only green reviewed head |
 | W12 Sol coordinator, Mac + owner | Separately admitted hardware acceptance and final report | Recovery restored; W11; exact image/source/backup/recovery plan | Cold boot, panel/display, full-song audio/timing, MIDI, persistence and interruption, browser install/update/rollback, listening acceptance and source closure; no worker device access |
 
 W10 is optional for the first offline pilot. Do not add real hardware update
 buttons merely because vendor code is available. Preserve the existing Lunar
 private installer/selection work instead of building a competing installer.
+
+The recovery part of W1/W10 is useful even if no converter or runtime migration
+is selected. Preserve the verified stock recovery asset digest, decoded stock
+SPL/OTA identities and owner-matched full-dump evidence separately; compare
+container contents offline without executing vendor tools or publishing private
+backups. The stock asset matches firmware already held and supplies provenance,
+not a new app-independent entry mechanism.
+
+**Recovery diagnosis gate:** produce a reviewable state/transport decision with
+fresh-state requirements before any later hardware session. The retained
+2026-10-17 passive note reports no app/OTA/ROM enumeration, but is not a current
+probe. Future work first needs owner-confirmed topology and separately admitted
+passive USB observation. Do not turn the vendor's identity request, force mode,
+soft key, ROM loader or pending disconnected key control into an implicit
+command authorization. A responsive compatible `ota-*` MIDI loader permits
+consideration of the narrow Workbench retry path; raw UBOOT or absent USB does
+not. W12 remains separately admitted and cannot be unlocked by this offline
+comparison. No recovery action is part of the present research.
 
 For W11, choose tests based on retained changes: codec/property tests for a file
 adapter; engine/sequence parity for render changes; actual target ELF/map and
