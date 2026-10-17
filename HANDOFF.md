@@ -1,3 +1,28 @@
+## Schema9 integrated after review — 2026-10-17 UTC
+
+[verified: source review + host tests] Corrected worker commits integrated as
+c710d3cd/0fd0509f/e39744f9. Coordinator independently ran218focused tests across
+profile/wire/builder/recorder/analyzer/catalogue plus generic flash/SG/boot;
+all passed. bringup_review separately passed26tests and found no actionable
+source defect. Target ABI, link fit, physical overhead and audio remain open.
+Roote39744f96d3d2f201a378bf512a2abdd79cc4b14 pushed/remoteSHAverified.
+CI38989782928 explicitly targets that head; latest status pending behind live
+older38988984046. Do not call either current CI green or restart an old live job.
+
+Aeon offline pair worker owns claimlunar--resampler-stage-profile-aeon-20261017-codex.
+Runner source333ba85d46dc706225b6b6b33321948994176e84 backedup and transferred,
+but first preflight stopped before any containers because its wrapper conflated
+stage7 run-build.py hash604485 with prior Aeon runner hash41d1. Worker owns
+correction and exact pin verification; no containers were launched at lastreport.
+Baseline/enabled share firmware source36988d0c, prepared song, compiler and image;
+IRQ+resampler flags/cadence differ. Preserve that comparison limitation.
+
+reconnect_resume continues isolated sealed-policy reopen implementation; root
+will leave genericflash untouched until that handoff. Schema9 physical admission
+receipt integration remains later coordinator work. Monitor-only Cynthion and
+pending owner connection remain unchanged. No hardware writes this turn.
+Unrelated uv.lock untouched. Goal ACTIVE; public release not accepted.
+
 ## Profile correction verified; durable reopen assigned — 2026-10-17 UTC
 
 [verified: independent offline] Corrected schema9 worker36988d0c passed174focused
