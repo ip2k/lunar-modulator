@@ -8416,3 +8416,26 @@ source-completeness, distribution or hardware acceptance is claimed.
 CI38998982780 sanitizer job passed; macOS/Ubuntu fullpytest still live at this
 checkpoint with no reported failures. Existing physicalconnection question
 remains pending.
+
+### Aeon-only trace preflight after host-routing confirmation
+
+Owner routing remains Aeon .25 only; Hera is excluded during RAID/M.2/NIC
+maintenance. Static invocation inventory found two additional target families:
+paired LLVM-IR app sizing commands and the 32-object arithmetic validation
+`ld -r` link. No full traced build has started. Both target clang spellings
+resolve to the same pinned executable; the facade must cover both paths.
+
+Root reviewed and independently reran the private IR adapter synthetic suite.
+Exact ignored adapter SHA256:
+`e51cf6b1f7b0460152d8d1eb1d66e1d5b96176fafff45cb2df93ca57a980a418`.
+Two real direct/facade IR sizing smokes are now assigned to the existing Aeon
+worker. The separate arithmetic recorder extension still needs review; no
+unrecognized invocation may pass through without a receipt.
+
+Root independently rehashed all32 arithmetic fixture inputs (23260bytes) and
+retained combined output; manifest SHA256
+`f215541c46739ae84b477ee66eede24ff53fe9b352ac6c61dc21b31fe16b006d`.
+This is prepared fixture evidence, not a newly executed link. CI38998982780
+macOS fullpytest has now passed; Ubuntu fullpytest remains running, with all
+other jobs passed at latest observation. No device writes, physical recovery,
+source-completeness or public-release acceptance is claimed.
