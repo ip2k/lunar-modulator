@@ -1,3 +1,15 @@
+## LEFT comparison and USB absence — 2026-10-17 16:46 UTC
+
+[verified] Owner movedRIGHT→LEFT; blankscreen/redcharge unchanged. Five valid
+PAC2 readings4.967773–4.976563V/347.137–348.816mA towardFM1, overlappingRIGHT.
+Owner then connectedTARGET C→bench01; liveSSHlsusb sees onlyKA6+root hubs,
+noFM1. Exact samples/limits in notes/2026-10-17-fm1-passive-power-check.md.
+CurrentCONTROL→Mac,FM1→A,C→bench01,switchLEFT; preserve cabling/state. No key,
+power, reset or flash command. Do not reconfigure while targets attached.
+bringup_review assigned read-only discriminating next-step assessment; no
+identical recovery-key retry assigned. Source evidence worker continues
+read-only export/coverage plan. Aeononly; Hera untouched. GoalACTIVE.
+
 ## Live FM1 supply measured; exact source CI green — 2026-10-17 16:43 UTC
 
 [verified] Owner confirmed FM1 TARGET A, verified cable, TARGET C empty,

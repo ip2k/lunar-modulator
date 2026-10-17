@@ -28,3 +28,35 @@ establish USB recovery. The TARGET C data path is intentionally disconnected.
 Next: owner requested to move RIGHT to LEFT with cabling unchanged and report
 screen/lights, then coordinator takes the same passive sweep. No key/flash
 experiment follows automatically from this measurement.
+
+## Switch LEFT and USB enumeration
+
+[verified: owner] Switch moved RIGHT to LEFT without cabling changes; screen
+remains blank and charging indicator remains red. Five fresh valid PAC2 samples:
+
+| UTC sample completion | Supply V | Current mA |
+| --- | ---: | ---: |
+| 2026-10-17T16:44:22.968914+00:00 | 4.976563 | -348.053 |
+| 2026-10-17T16:44:24.847916+00:00 | 4.973145 | -347.748 |
+| 2026-10-17T16:44:26.732929+00:00 | 4.971680 | -348.206 |
+| 2026-10-17T16:44:28.602918+00:00 | 4.967773 | -348.816 |
+| 2026-10-17T16:44:30.516896+00:00 | 4.967773 | -347.137 |
+
+Raw JSONL `scratch/cynthion-pac2-root-direct-20261017/fm1-target-a-switch-left-monitor.jsonl`,
+SHA-256 `585c00b557012ddd265d4fb0dbebb39104c0b747f831678eab33ad9191363ada`.
+The LEFT and RIGHT current ranges overlap. No switch ON-position or CPU-state
+conclusion follows. The earlier unipolar zeros are superseded for supply-current
+interpretation; this does not invalidate those attempts' separate line-state
+and USB-enumeration observations.
+
+[verified: owner connection confirmation followed by live SSH lsusb] TARGET C
+connected to bench01 with FM1 switch LEFT unchanged. Bench lists only four root
+hubs and Komplete Audio 6 (`17cc:1001`); no FM1 app/OTA/mask-ROM identity.
+Raw inventory retained as
+`scratch/cynthion-pac2-root-direct-20261017/fm1-switch-left-target-c-enumeration.txt`.
+No device write/reset or key command was issued.
+
+Current wiring: CONTROL to Mac, FM1 to TARGET A, TARGET C to bench01, switch
+LEFT. Do not reconfigure Cynthion with targets attached. Next-step read-only
+review considers the non-driving monitor data path and known successful key
+references; no identical retry is justified by current measurements alone.
