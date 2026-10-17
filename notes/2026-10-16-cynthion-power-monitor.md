@@ -1,6 +1,6 @@
 # Cynthion r1.4 TARGET-A power monitor prototype
 
-Status: source and simulation are ready for review; routed build is pending Hera network access. This is an offline diagnostic prototype. No bitstream was built or loaded and no hardware was accessed by this worker.
+Status: source and simulation are ready for review. A routed source-only build was completed on Aeon; see [the route handoff](2026-10-16-cynthion-power-monitor-aeon-route.md). The image was not loaded and no hardware was accessed.
 
 ## Scope and interface
 
@@ -33,4 +33,4 @@ PYTHONPATH=/Users/likwid/.local/share/uv/tools/cynthion/lib/python3.12/site-pack
 
 Result on assigned base `86154bc7843d7b1965d346af78620917fd2836f1`: the exact command above passed 42 tests with 69 warnings (Amaranth/LUNA deprecation and existing unused elaboratable warnings). `Fragment.get(CynthionPowerMonitorTop(), CynthionPlatformRev1D4())` elaborated successfully and reported ULPI extras `{0x39: 0x06}`. `git diff --check` passed and Ruby Psych parsed `.github/workflows/ci.yml` successfully. These are source/simulation/elaboration checks only; they do not prove routed pin OEs, timing, current sense calibration, or physical measurement.
 
-The requested Hera routed build is blocked by current network reachability: root independently saw Hera SSH timeout and a bounded ping from bench01 also fail. Do not build on the Mac, use another host, or load hardware as a substitute. Once Hera is reachable, acquire the assigned unique coordination claim, build with the documented OSS CAD toolchain in the bounded `docker-batch.slice` container, inspect routed timing and netlist proving target GPIO OEs absent and VBUS controls CONTROL=1/TARGET-C=0/AUX=0/discharge=0, then save the bitstream hash/receipt and release the claim. Root owns all hardware operations and must review the artifact before any load.
+The original Hera build was blocked by reachability; the route was later completed on Aeon with a capped container. Its source, toolchain, netlist, timing and artifact receipts are in [the route handoff](2026-10-16-cynthion-power-monitor-aeon-route.md). Root owns all hardware operations and must review the artifact before any load.
