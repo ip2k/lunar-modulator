@@ -1,3 +1,25 @@
+## Independent browser inspection work dispatched — 2026-10-16
+
+[verified: source audit] Browser outer FWSC checks and exact linked-app flash
+accounting already exist; production download/admission intentionally remains
+closed. Audit retained in scratch/installer-next-dependency-audit.md. Public
+installer users must not acquire a per-owner permission gate: backend deployment
+trust and package release admission are separate concerns.
+
+Assigned substantive worker browser_nested_inspection on separate
+codex/browser-nested-inspection-20261016 from exact00f2ea79: implement bounded
+inspection-only nested JLFS/SFC structure/CRC checks against existing Python092
+model. Preserve all admission/installability/release flags false, no device
+writes/download/deploy. Check outer Lunar identity vs nested092 layout explicitly;
+identity alone does not establish nested geometry. Synthetic fixtures/cross-oracle
+checks only, no vendor/device-specific private binaries. Design approved; source
+implementation pending. Root must review exit artifacts/tests and integrate.
+
+Hera power clarification pending latest owner question; do not assume on/off
+from SSH absence. Latest live evidence remains BMC-on/Linux-unreachable, no power
+commands issued. CI38986269932 confirmed running sevenpassed/eightrunning on
+oldcdb0235f; later monitorprototype still requires current-head CI. Goal not complete.
+
 ## Monitor prototype integrated; Hera power state needs reconciliation — 2026-10-16
 
 [verified: source/simulation] f6a76630 integrates monitor worker2bbd1905,
