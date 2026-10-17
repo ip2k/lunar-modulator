@@ -1,3 +1,36 @@
+## Actual service-to-private-package success on Aeon — 2026-10-17 UTC
+
+[verified: actual samecommitd4f run, coordinator app/ELF byte comparison,
+FWSC CRC parsing, terminal-container review and all710 artifact-row rehashes]
+The production DockerJobAdapter → independent trusted builder → private FWSC
+pipeline passed. No binary normalization or validation relaxation was used.
+Source: d4f79b6344751578ec33db11e751678143e9e92b.
+Run: /home/claude/mvave-fm1/private-adapter-canonical-run-d4f79b63-20261017.
+Summary SHA b743dcaccf90d8f57ae10689f743badd36fe80823b9628cf8bcf0ea9a306e78b.
+Root receipt: scratch/aeon-routing-resume-20261017/d4f-actual-pipeline-root-verification.json.
+
+All55 modules, Event Horizon Showcase and companion SET are selected. Service
+and trusted app854528B SHA f91bc8da94ddbf40ef1a75e85bf8802aef28a5b153025ce7f1d420e056907338
+and ELF989648B SHA1f4c007df2216721fd44dd380b242d604930a812be9c813c4ed675ace2e5b132
+match byte-for-byte. Trusted tuple SHA90ed9bcf59ba6c84928af53ad702e98459e540051bbc7efcf3cdac71e17ad021.
+Private package978484B SHA10bdcc871fb534690f50b767a59990a70c9eaf27603265b8d2e8330eec1d95a5;
+header, table and all8 payload CRCs pass. App link budget margin6116B differs
+from package protected-tail margin5152B; do not conflate them.
+Both containers exited0/noOOM; synchronous terminal receipts survive cleanup.
+No active project containers remained in the run's final inventory.
+
+This is structural/reproducibility success only. SAVE remains disarmed. Hardware,
+updater acceptance, installability, source-completeness/distribution and release
+remain unestablished. Overall goal ACTIVE. Pending passive cable-state answer
+still gates device recovery. Aeon only; no Hera contact or maintenance changes.
+CI39008376544 at77be1820 (same code asd4f) is queued behind older run39006742422;
+obsolete pending39008057588 was automatically cancelled, no jobs lost.
+
+Next offline work: minimal selectable-profile actual-run preflight; read-only
+current source-export gap audit; narrow validated receipt summary in private API
+and browser (separate worktree). Selector, default song, optional SET and flash
+usage already exist; public service marker stays disabled. Preserve uv.lock.
+
 ## Strict receipt replay and canonical-path actual run — 2026-10-17 UTC
 
 Aeon only (`claude@192.168.1.25`); do not contact Hera during owner RAID/M.2/25G
