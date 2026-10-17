@@ -130,7 +130,7 @@ export async function mountInstallerPage(root, {
               const lines = [
                 `Profile: ${preview.profile.profile_id ?? preview.runtimeMode} · ${preview.flashLayout}`,
                 `Modules (${preview.modules.length}): ${preview.modules.join(', ')}`,
-                `Projects in startup order: ${preview.projects.map(project => project.id).join(', ')}`,
+                `Project order: ${preview.projects.map(project => project.id).join(', ')}`,
                 `Startup project: ${startup}`,
                 `Companion SETs: ${preview.sets.length ? preview.sets.map(set => `${set.id} → ${set.parentProjectId}`).join(', ') : 'none'}`,
                 `Packed content: ${preview.packedContentBytes.toLocaleString()} bytes`,
