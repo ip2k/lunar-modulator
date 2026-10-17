@@ -225,6 +225,40 @@ def _rewrite_link_input(data, path, *, sha=None, size=None):
     data["trace_sha"] = digest(trace_path.read_bytes())
 
 
+def _add_catalogue_dependency(data, path="/catalogue/shard-00/cxx/stddef.h", *,
+                             content=b"generated catalogue header\n", expected_sha=None,
+                             expected_size=None):
+    trace_path = data["trace_path"]
+    base = trace_path.parent
+    runtime_path = collector._catalogue_alias_path(path)
+    target = base.parent / runtime_path.removeprefix("/output/")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(content)
+    compile_path = base / "catalogue/shard-00/records/compile.json"
+    receipt = json.loads(compile_path.read_text())
+    receipt["dependencies"].append({
+        "spelling": path, "resolved": path, "root_class": "catalogue-and-cxx",
+        "size": len(content) if expected_size is None else expected_size,
+        "sha256": digest(content) if expected_sha is None else expected_sha})
+    compile_raw = write_json(compile_path, receipt)
+    trace = json.loads(trace_path.read_text())
+    compile_row = trace["compile_receipts"][0]
+    compile_row["receipt_sha256"] = digest(compile_raw)
+    receipt_path = compile_row["receipt_path"]
+    manifest_path = base / "receipt-manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    for row in manifest["receipts"]:
+        if row["path"] == receipt_path:
+            row.update(sha256=digest(compile_raw), bytes=len(compile_raw))
+            break
+    else:
+        raise AssertionError("compile receipt missing from receipt manifest")
+    manifest_raw = write_json(manifest_path, manifest)
+    trace["receipt_manifest"].update(sha256=digest(manifest_raw), bytes=len(manifest_raw))
+    write_json(trace_path, trace)
+    data["trace_sha"] = digest(trace_path.read_bytes())
+
+
 def test_collects_only_consumed_pinned_header_and_retains_anchor(tmp_path, monkeypatch):
     data = fixture(tmp_path, monkeypatch)
     entries, report = collect(data)
@@ -331,7 +365,7 @@ def test_rejects_unsafe_or_unrelated_final_link_alias_paths(tmp_path, monkeypatc
     data = fixture(tmp_path, monkeypatch)
     _install_catalogue_alias_evidence(data)
     _rewrite_link_input(data, "/catalogue/../one.o")
-    with pytest.raises(ValueError, match="unsafe final-link catalogue alias"):
+    with pytest.raises(ValueError, match="unsafe catalogue alias"):
         collect(data)
 
     data = fixture(tmp_path / "other", monkeypatch)
@@ -350,6 +384,58 @@ def test_rejects_symlinked_catalogue_object_even_with_valid_mount_evidence(tmp_p
     object_path.unlink()
     object_path.symlink_to(target.name)
     with pytest.raises(ValueError, match="symlink in compiler header path"):
+        collect(data)
+
+
+def test_accepts_catalogue_dependency_alias_without_final_link_alias(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    _add_catalogue_dependency(data)
+    entries, report = collect(data)
+    assert entries["compiler-trace/aggregate.json"] == data["trace_path"].read_bytes()
+    assert any(row["resolved"] == "/catalogue/shard-00/cxx/stddef.h"
+               for row in report["dependencies_not_exported_by_compiler_header_collector"])
+
+
+def test_rejects_catalogue_dependency_alias_bytes_that_disagree(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    _add_catalogue_dependency(data, expected_sha="e" * 64)
+    with pytest.raises(ValueError, match="catalogue alias dependency bytes differ"):
+        collect(data)
+
+
+def test_rejects_catalogue_dependency_alias_without_mount_evidence(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    _add_catalogue_dependency(data)
+    trace = json.loads(data["trace_path"].read_text())
+    trace["execution"]["terminal_records"] = [
+        row for row in trace["execution"]["terminal_records"]
+        if row["path"] != "execution/terminal/highlevel.created.inspect.json"]
+    write_json(data["trace_path"], trace)
+    data["trace_sha"] = digest(data["trace_path"].read_bytes())
+    with pytest.raises(ValueError, match="does not cover every expected shard"):
+        collect(data)
+
+
+def test_rejects_unsafe_catalogue_dependency_alias_path(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    with pytest.raises(ValueError, match="unsafe catalogue alias"):
+        _add_catalogue_dependency(data, path="/catalogue/../outside.h")
+
+
+def test_rejects_symlinked_catalogue_dependency_alias(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    _add_catalogue_dependency(data)
+    target = tmp_path / "output/catalogue/shard-00/cxx/stddef-real.h"
+    alias = tmp_path / "output/catalogue/shard-00/cxx/stddef.h"
+    target.write_bytes(alias.read_bytes())
+    alias.unlink()
+    alias.symlink_to(target.name)
+    with pytest.raises(ValueError, match="symlink"):
         collect(data)
 
 
