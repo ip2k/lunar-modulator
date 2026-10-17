@@ -34,7 +34,9 @@ export function inspectNativePackage(input) {
     try {
       const envelope = inspectFwscEnvelope(bytes);
       return Object.freeze({ ...blocked('jieli-fwsc-candidate',
-        'Nested FWSC inspection is incomplete and release admission is not established', identity), envelope });
+        envelope.nestedFlashVerified
+          ? 'FWSC structure and CRC checks passed; protected-stock correspondence and release admission are not established'
+          : 'Nested FWSC inspection is incomplete and release admission is not established', identity), envelope });
     } catch (error) {
       return blocked('jieli-fwsc-candidate', `FWSC inspection incomplete: ${error.message}`, identity);
     }

@@ -139,6 +139,8 @@ test('092 D7000 synthetic structure agrees with Python model and stays non-admis
     assert.equal(report.admissible, false); assert.equal(report.releaseAccepted, false);
     assert.equal(Object.isFrozen(report.nestedInspection.records[0]), true);
     assert.equal('logicalImage' in report, false);
+    assert.match(inspectNativePackage(raw).reason, /structure and CRC checks passed/);
+    assert.equal(inspectNativePackage(raw).admissible, false);
     await assert.rejects(verifyNativePackage(raw), /release admission/);
   }
 });
