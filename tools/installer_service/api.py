@@ -347,6 +347,9 @@ def _continuous_private_build_receipt(admission: Admission, result: WorkerResult
         artifact_receipt = json.loads(evidence["artifact_receipt.json"],
                                       object_pairs_hook=_unique_object,
                                       parse_constant=_reject_constant)
+        prepared_profile = json.loads(evidence["prepared_profile.json"],
+                                      object_pairs_hook=_unique_object,
+                                      parse_constant=_reject_constant)
         catalogue = json.loads(evidence["catalogue_manifest.json"],
                                object_pairs_hook=_unique_object, parse_constant=_reject_constant)
         linked = json.loads(evidence["linked_objects.json"],
@@ -357,6 +360,31 @@ def _continuous_private_build_receipt(admission: Admission, result: WorkerResult
     if not isinstance(lower, dict):
         raise ValueError("continuous lower receipt is not an object")
     selected = [module for group in GROUPS for module in admission.request[group]]
+    expected_content = ([{"kind": "project", "id": project,
+                          "source": f"projects/{project}.lunar"}
+                         for project in admission.request["project_ids"]]
+                        + [{"kind": "set", "id": set_id,
+                            "source": f"sets/{set_id}.movy1"}
+                           for set_id in admission.request.get("set_ids", [])])
+    prepared_rows = (prepared_profile.get("content")
+                     if isinstance(prepared_profile, dict) else None)
+    measured_rows = outer_receipt.get("content")
+    if (not isinstance(prepared_rows, list) or len(prepared_rows) != len(expected_content)
+            or not isinstance(measured_rows, list) or len(measured_rows) != len(expected_content)):
+        raise ValueError("continuous prepared profile omits ordered content measurements")
+    for index, (identity, prepared_row, measured_row) in enumerate(
+            zip(expected_content, prepared_rows, measured_rows)):
+        if (not isinstance(prepared_row, dict) or not isinstance(measured_row, dict)
+                or prepared_row.get("kind") != identity["kind"]
+                or prepared_row.get("source") != identity["source"]
+                or prepared_row.get("packed") != f"content-{index:02d}.bin"
+                or type(prepared_row.get("bytes")) is not int or prepared_row["bytes"] <= 0
+                or not isinstance(prepared_row.get("packed_sha256"), str)
+                or not SHA256.fullmatch(prepared_row["packed_sha256"])
+                or measured_row.get("kind") != identity["kind"]
+                or measured_row.get("bytes") != prepared_row["bytes"]
+                or measured_row.get("packed_sha256") != prepared_row["packed_sha256"]):
+            raise ValueError("continuous content measurements differ from ordered prepared inputs")
     from .docker_worker import generated_evidence_paths
     generated = {"generated/" + path for path in generated_evidence_paths(lower)}
     if not generated.issubset(evidence):

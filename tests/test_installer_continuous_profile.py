@@ -44,11 +44,28 @@ def receipt(doc, app=b"continuous-app"):
     return value
 
 
+def prepared_profile_bytes(doc, outer):
+    identities = ([('project', project, f'projects/{project}.lunar')
+                   for project in doc['project_ids']]
+                  + [('set', set_id, f'sets/{set_id}.movy1')
+                     for set_id in doc.get('set_ids', [])])
+    rows = []
+    for index, ((kind, _identity, source), measured) in enumerate(
+            zip(identities, outer['content'])):
+        rows.append({"kind": kind, "source": source,
+                     "packed": f"content-{index:02d}.bin",
+                     "bytes": measured["bytes"],
+                     "packed_sha256": measured["packed_sha256"]})
+    return json.dumps({"content": rows, "installable": False,
+                       "hardware_tested": False},
+                      sort_keys=True, separators=(",", ":")).encode()
+
+
 def api_evidence(doc, outer, app=b"continuous-app", elf=TEST_ELF):
     """Small complete-shaped fake payload for the API boundary (adapter tests use disk evidence)."""
     from tools.installer_service.docker_worker import generated_evidence_paths
     request = canonical_request(doc)
-    prepared = b'{"prepared":true}'
+    prepared = prepared_profile_bytes(doc, outer)
     source = b'{"source":true}'
     selected = outer["module_selection"]["selected"]
     linked = [{"path": "/tmp/lunar-worker/output/build/link/" + name,
@@ -305,18 +322,18 @@ def test_selected_request_worker_retention_evidence_and_api_roundtrip(tmp_path, 
     result.mkdir()
     for rel in ("selection/prepared", "selection/staged", "link/artifact"):
         (build / rel).mkdir(parents=True)
-    prepared, source = b'{"prepared":true}', b'{"source":true}'
+    image = receipt(doc)
+    prepared, source = prepared_profile_bytes(doc, image), b'{"source":true}'
     (build / "selection/prepared/profile.json").write_bytes(prepared)
     (build / "selection/staged/profile.json").write_bytes(source)
     artifact = json.dumps({"app_sha256": hashlib.sha256(b"continuous-app").hexdigest(),
                            "elf_sha256": hashlib.sha256(TEST_ELF).hexdigest(),
-                               "app_bytes": len(b"continuous-app"),
-                               "flash_layout": "expanded-d7000",
-                               "app_budget_bytes": 860644,
-                               "layout_passed": True},
+                           "app_bytes": len(b"continuous-app"),
+                           "flash_layout": "expanded-d7000",
+                           "app_budget_bytes": 860644,
+                           "layout_passed": True},
                           sort_keys=True, separators=(",", ":")).encode()
     (build / "link/artifact/artifact.json").write_bytes(artifact)
-    image = receipt(doc)
     lower = deepcopy(image)
     lower.update(flash_write_range="empty", boot_ota_cleanup=False, hardware_candidate=False,
                  catalogue_source_freshness_verified=True)
