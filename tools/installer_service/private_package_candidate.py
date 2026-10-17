@@ -61,7 +61,8 @@ def _read_regular(path: Path, limit: int, *, root: Path | None = None) -> bytes:
             parent = parent / part
             if parent.is_symlink() or not parent.is_dir():
                 raise ValueError("trusted build input parent is missing or unsafe")
-    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+                         | getattr(os, "O_NONBLOCK", 0))
     with os.fdopen(descriptor, "rb") as stream:
         info = os.fstat(stream.fileno())
         if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= limit:
@@ -173,21 +174,23 @@ def _validate_preview(request_raw: bytes, request: dict, service_result: WorkerR
     return summary
 
 
-def _load_trusted_package_inputs(trusted_output: Path, catalogue_root: Path):
+def _load_trusted_package_inputs(trusted_output: Path, catalogue_root: Path,
+                                 expected_source_commit: str):
     build = trusted_output / "build"
     tuple_raw = _read_regular(build / "build_tuple.json", MAX_JSON_BYTES, root=build)
     capture = _json(_read_regular(build / "tuple-capture.json", 65536, root=build), "tuple capture")
     tuple_value = _json(tuple_raw, "build tuple")
     tuple_sha = sha256(tuple_raw)
     if (capture.get("tuple_sha256") != tuple_sha
-            or capture.get("source_commit") != tuple_value.get("source_commit")
             or any(capture.get(key) is not False for key in
                    ("hardware_admitted", "hardware_tested", "installable"))):
         raise ValueError("trusted wrapper capture does not bind its tuple or acceptance flags")
 
     provenance_raw = _read_regular(build / "build-provenance.json", MAX_JSON_BYTES, root=build)
     provenance = _json(provenance_raw, "trusted build provenance")
-    if (capture.get("schema") != 1 or type(capture.get("schema")) is not int
+    if (type(capture.get("schema")) is not int or capture.get("schema") != 1
+            or capture.get("source_commit") != expected_source_commit
+            or provenance.get("source_commit") != expected_source_commit
             or capture.get("provenance_sha256") != sha256(provenance_raw)
             or capture.get("catalogue_sha256") != tuple_value.get("catalogue_sha256")
             or capture.get("source_tree_sha256") != tuple_value.get("source_tree_sha256")):
@@ -309,7 +312,8 @@ def compose_private_candidate(*, request_raw: bytes, service_result: WorkerResul
     trusted_output = private_run_dir / "trusted-build"
     _run_trusted_wrapper(source_root, request_path, toolchain_root, catalogue_root, trusted_output)
 
-    package_values = _load_trusted_package_inputs(trusted_output, catalogue_root)
+    package_values = _load_trusted_package_inputs(trusted_output, catalogue_root,
+                                                   expected_source_commit)
     capture = package_values.pop("_tuple_capture")
     build_dir = package_values.pop("_build_dir")
     capture_request = package_values["request"]
