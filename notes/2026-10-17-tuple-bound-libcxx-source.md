@@ -237,3 +237,48 @@ or source-completeness determination. Shared handoff
 private comparison manifest SHA256
 `15875b688e45ba66847d6d12fefc8fe6e3a2215ee1fbc11f133638fc8ac062f6`.
 All distribution, admission and source-completeness flags remain false.
+
+## Linker-recorder prerequisite
+
+[verified: coordinator independent hash check] The retained link input manifest
+`linker-smoke-inputs.json` SHA256
+`fb7b5942115bb4b0711a1b951f65daee2f390cacd5ba37c7a0c57d93371f92fa`
+contains 281 distinct object paths, totalling 3,438,920 bytes (161 catalogue and
+120 application/runtime objects). Every object hash/size matches. Linker, LTO
+plugin, generated script and retained ELF also match their recorded hashes.
+The generated script has no INCLUDE, INPUT, GROUP, SEARCH_DIR or STARTUP
+directives after comment stripping. The smoke command is reconstructed from
+the archived recipe and retained configuration, not original historical argv.
+
+A private linker recorder is reviewed and its 11 synthetic tests independently
+pass. It pins immutable ld/plugin/script, restricts argv/input/output roots,
+uses bounded no-follow regular-file hashing and unique atomic receipts, and
+records rejected preflight invocations when a trusted receipt directory exists.
+Missing receipt environment variables fail; FIFO reads do not block. Child
+stdout/stderr and exit status are preserved; nonzero exit or missing outputs
+keeps trace_complete false. Prototype SHA256
+`cf46e915844254bbfa6e7aae910be2bb5aa5092c98d43ff9e0d596d7cc8c4ebe`;
+private local handoff SHA256
+`b0e230cf12ad9f41173245dd1d0ed07cd6a12dbf20b34a0bf3b63696b2b509af`.
+This is an ignored experimental recorder, not released infrastructure. Real
+direct/facade link comparison is separately required before full tracing.
+
+[verified: coordinator read final receipt and container inspections] The direct
+and facade linker smoke both exited0. Facade receipt SHA256
+`ccd82ae94ad0e22dfaea9aaefb24efdec4c069b0f00752bca03f505c6f7e8dd9`
+contains349argv entries and284hashed inputs (281objects plus ld/plugin/script).
+Its trace_complete is true; the987308-byte ELF SHA256 is
+`fed2d7e47ff1120a4d5c15acdb57f21cfe6144e71dd6bf689408943dbd0e6c3b`,
+matching the retained ELF. The407529-byte map SHA256 is
+`7cbc06bfb8c7867df6aa645b435a8d8e54e2fa9c4dde7f72af7af9b4088f3b8d`.
+Both inspected containers used docker-batch.slice,2CPU,3GiB memory/6GiB total
+memory+swap,512pids,networknone,CapDropALL and no-new-privileges. They are
+terminal and removed after inspection. Initial runner mount/argument errors
+were pre-execution setup failures, not passing facade evidence.
+
+Full fresh target compile/link tracing is now authorized on Aeon with both
+reviewed facades and a new output tree. The previously rebuilt pinned host
+state codec may be reused with that limitation explicit; it does not become
+new host-compiler dependency coverage. No full trace result is yet claimed.
+Shared linker-smoke handoff SHA256
+`449d854152ce70906b06e2ab0eb1142255f0f24fc9efcb377acb014d6e0a0cf6`.

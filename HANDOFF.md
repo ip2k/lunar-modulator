@@ -8403,3 +8403,16 @@ root hubs, no FM1. Raw private evidence saved at
 `scratch/aeon-routing-resume-20261017/passive-0351utc.json`. No gateware load,
 key generation, device reboot or flash operation occurred. Existing physical
 monitor-connection question remains pending; hardware recovery/audio unaccepted.
+
+### Full target trace cleared after linker smoke
+
+[verified] Root reran11private linker-recorder tests and independently read the
+final real-link receipt:349arguments,284hashed inputs including281objects,
+exit0, ELF byte-identical to retainedfed2d7e. Detailed evidence and limits are
+in notes/2026-10-17-tuple-bound-libcxx-source.md. Full fresh target catalogue/
+application compile+link tracing is assigned on Aeon .25 only; hostcodec reuse
+is explicitly outside new host-compile coverage. No full trace completion,
+source-completeness, distribution or hardware acceptance is claimed.
+CI38998982780 sanitizer job passed; macOS/Ubuntu fullpytest still live at this
+checkpoint with no reported failures. Existing physicalconnection question
+remains pending.
