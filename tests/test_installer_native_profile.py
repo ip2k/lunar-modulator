@@ -154,7 +154,7 @@ def test_private_evidence_reader_requires_profile_digest_bound_to_receipt(tmp_pa
         path = catalogue_root / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(content)
-        catalogue_rows.append({"path": "/input/catalogue/" + relative.as_posix(),
+        catalogue_rows.append({"path": "/catalogue/" + relative.as_posix(),
                                "sha256": sha256(content), "optimization": optimization})
     receipt["module_selection"] = {"selected": ["macro", "shapes", "sixop", "drums", "hall"]}
     receipt["catalogue_objects"] = catalogue_rows
@@ -178,11 +178,11 @@ def test_private_evidence_reader_requires_profile_digest_bound_to_receipt(tmp_pa
             {"schema": 1, "objects": receipt["linked_objects"]}, sort_keys=True,
             separators=(",", ":")).encode(),
     }
-    contents.update({"catalogue/" + Path(row["path"]).relative_to("/input/catalogue").as_posix():
-                     (catalogue_root / Path(row["path"]).relative_to("/input/catalogue")).read_bytes()
+    contents.update({"catalogue/" + Path(row["path"]).relative_to("/catalogue").as_posix():
+                     (catalogue_root / Path(row["path"]).relative_to("/catalogue")).read_bytes()
                      for row in catalogue_rows})
-    contents.update({"linked/catalogue/" + Path(row["path"]).relative_to("/input/catalogue").as_posix():
-                     (catalogue_root / Path(row["path"]).relative_to("/input/catalogue")).read_bytes()
+    contents.update({"linked/catalogue/" + Path(row["path"]).relative_to("/catalogue").as_posix():
+                     (catalogue_root / Path(row["path"]).relative_to("/catalogue")).read_bytes()
                      for row in catalogue_rows})
     contents.update({"generated/" + rel: ("generated:" + rel).encode()
                      for rel in GENERATED_EVIDENCE_PATHS})

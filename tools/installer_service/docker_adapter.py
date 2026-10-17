@@ -33,8 +33,24 @@ _BUILD_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 _IMAGE_ID = "sha256:bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495"
 _MAX_PRIVATE_EVIDENCE_FILE = 128 * 1024 * 1024
 _MAX_PRIVATE_EVIDENCE_TOTAL = 512 * 1024 * 1024
-_CATALOGUE_MOUNT = "/input/catalogue/"
-_BUILD_LINK_MOUNT = "/tmp/lunar-worker/output/build/link/"
+_CATALOGUE_MOUNT = "/catalogue/"
+_BUILD_LINK_MOUNT = "/output/build/link/"
+
+
+def _scratch_tmpfs(budget: int, uid: int, gid: int) -> list[str]:
+    """Partition one configured budget across canonical paths, in Linux pages."""
+    # Floor the total before partitioning: Docker rounds each tmpfs size to a
+    # page, so arbitrary byte sizes must not silently exceed the combined cap.
+    pages = budget // 4096
+    workspace_pages = pages // 8
+    output_pages = 3 * pages // 8
+    tmp_pages = pages - workspace_pages - output_pages
+    private = f",mode=0700,uid={uid},gid={gid}"
+    return [
+        "/tmp:rw,nosuid,nodev,exec,size=" + str(tmp_pages * 4096),
+        "/workspace:rw,nosuid,nodev,exec,size=" + str(workspace_pages * 4096) + private,
+        "/output:rw,nosuid,nodev,exec,size=" + str(output_pages * 4096) + private,
+    ]
 
 
 def _canonical_relative(raw: str) -> PurePosixPath:
@@ -300,7 +316,8 @@ class DockerWorkerConfig:
             raise ValueError("invalid log cap")
         if not 1 <= self.max_artifact_bytes <= MAX_ARTIFACT_BYTES:
             raise ValueError("artifact cap exceeds service limit")
-        if not 128 * 1024 * 1024 <= self.scratch_bytes <= 4 * 1024 * 1024 * 1024:
+        if (type(self.scratch_bytes) is not int
+                or not 128 * 1024 * 1024 <= self.scratch_bytes <= 4 * 1024 * 1024 * 1024):
             raise ValueError("scratch cap exceeds configured bounds")
 
 
@@ -426,12 +443,13 @@ class DockerJobAdapter:
             "--memory=" + cfg.memory_limit, "--memory-swap=" + cfg.memory_limit,
             "--pids-limit=512", "--read-only", "--cap-drop=ALL",
             "--security-opt=no-new-privileges",
-            "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=" + str(cfg.scratch_bytes),
+            *[item for mount in _scratch_tmpfs(cfg.scratch_bytes, cfg.worker_uid, cfg.worker_gid)
+              for item in ("--tmpfs", mount)],
             "--user", f"{cfg.worker_uid}:{cfg.worker_gid}",
             "--mount", "type=bind,src=" + str(base / "input" / "source.tar") + ",dst=/input/source.tar,readonly",
             "--mount", "type=bind,src=" + str(base / "input" / "docker_worker.py") + ",dst=/input/docker_worker.py,readonly",
             "--mount", "type=bind,src=" + str(cfg.toolchain_root) + ",dst=/opt/pi32v2,readonly",
-            "--mount", "type=bind,src=" + str(cfg.catalogue_root) + ",dst=/input/catalogue,readonly",
+            "--mount", "type=bind,src=" + str(cfg.catalogue_root) + ",dst=/catalogue,readonly",
             "--mount", "type=bind,src=" + str(base / "input" / "request.json") + ",dst=/input/request.json,readonly",
             "--mount", "type=bind,src=" + str(base / "result") + ",dst=/result",
             cfg.image_reference, "python3", "/input/docker_worker.py",
