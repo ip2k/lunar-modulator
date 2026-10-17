@@ -21,8 +21,11 @@ FM1-to-TARGET-A verified cable, CONTROL-to-Mac, TARGET-C empty] Monitor valid,
 status0x105, fault0, advancing sequence, controls1. TARGET-A reads5.050781–5.061035V
 and0uA. These do not establish FM1 CPU power or recovery. Raw saved evidence:
 scratch/aeon-routing-resume-20261017/owner-connected-passive.jsonl.
-Owner asked to move FM1 switch once and report screen/light changes, with cabling
-unchanged and no USER press. No FPGA reconfiguration, recovery key or flash command.
+Owner moved switch LEFT to RIGHT: charging light stayed red and screen stayed blank.
+Three further valid passive sweeps read5.042969–5.051270V and0uA, fault0, sequence
+advancing. Raw: scratch/aeon-routing-resume-20261017/owner-switch-right-passive.jsonl.
+Sensing topology review is active before drawing CPU/load conclusions. No FPGA
+reconfiguration, recovery key or flash command.
 Aeon only; Hera untouched. Current code38e02719 CI pending;8e CI still running at
 last query. Goal ACTIVE; physical recovery/audio acceptance remain unresolved.
 
