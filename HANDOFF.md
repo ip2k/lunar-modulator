@@ -1,3 +1,39 @@
+## Trio pipeline verified; receipt preview integrated — 2026-10-17 UTC
+
+Aeon only (`claude@192.168.1.25`). No Hera access during owner maintenance.
+Overall firmware goal ACTIVE; hardware recovery/audio and release gates unresolved.
+
+[verified: coordinator independently rehashed all724 summary rows, compared raw
+app/ELF bytes, parsed FWSC header/table/all8 payload CRCs, and checked retained
+terminal/resource receipts] The actual minimal Trio service → trusted builder →
+private-package pipeline passed on exact source d4f79b6344751578ec33db11e751678143e9e92b.
+Run: /home/claude/mvave-fm1/private-adapter-trio-preflight-d4f79b63-20261017.
+Summary SHA c8753168ee39a817e9bef37799592cfd81beb8f1f5f8b98f652ea666d5a052d0.
+Root proof: scratch/aeon-routing-resume-20261017/d4f-trio-pipeline-root-verification.json.
+Trio-only init patch, no sequence/full-song acceptance, no SET or wavetable banks.
+App308548B SHA0447476179fe08aeb4f4a37ab93a5e0822bfe1ea2646275315bc04af37b9ca99;
+ELF368792B SHA632412c6637b27db0edc4489e112cc2ab2b2cbcc649712f35a1f4b5f95e3e4b5.
+Private FWSC SHA632c0699fcd172d467955cc156a304add866b8d5629e0f42d1365dd755738c4e.
+Both containers exited0/noOOM, removed after terminal evidence capture; claim released.
+The all55 Event Horizon pipeline below remains separately verified at the same d4f source.
+
+[verified: reviewed delegate diffs and coordinator rerun] Receipt preview integrated
+at26b62bf86d2e3ff600d2e524fe8e83ce6ce6ccc2 (GitHub remote SHA verified).
+Service exposes bounded validated profile, selections, packed content hashes/bytes,
+app budget and provenance; browser binds identities to request and clears stale
+measurements after edits. Long hashes wrap; ordered rows ignore JSON key order.
+36 Node tests passed; seven Python suites276passed/1optional skip, existing httpx warning.
+No installability/admission/marker changes. Chrome visual review is pending in a
+separate delegate; a local installed Chrome and bundled runtime were located.
+
+Next: review forward-only generated-link-source capture/export implementation,
+then fresh CI at a coherent integrated code checkpoint. Current CI39006742422
+at9b still has2full-Python jobs running;13others succeeded. Pending39008376544
+at77be is older than the UI changes. Do not call either current-HEAD green.
+SAVE remains disarmed; public service/download/deployment disabled. Existing
+passive cable-state question is unanswered; do not assume connection or repeat it.
+Preserve untracked uv.lock. Lower dated entries are historical checkpoints.
+
 ## Actual service-to-private-package success on Aeon — 2026-10-17 UTC
 
 [verified: actual samecommitd4f run, coordinator app/ELF byte comparison,
