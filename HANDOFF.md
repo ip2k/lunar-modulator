@@ -1,3 +1,25 @@
+## Real retained receipt-preview replay PASS — 2026-10-17 UTC
+
+[verified: coordinator reviewed/pinned replay script and preflight; approved
+read-only replay passed; coordinator independently fetched/hashed/reviewed result]
+New API validator26b62bf86d2e3ff600d2e524fe8e83ce6ce6ccc2 accepts BOTH actual d4f
+service outputs and returns exact bounded receipt previews. All55 Event Horizon:
+55modules, startupEH, companionSET parentEH, packed6232B, app854528B/margin6116B.
+Trio:1module, init-starter-trio startup, noSET, packed541B, app308548B/margin552096B.
+Packed hashes, profile/provenance identities and application measurements match.
+The reviewed replay checked all1434 retained artifact rows before/after; original
+provenance and receipts are unchanged. This is not a fresh target build.
+Result SHA628e5030e88496da6b0b7e85bc4db4bf18d0d5ca2aa1ccffed647f2f1725c74c.
+Run /home/claude/mvave-fm1/private-receipt-preview-replay-26b62bf8-20261017.
+Local root review: scratch/aeon-routing-resume-20261017/receipt-preview-replay-root-review.json.
+Shared handoff: handoffs/lunar--receipt-preview-replay-26b62bf8-20261017.md.
+Claim released, no own processes/containers. Hardware/installable/release false.
+
+Current build/code base remains8e086a36; subsequent HEAD updates are documentation.
+Only active worker is preparing review-only fresh8e generated-source pipeline
+preflight on Aeon. No target launch yet; approval requires exact reviewed hashes.
+No Hera or device actions. Overall goal ACTIVE; pending physical recovery/audio.
+
 ## Generated source inventory integrated; Chrome review passed — 2026-10-17 UTC
 
 Current code checkpoint8e086a365e98167272172bbdbd803b5de53972d7 is pushed and
