@@ -41,7 +41,8 @@ def _fixture(tmp_path):
     provenance_raw=json.dumps({"source_commit":commit,"source_tree_sha256":_sha(manifest_raw)}).encode()
     provenance=tmp_path/"provenance.json"; provenance.write_bytes(provenance_raw)
     tuple_raw=json.dumps({"schema":2,"source_tree_sha256":_sha(manifest_raw),"build_provenance_sha256":_sha(provenance_raw),
-      "hardware_admitted":False,"hardware_tested":False,"installable":False,"profile_id":"test"}).encode()
+      "hardware_admitted":False,"hardware_tested":False,"installable":False,"profile_id":"test",
+      "toolchain_image_sha256":"a"*64,"toolchain_tree_sha256":"b"*64}).encode()
     tuple_path=tmp_path/"tuple.json"; tuple_path.write_bytes(tuple_raw)
     return src,tuple_path,provenance,manifest,_sha(tuple_raw)
 
@@ -113,6 +114,16 @@ def test_bundle_deterministic_and_explicitly_incomplete(tmp_path):
         names=archive.getnames()
     assert "engines/main.c" in names and "LICENSE" in names
     assert "photos/bench.jpg" not in names and "app.bin" not in names
+    with tarfile.open(fileobj=gzip.GzipFile(fileobj=a.open("rb")),mode="r:") as archive:
+        building=archive.extractfile("BUILDING.txt").read().decode()
+        completeness=archive.extractfile("SOURCE-COMPLETENESS.txt").read().decode()
+    assert "make -C engines BUILD=build/source-bundle-host" in building
+    assert "FM1_GPL_MODS=1 FM1_MODULES=all OPT=-O2 EXTRA= CC=cc CXX=g++ -j4" in building
+    assert "host C/C++ compilers" in building and "pi32v2 target compiler/toolchain" in building
+    assert f"Toolchain image SHA-256: {'a'*64}" in building
+    assert f"Toolchain tree SHA-256: {'b'*64} (not included)" in building
+    assert "corresponding_source_complete=false" in completeness
+    assert "distribution_eligible=false" in completeness
 
 def test_archive_retains_build_notice_and_regeneration_inputs(tmp_path):
     src,tup,prov,manifest,anchor=_fixture(tmp_path)
