@@ -271,7 +271,7 @@ test('forwards only bounded unique SET identifiers in the optional request field
 
 const continuousRequest = { ...request, engines: ['trio'], flash_layout: 'expanded-d7000', runtime_mode: 'continuous' };
 function continuousSnapshot() {
-  return { id, status: 'succeeded', kind: 'private-continuous-build', result: {
+  const result = {
     status: 'linked-private-continuous', artifact_sha256: sha, artifact_bytes: 800000,
     app_budget_bytes: 860644, remaining_bytes: 60644, installable: false, hardware_tested: false,
     hardware_admitted: false, native_ram_verified: false, native_playback_verified: false,
@@ -283,7 +283,21 @@ function continuousSnapshot() {
         flash_layout: 'expanded-d7000', runtime_mode: 'continuous', shapes_voices: 8 },
       output_bindings: { artifact_sha256: sha, artifact_bytes: 800000 },
     },
-  } };
+  };
+  result.receipt_preview = {
+    flash_layout: 'expanded-d7000', runtime_mode: 'continuous',
+    profile: { ...result.provenance.profile },
+    modules: ['trio'],
+    projects: [{ id: 'event-horizon', startup: true }, { id: 'afterglow-relay', startup: false }],
+    sets: [],
+    packed_content: { bytes: 256, assets: [
+      { kind: 'project', id: 'event-horizon', bytes: 128, sha256: 'd'.repeat(64) },
+      { kind: 'project', id: 'afterglow-relay', bytes: 128, sha256: 'e'.repeat(64) },
+    ] },
+    application: { sha256: sha, bytes: 800000, budget_bytes: 860644, remaining_bytes: 60644 },
+    provenance: { kind: result.provenance.kind, sha256: result.provenance.sha256 },
+  };
+  return { id, status: 'succeeded', kind: 'private-continuous-build', result };
 }
 function continuousClient(snapshot, onPost = () => {}) {
   return createInstallerBuildClient({ origin: 'https://lunar.test', pollIntervalMs: 100, fetchImpl: async (_url, options) => {
@@ -303,6 +317,27 @@ test('explicit continuous custom subset keeps exact request and measured flash s
   assert.equal(result.appBudgetBytes, 860644);
   assert.equal(result.remainingBytes, 60644);
   assert.equal(result.installable, false);
+  assert.equal(result.receiptPreview.packedContentBytes, 256);
+  assert.equal(result.receiptPreview.projects[0].id, 'event-horizon');
+  assert.equal(result.receiptPreview.application.sha256, sha);
+});
+
+test('receipt preview binds companion SET identity and parent to the requested startup project', async () => {
+  const requestWithSet = { ...continuousRequest, set_ids: ['event-horizon-set'] };
+  const snapshot = continuousSnapshot();
+  const preview = snapshot.result.receipt_preview;
+  preview.sets = [{ id: 'event-horizon-set', parent_project_id: 'event-horizon' }];
+  preview.packed_content.bytes += 64;
+  preview.packed_content.assets.push({ kind: 'set', id: 'event-horizon-set',
+    parent_project_id: 'event-horizon', bytes: 64, sha256: 'f'.repeat(64) });
+  const result = await continuousClient(snapshot).build(requestWithSet);
+  assert.deepEqual(result.receiptPreview.sets, [
+    { id: 'event-horizon-set', parentProjectId: 'event-horizon' },
+  ]);
+
+  const tampered = structuredClone(snapshot);
+  tampered.result.receipt_preview.sets[0].parent_project_id = 'afterglow-relay';
+  await assert.rejects(continuousClient(tampered).build(requestWithSet), /receipt preview identities/);
 });
 
 test('continuous client refuses profile, provenance, admission and measured size tampering', async () => {
@@ -324,10 +359,13 @@ test('continuous client refuses profile, provenance, admission and measured size
     s => { s.result.provenance.profile.runtime_mode = 'song-diagnostic'; },
     s => { s.result.provenance.output_bindings.artifact_sha256 = 'f'.repeat(64); },
     s => { s.result.provenance.output_bindings.artifact_bytes--; },
+    s => { s.result.receipt_preview.projects[0].id = 'unrequested'; },
+    s => { s.result.receipt_preview.packed_content.assets[0].sha256 = 'bad'; },
+    s => { s.result.receipt_preview.application.remaining_bytes--; },
   ];
   for (const mutate of mutations) {
     const snapshot = continuousSnapshot();
     mutate(snapshot);
-    await assert.rejects(continuousClient(snapshot).build(continuousRequest), /invalid job status|receipt checks/);
+    await assert.rejects(continuousClient(snapshot).build(continuousRequest), /invalid job status|receipt checks|receipt preview/);
   }
 });

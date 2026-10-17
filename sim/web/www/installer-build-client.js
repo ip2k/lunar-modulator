@@ -147,6 +147,119 @@ function validateSubmission(body, origin) {
   });
 }
 
+function sameJson(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function exactKeys(value, keys) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    && sameJson(Object.keys(value).sort(), [...keys].sort());
+}
+
+function validateReceiptPreview(preview, result, request) {
+  if (preview === undefined) return null; // Older private service deployments remain readable.
+  const keys = ['flash_layout', 'runtime_mode', 'profile', 'modules', 'projects',
+    'sets', 'packed_content', 'application', 'provenance'];
+  if (!exactKeys(preview, keys)) {
+    fail('The build receipt preview is malformed.');
+  }
+  const flashLayout = request.flash_layout ?? 'expanded-d9000';
+  const runtimeMode = request.runtime_mode ?? 'diagnostic';
+  if (preview.flash_layout !== flashLayout || preview.runtime_mode !== runtimeMode) {
+    fail('The build receipt preview profile differs from the request.');
+  }
+  const profile = preview.profile;
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)
+      || profile.flash_layout !== flashLayout || profile.runtime_mode !== runtimeMode) {
+    fail('The build receipt preview profile is malformed.');
+  }
+  const profileKeys = Object.keys(profile).sort();
+  const expectedProfileKeys = runtimeMode === 'continuous'
+    ? ['flash_layout', 'profile_id', 'profile_sha256', 'runtime_mode', 'shapes_voices']
+    : flashLayout === 'expanded-d7000'
+      ? ['flash_layout', 'profile_id', 'runtime_mode', 'shapes_voices', 'tuple_schema']
+      : ['flash_layout', 'runtime_mode', 'shapes_voices'];
+  if (!sameJson(profileKeys, expectedProfileKeys)) fail('The build receipt preview profile has unexpected fields.');
+  if ((runtimeMode === 'continuous'
+        && (profile.profile_id !== CONTINUOUS_BUILD_PROFILE.profileId
+          || profile.profile_sha256 !== CONTINUOUS_BUILD_PROFILE.profileSha256
+          || profile.shapes_voices !== 8))
+      || (flashLayout === 'expanded-d7000' && runtimeMode !== 'continuous'
+        && (profile.profile_id !== 'fm1-092-d7000' || profile.tuple_schema !== 2
+          || profile.shapes_voices !== 8))
+      || (flashLayout === 'expanded-d9000' && profile.shapes_voices !== 12)) {
+    fail('The build receipt preview does not identify a supported verified profile.');
+  }
+  const modules = ['engines', 'effects', 'midi', 'modulation'].flatMap(group => request[group]);
+  const projects = request.project_ids.map((id, index) => ({ id, startup: index === request.startup_index }));
+  const sets = (request.set_ids ?? []).map(id => ({
+    id, parent_project_id: request.project_ids[request.startup_index],
+  }));
+  if (!sameJson(preview.modules, modules) || !sameJson(preview.projects, projects)
+      || !sameJson(preview.sets, sets)) {
+    fail('The build receipt preview identities differ from the request.');
+  }
+  const packed = preview.packed_content;
+  const expectedAssets = [...request.project_ids.map(id => ({ kind: 'project', id })),
+    ...(request.set_ids ?? []).map(id => ({ kind: 'set', id,
+      parent_project_id: request.project_ids[request.startup_index] }))];
+  if (!packed || typeof packed !== 'object' || Array.isArray(packed)
+      || !exactKeys(packed, ['bytes', 'assets'])
+      || !Number.isSafeInteger(packed.bytes) || packed.bytes < 0
+      || !Array.isArray(packed.assets) || packed.assets.length !== expectedAssets.length) {
+    fail('The build receipt preview content is malformed.');
+  }
+  let packedBytes = 0;
+  const assets = packed.assets.map((asset, index) => {
+    const identity = expectedAssets[index];
+    if (!asset || typeof asset !== 'object' || Array.isArray(asset)
+        || !exactKeys(asset, identity.kind === 'set'
+          ? ['kind', 'id', 'parent_project_id', 'bytes', 'sha256']
+          : ['kind', 'id', 'bytes', 'sha256'])
+        || asset.kind !== identity.kind || asset.id !== identity.id
+        || (identity.kind === 'set' && asset.parent_project_id !== identity.parent_project_id)
+        || (identity.kind === 'project' && Object.hasOwn(asset, 'parent_project_id'))
+        || !Number.isSafeInteger(asset.bytes) || asset.bytes < 1 || asset.bytes > MAX_ARTIFACT_BYTES
+        || typeof asset.sha256 !== 'string' || !SHA256.test(asset.sha256)) {
+      fail('The build receipt preview content differs from the selected projects or SETs.');
+    }
+    packedBytes += asset.bytes;
+    if (!Number.isSafeInteger(packedBytes) || packedBytes > MAX_ARTIFACT_BYTES) {
+      fail('The build receipt preview content exceeds the supported bound.');
+    }
+    return Object.freeze({ kind: asset.kind, id: asset.id,
+      ...(identity.kind === 'set' ? { parentProjectId: identity.parent_project_id } : {}),
+      bytes: asset.bytes, sha256: asset.sha256 });
+  });
+  if (packed.bytes !== packedBytes) fail('The build receipt preview content total is inconsistent.');
+  const application = preview.application;
+  if (!application || typeof application !== 'object' || Array.isArray(application)
+      || !exactKeys(application, ['sha256', 'bytes', 'budget_bytes', 'remaining_bytes'])
+      || application.sha256 !== result.artifact_sha256
+      || application.bytes !== result.artifact_bytes
+      || application.budget_bytes !== result.app_budget_bytes
+      || application.remaining_bytes !== result.remaining_bytes) {
+    fail('The build receipt preview application does not match the verified build.');
+  }
+  const provenance = preview.provenance;
+  if (!provenance || typeof provenance !== 'object' || Array.isArray(provenance)
+      || !exactKeys(provenance, ['kind', 'sha256'])
+      || typeof provenance.kind !== 'string' || provenance.kind.length > 80
+      || typeof provenance.sha256 !== 'string' || !SHA256.test(provenance.sha256)
+      || provenance.kind !== result.provenance?.kind
+      || provenance.sha256 !== result.provenance?.sha256) {
+    fail('The build receipt preview provenance is malformed.');
+  }
+  return Object.freeze({ flashLayout, runtimeMode, profile: Object.freeze({ ...profile }),
+    modules: Object.freeze([...modules]), projects: Object.freeze(projects.map(Object.freeze)),
+    sets: Object.freeze(sets.map(set => Object.freeze({ id: set.id, parentProjectId: set.parent_project_id }))),
+    packedContentBytes: packed.bytes,
+    assets: Object.freeze(assets), application: Object.freeze({
+      sha256: application.sha256, bytes: application.bytes, budgetBytes: application.budget_bytes,
+      remainingBytes: application.remaining_bytes,
+    }), provenance: Object.freeze({ kind: provenance.kind, sha256: provenance.sha256 }) });
+}
+
 function validateSnapshot(body, id, request) {
   const continuous = request.runtime_mode === 'continuous';
   const kind = continuous ? 'private-continuous-build' : 'private-diagnostic-build';
@@ -188,12 +301,14 @@ function validateSnapshot(body, id, request) {
       fail('The continuous private link result did not pass receipt checks.');
     }
   }
+  const receiptPreview = validateReceiptPreview(result.receipt_preview, result, request);
   return Object.freeze({
     status: 'succeeded',
     artifactSha256: result.artifact_sha256,
     artifactBytes: result.artifact_bytes,
     appBudgetBytes: result.app_budget_bytes,
     remainingBytes: result.remaining_bytes,
+    ...(receiptPreview ? { receiptPreview } : {}),
     installable: false,
     hardwareTested: false,
   });

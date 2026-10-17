@@ -439,6 +439,19 @@ def test_success_verifies_exact_request_and_app_bytes():
     assert result["remaining_bytes"] == result["app_budget_bytes"] - len(b"diagnostic-app")
     assert result["installable"] is False
     assert result["hardware_tested"] is False
+    preview = result["receipt_preview"]
+    assert preview["modules"] == [m for group in ("engines", "effects", "midi", "modulation")
+                                  for m in request_doc()[group]]
+    assert preview["projects"] == [
+        {"id": "song-one", "startup": False}, {"id": "song-two", "startup": True}]
+    assert preview["sets"] == []
+    assert preview["packed_content"]["bytes"] == 256
+    assert [asset["sha256"] for asset in preview["packed_content"]["assets"]] == ["2" * 64] * 2
+    assert preview["application"] == {
+        "sha256": result["artifact_sha256"], "bytes": result["artifact_bytes"],
+        "budget_bytes": result["app_budget_bytes"], "remaining_bytes": result["remaining_bytes"]}
+    assert preview["provenance"]["sha256"] == result["provenance"]["sha256"]
+    assert "source_path" not in json.dumps(preview)
     assert "private_evidence" not in result
     assert b"secret evidence" not in response.content
 
@@ -658,7 +671,15 @@ def test_companion_set_requires_trusted_parent_startup_and_receipt_binding():
     doc["set_ids"] = ["companion-one"]
     accepted = accept_and_succeed(c, adapter, doc=doc)
     assert accepted.status_code == 202
-    assert c.get(accepted.json()["status_url"]).status_code == 200
+    response = c.get(accepted.json()["status_url"])
+    assert response.status_code == 200
+    preview = response.json()["result"]["receipt_preview"]
+    assert preview["projects"] == [
+        {"id": "song-one", "startup": True}, {"id": "song-two", "startup": False}]
+    assert preview["sets"] == [{"id": "companion-one", "parent_project_id": "song-one"}]
+    assert preview["packed_content"]["assets"][-1] == {
+        "kind": "set", "id": "companion-one", "parent_project_id": "song-one",
+        "bytes": 64, "sha256": "3" * 64}
     assert adapter.submissions[accepted.json()["id"]][0] == canonical_request(doc)
 
     c2, adapter2 = client(set_parents=SETS)
