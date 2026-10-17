@@ -299,3 +299,22 @@ def test_records_cpu_rate_frame_as_passive_schema8_event(tmp_path):
     assert receipt["cpu_rate_frame_count"] == 1
     assert receipt["midi_output_opened"] is False
     assert (out / "raw.syx").read_bytes() == frame
+
+
+def test_records_schema9_resampler_stage_frame(tmp_path):
+    from tools.native.diagnostic_telemetry import RESAMPLER_STAGE_FIELDS, RESAMPLER_STAGE_PREFIX
+    values = dict.fromkeys(RESAMPLER_STAGE_FIELDS, 0)
+    values.update(sample_stride=32, drums_sampled_outputs=2)
+    frame = bytearray(RESAMPLER_STAGE_PREFIX)
+    for value in values.values():
+        frame.extend((value >> shift) & 127 for shift in (0, 7, 14, 21, 28))
+    frame.append(0xf7)
+    clock = FakeClock()
+    out = tmp_path / 'resampler-stage'
+    receipt = recorder.record('FM-1 MIDI', IMAGE_SHA, out, 0.05,
+        mido_module=FakeMido([SimpleNamespace(type='sysex', data=bytes(frame[1:-1]))]),
+        monotonic=clock.monotonic, wall_time=clock.wall_time, sleep=clock.sleep)
+    row = json.loads((out/'events.jsonl').read_text().splitlines()[0])
+    assert row['schema'] == 9 and row['event'] == 'resampler_stage_frame'
+    assert row['values'] == values and receipt['resampler_stage_frame_count'] == 1
+    assert not receipt['midi_output_opened']

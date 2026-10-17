@@ -23,8 +23,12 @@
 #error "Engine render profiling requires telemetry and render-stage profiling"
 #endif
 #if defined(LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE) && \
-    (defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE) || defined(LUNAR_DIAGNOSTIC_PRODUCER_GAPS))
+    ((defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE) && !defined(LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE)) || defined(LUNAR_DIAGNOSTIC_PRODUCER_GAPS))
 #error "Engine render profile has a dedicated telemetry cadence"
+#endif
+#if defined(LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE) && \
+    (!defined(LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE) || !defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE) || defined(LUNAR_DIAGNOSTIC_CPU_RATE))
+#error "Resampler stage profiling requires engine and IRQ profiles and excludes CPU-rate calibration"
 #endif
 #include <stdint.h>
 #include <string.h>
@@ -60,6 +64,33 @@ static void lunar_cpu_rate_calibrate(void);
 #endif
 #ifdef LUNAR_DIAGNOSTIC_TELEMETRY
 #include "diagnostic_telemetry.h"
+#ifdef LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE
+#include "engine_render_profile.h"
+static uint32_t resampler_stage_values[LUNAR_RESAMPLER_STAGE_FIELDS];
+/* Render runs on the main loop, never within a tracked IRQ. Quiesce the
+ * IRQ writers for the timestamp/union pair only; packet work stays outside. */
+void lunar_resampler_profile_snapshot(fm1_stage_stamp_t *stamp)
+{
+    uint32_t flags = irq_save();
+    stamp->ticks = fm1_ticks();
+    stamp->irq_ticks = lunar_irq_profile.busy_ticks;
+    irq_restore(flags);
+}
+void lunar_resampler_profile_count(uint32_t engine, uint32_t counter)
+{
+    if (engine < 2u && counter < 4u)
+        ++resampler_stage_values[4u + 16u * engine + 4u + counter];
+}
+void lunar_resampler_profile_stage(uint32_t engine, uint32_t stage,
+                                  const fm1_stage_stamp_t *start,
+                                  const fm1_stage_stamp_t *end)
+{
+    if (engine >= 2u || stage >= 4u) return;
+    unsigned base = 4u + 16u * engine + 8u + 2u * stage;
+    resampler_stage_values[base] += end->ticks - start->ticks;
+    resampler_stage_values[base + 1u] += end->irq_ticks - start->irq_ticks;
+}
+#endif
 #ifdef LUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE
 static volatile uint32_t engine_profile_values[LUNAR_ENGINE_PROFILE_FIELDS];
 uint32_t lunar_engine_profile_ticks(void) { return fm1_ticks(); }
@@ -72,6 +103,13 @@ void lunar_engine_profile_render(uint32_t engine, uint32_t ticks,
     engine_profile_values[base + 1u] += 1u;
     engine_profile_values[base + 2u] += block_ticks;
     engine_profile_values[base + 3u] += block_calls;
+#ifdef LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE
+    unsigned stage_base = 4u + 16u * engine;
+    resampler_stage_values[stage_base] += ticks;
+    ++resampler_stage_values[stage_base + 1u];
+    resampler_stage_values[stage_base + 2u] += block_ticks;
+    resampler_stage_values[stage_base + 3u] += block_calls;
+#endif
 }
 #endif
 #ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
@@ -440,6 +478,27 @@ static void diagnostic_engine_profile_report(void)
 }
 #endif
 
+#ifdef LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE
+static void diagnostic_resampler_stage_report(void)
+{
+    static uint32_t last_report;
+    uint32_t now = fm1_ms;
+    if ((uint32_t)(now - last_report) < 4000u || !usb.config ||
+        mo_w - mo_r > MQ - LUNAR_RESAMPLER_STAGE_PACKETS) return;
+    uint32_t values[LUNAR_RESAMPLER_STAGE_FIELDS];
+    memcpy(values, resampler_stage_values, sizeof values);
+    values[0] = now;
+    values[1] = FM1_RESAMPLER_PROFILE_STRIDE;
+    uint32_t flags = irq_save();
+    values[2] = lunar_irq_profile.overflow_count;
+    values[3] = lunar_irq_profile.mismatch_count;
+    irq_restore(flags);
+    for (unsigned i = 0; i < LUNAR_RESAMPLER_STAGE_PACKETS; ++i)
+        midi_out_event(lunar_resampler_stage_packet(values, i));
+    last_report = now;
+}
+#endif
+
 /* Both frames share the same USB-MIDI ring. The opt-in cadence alternates
  * bounded slots so no complete frame is perpetually crowded out. */
 
@@ -519,7 +578,14 @@ static void diagnostic_reports(void)
         return;
     }
 #endif
-#if defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE)
+#if defined(LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE)
+    switch ((fm1_ms / 1000u) % 4u) {
+    case 0: diagnostic_report(); break;
+    case 1: diagnostic_profile_report(); break;
+    case 2: diagnostic_engine_profile_report(); break;
+    default: diagnostic_resampler_stage_report(); break;
+    }
+#elif defined(LUNAR_DIAGNOSTIC_IRQ_PROFILE)
     switch ((fm1_ms / 1000u) % 4u) {
     case 0: diagnostic_report(); break;
     case 1:

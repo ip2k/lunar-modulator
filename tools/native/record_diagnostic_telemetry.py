@@ -96,6 +96,7 @@ def record(
     producer_gap_frames = 0
     irq_profile_frames = 0
     engine_profile_frames = 0
+    resampler_stage_frames = 0
     cpu_rate_frames = 0
     event_count = 0
     started_wall = _stamp(wall_time)
@@ -152,6 +153,8 @@ def record(
                             irq_profile_frames += 1
                         if schema == 7:
                             engine_profile_frames += 1
+                        if schema == 9:
+                            resampler_stage_frames += 1
                         if schema == 8:
                             cpu_rate_frames += 1
                         write_event(events, {
@@ -159,7 +162,7 @@ def record(
                                       3: "clock_snapshot_frame", 4: "pll_snapshot_frame",
                                       5: "producer_gap_frame", 6: "irq_profile_frame",
                                       7: "engine_profile_frame",
-                                      8: "cpu_rate_frame"}[schema],
+                                      8: "cpu_rate_frame", 9: "resampler_stage_frame"}[schema],
                             "schema": schema,
                             "frame_index": valid_frames - 1,
                             "raw_offset": offset,
@@ -199,6 +202,7 @@ def record(
         "producer_gap_frame_count": producer_gap_frames,
         "irq_profile_frame_count": irq_profile_frames,
         "engine_profile_frame_count": engine_profile_frames,
+        "resampler_stage_frame_count": resampler_stage_frames,
         "cpu_rate_frame_count": cpu_rate_frames,
         "raw_bytes": raw_path.stat().st_size,
         "raw_sha256": raw_hash.hexdigest(),

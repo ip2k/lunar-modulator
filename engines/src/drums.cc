@@ -513,7 +513,10 @@ class Instance {
   FM1_HOT_DSP_RENDER void Render(float *out_lr, uint32_t frames) {
     FM1_ENGINE_PROFILE_RENDER_BEGIN();
     for (uint32_t f = 0; f < frames; ++f) {
+      fm1_resampler_profile_output_(&resampler_, FM1_ENGINE_PROFILE_DRUMS);
+      FM1_STAGE_BEGIN(needed, resampler_.profile_sampled);
       uint32_t need = fm1_resampler_needed(&resampler_);
+      FM1_STAGE_END(needed, resampler_.profile_sampled, resampler_.profile_engine, 0u);
       while (need) {
         if (!pending_) {
           FM1_ENGINE_PROFILE_BLOCK_BEGIN();
@@ -521,9 +524,11 @@ class Instance {
           FM1_ENGINE_PROFILE_BLOCK_END();
           pending_ = kBlockSize;
         }
+        FM1_STAGE_BEGIN(push, resampler_.profile_sampled);
         const uint32_t took = fm1_resampler_push_ready_(
             &resampler_, &mix_[kBlockSize - pending_],
             need < pending_ ? need : static_cast<uint32_t>(pending_));
+        FM1_STAGE_END(push, resampler_.profile_sampled, resampler_.profile_engine, 1u);
         pending_ -= took;
         need -= took;
       }

@@ -13,12 +13,12 @@ try:
     from .diagnostic_telemetry import (CLOCK_FIELDS, FIELDS, PLL_FIELDS, PROFILE_FIELDS,
                                       PROFILE_STAGES, PRODUCER_GAP_FIELDS,
                                       IRQ_PROFILE_FIELDS, ENGINE_PROFILE_FIELDS,
-                                      CPU_RATE_FIELDS)
+                                      CPU_RATE_FIELDS, RESAMPLER_STAGE_FIELDS)
 except ImportError:  # Direct ``python tools/native/analyze_diagnostic_telemetry.py`` use.
     from diagnostic_telemetry import (CLOCK_FIELDS, FIELDS, PLL_FIELDS, PROFILE_FIELDS,
                                       PROFILE_STAGES, PRODUCER_GAP_FIELDS,
                                       IRQ_PROFILE_FIELDS, ENGINE_PROFILE_FIELDS,
-                                      CPU_RATE_FIELDS)
+                                      CPU_RATE_FIELDS, RESAMPLER_STAGE_FIELDS)
 
 UINT32_MAX = 0xFFFFFFFF
 TICKS_PER_US = 24
@@ -85,6 +85,8 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
     producer_gap_frames: list[dict[str, Any]] = []
     irq_profile_frames: list[dict[str, Any]] = []
     engine_profile_frames: list[dict[str, Any]] = []
+    resampler_stage_frames: list[dict[str, Any]] = []
+    previous_resampler_stage_values = None
     cpu_rate_frames: list[dict[str, Any]] = []
     previous_profile_elapsed: float | None = None
     previous_irq_values: dict[str, int] | None = None
@@ -188,6 +190,24 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
                 "counter_semantics": "non-maximum fields are cumulative uint32 counters since boot; modular deltas are shown; max fields are retained observations",
             })
             previous_irq_values = checked
+            continue
+
+        if event_name == "resampler_stage_frame":
+            values = event.get("values")
+            if (type(event.get("schema")) is not int or event["schema"] != 9 or
+                    not isinstance(values, dict) or set(values) != set(RESAMPLER_STAGE_FIELDS)):
+                raise ValueError(f"line {line_number}: resampler values must contain exactly schema-9 fields")
+            checked = {name: _uint32(values[name], name, line_number) for name in RESAMPLER_STAGE_FIELDS}
+            if checked["sample_stride"] != 32:
+                raise ValueError(f"line {line_number}: unexpected resampler sample stride")
+            deltas = None if previous_resampler_stage_values is None else {
+                name: (checked[name] - previous_resampler_stage_values[name]) & UINT32_MAX
+                for name in RESAMPLER_STAGE_FIELDS if name not in ("uptime_ms", "sample_stride")}
+            resampler_stage_frames.append(dict(values=checked, counter_deltas=deltas,
+                irq_accounting_valid=checked["irq_overflow_count"] == checked["irq_mismatch_count"] == 0,
+                timing_units="raw 24MHz TIMER4 wall ticks and tracked IRQ busy-union ticks; not CPU cycles",
+                scope="sampled outputs only; stage1 includes intermediate ring updates; needed only readiness; push excludes RenderBlock; overhead unverified"))
+            previous_resampler_stage_values = checked
             continue
 
         if event_name == "engine_profile_frame":
@@ -330,7 +350,7 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         })
         previous_values = checked
 
-    if not frames and not profiles and not clock_snapshots and not pll_snapshots and not producer_gap_frames and not irq_profile_frames and not engine_profile_frames and not cpu_rate_frames:
+    if not frames and not profiles and not clock_snapshots and not pll_snapshots and not producer_gap_frames and not irq_profile_frames and not engine_profile_frames and not cpu_rate_frames and not resampler_stage_frames:
         raise ValueError("event log contains no diagnostic or render_profile rows, clock snapshots, PLL snapshots, producer-gap frames, or IRQ profile frames")
 
     return {
@@ -353,6 +373,8 @@ def analyze_jsonl(lines: Iterable[str]) -> dict[str, Any]:
         "producer_gap_frame_count": len(producer_gap_frames),
         "irq_profile_frame_count": len(irq_profile_frames),
         "engine_profile_frame_count": len(engine_profile_frames),
+        "resampler_stage_frame_count": len(resampler_stage_frames),
+        "resampler_stage_frames": resampler_stage_frames,
         "cpu_rate_frame_count": len(cpu_rate_frames),
         "frames": frames,
         "render_profiles": profiles,
