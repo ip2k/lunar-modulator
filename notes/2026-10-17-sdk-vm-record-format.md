@@ -49,3 +49,23 @@ selected range and bank semantics against retained independent flash evidence.
 Recovery, fresh paired reads and rollback gates remain required. Worker detail:
 `scratch/sdk-vm-record-format-20261017/HANDOFF.md`; coordinator independently
 inspected handle bounds, unused write results and the bounded read CRC path.
+
+## Exact 092 reader corroboration (corrected linked origin)
+
+[verified: coordinator-reviewed decoded instructions] The corrected-origin
+092 listing pinned in `2026-10-17-092-disassembly-review.md` corroborates the
+four-byte header packing and `4 + stored_length` record walk at
+`0x020342A6`–`0x0203431A`. The scan extracts the ID as
+`((byte2 << 8) & 0xF00) | byte1`. The candidate read callback at
+`0x020343B4` calls the helper at `0x020343A8`, which rejects API IDs >=256.
+It reads payload at header+4 with `min(stored_length, requested_length)` and
+compares the checksum result against header byte0 at `0x02034468`–`0x0203446C`.
+The wrapper returns an unsigned low halfword; the caller's `0xFFFF00FF` mask
+therefore reduces this comparison to eight bits. This matches the bounded SDK
+reader behavior, including its partial-read limitation. It does not identify
+all call paths, runtime mode, bank contents, ownership or reuse authority.
+
+Ignored detailed report:
+`scratch/sdk-vm-record-format-20261017/reader-match-corrected-origin.md`, SHA-256
+`3db314f8481b3eccf40d706dc9f01cd65a15f83bcbb5771723051b9a5d6e9d68`.
+Earlier zero-origin addresses in the old reader report are superseded.

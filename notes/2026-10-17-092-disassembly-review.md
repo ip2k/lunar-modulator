@@ -134,3 +134,24 @@ No vendor binary or full listing is committed. Heavy tooling ran in bounded
 Aeon containers; no Hera or hardware write occurred. Storage ownership,
 format/SAVE admission, migration, rollback, recovery and performance acceptance
 remain open. See the candidate-marker note for the evolving VM trace.
+
+## Stock SPL identity and remaining launch boundary
+
+[verified: worker byte comparison; coordinator reviewed report and digest]
+The retained Aeon V1.1.9 ELF's `.fw` section is 14,384 bytes and matches the
+public 092 package's `top/uboot.boot` byte for byte, SHA-256
+`730e54f0a439f58d147be4364ad21e19566945ada9d3a7bbc8371dce5068d3ef`.
+The ELF hash is
+`ef295427531a7bc66562ebbe3809794e23ecf7b071e01c7d4c446ccc2df3b0d3`;
+its retained listing hash is
+`3278f3645a956cb1f9e9c1726d269fb9a9046efa63397ed0c85cd912e2bc5ac4`.
+This resolves artifact provenance, not the app launch ABI. Bounded examination
+of four register-indirect calls did not tie any to the app transfer or establish
+incoming `r0`. The mode byte and mode-dependent VM extent remain conditional.
+A proven launch contract or trace through the SPL/ROM-to-app boundary is still
+needed. No runtime, flash or bank-reuse authority follows from the identity.
+
+Aeon report under coordination tasks:
+`mvave-fm1-spl-entry-contract-20261017/spl-entry-r0-review.md`, SHA-256
+`3400ebd62e7c38c06eb8ef4ee62d01a1039f74e26e8dfcbaf1dab1913d1f540b`.
+No hardware actions or new builds occurred.
