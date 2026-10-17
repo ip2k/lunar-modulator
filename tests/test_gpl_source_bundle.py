@@ -83,8 +83,10 @@ def _prepared_fixture(tmp_path,args,*,extra=False):
                'installable':False,'native_link_verified':False,
                'native_ram_verified':False,'hardware_tested':False}
     (prepared.parent/'selection.json').write_text(json.dumps(selection))
-    # Exercise the canonical receipt pins without depending on tuple aliases.
+    # Match capture_trusted_build_tuple.py, which inherits both tuple fields
+    # and adds receipt-specific copies to provenance.
     provenance=json.loads(prov.read_text()); provenance.update(
+        prepared_profile_sha256=prepared_sha,request_sha256=request_sha,
         prepared_profile_receipt_sha256=prepared_sha,request_receipt_sha256=request_sha)
     provenance_raw=json.dumps(provenance).encode(); prov.write_bytes(provenance_raw)
     tuple_obj=json.loads(tup.read_text()); tuple_obj.update(
@@ -151,7 +153,9 @@ def test_binds_exact_selected_project_and_set_sources_deterministically(tmp_path
 def test_rejects_tuple_prepared_digest_mismatch(tmp_path):
     args=_fixture(tmp_path); prepared,anchor=_prepared_fixture(tmp_path,args)
     src,tup,prov,manifest,_=args
-    provenance=json.loads(prov.read_text()); provenance['prepared_profile_receipt_sha256']='0'*64
+    provenance=json.loads(prov.read_text())
+    provenance['prepared_profile_sha256']='0'*64
+    provenance['prepared_profile_receipt_sha256']='0'*64
     raw=json.dumps(provenance).encode(); prov.write_bytes(raw)
     tuple_obj=json.loads(tup.read_text()); tuple_obj['build_provenance_sha256']=_sha(raw)
     tuple_obj['prepared_profile_sha256']='0'*64
@@ -159,32 +163,33 @@ def test_rejects_tuple_prepared_digest_mismatch(tmp_path):
     with pytest.raises(ValueError,match='manifest digest mismatch'):
         build_bundle(src,tup,prov,manifest,_sha(tuple_raw),tmp_path/'mismatch.tgz',prepared_dir=prepared)
 
-def test_rejects_missing_canonical_receipt_pins_even_when_tuple_aliases_match(tmp_path):
+@pytest.mark.parametrize('field', [
+    'request_sha256', 'prepared_profile_sha256',
+    'request_receipt_sha256', 'prepared_profile_receipt_sha256',
+])
+def test_rejects_each_missing_provenance_selection_pin(tmp_path,field):
     args=_fixture(tmp_path); prepared,anchor=_prepared_fixture(tmp_path,args)
     src,tup,prov,manifest,_=args
-    provenance=json.loads(prov.read_text())
-    provenance['request_sha256']=json.loads(tup.read_text())['request_sha256']
-    provenance['prepared_profile_sha256']=json.loads(tup.read_text())['prepared_profile_sha256']
-    provenance.pop('request_receipt_sha256')
-    provenance.pop('prepared_profile_receipt_sha256')
+    provenance=json.loads(prov.read_text()); provenance.pop(field)
     raw=json.dumps(provenance).encode(); prov.write_bytes(raw)
     tuple_obj=json.loads(tup.read_text()); tuple_obj['build_provenance_sha256']=_sha(raw)
     tuple_raw=json.dumps(tuple_obj).encode(); tup.write_bytes(tuple_raw)
     with pytest.raises(ValueError,match='tuple/provenance prepared selection identity mismatch'):
-        build_bundle(src,tup,prov,manifest,_sha(tuple_raw),tmp_path/'missing-receipts.tgz',prepared_dir=prepared)
+        build_bundle(src,tup,prov,manifest,_sha(tuple_raw),tmp_path/'missing-pin.tgz',prepared_dir=prepared)
 
-def test_rejects_mismatched_canonical_receipt_pin_despite_matching_alias(tmp_path):
+@pytest.mark.parametrize('field', [
+    'request_sha256', 'prepared_profile_sha256',
+    'request_receipt_sha256', 'prepared_profile_receipt_sha256',
+])
+def test_rejects_each_mismatched_provenance_selection_pin(tmp_path,field):
     args=_fixture(tmp_path); prepared,anchor=_prepared_fixture(tmp_path,args)
     src,tup,prov,manifest,_=args
-    provenance=json.loads(prov.read_text())
-    provenance['request_sha256']=json.loads(tup.read_text())['request_sha256']
-    provenance['prepared_profile_sha256']=json.loads(tup.read_text())['prepared_profile_sha256']
-    provenance['request_receipt_sha256']='0'*64
+    provenance=json.loads(prov.read_text()); provenance[field]='0'*64
     raw=json.dumps(provenance).encode(); prov.write_bytes(raw)
     tuple_obj=json.loads(tup.read_text()); tuple_obj['build_provenance_sha256']=_sha(raw)
     tuple_raw=json.dumps(tuple_obj).encode(); tup.write_bytes(tuple_raw)
     with pytest.raises(ValueError,match='tuple/provenance prepared selection identity mismatch'):
-        build_bundle(src,tup,prov,manifest,_sha(tuple_raw),tmp_path/'wrong-receipt.tgz',prepared_dir=prepared)
+        build_bundle(src,tup,prov,manifest,_sha(tuple_raw),tmp_path/'wrong-pin.tgz',prepared_dir=prepared)
 
 @pytest.mark.skipif(not os.environ.get('FM1_STATE_TOOL'), reason='requires fresh FM1_STATE_TOOL')
 def test_real_prepare_selection_receipt_binds_bundle_sources(tmp_path):
@@ -200,7 +205,9 @@ def test_real_prepare_selection_receipt_binds_bundle_sources(tmp_path):
 
     args=_fixture(tmp_path); src,tup,prov,manifest,_=args
     provenance=json.loads(prov.read_text())
-    provenance.update(request_receipt_sha256=receipt['request_sha256'],
+    provenance.update(request_sha256=receipt['request_sha256'],
+        prepared_profile_sha256=receipt['prepared_profile_sha256'],
+        request_receipt_sha256=receipt['request_sha256'],
         prepared_profile_receipt_sha256=receipt['prepared_profile_sha256'])
     provenance_raw=json.dumps(provenance).encode(); prov.write_bytes(provenance_raw)
     tuple_obj=json.loads(tup.read_text())

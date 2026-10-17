@@ -149,7 +149,9 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
     if sm.get("commit")!=commit or type(sm.get("schema")) is not int or sm.get("schema")!=1: raise ValueError("source manifest commit/schema mismatch")
     tree,rows=_source_rows(source.resolve(),commit,sm)
     if prepared_dir is not None and (
-            prov.get("prepared_profile_receipt_sha256") != rec.get("prepared_profile_sha256")
+            prov.get("prepared_profile_sha256") != rec.get("prepared_profile_sha256")
+            or prov.get("request_sha256") != rec.get("request_sha256")
+            or prov.get("prepared_profile_receipt_sha256") != rec.get("prepared_profile_sha256")
             or prov.get("request_receipt_sha256") != rec.get("request_sha256")):
         raise ValueError("tuple/provenance prepared selection identity mismatch")
     selected_inputs=_prepared_source_inputs(prepared_dir,rec) if prepared_dir is not None else []
