@@ -8366,3 +8366,10 @@ provenance worker inspectsrootnotices/versionmarkers/primary-source comparisons.
 Designworker corrected failedobsoleteHera.48handoffattempt (noconnection/change)
 toAeon.25; savedsharedb64d4b48report/releasedownclaim. InventorycorrectedSHAece8911a.
 Preserve fullgoal/recovery/audio/storage/releasegates; no flags promoted.
+
+Headerprimarysamplecomparisonreviewed: vendorresource stddef/stdint exactLLVM4.0.1;
+targetstdint modifiedNewlib2.2.0; newlib.h generated. Fullcurrent107+93rootsmatch
+retainedmanifest. Fourfilesampleonly, no completeness/legalclaim. Luna fixes
+minorremainingcountwording thenexits; nextdependency remainsoneTUtrace smoke.
+CI38998982780still4native/testjobsrunning/no failures; goalACTIVE, physical
+connection/recovery stillpending. NoHera/deviceoperations; uv.lockpreserved.

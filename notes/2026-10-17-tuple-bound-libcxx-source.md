@@ -159,3 +159,23 @@ SSH returned no route before any connection/change. It corrected to Aeon .25,
 saved handoff lunar--compile-trace-design-20261017.md SHA256
 b64d4b48f36c7b51a7ca2d3f97cfa80b16cf9f923d47d53d364112360c39d9c5,
 and released only its own Aeon claim. Do not repeat the excluded-host probe.
+
+## Bounded compiler-header source comparisons
+
+[reported: worker primary-source comparison; coordinator reviewed report]
+Both full compiler-header roots match their retained manifest rows (107target,
+93resource). Representative official source checks identify Newlib tag
+newlib-2_2_0 commit7e72fffc61b29325ac5a875c5318cdf2f294ae28 and LLVM tag
+llvmorg-4.0.1 commit449c3ef93afc7a668eb35e67a83717453e28b25a.
+The vendor Clang resource stddef.h and stdint.h exactly match tagged originals.
+Vendor target stdint.h differs from Newlib2.2.0; vendor newlib.h is configured/
+generated and differs from newlib.hin. Do not describe either as unchanged
+release source. Four samples establish no claim for the unsampled headers.
+
+Primary references: [Newlib source](https://sourceware.org/git/newlib-cygwin.git)
+and [LLVM tagged source](https://github.com/llvm/llvm-project/tree/llvmorg-4.0.1).
+Newlib COPYING.NEWLIB/COPYING and LLVM clang/LICENSE.TXT/llvm/LICENSE.TXT were
+retained with hashes in the private comparison report. The vendor bundle has no
+root umbrella notices; representative headers have component-specific notices.
+This is provenance evidence, not a distribution/legal/source-completeness claim.
+Use the new consumed-header trace before extending exact-source comparisons.
