@@ -1,0 +1,58 @@
+{
+  "baseline": {
+    "receipt_sha256": "407b07a88dc62edd1298f1b864e9070106640d8074c5b657e02e8b4afa623916",
+    "catalogue_wall_seconds": 6.381415,
+    "link_wall_seconds": 8.960892,
+    "container_count": 17,
+    "all_prestart_policy_and_exit_pass": true,
+    "any_oom_killed": false,
+    "gates": {
+      "installable": false,
+      "hardware_admitted": false,
+      "storage_admitted": false,
+      "full_ram_residency": false,
+      "hardware_tested": false,
+      "runtime_performance_proven": false
+    },
+    "outputs": {
+      "writable-output/build/artifact/app.bin": "012726b9e4d6b978f8cf9895a5476ebced6cf0d7218604d48b29d125a07ccb91",
+      "writable-output/build/artifact/artifact.json": "2310468f5b037c0cee5f37908ba3279b89e0f7d696f3a40c3a820f62bb8bd3fa",
+      "writable-output/build/artifact/disassembly.txt": "e2eda5b6ae80fb6c90896f6ce22b6bafe4b3f959fa2b447b925df7aaa51d4967",
+      "writable-output/build/lunar-app-probe.elf": "84a00f0efb912db30071410c81cbde0788c6a986706846ee0cfe41a6c319a167",
+      "writable-output/build/lunar-app-probe.map": "b459ba373314f7507dc47201958e1b199bc16b50d0cafb46c219820d03f4e733",
+      "writable-output/build/ram-call-audit.json": "96d5eed3853201e9706a4fd90362c0d990bb598e8939643f6208997b59890936",
+      "writable-output/build/ram-dsp.txt": "45a83251294cd2e748dfd190c393b322ccc73edee70db768a5cfced0e914b2b9",
+      "writable-output/build/ram-text.txt": "74b47ea22a7c13e38fdf25a17bb1ea30db49a51962e01467db7e0c4522226e26",
+      "writable-output/build/sections.txt": "050f6134315dccd385086fbc1af85da5d02ffd3c345b9eeeb08d6e6837e5bc55",
+      "writable-output/build/verification.json": "02dd96e9cee2fcf9e357518b85bded3aaaf79db22d4c401173cd2ff5f26277cb"
+    }
+  },
+  "candidate": {
+    "receipt_sha256": "cbf7a7df1a279f239578c741d6bce155acee67d16356c37e41718dea7fcd2bf9",
+    "catalogue_wall_seconds": 6.413392,
+    "link_wall_seconds": 9.066375,
+    "container_count": 17,
+    "all_prestart_policy_and_exit_pass": true,
+    "any_oom_killed": false,
+    "gates": {
+      "installable": false,
+      "hardware_admitted": false,
+      "storage_admitted": false,
+      "full_ram_residency": false,
+      "hardware_tested": false,
+      "runtime_performance_proven": false
+    },
+    "outputs": {
+      "writable-output/build/artifact/app.bin": "e9dc0d0fe869754ebdbe19e6ca28aa9494d2ceacdbdee9a958ead9bde9d227f8",
+      "writable-output/build/artifact/artifact.json": "788fbbef66019c01f5ebe440cd4f64c586172a583f25ace6ecbe96e2c9e4db04",
+      "writable-output/build/artifact/disassembly.txt": "482b162225a7c9e333c8755d5b9eb036836539653f2c601da6408dba13fae492",
+      "writable-output/build/lunar-app-probe.elf": "3bed8e0c7bb0adb2db6848aa1e43961c70920f5c7c593bce2106acbd37cbcf57",
+      "writable-output/build/lunar-app-probe.map": "99ff6e251e3564a3de7526c850b869acd0f3f3ecbfac2ba212dc6c4495193322",
+      "writable-output/build/ram-call-audit.json": "96d5eed3853201e9706a4fd90362c0d990bb598e8939643f6208997b59890936",
+      "writable-output/build/ram-dsp.txt": "0ffba9a8c009ddb0eafd44274cf2050cb98b8278462c0fcf3c38956a4fd17d64",
+      "writable-output/build/ram-text.txt": "0d3f9397e33fad33b96e5808fa0b949dd5ea162685e0657bb6afc5368452a7a0",
+      "writable-output/build/sections.txt": "b656870ad30e80c5269aaa94f05abf15e322ade32401055b86bb60b821873821",
+      "writable-output/build/verification.json": "78f1ed3a1695e11ecb2b4b68d8d62135e69b97be39cf0c27a207259133d67b25"
+    }
+  }
+}

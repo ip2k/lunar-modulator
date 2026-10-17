@@ -1,0 +1,187 @@
+# Matched thirteen-engine full-fit experiment: completed on Aeon
+
+## Exact source and saved work
+
+[verified] Integration baseline is `86154bc7843d7b1965d346af78620917fd2836f1`.
+It differs from the first experiment's `d168869b` only in installer, associated
+web tests/docs and a NOR-verifier anchor; there are no DSP/native build changes.
+Compared to stage-7 source `66c95bb2`, the two changed DSP lines are SPDX comments;
+other changes are vendor notices/tools and selection/preparation wrappers.
+No old source snapshot was silently reused as the new baseline.
+
+[verified] Candidate **`e75335164423dead395213373bcf221a4d962ea3`** applies the
+previously tested experiment onto that integration baseline. The resampler
+header is byte-identical to `fd853c5c05b61818281daa1427c73355dbf1da00`.
+The only baseline->candidate paths are the resampler header, its placement
+regression, differential driver and two experiment evidence files. The
+installer changes remain present.
+
+Branch: `codex/resampler-inline-fullfit-20261016`.
+Worktree: `/Users/likwid/.codex/worktrees/resampler-inline-fullfit`.
+Source/build driver checkpoint **`4cb369b24424bbdc0984a13345762c06cf785740`**
+was pushed with explicit refspec and independently matched on origin.
+This note is a later documentation checkpoint; the build candidate stays e753.
+
+## Reproducible build and analysis
+
+`notes/2026-10-16-resampler-inline-fullfit/build_pair.py` pins the reviewed
+current stage-7 runner SHA256
+`60448560af6f6bbe479a1510b1af4e4cd84e6186f3d01fdd0e0f61425915f446` and receipt
+`6db18a773eeb48cd18b64d1d01ad184b6a691182f5800bf9e727f2cafcc0fd56`.
+It verifies all ten retained output hashes, original profile/selection pins,
+current link and catalogue commands, original/candidate header identity and
+exact source-path delta. It archives each clean exact Git checkout and runs
+fresh baseline then candidate 16-shard catalogues and links in the existing
+bounded container policy. No package constructor or hardware tool is called.
+
+`analyze_pair.py` verifies pair receipt/output hashes, all thirteen selected
+production engines, exact Hall-O2/SixOp-Os current profile, disarmed SAVE,
+linked ELF sections and image budget, and maps each actual RAM Render caller
+to its ready-pop and nested FIR callees. It saves prologue instructions for
+stack review, counts calls and reports the complete code/section deltas.
+
+[verified: historical fixture only] Byte compilation and help smoke check
+passed. The analyzer was evaluated against the retained stage-7 ELF/artifact,
+independently finding all thirteen engines, app855920/860644 bytes (4724slack),
+RAM code7704 bytes slack, globals/pool1264 bytes slack, Drums pop412 bytes and
+SixOp pop408 bytes, each with one call site inside its two-iteration loop.
+These validate the analysis tool against existing evidence, not candidate fit.
+
+## Actual blocker and limits
+
+[verified] Hera was reachable for the earlier isolated-object experiment but
+became unreachable before this full-fit task. Multiple bounded existing SSH
+connections failed with timeout or IPv4 `No route to host`; the documented
+IPv6 link-local alternative via en12 also timed out. en12 remained active at
+10G. The coordinator independently reproduced SSH timeout after ARP resolved.
+No power, network configuration, reboot or device action was performed.
+
+**Neither full baseline nor full candidate build has started.** No remote
+claim was acquired or remote checkout created for this follow-up. Do not
+represent prepared drivers or historical-fixture analysis as completed builds,
+current candidate RAM fit, measured performance, hardware acceptance or merge.
+
+## Resume after host reachability returns
+
+1. Re-read the coordination README; atomically acquire
+   `claims/lunar--resampler-inline-fullfit-20261016` on Hera and write owner,
+   session, UTC start, exact source/driver branch, scope and status.
+2. Push `codex/resampler-inline-fullfit-20261016` from the Mac into Hera's
+   exchange bare repo with an explicit refspec; verify its SHA. This transfers
+   exact base86154, candidatee753 and driver commits through Git.
+3. Create a separate detached driver worktree from the pushed branch. Run:
+
+```
+python3 notes/2026-10-16-resampler-inline-fullfit/build_pair.py \
+  --output /home/claude/mvave-fm1/resampler-inline-fullfit-20261016
+python3 notes/2026-10-16-resampler-inline-fullfit/analyze_pair.py \
+  --pair-output /home/claude/mvave-fm1/resampler-inline-fullfit-20261016
+```
+
+If an external pin mismatches, inspect the original retained input/runner;
+do not bypass it. A failed attempt leaves its output intact; choose a new
+explicit output directory for a reviewed retry.
+
+4. Inspect `linked-comparison.json`, full link logs/maps, guard slack and the
+   exact Drums/SixOp/ready-pop prologues and calls. Add actual results/hashes to
+   notes; commit/push/verify. Save the atomic shared handoff and release only
+   this task's claim. Keep the branch isolated from root integration.
+5. The coordinator reviews fit/codegen before deciding whether a concrete
+   hardware trial is warranted. Offline codegen does not establish speedup;
+   physical stack high-water and audio acceptance remain separate gates.
+
+## Aeon migration checkpoint
+
+[verified] Hera resumed long enough to complete baseline catalogue compilation,
+then owner maintenance steering interrupted the link. Owned session
+`engine-render-profile-dd8e3ac98e` was stopped; no running owned container remained.
+Hera claim was released after atomic shared handoff. Candidate never started.
+Those partial outputs will not serve as the matched comparison.
+
+Aeon now owns unique claim `lunar--resampler-inline-fullfit-aeon-20261016`.
+Frozen read-only stage-7 evidence was copied to
+`/home/claude/mvave-fm1/resampler-fullfit-frozen-20261016`; active checkouts were
+not used for source exchange. Exact sources are transferred through Git.
+`run_aeon.py` derives from the pinned runner with only image identity, UID1003,
+four concurrent shards and no-swap policy changes. Sixteen logical shards and
+all compile/link flags remain identical. The Aeon image is pinned separately
+at `sha256:bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495`;
+it differs from Hera's image and no cross-image binary equivalence is assumed.
+Both fresh builds use this same image and frozen target compiler. Maximum is
+8 aggregate CPUs/8GiB catalogue RAM, then a separate 4CPU/4GiB link.
+
+## Completed matched Aeon pair (2026-10-17 UTC)
+
+This completion supersedes the earlier reachability blocker. [verified] Both
+fresh builds passed on Aeon, baseline86154bc7 and candidatee7533516, using the
+same pinned Aeon image and toolchain manifest
+`9323ff1af9ad0cad41cd884d41281ac7cba52ef137f919c28b313e106d08b650`.
+The analyzer independently verified equal image, compiler, headers, prepared
+profile, selection, compile policy and link flags; all ten retained output
+hashes passed per build. All thirteen selected sound engines are present with
+Hall-O2/SixOp-Os, indexed TFT, HOT_DSP_RAM, schema7 engine profile and SAVE
+unarmed. All34 container prestart policy/exit checks passed; no OOM kills.
+
+| Linked result [verified] | Baseline | Candidate | Delta |
+| --- | ---: | ---: | ---: |
+| App bytes /860644 | 855920 | 856096 | +176 |
+| Image slack | 4724 | 4548 | -176 |
+| RAM DSP | 15524 | 15700 | +176 |
+| RAM text | 1348 | 1348 | 0 |
+| RAM-code slack to0x01c06000 | 7704 | 7528 | -176 |
+| Globals/pool slack to0x01c74000 | 1264 | 1264 | 0 |
+
+Text838928, data120, bss20448, pool420528, noinit24 bytes are unchanged.
+The candidate fits the current linked profile. It remains a private diagnostic
+build: installable, hardware_admitted, storage_admitted, full_ram_residency,
+hardware_tested and runtime_performance_proven are all **false** in both
+receipts. RAM hot code fit is not a claim that every callee/table is RAM resident.
+The RAM-call audit hash is identical across both builds.
+
+[verified] Drums Render242bytes and SixOp Render252bytes remain in `.ram_dsp`
+and call one RAM ready-pop. Baseline ready-pop has one FIR intermediate call
+site inside its two-iteration loop (two executions per ordinary output).
+Candidate ready-pop has zero nested calls and no intermediate function survives
+anywhere in the link (baseline had five copies). Drums pop412+intermediate414
+becomes inline pop874bytes; SixOp408+484 becomes876bytes. Four Oz copies grow
+48bytes each, while the Os copy shrinks16bytes: net176bytes.
+
+[verified] Both helpers save `{rets,r15-r4}`. Drums baseline pop reserves4local
+bytes then its nested intermediate36; candidate single pop reserves52. SixOp
+baseline8+nested20 becomes36. [inferred] Counting13 saved32-bit words per
+frame, the peak nested helper frame falls144->104bytes for Drums and132->88
+for SixOp; Render's56byte frame is unchanged. These are static prologue counts,
+not a whole-program or interrupt-stack high-water proof. Candidate always
+reserves the larger local frame even on paths that previously avoided the FIR.
+No target runtime cycles or speed improvement were measured.
+
+[verified] Container timestamps show catalogue waves6.381/6.413seconds and
+link8.961/9.066seconds (baseline/candidate). These are one-shot host build
+wall times under quotas and sharing; they provide no FM1 DSP timing evidence.
+
+Artifacts remain at Aeon
+`/home/claude/mvave-fm1/resampler-inline-fullfit-aeon-20261016-v3`, including
+source snapshots, exact commands, receipts,17container inspections per build,
+ELF/map/disassembly/app and verification. Local ignored mirror:
+`/Users/likwid/.codex/worktrees/resampler-inline-fullfit/scratch/aeon-pair`.
+Tracked `linked-comparison.json` saves section/symbol/prologue analysis;
+`aeon-build-receipts.json` saves output/receipt hashes and container timing.
+No vendor binary was committed. Driver source is `543937ee` (pushed/verified);
+final analysis is a later focused checkpoint.
+
+Next dependency: coordinator independently review this fit/codegen evidence,
+then decide whether to adopt the source candidate. No integration was done.
+Any speed claim still needs a matched on-target cycle measurement and physical
+stack/audio acceptance after the coordinator's recovery gates permit it.
+
+## Coordinator integration
+
+The coordinator adopted the source-only candidate on the installable-firmware
+branch after reviewing the minimal header change, matched linked budgets and
+static call/stack evidence. An independent host ASan/UBSan differential run
+passed 576,000 output/full-state comparisons, and 13 focused resampler tests
+passed. Full build drivers remain on backed-up worker branch
+`codex/resampler-inline-fullfit-20261016` at
+`f9a740dee5f66a509eafedb82090e172b7ee8e22`; this integration retains the
+analysis and receipt data without importing the experimental build runners.
+This adoption is for diagnostic testing, with no measured target speed claim.

@@ -78,3 +78,22 @@ synthesis, or project RTL was touched. Serena was ready but selected a sibling
 worktree; Rarefaction was ready on the primary checkout. Neither index was
 retargeted during this task to avoid disturbing another active session.
 
+
+## Coordinator unloaded physical check
+
+[verified] With TARGET ports last confirmed empty and CONTROL connected, root
+loaded the reviewed 119,280-byte bitstream using `cynthion run --bitstream`
+(volatile FPGA configuration only). All six downloaded artifact hashes and
+sizes matched the Aeon manifest. Root inspected the actual top module and
+TRELLIS_IO constant inputs: CONTROL=1, TARGET-C=0, AUX=0, discharge=0.
+The integrated focused gateware suite passed 43 tests.
+
+Three read-only Apollo JTAG register sweeps returned magic 0x50414331, layout1,
+status0x105 (PHY/PAC ready, sample present, no faults), manufacturer0x54 and
+active range0x0000, controls0x1. VBUS raw10383/10366/10387 corresponds to
+5.0698/5.0615/5.0718V; VSENSE was zero in all three. Sequence59/67/76 and
+refresh60/69/77 advanced; ages were below125ms. Raw evidence is ignored
+`scratch/cynthion-monitor-aeon-route/no-target-readings.json`. This verifies
+unloaded sensor readback only; it does not establish FM1 power or recovery.
+Owner was asked to reconnect only FM1 to TARGET A, keep C empty and avoid USER;
+that response is pending. No FM1 flash or recovery-key operation was issued.
