@@ -92,3 +92,27 @@ to “value 2”) is retained as
 The next assigned read-only trace identifies candidate vm_init in the 092
 0x02033xxx–0x020342xx region and follows concrete callsites/bank arguments.
 There is no storage admission or physical recovery claim.
+
+## Initializer boundary correction and record-walk evidence
+
+[verified: coordinator listing inspection and independent exact-byte scan]
+The candidate initialization prologue starts at `0x02033F56`; `0x02033F58`
+adjusts its stack. No exact little-endian pointer to either appears in the
+public app. The sole nearby pointer, `0x02033F60` at raw `0x4C12`, lands inside
+the four-byte instruction at `0x02033F5E`; it does not establish an entry.
+Worker bounded scans of nearby raw/XIP addresses, both byte orders and decoded
+call targets likewise found no caller. Indirect dispatch and linear-sweep
+limits remain open. The candidate obtains a local configuration record through
+`0x0200383C` with selector 206; numeric area arguments are still unknown.
+Corrected Aeon analysis SHA-256:
+`d554327f3e2c87f53c975093f0254b6d17d6e77ddea26b10af974c7eb6ffb93a`.
+
+[verified: coordinator inspected decoded instructions] The later walk at
+`0x02034186` loads four header bytes, reconstructs twelve length bits, reads
+payload at header plus four, and advances by exactly four plus length. The
+candidate read body at `0x02034294` checks a below-256 handle helper and reads
+the smaller of requested/stored lengths. These strengthen the SDK record-format
+correspondence, but neither prove the live API dispatch nor select a flash bank.
+SDK-side details and recovery limitations are recorded separately in
+`notes/2026-10-17-sdk-vm-record-format.md`. No production decoder or device write
+was enabled.

@@ -1,3 +1,19 @@
+## VM record format reviewed; Aeon-only investigation continues — 2026-10-17 UTC
+
+Owner routing retained: no Hera work or availability probes during RAID/NIC
+maintenance. Coordinator reviewed both SDK record formats and exact092 candidate
+header/length traversal; notes/2026-10-17-sdk-vm-record-format.md records the
+encoded handle/API limit distinction, partial-read CRC limitation and ignored
+write results. These do not establish crash safety or bank ownership.
+Initializer boundary corrected to02033F56; its caller remains unresolved.
+Workerbringup_review now traces selector206/config lookup offline; record worker
+checks the candidate checksum return contract. Neither owns device writes.
+CI38991254950 sanitizer passed; only full Ubuntu/macOS suites remain running,
+with no completed failures. FM1 recovery remains unproved; existing owner
+connection question pending, no new physical action. Overall goal ACTIVE.
+Unrelateduv.lock preserved. Prior3b5cd270 pushed/remoteSHAverified; this is the
+next focused evidence checkpoint.
+
 ## Target-correct VM comparison reviewed; bank-argument trace assigned — 2026-10-17 UTC
 
 Coordinator verified corrected V1.1.9 IR hash and exact single-line target-triple
