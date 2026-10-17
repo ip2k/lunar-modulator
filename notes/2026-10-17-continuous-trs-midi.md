@@ -75,3 +75,31 @@ to the old tuple; fresh source closure is the next offline dependency.
 Routing: Aeon only while the owner performs RAID/M.2/NIC maintenance on Hera.
 No Hera probes or device operations were performed. CI39002512160 for E7
 currently has seven successful jobs and eight running, with no failure yet.
+
+
+## E7 tuple-bound selected-source archive
+
+[verified: coordinator rehash/tar inspection] The new TRS-enabled candidate's
+archive is 4,294,000 bytes, SHA256
+`6fff5ced03d06b3ecdaf68f88389f416f6744a33ed1ba01b54805c05d290ae29`.
+It binds exact source `e7b65f1a103ac049ff4f898c7980b10433ca2ecb`, source tree
+`0e989e0568394ecae1b025a5f787961a346abb0bb442120583f8feb22c47ce18`,
+and tuple SHA256 `1564cfb7716bc51d9ae6afa2f8aa8be6bede4980db6a1a1e079052cb16364ca9`.
+The worker produced it twice byte-identically; root independently checked all
+1,214 manifest-listed file sizes/digests across 1,217 unique regular members.
+Included are 1,022 selected repository files, 189 verified libc++ headers and
+the pinned notice, and the selected original Event Horizon project/SET sources.
+No completeness or distribution flag is promoted: external target build inputs
+remain unresolved, and the previous compiler trace does not cover this tuple.
+
+Canonical private archive:
+`/home/claude/mvave-fm1/private-e7-source-archive-20261017/lunar-source.tar.gz`.
+Shared handoff `lunar--e7-source-archive-20261017.md`, SHA256
+`039422051dc897d065a3c5cb62814383a2e8d5f59d47dba9584c862855b3e722`.
+
+The build lifecycle handoff was corrected to the retained wrapper's explicit
+cleanup (`docker rm -f`) after exited/0, not Docker auto-remove. Its corrected
+SHA256 is `5a138922faeb14bc974c1a2888675b47f72befaf4588e45373a1d4db7408cbc3`.
+Next independent tasks inspect consumed target-header export requirements,
+prepare a fresh traced current-candidate reproduction, and audit the real
+browser selection/flash usage path. Aeon only; no Hera or hardware actions.
