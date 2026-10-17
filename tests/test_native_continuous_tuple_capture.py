@@ -648,11 +648,17 @@ def test_generated_link_source_marker_tracks_selected_resources_and_bounds(tmp_p
 
 def test_embedded_content_source_is_required_and_receipt_bound(tmp_path):
     output, prepared, image, verification = _generated_capture_fixture(tmp_path, ["trio"])
-    profile_sha = "a" * 64
-    prepared["profile_sha256"] = profile_sha
+    # The prepared record's profile_sha256 binds selection/staged/profile.json.
+    # The embedded receipt instead binds the raw selection/prepared/profile.json
+    # bytes, whose digest is independently checked against the image receipt.
+    prepared_source_sha = "a" * 64
+    prepared["profile_sha256"] = prepared_source_sha
+    prepared_profile_raw = b'{"profile":"prepared bytes"}\n'
+    prepared_profile_raw_sha = sha(prepared_profile_raw)
+    image["prepared_profile_sha256"] = prepared_profile_raw_sha
     content = b"/* selected content catalogue */\n"
     receipt = {
-        "prepared_sha256": profile_sha,
+        "prepared_sha256": prepared_profile_raw_sha,
         "source_sha256": sha(content),
         "asset_count": 1,
         "assets": [{"kind": "project", "bytes": 3, "packed_sha256": "b" * 64}],
@@ -664,13 +670,32 @@ def test_embedded_content_source_is_required_and_receipt_bound(tmp_path):
     verification["embedded_content"] = receipt
     image["embedded_content"] = receipt
     (output / "link/content_catalogue.c").write_bytes(content)
-    generated, rows = _verified_generated_inputs(ROOT, output, prepared, image, verification)
+    generated, rows = _verified_generated_inputs(
+        ROOT, output, prepared, image, verification, prepared_profile_raw_sha,
+    )
     assert generated["link/content_catalogue.c"] == content
     assert any(row["path"] == "link/content_catalogue.c" for row in rows)
 
+    for invalid_digest in (None, "not-a-sha256", "b" * 64):
+        with pytest.raises(ValueError, match="embedded-content source receipt is malformed"):
+            _verified_generated_inputs(
+                ROOT, output, prepared, image, verification, invalid_digest,
+            )
+
+    verification["embedded_content"] = dict(receipt, prepared_sha256=prepared_source_sha)
+    image["embedded_content"] = verification["embedded_content"]
+    with pytest.raises(ValueError, match="embedded-content source receipt is malformed"):
+        _verified_generated_inputs(
+            ROOT, output, prepared, image, verification, prepared_profile_raw_sha,
+        )
+
+    verification["embedded_content"] = dict(receipt)
+    image["embedded_content"] = verification["embedded_content"]
     (output / "link/content_catalogue.c").write_bytes(content + b"tamper")
     with pytest.raises(ValueError, match="differs from linked-content receipt"):
-        _verified_generated_inputs(ROOT, output, prepared, image, verification)
+        _verified_generated_inputs(
+            ROOT, output, prepared, image, verification, prepared_profile_raw_sha,
+        )
 
     output, prepared, image, verification = _generated_capture_fixture(tmp_path / "empty", ["trio"])
     (output / "link/content_catalogue.c").write_bytes(b"stale content source")

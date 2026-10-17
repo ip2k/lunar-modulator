@@ -105,7 +105,9 @@ def _generate_wavetables_from_source(root: Path, output: Path, namespaces):
     return rows
 
 
-def _verified_generated_inputs(root: Path, output: Path, prepared, image, verification):
+def _verified_generated_inputs(
+        root: Path, output: Path, prepared, image, verification,
+        validated_prepared_profile_sha256: str | None = None):
     """Verify only resource banks selected by the digest-bound module profile."""
     module_selection = prepared.get("module_selection")
     if (not isinstance(module_selection, dict)
@@ -197,13 +199,17 @@ def _verified_generated_inputs(root: Path, output: Path, prepared, image, verifi
             raise ValueError("image and build embedded-content receipts differ")
         else:
             embedded = embedded_build
+            prepared_profile_sha256 = validated_prepared_profile_sha256
             if (not isinstance(embedded, dict)
                     or type(embedded.get("asset_count")) is not int
                     or embedded["asset_count"] <= 0
                     or not isinstance(embedded.get("assets"), list)
                     or len(embedded["assets"]) != embedded["asset_count"]
+                    or not isinstance(prepared_profile_sha256, str)
+                    or not _HASH.fullmatch(prepared_profile_sha256)
+                    or image.get("prepared_profile_sha256") != prepared_profile_sha256
                     or not isinstance(embedded.get("prepared_sha256"), str)
-                    or embedded.get("prepared_sha256") != prepared.get("profile_sha256")
+                    or embedded.get("prepared_sha256") != prepared_profile_sha256
                     or not isinstance(embedded.get("source_sha256"), str)
                     or not _HASH.fullmatch(embedded["source_sha256"])):
                 raise ValueError("embedded-content source receipt is malformed")
@@ -235,13 +241,17 @@ def _verified_generated_inputs(root: Path, output: Path, prepared, image, verifi
 
 def _verified_generated_inputs_from_pinned_source(
         root: Path, output: Path, prepared, image, verification,
-        expected_commit: str, expected_source_sha256: str):
+        expected_commit: str, expected_source_sha256: str,
+        validated_prepared_profile_sha256: str | None = None):
     """Bracket generator execution with clean snapshot pin checks."""
     before_commit, before_manifest = _pinned_source_manifest(
         root, expected_commit, expected_source_sha256,
         phase="before regeneration",
     )
-    generated = _verified_generated_inputs(root, output, prepared, image, verification)
+    generated = _verified_generated_inputs(
+        root, output, prepared, image, verification,
+        validated_prepared_profile_sha256,
+    )
     after_commit, after_manifest = _pinned_source_manifest(
         root, expected_commit, expected_source_sha256,
         phase="after regeneration",
@@ -724,8 +734,9 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raise ValueError("image/selection receipts do not bind exact request bytes")
     _verify_selection_receipt(selection, image, request_sha)
     _false_flags(selection, ("installable", "hardware_tested", "native_link_verified", "native_ram_verified"), "selection receipt")
-    if (sha(prepared_raw) != image.get("prepared_profile_sha256")
-            or selection.get("prepared_profile_sha256") != sha(prepared_raw)):
+    prepared_profile_sha256 = sha(prepared_raw)
+    if (prepared_profile_sha256 != image.get("prepared_profile_sha256")
+            or selection.get("prepared_profile_sha256") != prepared_profile_sha256):
         raise ValueError("image receipt does not bind exact prepared profile bytes")
     if image.get("verification_sha256") != sha(build_raw):
         raise ValueError("image receipt does not bind exact build receipt bytes")
@@ -739,6 +750,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         root, output, prepared, image, verification,
         invocation.get("source_commit"),
         invocation.get("post_build_source_tree_sha256"),
+        prepared_profile_sha256,
     )
     source_sha = sha(source_manifest_raw)
     linked_manifest_raw = _linked_object_manifest(output, catalogue, verification)
