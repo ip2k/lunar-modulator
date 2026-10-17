@@ -55,14 +55,23 @@ def api_evidence(doc, outer, app=b"continuous-app", elf=TEST_ELF):
                "sha256": hashlib.sha256(name.encode()).hexdigest()}
               for name in ("midi_uart_stream.o", "midi_stream.o")]
     lower = deepcopy(outer)
-    lower.update(request_sha256=hashlib.sha256(request).hexdigest(),
-                 app_sha256=hashlib.sha256(app).hexdigest(), app_bytes=len(app),
-                 elf_sha256=hashlib.sha256(elf).hexdigest(), elf_bytes=len(elf),
+    # The actual capture schema keeps request/app-byte bindings in the outer
+    # image and artifact receipt. Its lower link receipt carries ELF SHA but
+    # has no request_sha256/app_sha256/app_bytes/elf_bytes fields.
+    lower.pop("request_sha256", None)
+    lower.pop("app_sha256", None)
+    lower.pop("app_bytes", None)
+    lower.pop("elf_bytes", None)
+    lower.update(elf_sha256=hashlib.sha256(elf).hexdigest(),
                  flash_write_range="empty", boot_ota_cleanup=False,
                  hardware_candidate=False, catalogue_source_freshness_verified=True,
                  catalogue_objects=[], linked_objects=linked)
-    artifact_receipt = json.dumps({"app_sha256": lower["app_sha256"],
-                                   "elf_sha256": lower["elf_sha256"]},
+    artifact_receipt = json.dumps({"app_sha256": hashlib.sha256(app).hexdigest(),
+                                   "app_bytes": len(app),
+                                   "elf_sha256": lower["elf_sha256"],
+                                   "flash_layout": lower["flash_layout"],
+                                   "app_budget_bytes": lower["app_budget_bytes"],
+                                   "layout_passed": True},
                                   sort_keys=True, separators=(",", ":")).encode()
     lower_raw = json.dumps(lower, sort_keys=True, separators=(",", ":")).encode()
     outer = deepcopy(outer)
@@ -296,7 +305,10 @@ def test_selected_request_worker_retention_evidence_and_api_roundtrip(tmp_path, 
     (build / "selection/staged/profile.json").write_bytes(source)
     artifact = json.dumps({"app_sha256": hashlib.sha256(b"continuous-app").hexdigest(),
                            "elf_sha256": hashlib.sha256(TEST_ELF).hexdigest(),
-                           "app_bytes": len(b"continuous-app")},
+                               "app_bytes": len(b"continuous-app"),
+                               "flash_layout": "expanded-d7000",
+                               "app_budget_bytes": 860644,
+                               "layout_passed": True},
                           sort_keys=True, separators=(",", ":")).encode()
     (build / "link/artifact/artifact.json").write_bytes(artifact)
     image = receipt(doc)

@@ -364,11 +364,7 @@ def _continuous_private_build_receipt(admission: Admission, result: WorkerResult
     continuous_profile.validate_receipt(lower)
     if (not isinstance(lower.get("module_selection"), dict)
             or lower["module_selection"].get("selected") != selected
-            or lower.get("request_sha256") != admission.request_sha256
-            or lower.get("app_sha256") != hashlib.sha256(result.artifact).hexdigest()
-            or lower.get("app_bytes") != len(result.artifact)
             or lower.get("elf_sha256") != hashlib.sha256(result.elf).hexdigest()
-            or lower.get("elf_bytes") != len(result.elf)
             or hashlib.sha256(lower_raw).hexdigest() != outer_receipt.get("verification_sha256")
             or hashlib.sha256(evidence["artifact_receipt.json"]).hexdigest()
                != outer_receipt.get("artifact_receipt_sha256")
@@ -377,8 +373,13 @@ def _continuous_private_build_receipt(admission: Admission, result: WorkerResult
                != outer_receipt.get("prepared_profile_sha256")):
         raise ValueError("continuous lower receipt does not bind the admitted outputs and profiles")
     if (not isinstance(artifact_receipt, dict)
-            or artifact_receipt.get("app_sha256") != lower.get("app_sha256")
-            or artifact_receipt.get("elf_sha256") != lower.get("elf_sha256")
+            or artifact_receipt.get("layout_passed") is not True
+            or artifact_receipt.get("flash_layout") != lower.get("flash_layout")
+            or artifact_receipt.get("app_budget_bytes") != lower.get("app_budget_bytes")
+            or artifact_receipt.get("app_sha256") != hashlib.sha256(result.artifact).hexdigest()
+            or type(artifact_receipt.get("app_bytes")) is not int
+            or artifact_receipt["app_bytes"] != len(result.artifact)
+            or artifact_receipt.get("elf_sha256") != hashlib.sha256(result.elf).hexdigest()
             or not isinstance(catalogue, dict) or catalogue.get("schema") != 1
             or catalogue.get("objects") != lower.get("catalogue_objects")
             or not isinstance(linked, dict) or linked.get("schema") != 1
