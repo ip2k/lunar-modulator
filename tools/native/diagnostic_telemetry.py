@@ -37,6 +37,17 @@ ENGINE_PROFILE_FIELDS = (
     "sixop_render_block_ticks", "sixop_render_block_calls",
 )
 ENGINE_PROFILE_FRAME_BYTES = len(ENGINE_PROFILE_PREFIX) + 5 * len(ENGINE_PROFILE_FIELDS) + 1
+RESAMPLER_STAGE_PREFIX = b"\xf0\x7dLUNAR\x09"
+RESAMPLER_STAGE_ENGINE_FIELDS = (
+    "render_ticks", "render_calls", "render_block_ticks", "render_block_calls",
+    "sampled_outputs", "empty_outputs", "stage1_outputs", "stage2_outputs",
+    "needed_ticks", "needed_irq_ticks", "push_ticks", "push_irq_ticks",
+    "stage1_ticks", "stage1_irq_ticks", "stage2_ticks", "stage2_irq_ticks",
+)
+RESAMPLER_STAGE_FIELDS = ("uptime_ms", "sample_stride", "irq_overflow_count", "irq_mismatch_count") + tuple(
+    f"{engine}_{field}" for engine in ("drums", "sixop") for field in RESAMPLER_STAGE_ENGINE_FIELDS)
+RESAMPLER_STAGE_FRAME_BYTES = len(RESAMPLER_STAGE_PREFIX) + 5 * len(RESAMPLER_STAGE_FIELDS) + 1
+
 CPU_RATE_PREFIX = b"\xf0\x7dLUNAR\x08"
 CPU_RATE_FIELDS = (
     "uptime_ms", "iterations_per_trial", "trials_per_kernel",
@@ -123,6 +134,8 @@ def decode_any_frame(frame: bytes) -> tuple[int, dict[str, int]]:
         return 7, decode_engine_profile_frame(frame)
     if frame.startswith(CPU_RATE_PREFIX):
         return 8, decode_cpu_rate_frame(frame)
+    if frame.startswith(RESAMPLER_STAGE_PREFIX):
+        return 9, _decode_values(frame, RESAMPLER_STAGE_PREFIX, RESAMPLER_STAGE_FIELDS, 9)
     raise ValueError("unknown Lunar diagnostic schema")
 
 
@@ -155,6 +168,8 @@ def decode_capture(data: bytes) -> list[dict[str, int]]:
             size = ENGINE_PROFILE_FRAME_BYTES
         elif clean.startswith(CPU_RATE_PREFIX, offset):
             size = CPU_RATE_FRAME_BYTES
+        elif clean.startswith(RESAMPLER_STAGE_PREFIX, offset):
+            size = RESAMPLER_STAGE_FRAME_BYTES
         else:
             raise ValueError("unknown or truncated diagnostic frame prefix")
         if offset + size > len(clean):

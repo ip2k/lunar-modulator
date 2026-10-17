@@ -212,6 +212,33 @@ static inline uint32_t lunar_engine_profile_packet(
     return packet;
 }
 
+/* Schema 9: 4 globals and 16 cumulative counters per engine. Each stage
+ * carries wall TIMER4 ticks plus tracked IRQ-union ticks, never CPU cycles. */
+#define LUNAR_RESAMPLER_STAGE_FIELDS 36u
+#define LUNAR_RESAMPLER_STAGE_BYTES (9u + 5u * LUNAR_RESAMPLER_STAGE_FIELDS)
+#define LUNAR_RESAMPLER_STAGE_PACKETS ((LUNAR_RESAMPLER_STAGE_BYTES + 2u) / 3u)
+static inline uint32_t lunar_resampler_stage_packet(
+    const uint32_t values[LUNAR_RESAMPLER_STAGE_FIELDS], unsigned index)
+{
+    static const uint8_t prefix[] = {0xf0, 0x7d, 'L', 'U', 'N', 'A', 'R', 9};
+    if (index >= LUNAR_RESAMPLER_STAGE_PACKETS) return 0;
+    unsigned at = index * 3u, left = LUNAR_RESAMPLER_STAGE_BYTES - at;
+    unsigned n = left < 3u ? left : 3u;
+    uint32_t packet = left > 3u ? 4u : 4u + n;
+    for (unsigned j = 0; j < n; ++j) {
+        unsigned pos = at + j;
+        uint8_t byte;
+        if (pos < sizeof prefix) byte = prefix[pos];
+        else if (pos == LUNAR_RESAMPLER_STAGE_BYTES - 1u) byte = 0xf7;
+        else {
+            unsigned data = pos - (unsigned)sizeof prefix;
+            byte = (uint8_t)((values[data / 5u] >> (7u * (data % 5u))) & 127u);
+        }
+        packet |= (uint32_t)byte << (8u * (j + 1u));
+    }
+    return packet;
+}
+
 /* Schema 8: fixed-work integer kernel elapsed raw TIMER4 ticks in XIP and
  * ordinary SRAM. This is not a CPU-frequency or instruction-cycle claim. */
 static inline uint32_t lunar_cpu_rate_packet(

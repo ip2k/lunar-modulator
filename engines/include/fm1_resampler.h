@@ -49,6 +49,7 @@
 #define FM1_RESAMPLER_H_
 
 #include <stdint.h>
+#include "engine_render_profile.h"
 
 /* The trusted render path is called after its owner has checked readiness.
  * Keep its FIR/push bodies in XIP by default. In the explicit native hot-DSP
@@ -291,6 +292,9 @@ typedef struct fm1_resampler {
   uint32_t tap_step;  /* kernel table entries per input sample, 16.16 */
   float gain;         /* intermediate samples per input sample (rho) */
   uint32_t mode;      /* FM1_RESAMPLER_OFF, _PASS or _CONVERT */
+#if defined(LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE)
+  uint32_t profile_phase, profile_engine, profile_sampled;
+#endif
   uint32_t held;      /* pass-through: in[0] holds a sample not yet popped */
   uint32_t in_w, mid_w;   /* next write slot of each ring */
   /* Number of numerically nonzero samples in each logical ring. NaN counts
@@ -303,6 +307,18 @@ typedef struct fm1_resampler {
   float mid[2 * FM1_RESAMPLER_MID_CAP];   /* the last 123 intermediate samples */
 } fm1_resampler_t;
 
+/* Only the two profiled engine owners call this once per output. */
+#if defined(LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE)
+static inline void fm1_resampler_profile_output_(fm1_resampler_t *r, uint32_t engine) {
+  r->profile_engine = engine;
+  r->profile_sampled = r->profile_phase == 0u;
+  r->profile_phase = (r->profile_phase + 1u) % FM1_RESAMPLER_PROFILE_STRIDE;
+  if (r->profile_sampled) lunar_resampler_profile_count(engine, 0u);
+}
+#else
+#define fm1_resampler_profile_output_(r, engine) ((void)0)
+#endif
+
 /* Sets r up to convert in_rate to out_rate. Returns 1, or 0 (r then passes
  * nothing: needed() is 0 and pop() returns 0) when the ratio
  * in_rate / out_rate is outside 1..FM1_RESAMPLER_MAX_RATIO or either rate is
@@ -314,6 +330,9 @@ static inline int fm1_resampler_init(fm1_resampler_t *r, float in_rate, float ou
   r->tap_step = 0;
   r->gain = 0.0f;
   r->mode = FM1_RESAMPLER_OFF;
+#if defined(LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE)
+  r->profile_phase = r->profile_engine = r->profile_sampled = 0;
+#endif
   r->held = 0;
   r->in_w = r->mid_w = 0;
   r->in_nonzero = r->mid_nonzero = 0;
@@ -431,6 +450,9 @@ float fm1_resampler_pop_ready_(fm1_resampler_t *r) {
    * the ordinary two-sample path does, but avoid two out-of-line stage calls.
    * Checking mid_nonzero as well as in_nonzero preserves the FIR tail. */
   if (r->in_nonzero == 0 && r->mid_nonzero == 0) {
+#if defined(LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE)
+    if (r->profile_sampled) lunar_resampler_profile_count(r->profile_engine, 1u);
+#endif
     uint32_t slot;
     r->rel = r->rel + r->step;
     slot = r->mid_w;
@@ -442,6 +464,10 @@ float fm1_resampler_pop_ready_(fm1_resampler_t *r) {
     if (++r->mid_w == FM1_RESAMPLER_MID_CAP) r->mid_w = 0;
     return 0.0f;
   }
+  FM1_STAGE_BEGIN(stage1, r->profile_sampled);
+#if defined(LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE)
+  if (r->profile_sampled) lunar_resampler_profile_count(r->profile_engine, 2u);
+#endif
   for (j = 0; j < 2; ++j) {             /* intermediate samples 2k and 2k + 1 */
     const float x = fm1_resampler_intermediate_(r);
     const uint32_t slot = r->mid_w;
@@ -450,7 +476,12 @@ float fm1_resampler_pop_ready_(fm1_resampler_t *r) {
     r->mid[slot] = r->mid[slot + FM1_RESAMPLER_MID_CAP] = x;
     if (++r->mid_w == FM1_RESAMPLER_MID_CAP) r->mid_w = 0;
   }
+  FM1_STAGE_END(stage1, r->profile_sampled, r->profile_engine, 2u);
   if (r->mid_nonzero == 0) return 0.0f;
+  FM1_STAGE_BEGIN(stage2, r->profile_sampled);
+#if defined(LUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE)
+  if (r->profile_sampled) lunar_resampler_profile_count(r->profile_engine, 3u);
+#endif
   /* Output k is the low-pass centred on intermediate sample 2k - 60, the
    * middle of the last 123 (2k - 121 .. 2k + 1, oldest at e[0]); the pairs
    * from the outside in, over four sums so their chains overlap. */
@@ -462,7 +493,9 @@ float fm1_resampler_pop_ready_(fm1_resampler_t *r) {
     y3 += h[j + 3] * (e[j + 3] + e[FM1_RESAMPLER_LP_LEN - 4 - j]);
   }
   for (; j < FM1_RESAMPLER_LP_PAIRS; ++j) y0 += h[j] * (e[j] + e[FM1_RESAMPLER_LP_LEN - 1 - j]);
-  return ((y0 + y1) + (y2 + y3)) + h[FM1_RESAMPLER_LP_PAIRS] * e[FM1_RESAMPLER_LP_PAIRS];
+  const float result = ((y0 + y1) + (y2 + y3)) + h[FM1_RESAMPLER_LP_PAIRS] * e[FM1_RESAMPLER_LP_PAIRS];
+  FM1_STAGE_END(stage2, r->profile_sampled, r->profile_engine, 3u);
+  return result;
 }
 
 /* The next output sample. Returns 0 and changes nothing if r still needs

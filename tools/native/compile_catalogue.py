@@ -68,6 +68,7 @@ def main():
                         'overrides Hall -Os from --hot-dsp-os only')
     parser.add_argument('--hot-dsp-ram', action='store_true',
                         help='Explicit experiment: place selected sixop/Hall/limiter render bodies in RAM')
+    parser.add_argument('--resampler-stage-profile', action='store_true')
     parser.add_argument('--engine-render-profile', action='store_true',
                         help='Compile Drums/SixOp render timing hooks for the opt-in diagnostic')
     parser.add_argument('--shared-resampler', action='store_true',
@@ -108,6 +109,10 @@ def main():
     extra += ' -DFM1_SHAPES_VOICES=' + str(args.shapes_voices)
     if args.hot_dsp_ram:
         extra += ' -DFM1_HOT_DSP_RAM=1'
+    if args.resampler_stage_profile:
+        if not args.engine_render_profile:
+            parser.error("resampler stages require engine render profile")
+        extra += ' -DLUNAR_DIAGNOSTIC_RESAMPLER_STAGE_PROFILE=1'
     if args.engine_render_profile:
         extra += ' -DLUNAR_DIAGNOSTIC_ENGINE_RENDER_PROFILE=1'
     if args.lto:
@@ -152,6 +157,7 @@ def main():
               'hall_o2': args.hall_o2,
               'hot_dsp_ram': args.hot_dsp_ram,
               'engine_render_profile': args.engine_render_profile,
+              'resampler_stage_profile': args.resampler_stage_profile,
               'shared_resampler': args.shared_resampler,
               'indexed_tft': args.indexed_tft,
               'shapes_voices': args.shapes_voices,
