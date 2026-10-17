@@ -75,15 +75,21 @@ def _read(path: Path, limit: int) -> bytes:
 
 
 def _json_bytes(raw: bytes) -> dict:
-    value = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique)
+    def reject_constant(_value):
+        raise ValueError("non-finite JSON number is not permitted")
+    value = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique,
+                       parse_constant=reject_constant)
     if not isinstance(value, dict):
         raise ValueError("JSON input must be an object")
     return value
 
 
 def _safe_ref(base: Path, ref: str) -> Path:
+    if not isinstance(ref, str):
+        raise ValueError("unsafe relative trace reference")
     p = PurePosixPath(ref)
-    if not isinstance(ref, str) or not ref or p.is_absolute() or any(x in ("", ".", "..") for x in p.parts):
+    if (not ref or "\\" in ref or p.is_absolute() or p.as_posix() != ref
+            or any(x in ("", ".", "..") for x in p.parts)):
         raise ValueError("unsafe relative trace reference")
     path = base
     for part in p.parts:
@@ -107,6 +113,42 @@ def _pathhash(rows, path_key="path", hash_key="sha256"):
             raise ValueError("malformed or duplicate inventory identity")
         out[path] = digest
     return out
+
+
+def _canonical_linked_path(path: str) -> str:
+    """Map the trace runtime mount to the retained catalogue identity path."""
+    prefix = "/output/catalogue/"
+    if path.startswith(prefix):
+        return "/catalogue/" + path[len(prefix):]
+    return path
+
+
+def _classify_compile_receipt(receipt_path: str) -> tuple[str, str]:
+    if not isinstance(receipt_path, str):
+        raise ValueError("compiler receipt path is malformed")
+    parts = PurePosixPath(receipt_path).parts
+    if (len(parts) == 4 and parts[0] == "catalogue"
+            and re.fullmatch(r"shard-[0-9]{2}", parts[1]) and parts[2] == "records"):
+        return "catalogue", parts[1]
+    if len(parts) == 3 and parts[0] == "highlevel" and parts[1] == "records":
+        return "highlevel", "highlevel"
+    raise ValueError("compiler receipt is outside accepted trace receipt roots")
+
+
+def _check_compiler_argv(receipt: dict, expected_output: str, expected_source: str) -> None:
+    argv, cwd = receipt.get("argv"), receipt.get("cwd")
+    if (not isinstance(argv, list) or any(not isinstance(arg, str) for arg in argv)
+            or not isinstance(cwd, str) or not cwd.startswith("/")):
+        raise ValueError("compiler receipt argv/cwd is malformed")
+    output_args = [argv[i + 1] for i, arg in enumerate(argv[:-1]) if arg == "-o"]
+    if output_args != [expected_output]:
+        raise ValueError("compiler argv output differs from receipt output")
+    def resolved(arg):
+        if arg.startswith("/"):
+            return arg
+        return os.path.normpath(cwd.rstrip("/") + "/" + arg)
+    if not any(resolved(arg) == expected_source for arg in argv):
+        raise ValueError("compiler argv source differs from receipt source")
 
 
 def _relative_runtime(resolved: str, root: str, runtime_root: str) -> str | None:
@@ -151,7 +193,7 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
     if (trace.get("source", {}).get("commit") != provenance.get("source_commit")
             or trace.get("source", {}).get("tree_sha256") != tuple_record.get("source_tree_sha256")):
         raise ValueError("trace source commit/tree differs from tuple-bound provenance")
-    if trace.get("catalogue", {}).get("source_tree_sha256") != tuple_record.get("catalogue_tree_sha256"):
+    if trace.get("catalogue", {}).get("source_tree_sha256") != provenance.get("catalogue_tree_sha256"):
         raise ValueError("trace catalogue source tree differs from tuple")
     if trace.get("request", {}).get("sha256") != tuple_record.get("request_sha256"):
         raise ValueError("trace request digest differs from tuple")
@@ -190,7 +232,7 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
     objects = trace.get("linked_objects")
     if not isinstance(objects, list) or not objects:
         raise ValueError("trace lacks linked object inventory")
-    expected_objects = _pathhash(objects)
+    runtime_objects = _pathhash(objects)
     for row in objects:
         if type(row.get("size")) is not int or row["size"] < 0 or row.get("role") not in ("catalogue", "highlevel"):
             raise ValueError("linked object size/role is malformed")
@@ -199,22 +241,77 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
     # linked-object inventory and compiler hash live in that authenticated
     # sidecar, not in duplicated tuple fields.
     tuple_objects = provenance.get("linked_objects")
-    if not isinstance(tuple_objects, list) or _pathhash(tuple_objects) != expected_objects:
+    canonical_objects = {_canonical_linked_path(path): digest for path, digest in runtime_objects.items()}
+    if not isinstance(tuple_objects, list) or _pathhash(tuple_objects) != canonical_objects:
         raise ValueError("trace linked objects differ from tuple-bound linked inventory")
     retained = trace.get("retained_verification", {})
     verification_raw = _read(_safe_ref(base, retained.get("path")), MAX_JSON)
     if _sha(verification_raw) != retained.get("sha256"):
         raise ValueError("retained verification bytes do not match trace")
     verification = _json_bytes(verification_raw)
-    if _pathhash(verification.get("linked_objects", [])) != expected_objects:
+    if _pathhash(verification.get("linked_objects", [])) != canonical_objects:
         raise ValueError("retained verification linked objects differ from trace")
+    expected_objects = runtime_objects
 
     entries: dict[str, bytes] = {"compiler-trace/aggregate.json": trace_raw,
                                  "compiler-trace/retained-verification.json": verification_raw}
+    # Preserve and cross-check the execution evidence and raw receipt manifest
+    # that the independently anchored aggregate names. These are separate from
+    # compiler dependency receipts and must not be inferred from counts.
+    execution = trace.get("execution")
+    if not isinstance(execution, dict):
+        raise ValueError("trace execution evidence is missing")
+    execution_refs = [execution.get("launcher_pins"), *execution.get("terminal_records", [])]
+    if not isinstance(execution.get("terminal_records"), list):
+        raise ValueError("trace terminal records must be an array")
+    execution_seen = {}
+    for ref in execution_refs:
+        if not isinstance(ref, dict):
+            raise ValueError("trace execution evidence reference is malformed")
+        raw = _read(_safe_ref(base, ref.get("path")), MAX_JSON)
+        if (_sha(raw) != ref.get("sha256") or len(raw) != ref.get("bytes")):
+            raise ValueError("trace execution evidence bytes differ from aggregate")
+        name = "compiler-trace/" + ref["path"]
+        identity = (ref["sha256"], ref["bytes"])
+        if name in execution_seen:
+            if execution_seen[name] != identity:
+                raise ValueError("conflicting duplicate trace execution evidence path")
+            continue
+        execution_seen[name] = identity
+        entries[name] = raw
+
+    receipt_manifest_ref = trace.get("receipt_manifest")
+    if not isinstance(receipt_manifest_ref, dict):
+        raise ValueError("trace raw receipt manifest reference is missing")
+    receipt_manifest_raw = _read(_safe_ref(base, receipt_manifest_ref.get("path")), MAX_JSON)
+    if (_sha(receipt_manifest_raw) != receipt_manifest_ref.get("sha256")
+            or len(receipt_manifest_raw) != receipt_manifest_ref.get("bytes")):
+        raise ValueError("trace raw receipt manifest differs from aggregate")
+    receipt_manifest_value = _json_bytes(receipt_manifest_raw)
+    manifest_rows = receipt_manifest_value.get("receipts")
+    if not isinstance(manifest_rows, list):
+        raise ValueError("raw receipt manifest rows are malformed")
+    receipt_manifest_rows = {}
+    for row in manifest_rows:
+        if not isinstance(row, dict) or row.get("kind") not in (
+                "compile", "storage-ir", "relocatable-link", "final-link"):
+            raise ValueError("raw receipt manifest row is malformed")
+        path, digest, size = row.get("path"), row.get("sha256"), row.get("bytes")
+        if (not isinstance(path, str) or not isinstance(digest, str) or not HASH.fullmatch(digest)
+                or type(size) is not int or size < 0 or path in receipt_manifest_rows):
+            raise ValueError("raw receipt manifest identity is malformed or duplicated")
+        raw = _read(_safe_ref(base, path), MAX_JSON)
+        if _sha(raw) != digest or len(raw) != size:
+            raise ValueError("raw receipt manifest file differs from its row")
+        receipt_manifest_rows[path] = (row["kind"], digest, size)
+    entries["compiler-trace/receipt-manifest.json"] = receipt_manifest_raw
+
     source_manifest = trace.get("source", {}).get("manifest", {})
     request_ref = trace.get("request", {})
+    catalogue_manifest = trace.get("catalogue", {}).get("manifest", {})
     source_manifest_value = None
-    for label, row in (("source-manifest", source_manifest), ("request", request_ref)):
+    for label, row in (("source-manifest", source_manifest), ("request", request_ref),
+                       ("catalogue-manifest", catalogue_manifest)):
         raw = _read(_safe_ref(base, row.get("path")), MAX_JSON)
         if _sha(raw) != row.get("sha256"):
             raise ValueError(f"trace {label} bytes do not match aggregate")
@@ -225,6 +322,8 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
             raise ValueError("trace source manifest does not match tuple/provenance")
         if label == "request" and _sha(raw) != tuple_record.get("request_sha256"):
             raise ValueError("trace request bytes do not match tuple")
+        if label == "catalogue-manifest" and _sha(raw) != provenance.get("catalogue_tree_sha256"):
+            raise ValueError("trace catalogue manifest bytes do not match provenance")
     source_hashes = {row.get("path"):row.get("sha256") for row in source_manifest_value.get("objects", [])
                      if isinstance(row, dict) and isinstance(row.get("path"), str)}
     manifest_ref = trace.get("toolchain_manifest", {})
@@ -235,15 +334,25 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
     raw_receipt_rows = []
     dependencies: dict[tuple[str, str], dict] = {}
     compiled = {}
+    compile_rows = {}
     object_rows = {row["path"]:row for row in objects}
+    compiler_pin = trace["toolchain"].get("compiler", {})
     for row in trace.get("compile_receipts", []):
+        classification = _classify_compile_receipt(row.get("receipt_path"))
+        if (("kind" in row and row["kind"] != classification[0])
+                or ("shard" in row and row["shard"] != classification[1])):
+            raise ValueError("compiler aggregate receipt classification differs from receipt path")
         raw = _read(_safe_ref(base, row.get("receipt_path")), MAX_JSON)
         if _sha(raw) != row.get("receipt_sha256"):
             raise ValueError("compiler receipt SHA mismatch")
         receipt = _json_bytes(raw)
         if (receipt.get("trace_complete") is not True or receipt.get("compile_exit") != 0
-                or receipt.get("dependency_exit") != 0 or receipt.get("status") != "success"):
+                or receipt.get("dependency_exit") != 0 or receipt.get("status") != "complete"):
             raise ValueError("compiler receipt is incomplete or unsuccessful")
+        if (receipt.get("compiler") != compiler_pin.get("path")
+                or receipt.get("compiler_sha256") != compiler_pin.get("sha256")):
+            raise ValueError("compiler receipt executable differs from pinned compiler")
+        _check_compiler_argv(receipt, row.get("output_path"), row.get("source_path"))
         opath, ohash = receipt.get("output"), receipt.get("object_sha256")
         if (opath != row.get("output_path") or ohash != row.get("output_sha256")
                 or receipt.get("source") != row.get("source_path")
@@ -253,18 +362,25 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
         output_size = row.get("output_size", object_rows.get(opath, {}).get("size"))
         if _sha(output_data) != ohash or (output_size is not None and len(output_data) != output_size):
             raise ValueError("compiler output bytes differ from its anchored receipt")
-        source_data = _runtime_file(receipt.get("source"), "/src", source_root,
-                                    alternate_runtime_root="/workspace")
+        source_path = receipt.get("source")
+        if isinstance(source_path, str) and source_path.startswith("/output/"):
+            # Some catalogue/resource objects are generated by the build and
+            # then compiled. Their bytes are pinned by the successful receipt
+            # and the separately anchored fresh output tree, not the source
+            # checkout manifest.
+            source_data = _runtime_file(source_path, "/output", output_root)
+        else:
+            source_data = _runtime_file(source_path, "/src", source_root,
+                                        alternate_runtime_root="/workspace")
         if _sha(source_data) != receipt.get("source_sha256"):
             raise ValueError("compiler source bytes differ from pinned committed source")
-        if opath not in expected_objects and not _is_ld_intermediate(opath, trace):
-            raise ValueError("compiler output is neither linked nor a declared ld-r input")
         if opath in compiled:
             raise ValueError("duplicate compiler output receipt")
         expected_size = output_size if output_size is not None else len(output_data)
         if type(expected_size) is not int or expected_size < 0:
             raise ValueError("compiler output size is not pinned")
         compiled[opath] = (ohash, expected_size)
+        compile_rows[opath] = {**row, "kind":classification[0], "shard":classification[1]}
         receipt_name = "compiler-trace/receipts/" + row["receipt_path"]
         entries[receipt_name] = raw
         raw_receipt_rows.append({"path": receipt_name, "sha256": _sha(raw), "bytes": len(raw), "kind": "compile"})
@@ -291,14 +407,9 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
     for path, digest in expected_objects.items():
         if compiled[path][0] != digest or compiled[path][1] != object_rows[path].get("size"):
             raise ValueError("linked object hash differs from compiler receipt")
-    routed_outputs = set(expected_objects)
-    for row in trace.get("relocatable_link_receipts", []):
-        routed_outputs.update(i.get("path") for i in row.get("inputs", []))
-    if set(compiled) - routed_outputs:
-        raise ValueError("compiler receipt output is not consumed by final or relocatable link")
-
     ir_dependencies = _check_ir_and_relocatable(trace, base, output_root, source_root, entries,
-                                                  raw_receipt_rows, compiled, expected_objects)
+                                                  raw_receipt_rows, compiled, expected_objects,
+                                                  toolchain_manifest, toolchain_root)
     for dep in ir_dependencies:
         key = (dep["resolved"], dep["sha256"])
         prior = dependencies.get(key)
@@ -307,6 +418,11 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
         if prior is not None and prior != value:
             raise ValueError("conflicting IR dependency identity")
         dependencies[key] = value
+    routed_outputs = set(expected_objects)
+    for row in trace.get("relocatable_link_receipts", []):
+        routed_outputs.update(item.get("path") for item in row.get("inputs", [])
+                              if isinstance(item, dict) and item.get("path") in compiled)
+    unlinked_compile_outputs = sorted(set(compiled) - routed_outputs)
     final = trace.get("final_link_receipt", {})
     linkraw = _read(_safe_ref(base, final.get("receipt_path")), MAX_JSON)
     if _sha(linkraw) != final.get("receipt_sha256"):
@@ -356,7 +472,8 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
         raise ValueError("final link script input differs from actual linker argv")
     if script_path.startswith(("/src/", "/workspace/")):
         script_data = _runtime_file(script_path, "/src", source_root, alternate_runtime_root="/workspace")
-        rel = script_path.split("/", 3)[-1]
+        source_root_prefix = "/src/" if script_path.startswith("/src/") else "/workspace/"
+        rel = script_path[len(source_root_prefix):]
         if source_manifest_value is None or source_hashes.get(rel) != script_identity[0] or _sha(script_data) != script_identity[0]:
             raise ValueError("linker script differs from pinned committed source manifest")
     else:
@@ -373,6 +490,15 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
     linkname = "compiler-trace/receipts/" + final["receipt_path"]
     entries[linkname] = linkraw
     raw_receipt_rows.append({"path": linkname, "sha256": _sha(linkraw), "bytes": len(linkraw), "kind": "final-link"})
+
+    expected_manifest_rows = {}
+    for row in raw_receipt_rows:
+        path = row["path"].removeprefix("compiler-trace/receipts/")
+        if path in expected_manifest_rows:
+            raise ValueError("duplicate trace receipt path")
+        expected_manifest_rows[path] = (row["kind"], row["sha256"], row["bytes"])
+    if receipt_manifest_rows != expected_manifest_rows:
+        raise ValueError("raw receipt manifest does not exactly cover aggregate receipts")
 
     toolroot = Path(toolchain_root).resolve(strict=True)
     header_files = {}
@@ -442,6 +568,10 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
                 "toolchain_tree_sha256": tuple_record["toolchain_tree_sha256"],
                 "compiler_sha256": compiler["sha256"], "app_sha256": expected_app, "elf_sha256": expected_elf,
                 "raw_receipts": sorted(raw_receipt_rows, key=lambda r:r["path"]),
+                "unlinked_compile_outputs": [
+                    {"path": path, "sha256": compiled[path][0], "bytes": compiled[path][1],
+                     "kind": compile_rows[path]["kind"], "shard": compile_rows[path]["shard"]}
+                    for path in unlinked_compile_outputs],
                 "consumed_headers": [{"path": p, "sha256": _sha(b), "bytes": len(b)} for p,b in sorted(header_files.items())],
                 "official_notices": notice_rows,
                 "dependencies_not_exported_by_compiler_header_collector": sorted(unexported_deps, key=lambda d:(d["resolved"],d["sha256"])),
@@ -514,22 +644,35 @@ def _is_ld_intermediate(path, trace):
     return path in allowed
 
 
-def _check_ir_and_relocatable(trace, base, output_root, source_root, entries, raw_rows, compiled, expected_objects):
+def _check_ir_and_relocatable(trace, base, output_root, source_root, entries, raw_rows, compiled,
+                              expected_objects, toolchain_manifest, toolchain_root):
     dependencies = []
     for row in trace.get("storage_ir_receipts", []):
         raw = _read(_safe_ref(base, row.get("receipt_path")), MAX_JSON)
         if _sha(raw) != row.get("receipt_sha256"):
             raise ValueError("storage IR receipt SHA mismatch")
         rec = _json_bytes(raw)
-        if (rec.get("trace_complete") is not True or rec.get("status") != "success"
+        if (rec.get("trace_complete") is not True or rec.get("status") != "complete"
                 or rec.get("compile_exit") != 0 or rec.get("dependency_exit") != 0
                 or rec.get("ir_sha256") != row.get("output_sha256") or rec.get("output") != row.get("output_path")
+                or rec.get("source") != row.get("source_path")
+                or rec.get("source_sha256") != row.get("source_sha256")
                 or rec.get("indexed") != row.get("define_fm1_tft_indexed")):
             raise ValueError("storage IR receipt incomplete or mismatched")
+        compiler_pin = trace["toolchain"].get("compiler", {})
+        if (rec.get("compiler") != compiler_pin.get("path")
+                or rec.get("compiler_sha256") != compiler_pin.get("sha256")):
+            raise ValueError("storage IR compiler differs from pinned compiler")
+        _check_compiler_argv(rec, row.get("output_path"), row.get("source_path"))
         ir_data = _runtime_file(rec.get("output"), "/output", output_root)
         if _sha(ir_data) != rec.get("ir_sha256") or len(ir_data) != row.get("output_size"):
             raise ValueError("storage IR output bytes differ from receipt")
-        source_data = _runtime_file(rec.get("source"), "/src", source_root, alternate_runtime_root="/workspace")
+        source_path = rec.get("source")
+        if isinstance(source_path, str) and source_path.startswith("/output/"):
+            source_data = _runtime_file(source_path, "/output", output_root)
+        else:
+            source_data = _runtime_file(source_path, "/src", source_root,
+                                        alternate_runtime_root="/workspace")
         if _sha(source_data) != rec.get("source_sha256"):
             raise ValueError("storage IR source bytes differ from committed source")
         deps = rec.get("dependencies", [])
@@ -545,6 +688,7 @@ def _check_ir_and_relocatable(trace, base, output_root, source_root, entries, ra
         rec = _json_bytes(raw)
         raw_output = rec.get("output", {})
         if (rec.get("trace_complete") is not True or rec.get("returncode") != 0
+                or rec.get("linker") != trace["toolchain"].get("linker", {}).get("path")
                 or raw_output.get("sha256") != row.get("output_sha256")
                 or raw_output.get("path") != row.get("output_path")):
             raise ValueError("relocatable link receipt incomplete or mismatched")
@@ -555,11 +699,39 @@ def _check_ir_and_relocatable(trace, base, output_root, source_root, entries, ra
         if not isinstance(inputs, list) or {i.get("path"):(i.get("sha256"),i.get("size")) for i in inputs} != {i.get("path"):(i.get("sha256"),i.get("size")) for i in row.get("inputs", [])}:
             raise ValueError("relocatable link inputs differ from aggregate")
         input_identities = {item.get("path"):(item.get("sha256"),item.get("size")) for item in inputs}
-        if any(path not in compiled or compiled[path] != identity for path,identity in input_identities.items()):
-            raise ValueError("relocatable link input lacks a matching successful compile receipt")
-        if (raw_output.get("path") not in expected_objects
-                or expected_objects[raw_output.get("path")] != raw_output.get("sha256")):
-            raise ValueError("relocatable link output is not an exact final linked object")
+        toolchain_inputs = []
+        for path, identity in input_identities.items():
+            if path in compiled:
+                if compiled[path] != identity:
+                    raise ValueError("relocatable link input differs from successful compile receipt")
+                continue
+            expected_linker_path = trace["toolchain"].get("linker", {}).get("path")
+            expected_linker_sha = trace["toolchain"].get("linker", {}).get("sha256")
+            rel = _runtime_toolchain_path(path)
+            pinned = next((item for item in toolchain_manifest.get("objects", [])
+                           if item.get("kind") == "file" and item.get("path") == rel), None)
+            if (path != expected_linker_path or pinned is None
+                    or (pinned.get("sha256"), pinned.get("bytes")) != identity
+                    or identity[0] != expected_linker_sha):
+                raise ValueError("relocatable link input is not the pinned linker")
+            toolchain_inputs.append(path)
+        if len(toolchain_inputs) != 1:
+            raise ValueError("relocatable link must contain exactly one pinned linker input")
+        if raw_output.get("path") in expected_objects:
+            raise ValueError("relocatable link validation output must not masquerade as a final linked object")
+        dependencies.append({"resolved":raw_output["path"], "root_class":"fresh-build-output",
+                             "sha256":raw_output["sha256"], "size":raw_output["size"],
+                             "scope":"relocatable-link-validation-output"})
         name = "compiler-trace/receipts/" + row["receipt_path"]
         entries[name] = raw; raw_rows.append({"path":name,"sha256":_sha(raw),"bytes":len(raw),"kind":"relocatable-link"})
     return dependencies
+
+
+def _runtime_toolchain_path(runtime_path: str) -> str | None:
+    prefix = "/opt/pi32v2-real/"
+    if not isinstance(runtime_path, str) or not runtime_path.startswith(prefix):
+        return None
+    rel = runtime_path[len(prefix):]
+    if not rel or any(part in ("", ".", "..") for part in PurePosixPath(rel).parts):
+        return None
+    return rel
