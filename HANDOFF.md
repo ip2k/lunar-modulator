@@ -1,3 +1,31 @@
+## PAC2 physical unloaded readback passed; owner connection pending — 2026-10-17 UTC
+
+[verified: root direct build, routed netlist/timing, volatile load and PAC reads]
+Root replaced malformed shell launchers with direct Python runner SHA
+280425569fcb5a9eafabf7ba07d33c37beacc2e11d545748b18f568bea522161.
+Aeon build container0753049c1b97594868c023c75196cf496a5d23ab1197209c9446e7f2ea539133
+exited0/noOOM. Exact sourcea9b907b0; image d065eaf; retained readonlyvenv/OSSCAD.
+Root verified4CPU/8GiB memory=swap/512PIDs/networknone/ro/capdrop/noDevices.
+Bitstream119815B SHA f4e963ada21c07a6de853abb63b664cfd0129f0945f10bc6e32776d564a89e23.
+Final timing181.95MHz(PASS60)/220.17MHz(PASS120). Netlist has no D+/D− GPIO
+ports;CONTROL1,TARGET_C0,AUX0,discharge0 output constants. Proof/artifacts:
+scratch/cynthion-pac2-root-direct-20261017/root-review.json and sibling files.
+After owner confirmed BOTH TARGETempty, root volatile-loaded it (exit0).
+Three PAC2/layout2 sweeps valid: active4000, fault0, fresh sequences31/46/60,
+VBUS5.073242/5.062988/5.080566V, current+763/+610/+305uA (uncalibrated unloaded
+offsets, not a load measurement). Raw unloaded-baseline.jsonl in same scratchdir.
+Loaded image is NOW PAC2, superseding earlier PAC1 statements below.
+
+Pending owner async question: connect FM1->TARGET_A with verifieddata cable,
+CONTROL->Mac,TARGET_Cempty,switchRIGHT as lasttested,noUSER/RESET. Read signed
+current on confirmation; no recoverykey/flash authorized by that connection.
+No FM1 CPU power/bootloader recovery/audio acceptance established. SAVE/public
+release disabled. Root build claim released after terminal/log retention and
+explicit containercleanup; worker failed-attempt claim remains handedoff.
+Offline compiler_header_provenance implementing narrowly verified catalogue
+mount-alias support in isolated sourcecollector branch; no new targetbuild.
+Latest backed codea9fd7ab3; goalACTIVE; AeonONLY, Hera untouched.
+
 ## Fresh BFF traced build passed; PAC2 route in progress — 2026-10-17 UTC
 
 [verified: coordinator rehash and terminal inspection] Revision3 offline trace
