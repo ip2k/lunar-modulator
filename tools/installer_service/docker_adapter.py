@@ -157,7 +157,7 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
             if ((build.get("module_selection") or {}).get("selected") != selected
                     or image.get("module_selection") != build.get("module_selection")):
                 raise ValueError("private continuous lower selection differs from request")
-            validate_image_receipt(image, selected)
+            validate_image_receipt(image, selected, lower_receipt=build)
         else:
             from .native_profile import evidence_manifest, validate_receipt
         profile_raw = evidence.get("native_profile.json")
@@ -548,17 +548,23 @@ class DockerJobAdapter:
                 raise ValueError("worker image receipt is malformed") from exc
             if not isinstance(receipt_object, dict):
                 raise ValueError("worker image receipt must be an object")
+            private_evidence = read_private_evidence(
+                result_dir, (input_dir / "request.json").read_bytes(), receipt,
+                self.config.catalogue_root)
+            lower_receipt = None
+            if ((receipt_object.get("runtime_configuration") or {}).get("runtime_mode")
+                    == "continuous"):
+                lower_receipt = json.loads(
+                    private_evidence["build_receipt.json"].decode("utf-8"),
+                    object_pairs_hook=_unique_object, parse_constant=_reject_constant)
             provenance = make_diagnostic_provenance(
                 bindings={key: value for key, value in binding.items()
                           if key not in ("request_sha256", "schema")},
                 request_sha256=binding["request_sha256"], artifact=artifact, elf=elf,
-                receipt_raw=receipt, receipt=receipt_object)
+                receipt_raw=receipt, receipt=receipt_object, lower_receipt=lower_receipt)
             provenance_path = result_dir / "provenance.json"
             provenance_path.write_bytes(provenance)
             os.chmod(provenance_path, 0o600)
-            private_evidence = read_private_evidence(
-                result_dir, (input_dir / "request.json").read_bytes(), receipt,
-                self.config.catalogue_root)
             outcome = WorkerSnapshot(
                 "succeeded", WorkerResult(artifact, receipt, elf, provenance, private_evidence))
         except Exception:

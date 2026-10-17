@@ -91,7 +91,7 @@ def tree_manifest(root: Path) -> bytes:
 
 def make_diagnostic_provenance(*, bindings: dict, request_sha256: str,
                                artifact: bytes, elf: bytes, receipt_raw: bytes,
-                               receipt: dict) -> bytes:
+                               receipt: dict, lower_receipt: dict | None = None) -> bytes:
     """Bind host-owned input pins to the worker's already-verified outputs."""
     expected_binding_keys = {
         "source_commit", "source_tree_oid", "source_archive_sha256",
@@ -123,7 +123,8 @@ def make_diagnostic_provenance(*, bindings: dict, request_sha256: str,
     continuous = profile["runtime_mode"] == "continuous"
     if continuous:
         selected = (receipt.get("module_selection") or {}).get("selected")
-        continuous_profile.validate_image_receipt(receipt, selected)
+        continuous_profile.validate_image_receipt(receipt, selected,
+                                                  lower_receipt=lower_receipt)
         profile = continuous_profile.profile_summary()
         compatibility_reason = continuous_profile.COMPATIBILITY_REASON
     elif profile["flash_layout"] == "expanded-d7000":

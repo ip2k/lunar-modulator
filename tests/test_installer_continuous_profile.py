@@ -44,6 +44,51 @@ def receipt(doc, app=b"continuous-app"):
     return value
 
 
+def api_evidence(doc, outer, app=b"continuous-app", elf=TEST_ELF):
+    """Small complete-shaped fake payload for the API boundary (adapter tests use disk evidence)."""
+    from tools.installer_service.docker_worker import generated_evidence_paths
+    request = canonical_request(doc)
+    prepared = b'{"prepared":true}'
+    source = b'{"source":true}'
+    selected = outer["module_selection"]["selected"]
+    linked = [{"path": "/tmp/lunar-worker/output/build/link/" + name,
+               "sha256": hashlib.sha256(name.encode()).hexdigest()}
+              for name in ("midi_uart_stream.o", "midi_stream.o")]
+    lower = deepcopy(outer)
+    lower.update(request_sha256=hashlib.sha256(request).hexdigest(),
+                 app_sha256=hashlib.sha256(app).hexdigest(), app_bytes=len(app),
+                 elf_sha256=hashlib.sha256(elf).hexdigest(), elf_bytes=len(elf),
+                 flash_write_range="empty", boot_ota_cleanup=False,
+                 hardware_candidate=False, catalogue_source_freshness_verified=True,
+                 catalogue_objects=[], linked_objects=linked)
+    artifact_receipt = json.dumps({"app_sha256": lower["app_sha256"],
+                                   "elf_sha256": lower["elf_sha256"]},
+                                  sort_keys=True, separators=(",", ":")).encode()
+    lower_raw = json.dumps(lower, sort_keys=True, separators=(",", ":")).encode()
+    outer = deepcopy(outer)
+    outer["prepared_profile_sha256"] = hashlib.sha256(prepared).hexdigest()
+    outer["verification_sha256"] = hashlib.sha256(lower_raw).hexdigest()
+    outer["artifact_receipt_sha256"] = hashlib.sha256(artifact_receipt).hexdigest()
+    outer["embedded_content"]["prepared_sha256"] = outer["prepared_profile_sha256"]
+    outer.pop("flash_layout", None)
+    image_raw = json.dumps(outer, sort_keys=True, separators=(",", ":")).encode()
+    evidence = {
+        "request.json": request,
+        "prepared_profile.json": prepared,
+        "source_profile.json": source,
+        "artifact_receipt.json": artifact_receipt,
+        "build_receipt.json": lower_raw,
+        "image_receipt.json": image_raw,
+        "catalogue_manifest.json": b'{"objects":[],"schema":1}',
+        "linked_objects.json": json.dumps({"schema": 1, "objects": linked},
+                                           sort_keys=True, separators=(",", ":")).encode(),
+    }
+    evidence["native_profile.json"] = policy.evidence_manifest(lower_raw)
+    for path in generated_evidence_paths(lower):
+        evidence["generated/" + path] = ("generated:" + path).encode()
+    return image_raw, evidence
+
+
 def service(kinds):
     adapter = FakeJobAdapter(1)
     return TestClient(create_app(adapter=adapter, template=TEMPLATE, module_kinds=kinds,
@@ -56,7 +101,9 @@ def succeed(client, adapter, doc, mutate=None):
     value = receipt(doc)
     if mutate:
         mutate(value)
-    adapter.succeed(accepted.json()["id"], b"continuous-app", json.dumps(value).encode(), TEST_ELF)
+    raw, evidence = api_evidence(doc, value)
+    adapter.succeed(accepted.json()["id"], b"continuous-app", raw, TEST_ELF,
+                    private_evidence=evidence)
     return accepted.json()
 
 
@@ -98,6 +145,26 @@ def test_all_production_groups_are_selectable_without_test_modules(kinds):
     assert c.get(accepted["status_url"]).status_code == 200
     assert json.loads(adapter.submissions[accepted["id"]][0]) == doc
     assert not any(name.startswith("test-") for name in kinds)
+
+
+def test_continuous_api_refuses_missing_private_evidence(kinds):
+    c, adapter = service(kinds)
+    doc = request_doc()
+    accepted = c.post("/api/v1/builds", json=doc).json()
+    image, evidence = api_evidence(doc, receipt(doc))
+    adapter.succeed(accepted["id"], b"continuous-app", image, TEST_ELF)
+    assert c.get(accepted["status_url"]).status_code == 502
+
+
+def test_continuous_api_binds_lower_receipt_digest(kinds):
+    c, adapter = service(kinds)
+    doc = request_doc()
+    accepted = c.post("/api/v1/builds", json=doc).json()
+    image, evidence = api_evidence(doc, receipt(doc))
+    evidence["build_receipt.json"] += b" "
+    adapter.succeed(accepted["id"], b"continuous-app", image, TEST_ELF,
+                    private_evidence=evidence)
+    assert c.get(accepted["status_url"]).status_code == 502
 
 
 @pytest.mark.parametrize("patch", [
@@ -176,7 +243,8 @@ def test_continuous_provenance_is_distinct_and_bound(kinds, path, value):
         owner = owner[key]
     owner[path[-1]] = value
     adapter.jobs[accepted["id"]] = WorkerSnapshot("succeeded", WorkerResult(
-        result.artifact, result.receipt, result.elf, json.dumps(provenance).encode()))
+        result.artifact, result.receipt, result.elf, json.dumps(provenance).encode(),
+        result.private_evidence))
     assert c.get(accepted["status_url"]).status_code == 502
 
 
@@ -226,7 +294,10 @@ def test_selected_request_worker_retention_evidence_and_api_roundtrip(tmp_path, 
     prepared, source = b'{"prepared":true}', b'{"source":true}'
     (build / "selection/prepared/profile.json").write_bytes(prepared)
     (build / "selection/staged/profile.json").write_bytes(source)
-    artifact = b'{"artifact":true}'
+    artifact = json.dumps({"app_sha256": hashlib.sha256(b"continuous-app").hexdigest(),
+                           "elf_sha256": hashlib.sha256(TEST_ELF).hexdigest(),
+                           "app_bytes": len(b"continuous-app")},
+                          sort_keys=True, separators=(",", ":")).encode()
     (build / "link/artifact/artifact.json").write_bytes(artifact)
     image = receipt(doc)
     lower = deepcopy(image)
@@ -245,12 +316,17 @@ def test_selected_request_worker_retention_evidence_and_api_roundtrip(tmp_path, 
         linked_rows.append(dict(path="/tmp/lunar-worker/output/build/link/" + name,
                                 sha256=hashlib.sha256(content).hexdigest()))
     lower.update(catalogue_objects=catalogue_rows, linked_objects=linked_rows)
+    lower.update(app_sha256=hashlib.sha256(b"continuous-app").hexdigest(),
+                 app_bytes=len(b"continuous-app"),
+                 elf_sha256=hashlib.sha256(TEST_ELF).hexdigest(), elf_bytes=len(TEST_ELF),
+                 request_sha256=hashlib.sha256(request).hexdigest())
     lower_raw = json.dumps(lower).encode()
     (build / "link/verification.json").write_bytes(lower_raw)
     image.update(prepared_profile_sha256=hashlib.sha256(prepared).hexdigest(),
                  verification_sha256=hashlib.sha256(lower_raw).hexdigest(),
                  artifact_receipt_sha256=hashlib.sha256(artifact).hexdigest())
     image["embedded_content"]["prepared_sha256"] = image["prepared_profile_sha256"]
+    image.pop("flash_layout")  # actual outer image.json omits this lower-link field
     image_raw = json.dumps(image).encode()
     (build / "image.json").write_bytes(image_raw)
     # Exercise the actual source generator; empty, one-bank and two-bank
@@ -272,7 +348,8 @@ def test_selected_request_worker_retention_evidence_and_api_roundtrip(tmp_path, 
         for namespace in wavetable_namespaces(engines) for extension in (".cc", ".h")}
     c, adapter = service(kinds)
     accepted = c.post("/api/v1/builds", json=doc).json()
-    adapter.succeed(accepted["id"], b"continuous-app", image_raw, TEST_ELF)
+    adapter.succeed(accepted["id"], b"continuous-app", image_raw, TEST_ELF,
+                    private_evidence=retained)
     assert c.get(accepted["status_url"]).status_code == 200
     # Re-hashing a forged lower receipt cannot change the fixed profile policy.
     lower["render_stage_profile"] = {"enabled": True, "schema": 2}
