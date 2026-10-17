@@ -1,3 +1,14 @@
+## SDK VM markers found in exact 092 payload — 2026-10-17 UTC
+
+Coordinator exact-hash scan found all three candidate SDK VM markers in 092,
+including a cluster with a 256-entry loop, 12-byte area strides and common
+four-byte write-like calls. See notes/2026-10-17-092-vm-candidate-markers.md.
+This narrows the next storage investigation; bank ownership remains unresolved.
+Worker bringup_review is rerunning IR extraction on Aeon with explicit pi32v2
+flags because the first text-only extraction overrode the target triple.
+Original extraction/report hashes checked locally. No hardware writes/Hera.
+Overall release goal ACTIVE. Existing pending connection question unchanged.
+
 ## Aeon routing retained; exact 092 startup alias checked — 2026-10-17 UTC
 
 Owner reserves Hera for MDADM/M.2 and 25G NIC maintenance. No Hera probes or
