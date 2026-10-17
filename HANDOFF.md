@@ -7377,3 +7377,19 @@ demo_controller_review owns offline exact93fc tools/exact6b native exports and
 strict runtime-source inventory. These are offline workers; Mac exclusively
 owns bench admission/writes. Fresh deployment runtime/ROM pins remain unresolved.
 SAVE disarmed; overall goal ACTIVE; uv.lock untouched.
+
+### Isolated resampler inline experiment — 2026-10-16
+
+[verified: host equivalence and isolated target codegen only] Branch
+`codex/resampler-inline-experiment-20261016`, base `d168869b`; candidate checkpoint
+`c0df27b43bff97f778b1c29d115bb023236b7a58` pushed/remote SHA verified.
+In HOT_DSP_RAM ELF builds, force-inline intermediate into still-RAM ready-pop;
+retain RAM ready-push/pop, unchanged arithmetic/state/coefficient definitions.
+Three host configurations each passed576000 outputs+complete state comparisons;
+13 focused regression cases passed. Pinned Hera target helper probe removes
+calls but RAM code delta is+48 atOz/-18 atOs; candidate local stack grows.
+See notes/2026-10-16-resampler-inline-experiment.md and its saved reproduction
+driver. No complete13engine current-profile link/RAM-fit check; do not integrate
+until that review passes. No device access/actions/acceptance. Next dependency:
+coordinator-owned full candidate catalogue/link and linked disassembly review,
+then decide a concrete hardware experiment only after recovery/acceptance gates.
