@@ -254,7 +254,9 @@ test('deployment marker enables only the fixed same-origin diagnostic API on exp
       app_budget_bytes: 868836, remaining_bytes: 83524, installable: false, hardware_tested: false,
     } }), { status: 200, headers: { 'content-type': 'application/json' } });
   };
-  const controller = await mountInstallerPage(root, { fetchImpl });
+  const controller = await mountInstallerPage(root, { fetchImpl,
+    buildConfiguration: { flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
+  });
   const nodes = walk(root);
   const button = nodes.find((node) => node.tagName === 'BUTTON');
   assert.equal(button.textContent, 'Request diagnostic build');
@@ -268,7 +270,15 @@ test('deployment marker enables only the fixed same-origin diagnostic API on exp
   ]);
   assert.equal(calls[1].options.credentials, 'same-origin');
   assert.equal(calls[1].options.method, 'POST');
-  assert.deepEqual(JSON.parse(calls[1].options.body).project_ids, [ids[5]]);
+  assert.deepEqual(JSON.parse(calls[1].options.body), {
+    version: 1,
+    engines: catalogue.default_profile.engines,
+    effects: catalogue.default_profile.effects,
+    midi: catalogue.default_profile.midi,
+    modulation: catalogue.default_profile.modulation,
+    project_ids: [ids[5]], startup_index: 0,
+    flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic',
+  });
   assert.equal(calls[2].options.credentials, 'same-origin');
   assert.match(exportStatus.textContent, /785,312 \/ 868,836 bytes used; 83,524 bytes free/);
   assert.match(exportStatus.textContent, /No installable firmware file is available/);

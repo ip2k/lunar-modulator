@@ -112,10 +112,12 @@ export function describeNativeDemoCatalogue(catalogue) {
   });
 }
 
-/** Build the exact version-1 request accepted by prepare_demo_selection.py.
- * Project bytes, paths, hashes and dependencies remain backend-owned.
+/** Build the version-1 selection request accepted by the native preparer.
+ * Optional build configuration carries only the fixed D7000 song-diagnostic
+ * pair; project bytes, paths, hashes and dependencies remain backend-owned.
  */
-export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, startupIndex, setIds = []) {
+export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, startupIndex,
+  setIds = [], buildConfiguration = undefined) {
   const { ids, setIds: knownSetIds, sets } = checkedProjects(catalogue);
   // The source-hash-bound catalogue provides immediate UX feedback. The backend
   // independently validates exact packed records before it writes a receipt.
@@ -164,10 +166,29 @@ export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, 
     }
   }
 
+  if (buildConfiguration !== undefined) {
+    const keys = ['flash_layout', 'runtime_mode'];
+    if (buildConfiguration === null || typeof buildConfiguration !== 'object'
+        || Array.isArray(buildConfiguration)
+        || (Object.getPrototypeOf(buildConfiguration) !== Object.prototype
+          && Object.getPrototypeOf(buildConfiguration) !== null)
+        || Object.keys(buildConfiguration).length !== keys.length
+        || keys.some((key) => !Object.hasOwn(buildConfiguration, key))
+        || buildConfiguration.flash_layout !== 'expanded-d7000'
+        || buildConfiguration.runtime_mode !== 'song-diagnostic'
+        || !['macro', 'shapes'].every((id) => modules.selectedByGroup.engines.includes(id))) {
+      fail('The explicit native build configuration is invalid');
+    }
+  }
+
   const request = { version: 1 };
   for (const group of BUILDER_GROUPS) request[group] = Object.freeze([...modules.selectedByGroup[group]]);
   request.project_ids = Object.freeze([...projectIds]);
   request.startup_index = startupIndex;
   if (setIds.length) request.set_ids = Object.freeze([...setIds]);
+  if (buildConfiguration !== undefined) {
+    request.flash_layout = buildConfiguration.flash_layout;
+    request.runtime_mode = buildConfiguration.runtime_mode;
+  }
   return Object.freeze(request);
 }
