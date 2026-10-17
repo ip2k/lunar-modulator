@@ -1,0 +1,60 @@
+{
+  "source_candidate": "e75335164423dead395213373bcf221a4d962ea3",
+  "elf_sha256": "3bed8e0c7bb0adb2db6848aa1e43961c70920f5c7c593bce2106acbd37cbcf57",
+  "disassembly_sha256": "482b162225a7c9e333c8755d5b9eb036836539653f2c601da6408dba13fae492",
+  "helpers": [
+    {
+      "engine": "drums",
+      "helper": "_ZL24fm1_resampler_pop_ready_P13fm1_resampler.2138",
+      "address": 29364628,
+      "bytes": 874,
+      "section": ".ram_dsp",
+      "direct_calls": [],
+      "native_float_instruction_lines": 50,
+      "float_instruction_examples": [
+        "1c01236:    3f e5 71 7c       \tr7 = r7 - r12 (f)",
+        "1c0123c:    3f e5 9f 44       \tr4 = utof(r4)",
+        "1c01244:    3f e5 42 4e       \tr4 = r4 * r14 (f)"
+      ],
+      "tables": {
+        "fm1_resampler_kernel": {
+          "address": 29373852,
+          "bytes": 3076,
+          "section": ".ram_dsp"
+        },
+        "fm1_resampler_lowpass": {
+          "address": 29376928,
+          "bytes": 248,
+          "section": ".ram_dsp"
+        }
+      }
+    },
+    {
+      "engine": "sixop",
+      "helper": "_ZL24fm1_resampler_pop_ready_P13fm1_resampler.788",
+      "address": 29363628,
+      "bytes": 876,
+      "section": ".ram_dsp",
+      "direct_calls": [],
+      "native_float_instruction_lines": 50,
+      "float_instruction_examples": [
+        "1c00e56:    3f e5 41 45       \tr4 = r4 - r5 (f)",
+        "1c00e5c:    3f e5 9f 11       \tr1 = utof(r1)",
+        "1c00e66:    3f e5 12 10       \tr1 = r1 * r0 (f)"
+      ],
+      "tables": {
+        "fm1_resampler_kernel": {
+          "address": 29373852,
+          "bytes": 3076,
+          "section": ".ram_dsp"
+        },
+        "fm1_resampler_lowpass": {
+          "address": 29376928,
+          "bytes": 248,
+          "section": ".ram_dsp"
+        }
+      }
+    }
+  ],
+  "scope": "static ready-pop code and named shared coefficients only; no target speed, full engine residency, CPU rate or stack acceptance"
+}
