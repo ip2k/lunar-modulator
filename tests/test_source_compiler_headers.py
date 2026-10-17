@@ -184,17 +184,21 @@ def _install_catalogue_alias_evidence(data, *, bad_mount=None):
     trace = json.loads(trace_path.read_text())
     trace["execution"]["launcher_pins"].update(
         sha256=digest(launcher_raw), bytes=len(launcher_raw))
-    for mode in ("catalogue", "highlevel"):
+    inspect_paths = ["execution/terminal/shard-00.created.inspect.json",
+                     "execution/terminal/highlevel.created.inspect.json"]
+    for mode, path in zip(("catalogue", "highlevel"), inspect_paths, strict=True):
         mounts = [{"Type": "bind", "Source": str(output_root),
                    "Destination": "/output", "RW": True},
                   {"Type": "bind", "Source": str(catalogue_root),
                    "Destination": "/catalogue", "RW": False}]
         if bad_mount == mode:
             mounts[1]["Source"] = str(output_root / "elsewhere")
-        raw = write_json(base / f"execution/{mode}.created.inspect.json", [{
-            "Image": image_id, "Config": {"Labels": {"codex.mode": mode}}, "Mounts": mounts}])
+        env = ["TRACE_SHARD=0"] if mode == "catalogue" else []
+        raw = write_json(base / path, [{
+            "Image": image_id,
+            "Config": {"Labels": {"codex.mode": mode}, "Env": env}, "Mounts": mounts}])
         trace["execution"]["terminal_records"].append({
-            "path": f"execution/{mode}.created.inspect.json",
+            "path": path,
             "sha256": digest(raw), "bytes": len(raw)})
     write_json(trace_path, trace)
 
@@ -255,6 +259,71 @@ def test_rejects_catalogue_alias_without_matching_created_mount(tmp_path, monkey
     _install_catalogue_alias_evidence(data, bad_mount="highlevel")
     _rewrite_link_input(data, "/catalogue/one.o")
     with pytest.raises(ValueError, match="created-container mounts"):
+        collect(data)
+
+
+def test_rejects_catalogue_alias_when_shard_inspect_is_missing(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    _rewrite_link_input(data, "/catalogue/one.o")
+    trace = json.loads(data["trace_path"].read_text())
+    trace["execution"]["terminal_records"] = [
+        row for row in trace["execution"]["terminal_records"]
+        if row["path"] != "execution/terminal/shard-00.created.inspect.json"]
+    write_json(data["trace_path"], trace)
+    data["trace_sha"] = digest(data["trace_path"].read_bytes())
+    with pytest.raises(ValueError, match="does not cover every expected shard"):
+        collect(data)
+
+
+@pytest.mark.parametrize("location", ["launcher", "inspect"])
+def test_rejects_nested_catalogue_mount_shadow(tmp_path, monkeypatch, location):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    trace_path = data["trace_path"]
+    base = trace_path.parent
+    trace = json.loads(trace_path.read_text())
+    if location == "launcher":
+        launcher_path = base / trace["execution"]["launcher_pins"]["path"]
+        launcher = json.loads(launcher_path.read_text())
+        for contract in launcher["mount_contracts"].values():
+            contract["mount_targets"].append({
+                "path": "/output/catalogue/one.o", "source": str(base / "shadow"),
+                "readonly": False})
+        raw = write_json(launcher_path, launcher)
+        trace["execution"]["launcher_pins"].update(sha256=digest(raw), bytes=len(raw))
+    else:
+        inspect_path = base / "execution/terminal/shard-00.created.inspect.json"
+        inspect = json.loads(inspect_path.read_text())
+        inspect[0]["Mounts"].append({"Type": "bind", "Source": str(base / "shadow"),
+                                      "Destination": "/catalogue/one.o", "RW": False})
+        raw = write_json(inspect_path, inspect)
+        for row in trace["execution"]["terminal_records"]:
+            if row["path"] == "execution/terminal/shard-00.created.inspect.json":
+                row.update(sha256=digest(raw), bytes=len(raw))
+    write_json(trace_path, trace)
+    data["trace_sha"] = digest(trace_path.read_bytes())
+    _rewrite_link_input(data, "/catalogue/one.o")
+    with pytest.raises(ValueError, match="nested .* mount shadows catalogue alias"):
+        collect(data)
+
+
+@pytest.mark.parametrize("env", [["TRACE_SHARD=1"], ["TRACE_SHARD=0", "TRACE_SHARD=1"]])
+def test_rejects_inspect_shard_identity_that_disagrees_with_receipt_path(tmp_path, monkeypatch, env):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    inspect_path = data["trace_path"].parent / "execution/terminal/shard-00.created.inspect.json"
+    inspect = json.loads(inspect_path.read_text())
+    inspect[0]["Config"]["Env"] = env
+    raw = write_json(inspect_path, inspect)
+    trace = json.loads(data["trace_path"].read_text())
+    for row in trace["execution"]["terminal_records"]:
+        if row["path"] == "execution/terminal/shard-00.created.inspect.json":
+            row.update(sha256=digest(raw), bytes=len(raw))
+    write_json(data["trace_path"], trace)
+    data["trace_sha"] = digest(data["trace_path"].read_bytes())
+    _rewrite_link_input(data, "/catalogue/one.o")
+    with pytest.raises(ValueError, match="shard identity differs"):
         collect(data)
 
 
