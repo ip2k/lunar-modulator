@@ -7962,3 +7962,21 @@ full pytest jobs in progress; no completed-job failure at last check.
 Passive Cynthion check at02:10UTC17Oct: valid PAC reads around5.07V and very
 little current; bench01 sees KA6 but no FM1. Does not establish FM1 connection
 or CPU state. Keep monitor unchanged and await existing connection question.
+
+### Result-binding checkpoint and next dependencies
+
+Installer fix pushed/remote-SHA verified at14b7b82d15f7ff7587b261989f1ecd23ad7ff359;
+record/SPL findings pushed atd5485c06170f4e6869e1d16269ff0bd0fb311ee4. Independent
+review found no actionable result-binding regression;49focused tests pass.
+Full CI38991254950/bf2f16d9 completed SUCCESS. New CI38994186689/d5485c06
+confirmed queued for current implementation (later documentation adds no code).
+No merge, release, device recovery or audio acceptance claim.
+
+CRC worker finished; archive mechanics/fallback limits now recorded in the VM
+format note. SPL provenance matched exact stock bytes but launchr0 remains
+unresolved. Idle-engine review found no justified whole-block shortcut: voice
+DSP and empty-history FIR are already skipped, while phase/tails/smoothing need
+preservation. Next offline dependency: corroborate pi32v2 parallel-packet load
+semantics and hardware CRC parameters with exact evidence. Physical dependency
+remains existing monitor connection question; don't duplicate or drive lines
+until the requested connection state is established. Aeon only; no Hera jobs.

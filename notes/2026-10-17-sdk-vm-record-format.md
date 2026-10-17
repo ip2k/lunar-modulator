@@ -69,3 +69,23 @@ Ignored detailed report:
 `scratch/sdk-vm-record-format-20261017/reader-match-corrected-origin.md`, SHA-256
 `3db314f8481b3eccf40d706dc9f01cd65a15f83bcbb5771723051b9a5d6e9d68`.
 Earlier zero-origin addresses in the old reader report are superseded.
+
+## CRC archive follow-up
+
+[verified: worker pinned-object IR inspection; coordinator report review]
+Both pinned SDK `cpu.a` archives contain `crc16.c.o`. Their hardware wrappers
+write a zero seed at `0x13504`, feed bytes at `0x13500`, synchronize, and read
+the result. The V1.2.13 software fallback uses an XMODEM-style `0x1021`
+non-reflected recurrence with zero initial/default state and no visible final
+xor. This software path does not specify the hardware polynomial or settings.
+The exact 092 wrapper at `0x0200270A` has matching seed/feed/sync operations.
+Its final parallel packet assigns `r0=r4` while loading `r5=[r0+4]`; validating
+old-register packet semantics is still required before treating that load as a
+read of the CRC result register. No hardware CRC algorithm or live-record
+validity is established here.
+
+Ignored report `scratch/vm-crc-source-20261017/HANDOFF.md`, SHA-256
+`87a32b064cf0c553647170676a354645f1570443bea31da4806a5a069e2a809e`.
+Next: corroborate packet semantics, then use authoritative peripheral or known
+input/output evidence for the exact hardware CRC. No decoder or SAVE authority
+is added by an SDK fallback match.
