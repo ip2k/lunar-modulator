@@ -267,3 +267,67 @@ test('forwards only bounded unique SET identifiers in the optional request field
   }
   await assert.rejects(client.build({ ...request, set_ids: ['set'], local_path: '/tmp/private' }), /request is invalid/);
 });
+
+
+const continuousRequest = { ...request, engines: ['trio'], flash_layout: 'expanded-d7000', runtime_mode: 'continuous' };
+function continuousSnapshot() {
+  return { id, status: 'succeeded', kind: 'private-continuous-build', result: {
+    status: 'linked-private-continuous', artifact_sha256: sha, artifact_bytes: 800000,
+    app_budget_bytes: 860644, remaining_bytes: 60644, installable: false, hardware_tested: false,
+    hardware_admitted: false, native_ram_verified: false, native_playback_verified: false,
+    full_song_default_accepted: false,
+    provenance: { kind: 'private-continuous-build-provenance', sha256: 'c'.repeat(64),
+      trusted_fwsc_packager_compatible: false,
+      profile: { profile_id: 'fm1-500-d7000-continuous-selected-v1',
+        profile_sha256: 'fcfba36ad8d98a15367db8d5ad0e9959e879238a2122940d215d702baff6fce0',
+        flash_layout: 'expanded-d7000', runtime_mode: 'continuous', shapes_voices: 8 },
+      output_bindings: { artifact_sha256: sha, artifact_bytes: 800000 },
+    },
+  } };
+}
+function continuousClient(snapshot, onPost = () => {}) {
+  return createInstallerBuildClient({ origin: 'https://lunar.test', pollIntervalMs: 100, fetchImpl: async (_url, options) => {
+    if (options.method === 'POST') {
+      onPost(JSON.parse(options.body));
+      return response(202, { id, status: 'queued', status_url: `/api/v1/builds/${id}` });
+    }
+    return response(200, snapshot);
+  } });
+}
+
+test('explicit continuous custom subset keeps exact request and measured flash summary', async () => {
+  let posted;
+  const result = await continuousClient(continuousSnapshot(), value => { posted = value; }).build(continuousRequest);
+  assert.deepEqual(posted, continuousRequest);
+  assert.equal(result.artifactBytes, 800000);
+  assert.equal(result.appBudgetBytes, 860644);
+  assert.equal(result.remainingBytes, 60644);
+  assert.equal(result.installable, false);
+});
+
+test('continuous client refuses profile, provenance, admission and measured size tampering', async () => {
+  const mutations = [
+    s => { s.kind = 'private-diagnostic-build'; },
+    s => { s.result.status = 'linked-private-diagnostic'; },
+    s => { s.result.app_budget_bytes = 860645; s.result.remaining_bytes++; },
+    s => { s.result.artifact_bytes = true; },
+    s => { s.result.remaining_bytes = 60643; },
+    s => { s.result.hardware_admitted = 0; },
+    s => { s.result.native_playback_verified = true; },
+    s => { s.result.native_ram_verified = true; },
+    s => { s.result.full_song_default_accepted = true; },
+    s => { s.result.provenance.kind = 'private-diagnostic-build-provenance'; },
+    s => { s.result.provenance.trusted_fwsc_packager_compatible = true; },
+    s => { s.result.provenance.sha256 = 'bad'; },
+    s => { s.result.provenance.profile.profile_id = 'other'; },
+    s => { s.result.provenance.profile.profile_sha256 = 'f'.repeat(64); },
+    s => { s.result.provenance.profile.runtime_mode = 'song-diagnostic'; },
+    s => { s.result.provenance.output_bindings.artifact_sha256 = 'f'.repeat(64); },
+    s => { s.result.provenance.output_bindings.artifact_bytes--; },
+  ];
+  for (const mutate of mutations) {
+    const snapshot = continuousSnapshot();
+    mutate(snapshot);
+    await assert.rejects(continuousClient(snapshot).build(continuousRequest), /invalid job status|receipt checks/);
+  }
+});

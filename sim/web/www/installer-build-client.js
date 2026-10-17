@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-// Same-origin client for the private diagnostic-build API. The service returns
+// Same-origin client for the private build API. The service returns
 // a verified summary only; it does not expose firmware bytes or installation.
-import { D7000_REQUIRED_BY_GROUP } from './native-build-selection.js';
+import { D7000_REQUIRED_BY_GROUP, CONTINUOUS_BUILD_PROFILE } from './native-build-selection.js';
 
 const BUILD_PATH = '/api/v1/builds';
 const OPAQUE_ID = /^[A-Za-z0-9_-]{32}$/;
@@ -36,7 +36,7 @@ function validateRequest(request) {
   if (hasLayout !== hasRuntime
       || (hasBuildConfiguration
         && (request.flash_layout !== 'expanded-d7000'
-          || request.runtime_mode !== 'song-diagnostic'))) {
+          || !['song-diagnostic', 'continuous'].includes(request.runtime_mode)))) {
     fail('The selected build request is invalid.');
   }
   for (const key of [...groups, 'project_ids']) {
@@ -48,7 +48,7 @@ function validateRequest(request) {
       fail('The selected build request is invalid.');
     }
   }
-  if (hasBuildConfiguration && Object.entries(D7000_REQUIRED_BY_GROUP).some(([group, required]) =>
+  if (hasBuildConfiguration && request.runtime_mode === 'song-diagnostic' && Object.entries(D7000_REQUIRED_BY_GROUP).some(([group, required]) =>
     required.some((id) => !request[group].includes(id)))) {
     fail('The selected build request is invalid.');
   }
@@ -147,15 +147,18 @@ function validateSubmission(body, origin) {
   });
 }
 
-function validateSnapshot(body, id) {
-  if (!body || body.id !== id || body.kind !== 'private-diagnostic-build'
+function validateSnapshot(body, id, request) {
+  const continuous = request.runtime_mode === 'continuous';
+  const kind = continuous ? 'private-continuous-build' : 'private-diagnostic-build';
+  const status = continuous ? 'linked-private-continuous' : 'linked-private-diagnostic';
+  if (!body || body.id !== id || body.kind !== kind
       || !['queued', 'running', 'succeeded', 'failed'].includes(body.status)) {
     fail('The build service returned an invalid job status.');
   }
-  if (body.status === 'failed') fail('The private diagnostic build failed. No firmware was produced.');
+  if (body.status === 'failed') fail('The private build failed. No firmware was produced.');
   if (body.status !== 'succeeded') return Object.freeze({ status: body.status });
   const result = body.result;
-  if (!result || result.status !== 'linked-private-diagnostic'
+  if (!result || result.status !== status
       || typeof result.artifact_sha256 !== 'string' || !SHA256.test(result.artifact_sha256)
       || !Number.isInteger(result.artifact_bytes) || result.artifact_bytes < 1
       || result.artifact_bytes > MAX_ARTIFACT_BYTES
@@ -165,7 +168,25 @@ function validateSnapshot(body, id) {
       || !Number.isInteger(result.remaining_bytes)
       || result.remaining_bytes !== result.app_budget_bytes - result.artifact_bytes
       || result.installable !== false || result.hardware_tested !== false) {
-    fail('The build result did not pass diagnostic receipt checks.');
+    fail('The build result did not pass private receipt checks.');
+  }
+  if (continuous) {
+    const provenance = result.provenance;
+    const profile = provenance?.profile;
+    if (result.app_budget_bytes !== 860644
+        || result.hardware_admitted !== false || result.native_ram_verified !== false
+        || result.native_playback_verified !== false || result.full_song_default_accepted !== false
+        || provenance?.kind !== 'private-continuous-build-provenance'
+        || provenance.trusted_fwsc_packager_compatible !== false
+        || typeof provenance.sha256 !== 'string' || !SHA256.test(provenance.sha256)
+        || profile?.profile_id !== CONTINUOUS_BUILD_PROFILE.profileId
+        || profile.profile_sha256 !== CONTINUOUS_BUILD_PROFILE.profileSha256
+        || profile.flash_layout !== 'expanded-d7000' || profile.runtime_mode !== 'continuous'
+        || profile.shapes_voices !== 8
+        || provenance.output_bindings?.artifact_sha256 !== result.artifact_sha256
+        || provenance.output_bindings?.artifact_bytes !== result.artifact_bytes) {
+      fail('The continuous private link result did not pass receipt checks.');
+    }
   }
   return Object.freeze({
     status: 'succeeded',
@@ -251,7 +272,7 @@ export function createInstallerBuildClient({
           });
           const body = await readJson(response, operation.signal);
           if (!response.ok) throw responseError(response, body);
-          const snapshot = validateSnapshot(body, job.id);
+          const snapshot = validateSnapshot(body, job.id, request);
           if (snapshot.status === 'queued' || snapshot.status === 'running') {
             onProgress(snapshot.status);
             continue;

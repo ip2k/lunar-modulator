@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 
 from .api import (MAX_ARTIFACT_BYTES, MAX_BODY_BYTES, MAX_ELF_BYTES, QueueFull,
                   WorkerResult, WorkerSnapshot, _unique_object, _reject_constant)
-from .docker_worker import GENERATED_EVIDENCE_PATHS
+from .docker_worker import GENERATED_EVIDENCE_PATHS, generated_evidence_paths
 from .provenance import (make_diagnostic_provenance, sha256 as _sha256,
                          tree_manifest)
 
@@ -123,7 +123,9 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
     required = {"request.json", "prepared_profile.json", "source_profile.json",
                 "artifact_receipt.json", "build_receipt.json", "image_receipt.json",
                 "catalogue_manifest.json", "linked_objects.json"}
-    generated = {"generated/" + path for path in GENERATED_EVIDENCE_PATHS}
+    lower_raw = evidence.get("build_receipt.json", b"{}")
+    lower = json.loads(lower_raw, object_pairs_hook=_unique_object, parse_constant=_reject_constant)
+    generated = {"generated/" + path for path in generated_evidence_paths(lower)}
     if not required.issubset(evidence) or not generated.issubset(evidence):
         raise ValueError("private evidence omits required package inputs")
     if {path for path in evidence if path.startswith("generated/")} != generated:
@@ -138,14 +140,28 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
             or _sha256(evidence["build_receipt.json"]) != image.get("verification_sha256")
             or _sha256(evidence["artifact_receipt.json"]) != image.get("artifact_receipt_sha256")):
         raise ValueError("private receipts do not bind request, profiles, and link evidence")
+    request = json.loads(expected_request, object_pairs_hook=_unique_object,
+                         parse_constant=_reject_constant)
+    continuous = request.get("runtime_mode") == "continuous"
+    if continuous and build.get("flash_layout") != "expanded-d7000":
+        raise ValueError("private continuous lower layout differs from request")
     if build.get("flash_layout") == "expanded-d7000":
-        from .native_profile import evidence_manifest, validate_receipt
+        if continuous:
+            from .continuous_profile import evidence_manifest, validate_receipt, validate_image_receipt
+            selected = [module for group in ("engines", "effects", "midi", "modulation")
+                        for module in request[group]]
+            if ((build.get("module_selection") or {}).get("selected") != selected
+                    or image.get("module_selection") != build.get("module_selection")):
+                raise ValueError("private continuous lower selection differs from request")
+            validate_image_receipt(image, selected)
+        else:
+            from .native_profile import evidence_manifest, validate_receipt
         profile_raw = evidence.get("native_profile.json")
         if profile_raw is None or profile_raw != evidence_manifest(evidence["build_receipt.json"]):
-            raise ValueError("private native diagnostic profile binding is missing or stale")
+            raise ValueError("private native profile binding is missing or stale")
         validate_receipt(build)
     elif "native_profile.json" in evidence:
-        raise ValueError("private native diagnostic profile is outside the fixed D7000 build")
+        raise ValueError("private native profile is outside the fixed D7000 build")
     catalogue = json.loads(evidence["catalogue_manifest.json"].decode("ascii"),
                            object_pairs_hook=_unique_object, parse_constant=_reject_constant)
     linked = json.loads(evidence["linked_objects.json"].decode("ascii"),

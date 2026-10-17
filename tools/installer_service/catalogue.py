@@ -13,6 +13,11 @@ def load_trusted_catalogue(root: Path = ROOT, *, include_sets=False):
     for path in (root, root / "tools/native"):
         if str(path) not in sys.path:
             sys.path.insert(0, str(path))
+    import tools.native.export_image_catalogue as export_catalogue
+    import tools.native.module_selection as module_selection
+    for module in (export_catalogue, module_selection):
+        if Path(module.__file__).resolve() != root.joinpath(*module.__name__.split('.')).with_suffix('.py'):
+            raise ValueError("catalogue import was not loaded from the pinned source")
     from tools.native.export_image_catalogue import PRELOAD_PROJECTS, PRELOAD_SETS
     from tools.native.module_selection import resolve_modules
 

@@ -13,6 +13,7 @@ from tools.native.module_selection import wavetable_namespaces
 from tools.native.flash_layout import app_budget
 from tools.native.runtime_mode import runtime_configuration
 from tools.native.diagnostic_profile_contract import validate_hall_o2_stage7_modules
+from . import continuous_profile
 from .provenance import make_diagnostic_provenance, sha256 as provenance_sha256
 
 MAX_BODY_BYTES = 65536
@@ -89,9 +90,9 @@ class BuildRequest(BaseModel):
     startup_index: StrictInt = Field(ge=0)
     set_ids: list[StrictStr] = Field(default_factory=list, max_length=8)
     # Omitted D9000 requests retain their historical canonical bytes. D7000
-    # must be an explicit, schema-2-shaped diagnostic profile selection.
+    # must be an explicit, explicit private profile selection.
     flash_layout: Literal["expanded-d9000", "expanded-d7000"] = "expanded-d9000"
-    runtime_mode: Literal["diagnostic", "song-diagnostic"] = "diagnostic"
+    runtime_mode: Literal["diagnostic", "song-diagnostic", "continuous"] = "diagnostic"
 
     @field_validator("engines", "effects", "midi", "modulation", "project_ids", "set_ids")
     @classmethod
@@ -105,11 +106,12 @@ class BuildRequest(BaseModel):
         if self.startup_index >= len(self.project_ids):
             raise ValueError("startup_index is outside project_ids")
         if self.flash_layout == "expanded-d7000":
-            if self.runtime_mode != "song-diagnostic":
-                raise ValueError("expanded-d7000 requires the schema-2 song-diagnostic runtime")
-            validate_hall_o2_stage7_modules({
-                "engines": self.engines, "effects": self.effects,
-            })
+            if self.runtime_mode not in ("song-diagnostic", "continuous"):
+                raise ValueError("expanded-d7000 requires song-diagnostic or continuous runtime")
+            if self.runtime_mode == "song-diagnostic":
+                validate_hall_o2_stage7_modules({
+                    "engines": self.engines, "effects": self.effects,
+                })
         elif self.runtime_mode != "diagnostic":
             raise ValueError("legacy expanded-d9000 requests use the bounded diagnostic runtime")
         return self
@@ -220,6 +222,9 @@ class Admission:
 
 def _verify_wavetable_receipt(receipt: dict, selected: list[str], flash_layout: str) -> None:
     """Bind the fixed compiled wavetable profile to admitted module choices."""
+    if (receipt.get("runtime_configuration") or {}).get("runtime_mode") == "continuous":
+        continuous_profile.validate_image_receipt(receipt, selected)
+        return
     if flash_layout == "expanded-d7000":
         expected_rows = [dict(row) for row in SHAPES8_TABLES]
         rows = receipt.get("compressed_wave_tables")
@@ -297,16 +302,15 @@ def _verify_wavetable_receipt(receipt: dict, selected: list[str], flash_layout: 
         raise ValueError("worker instance pool does not match the selected wavetable profile")
 
 
-def _verify_runtime_configuration(receipt: dict) -> None:
-    """Require an exact supported diagnostic runtime description from the worker."""
+def _verify_runtime_configuration(receipt: dict, *, continuous=False) -> None:
+    """Require the exact runtime description for the admitted private profile from the worker."""
     config = receipt.get("runtime_configuration")
     fields = {"runtime_mode", "return_to_rom_seconds", "define", "release_accepted"}
     if not isinstance(config, dict) or set(config) != fields:
         raise ValueError("worker runtime configuration is missing or malformed")
     mode = config.get("runtime_mode")
-    # The builder currently admits only bounded diagnostics. The canonical
-    # helper also describes continuous mode, but it is not an installer mode.
-    if type(mode) is not str or mode not in ("diagnostic", "song-diagnostic"):
+    # Continuous is admitted only through its separate explicit D7000 profile.
+    if type(mode) is not str or mode not in (("continuous",) if continuous else ("diagnostic", "song-diagnostic")):
         raise ValueError("worker runtime mode is unsupported")
     expected = runtime_configuration(mode)
     if any(type(config[key]) is not type(value) or config[key] != value
@@ -356,9 +360,10 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
     flash_layout = request.get("flash_layout", "expanded-d9000")
     runtime_mode = request.get("runtime_mode", "diagnostic")
     selected_budget = app_budget(flash_layout) if flash_layout == "expanded-d7000" else MAX_ARTIFACT_BYTES
-    _verify_runtime_configuration(receipt)
+    continuous = runtime_mode == "continuous"
+    _verify_runtime_configuration(receipt, continuous=continuous)
     if (type(receipt.get("version")) is not int or receipt["version"] != 1
-            or receipt.get("status") != "linked-private-diagnostic"
+            or receipt.get("status") != ("linked-private-continuous" if continuous else "linked-private-diagnostic")
             or receipt.get("flash_layout") != flash_layout
             or receipt.get("request_sha256") != admission.request_sha256
             or receipt.get("project_ids") != projects
@@ -379,7 +384,7 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
             or (flash_layout == "expanded-d7000"
                 and receipt["runtime_configuration"].get("runtime_mode") != runtime_mode)
             or any(receipt.get(key) is not False for key in false_fields)):
-        raise ValueError("worker receipt does not bind the admitted diagnostic build")
+        raise ValueError("worker receipt does not bind the admitted private build")
     if any(not isinstance(receipt.get(key), str) or not SHA256.fullmatch(receipt[key])
            for key in ("app_sha256", "request_sha256", "prepared_profile_sha256", "elf_sha256",
                        "verification_sha256", "artifact_receipt_sha256")):
@@ -448,7 +453,11 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
             "provenance": _provenance_summary(provenance, result.provenance),
             "app_budget_bytes": receipt["app_budget_bytes"],
             "remaining_bytes": receipt["app_budget_bytes"] - len(result.artifact),
-            "hardware_tested": False}
+            "hardware_tested": False,
+            **({"hardware_admitted": False, "native_ram_verified": False,
+                "native_playback_verified": False, "full_song_default_accepted": False,
+                "target_app_storage": receipt["target_app_storage"],
+                "instance_pool_bytes": receipt["instance_pool_bytes"]} if continuous else {})}
 
 
 def _verify_diagnostic_provenance(provenance, admission, result, receipt, app_sha, elf_sha):
@@ -456,8 +465,10 @@ def _verify_diagnostic_provenance(provenance, admission, result, receipt, app_sh
     expected_top = {"schema", "kind", "bindings", "outputs", "profile",
                     "trusted_fwsc_packager_compatible", "compatibility_reason",
                     "installable", "hardware_admitted", "hardware_tested"}
+    continuous = admission.request.get("runtime_mode") == "continuous"
+    expected_kind = continuous_profile.PROVENANCE_KIND if continuous else "private-diagnostic-build-provenance"
     if set(provenance) != expected_top or type(provenance.get("schema")) is not int or \
-            provenance["schema"] != 1 or provenance.get("kind") != "private-diagnostic-build-provenance":
+            provenance["schema"] != 1 or provenance.get("kind") != expected_kind:
         raise ValueError("worker provenance schema is malformed")
     bindings = provenance.get("bindings")
     binding_keys = {"source_commit", "source_tree_oid", "source_archive_sha256",
@@ -482,7 +493,7 @@ def _verify_diagnostic_provenance(provenance, admission, result, receipt, app_sh
                         "image_receipt_sha256": provenance_sha256(result.receipt),
                         "verification_sha256": receipt.get("verification_sha256"),
                         "artifact_receipt_sha256": receipt.get("artifact_receipt_sha256")}
-    if not isinstance(outputs, dict) or outputs != expected_outputs:
+    if not isinstance(outputs, dict) or json.dumps(outputs, sort_keys=True) != json.dumps(expected_outputs, sort_keys=True):
         raise ValueError("worker provenance does not bind the exact build outputs")
     flash_layout = admission.request.get("flash_layout", "expanded-d9000")
     # D9000 historically accepted any canonical bounded runtime mode carried
@@ -491,7 +502,9 @@ def _verify_diagnostic_provenance(provenance, admission, result, receipt, app_sh
                     if flash_layout == "expanded-d7000"
                     else receipt["runtime_configuration"]["runtime_mode"])
     profile = provenance.get("profile")
-    if flash_layout == "expanded-d7000":
+    if continuous:
+        expected_profile = continuous_profile.profile_summary()
+    elif flash_layout == "expanded-d7000":
         expected_profile = {"flash_layout": "expanded-d7000",
                             "runtime_mode": runtime_mode,
                             "shapes_voices": 8,
@@ -503,7 +516,8 @@ def _verify_diagnostic_provenance(provenance, admission, result, receipt, app_sh
                             "shapes_voices": SHAPES_VOICES}
     if profile != expected_profile:
         raise ValueError("worker provenance profile differs from verified diagnostic build")
-    reason = ("D7000 diagnostic profile matches schema-2 layout/profile; a trusted tuple still requires separately captured operator and build provenance plus an external tuple digest"
+    reason = (continuous_profile.COMPATIBILITY_REASON if continuous else
+              "D7000 diagnostic profile matches schema-2 layout/profile; a trusted tuple still requires separately captured operator and build provenance plus an external tuple digest"
               if flash_layout == "expanded-d7000" else
               "diagnostic service emits expanded-d9000/12-voice; trusted schema-2 packager requires an explicitly captured expanded-d7000 tuple")
     if (provenance.get("trusted_fwsc_packager_compatible") is not False
@@ -594,7 +608,7 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
             return None, JSONResponse({"detail": "invalid build request"}, 422)
         doc = model.model_dump(mode="json", exclude_defaults=True)
         for group, kind in zip(GROUPS, ("sound", "audio_fx", "midi_fx", "mod")):
-            if any(module not in module_kinds or module_kinds[module] != kind
+            if any(module.startswith("test-") or module not in module_kinds or module_kinds[module] != kind
                    for module in doc[group]):
                 return None, JSONResponse({"detail": "invalid build request"}, 422)
         if (any(project not in project_ids for project in doc["project_ids"])
@@ -662,7 +676,8 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
         if admission is None or snapshot is None:
             return JSONResponse({"detail": "build not found"}, 404)
         result = {"id": build_id, "status": snapshot.status,
-                  "kind": "private-diagnostic-build"}
+                  "kind": ("private-continuous-build" if admission.request.get("runtime_mode") == "continuous"
+                           else "private-diagnostic-build")}
         if snapshot.status == "succeeded":
             if snapshot.result is None:
                 return JSONResponse({"detail": "build result unavailable"}, 502)

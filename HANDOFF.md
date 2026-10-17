@@ -8552,3 +8552,23 @@ SHA256 is `5a138922faeb14bc974c1a2888675b47f72befaf4588e45373a1d4db7408cbc3`.
 Next independent tasks inspect consumed target-header export requirements,
 prepare a fresh traced current-candidate reproduction, and audit the real
 browser selection/flash usage path. Aeon only; no Hera or hardware actions.
+### Private continuous installer integration — Aeon-only routing
+
+Reviewed worker `93a287c84d55c35fac8612c8ea9eaff973436b73` adds a separate
+continuous selected-module API/worker/browser contract. The public service
+marker remains disabled; results remain link summaries, not downloadable or
+installable firmware. SAVE remains disarmed and hardware/playback/recovery
+acceptance remains open. Independent review found no actionable issue;
+root reran the new Python suite (66 passed) and focused browser suite
+(54 passed) before integration. Full focused integration checks and fresh
+target subset links are the next gates; host fixtures do not establish ABI fit.
+
+All compute remains on Aeon `.25`; do not contact Hera during the owner's
+RAID/M.2/NIC maintenance. The E7 trace worker reproduced all 161 selected
+catalogue object hashes after preserving original `/src` source paths.
+Trace-01 stopped before high-level compilation because its launcher had
+precreated the builder output directory; failure/terminal records are retained.
+The corrected fresh trace-02 is running with at most two bounded containers,
+leaving two slots for the native subset-fit matrix. Canonical E7 receipts and
+artifacts remain unchanged. Compiler-header export implementation is separate
+and pending full current trace validation.

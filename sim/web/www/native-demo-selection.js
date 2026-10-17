@@ -177,9 +177,10 @@ export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, 
         || Object.keys(buildConfiguration).length !== keys.length
         || keys.some((key) => !Object.hasOwn(buildConfiguration, key))
         || buildConfiguration.flash_layout !== 'expanded-d7000'
-        || buildConfiguration.runtime_mode !== 'song-diagnostic'
-        || Object.values(missingD7000ProfileModules(modules.selectedByGroup))
-          .some((missing) => missing.length > 0)) {
+        || !['song-diagnostic', 'continuous'].includes(buildConfiguration.runtime_mode)
+        || (buildConfiguration.runtime_mode === 'song-diagnostic'
+          && Object.values(missingD7000ProfileModules(modules.selectedByGroup))
+            .some((missing) => missing.length > 0))) {
       fail('The explicit native build configuration is invalid');
     }
   }

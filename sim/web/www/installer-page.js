@@ -52,6 +52,8 @@ export async function mountInstallerPage(root, {
   const moduleRoot = document.getElementById?.('installer-modules');
   const cancelButton = document.getElementById?.('installer-cancel-build');
   const serviceNotice = document.getElementById?.('installer-service-notice');
+  const profileSelect = document.getElementById?.('installer-build-profile');
+  let selectedBuildConfiguration = buildConfiguration;
   const packageInspectionRoot = document.getElementById?.('installer-package-inspection');
   const packageInspection = packageInspectionRoot
     ? mountLocalPackageInspection(packageInspectionRoot) : null;
@@ -65,6 +67,15 @@ export async function mountInstallerPage(root, {
     selectionRevision++;
     if (status) status.textContent = buildClient
       ? selectionChangedMessage : 'Selection changed. Export a new build request for these choices.';
+  }
+  if (profileSelect) {
+    if (buildConfiguration?.runtime_mode) profileSelect.value = buildConfiguration.runtime_mode;
+    profileSelect.addEventListener('change', () => {
+      selectedBuildConfiguration = profileSelect.value === 'legacy' ? undefined : {
+        flash_layout: 'expanded-d7000', runtime_mode: profileSelect.value,
+      };
+      selectionChanged();
+    });
   }
   if (cancelButton) {
     cancelButton.hidden = true;
@@ -87,22 +98,23 @@ export async function mountInstallerPage(root, {
     const controller = mountNativeDemoSelectionView(demoRoot, catalogue, profile,
       (request) => {
         if (buildClient) {
+          const label = request.runtime_mode === 'continuous' ? 'Continuous private link' : 'Diagnostic build';
           const submittedRevision = selectionRevision;
           activeBuild = new AbortController();
           if (cancelButton) cancelButton.hidden = false;
-          if (serviceNotice) serviceNotice.textContent = 'This service returns a private diagnostic result only. It does not provide installable firmware.';
-          if (status) status.textContent = 'Submitting the selected diagnostic build…';
+          if (serviceNotice) serviceNotice.textContent = `${label} returns a measured summary only. It does not provide installable firmware.`;
+          if (status) status.textContent = `Submitting the selected ${label.toLowerCase()}…`;
           return buildClient.build(request, {
             signal: activeBuild.signal,
             onProgress: (phase) => {
               if (!status || submittedRevision !== selectionRevision) return;
               status.textContent = phase === 'queued' ? 'Build request queued…'
-                : phase === 'running' ? 'Checking the private diagnostic build…'
-                  : 'Diagnostic result verified.';
+                : phase === 'running' ? `Checking the ${label.toLowerCase()}…`
+                  : `${label} result verified.`;
             },
           }).then((result) => {
             if (submittedRevision !== selectionRevision) throw new Error(selectionChangedMessage);
-            if (status) status.textContent = `Diagnostic build checks passed. Application flash: ${result.artifactBytes.toLocaleString()} / ${result.appBudgetBytes.toLocaleString()} bytes used; ${result.remainingBytes.toLocaleString()} bytes free. No installable firmware file is available.`;
+            if (status) status.textContent = `${label} checks passed. Application flash: ${result.artifactBytes.toLocaleString()} / ${result.appBudgetBytes.toLocaleString()} bytes used; ${result.remainingBytes.toLocaleString()} bytes free. No installable firmware file is available.`;
           }).catch((error) => {
             if (submittedRevision !== selectionRevision) {
               if (status) status.textContent = selectionChangedMessage;
@@ -124,12 +136,12 @@ export async function mountInstallerPage(root, {
             ? `Request export failed: ${error.message}` : 'Request export failed.';
           throw error;
         }
-      }, buildConfiguration, selectionChanged);
+      }, () => selectedBuildConfiguration, selectionChanged);
     const button = findButton(root);
     if (button) button.textContent = buildClient
-      ? 'Request diagnostic build' : 'Download build request (JSON)';
+      ? 'Request private build check' : 'Download build request (JSON)';
     if (buildClient && serviceNotice) {
-      serviceNotice.textContent = 'Private diagnostic build requests are enabled for this origin. Availability is checked when you submit. Results do not establish installability or hardware acceptance.';
+      serviceNotice.textContent = 'Private build checks are enabled for this origin. Availability is checked when you submit. Results do not establish installability or hardware acceptance.';
     }
     if (loading) loading.textContent = '';
     return Object.freeze({
