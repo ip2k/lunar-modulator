@@ -1,3 +1,26 @@
+## Schema9 private admission and Aeon receipts integrated — 2026-10-17 UTC
+
+[verified: independent host checks] Reviewed worker cc46a1a3 and integrated as
+14eda129. Dedicated schema9 SONG receipt validation preserves old-mode exclusions
+and public installer rejection. Refreshed SG policy and boot policy/adapter pins;
+file-only source evidence validated all11entries. Coordinator suite passed141tests
+across diagnostic policy, schema9, durable reopen, SG, boot and native installer
+profile. Review note: notes/2026-10-17-schema9-private-admission-review.md.
+
+0772be068899752840f204e0217eae8d4184407e integrated corrected Aeon target receipts,
+results and independent all34container audit, pushed and remoteSHAverified.
+Bothtargetbuildspassfit; enabled857912bytes/slack2732. Kernel0xc04=3076bytes.
+This is a combined IRQ+stage profiling-package comparison, not isolatedstage
+hook overhead. Target artifacts remain installablefalse/hardwarefalse.
+
+Hera remains excluded during MDADM/M.2 and25GNICmaintenance; newheavyworkAeon.
+No hardware writes. FM1 recovery remains unproven; Cynthion monitor-only.
+Pending owner FM1→TARGETA connection response remains unanswered; do not duplicate.
+OverallgoalACTIVE: physical recovery, timing/audio/controls acceptance, persistence,
+web install/recovery and required review/CI/publicrelease remain open.
+Unrelated untracked uv.lock untouched. Semantic MCPs still point at primary
+checkout; reviewed this integration by exact worktree source and tests.
+
 ## Durable policy reopen integrated — 2026-10-17 UTC
 
 [verified: review and independent offline execution] Integrated sealed-policy
