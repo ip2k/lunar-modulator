@@ -18,16 +18,22 @@ not directly establish CPU supply or switch ON direction. No new device writes.
 86154bc7 (19 tests / 26 subtests passed). Canonical metadata regenerated in
 6761a7b6: Shapes RAM 207728 to 207736, consequent CRC53ec1875 to64c1b688;
 worker reports 15 focused schema checks plus exact exporter comparison pass.
-Root environments currently skip schema module for missing dependencies;
-locating worker interpreter before repeating. Both commits pushed with remote
-SHA verified. Startup allocation test repair remains assigned; full current
-CI dispatch still pending these repairs. No CI/main/release success claimed.
+Root repeated 15 schema tests after adding missing validation dependencies
+to the scratch test environment; all passed. Direct exporter/subset/canonical
+equality and schema validation also passed with the existing renderer. Both commits pushed with remote
+SHA verified. Startup allocation test repair remains assigned; CI38986154980 dispatched on exact4a888801; startup repair still pending,
+so that run may retain the three known startup-allocation failures. No CI/main/release success claimed.
 
 [verified: offline experiment] Separate resampler branch fd853c5c passed
 576000 bit-exact output/full-state samples in each of O2, Oz and sanitized O3,
 plus 13 focused tests. Isolated target Oz RAM +48 bytes, stack use increased;
 no speed gain demonstrated. Worker now assigned full current-profile 13-engine
 baseline/candidate link, RAM fit and codegen review. Not integrated.
+
+Hera access blocker: root and workers observe SSH timeouts over IPv4 and
+documented IPv6 link-local path; IPv4 MAC resolves. No power/network changes
+attempted. Heavy monitor and matched full-link builds pending connectivity;
+source/test/build-driver preparation continues.
 
 Overall goal remains active: recovery, real-time audio, persistence, production
 installer delivery, physical acceptance and release gates remain unresolved.
