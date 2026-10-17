@@ -12,11 +12,11 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path, PurePosixPath
 
 from compile_catalogue import optimization_overrides
-import prepare_wavetables
 from build_demo_image import (
     CONTINUOUS_TARGET_STORAGE,
     checked_continuous_midi_input,
@@ -46,6 +46,52 @@ GENERATED_FIXED_PATHS = (
     "link/wave_tables.inc",
 )
 RESOURCE_NAMESPACE_ORDER = ("braids", "plaits")
+_WAVETABLE_GENERATOR = r'''import json
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1]).resolve(strict=True)
+output = Path(sys.argv[2]).resolve(strict=True)
+namespaces = json.loads(sys.argv[3])
+sys.path.insert(0, str(root / "tools/native"))
+import prepare_wavetables
+import evaluate_wavetables
+
+expected_prepare = (root / "tools/native/prepare_wavetables.py").resolve(strict=True)
+expected_evaluate = (root / "tools/native/evaluate_wavetables.py").resolve(strict=True)
+if (Path(prepare_wavetables.__file__).resolve(strict=True) != expected_prepare
+        or Path(evaluate_wavetables.__file__).resolve(strict=True) != expected_evaluate
+        or Path(evaluate_wavetables.ROOT).resolve(strict=True) != root):
+    raise SystemExit("wavetable modules escaped captured source root")
+rows = prepare_wavetables.prepare(output, namespaces)
+sys.stdout.write(json.dumps(rows, separators=(",", ":")))
+'''
+
+
+def _generate_wavetables_from_source(root: Path, output: Path, namespaces):
+    """Run the pinned checkout's deterministic generator in an isolated Python."""
+    root = Path(root).resolve(strict=True)
+    output = Path(output).resolve(strict=True)
+    completed = subprocess.run(
+        [sys.executable, "-I", "-B", "-c", _WAVETABLE_GENERATOR,
+         str(root), str(output), json.dumps(namespaces)],
+        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        timeout=60, check=False,
+    )
+    if completed.returncode != 0 or len(completed.stdout) > 1024 * 1024:
+        raise ValueError("captured-source wavetable regeneration failed")
+    try:
+        rows = json.loads(completed.stdout.decode("utf-8"), object_pairs_hook=_unique)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("captured-source wavetable generator returned invalid metadata") from error
+    if not isinstance(rows, list):
+        raise ValueError("captured-source wavetable generator returned invalid metadata")
+    expected_files = {"wave_tables.json", "wave_tables.inc"}
+    for namespace in namespaces:
+        expected_files.update((f"resources_{namespace}.cc", f"resources_{namespace}.h"))
+    if {entry.name for entry in output.iterdir()} != expected_files:
+        raise ValueError("captured-source wavetable generator emitted an unexpected file set")
+    return rows
 
 
 def _verified_generated_inputs(root: Path, output: Path, prepared, image, verification):
@@ -80,12 +126,9 @@ def _verified_generated_inputs(root: Path, output: Path, prepared, image, verifi
     # later required to be clean and commit-pinned. This checks the no-bank
     # wave_tables.inc/json case too, and prevents an unselected bank from being
     # smuggled into the tuple inventory.
-    generator_root = Path(prepare_wavetables.__file__).resolve().parents[2]
-    if root.resolve() != generator_root:
-        raise ValueError("wavetable generator source is not from the captured source checkout")
     with tempfile.TemporaryDirectory(prefix="lunar-tuple-wave-") as temporary:
         expected_root = Path(temporary)
-        expected_rows = prepare_wavetables.prepare(expected_root, namespaces)
+        expected_rows = _generate_wavetables_from_source(root, expected_root, namespaces)
         if expected_rows != wavetable["compressed_wave_tables"]:
             raise ValueError("linked wavetable metadata differs from regenerated selected banks")
 
@@ -353,6 +396,16 @@ def _source_manifest(root: Path):
     return commit, raw
 
 
+def _pinned_source_manifest(root: Path, expected_commit: str, expected_sha256: str):
+    commit, manifest = _source_manifest(root)
+    if commit != expected_commit:
+        raise ValueError("captured source snapshot commit differs before regeneration")
+    _require_sha(expected_sha256, "post-build source manifest")
+    if sha(manifest) != expected_sha256:
+        raise ValueError("captured source snapshot differs before regeneration")
+    return commit, manifest
+
+
 def _catalogue_manifest(catalogue: Path, verification):
     objects = verification.get("catalogue_objects")
     if not isinstance(objects, list) or not objects:
@@ -593,16 +646,21 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raise ValueError("image receipt does not bind exact artifact receipt bytes")
     app_sha, elf_sha = _verify_app_receipts(image, artifact, verification, app, elf)
 
+    # Pin and prove the exact clean snapshot before executing its generator.
+    # The later post-build comparison still catches any change during capture.
+    source_commit, source_manifest_raw = _pinned_source_manifest(
+        root, invocation.get("source_commit"),
+        invocation.get("post_build_source_tree_sha256"),
+    )
+    source_sha = sha(source_manifest_raw)
+
     generated, generated_rows = _verified_generated_inputs(
         root, output, prepared, image, verification,
     )
     linked_manifest_raw = _linked_object_manifest(output, catalogue, verification)
-    source_commit, source_manifest_raw = _source_manifest(root)
     catalogue_raw = _catalogue_manifest(catalogue, verification)
     catalogue_sha = sha(catalogue_raw)
     _verify_catalogue_subset(catalogue_tree_raw, catalogue_raw)
-    source_sha = sha(source_manifest_raw)
-    _require_sha(invocation.get("post_build_source_tree_sha256"), "post-build source manifest")
     if invocation.get("post_build_source_tree_sha256") != source_sha:
         raise ValueError("post-build source snapshot differs from the captured source manifest")
     build_sha = sha(build_raw)
