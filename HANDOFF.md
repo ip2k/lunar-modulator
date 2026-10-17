@@ -8172,3 +8172,31 @@ and private extracted-tree application build, not a trusted tuple or device
 installation. Review live worker before assuming success. No Hera/device
 writes. Passive02:55UTC monitor remains about5.07V/0uA; benchUSB has KA6 only.
 Physical connection question remains pending; goal ACTIVE and uv.lock preserved.
+
+### Aeon continuous request binding repair and source rebuild result
+
+[verified] Real c9 wrapper Docker create/inspect preflight passed the pinned
+bcff image, exact four labels, environment, mounts and resource/security
+contract. Container remained created/not running and was removed; this was
+not worker execution or tuple capture. Aeon artifacts are under coordination
+tasks/lunar-continuous-v2-preflight-20261017/.
+
+[verified] Exact d4 extracted source has 1010 files and all549 catalogue inputs
+hash-matched. All16 catalogue shards passed. All55 modules and Event Horizon
+plus companion SET linked in D9000 song-diagnostic only with watermark and
+SAVE omitted; watermark+SAVE overflowed XIP by1928 bytes, SAVE alone overflowed
+RAM text by856. This is private compile evidence, not a release candidate.
+Worker handoff: handoffs/lunar--extracted-fullsong-bcff-20261017.md, SHA256
+328c87d265f07fe598128fb1a5c88a71fbb0776c52ce6f683abacd4e7f0e9a33.
+
+[verified] Continuous worker fixed D7000/continuous flags were rejected by
+selection's profile allowlist, while omitting explicit binding also failed.
+Admitted only that exact pair, preserving required grouped modules, Shapes8
+wavetable binding, flag agreement and diagnostic-only named-profile guard.
+Preparation-to-link and mutation tests now cover continuous too. Focused
+suites:118 passed,1 optional private-artifact skip,6 codec-dependent cases
+deselected. Independent static review found no actionable issue. No hardware
+or installability admission. Next: genuine continuous producer on Aeon with
+current committed source, all55 catalogue and SAVE retained. Hera untouched.
+CI38994186689 succeeded; exact c9 CI38997155738 pending at last inspection.
+Goal ACTIVE; physical connection question still pending; uv.lock preserved.

@@ -125,6 +125,31 @@ def d7000_selection(tmp_path):
                 runtime_mode='song-diagnostic')
 
 
+@pytest.mark.parametrize('mutation', ['missing-profile', 'wrong-layout',
+                                      'missing-fixed-module', 'misgrouped-fixed-module'])
+def test_continuous_profile_keeps_layout_and_module_guards(tmp_path, mutation):
+    request = d7000_selection(tmp_path)
+    request['runtime_mode'] = 'continuous'
+    if mutation == 'missing-profile':
+        del request['runtime_mode']
+        del request['flash_layout']
+    elif mutation == 'wrong-layout':
+        request['flash_layout'] = 'expanded-d9000'
+    elif mutation == 'missing-fixed-module':
+        request['engines'].remove('sixop')
+    else:
+        request['engines'].remove('sixop')
+        request['effects'].append('sixop')
+    output = tmp_path / 'rejected-continuous'
+    with pytest.raises(ValueError):
+        build_demo_image.build_selection(
+            request, tmp_path / 'unused-state-tool', tmp_path / 'unused-toolchain',
+            tmp_path / 'unused-catalogue', output, runtime_mode='continuous',
+            flash_layout='expanded-d7000',
+            wavetable_profile=build_demo_image.SHAPES8_WAVETABLE_PROFILE)
+    assert not output.exists()
+
+
 @pytest.mark.parametrize('mutation', [
     'wrong-runtime', 'missing-runtime', 'missing-layout', 'missing-fixed-module',
     'misgrouped-fixed-module', 'unknown-key',
@@ -150,8 +175,11 @@ def test_prepare_selection_rejects_unbound_or_invalid_profile_before_output(tmp_
     assert not output.exists()
 
 
-def test_build_selection_reaches_native_link_with_original_d7000_request_digest(tmp_path, monkeypatch):
+@pytest.mark.parametrize('runtime_mode', ['song-diagnostic', 'continuous'])
+def test_build_selection_reaches_native_link_with_original_d7000_request_digest(
+        tmp_path, monkeypatch, runtime_mode):
     request = d7000_selection(tmp_path)
+    request['runtime_mode'] = runtime_mode
     output = tmp_path / 'build'
     reports = {}
 
@@ -186,7 +214,7 @@ def test_build_selection_reaches_native_link_with_original_d7000_request_digest(
         assert '--flash-layout' in command
         assert command[command.index('--flash-layout') + 1] == 'expanded-d7000'
         assert '--runtime-mode' in command
-        assert command[command.index('--runtime-mode') + 1] == 'song-diagnostic'
+        assert command[command.index('--runtime-mode') + 1] == runtime_mode
         assert '--shapes-voices' in command
         assert command[command.index('--shapes-voices') + 1] == '8'
         assert '--compressed-wavetables' in command
@@ -199,7 +227,7 @@ def test_build_selection_reaches_native_link_with_original_d7000_request_digest(
     with pytest.raises(ReachedNativeLink):
         build_demo_image.build_selection(
             request, tmp_path / 'unused-state-tool', tmp_path / 'unused-toolchain',
-            tmp_path / 'unused-catalogue', output, runtime_mode='song-diagnostic',
+            tmp_path / 'unused-catalogue', output, runtime_mode=runtime_mode,
             flash_layout='expanded-d7000',
             wavetable_profile=build_demo_image.SHAPES8_WAVETABLE_PROFILE)
 
@@ -211,8 +239,10 @@ def test_build_selection_reaches_native_link_with_original_d7000_request_digest(
         (json.dumps(request, sort_keys=True, separators=(',', ':')) + '\n').encode()).hexdigest()
 
 
-def test_build_selection_rejects_link_profile_mismatch_before_creating_output(tmp_path):
+@pytest.mark.parametrize('runtime_mode', ['song-diagnostic', 'continuous'])
+def test_build_selection_rejects_link_profile_mismatch_before_creating_output(tmp_path, runtime_mode):
     request = d7000_selection(tmp_path)
+    request['runtime_mode'] = runtime_mode
     output = tmp_path / 'mismatched-build'
     with pytest.raises(ValueError, match='Build flags differ'):
         build_demo_image.build_selection(
@@ -223,13 +253,15 @@ def test_build_selection_rejects_link_profile_mismatch_before_creating_output(tm
     assert not output.exists()
 
 
-def test_build_selection_rejects_d7000_with_default_d9000_wavetable_profile(tmp_path):
+@pytest.mark.parametrize('runtime_mode', ['song-diagnostic', 'continuous'])
+def test_build_selection_rejects_d7000_with_default_d9000_wavetable_profile(tmp_path, runtime_mode):
     request = d7000_selection(tmp_path)
+    request['runtime_mode'] = runtime_mode
     output = tmp_path / 'mismatched-wavetable-build'
     with pytest.raises(ValueError, match='Wavetable profile differs'):
         build_demo_image.build_selection(
             request, tmp_path / 'unused-state-tool', tmp_path / 'unused-toolchain',
-            tmp_path / 'unused-catalogue', output, runtime_mode='song-diagnostic',
+            tmp_path / 'unused-catalogue', output, runtime_mode=runtime_mode,
             flash_layout='expanded-d7000')
     assert not output.exists()
 

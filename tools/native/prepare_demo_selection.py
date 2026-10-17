@@ -39,7 +39,8 @@ def _validate_selection_request(request):
         runtime = request['runtime_mode']
         if (layout, runtime) not in (
                 ('expanded-d9000', 'diagnostic'),
-                ('expanded-d7000', 'song-diagnostic')):
+                ('expanded-d7000', 'song-diagnostic'),
+                ('expanded-d7000', 'continuous')):
             raise ValueError('Unsupported flash layout/runtime profile pair')
         if layout == 'expanded-d7000':
             if any(not isinstance(request[group], list)
