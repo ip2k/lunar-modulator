@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run matched offline thirteen-engine baseline/candidate builds on Hera.
+"""Run matched offline thirteen-engine baseline/candidate builds on Aeon.
 
 Execute only after the named coordination claim has been acquired. Uses the
 reviewed stage-7 runner, identical frozen toolchain/profile and exact source
@@ -19,9 +19,9 @@ CANDIDATE = 'e75335164423dead395213373bcf221a4d962ea3'
 ORIGINAL_CANDIDATE = 'fd853c5c05b61818281daa1427c73355dbf1da00'
 RUNNER_SHA = '60448560af6f6bbe479a1510b1af4e4cd84e6186f3d01fdd0e0f61425915f446'
 RECEIPT_SHA = '6db18a773eeb48cd18b64d1d01ad184b6a691182f5800bf9e727f2cafcc0fd56'
-STAGE7 = Path('/home/claude/mvave-fm1/current-stage7-hall-o2-20261015')
+STAGE7 = Path('/home/claude/mvave-fm1/resampler-fullfit-frozen-20261016')
 EXCHANGE = Path('/home/claude/.local/share/codex-repos/lunar.git')
-CLAIM = Path('/home/claude/.local/share/codex-coordination/claims/lunar--resampler-inline-fullfit-20261016')
+CLAIM = Path('/home/claude/.local/share/codex-coordination/claims/lunar--resampler-inline-fullfit-aeon-20261016')
 
 
 def sha(path):
@@ -33,12 +33,13 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     if sys.platform != 'linux' or not (CLAIM / 'owner').is_file():
-        raise RuntimeError('Hera Linux and an acquired named coordination claim are required')
+        raise RuntimeError('Aeon Linux and an acquired named coordination claim are required')
     output = args.output.resolve()
     output.mkdir(exist_ok=False)
-    runner = STAGE7 / 'run-build.py'
+    original_runner = STAGE7 / 'run-build.py'
+    runner = Path(__file__).with_name('run_aeon.py')
     receipt_path = STAGE7 / 'output/frozen-build-input-receipt.json'
-    if sha(runner) != RUNNER_SHA or sha(receipt_path) != RECEIPT_SHA:
+    if sha(original_runner) != RUNNER_SHA or sha(runner) != 'ee16ce4b461e44af402b32416c675f257bd689936e3cba18f837809bb2fedff4' or sha(receipt_path) != RECEIPT_SHA:
         raise RuntimeError('stage-7 runner or receipt differs from reviewed external pin')
     original = json.loads(receipt_path.read_text())
     frozen = STAGE7 / 'output/snapshots'
@@ -53,6 +54,8 @@ def main():
     spec = importlib.util.spec_from_file_location('matched_stage7_runner', runner)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    if module.sha_bytes(module.tree_manifest(frozen / 'toolchain')) != original['toolchain_snapshot_tree_manifest_sha256']:
+        raise RuntimeError('toolchain snapshot differs from original target compiler')
     if module.link_args(profile_sha) != original['link_command']:
         raise RuntimeError('runner no longer matches retained current-profile link command')
     expected_compile = ['python3', 'tools/native/compile_catalogue.py', '--toolchain', '/toolchain',
@@ -74,7 +77,7 @@ def main():
         raise RuntimeError('source delta differs from reviewed experiment paths')
     pair = {'baseline_commit': BASE, 'candidate_commit': CANDIDATE,
         'original_experiment_commit': ORIGINAL_CANDIDATE, 'source_delta': source_delta,
-        'stage7_runner_sha256': sha(runner), 'stage7_receipt_sha256': sha(receipt_path),
+        'host': 'aeon', 'stage7_runner_sha256': sha(original_runner), 'aeon_runner_sha256': sha(runner), 'stage7_receipt_sha256': sha(receipt_path),
         'profile_sha256': profile_sha, 'selection_sha256': selection_sha,
         'hardware_tested': False, 'runtime_performance_proven': False, 'results': {}}
     (output / 'pair-input.json').write_text(json.dumps(pair, indent=2) + '\n')

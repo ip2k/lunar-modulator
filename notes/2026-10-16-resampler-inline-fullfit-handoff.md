@@ -89,3 +89,23 @@ explicit output directory for a reviewed retry.
 5. The coordinator reviews fit/codegen before deciding whether a concrete
    hardware trial is warranted. Offline codegen does not establish speedup;
    physical stack high-water and audio acceptance remain separate gates.
+
+## Aeon migration checkpoint
+
+[verified] Hera resumed long enough to complete baseline catalogue compilation,
+then owner maintenance steering interrupted the link. Owned session
+`engine-render-profile-dd8e3ac98e` was stopped; no running owned container remained.
+Hera claim was released after atomic shared handoff. Candidate never started.
+Those partial outputs will not serve as the matched comparison.
+
+Aeon now owns unique claim `lunar--resampler-inline-fullfit-aeon-20261016`.
+Frozen read-only stage-7 evidence was copied to
+`/home/claude/mvave-fm1/resampler-fullfit-frozen-20261016`; active checkouts were
+not used for source exchange. Exact sources are transferred through Git.
+`run_aeon.py` derives from the pinned runner with only image identity, UID1003,
+four concurrent shards and no-swap policy changes. Sixteen logical shards and
+all compile/link flags remain identical. The Aeon image is pinned separately
+at `sha256:bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495`;
+it differs from Hera's image and no cross-image binary equivalence is assumed.
+Both fresh builds use this same image and frozen target compiler. Maximum is
+8 aggregate CPUs/8GiB catalogue RAM, then a separate 4CPU/4GiB link.
