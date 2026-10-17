@@ -22,7 +22,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -r gateware/requirements-test.txt
       - name: Exercise PHY handshakes and bounded recovery protocol
-        run: python -m pytest -v tests/test_ulpi_safe_phy.py tests/test_cynthion_usb_key*.py tests/test_cynthion_power_monitor.py
+        run: python -m pytest -v tests/test_ulpi_safe_phy.py tests/test_cynthion_usb_key*.py tests/test_cynthion_power_monitor.py tests/test_cynthion_power_readout.py
 
   python-tests:
     name: tests (${{ matrix.os }})

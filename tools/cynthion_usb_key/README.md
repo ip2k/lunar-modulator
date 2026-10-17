@@ -6,7 +6,7 @@ a board from its build script. Build with `python -m tools.cynthion_usb_key.buil
 target GPIOs high impedance and requires the physical USER button to be stably
 released and then pressed before its finite attempt can begin.
 
-Every image leaves VBUS controls off by default. An operation image may be
+Every USB_KEY image leaves VBUS controls off by default. An operation image may be
 built with `--target-power-from-control`; this enables only the r1.4
 CONTROL-to-TARGET-A VBUS switch. TARGET-C passthrough, AUX VBUS, and discharge
 remain off. This is an explicit build-time choice, not a runtime control. It
@@ -138,3 +138,37 @@ the raw-value register at zero and still preserves the other captured fields.
 The core remains in its terminal high-impedance state throughout; this receipt
 is diagnostic evidence only and does not establish a ROM ACK or change any
 keying decision.
+
+## Separate power-monitor diagnostic
+
+`power_monitor.py` builds a separate PAC1954 monitor image, with no USB_KEY core
+or target data GPIOs. It enables CONTROL-to-TARGET-A power and leaves TARGET-C,
+AUX and discharge off. It authenticates the monitor and reads USB supply voltage
+and current. It does not test the FM1 CPU rail or prove bootloader recovery.
+Both TARGET ports must be empty for a reviewed volatile load; connect FM1 to
+TARGET A only after unloaded readback is accepted, leaving TARGET C empty.
+Do not use the USB_KEY `LUNR` register table above for this `PAC1` image.
+
+After a separately reviewed load, capture read-only JSON lines with the Python
+environment containing Apollo/Cynthion:
+
+```sh
+python -m tools.cynthion_usb_key.read_power_monitor --samples 10 --interval 1
+```
+
+The reader never builds, loads, changes power, or writes FPGA registers. It
+requires magic `PAC1`, layout1, healthy ready/sample flags, expected PAC ID/range,
+CONTROL-only power and sample age no more than250ms. Invalid readings preserve
+raw evidence with `valid:false` and null conversions; the command exits nonzero
+if any sweep is invalid. Up to120 sweeps are allowed, with0.125–10 seconds
+between completed sweeps. Redirect JSONL to an ignored scratch path to retain
+measurements during an explicitly announced FM1 switch test. Current conversion
+uses the nominal20mOhm shunt and unipolar5A range; tiny no-load offsets are not a
+calibration result. Register reads are sequential, `atomic:false`; voltage and
+current may belong to different conversions, so no instantaneous power is
+calculated. Raw age is sampled during the sweep, not at the later JSON write.
+
+Monitor layout1:1 magic,2 layout,3 PHY/PAC ready/fault plus PAC error and sample
+presence,4 manufacturer plus active range,5 VBUS raw,6 VSENSE raw,7 sequence,
+8 age in60MHz cycles,9 refresh count,10 power controls. Details and unloaded
+physical evidence: `notes/2026-10-16-cynthion-power-monitor.md`.

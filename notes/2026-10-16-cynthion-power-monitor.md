@@ -97,3 +97,22 @@ refresh60/69/77 advanced; ages were below125ms. Raw evidence is ignored
 unloaded sensor readback only; it does not establish FM1 power or recovery.
 Owner was asked to reconnect only FM1 to TARGET A, keep C empty and avoid USER;
 that response is pending. No FM1 flash or recovery-key operation was issued.
+
+## Repeatable read-only host capture
+
+Added `tools/cynthion_usb_key/read_power_monitor.py` for bounded JSONL captures.
+It uses maintained Apollo `register_read` only, authenticates PAC1/layout1 before
+reading other registers, validates status/identity/range/controls/freshness, and
+retains raw fault evidence without numeric conversion on invalid sweeps. Reads
+are explicitly non-atomic; it does not multiply voltage and current into power.
+22 host regressions cover stale/fault/wrong-layout/range/control and malformed
+words. A two-sweep physical reader check returned valid status0x105, voltages
+5.079590/5.069824V and nominal currents458/534uA; these tiny offsets are not a
+calibration or FM1-connected result. No owner connection confirmation has yet
+arrived. Raw output: ignored scratch/cynthion-monitor-aeon-route/host-reader-baseline.jsonl.
+
+Semantic-tool readiness was rechecked: Rarefaction and Serena both still select
+`/Users/likwid/Developer/mvave-fm1-firmware`; this module exists only in the
+integration worktree, so bounded orient/find_symbol returned file-not-found.
+No shared index was retargeted. Direct file inspection and executable tests
+provided this change's source evidence.
