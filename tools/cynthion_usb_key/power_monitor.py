@@ -1,4 +1,4 @@
-"""Read-only Cynthion r1.4 TARGET-A VBUS/current monitor image.
+"""Cynthion r1.4 TARGET-A monitor with bounded PAC1954 range configuration.
 
 This is a diagnostic-only top. It never requests the target USB D+/D- GPIOs,
 never instantiates the USB_KEY core, and exposes only read-only JTAG registers.
@@ -28,15 +28,23 @@ def vbus_uv_from_raw(raw):
 
 
 def current_ua_from_raw(raw, shunt_uohm=20_000):
-    """PAC195x unipolar 100 mV VSENSE reading to rounded microamps."""
+    """PAC195x bipolar ±100 mV signed VSENSE reading to rounded microamps."""
     if shunt_uohm <= 0:
         raise ValueError("shunt resistance must be positive")
-    # 100 mV is 100,000 uV; uV/uOhm is amperes. Convert A to uA.
-    return (raw * 100_000 * 1_000_000 + (shunt_uohm * 65_536) // 2) // (shunt_uohm * 65_536)
+    if type(raw) is not int or not 0 <= raw <= 0xFFFF:
+        raise ValueError("raw VSENSE must be an unsigned 16-bit word")
+    signed = raw if raw < 0x8000 else raw - 0x1_0000
+    # Bipolar PAC195x VSENSE uses two's complement and 2^15 counts per
+    # full-scale polarity. 100 mV is 100,000 uV; uV/uOhm is amperes.
+    numerator = signed * 100_000 * 1_000_000
+    denominator = shunt_uohm * 32_768
+    # Round to nearest microamp, symmetrically for positive and negative.
+    magnitude = (abs(numerator) + denominator // 2) // denominator
+    return magnitude if numerator >= 0 else -magnitude
 
 
 class PAC1954Channel1(Elaboratable):
-    """Bounded PAC1954 identity/range/refresh/read state machine.
+    """Bounded PAC1954 identity/configuration/refresh/read state machine.
 
     I2CRegisterInterface is LUNA's maintained device driver. The controller
     treats a transaction that returns idle without `done` as an error (NACK),
@@ -46,11 +54,14 @@ class PAC1954Channel1(Elaboratable):
     I2C_ADDRESS = 0x10
     REG_VBUS1 = 0x07
     REG_VSENSE1 = 0x0B
-    REG_NEG_PWR_FSR_ACT = 0x22
+    REG_NEG_PWR_FSR = 0x1D
     REG_REFRESH_V = 0x1F
+    REG_NEG_PWR_FSR_ACT = 0x22
     REG_MANUFACTURER_ID = 0xFE
     EXPECTED_MANUFACTURER_ID = 0x54
-    EXPECTED_ACTIVE_RANGE = 0x0000
+    EXPECTED_ACTIVE_RANGE = 0x4000
+    # LUNA emits the 16-bit write_data most-significant byte first.
+    CONFIG_WRITE_DATA = 0x4000  # PAC1954 register word 40 00 on I2C.
 
     # r1.4 schematic R2, Panasonic ERJ-3BWFR020V: 20 mOhm nominal.
     SHUNT_UOHM = 20_000
@@ -129,8 +140,14 @@ class PAC1954Channel1(Elaboratable):
                 with m.If(transfer_done):
                     m.d.sync += self.manufacturer_id.eq(i2c.read_data[:8])
                     with m.If(i2c.read_data[:8] == self.EXPECTED_MANUFACTURER_ID):
-                        m.d.sync += [i2c.address.eq(self.REG_NEG_PWR_FSR_ACT), i2c.size.eq(2), i2c_timeout.eq(0), wait_busy_seen.eq(0)]
-                        m.next = "ISSUE_RANGE"
+                        m.d.sync += [
+                            i2c.address.eq(self.REG_NEG_PWR_FSR),
+                            i2c.size.eq(2),
+                            i2c.write_data.eq(self.CONFIG_WRITE_DATA),
+                            i2c_timeout.eq(0),
+                            wait_busy_seen.eq(0),
+                        ]
+                        m.next = "ISSUE_CONFIG"
                     with m.Else():
                         m.d.sync += [self.fault.eq(1), self.error_code.eq(1)]
                         m.next = "FAILED"
@@ -150,30 +167,25 @@ class PAC1954Channel1(Elaboratable):
                 with m.Else():
                     m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
 
-            with m.State("ISSUE_RANGE"):
-                m.d.sync += i2c.read_request.eq(1)
-                m.next = "WAIT_RANGE"
-            with m.State("WAIT_RANGE"):
+            with m.State("ISSUE_CONFIG"):
+                m.d.sync += i2c.write_request.eq(1)
+                m.next = "WAIT_CONFIG"
+            with m.State("WAIT_CONFIG"):
                 with m.If(transfer_done):
-                    m.d.sync += self.active_range.eq(i2c.read_data[:16])
-                    with m.If(i2c.read_data[:16] == self.EXPECTED_ACTIVE_RANGE):
-                        m.d.sync += [i2c.address.eq(self.REG_REFRESH_V), i2c.size.eq(0), i2c_timeout.eq(0), wait_busy_seen.eq(0)]
-                        m.next = "ISSUE_REFRESH"
-                    with m.Else():
-                        m.d.sync += [self.fault.eq(1), self.error_code.eq(4)]
-                        m.next = "FAILED"
+                    m.d.sync += [i2c.address.eq(self.REG_REFRESH_V), i2c.size.eq(0), i2c_timeout.eq(0), wait_busy_seen.eq(0)]
+                    m.next = "ISSUE_REFRESH"
                 with m.Elif(transfer_failed):
-                    m.d.sync += [self.fault.eq(1), self.error_code.eq(5)]
+                    m.d.sync += [self.fault.eq(1), self.error_code.eq(4)]
                     m.next = "FAILED"
                 with m.Elif(i2c.busy):
                     m.d.sync += wait_busy_seen.eq(1)
                     with m.If(i2c_timeout == self.read_timeout_cycles - 1):
-                        m.d.sync += [self.fault.eq(1), self.error_code.eq(6)]
+                        m.d.sync += [self.fault.eq(1), self.error_code.eq(5)]
                         m.next = "FAILED"
                     with m.Else():
                         m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
                 with m.Elif(i2c_timeout == self.read_timeout_cycles - 1):
-                    m.d.sync += [self.fault.eq(1), self.error_code.eq(6)]
+                    m.d.sync += [self.fault.eq(1), self.error_code.eq(5)]
                     m.next = "FAILED"
                 with m.Else():
                     m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
@@ -186,35 +198,40 @@ class PAC1954Channel1(Elaboratable):
                     m.d.sync += [settle_count.eq(0), self.refresh_count.eq(self.refresh_count + 1)]
                     m.next = "REFRESH_SETTLE"
                 with m.Elif(transfer_failed):
-                    m.d.sync += [self.fault.eq(1), self.error_code.eq(7)]
+                    m.d.sync += [self.fault.eq(1), self.error_code.eq(6)]
                     m.next = "FAILED"
                 with m.Elif(i2c.busy):
                     m.d.sync += wait_busy_seen.eq(1)
                     with m.If(i2c_timeout == self.read_timeout_cycles - 1):
-                        m.d.sync += [self.fault.eq(1), self.error_code.eq(8)]
+                        m.d.sync += [self.fault.eq(1), self.error_code.eq(7)]
                         m.next = "FAILED"
                     with m.Else():
                         m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
                 with m.Elif(i2c_timeout == self.read_timeout_cycles - 1):
-                    m.d.sync += [self.fault.eq(1), self.error_code.eq(8)]
+                    m.d.sync += [self.fault.eq(1), self.error_code.eq(7)]
                     m.next = "FAILED"
                 with m.Else():
                     m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
 
             with m.State("REFRESH_SETTLE"):
                 with m.If(settle_count == self.refresh_settle_cycles - 1):
-                    m.d.sync += [i2c.address.eq(self.REG_VBUS1), i2c.size.eq(2), i2c_timeout.eq(0), wait_busy_seen.eq(0)]
-                    m.next = "ISSUE_VBUS"
+                    m.d.sync += [i2c.address.eq(self.REG_NEG_PWR_FSR_ACT), i2c.size.eq(2), i2c_timeout.eq(0), wait_busy_seen.eq(0)]
+                    m.next = "ISSUE_RANGE"
                 with m.Else():
                     m.d.sync += settle_count.eq(settle_count + 1)
 
-            with m.State("ISSUE_VBUS"):
+            with m.State("ISSUE_RANGE"):
                 m.d.sync += i2c.read_request.eq(1)
-                m.next = "WAIT_VBUS"
-            with m.State("WAIT_VBUS"):
+                m.next = "WAIT_RANGE"
+            with m.State("WAIT_RANGE"):
                 with m.If(transfer_done):
-                    m.d.sync += [register_value.eq(i2c.read_data[:16]), i2c.address.eq(self.REG_VSENSE1), i2c.size.eq(2), i2c_timeout.eq(0), wait_busy_seen.eq(0)]
-                    m.next = "ISSUE_VSENSE"
+                    m.d.sync += self.active_range.eq(i2c.read_data[:16])
+                    with m.If(i2c.read_data[:16] == self.EXPECTED_ACTIVE_RANGE):
+                        m.d.sync += [i2c.address.eq(self.REG_VBUS1), i2c.size.eq(2), i2c_timeout.eq(0), wait_busy_seen.eq(0)]
+                        m.next = "ISSUE_VBUS"
+                    with m.Else():
+                        m.d.sync += [self.fault.eq(1), self.error_code.eq(8)]
+                        m.next = "FAILED"
                 with m.Elif(transfer_failed):
                     m.d.sync += [self.fault.eq(1), self.error_code.eq(9)]
                     m.next = "FAILED"
@@ -227,6 +244,29 @@ class PAC1954Channel1(Elaboratable):
                         m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
                 with m.Elif(i2c_timeout == self.read_timeout_cycles - 1):
                     m.d.sync += [self.fault.eq(1), self.error_code.eq(10)]
+                    m.next = "FAILED"
+                with m.Else():
+                    m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
+
+            with m.State("ISSUE_VBUS"):
+                m.d.sync += i2c.read_request.eq(1)
+                m.next = "WAIT_VBUS"
+            with m.State("WAIT_VBUS"):
+                with m.If(transfer_done):
+                    m.d.sync += [register_value.eq(i2c.read_data[:16]), i2c.address.eq(self.REG_VSENSE1), i2c.size.eq(2), i2c_timeout.eq(0), wait_busy_seen.eq(0)]
+                    m.next = "ISSUE_VSENSE"
+                with m.Elif(transfer_failed):
+                    m.d.sync += [self.fault.eq(1), self.error_code.eq(11)]
+                    m.next = "FAILED"
+                with m.Elif(i2c.busy):
+                    m.d.sync += wait_busy_seen.eq(1)
+                    with m.If(i2c_timeout == self.read_timeout_cycles - 1):
+                        m.d.sync += [self.fault.eq(1), self.error_code.eq(12)]
+                        m.next = "FAILED"
+                    with m.Else():
+                        m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
+                with m.Elif(i2c_timeout == self.read_timeout_cycles - 1):
+                    m.d.sync += [self.fault.eq(1), self.error_code.eq(12)]
                     m.next = "FAILED"
                 with m.Else():
                     m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
@@ -246,17 +286,17 @@ class PAC1954Channel1(Elaboratable):
                     m.d.sync += self.ready.eq(1)
                     m.next = "SAMPLE_INTERVAL"
                 with m.Elif(transfer_failed):
-                    m.d.sync += [self.fault.eq(1), self.error_code.eq(11)]
+                    m.d.sync += [self.fault.eq(1), self.error_code.eq(13)]
                     m.next = "FAILED"
                 with m.Elif(i2c.busy):
                     m.d.sync += wait_busy_seen.eq(1)
                     with m.If(i2c_timeout == self.read_timeout_cycles - 1):
-                        m.d.sync += [self.fault.eq(1), self.error_code.eq(12)]
+                        m.d.sync += [self.fault.eq(1), self.error_code.eq(14)]
                         m.next = "FAILED"
                     with m.Else():
                         m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
                 with m.Elif(i2c_timeout == self.read_timeout_cycles - 1):
-                    m.d.sync += [self.fault.eq(1), self.error_code.eq(12)]
+                    m.d.sync += [self.fault.eq(1), self.error_code.eq(14)]
                     m.next = "FAILED"
                 with m.Else():
                     m.d.sync += i2c_timeout.eq(i2c_timeout + 1)
@@ -350,8 +390,8 @@ class CynthionPowerMonitorTop(Elaboratable):
         debug = DomainRenamer({"sync": "usb"})(
             JTAGRegisterInterface(default_read_value=0xBAD0C0DE))
         m.submodules.debug_registers = debug
-        debug.add_read_only_register(1, read=0x50414331)  # "PAC1"
-        debug.add_read_only_register(2, read=1)  # layout version
+        debug.add_read_only_register(1, read=0x50414332)  # "PAC2"
+        debug.add_read_only_register(2, read=2)  # signed-current layout version
         debug.add_read_only_register(3, read=Cat(
             safe_phy.ready, safe_phy.fault, pac.ready, pac.fault,
             pac.error_code, pac.sample_sequence != 0))
@@ -394,7 +434,7 @@ def main():
     if not bitstream.is_file():
         raise SystemExit(f"build did not produce {bitstream}")
     receipt = {
-        "purpose": "read-only Cynthion r1.4 TARGET-A VBUS/current diagnosis",
+        "purpose": "Cynthion r1.4 TARGET-A VBUS/current diagnosis; bounded PAC1954 configuration only",
         "hardware_programmed": False,
         "source_commit": source_sha,
         "platform": "Cynthion r1.4",
@@ -402,7 +442,7 @@ def main():
         "channel": 1,
         "target_gpio": "not requested; outputs absent/high impedance",
         "phy_profile": {"identity": "USB3343 0424:0009", "function_control": "0x49 non-driving", "r1_4_io_power_management": "0x06 (DP/DM swap)", "must_readback_before_ready": True},
-        "pac1954": {"manufacturer_id": "0x54", "range_register": "0x22", "required_active_range": "0x0000 unipolar defaults", "refresh_command": "REFRESH_V 0x1f Send Byte", "vbus_register": "0x07", "vsense_register": "0x0b", "vbus_scale": "raw * 32,000,000 uV / 65536", "vsense_scale": "raw * 100,000 uV / 65536", "shunt": "20,000 uOhm nominal, Cynthion r1.4 R2 ERJ-3BWFR020V", "current_scale": "raw * 5,000,000 / 65536 uA; unsigned unipolar", "jtag_measurements": "raw VBUS1 and VSENSE1; host applies scales"},
+        "pac1954": {"manufacturer_id": "0x54", "config_register": "0x1d", "config_write_word": "0x4000 (channel-1 VSENSE bipolar ±100 mV; other ranges unipolar)", "active_range_register": "0x22", "required_active_range": "0x4000", "refresh_command": "REFRESH_V 0x1f Send Byte (activates configuration; no accumulator reset)", "vbus_register": "0x07", "vsense_register": "0x0b", "vbus_scale": "raw * 32,000,000 uV / 65536", "vsense_scale": "signed int16 * 100,000 uV / 32768", "shunt": "20,000 uOhm nominal, Cynthion r1.4 R2 ERJ-3BWFR020V", "current_scale": "signed int16 * 5,000,000 / 32768 uA; positive means TARGET_A_to_CONTROL", "jtag_measurements": "raw VBUS1 and signed-bipolar VSENSE1; host applies scales"},
         "vbus_controls_active_high": {"CONTROL": 1, "TARGET_C": 0, "AUX": 0, "TARGET_A_discharge": 0},
         "bitstream": str(bitstream.resolve()),
         "bitstream_sha256": hashlib.sha256(bitstream.read_bytes()).hexdigest(),

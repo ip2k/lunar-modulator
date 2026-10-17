@@ -25,17 +25,20 @@ from tools.cynthion_usb_key.power_monitor import (
 
 
 class _FakePACBus(Elaboratable):
-    def __init__(self, *, manufacturer=0x54, active_range=0,
+    def __init__(self, *, manufacturer=0x54, active_range=0x4000,
+                 accept_config=True,
                  hang_address=None, nack_address=None, nack_after=0):
         self.address = Signal(8)
         self.size = Signal(2)
         self.read_request = Signal()
         self.write_request = Signal()
+        self.write_data = Signal(16)
         self.read_data = Signal(16)
         self.busy = Signal()
         self.done = Signal()
         self.manufacturer = manufacturer
         self.active_range = active_range
+        self.accept_config = accept_config
         self.hang_address = hang_address
         self.nack_address = nack_address
         self.nack_after = nack_after
@@ -47,6 +50,8 @@ class _FakePACBus(Elaboratable):
         stuck = Signal()
         nack_this = Signal()
         completed = Signal(8)
+        config_written = Signal()
+        active_range = Signal(16, init=self.active_range)
         m.d.sync += self.done.eq(0)
         with m.If((self.read_request | self.write_request) & ~self.busy):
             m.d.sync += [
@@ -57,6 +62,14 @@ class _FakePACBus(Elaboratable):
                 countdown.eq(3),
                 self.busy.eq(1),
             ]
+            with m.If(self.write_request & (self.address == 0x1D)
+                      & (self.size == 2)
+                      & (self.write_data == PAC1954Channel1.CONFIG_WRITE_DATA)):
+                m.d.sync += config_written.eq(1)
+            with m.If(self.write_request & (self.address == 0x1F)
+                      & (self.size == 0) & config_written
+                      & self.accept_config):
+                m.d.sync += active_range.eq(PAC1954Channel1.EXPECTED_ACTIVE_RANGE)
         with m.Elif(self.busy & ~stuck):
             with m.If(countdown != 0):
                 m.d.sync += countdown.eq(countdown - 1)
@@ -69,7 +82,7 @@ class _FakePACBus(Elaboratable):
                         with m.Case(0xFE):
                             m.d.sync += self.read_data.eq(self.manufacturer)
                         with m.Case(0x22):
-                            m.d.sync += self.read_data.eq(self.active_range)
+                            m.d.sync += self.read_data.eq(active_range)
                         with m.Case(0x07):
                             m.d.sync += self.read_data.eq(0x8000)
                         with m.Case(0x0B):
@@ -133,8 +146,9 @@ class _TwoByteI2CSlave(Elaboratable):
 class _RegisterReadSlave(Elaboratable):
     """Minimal open-drain target for one register-addressed two-byte read."""
 
-    def __init__(self, pads):
+    def __init__(self, pads, read_value=0x1234):
         self.pads = pads
+        self.read_value = read_value
         self.phase = Signal(3)  # SLA+W, register, SLA+R, data0, data1, done
         self.bit_index = Signal(range(9))
         self.rx_shift = Signal(8)
@@ -234,7 +248,8 @@ class _RegisterReadSlave(Elaboratable):
         from amaranth import Mux
         ack_phase = (self.phase >= 1) & (self.phase <= 3)
         ack_slot = self.bit_index == 8
-        read_byte = Mux(self.phase == 4, 0x12, 0x34)
+        read_byte = Mux(self.phase == 4, self.read_value >> 8,
+                        self.read_value & 0xFF)
         read_bit = read_byte.bit_select(self.bit_index[:3] ^ 7, 1)
         return ack_phase & ack_slot | ((self.phase == 4) | (self.phase == 5)) \
             & ~ack_slot & ~read_bit
@@ -245,9 +260,14 @@ class PowerMonitorTests(unittest.TestCase):
         self.assertEqual(vbus_uv_from_raw(0), 0)
         self.assertEqual(vbus_uv_from_raw(0xFFFF), 31_999_512)
         self.assertEqual(current_ua_from_raw(0), 0)
-        self.assertEqual(current_ua_from_raw(0xFFFF), 4_999_924)
+        self.assertEqual(current_ua_from_raw(0x7FFF), 4_999_847)
+        self.assertEqual(current_ua_from_raw(0x8000), -5_000_000)
+        self.assertEqual(current_ua_from_raw(0xFFFF), -153)
+        self.assertEqual(current_ua_from_raw(0x4000), 2_500_000)
         with self.assertRaises(ValueError):
             current_ua_from_raw(12, 0)
+        with self.assertRaises(ValueError):
+            current_ua_from_raw(0x1_0000)
 
     def test_wrong_manufacturer_fails_before_measurement(self):
         bus = _FakePACBus(manufacturer=0x53)
@@ -281,8 +301,65 @@ class PowerMonitorTests(unittest.TestCase):
         sim.add_testbench(bench)
         sim.run()
 
-    def test_nondefault_range_fails_closed(self):
-        bus = _FakePACBus(active_range=0x4000)
+    def test_config_write_nack_fails_before_any_sample(self):
+        bus = _FakePACBus(nack_address=PAC1954Channel1.REG_NEG_PWR_FSR)
+        top = _PACBench(bus)
+        sim = Simulator(top)
+        sim.add_clock(1e-6)
+        async def bench(ctx):
+            for _ in range(100):
+                await ctx.tick()
+                if ctx.get(top.dut.fault):
+                    break
+            self.assertEqual(ctx.get(top.dut.error_code), 4)
+            self.assertEqual(ctx.get(top.dut.ready), 0)
+            self.assertEqual(ctx.get(top.dut.sample_sequence), 0)
+        sim.add_testbench(bench)
+        sim.run()
+
+    def test_config_write_timeout_is_bounded_and_fail_closed(self):
+        bus = _FakePACBus(hang_address=PAC1954Channel1.REG_NEG_PWR_FSR)
+        top = _PACBench(bus, timeout=8)
+        sim = Simulator(top)
+        sim.add_clock(1e-6)
+        async def bench(ctx):
+            for _ in range(100):
+                await ctx.tick()
+                if ctx.get(top.dut.fault):
+                    break
+            self.assertEqual(ctx.get(top.dut.error_code), 5)
+            self.assertEqual(ctx.get(top.dut.ready), 0)
+            self.assertEqual(ctx.get(top.dut.sample_sequence), 0)
+        sim.add_testbench(bench)
+        sim.run()
+
+    def test_startup_writes_bipolar_mode_refreshes_then_checks_active_mode(self):
+        bus = _FakePACBus()
+        top = _PACBench(bus)
+        sim = Simulator(top)
+        sim.add_clock(1e-6)
+        async def bench(ctx):
+            writes = []
+            reads = []
+            for _ in range(160):
+                if ctx.get(bus.write_request):
+                    writes.append((ctx.get(bus.address), ctx.get(bus.size),
+                                   ctx.get(bus.write_data)))
+                if ctx.get(bus.read_request):
+                    reads.append((ctx.get(bus.address), ctx.get(bus.size)))
+                await ctx.tick()
+                if ctx.get(top.dut.ready) or ctx.get(top.dut.fault):
+                    break
+            self.assertEqual(ctx.get(top.dut.fault), 0)
+            self.assertEqual(writes, [(0x1D, 2, 0x4000), (0x1F, 0, 0x4000)])
+            self.assertEqual(reads, [(0xFE, 1), (0x22, 2), (0x07, 2), (0x0B, 2)])
+            self.assertEqual(ctx.get(top.dut.active_range), 0x4000)
+            self.assertEqual(ctx.get(top.dut.sample_sequence), 1)
+        sim.add_testbench(bench)
+        sim.run()
+
+    def test_wrong_active_range_fails_closed(self):
+        bus = _FakePACBus(active_range=0, accept_config=False)
         top = _PACBench(bus)
         sim = Simulator(top)
         sim.add_clock(1e-6)
@@ -291,9 +368,9 @@ class PowerMonitorTests(unittest.TestCase):
                 await ctx.tick()
                 if ctx.get(top.dut.fault):
                     break
-            self.assertEqual(ctx.get(top.dut.error_code), 4)
+            self.assertEqual(ctx.get(top.dut.error_code), 8)
             self.assertEqual(ctx.get(top.dut.ready), 0)
-            self.assertEqual(ctx.get(top.dut.active_range), 0x4000)
+            self.assertEqual(ctx.get(top.dut.active_range), 0)
         sim.add_testbench(bench)
         sim.run()
 
@@ -330,8 +407,9 @@ class PowerMonitorTests(unittest.TestCase):
             self.assertEqual(ctx.get(top.dut.vbus_raw), 0x8000)
             self.assertEqual(ctx.get(top.dut.vsense_raw), 0x4000)
             self.assertEqual(vbus_uv_from_raw(ctx.get(top.dut.vbus_raw)), 16_000_000)
-            self.assertEqual(current_ua_from_raw(ctx.get(top.dut.vsense_raw)), 1_250_000)
+            self.assertEqual(current_ua_from_raw(ctx.get(top.dut.vsense_raw)), 2_500_000)
             self.assertEqual(ctx.get(top.dut.sample_sequence), 1)
+            self.assertEqual(ctx.get(top.dut.active_range), 0x4000)
             self.assertEqual(ctx.get(top.dut.refresh_count), 1)
         sim.add_testbench(bench)
         sim.run()
@@ -365,12 +443,62 @@ class PowerMonitorTests(unittest.TestCase):
                 if ctx.get(top.dut.fault):
                     break
             await ctx.tick()  # FAILED clears ready on the following clock.
-            self.assertEqual(ctx.get(top.dut.error_code), 9)
+            self.assertEqual(ctx.get(top.dut.error_code), 11)
             self.assertEqual(ctx.get(top.dut.ready), 0)
             self.assertEqual(ctx.get(top.dut.sample_sequence), 1)
             self.assertGreater(ctx.get(top.dut.sample_age_cycles), 0)
             self.assertEqual(ctx.get(top.dut.vbus_raw), 0x8000)
             self.assertEqual(ctx.get(top.dut.vsense_raw), 0x4000)
+        sim.add_testbench(bench)
+        sim.run()
+
+    def test_real_luna_config_word_uses_msb_first_wire_order(self):
+        pads = SimpleNamespace(
+            scl=SimpleNamespace(o=Signal()),
+            sda=SimpleNamespace(i=Signal(), o=Signal(), oe=Signal()),
+        )
+        i2c = I2CRegisterInterface(pads, period_cyc=8,
+                                   address=PAC1954Channel1.I2C_ADDRESS,
+                                   data_bytes=2)
+        m = Module()
+        m.submodules.i2c = i2c
+        sim = Simulator(m)
+        sim.add_clock(1e-6)
+
+        async def bench(ctx):
+            ctx.set(pads.sda.i, 1)
+            ctx.set(i2c.address, PAC1954Channel1.REG_NEG_PWR_FSR)
+            ctx.set(i2c.size, 2)
+            ctx.set(i2c.write_data, PAC1954Channel1.CONFIG_WRITE_DATA)
+            ctx.set(i2c.write_request, 1)
+            await ctx.tick()
+            ctx.set(i2c.write_request, 0)
+            slave_low = False
+            rising_count = 0
+            previous_scl = ctx.get(pads.scl.o)
+            received = []
+            for _ in range(6000):
+                ctx.set(pads.sda.i, 0 if slave_low or ctx.get(pads.sda.oe) else 1)
+                await ctx.tick()
+                scl = ctx.get(pads.scl.o)
+                if previous_scl == 0 and scl == 1:
+                    if rising_count % 9 != 8:
+                        received.append(0 if ctx.get(pads.sda.oe) else 1)
+                    rising_count += 1
+                elif previous_scl == 1 and scl == 0:
+                    if rising_count % 9 == 8:
+                        slave_low = True
+                    elif rising_count and rising_count % 9 == 0:
+                        slave_low = False
+                previous_scl = scl
+                if ctx.get(i2c.done):
+                    break
+            octets = [sum(bit << (7 - index) for index, bit in enumerate(received[start:start + 8]))
+                      for start in range(0, len(received), 8)]
+            self.assertEqual(ctx.get(i2c.done), 1)
+            self.assertEqual(rising_count, 36)
+            self.assertEqual(octets, [0x20, 0x1D, 0x40, 0x00])
+
         sim.add_testbench(bench)
         sim.run()
 
@@ -470,7 +598,7 @@ class PowerMonitorTests(unittest.TestCase):
         i2c = I2CRegisterInterface(
             pads, period_cyc=64, address=PAC1954Channel1.I2C_ADDRESS,
             data_bytes=2)
-        slave = _RegisterReadSlave(pads)
+        slave = _RegisterReadSlave(pads, read_value=0x4000)
         m = Module()
         m.submodules.i2c = i2c
         m.submodules.slave = slave
@@ -491,7 +619,8 @@ class PowerMonitorTests(unittest.TestCase):
                     break
 
             self.assertTrue(done_seen)
-            self.assertEqual(ctx.get(i2c.read_data), 0x1234)
+            self.assertEqual(ctx.get(i2c.read_data), 0x4000)
+            self.assertEqual(ctx.get(slave.sampled_read), 0x4000)
             self.assertEqual(ctx.get(slave.address_write), 0x20)
             self.assertEqual(ctx.get(slave.register), 0x07)
             self.assertEqual(ctx.get(slave.address_read), 0x21)
@@ -501,7 +630,7 @@ class PowerMonitorTests(unittest.TestCase):
             self.assertEqual(ctx.get(slave.final_nack), 1)
             self.assertEqual(ctx.get(slave.stop_seen), 1)
             self.assertEqual(ctx.get(slave.read_sample_count), 16)
-            self.assertEqual(ctx.get(slave.sampled_read), 0x1234)
+            self.assertEqual(ctx.get(slave.sampled_read), 0x4000)
 
         sim.add_testbench(bench)
         sim.run()
