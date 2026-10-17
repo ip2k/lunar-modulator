@@ -1,3 +1,39 @@
+## Exact source archive and selected-build verification — 2026-10-17 UTC
+
+[verified] Header collector plus package-import and exact three-starter source
+allowlist fixes are integrated/pushed at 6c0fe7ae2a4927fb3db536ff803785aee59fc8e4.
+Coordinator ordered tests passed: 69 passed, two retained-build skips. E7 source
+archive and replay are byte-identical: 4789809 bytes, SHA
+f32d4539f6f739f3d78af35e7ac4086c7483bbf355974c31543b19cb821897fe,
+1440 unique entries. All 414 compiler inventory rows rehashed independently;
+294 raw receipts, 72 execution files, 36 consumed headers. Completeness,
+distribution eligibility and reproducibility remain false; this is a fresh
+trace inventory, not physical acceptance or historical argv proof.
+
+Fresh 6ac subset catalogue: sixteen terminal containers exited zero without
+OOM; 167 compile results and actual objects verified. A first launch wrongly
+continued after a header preflight failed; it is preserved and rejected.
+The subsequent separately validated staging copy matched pinned pristine
+header tree 2e92acfe... exactly; original content/modes remain untouched.
+Header difference was snapshot file modes, not changed bytes.
+
+Trio (308548 bytes) and Macro (362192 bytes) target links both succeeded.
+Their captures failed because the service imported its own wavetable generator
+while capture expected the detached source snapshot. Remaining Shapes/pair
+runs are held. Worker bringup_review has implemented isolated captured-source
+generation and is adding a genuine post-generation tree recheck after root
+review; no rejected capture is accepted or resealed. Worker continuous_service
+holds its claim without running builds until the corrected exact base arrives.
+The source_bundle_closure worker runs selected-engine host startup/render tests
+in one bounded Aeon container at commit 48e9e547; root observed it running with
+4 CPU, 8 GiB memory/swap, 512 pids, no network and batch-slice isolation.
+
+All heavy work stays on Aeon; no Hera contact. Private default FWSC composition
+from canonical 0ecf tuple is assigned separately with all acceptance flags false.
+No new device writes. Recovery, severe physical audio lag, persistence ownership,
+web package admission/deployment and release acceptance remain open. Goal ACTIVE.
+Unrelated uv.lock preserved. Current-head CI is pending these integration fixes.
+
 ## Aeon selected-build retry dependency — 2026-10-17 UTC
 
 [verified] Owner routing remains Aeon-only; do not contact Hera during its
