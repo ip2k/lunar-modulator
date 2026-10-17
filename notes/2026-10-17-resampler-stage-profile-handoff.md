@@ -61,3 +61,12 @@ catalogue compile/link/codegen/RAM fit using both flags; exact-head CI; explicit
 owner-controlled profiling-disabled versus enabled overhead comparison and
 physical workload/audio acceptance. Profile is not target-build ready/verified
 until these gates pass. Do not flash solely on this source-only handoff.
+
+## Post-link report correction
+
+Coordinator review found that the initial broad flag propagation accidentally
+passed `resampler_stage_profile` to the unrelated `optimization_overrides`
+report expression. Removed that unsupported keyword while preserving the
+`checked_catalogue` profile receipt check. Added a test that extracts and
+evaluates the actual post-link report expression across five optimization
+selections, without requiring a target build. Target build remains pending.
