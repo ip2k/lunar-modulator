@@ -8,10 +8,18 @@ project. Source-only tool; no USB, MIDI, network or device operations.
 [verified] `tools/workbench/formats.py` converts one DX7 VCED dump or one
 32-voice VMEM dump into an existing canonical Lunar **sound** file. It uses
 `tools/lunar_state.py` with the checked-in `sim/web/www/meta.json` metadata,
-selects FM6's **User 1**, and fills User 1 through User 32 in source order.
-A single voice fills User 1. It does not create a second state model.
-The output opens through Lunar's existing Open/drop flow; the other voices
-remain accessible through the FM6 Patch parameter.
+selects FM6's **User 1 in the file**, and records User 1 through User 32
+in source order. A single voice occupies file slot User 1. It does not create a second state model.
+The output uses Lunar's existing Open/drop flow. On actual sound load, Lunar
+reuses identical voices or allocates free user slots, remaps the selected
+Patch and refuses if it cannot fit the voices. A full32-voice file needs
+an empty bank or sufficient identical/free slots. The imported voices are
+accessible through the FM6 Patch parameter after a successful complete load.
+For direct bank replacement, use the existing **Load DX7 patches** flow
+with the original SysEx. Loading without voices after a capacity prompt does
+not meet the pilot's complete-voice acceptance criterion.
+[verified source: `sim/web/src/fm1_app_state.c:1316`,
+`sim/web/src/fm1_app.c:671`]
 
 [verified] Lunar already imports SysEx through **Load DX7 patches** and the
 normal Open/drop flow (`sim/web/www/files.js`, `app.js`). This pilot adds
@@ -65,7 +73,7 @@ because SysEx does not encode those controls. Re-exporting the generated sound
 has no voice losses. Export permits exactly one voice in User1 or exactly
 32 voices in User1..32; sparse/partial banks are refused. The selected Patch
 setting is reported as loss if it differs from the generated User1 baseline.
-Voice-only round trips are byte-identical at matching channel for canonical
+Voice-only file round trips are byte-identical at matching channel for canonical
 valid VMEM/VCED inputs. This does not claim sound parity between synthesizers.
 
 [verified] `.fm1/.fm1t` inspection validates their containers, not complete
