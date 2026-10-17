@@ -1,3 +1,21 @@
+## Critical exact092 linked-origin correction — 2026-10-17 UTC
+
+Coordinator found four coherent absolute string references and VM operation
+pointers using base02000120. Earlier02000000origin inference was wrong; previous
+zero-origin runtime labels, missing-pointer arguments and RAM aliases are
+superseded. Corrected checks and exact hashes are in
+notes/2026-10-17-092-disassembly-review.md. Corrected scratch startup verifier
+passes: rawcopy83F40..8DF9C, RAMcall01C00E8C, source raw84DCC. Candidate VM init,
+read/write now have contiguous function-table references; workerbringup_review
+is tracing corrected dispatch and VM-info205/206 source record offline onAeon.
+No physical/device action depended on the faulty interpretation. Heavy work
+remains Aeon-only; no Hera probes. Recovery/audio/persistence/release incomplete.
+Passive01:54UTC monitor: TARGET-A5.073/5.078V,current0/610uA,valid,error0;
+benchroots+KA6only,noFM1. This does not prove attachment orCPU power.
+Existing owner connection question stillpending. CI38991254950 lastlive:
+Ubuntu/macOS suitesrunning,allcompletedjobspassed. Overall goalACTIVE.
+Priorcheckpointa6fce949pushed/remoteSHAverified; unrelateduv.lockuntouched.
+
 ## VM record format reviewed; Aeon-only investigation continues — 2026-10-17 UTC
 
 Owner routing retained: no Hera work or availability probes during RAID/NIC

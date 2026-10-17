@@ -1,5 +1,21 @@
 # Exact FM-1_092 VM candidate markers
 
+## Address correction — read before historical observations
+
+[verified: coordinator exact-byte and pointer-table checks] The linked model is
+0x02000120 plus raw offset. Earlier XIP labels below used a wrong zero-origin
+bias and are superseded; their raw offsets and literal-byte observations remain
+locators. Add 0x120 to the former listing labels when referring to decoded code
+locations, but do not add it to embedded absolute literals or RAM addresses.
+See notes/2026-10-17-092-disassembly-review.md for independent string, pointer
+table and corrected startup-copy checks. Candidate init raw0x33F56 is actual
+0x02034076 and has a pointer at raw0x8300C; candidate read raw0x34294 and write
+raw0x34384 have adjacent pointers. Earlier absent-pointer/reachability and RAM
+alias arguments based on wrong labels are withdrawn pending the corrected trace.
+No bank ownership, physical recovery or write admission follows from this fix.
+
+## Historical zero-origin observations
+
 [verified: offline payload scan] Coordinator scanned the exact public 691,744-byte
 092 app with SHA-256
 `9c5a44706b7686746b389e3e8fe6ff051fc50028f9b708ac59f493300f793a7b`
