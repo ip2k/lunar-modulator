@@ -307,13 +307,13 @@ def test_selected_request_worker_retention_evidence_and_api_roundtrip(tmp_path, 
     for name in ("selected-engine.o",):
         content = ("catalogue:" + name).encode()
         (catalogue / name).write_bytes(content)
-        row = dict(path="/input/catalogue/" + name, sha256=hashlib.sha256(content).hexdigest())
+        row = dict(path=docker_worker.CATALOGUE_MOUNT + name, sha256=hashlib.sha256(content).hexdigest())
         catalogue_rows.append(dict(row, optimization="-Oz"))
         linked_rows.append(row)
     for name in ("midi_uart_stream.o", "midi_stream.o"):
         content = ("linked:" + name).encode()
         (build / "link" / name).write_bytes(content)
-        linked_rows.append(dict(path="/tmp/lunar-worker/output/build/link/" + name,
+        linked_rows.append(dict(path=docker_worker.BUILD_LINK_MOUNT + name,
                                 sha256=hashlib.sha256(content).hexdigest()))
     lower.update(catalogue_objects=catalogue_rows, linked_objects=linked_rows)
     lower.update(app_sha256=hashlib.sha256(b"continuous-app").hexdigest(),

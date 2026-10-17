@@ -892,7 +892,7 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     assert "/input/docker_worker.py" in joined
     assert str(base / "input/docker_worker.py") in joined
     assert str(config.source_root / "tools/installer_service/docker_worker.py") not in joined
-    assert str(config.catalogue_root) + ",dst=/input/catalogue,readonly" in joined
+    assert str(config.catalogue_root) + ",dst=/catalogue,readonly" in joined
     adapter.delete(build_id)
     assert not base.exists()
 
@@ -964,9 +964,9 @@ def _docker_lifecycle_adapter(tmp_path):
     receipt_object = json.loads(result_receipt(request_doc(), request_sha, app_bytes, TEST_ELF))
     cat_bytes, link_bytes = b"catalogue-object", b"link-object"
     (catalogue / "object.o").write_bytes(cat_bytes)
-    catalogue_row = {"path": "/input/catalogue/object.o", "sha256": hashlib.sha256(cat_bytes).hexdigest()}
+    catalogue_row = {"path": "/catalogue/object.o", "sha256": hashlib.sha256(cat_bytes).hexdigest()}
     linked_rows = [catalogue_row,
-                   {"path": "/tmp/lunar-worker/output/build/link/object.o", "sha256": hashlib.sha256(link_bytes).hexdigest()}]
+                   {"path": "/output/build/link/object.o", "sha256": hashlib.sha256(link_bytes).hexdigest()}]
     build_receipt = json.dumps({"catalogue_objects": [catalogue_row], "linked_objects": linked_rows},
                                sort_keys=True, separators=(",", ":")).encode()
     artifact_receipt = json.dumps({"app_sha256": hashlib.sha256(app_bytes).hexdigest(),
@@ -1115,8 +1115,8 @@ def test_private_evidence_contract_checks_receipts_catalogue_and_linked_bytes(tm
     link = b"linked object"
     generated = b"generated header"
     (catalogue_root / "object.o").write_bytes(cat)
-    catalogue_rows = [{"path": "/input/catalogue/object.o", "sha256": sha256(cat)}]
-    linked_rows = catalogue_rows + [{"path": "/tmp/lunar-worker/output/build/link/object.o", "sha256": sha256(link)}]
+    catalogue_rows = [{"path": "/catalogue/object.o", "sha256": sha256(cat)}]
+    linked_rows = catalogue_rows + [{"path": "/output/build/link/object.o", "sha256": sha256(link)}]
     build = {"catalogue_objects": catalogue_rows, "linked_objects": linked_rows}
     build_raw = json.dumps(build, sort_keys=True, separators=(",", ":")).encode()
     artifact_raw = b'{"artifact":1}'

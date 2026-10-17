@@ -86,3 +86,43 @@ to this branch's Python changes.
 No Hera, bench, device, USB, MIDI, flash, power, public service or package
 publication action was performed. All hardware, playback, recovery,
 installable, updater and release eligibility remain unproven/false.
+
+## Adapter dependency completed
+
+The coordinator transferred adapter path ownership after receipt-ordering fix
+`5f26d5f0f5d3a072e086556eb22f82fb49af556e`. The separate adapter branch is
+`fix/2026-10-17@canonical-private-adapter-paths`, based on that exact fix plus
+the worker patch. The adapter now mounts the read-only catalogue at `/catalogue`
+and supplies the private `/workspace` and `/output` tmpfs roots. Both roots
+receive the configured unprivileged UID/GID and mode `0700`. `/tmp` receives
+the remainder of the existing scratch allowance. Page-sized partitions round
+the configured total down first, so Linux tmpfs page rounding cannot push the
+combined mounts above an odd byte limit. The minimum allowed 128 MiB cap still
+has three positive partitions; capacity exhaustion fails the build normally.
+Non-integer scratch caps are refused before forming Docker arguments.
+
+The canonical reader accepts only the new literal catalogue/link namespaces.
+It does not reinterpret old 675 receipts. The coordinator assigned that actual
+retained replay to the receipt worker's frozen `5f26d5f0` checkout, which keeps
+the old namespaces. Old evidence and binaries remain untouched.
+
+[verified] Combined checks after both patches:
+
+```
+python -m pytest -o addopts= -q tests/test_installer_worker_build_paths.py tests/test_installer_adapter_build_paths.py tests/test_installer_service.py tests/test_installer_continuous_profile.py tests/test_installer_native_profile.py tests/test_native_continuous_build_wrapper.py tests/test_private_package_candidate.py
+```
+
+**274 passed, 1 skipped**; one pre-existing Starlette/httpx deprecation warning.
+This includes the service evidence roundtrip, selected continuous cases,
+historical Hall diagnostic policy, bounded mount defaults/minimum/odd budgets,
+and actual adapter argv. Fixture path literals changed to match the current
+worker namespace. A standalone native-profile test invocation without the
+normal native-tool import path fails imports; the combined command above
+establishes that path using the existing wrapper tests. No packaging dependency
+or source import policy was changed for this unrelated test setup issue.
+
+Next: root integrates worker and adapter path commits with the separate API
+receipt fix, assigns an exact integrated source, then reviews a new operational
+runner hash and independent preflight before any heavy target run. The real
+service/trusted ELF identity comparison and private package result remain
+pending. `uv.lock` and the trusted wrapper/compiler/linker are unchanged.
