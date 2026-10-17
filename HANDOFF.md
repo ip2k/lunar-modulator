@@ -8098,3 +8098,22 @@ bench01 sees KA6 and noFM1. Existing connection question remains pending.
 CI38994186689 still in progress with three running jobs and no completed
 failures; CI38995689033 pending at6a8f3894, superseding cancelled38995444454.
 Run fresh CI after the current code patch is committed. Goal remains ACTIVE.
+
+### Aeon-only continuation and startup-context correction — 2026-10-17 UTC
+
+Root revalidated Aeon SSH and coordination README; no Hera commands. Existing
+bringup_review and installer_release_gap workers are active on bounded exact092
+address tracing and an exact-source subset extraction/build smoke. The latter
+is explicitly not a trusted-tuple GPL bundle rebuild: no real current bundle
+was generated, and older native-source tar files predate the selector change.
+
+Corrected stale CLAUDE.md statement that audio production was unmeasured, and
+aligned both startup files with retained c0/tap-inline measurements and the
+current blank/noUSB recovery blocker. Different profiles are not an A/B timing
+claim. Source evidence checked against the two physical timing notes; no code
+changed and no new target/performance/recovery result is claimed.
+
+Passive02:44UTC check: about5.07V/0uA, PACerrors0; benchUSB shows KA6 only.
+Monitor unchanged; existing owner connection question remains pending. Latest
+CI38995858202 is pending; prior38994186689 is live in Linuxpytest with no
+completed failures. Preserve uv.lock. Goal ACTIVE; review worker reports next.

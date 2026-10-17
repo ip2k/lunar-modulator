@@ -62,14 +62,24 @@ their prerequisite work is integrated; keep unfinished work recorded in notes.
 [verified: owner bench observations] The SDK-free native Trio probe has run
 on the FM-1 with working display, keys, encoders and audible notes. The
 thirteen-engine Event Horizon timed diagnostic was installed and read back;
-the owner rejected its latest watched playback for severe audio lag and slow
-metering, including individual notes before PLAY. Timed return to ROM succeeded;
-Later instrumented hardware runs measured insufficient audio production; the
-c0 image supplies about 464.45 of 689.34 required blocks per device-second.
-The owner also rejected its cold boot for severe waveform-display lag and
-distorted audio. See `notes/2026-10-15-hidden-session-physical-results.md`;
-this image has failed playback acceptance. The
-separate continuous FM-1_500 target links all thirteen engines and 55 modules
+the owner rejected watched playback for severe audio lag and slow metering,
+including individual notes before PLAY, and rejected its cold boot too.
+[verified: retained physical telemetry] The c0 diagnostic produced about 464.45
+of 689.34 required 64-frame blocks per device-second; a later tap-inline pair
+measured 422.58 versus 419.89, still below 689.34. These are different diagnostic
+profiles, not a controlled cross-profile comparison. Insufficient production is
+measured; the underlying cost and a successful fix remain unresolved. See
+`notes/2026-10-15-hidden-session-physical-results.md` and
+`notes/2026-10-15-tap-inline-physical-timing.md`.
+
+[verified: bench observations] After power was interrupted during a later flash
+attempt, the FM-1 has a blank screen and no USB enumeration. Cynthion recovery
+has not succeeded. A passive TARGET-A supply monitor is loaded; its voltage
+alone does not prove FM-1 connection or CPU power. The latest HANDOFF records
+the pending owner connection step. No further boot or playback acceptance can
+be claimed until a working recovery route is established.
+
+The separate continuous FM-1_500 target links all thirteen engines and 55 modules
 at 845,336 bytes; its exact private FWSC has passed offline composition and
 independent parsing, but has not been installed or accepted by the updater.
 Event Horizon Showcase is owner-approved as the default full song.
