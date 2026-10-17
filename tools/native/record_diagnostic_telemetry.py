@@ -22,14 +22,14 @@ if __package__:
     from .diagnostic_telemetry import (FRAME_BYTES, PROFILE_FRAME_BYTES, CLOCK_FRAME_BYTES, PLL_FRAME_BYTES,
                                       PRODUCER_GAP_FRAME_BYTES,
                                       IRQ_PROFILE_FRAME_BYTES,
-                                      ENGINE_PROFILE_FRAME_BYTES,
+                                      ENGINE_PROFILE_FRAME_BYTES, RESAMPLER_STAGE_FRAME_BYTES,
                                       CPU_RATE_FRAME_BYTES,
                                       decode_any_frame)
 else:  # Direct ``python tools/native/record_diagnostic_telemetry.py`` use.
     from diagnostic_telemetry import (FRAME_BYTES, PROFILE_FRAME_BYTES, CLOCK_FRAME_BYTES, PLL_FRAME_BYTES,
                                       PRODUCER_GAP_FRAME_BYTES,
                                       IRQ_PROFILE_FRAME_BYTES,
-                                      ENGINE_PROFILE_FRAME_BYTES,
+                                      ENGINE_PROFILE_FRAME_BYTES, RESAMPLER_STAGE_FRAME_BYTES,
                                       CPU_RATE_FRAME_BYTES,
                                       decode_any_frame)
 
@@ -128,7 +128,8 @@ def record(
                                                  PRODUCER_GAP_FRAME_BYTES - 2,
                                                  IRQ_PROFILE_FRAME_BYTES - 2,
                                                  ENGINE_PROFILE_FRAME_BYTES - 2,
-                                                 CPU_RATE_FRAME_BYTES - 2):
+                                                 CPU_RATE_FRAME_BYTES - 2,
+                                                 RESAMPLER_STAGE_FRAME_BYTES - 2):
                                 raise ValueError("diagnostic SysEx payload has wrong length")
                             frame = bytes((0xF0, *data, 0xF7))
                             schema, values = decode_any_frame(frame)
