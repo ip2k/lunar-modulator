@@ -1,3 +1,42 @@
+## Real-input adapter and reconnect verification — 2026-10-17 UTC
+
+Aeon only; no Hera contact. Source `67586bb63662f1f1e22bfeed7ab60ea3071bf163`
+is pushed and remote-SHA verified. The private worker now uses actual locally
+provisioned image ID bcffae0f directly with pull disabled, and derives its
+unprivileged UID/GID from its private runtime owner. Real retained 71e inputs
+revealed a catalogue schema-2 loader gap; the loader now preserves both exact
+supported schema shapes and optimization metadata. Coordinator checks:
+193 passed, one skipped. Actual retained-input acquisition passed on Aeon with
+167 catalogue objects and 11 generated inputs; same-commit preview-to-package
+run is prepared, not yet successful. Preserve the rejected 9b preflight.
+
+[verified: reviewed source and coordinator focused tests] Reconnect restore
+tests now perform actual simulated erase/program/readback with changed USB
+devnum/SG mapping, requiring a full current reread before mutation and final
+baseline SHA. Wrong mapping rejects without mutation. All79 focused recovery
+checks passed. Test commit91a3d018 is integrated; no physical recovery claim.
+
+[verified: coordinator archive hash/replay and1626 manifest-path rehashes]
+New libc++-inclusive E7 private archive and replay are byte-identical,5399491B,
+1630 unique regular members, SHA256
+0c389ea0c66f03f5653aadf296fc5314d6094c2cc04ad80553cdb4980e9d0967.
+Worker verified189 headers plus notice and all663 traced libc++ dependency
+rows. Old archive remains untouched. Completeness/distribution remain false;
+adding exact tuple-bound original project/SET sources is assigned separately.
+
+CI39004179460 at old0ecf reported macOS1failed/11603passed/673skipped/2xfail:
+the continuous fixture diagnostic_telemetry mismatch. Existing e32de6c9 fixes
+that fixture; coordinator reran the exact failing case at current HEAD and it
+passed. Ubuntu job remains live; CI39006742422 at9b is pending and does not
+cover675. Do not claim current full CI green. Default all55/Event Horizon
+request preset is assigned; chooser preselection alone did not guarantee a
+stock default manifest. Public deployment and eligibility remain disabled.
+
+Bench read-only USB refresh still sees KA6 but no FM1. Owner connection-state
+question is pending; do not arm/reload recovery gateware from stale cabling
+assumptions. Recovery/audio, storage ownership/migration/SAVE, physical rollback
+and public release remain unresolved. Goal ACTIVE; uv.lock preserved.
+
 ## Aeon routing and private adapter integration — 2026-10-17 UTC
 
 Owner routing: Aeon only, no Hera contact during RAID/M.2/25G NIC maintenance.
