@@ -1,10 +1,25 @@
+## Prepared-content digest fix integrated — 2026-10-17 UTC
+
+[verified: coordinator code review, cherry-pick, four focused suites and remote SHA]
+Code bff915ba0ee4922121a0623ebd1691346bd48e62 fixes embedded-content validation
+by passing the independently checked raw prepared-profile file digest. The internal
+profile_sha256 still binds staged source profile bytes. Missing/invalid/mismatched
+validated hashes and content tampering reject. No admission gates changed.
+Coordinator capture/bundle/private-candidate/packager suites:95passed/15skipped.
+Worker module run:37passed/1skipped. Source branch0631e5ce pushed and reviewed.
+Fresh Aeon-only bff915 preflight is being prepared; no launch authorized yet.
+The failed8e run remains immutable. Private failure-log retention is a separate
+bounded worker task. Previous9b CI passed;8e CI still running at last live query.
+A read-only bench01 lsusb check still found KA6 but noFM1. Pending passive cable
+question remains unanswered; no device writes or recovery proof. Goal ACTIVE.
+
 ## Fresh generated-source run failed capture; Aeon only — 2026-10-17 UTC
 
 [reported: bounded Aeon worker handoff reviewed by coordinator; exact inner
 exception inferred from retained values and pinned source, child stderr unavailable]
 The single approved fresh8e086 run compiled successfully in both containers
 (exit0, noOOM), but tuple capture refused a raw prepared-profile file digest
-compared with the profile internal semantic digest. No tuple, provenance or
+compared with the staged-source profile digest stored inside that file. No tuple, provenance or
 source archive completed. Partial app/ELF outputs are not accepted trusted evidence.
 Both task containers were removed after terminal receipts; no relaunch occurred.
 Failure handoff: handoffs/lunar--generated-link-run-8e086-failure.md
