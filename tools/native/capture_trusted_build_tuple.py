@@ -12,10 +12,17 @@ import json
 import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path, PurePosixPath
 
 from compile_catalogue import optimization_overrides
-from build_demo_image import checked_continuous_midi_input
+import prepare_wavetables
+from build_demo_image import (
+    CONTINUOUS_TARGET_STORAGE,
+    checked_continuous_midi_input,
+    checked_wavetable_profile,
+)
+from module_selection import wavetable_namespaces
 
 TUPLE_SCHEMA = 2
 PROVENANCE_SCHEMA = 1
@@ -29,19 +36,107 @@ MAX_APP = 1024 * 1024
 MAX_TREE_ENTRIES = 8192
 MAX_TREE_BYTES = 512 * 1024 * 1024
 _HASH = re.compile(r"^[0-9a-f]{64}$")
-GENERATED_PATHS = (
+GENERATED_FIXED_PATHS = (
     "selection/prepared/fm1_modules.h",
     "selection/prepared/modules/gen/fm1_modules.h",
     "link/gen/fm1_modules.h",
     "link/module-all/gen/fm1_modules.h",
     "link/module-selection/gen/fm1_modules.h",
     "link/wave_tables.json",
-    "link/resources_braids.cc",
-    "link/resources_plaits.cc",
-    "link/resources_braids.h",
-    "link/resources_plaits.h",
     "link/wave_tables.inc",
 )
+RESOURCE_NAMESPACE_ORDER = ("braids", "plaits")
+
+
+def _verified_generated_inputs(root: Path, output: Path, prepared, image, verification):
+    """Verify only resource banks selected by the digest-bound module profile."""
+    module_selection = prepared.get("module_selection")
+    if (not isinstance(module_selection, dict)
+            or image.get("module_selection") != module_selection
+            or verification.get("module_selection") != module_selection):
+        raise ValueError("prepared, image and link module selections differ")
+    selected = module_selection.get("selected")
+    if (not isinstance(selected, list) or not selected
+            or any(not isinstance(module, str) or not re.fullmatch(r"[a-z][a-z0-9-]*", module)
+                   for module in selected)
+            or len(selected) != len(set(selected))):
+        raise ValueError("prepared module selection is malformed")
+    module_header = read(_safe_rel(output, "selection/prepared/fm1_modules.h"), 65536)
+    if module_selection.get("header_sha256") != sha(module_header):
+        raise ValueError("prepared module selection does not bind its generated header")
+
+    namespaces = wavetable_namespaces(selected, flash_plaits=False)
+    wavetable = checked_wavetable_profile(
+        verification, selected, target_storage=CONTINUOUS_TARGET_STORAGE,
+        selected_shapes8=True,
+    )
+    if (image.get("wavetable_profile") != WAVETABLE_PROFILE
+            or image.get("compressed_wave_tables") != wavetable["compressed_wave_tables"]
+            or image.get("shapes_voices") != 8
+            or image.get("flash_plaits_wavetables") is not False):
+        raise ValueError("image wavetable metadata differs from the selected linked profile")
+
+    # Regenerate these small deterministic files from the source tree that is
+    # later required to be clean and commit-pinned. This checks the no-bank
+    # wave_tables.inc/json case too, and prevents an unselected bank from being
+    # smuggled into the tuple inventory.
+    generator_root = Path(prepare_wavetables.__file__).resolve().parents[2]
+    if root.resolve() != generator_root:
+        raise ValueError("wavetable generator source is not from the captured source checkout")
+    with tempfile.TemporaryDirectory(prefix="lunar-tuple-wave-") as temporary:
+        expected_root = Path(temporary)
+        expected_rows = prepare_wavetables.prepare(expected_root, namespaces)
+        if expected_rows != wavetable["compressed_wave_tables"]:
+            raise ValueError("linked wavetable metadata differs from regenerated selected banks")
+
+        expected_resources = {
+            f"resources_{namespace}.{suffix}"
+            for namespace in namespaces for suffix in ("cc", "h")
+        }
+        link_dir = output / "link"
+        if link_dir.is_symlink() or not link_dir.is_dir():
+            raise ValueError("generated link output must be a real directory")
+        with os.scandir(link_dir) as entries:
+            actual_resources = {
+                entry.name for entry in entries
+                if re.fullmatch(r"resources_[A-Za-z0-9_-]+\.(?:cc|h)", entry.name)
+            }
+        if actual_resources != expected_resources:
+            raise ValueError("generated resource banks differ from selected module namespaces")
+
+        generated = {
+            rel: read(_safe_rel(output, rel), 32 * 1024 * 1024)
+            for rel in GENERATED_FIXED_PATHS
+            if rel != "link/wave_tables.json" and rel != "link/wave_tables.inc"
+        }
+        generated["link/wave_tables.json"] = read(_safe_rel(output, "link/wave_tables.json"), 32 * 1024 * 1024)
+        generated["link/wave_tables.inc"] = read(_safe_rel(output, "link/wave_tables.inc"), 32 * 1024 * 1024)
+        if json.loads(generated["link/wave_tables.json"].decode("utf-8"), object_pairs_hook=_unique) != expected_rows:
+            raise ValueError("wave_tables.json differs from regenerated selected bank metadata")
+        if generated["link/wave_tables.json"] != (expected_root / "wave_tables.json").read_bytes():
+            raise ValueError("wave_tables.json is not the exact generated metadata file")
+        if generated["link/wave_tables.inc"] != (expected_root / "wave_tables.inc").read_bytes():
+            raise ValueError("wave_tables.inc is not the exact generated table file")
+
+        resource_paths = [f"link/resources_{n}.cc" for n in RESOURCE_NAMESPACE_ORDER if n in namespaces]
+        resource_paths += [f"link/resources_{n}.h" for n in RESOURCE_NAMESPACE_ORDER if n in namespaces]
+        for rel in resource_paths:
+            name = Path(rel).name
+            actual = read(_safe_rel(output, rel), 32 * 1024 * 1024)
+            if actual != (expected_root / name).read_bytes():
+                raise ValueError("generated selected resource differs from pinned source: " + name)
+            generated[rel] = actual
+
+    # Preserve the historic all-bank field ordering, so an all-55 capture has
+    # identical tuple/provenance bytes when all generated contents are equal.
+    paths = [rel for rel in GENERATED_FIXED_PATHS
+             if rel not in ("link/wave_tables.json", "link/wave_tables.inc")]
+    paths += ["link/wave_tables.json"]
+    paths += [f"link/resources_{n}.cc" for n in RESOURCE_NAMESPACE_ORDER if n in namespaces]
+    paths += [f"link/resources_{n}.h" for n in RESOURCE_NAMESPACE_ORDER if n in namespaces]
+    paths += ["link/wave_tables.inc"]
+    generated_rows = [{"path": rel, "sha256": sha(generated[rel])} for rel in paths]
+    return generated, generated_rows
 
 
 def sha(raw: bytes) -> str:
@@ -498,12 +593,9 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raise ValueError("image receipt does not bind exact artifact receipt bytes")
     app_sha, elf_sha = _verify_app_receipts(image, artifact, verification, app, elf)
 
-    generated = {}
-    generated_rows = []
-    for rel in GENERATED_PATHS:
-        raw = read(output / rel, 32 * 1024 * 1024)
-        generated[rel] = raw
-        generated_rows.append({"path": rel, "sha256": sha(raw)})
+    generated, generated_rows = _verified_generated_inputs(
+        root, output, prepared, image, verification,
+    )
     linked_manifest_raw = _linked_object_manifest(output, catalogue, verification)
     source_commit, source_manifest_raw = _source_manifest(root)
     catalogue_raw = _catalogue_manifest(catalogue, verification)

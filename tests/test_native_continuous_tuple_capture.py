@@ -18,13 +18,18 @@ from capture_trusted_build_tuple import (
     PROVENANCE_SCHEMA,
     _tuple_envelope,
     _toolchain_manifest,
+    _verified_generated_inputs,
     canonical,
     sha,
 )
 from build_demo_image import (
+    BASE_INSTANCE_POOL_BYTES,
+    CONTINUOUS_TARGET_STORAGE,
     SHAPES8_WAVETABLE_PROFILE,
     build_selection,
 )
+from module_selection import wavetable_namespaces
+from prepare_wavetables import prepare as prepare_wavetables
 
 
 def test_source_manifest_binds_clean_tracked_bytes_and_rejects_dirty_tree(tmp_path):
@@ -422,3 +427,145 @@ def test_tuple_capture_requires_matching_enabled_trs_receipts():
             _verify_continuous_midi_receipts(changed, verification)
     with pytest.raises(ValueError, match='TRS MIDI'):
         _verify_continuous_midi_receipts({}, verification)
+
+
+def _generated_capture_fixture(tmp_path, selected):
+    output = tmp_path / "output"
+    prepared_dir = output / "selection/prepared"
+    link_dir = output / "link"
+    (prepared_dir / "modules/gen").mkdir(parents=True)
+    (link_dir / "gen").mkdir(parents=True)
+    (link_dir / "module-all/gen").mkdir(parents=True)
+    (link_dir / "module-selection/gen").mkdir(parents=True)
+    header = b"/* selected module header */\n"
+    (prepared_dir / "fm1_modules.h").write_bytes(header)
+    module_selection = {"selected": selected, "header_sha256": sha(header)}
+    for rel in (
+        "selection/prepared/modules/gen/fm1_modules.h",
+        "link/gen/fm1_modules.h",
+        "link/module-all/gen/fm1_modules.h",
+        "link/module-selection/gen/fm1_modules.h",
+    ):
+        path = output / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(rel.encode("ascii"))
+
+    namespaces = wavetable_namespaces(selected, flash_plaits=False)
+    rows = prepare_wavetables(link_dir, namespaces)
+    verification = {
+        "module_selection": module_selection,
+        "compressed_wave_tables": rows,
+        "indexed_tft": True,
+        "shapes_voices": 8,
+        "flash_plaits_wavetables": False,
+        "target_app_storage": dict(CONTINUOUS_TARGET_STORAGE),
+        "instance_pool_bytes": (BASE_INSTANCE_POOL_BYTES
+                                + CONTINUOUS_TARGET_STORAGE["pool_credit_bytes"]
+                                - sum(row["raw_bytes"] for row in rows)),
+    }
+    image = {
+        "module_selection": module_selection,
+        "wavetable_profile": SHAPES8_WAVETABLE_PROFILE,
+        "compressed_wave_tables": rows,
+        "shapes_voices": 8,
+        "flash_plaits_wavetables": False,
+    }
+    return output, {"module_selection": module_selection}, image, verification
+
+
+@pytest.mark.parametrize(("selected", "expected_namespaces"), [
+    (["trio"], []),
+    (["macro"], ["plaits"]),
+    (["shapes"], ["braids"]),
+    (["macro", "shapes"], ["braids", "plaits"]),
+])
+def test_generated_bank_inventory_follows_digest_bound_selected_modules(
+        tmp_path, selected, expected_namespaces):
+    output, prepared, image, verification = _generated_capture_fixture(tmp_path, selected)
+    generated, rows = _verified_generated_inputs(
+        ROOT, output, prepared, image, verification,
+    )
+    actual_namespaces = [name for name in ("braids", "plaits")
+                         if f"link/resources_{name}.cc" in generated]
+    assert actual_namespaces == expected_namespaces
+    paths = [row["path"] for row in rows]
+    assert "link/wave_tables.json" in paths
+    assert "link/wave_tables.inc" in paths
+    assert all((output / path).is_file() for path in paths)
+    if expected_namespaces == ["braids", "plaits"]:
+        # This is the historical all-bank generated path ordering retained by
+        # all-55 tuple/provenance captures.
+        assert paths == [
+            "selection/prepared/fm1_modules.h",
+            "selection/prepared/modules/gen/fm1_modules.h",
+            "link/gen/fm1_modules.h",
+            "link/module-all/gen/fm1_modules.h",
+            "link/module-selection/gen/fm1_modules.h",
+            "link/wave_tables.json",
+            "link/resources_braids.cc",
+            "link/resources_plaits.cc",
+            "link/resources_braids.h",
+            "link/resources_plaits.h",
+            "link/wave_tables.inc",
+        ]
+
+
+@pytest.mark.parametrize("mutation, message", [
+    ("missing-selected", "generated resource banks differ"),
+    ("tamper-selected", "generated selected resource differs"),
+    ("extraneous-bank", "generated resource banks differ"),
+    ("tamper-metadata", "wave_tables.json differs from regenerated selected bank metadata"),
+    ("missing-inc", "wave_tables.inc"),
+    ("tamper-inc", "wave_tables.inc is not the exact generated table file"),
+])
+def test_generated_bank_inventory_rejects_missing_tampered_and_extra_resources(
+        tmp_path, mutation, message):
+    output, prepared, image, verification = _generated_capture_fixture(
+        tmp_path, ["macro", "shapes"],
+    )
+    if mutation == "missing-selected":
+        (output / "link/resources_braids.cc").unlink()
+    elif mutation == "tamper-selected":
+        path = output / "link/resources_plaits.cc"
+        path.write_bytes(path.read_bytes() + b"/* changed */\n")
+    elif mutation == "extraneous-bank":
+        (output / "link/resources_unselected.cc").write_bytes(b"unexpected")
+    elif mutation == "tamper-metadata":
+        (output / "link/wave_tables.json").write_text("[]\n")
+    elif mutation == "missing-inc":
+        (output / "link/wave_tables.inc").unlink()
+    elif mutation == "tamper-inc":
+        path = output / "link/wave_tables.inc"
+        path.write_bytes(path.read_bytes() + b"/* changed */\n")
+    with pytest.raises((ValueError, OSError), match=message):
+        _verified_generated_inputs(ROOT, output, prepared, image, verification)
+
+
+def test_empty_bank_profile_still_rejects_unexpected_resources_and_metadata_drift(tmp_path):
+    output, prepared, image, verification = _generated_capture_fixture(tmp_path, ["trio"])
+    (output / "link/resources_plaits.h").write_bytes(b"unexpected")
+    with pytest.raises(ValueError, match="generated resource banks differ"):
+        _verified_generated_inputs(ROOT, output, prepared, image, verification)
+
+    (output / "link/resources_plaits.h").unlink()
+    image["compressed_wave_tables"] = [{"namespace": "plaits"}]
+    with pytest.raises(ValueError, match="image wavetable metadata"):
+        _verified_generated_inputs(ROOT, output, prepared, image, verification)
+
+
+@pytest.mark.parametrize("mutation, message", [
+    ("prepared-image", "prepared, image and link module selections differ"),
+    ("link", "prepared, image and link module selections differ"),
+    ("header", "prepared module selection does not bind its generated header"),
+])
+def test_generated_bank_selection_requires_prepared_and_link_receipts_to_agree(
+        tmp_path, mutation, message):
+    output, prepared, image, verification = _generated_capture_fixture(tmp_path, ["trio"])
+    if mutation == "prepared-image":
+        image["module_selection"] = dict(prepared["module_selection"], selected=["macro"])
+    elif mutation == "link":
+        verification["module_selection"] = dict(prepared["module_selection"], selected=["shapes"])
+    elif mutation == "header":
+        (output / "selection/prepared/fm1_modules.h").write_bytes(b"changed header")
+    with pytest.raises(ValueError, match=message):
+        _verified_generated_inputs(ROOT, output, prepared, image, verification)
