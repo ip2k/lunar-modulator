@@ -290,7 +290,7 @@ test('deployment marker enables only the fixed same-origin diagnostic API on exp
   controller.destroy();
 });
 
-test('default Event Horizon plus selected companion SET reaches the diagnostic builder and reports linked usage', async () => {
+test('default Event Horizon plus selected companion SET reaches the service client and reports linked usage', async () => {
   const document = new Document();
   const marker = new Element('meta', document);
   marker.setAttribute('content', 'enabled');
