@@ -519,12 +519,17 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
         # repeat IDs on content rows; when present, they must agree.
         if (not isinstance(row, dict)
                 or not {"kind", "bytes", "packed_sha256"}.issubset(row)
-                or set(row) - {"kind", "id", "parent_project_id", "bytes", "packed_sha256"}
+                or (continuous and set(row) - {
+                    "kind", "id", "parent_project_id", "bytes", "packed_sha256"})
                 or row.get("kind") != expected_row["kind"]
-                or ("id" in row and row["id"] != expected_row["id"])
-                or ("parent_project_id" in row
-                    and (expected_row["kind"] != "set"
-                         or row["parent_project_id"] != expected_row["parent_project_id"]))
+                or ((not continuous or "id" in row)
+                    and row.get("id") != expected_row["id"])
+                or (expected_row["kind"] == "set"
+                    and ((not continuous and row.get("parent_project_id")
+                          != expected_row["parent_project_id"])
+                         or ("parent_project_id" in row
+                             and row["parent_project_id"]
+                             != expected_row["parent_project_id"])))
                 or type(row.get("bytes")) is not int or row["bytes"] <= 0
                 or not isinstance(row.get("packed_sha256"), str)
                 or not SHA256.fullmatch(row["packed_sha256"])):
