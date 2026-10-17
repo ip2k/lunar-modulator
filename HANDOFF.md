@@ -1,3 +1,21 @@
+## Aeon availability and public VM descriptor review — 2026-10-17 UTC
+
+Owner reaffirmed Aeon-only routing while Hera receives MDADM/M.2 and25G NIC
+maintenance. Aeon hostname/uptime and task coordination README verified over
+strict SSH; no Hera probe/job. Coordinator strict-parsed exact public092
+package against pinned unpack: apphash9c5a447..., area02000120, VM D9000/10000.
+Reviewed28-byte callback dispatcher plus205/206 registration path and corrected
+worker r5 mistake: mode1 selects8KiB/256B/512B path, other modes16KiB/4KiB/8KiB.
+notes/2026-10-17-092-disassembly-review.md records checks and conditional limits.
+No sector reuse/SAVE authority follows. Worker bringup_review next traces
+boot-info mode producer input offline; owns no device/Hera/source writes.
+Corrected Aeon report vm-descriptor-to-clamp-20261017.md SHA
+f18c1aa3d2c4db75a6a107af9a3f1d5718e076a66f60b466ef92c4670c2d93aa.
+Historical scratch reader-match.md now warns about old zero-origin labels.
+CI38991254950 remains running Ubuntu/macOS full tests; no completed failures.
+Existing physical connection question pending; no new device actions.
+Overall goal ACTIVE. Prior8689dfcb pushed/verified; unrelateduv.lock preserved.
+
 ## Critical exact092 linked-origin correction — 2026-10-17 UTC
 
 Coordinator found four coherent absolute string references and VM operation
