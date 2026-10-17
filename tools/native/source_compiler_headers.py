@@ -147,14 +147,29 @@ def _catalogue_alias_path(path: str) -> str | None:
     return "/output/catalogue/" + rel
 
 
-def _check_catalogue_alias_mounts(launcher_pins: dict, created_inspects: list[list[dict]],
-                                  output_root: Path) -> None:
+def _safe_directory(path: Path, label: str) -> Path:
+    path = Path(path)
+    if not path.is_absolute() or any(part in (".", "..") for part in path.parts):
+        raise ValueError(f"{label} path is not canonical and absolute")
+    current = Path(path.anchor)
+    for part in path.parts[1:]:
+        current /= part
+        if current.is_symlink():
+            raise ValueError(f"{label} path contains a symlink")
+    if not path.is_dir():
+        raise ValueError(f"{label} path is not a directory")
+    resolved = path.resolve(strict=True)
+    if resolved != path:
+        raise ValueError(f"{label} path resolves outside its pinned spelling")
+    return path
+
+
+def _check_catalogue_alias_mounts(launcher_pins: dict, created_inspects: dict[str, list[dict]],
+                                  expected_inspect_paths: set[str], output_root: Path) -> None:
     """Require pinned policy and actual created-container mounts for the alias."""
-    output_root = Path(output_root).resolve(strict=True)
+    output_root = _safe_directory(Path(output_root), "fresh output root")
     catalogue_root = output_root / "catalogue"
-    if (catalogue_root.is_symlink() or not catalogue_root.is_dir()
-            or catalogue_root.resolve(strict=True) != output_root / "catalogue"):
-        raise ValueError("fresh catalogue mount source is not a safe directory")
+    catalogue_root = _safe_directory(catalogue_root, "fresh catalogue mount source")
     expected_sources = {"/output": (str(output_root), False),
                         "/catalogue": (str(catalogue_root), True)}
     expected_actual_mounts = {"/output": (str(output_root), True),
@@ -197,21 +212,43 @@ def _check_catalogue_alias_mounts(launcher_pins: dict, created_inspects: list[li
             if (not isinstance(target, dict) or not isinstance(target.get("path"), str)
                     or type(target.get("readonly")) is not bool or target.get("path") in target_map):
                 raise ValueError("duplicate or malformed catalogue alias mount target")
-            target_map[target["path"]] = (target.get("source"), target.get("readonly"))
+            path = target["path"]
+            posix = PurePosixPath(path)
+            if (not posix.is_absolute() or posix.as_posix() != path
+                    or any(part in (".", "..") for part in posix.parts)):
+                raise ValueError("noncanonical pinned mount target")
+            if ((path.startswith("/catalogue/") or path == "/output/catalogue"
+                    or path.startswith("/output/catalogue/"))):
+                raise ValueError("nested pinned mount shadows catalogue alias")
+            target_map[path] = (target.get("source"), target.get("readonly"))
         if any(target_map.get(path) != identity for path, identity in expected_sources.items()):
             raise ValueError("pinned catalogue alias mounts do not identify the fresh output tree")
 
+    if set(created_inspects) != expected_inspect_paths:
+        raise ValueError("created-container inspect evidence does not cover every expected shard and highlevel run")
     seen_modes = set()
-    for inspect in created_inspects:
+    for path, inspect in created_inspects.items():
         if not isinstance(inspect, list) or len(inspect) != 1 or not isinstance(inspect[0], dict):
             raise ValueError("created-container inspect evidence is malformed")
         container = inspect[0]
         if container.get("Image") != image_id:
             raise ValueError("created-container image differs from pinned launcher image")
-        labels = container.get("Config", {}).get("Labels", {})
+        config = container.get("Config")
+        if not isinstance(config, dict):
+            raise ValueError("created-container configuration is malformed")
+        labels = config.get("Labels", {})
         mode = labels.get("codex.mode") if isinstance(labels, dict) else None
-        if mode not in ("catalogue", "highlevel"):
+        expected_mode = "highlevel" if path == "execution/terminal/highlevel.created.inspect.json" else "catalogue"
+        if mode != expected_mode:
             raise ValueError("created-container inspect mode is missing")
+        if expected_mode == "catalogue":
+            shard_match = re.fullmatch(r"execution/terminal/(shard-[0-9]{2})\.created\.inspect\.json", path)
+            env = config.get("Env")
+            expected_env = f"TRACE_SHARD={int(shard_match.group(1)[6:])}" if shard_match else None
+            shard_env = [item for item in env if isinstance(item, str)
+                         and item.startswith("TRACE_SHARD=")] if isinstance(env, list) else []
+            if shard_match is None or shard_env != [expected_env]:
+                raise ValueError("created-container inspect shard identity differs from receipt path")
         mounts = container.get("Mounts")
         if not isinstance(mounts, list):
             raise ValueError("created-container mount evidence is missing")
@@ -220,6 +257,14 @@ def _check_catalogue_alias_mounts(launcher_pins: dict, created_inspects: list[li
             if not isinstance(mount, dict):
                 raise ValueError("created-container mount row is malformed")
             target = mount.get("Destination")
+            if isinstance(target, str):
+                posix = PurePosixPath(target)
+                if (not posix.is_absolute() or posix.as_posix() != target
+                        or any(part in (".", "..") for part in posix.parts)):
+                    raise ValueError("noncanonical actual mount target")
+                if ((target.startswith("/catalogue/") or target == "/output/catalogue"
+                        or target.startswith("/output/catalogue/"))):
+                    raise ValueError("nested actual mount shadows catalogue alias")
             if target in expected_sources:
                 if (target in actual or mount.get("Type") != "bind"
                         or type(mount.get("RW")) is not bool):
@@ -573,15 +618,25 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
         if launcher_raw is None:
             raise ValueError("catalogue alias lacks hash-pinned launcher mount evidence")
         launcher_pins = _json_bytes(launcher_raw)
-        created_inspects = []
+        created_inspects = {}
         for ref in execution.get("terminal_records", []):
             name = ref.get("path") if isinstance(ref, dict) else None
             if isinstance(name, str) and name.endswith(".created.inspect.json"):
                 raw = execution_payloads.get(name)
                 if raw is None:
                     raise ValueError("catalogue alias lacks hash-pinned created-container evidence")
-                created_inspects.append(_json_array_bytes(raw))
-        _check_catalogue_alias_mounts(launcher_pins, created_inspects, output_root)
+                created_inspects[name] = _json_array_bytes(raw)
+        shards = trace.get("catalogue", {}).get("shards")
+        if (not isinstance(shards, list) or not shards
+                or any(not isinstance(shard, str) or not re.fullmatch(r"shard-[0-9]{2}", shard)
+                       for shard in shards)
+                or len(set(shards)) != len(shards)):
+            raise ValueError("catalogue shard inventory is malformed for alias execution evidence")
+        expected_inspect_paths = {
+            *(f"execution/terminal/{shard}.created.inspect.json" for shard in shards),
+            "execution/terminal/highlevel.created.inspect.json"}
+        _check_catalogue_alias_mounts(launcher_pins, created_inspects,
+                                      expected_inspect_paths, output_root)
         normalized_inputs = {}
         for path, identity in input_map.items():
             normalized = aliases.get(path, path)
