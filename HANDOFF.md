@@ -8334,3 +8334,26 @@ Next bounded worker inventories remaining actual external build inputs on Aeon;
 no Hera contact. Existing FM1 connection question remains pending. Recovery,
 realtime audio, storage, public installability and main/CI integration remain
 open. Goal ACTIVE; uv.lock untouched.
+
+### Fresh catalogue and full high-level build reproduced from source archive
+
+[verified] On Aeon, archive52914fc9 regenerated all16 shards/167objects from its
+own source+189libc++ headers, then the extracted codec and actual all55 highlevel
+continuousD7000 builder. Fullapp888ef842 and ELFfed2d7e4 exactly match original,
+as do profile/selectedProject+SET/packedbytes. Root rehashed final outputs and
+reviewed shared handoff lunar--header-inclusive-full-build-20261017.md
+SHA19337868e1cdf12ca6b594a7f1a570c3bc95d302c23584d8041dbdd14f94ea57.
+No retained catalogue or externallibc++ headers were mounted. Pinnedcompiler
+still contributes implicit C/sysroot/resourceheaders: source-input inventory
+worker remains active to identify these and linked runtime boundary. No source
+completeness/distribution/physical flags promoted. No target or Hera operations.
+Worker claim released, no owned containers. CI38998982780 remains live/no failed
+jobs at last inspection. Overall goal ACTIVE; physical recovery/real-time audio,
+storage migration/rollback and public release remain incomplete. uv.lock preserved.
+
+External-input inventory reviewed:281direct objects/zeroSDKarchives, runtime
+sources archived; two additional externalheader searchroots107target+93resource.
+167catalogueobjects built versus161actuallylinked are distinct counts. Source
+worker correcting a report appSHAtranscription typo and then deriving per-TU
+system-inclusive dependency receipts against exact capturedcommands on Aeon.
+No recompile/relink/device/Hera operations assigned. Keep all releaseflagsfalse.

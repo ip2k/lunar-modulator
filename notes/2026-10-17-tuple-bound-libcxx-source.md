@@ -90,3 +90,45 @@ Durable Aeon reports (private host paths):
 Both workers released their claims after saving the reports. No owned build
 containers remain. The coordinator reviewed both reports and independently
 rehashed the reported app/ELF, profile, packed bytes, rebuilt codec and archives.
+
+## Fresh catalogue from the header-inclusive archive
+
+[verified: worker run, coordinator report review and output rehash] The archive
+52914fc9 was safely extracted and all committed/selected/external rows checked.
+All16 fresh catalogue shards exited0 under four parallel bounded Aeon containers,
+using only extracted source, archived libc++ headers and the pinned compiler.
+All167 object hashes and549 source rows matched their reports. Options were
+-Oz, LTO, indexed TFT, Shapes8 and shared resampler, matching the original.
+No retained catalogue or external libc++/SDK header tree was mounted.
+
+The codec rebuilt from this extract again hashes6b551c17. Actual high-level
+continuous all55/Event Horizon/SET/D7000 build with the fresh catalogue passed
+SDK-free and layout audits. App888ef842, ELFfed2d7e4, profile1723ae73 and packed
+projectb6ca5a03/SET7c850fcf match the complete hashes recorded above. Coordinator
+independently rehashed all six outputs. App852720 bytes, D7000 slack7924.
+
+The separate pinned compiler mount remains an external dependency, including
+its implicit target C/sysroot and resource headers. This check proves archived
+libc++ source use, not independence from compiler-provided headers or complete
+corresponding source. It is not a fresh trusted tuple or a physical result.
+SAVE remains linked/disarmed; all installability/hardware/playback/completeness/
+distribution gates stay false. No Hera or device operations occurred.
+
+Private Aeon output root:
+`/home/claude/mvave-fm1/private-header-inclusive-full-build-20261017/`.
+Shared handoff `handoffs/lunar--header-inclusive-full-build-20261017.md`, SHA256
+19337868e1cdf12ca6b594a7f1a570c3bc95d302c23584d8041dbdd14f94ea57.
+All containers are terminal and the task claim was released.
+
+[verified: coordinator reviewed retained-input inventory] The captured link
+lists281 direct objects:161 catalogue,66 musl,31 compiler-rt,20first-party/generated,
+and one each printf/tinf/tlsf. Thus167 freshly built catalogue objects should
+not be described as167 linked catalogue objects. The link has zero SDKarchives;
+repo-built runtime/startup/linker sources are archived. The remaining header
+search roots outside this archive are pi32v2/include (107files/498895bytes) and
+Clang4.0.1 resource include (93files/6237896bytes). Their hashes are pinned in
+the retained695-row toolchain manifest1484c315, but per-TU dependency receipts
+were not retained. A dependency-only pass is assigned to identify the consumed
+subset with exact target/defines/include flags. Compiler/linker/LTO/container
+are build tools; their presence alone is not evidence of linked runtime code.
+No completeness or legal conclusion follows from this inventory.
