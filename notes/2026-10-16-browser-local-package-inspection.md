@@ -29,3 +29,12 @@ directory, generate `demo-image-catalogue.json` there with
 `http://localhost:8000/installer.html` in Chrome. A tiny local `.fwsc` file can
 exercise the malformed-file state. Review desktop/mobile spacing and verify the
 report never suggests admission or installation before accepting the UI.
+
+Coordinator follow-up [verified, 2026-10-16]: the panel was rendered in real
+Chrome at its normal desktop viewport and 390×844. Added bounded panel padding,
+44-pixel Clear button and wrapping report text. Screenshot is ignored local
+`scratch/installer-preview-20261016/inspection-mobile.jpg`. The real file chooser
+opened, but extension file selection was refused because Allow access to file
+URLs is disabled. End-to-end browser parsing and long populated-report visual
+acceptance remain pending; automated parser/report tests are separate evidence.
+Focused root rerun: 11 passed, one optional private fixture skipped.

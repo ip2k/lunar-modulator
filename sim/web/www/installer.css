@@ -121,6 +121,25 @@
 .native-demo-selection button { min-height: 44px; padding: 9px 16px; }
 .native-demo-selection button:disabled { cursor: not-allowed; opacity: 0.55; }
 
+.installer-package-inspection {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 20px 0;
+  min-width: 0;
+  padding: 16px;
+}
+.installer-package-inspection label { display: grid; gap: 10px; line-height: 1.5; }
+.installer-package-inspection input { max-width: 100%; min-width: 0; }
+.installer-package-inspection button { margin-top: 12px; min-height: 44px; padding: 9px 16px; }
+.installer-package-inspection pre {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 520px) {
   .installer-top { align-items: flex-start; flex-direction: column; gap: 4px; }
   .installer-top span { text-align: left; }

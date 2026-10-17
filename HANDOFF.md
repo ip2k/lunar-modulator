@@ -1,3 +1,27 @@
+## Installer inspection / recovery audit checkpoint — 2026-10-16
+
+Active goal remains incomplete. Use Aeon while Hera RAID/NIC maintenance is
+underway; Aeon SSH was reverified. No new Hera jobs are authorized by this
+checkpoint. Integration branch feature/2026-10-11@installable-firmware; origin
+verified at 7e7fe5b21bdea039efc056e80d2eb6d481d6cf24 before this checkpoint.
+
+Integrated local FWSC inspector and interrupted-install audit (41232fd8).
+Reader 5ee4ffc4 uses only Apollo register reads; 65 combined reader/gateware
+tests passed, and unloaded Cynthion sweeps passed. Monitor-only gateware stays
+loaded; pending owner connection response remains unchanged. No FM1 recovery,
+load measurement or flashing acceptance is claimed.
+
+Chrome desktop and 390×844 empty-panel spacing reviewed. Actual file selection
+blocked by extension Allow access to file URLs setting; populated browser report
+acceptance is still pending. Root focused UI tests: 11 pass, 1 optional skip.
+Full earlier CI38986269932 still has macOS tests in progress, all14otherjobs
+successful; this does not validate the current head. New exact-head CI needed.
+
+Next: read monitor after owner reconnects FM1 to TARGET A with C empty and no
+USER press; pursue physical recovery from evidence. Review documented install
+resume-after-reenumeration gap before expanding any write admission. Continue
+audio profiling/installer release gates offline on Aeon. Keep uv.lock untouched.
+
 ## Aeon migration completed; unloaded monitor checked — 2026-10-16
 
 Owner keeps Hera reserved for MDADM/NIC maintenance. Both bounded Aeon jobs
