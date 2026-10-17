@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE_SHA256={
- "generic_diagnostic_flash.py":"fb41aabe42d82ce8dcd735713b9075101390751ce0ed023fc8128b0858138e70",
+ "generic_diagnostic_flash.py":"8ed6d222459145e09db5a3b11768309b9570a2e0d11c79a903054b3a92c3167a",
  "expanded_candidate.py":"3122bae954e71495239d210a853ea0b733d702b71350a7a2f5342a18858c7d5c",
  "expanded_sg.py":"f18e73b658c9d0b06b03b528c6fd4dd4da511a95102ea44252836d885e1a3700",
  "event120_generic_boot.py":"a060459933f8e34b34df8a0978e76e65e3d92f6bb728cbeb3306f4ffb132d820",
@@ -139,15 +139,24 @@ def _verified(pm,policy,direction,restore_read):
    "baseline_sha256":m["current_flash_sha256"],"identity":json.loads(policy.plan_bytes)["identity"]}
  return read,v,req
 
-def bind(policy,*,policy_module,sg_module,transport_factory,log_path,direction="install",restore_read=None):
+def bind(policy,*,policy_module,sg_module,transport_factory,log_path,direction="install",restore_read=None,resume=None):
  """Return the generic policy's guarded DiagnosticSession over injected RehearsalSG."""
  if direction not in ("install","restore") or not callable(transport_factory):
   raise ValueError("Explicit direction and transport factory required")
  source_evidence=_check_sources(policy_module,sg_module)
  if not isinstance(policy,policy_module.Policy) or policy not in policy_module._POLICIES:
   raise ValueError("Factory-created generic diagnostic policy required")
- policy.check_files(require_fresh=(direction=="install"))
- read,v,req=_verified(policy_module,policy,direction,restore_read)
+ if resume is not None:
+  if direction!="install" or restore_read is not None or not isinstance(resume,policy_module._ResumeAdmission):
+   raise ValueError("Explicit install resume admission required")
+  resume.check(policy)
+  if resume in policy_module._USED_RESUMES: raise ValueError("Resume admission already consumed")
+  read=json.loads(resume.read_bytes)
+  req,v=policy._fresh_binding(read)
+  if _canon(req)!=resume.binding_bytes: raise ValueError("Resume read binding changed")
+ else:
+  policy.check_files(require_fresh=(direction=="install"))
+  read,v,req=_verified(policy_module,policy,direction,restore_read)
  dp=_Direction(policy,direction,_canon(req))
  prepared=_Prepared(policy,dp,v["bridge"],v["reader"],v["manifest"]["sg_binding"],
                     read["campaign_sha256"],tuple(v.get("evidence",()))+source_evidence)
@@ -155,7 +164,7 @@ def bind(policy,*,policy_module,sg_module,transport_factory,log_path,direction="
  try:
   transport=transport_factory(prepared,dp,log)
   logged=_LoggedTransport(transport,log)
-  return policy.bind(logged,direction=direction,restore_read=restore_read)
+  return policy.bind(logged,direction=direction,restore_read=restore_read,resume=resume)
  except BaseException:
   try:
    if logged is not None: logged.close()

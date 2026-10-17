@@ -27,7 +27,7 @@ import raw_flash_profile as raw
 from fm1_bound_diagnostic import BoundDiagnosticSession, _VALIDATED
 from fm1_flash_transaction import (create_transaction, digest, encoded,
                                    load_transaction, checked_plan_order,
-                                   mkdir_durable, save_new, sync_directory)
+                                   mkdir_durable, save_new, sync_directory, check_outside)
 
 KIND = "lunar-private-d7000-trio-diagnostic-plan"
 INPUT_KIND = "lunar-private-d7000-trio-diagnostic-input"
@@ -41,6 +41,9 @@ SOUND_IDS = ("macro", "shapes", "macro-heavy", "sixop", "dx7", "sw-sophie",
 EVENT_HORIZON_ID = "replacement-showcase-candidate-event-horizon"
 EVENT_HORIZON_SET_ID = "replacement-showcase-event-horizon-companion-set"
 _POLICIES = WeakSet()
+_RESUMES = WeakSet()
+_USED_RESUMES = WeakSet()
+RESUME_SESSION_SECONDS = 1800
 _HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 _HEX40 = re.compile(r"[0-9a-f]{40}\Z")
 
@@ -781,6 +784,31 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
 
 
 @dataclass(frozen=True, eq=False)
+class _ResumeAdmission:
+    """Process-local, one-bind capability; serialized receipts grant no authority."""
+    policy: object
+    journal_bytes: bytes
+    read_bytes: bytes
+    binding_bytes: bytes
+    evidence: tuple
+    admitted_at: float
+    deadline: float
+
+    def check(self, policy, *, journal=True):
+        if self not in _RESUMES or self.policy is not policy:
+            raise ValueError("Factory-created resume admission required")
+        policy.check_files()
+        if not 0 <= generic_boot.time.time() - self.admitted_at <= RESUME_SESSION_SECONDS:
+            raise ValueError("Resume live-session deadline expired")
+        for path, expected, limit in self.evidence:
+            data = Path(path).read_bytes()
+            if len(data) > limit or data != expected:
+                raise ValueError("Fresh resume evidence changed")
+        if journal and (policy.directory / "journal.json").read_bytes() != self.journal_bytes:
+            raise ValueError("Interrupted resume journal changed")
+
+
+@dataclass(frozen=True, eq=False)
 class Policy:
     directory: Path
     plan_bytes: bytes
@@ -819,10 +847,61 @@ class Policy:
     def receipt(self):
         return json.loads(self.receipt_bytes)
 
-    def bind(self, transport, *, direction="install", restore_read=None):
+    def admit_resume(self, fresh_read):
+        """Explicit offline admission after an interrupted install, never a retry.
+
+        Recovery repairs any changed authorized sector; it does not attribute
+        in-range bytes to an exact logged command prefix. No device is opened.
+        """
+        journal = self.check_files()
+        if (journal.get("state") not in ("running", "recovery_required") or
+                journal.get("direction") != "install"):
+            raise ValueError("Resume requires a durable interrupted install journal")
+        required, verified = self._fresh_binding(fresh_read)
+        now = generic_boot.time.time()
+        if not 0 <= now - verified["completed_at"] <= generic_boot.MAX_AGE:
+            raise ValueError("Fresh resume paired read expired")
+        admission = _ResumeAdmission(self, (self.directory / "journal.json").read_bytes(),
+            encoded({**fresh_read, "manifest_path": str(fresh_read["manifest_path"])}),
+            encoded(required), tuple(verified.get("evidence", ())), now,
+            generic_boot.time.monotonic() + RESUME_SESSION_SECONDS)
+        _RESUMES.add(admission)
+        return admission
+
+    def _fresh_binding(self, read):
+        if not isinstance(read, dict) or set(read) != {
+                "manifest_path", "manifest_sha256", "commands_sha256", "campaign_sha256",
+                "expected_devnum", "current_flash_sha256"}:
+            raise ValueError("Resume requires exact fresh paired full-image read evidence")
+        verified = generic_boot.verify_read_bundle(read["manifest_path"], read["manifest_sha256"],
+            read["commands_sha256"], campaign_sha256=read["campaign_sha256"],
+            expected_devnum=read["expected_devnum"], expected_flash_sha256=read["current_flash_sha256"])
+        manifest = verified["manifest"]
+        original = json.loads(self.binding_bytes)
+        if (manifest["loader_sha256"] != original["loader_sha256"] or
+                any(original["usb_binding"].get(key) != manifest["usb_binding"].get(key)
+                    for key in ("path", "busnum", "vid", "pid"))):
+            raise ValueError("Resume requires same physical USB port and reviewed loader")
+        required = {"phase": "loader", "loader_sha256": manifest["loader_sha256"],
+            "usb_binding": manifest["usb_binding"], "sg_binding": manifest["sg_binding"],
+            "read_campaign_sha256": read["campaign_sha256"],
+            "read_manifest_sha256": read["manifest_sha256"],
+            "read_commands_sha256": read["commands_sha256"],
+            "baseline_sha256": manifest["current_flash_sha256"],
+            "identity": json.loads(self.plan_bytes)["identity"]}
+        return required, verified
+
+    def bind(self, transport, *, direction="install", restore_read=None, resume=None):
         if direction not in ("install", "restore"):
             raise ValueError("Direction must be the prepared candidate install or current-baseline restore")
-        self.check_files(require_fresh=(direction == "install"))
+        if resume is not None:
+            if direction != "install" or restore_read is not None or not isinstance(resume, _ResumeAdmission):
+                raise ValueError("Explicit install resume admission required")
+            resume.check(self)
+            if resume in _USED_RESUMES:
+                raise ValueError("Resume admission already consumed")
+            _USED_RESUMES.add(resume)
+        self.check_files(require_fresh=(direction == "install" and resume is None))
         required = json.loads(self.binding_bytes)
         if direction == "restore":
             if not isinstance(restore_read, dict) or set(restore_read) != {
@@ -850,10 +929,12 @@ class Policy:
                         "read_commands_sha256": restore_read["commands_sha256"],
                         "baseline_sha256": manifest["current_flash_sha256"],
                         "identity": json.loads(self.plan_bytes)["identity"]}
-        expected_current = required.get("baseline_sha256") if direction == "restore" else None
+        if resume is not None:
+            required = json.loads(resume.binding_bytes)
+        expected_current = required.get("baseline_sha256") if direction == "restore" or resume is not None else None
         return DiagnosticSession(self, transport, direction=direction,
                                  required_binding=required,
-                                 expected_current_sha256=expected_current)
+                                 expected_current_sha256=expected_current, resume=resume)
 
 
 class _DirectionPolicy:
@@ -867,10 +948,11 @@ class _DirectionPolicy:
 class DiagnosticSession(BoundDiagnosticSession):
     """Injected-only wrapper requiring the exact same-ROM read binding."""
     def __init__(self, policy, transport, *, direction="install", required_binding=None,
-                 expected_current_sha256=None):
+                 expected_current_sha256=None, resume=None):
         if policy not in _POLICIES or policy.authorization is not _VALIDATED or direction not in ("install", "restore"):
             raise ValueError("Exact generic diagnostic policy and direction required")
         self._policy, self._transport = _DirectionPolicy(policy, direction), transport
+        self._resume = resume
         self._expected_current_sha256 = expected_current_sha256
         self._initial_full_read_checked = False
         self._latched, self._running, self._binding = False, False, None
@@ -886,13 +968,41 @@ class DiagnosticSession(BoundDiagnosticSession):
 
     def read(self, address, size):
         data = super().read(address, size)
-        if (self._policy.direction == "restore" and not self._initial_full_read_checked
+        if (self._expected_current_sha256 is not None and not self._initial_full_read_checked
                 and address == 0 and size == FLASH_BYTES):
             self._initial_full_read_checked = True
             if digest(data) != self._expected_current_sha256:
                 self._stop()
-                raise ValueError("Fresh restore reread differs from the bound complete current image")
+                raise ValueError("Fresh restore/resume reread differs from the bound complete current image")
+            if self._resume is not None:
+                check_outside(data, self._policy.baseline, json.loads(self._policy.plan_bytes)["writable_ranges"])
         return data
+
+    def _check(self):
+        super()._check()
+        if self._resume is not None:
+            try:
+                if generic_boot.time.monotonic() > self._resume.deadline:
+                    raise ValueError("Resume live-session deadline expired")
+            except BaseException:
+                self._stop()
+                raise
+
+    def run(self, checkpoint=None):
+        if self._resume is not None:
+            try:
+                self._resume.check(self._policy._policy)
+            except BaseException:
+                self._stop()
+                raise
+        return super().run(checkpoint)
+
+    def _mutation_intent(self, operation, address):
+        if self._resume is not None:
+            self._resume.check(self._policy._policy, journal=False)
+            if not self._initial_full_read_checked:
+                raise ValueError("Resume requires complete current-image reread before mutation")
+        return super()._mutation_intent(operation, address)
 
     def build_request(self, op, *, address=0, payload=b""):
         # Inherited checks seal every mutation to this one transaction.

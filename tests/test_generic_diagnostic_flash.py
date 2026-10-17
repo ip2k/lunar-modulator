@@ -298,11 +298,12 @@ def test_input_pulse_profile_rejects_schema7_engine_profile():
 
 
 class MemoryROM:
-    def __init__(self, flash, binding, *, fail_after_program=False):
+    def __init__(self, flash, binding, *, fail_after_program=False, fail_after_erase=False):
         self.flash = bytearray(flash)
         self._binding = binding
         self.closed = False
         self.fail_after_program = fail_after_program
+        self.fail_after_erase = fail_after_erase
         self.mutations = []
 
     def binding(self):
@@ -325,6 +326,9 @@ class MemoryROM:
         if op == 0xFB01:
             self.mutations.append(("erase", address))
             self.flash[address:address + 4096] = b"\xff" * 4096
+            if self.fail_after_erase:
+                self.fail_after_erase = False
+                raise OSError("simulated ambiguous erase completion")
         elif op == 0xFB04:
             self.mutations.append(("program", address))
             self.flash[address:address + len(payload)] = payload
@@ -503,3 +507,176 @@ def test_restore_reread_must_match_fresh_manifest_before_any_mutation(tmp_path, 
     assert bytes(transport.flash) == bytes(actual)
     assert transport.mutations == []
     assert transport.closed
+
+
+def interrupted_policy(tmp_path):
+    policy, baseline, target, binding = make_policy(tmp_path)
+    first = MemoryROM(baseline, binding, fail_after_program=True)
+    with pytest.raises(OSError, match="ambiguous"):
+        policy.bind(first).run()
+    assert first.closed
+    # Command failure never retries this consumed transport.
+    assert len(first.mutations) == 1
+    return policy, baseline, target, binding, bytes(first.flash)
+
+
+def test_explicit_resume_reconnects_and_restores_with_new_mapping(tmp_path, monkeypatch):
+    policy, baseline, target, binding, partial = interrupted_policy(tmp_path)
+    old = policy.read_completed_at
+    monkeypatch.setattr(module.generic_boot.time, "time", lambda: old + 1000)
+    usb = dict(binding["usb_binding"], devnum="56")
+    read, new_binding = fresh_restore_read(monkeypatch, binding, partial,
+        usb=usb, sg={"node": "/dev/sg-resume", "inode": 2})
+    with pytest.raises(ValueError, match="expired"):
+        policy.bind(MemoryROM(partial, binding))
+    admission = policy.admit_resume(read)
+    rom = MemoryROM(partial, new_binding)
+    session = policy.bind(rom, resume=admission)
+    with pytest.raises(ValueError, match="consumed"):
+        policy.bind(MemoryROM(partial, new_binding), resume=admission)
+    def checkpoint(event, **fields):
+        if event == "durable_intent":
+            journal = json.loads((policy.directory / "journal.json").read_bytes())
+            assert journal["intent"] == {"operation": fields["operation"], "address": fields["address"]}
+    result = session.run(checkpoint)
+    assert bytes(rom.flash) == target
+    assert result["verified_sha256"] == digest(target)
+    restore_read, restore_binding = fresh_restore_read(monkeypatch, binding, target,
+        usb=dict(usb, devnum="57"), sg={"node": "/dev/sg-restore", "inode": 3})
+    restored = MemoryROM(target, restore_binding)
+    assert policy.bind(restored, direction="restore", restore_read=restore_read).run()["verified_sha256"] == digest(baseline)
+    assert bytes(restored.flash) == baseline and restored.mutations
+
+
+@pytest.mark.parametrize("state,direction", [("prepared", None), ("complete", "install"), ("recovery_required", "restore")])
+def test_resume_requires_interrupted_install(tmp_path, monkeypatch, state, direction):
+    from fm1_flash_transaction import save_journal
+    policy, baseline, _, binding = make_policy(tmp_path)
+    journal = policy.check_files()
+    journal.update(state=state, direction=direction)
+    save_journal(policy.directory, journal)
+    read, _ = fresh_restore_read(monkeypatch, binding, baseline)
+    with pytest.raises(ValueError, match="interrupted install"):
+        policy.admit_resume(read)
+
+
+@pytest.mark.parametrize("change", ["port", "loader", "stale"])
+def test_resume_fresh_evidence_rejects_wrong_loader_port_or_age(tmp_path, monkeypatch, change):
+    policy, _, _, binding, partial = interrupted_policy(tmp_path)
+    read, _ = fresh_restore_read(monkeypatch, binding, partial)
+    manifest = {"usb_binding": dict(binding["usb_binding"]), "sg_binding": binding["sg_binding"],
+        "loader_sha256": binding["loader_sha256"], "current_flash_sha256": digest(partial)}
+    now = module.generic_boot.time.time()
+    if change == "port": manifest["usb_binding"]["path"] = "different"
+    if change == "loader": manifest["loader_sha256"] = "f" * 64
+    monkeypatch.setattr(module.generic_boot, "verify_read_bundle", lambda *a, **k:
+        {"manifest": manifest, "completed_at": now - (1000 if change == "stale" else 0)})
+    with pytest.raises(ValueError, match="same physical|expired"):
+        policy.admit_resume(read)
+
+
+@pytest.mark.parametrize("change", ["journal", "evidence", "target", "receipt"])
+def test_resume_rechecks_sealed_artifacts_before_binding(tmp_path, monkeypatch, change):
+    from fm1_flash_transaction import save_journal
+    policy, _, _, binding, partial = interrupted_policy(tmp_path)
+    read, new_binding = fresh_restore_read(monkeypatch, binding, partial)
+    admission = policy.admit_resume(read)
+    if change == "journal":
+        journal = policy.check_files(); journal["error"] = "changed"
+        save_journal(policy.directory, journal)
+    elif change == "evidence": Path(policy.evidence[0][0]).write_bytes(b"changed")
+    elif change == "target": (policy.directory / "target.bin").write_bytes(b"changed")
+    else: (policy.directory / "diagnostic-receipt.json").write_bytes(b"changed")
+    with pytest.raises(ValueError): policy.bind(MemoryROM(partial, new_binding), resume=admission)
+
+
+@pytest.mark.parametrize("outside", [False, True])
+def test_resume_complete_reread_blocks_mismatch_and_immutable_change(tmp_path, monkeypatch, outside):
+    policy, _, _, binding, partial = interrupted_policy(tmp_path)
+    actual = bytearray(partial)
+    actual[0 if outside else module.APP_BASE + 4096] ^= 1
+    read, new_binding = fresh_restore_read(monkeypatch, binding, bytes(actual) if outside else partial)
+    admission = policy.admit_resume(read)
+    rom = MemoryROM(bytes(actual), new_binding)
+    with pytest.raises(ValueError): policy.bind(rom, resume=admission).run()
+    assert not rom.mutations and rom.closed
+
+
+def test_resume_deadline_expiring_after_bind_blocks_before_mutation(tmp_path, monkeypatch):
+    policy, _, _, binding, partial = interrupted_policy(tmp_path)
+    read, new_binding = fresh_restore_read(monkeypatch, binding, partial)
+    admission = policy.admit_resume(read)
+    rom = MemoryROM(partial, new_binding)
+    session = policy.bind(rom, resume=admission)
+    monkeypatch.setattr(module.generic_boot.time, "monotonic", lambda: admission.deadline + 1)
+    with pytest.raises(ValueError, match="deadline"): session.run()
+    assert not rom.mutations and rom.closed
+
+
+def test_plain_or_copied_resume_capability_is_not_authority(tmp_path, monkeypatch):
+    policy, _, _, binding, partial = interrupted_policy(tmp_path)
+    read, new_binding = fresh_restore_read(monkeypatch, binding, partial)
+    admission = policy.admit_resume(read)
+    for forged in (dict(admission.__dict__), replace(admission)):
+        with pytest.raises(ValueError, match="resume admission"):
+            policy.bind(MemoryROM(partial, new_binding), resume=forged)
+
+
+def test_resume_rejects_cross_policy_and_deserialized_capabilities(tmp_path, monkeypatch):
+    import pickle
+    policy, _, _, binding, partial = interrupted_policy(tmp_path / "one")
+    other, _, _, _, _ = interrupted_policy(tmp_path / "two")
+    read, new_binding = fresh_restore_read(monkeypatch, binding, partial)
+    admission = policy.admit_resume(read)
+    with pytest.raises(ValueError, match="Factory-created"):
+        other.bind(MemoryROM(partial, new_binding), resume=admission)
+    # Copy/pickle round-trips do not carry process-local registry authority.
+    restored = pickle.loads(pickle.dumps(admission))
+    with pytest.raises(ValueError, match="Factory-created"):
+        policy.bind(MemoryROM(partial, new_binding), resume=restored)
+
+
+def test_resume_fresh_evidence_changes_after_bind_block_before_mutation(tmp_path, monkeypatch):
+    policy, _, _, binding, partial = interrupted_policy(tmp_path)
+    read, new_binding = fresh_restore_read(monkeypatch, binding, partial)
+    verified = module.generic_boot.verify_read_bundle()
+    evidence = tmp_path / "fresh-read-evidence"
+    evidence.write_bytes(b"fresh paired evidence")
+    verified["evidence"] = ((evidence, evidence.read_bytes(), 100),)
+    monkeypatch.setattr(module.generic_boot, "verify_read_bundle", lambda *a, **k: verified)
+    admission = policy.admit_resume(read)
+    rom = MemoryROM(partial, new_binding)
+    session = policy.bind(rom, resume=admission)
+    def checkpoint(event, **fields):
+        if event == "durable_intent": evidence.write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="resume evidence changed"):
+        session.run(checkpoint)
+    assert rom.closed and not rom.mutations
+
+
+def test_resume_accepts_crash_journal_running_with_durable_intent(tmp_path, monkeypatch):
+    from fm1_flash_transaction import save_journal
+    policy, _, target, binding, partial = interrupted_policy(tmp_path)
+    journal = policy.check_files()
+    assert journal["intent"]["operation"] == "program"
+    journal["state"] = "running"
+    save_journal(policy.directory, journal)
+    read, new_binding = fresh_restore_read(monkeypatch, binding, partial)
+    session = policy.bind(MemoryROM(partial, new_binding), resume=policy.admit_resume(read))
+    assert session.run()["verified_sha256"] == digest(target)
+
+
+def test_resume_ambiguous_erase_stops_and_requires_new_admission(tmp_path, monkeypatch):
+    policy, _, target, binding, partial = interrupted_policy(tmp_path)
+    read, new_binding = fresh_restore_read(monkeypatch, binding, partial)
+    rom = MemoryROM(partial, new_binding, fail_after_erase=True)
+    session = policy.bind(rom, resume=policy.admit_resume(read))
+    with pytest.raises(OSError, match="ambiguous erase"):
+        session.run()
+    assert rom.closed and len(rom.mutations) == 1
+    assert policy.check_files()["intent"]["operation"] == "erase"
+    read2, binding2 = fresh_restore_read(monkeypatch, binding, bytes(rom.flash),
+        usb=dict(binding["usb_binding"], devnum="58"), sg={"node": "/dev/sg-after-erase"})
+    recovered = MemoryROM(bytes(rom.flash), binding2)
+    assert policy.bind(recovered, resume=policy.admit_resume(read2)).run()["verified_sha256"] == digest(target)
+    assert bytes(recovered.flash) == target

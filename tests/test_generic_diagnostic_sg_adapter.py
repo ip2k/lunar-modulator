@@ -130,3 +130,27 @@ def test_policy_binding_failure_closes_transport_and_log(tmp_path, monkeypatch):
             transport_factory=lambda *_: transport, log_path=tmp_path / "failed.jsonl")
     assert transport.closed
     assert (tmp_path / "failed.jsonl").exists()
+
+
+def test_resume_adapter_uses_fresh_mapping_for_actual_install(tmp_path, monkeypatch):
+    from test_generic_diagnostic_flash import interrupted_policy, fresh_restore_read, MemoryROM, module as resume_module
+    policy, _, target, binding, partial = interrupted_policy(tmp_path)
+    read, new_binding = fresh_restore_read(monkeypatch, binding, partial,
+        usb=dict(binding["usb_binding"], devnum="56"),
+        sg={"node": "/dev/sg-resume", "inode": 99})
+    verified = resume_module.generic_boot.verify_read_bundle()
+    verified.update(bridge=SimpleNamespace(), reader=SimpleNamespace(SGHeader=object))
+    monkeypatch.setattr(resume_module.generic_boot, "verify_read_bundle", lambda *a, **k: verified)
+    admission = policy.admit_resume(read)
+    made = []
+    def factory(prepared, direction, log):
+        assert prepared.mapping == adapter._canon(new_binding["sg_binding"])
+        assert direction.direction == "install"
+        rom = MemoryROM(partial, new_binding)
+        made.append(rom)
+        return rom
+    session = adapter.bind(policy, policy_module=resume_module,
+        sg_module=SimpleNamespace(__file__=str(ROOT / "tools/native/expanded_sg.py")),
+        transport_factory=factory, log_path=tmp_path / "resume.jsonl", resume=admission)
+    assert session.run()["verified_sha256"] == sha(target)
+    assert bytes(made[0].flash) == target and made[0].closed
