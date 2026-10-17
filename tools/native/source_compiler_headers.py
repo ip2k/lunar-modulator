@@ -143,7 +143,7 @@ def _catalogue_alias_path(path: str) -> str | None:
     parts = PurePosixPath(rel)
     if (not rel or not parts.parts or "\\" in rel or parts.is_absolute() or parts.as_posix() != rel
             or any(part in ("", ".", "..") for part in parts.parts)):
-        raise ValueError("unsafe final-link catalogue alias path")
+        raise ValueError("unsafe catalogue alias path")
     return "/output/catalogue/" + rel
 
 
@@ -275,6 +275,36 @@ def _check_catalogue_alias_mounts(launcher_pins: dict, created_inspects: dict[st
         seen_modes.add(mode)
     if seen_modes != {"catalogue", "highlevel"}:
         raise ValueError("created-container mount evidence does not cover both launch modes")
+
+
+def _check_catalogue_alias_evidence(trace: dict, execution: dict,
+                                    execution_payloads: dict[str, bytes],
+                                    output_root: Path) -> None:
+    """Validate every shard/highlevel mount before trusting /catalogue aliases."""
+    launcher_ref = execution.get("launcher_pins")
+    launcher_raw = execution_payloads.get(launcher_ref.get("path")) if isinstance(launcher_ref, dict) else None
+    if launcher_raw is None:
+        raise ValueError("catalogue alias lacks hash-pinned launcher mount evidence")
+    launcher_pins = _json_bytes(launcher_raw)
+    created_inspects = {}
+    for ref in execution.get("terminal_records", []):
+        name = ref.get("path") if isinstance(ref, dict) else None
+        if isinstance(name, str) and name.endswith(".created.inspect.json"):
+            raw = execution_payloads.get(name)
+            if raw is None:
+                raise ValueError("catalogue alias lacks hash-pinned created-container evidence")
+            created_inspects[name] = _json_array_bytes(raw)
+    shards = trace.get("catalogue", {}).get("shards")
+    if (not isinstance(shards, list) or not shards
+            or any(not isinstance(shard, str) or not re.fullmatch(r"shard-[0-9]{2}", shard)
+                   for shard in shards)
+            or len(set(shards)) != len(shards)):
+        raise ValueError("catalogue shard inventory is malformed for alias execution evidence")
+    expected_inspect_paths = {
+        *(f"execution/terminal/{shard}.created.inspect.json" for shard in shards),
+        "execution/terminal/highlevel.created.inspect.json"}
+    _check_catalogue_alias_mounts(launcher_pins, created_inspects,
+                                  expected_inspect_paths, output_root)
 
 
 def _classify_compile_receipt(receipt_path: str) -> tuple[str, str]:
@@ -612,31 +642,10 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
         expected_link_inputs[item.get("path")] = (item.get("sha256"), _toolchain_size(toolchain_manifest, item.get("path"), toolchain_root))
     aliases = {path: _catalogue_alias_path(path) for path in input_map
                if path.startswith("/catalogue/")}
+    catalogue_alias_evidence_checked = False
     if aliases:
-        launcher_ref = execution.get("launcher_pins")
-        launcher_raw = execution_payloads.get(launcher_ref.get("path")) if isinstance(launcher_ref, dict) else None
-        if launcher_raw is None:
-            raise ValueError("catalogue alias lacks hash-pinned launcher mount evidence")
-        launcher_pins = _json_bytes(launcher_raw)
-        created_inspects = {}
-        for ref in execution.get("terminal_records", []):
-            name = ref.get("path") if isinstance(ref, dict) else None
-            if isinstance(name, str) and name.endswith(".created.inspect.json"):
-                raw = execution_payloads.get(name)
-                if raw is None:
-                    raise ValueError("catalogue alias lacks hash-pinned created-container evidence")
-                created_inspects[name] = _json_array_bytes(raw)
-        shards = trace.get("catalogue", {}).get("shards")
-        if (not isinstance(shards, list) or not shards
-                or any(not isinstance(shard, str) or not re.fullmatch(r"shard-[0-9]{2}", shard)
-                       for shard in shards)
-                or len(set(shards)) != len(shards)):
-            raise ValueError("catalogue shard inventory is malformed for alias execution evidence")
-        expected_inspect_paths = {
-            *(f"execution/terminal/{shard}.created.inspect.json" for shard in shards),
-            "execution/terminal/highlevel.created.inspect.json"}
-        _check_catalogue_alias_mounts(launcher_pins, created_inspects,
-                                      expected_inspect_paths, output_root)
+        _check_catalogue_alias_evidence(trace, execution, execution_payloads, output_root)
+        catalogue_alias_evidence_checked = True
         normalized_inputs = {}
         for path, identity in input_map.items():
             normalized = aliases.get(path, path)
@@ -699,8 +708,20 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
     header_files = {}
     unexported_deps = []
     source_deps = []
+    catalogue_dependency_aliases = [dep for dep in dependencies.values()
+                                    if dep["resolved"].startswith("/catalogue/")]
+    if catalogue_dependency_aliases and not catalogue_alias_evidence_checked:
+        _check_catalogue_alias_evidence(trace, execution, execution_payloads, output_root)
+        catalogue_alias_evidence_checked = True
     for dep in dependencies.values():
-        expected_class = _root_class(dep["resolved"])
+        catalogue_alias = dep["resolved"].startswith("/catalogue/")
+        if catalogue_alias:
+            # /catalogue is accepted only after the complete launcher and
+            # created-container mount evidence above proves the read-only alias.
+            _catalogue_alias_path(dep["resolved"])
+            expected_class = "catalogue-and-cxx"
+        else:
+            expected_class = _root_class(dep["resolved"])
         if expected_class is None or dep["root_class"] != expected_class:
             raise ValueError("dependency path has an unmapped or conflicting root class")
         rel = _relative_runtime(dep["resolved"], str(toolroot), "/opt/pi32v2-real")
@@ -714,8 +735,11 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
                     raise ValueError("source dependency differs from pinned source manifest")
                 source_deps.append(dep)
             elif dep["root_class"] in ("catalogue-and-cxx", "fresh-build-output"):
-                output_data = _runtime_file(dep["resolved"], "/output", output_root)
+                runtime_path = _catalogue_alias_path(dep["resolved"]) if catalogue_alias else dep["resolved"]
+                output_data = _runtime_file(runtime_path, "/output", output_root)
                 if len(output_data) != dep["bytes"] or _sha(output_data) != dep["sha256"]:
+                    if catalogue_alias:
+                        raise ValueError("catalogue alias dependency bytes differ from receipt")
                     raise ValueError("generated output dependency differs from receipt")
                 unexported_deps.append(dep)
             else:
