@@ -619,6 +619,7 @@ def patch_builder(builder_path):
     artifact_block = """    subprocess.run([sys.executable, str(ROOT / 'tools/native/probe_artifact.py'),
                     '--elf', str(elf), '--layout', 'combined',
                     '--flash-layout', args.flash_layout,
+                    *(('--hot-dsp-ram',) if args.hot_dsp_ram else ()),
                     '--objdump', objdump,
                     '--out', str(out / 'artifact')], check=True)
     print('Audited private probe:', elf, report['elf_sha256'])"""
