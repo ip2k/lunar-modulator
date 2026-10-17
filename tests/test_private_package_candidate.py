@@ -183,7 +183,33 @@ def test_private_adapter_requires_canonical_continuous_d7000_request():
 
 
 def test_service_image_pin_is_the_configured_worker_image():
-    assert adapter.SERVICE_IMAGE_DIGEST == "sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d"
+    from tools.installer_service.docker_adapter import _IMAGE_ID
+
+    assert adapter.SERVICE_IMAGE_DIGEST == _IMAGE_ID
+    assert adapter.SERVICE_IMAGE_DIGEST == "sha256:bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495"
+
+
+def test_trusted_catalogue_loader_accepts_retained_schema2_shape_without_stripping_metadata():
+    retained_row = {
+        "optimization": "-Oz",
+        "path": "/catalogue/shard-00/obj/c/seq/fx_host.o",
+        "sha256": "aeb1075514383489d05ad788fb50440bddc4f4296e3782203b962a1fe3a9860f",
+    }
+    manifest = {"schema": 2, "objects": [retained_row]}
+    assert adapter._catalogue_rows(manifest) == [retained_row]
+    assert manifest["objects"][0] == retained_row
+
+    legacy = {"schema": 1, "objects": [{key: value for key, value in retained_row.items()
+                                          if key != "optimization"}]}
+    assert adapter._catalogue_rows(legacy) == legacy["objects"]
+    for invalid in (
+        {"schema": 1, "objects": [retained_row]},
+        {"schema": 2, "objects": [legacy["objects"][0]]},
+        {"schema": True, "objects": [retained_row]},
+        {"schema": 2, "objects": [dict(retained_row, extra="x")]},
+    ):
+        with pytest.raises(ValueError):
+            adapter._catalogue_rows(invalid)
 
 
 def test_trusted_generated_input_cannot_escape_build_root(tmp_path):

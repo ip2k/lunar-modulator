@@ -20,7 +20,7 @@ import tempfile
 from typing import Mapping
 
 from .api import Admission, WorkerResult, _reject_constant, _unique_object, _verify_result, canonical_request
-from .docker_adapter import _IMAGE, _canonical_relative, read_private_evidence
+from .docker_adapter import _IMAGE_ID, _canonical_relative, read_private_evidence
 from .provenance import canonical, sha256
 
 MAX_REQUEST_BYTES = 65_536
@@ -31,7 +31,7 @@ MAX_APP_BYTES = 1024 * 1024
 MAX_ELF_BYTES = 32 * 1024 * 1024
 MAX_JSON_BYTES = 32 * 1024 * 1024
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
-SERVICE_IMAGE_DIGEST = _IMAGE.split("@", 1)[1]
+SERVICE_IMAGE_DIGEST = _IMAGE_ID
 
 
 def _json(raw: bytes, label: str) -> dict:
@@ -43,6 +43,38 @@ def _json(raw: bytes, label: str) -> dict:
     if not isinstance(value, dict):
         raise ValueError(label + " must be an object")
     return value
+
+
+def _catalogue_rows(manifest: dict) -> list[dict]:
+    """Apply the trusted packager's supported catalogue envelope shapes.
+
+    Schema 2 retains per-object optimization metadata; schema 1 remains valid
+    only in its original metadata-free shape and is passed through unchanged.
+    The packager remains authoritative for policy-map and receipt agreement.
+    """
+    if (not isinstance(manifest, dict) or set(manifest) != {"schema", "objects"}
+            or type(manifest.get("schema")) is not int
+            or manifest["schema"] not in (1, 2)
+            or not isinstance(manifest.get("objects"), list)):
+        raise ValueError("trusted catalogue manifest is malformed")
+    schema = manifest["schema"]
+    rows = manifest["objects"]
+    if not 1 <= len(rows) <= MAX_EVIDENCE_FILES:
+        raise ValueError("trusted catalogue manifest is malformed")
+    expected_keys = {"path", "sha256", "optimization"} if schema == 2 else {"path", "sha256"}
+    previous = None
+    for row in rows:
+        if (not isinstance(row, dict) or set(row) != expected_keys
+                or not isinstance(row.get("path"), str)
+                or not row["path"].startswith("/catalogue/")
+                or not isinstance(row.get("sha256"), str) or not _SHA.fullmatch(row["sha256"])
+                or (schema == 2 and row.get("optimization") not in ("-Oz", "-Os", "-O2"))):
+            raise ValueError("trusted catalogue object row is malformed")
+        if previous is not None and row["path"] <= previous:
+            raise ValueError("trusted catalogue manifest paths are not unique and sorted")
+        _canonical_relative(row["path"][len("/catalogue/"):])
+        previous = row["path"]
+    return rows
 
 
 def _read_regular(path: Path, limit: int, *, root: Path | None = None) -> bytes:
@@ -197,17 +229,10 @@ def _load_trusted_package_inputs(trusted_output: Path, catalogue_root: Path,
         raise ValueError("trusted wrapper capture does not bind provenance and source/catalogue inputs")
     catalogue_raw = _read_regular(build / "catalogue-manifest.json", MAX_JSON_BYTES, root=build)
     catalogue_manifest = _json(catalogue_raw, "trusted catalogue manifest")
-    rows = catalogue_manifest.get("objects")
-    if (catalogue_manifest.get("schema") != 1 or not isinstance(rows, list)
-            or not 1 <= len(rows) <= MAX_EVIDENCE_FILES):
-        raise ValueError("trusted catalogue manifest is malformed")
+    rows = _catalogue_rows(catalogue_manifest)
     catalogue_files = {}
     catalogue_total = 0
     for row in rows:
-        if (not isinstance(row, dict) or not isinstance(row.get("path"), str)
-                or not row["path"].startswith("/catalogue/")
-                or not isinstance(row.get("sha256"), str) or not _SHA.fullmatch(row["sha256"])):
-            raise ValueError("trusted catalogue object row is malformed")
         relative = row["path"][len("/catalogue/"):]
         rel = _canonical_relative(relative)
         if row["path"] in catalogue_files:
