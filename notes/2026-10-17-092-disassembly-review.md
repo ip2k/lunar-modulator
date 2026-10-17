@@ -244,8 +244,8 @@ gate compares halfword `[0x01C0E8D4]` with `0x5A02`; a mismatch exits.
 Selector 206 fills a temporary record, and `end = record[+4] + record[+12]`.
 The first 80-byte candidate read starts at `end - 0x100`. If its parser
 fails, the scan step is `mode * 0x100` for modes 1–16 inclusive, otherwise
-`0x1000`. A helper uses selector 103 for an as-yet opaque scan cursor;
-candidates are read at `cursor - step - 0x100`, stepping downward.
+`0x1000`. A helper uses selector 103 for flash capacity (resolved below), which seeds
+the descending scan; candidates are read at `cursor - step - 0x100`.
 
 Parser success yields the marker address as its output word plus the
 candidate's dword at offset 72. The marker must read `0x55AAAA55`.
@@ -255,7 +255,49 @@ operation 3 and chunks up to 256 bytes; other modes select operation 2
 and chunks up to 4096 bytes. Each chunk then passes through `0x02028FF8`.
 
 These formulas explain how an address could come from parsed metadata;
-they do not establish any runtime global value, scan cursor, actual parser
-success, selection of E8000, execution of a migration, or permission to
+they do not establish actual runtime values, parser success, selection of
+E8000, execution of a migration, or permission to
 reuse a sector. The conditional bank arithmetic and historical E8000
 records therefore remain insufficient for storage admission.
+
+### Capacity query and migration destination initialization
+
+[verified: coordinator reread the pinned listing] Wrapper `0x020296F6`
+passes selector 103 and a zeroed output dword to `0x0200395C`. Its case at
+`0x02003ABA` returns the cached `[r5+24]` value; when zero it calls the
+copied RAM helper, then computes a capacity from byte `[r5+28]`. For an
+exponent at least 16, the visible shift/loop computes `2^exponent`. This
+resolves the value used to seed the fallback scan as a capacity quantity,
+not an already selected record address. The pinned SDK name
+`IOCTL_GET_CAPACITY` agrees but is cross-version corroboration. The runtime
+exponent and indirect-dispatch reachability were not measured.
+
+[verified: bounded initializer arithmetic] `0x02034076` obtains the selector-206
+record and clips its size to 8192 bytes in mode 1, or 16384 otherwise, rejecting
+sizes below 512. For mode 1, it aligns the base upward to 256 bytes, rounds the
+remaining span down to a multiple of 512, and caps it at 8192. For other modes
+it aligns to 4096, rounds down to 8192, and caps at 131072; the earlier size
+clip is tighter for the known aligned descriptor. At `0x02034154`–`0x02034162`,
+it writes the aligned base to `0x01C10EAC` and half the computed span to
+`0x01C10EB0`. These are the destination and length ceiling loaded by the tail
+routine. The aligned D9000/64KiB descriptor therefore gives the same conditional
+4KiB or 8KiB half-bank ranges derived above.
+
+The arithmetic is unsigned; no local check was found that the aligned base
+remains below the clipped endpoint before subtraction. The known descriptor
+is aligned. This observation alone does not establish a malformed descriptor
+is accepted or reachable, and it grants no additional erase authority.
+
+[verified: coordinator rehashed corrected worker artifacts] Aeon report
+`/home/claude/.local/share/codex-coordination/tasks/mvave-fm1-selector103-bss-globals-20261017/report.md`
+SHA-256 `81a93e4a98703f855a1734d338bb2eb852450e1032b0781e7f5187eba48bb829`;
+adjacent handoff SHA-256
+`0e6057e42b6202142d47cd8cdfa52e6c6ff4946efdf4a5076fa47e3e652a22d2`.
+A report-header correction explicitly separates raw-app offset-zero runtime
+`0x02000120` from flash region base `0x02000000`; the corrected pins above
+supersede the initial report. No build or device operation was performed.
+
+Remaining: parser `0x0202970C`, actual metadata/global values, mode and
+execution; the historical E8000 records remain preserved and unexplained.
+Neither static arithmetic nor a capacity query proves ownership or migration
+execution.

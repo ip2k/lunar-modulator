@@ -8,6 +8,7 @@ HASH=re.compile(r"^[0-9a-f]{64}$"); MAX_JSON=4*1024*1024; MAX_FILES=10000; MAX_B
 ID=re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 PREFIXES=("engines/","firmware/native/","firmware/third_party/","tools/native/","tools/jieli/","sim/web/")
 ROOT_FILES=("LICENSE","LICENSE-MIT","LICENSING.md","README.md","DEVELOPERS.md","Makefile")
+SOURCE_BUILD_INPUTS=frozenset({"engines/modules/default.list"})
 SOURCE_MEDIA=frozenset(f"engines/third_party/fm1-x0x/assets/909/{name}.wav"
                        for name in ("hh","ride","crash"))
 FORBIDDEN_SUFFIXES=(".fwsc",".bin",".elf",".o",".a",".so",".dylib",".wasm",".zip",".tar",".gz")
@@ -32,7 +33,7 @@ def _selected(path):
     if p.is_absolute() or any(x in ("",".","..") or x in FORBIDDEN_PARTS for x in p.parts): return False
     if path in ROOT_FILES: return True
     if not path.startswith(PREFIXES) or path.lower().endswith(FORBIDDEN_SUFFIXES): return False
-    return path in SOURCE_MEDIA or p.name in {"Makefile","CMakeLists.txt","meson.build","UPSTREAM.md","LICENSE","LICENSE-Open303","COPYING","COPYRIGHT","NOTICE","LICENSING.md"} or p.suffix.lower() in {".c",".cc",".cpp",".h",".hpp",".py",".mk",".cmake",".json",".md",".txt",".S",".s",".inc",".ld",".sh",".yml",".yaml",".ini",".patch"}
+    return path in SOURCE_BUILD_INPUTS or path in SOURCE_MEDIA or p.name in {"Makefile","CMakeLists.txt","meson.build","UPSTREAM.md","LICENSE","LICENSE-Open303","COPYING","COPYRIGHT","NOTICE","LICENSING.md"} or p.suffix.lower() in {".c",".cc",".cpp",".h",".hpp",".py",".mk",".cmake",".json",".md",".txt",".S",".s",".inc",".ld",".sh",".yml",".yaml",".ini",".patch"}
 def _source_rows(root,commit,expected):
     if _git(root,"rev-parse","HEAD")!=commit: raise ValueError("source checkout does not match tuple provenance commit")
     if _git(root,"status","--porcelain","--untracked-files=all"): raise ValueError("source checkout must be clean")

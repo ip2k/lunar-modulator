@@ -8117,3 +8117,20 @@ Passive02:44UTC check: about5.07V/0uA, PACerrors0; benchUSB shows KA6 only.
 Monitor unchanged; existing owner connection question remains pending. Latest
 CI38995858202 is pending; prior38994186689 is live in Linuxpytest with no
 completed failures. Preserve uv.lock. Goal ACTIVE; review worker reports next.
+
+### Extracted-source compile and stock migration bounds reviewed
+
+Aeon subset export at93f4bfc9 compiled66/66 musl C units, zero failures, noSDK
+archives. Root rehashed handoff and report, checked counts. This uses identified
+toolchain archive in a different image from production; not a tuple-bound GPL
+bundle or full app. Closure note records exactpins and limits. Worker found
+default.list omitted; root added that exactpath and proved actual Makefile
+resolution matches fulltree, while deletingfile fails. Bundle24tests PASS.
+
+Root independently reread selector103 capacity case and initializer stores:
+selector103 supplies capacity; taildestination/limit derive from alignedVMbase
+and halfclippedroundedspan. Corrected worker reportpins and formulas retained
+in092reviewnote. Runtime/parser/E8000ownership unproven; preserveunknownbytes.
+Both Aeon claims released; no Hera/device operations. Existing monitor question
+pending. Goal ACTIVE; genuine tuple-bound archive rebuild and physical recovery,
+realtimeaudio, persistence and release acceptance remain open.
