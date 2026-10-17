@@ -1,3 +1,18 @@
+## Empty-target timing control prepared — 2026-10-17
+
+[verified] Root and independent bringup_review source review agree an unloaded
+CONTROL-only operation run is bounded, remains disarmed untilUSER, and does not
+involve FM1. Root rechecked bit/netlist/LPF/timing hashes and current source match
+against62ca873f. Plan: notes/2026-10-17-cynthion-empty-target-timing-control.md.
+Existing bitb3b2037b will be volatile-loaded only after owner confirms BOTH
+TARGET ports empty. Owner has been asked; awaiting reply. Until then current
+PAC2 remains loaded withFM1→A,C→bench01,switchLEFT. No reconfiguration issued.
+After loading verifySAFE/PHYready/no fault/OE0 before requestingUSER.
+A no-target candidateACK would demonstrate falsepositive risk; no candidate
+would not establish the prior connected candidate genuine. No autoKEYrestart
+or blindSOF change. Root capture helper saved with identityguard/read-onlyAPI.
+GoalACTIVE; no hardware recovery/admission/publicrelease claims. Aeononly.
+
 ## LEFT comparison and USB absence — 2026-10-17 16:46 UTC
 
 [verified] Owner movedRIGHT→LEFT; blankscreen/redcharge unchanged. Five valid
