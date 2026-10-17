@@ -116,3 +116,38 @@ Semantic-tool readiness was rechecked: Rarefaction and Serena both still select
 integration worktree, so bounded orient/find_symbol returned file-not-found.
 No shared index was retargeted. Direct file inspection and executable tests
 provided this change's source evidence.
+
+## Known-load test exposes unipolar limitation — 2026-10-17 UTC
+
+[verified: coordinator physical reads and owner light observation] With the FM1
+connected as confirmed by the owner, LEFT→RIGHT left its charging light red and
+screen blank. Both positions yielded valid PAC1/layout1 sweeps with near5.05V
+and raw VSENSE1=0. These are not evidence of no FM1 current or CPU power.
+
+The owner substituted a lit USB light. The initial reader failed because Cynthion
+identified as USB Analyzer1d50:615b; the cause of the firmware change is unknown.
+Computer use then inspected Packetry: capture stopped, historical saved
+cynthion-v8-repeat-display-pass.pcapng open. This is not current UBOOT evidence.
+After owner confirmed both TARGET ports empty, coordinator reloaded the same
+119280-byte monitor bitstream SHA635b7b1376db0d97656932df57ff3fc331379876f21c2509f9803928b122e378.
+Empty baseline:5.066406/5.069824V, raw VSENSE0/16 (nominal0/1221uA).
+With the light visibly on again:5.063477/4.681641/4.674316V, raw VSENSE0 in
+all3 sweeps, status0x105/fault0/sequences advancing. Owner then unplugged it;
+both TARGET ports are empty. Logs are retained under ignored
+scratch/aeon-routing-resume-20261017/known-light-load-after-reload.jsonl.
+
+[verified: coordinator PCB net/pad inspection at hardware source13aa71c2]
+R2 ties pad1 TARGET_A_VBUS_IN to sense-pad2 TARGET_A_SENSE-; pad4 TARGET_A_VBUS
+to sense-pad3 TARGET_A_SENSE+. J3 TARGET-A connector VBUS is TARGET_A_VBUS.
+The PAC195x defines VSENSE=SENSE+ minus SENSE-; CONTROL supplying TARGET A puts
+the load-side sense+ below source-side sense-. Thus the prototype's unipolar
+active range0x0000 cannot represent the negative differential. A zero reading
+under this load cannot establish an absent current path. This supersedes any
+interpretation of the preceding tiny/unloaded current readings as FM1 load proof.
+
+Primary sources: Cynthion hardware PCB/schematic commit13aa71c2fb0be3837cd2ec580ee5d2c25fc1c678;
+Microchip PAC195x DS20006539B p6 and range table5-2/p26,
+https://ww1.microchip.com/downloads/en/DeviceDoc/PAC195X-Family-Data-Sheet-20006539B.pdf.
+A bounded bipolar/signed monitor correction is assigned; no new image loaded,
+no recovery key sent and no FM1 flash operation performed. Target reconnection
+must wait for reviewed monitor behavior; hardware recovery remains unverified.

@@ -1,3 +1,18 @@
+## TARGET-A monitor polarity correction pending — 2026-10-17 UTC
+
+[verified: coordinator known-load observation, exact bitstream reload, PAC reads,
+PCB pads/nets and primary sensor definition] A lit USB lamp read raw VSENSE0
+while VBUS dropped to4.674316V. TARGET-A sink current has negative sense polarity;
+the monitor's unipolar range0x0000 cannot represent it. Earlier zero readings
+must NOT be used to infer no FM1 load/CPU power. See updated
+notes/2026-10-16-cynthion-power-monitor.md. Both TARGET ports now empty by owner
+confirmation, CONTROL remains Mac. Current loaded image remains the original
+monitor635b7b13, not bipolar. No recovery key/flash; SAVE/public release disabled.
+Bringup_review is implementing isolated bipolar/signed monitor fix/tests; root
+review and Aeon routed-build preflight required before any new gateware load.
+Compiler_header_provenance is preparing concrete serial exact-bff trace runner;
+no trace build launched. Aeon only; no Hera access. Goal ACTIVE.
+
 ## Independent bff source export verified; passive recovery check — 2026-10-17 UTC
 
 [verified: coordinator independently rehashed archive members, original-run files,
