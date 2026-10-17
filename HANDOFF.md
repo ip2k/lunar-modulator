@@ -1,3 +1,21 @@
+## Fresh generated-source run failed capture; Aeon only — 2026-10-17 UTC
+
+[reported: bounded Aeon worker handoff reviewed by coordinator; exact inner
+exception inferred from retained values and pinned source, child stderr unavailable]
+The single approved fresh8e086 run compiled successfully in both containers
+(exit0, noOOM), but tuple capture refused a raw prepared-profile file digest
+compared with the profile internal semantic digest. No tuple, provenance or
+source archive completed. Partial app/ELF outputs are not accepted trusted evidence.
+Both task containers were removed after terminal receipts; no relaunch occurred.
+Failure handoff: handoffs/lunar--generated-link-run-8e086-failure.md
+SHA1ee168209b2fac0309c6877b96250550d38a63d22606867e82b8c1e5b4091a5a.
+702-file inventory SHAe49384d7fb58ba773e4ef178310ef910afa4807d82ebe6f049df827816c9aabf.
+Run: /home/claude/mvave-fm1/private-generated-link-8e086-preflight-final-20261017.
+A bounded worker is fixing the digest contract with regression coverage on an
+isolated branch. Coordinator review/integration and a fresh reviewed preflight
+remain necessary before another run. Hardware/installability/release stay false.
+Aeon only; leave Hera alone during RAID/M.2/NIC maintenance. Overall goal ACTIVE.
+
 ## Real retained receipt-preview replay PASS — 2026-10-17 UTC
 
 [verified: coordinator reviewed/pinned replay script and preflight; approved
