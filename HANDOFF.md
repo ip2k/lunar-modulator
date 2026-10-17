@@ -1,3 +1,30 @@
+## Aeon source exchange and Hera job stop confirmed — 2026-10-16
+
+[reported: assigned worker] Hera baseline16shards completed but link was still
+running at owner redirect. Worker stopped only owned containerf30de1437d94
+(session engine-render-profile-dd8e3ac98e) and exact launcher/runner; verified
+zero remaining session containers, saved partialoutputs/sharedhandoff, released
+ownclaim. Candidate never started. Discard interruptedlink for matchedfreshpair.
+This supersedes the earlier uncertain stop/start status. No monitorjobs ran there.
+
+[verified: source exchange] Created ordinary private bare sourceexchange at
+Aeon /home/claude/.local/share/codex-repos/lunar.git and pushed exactb9ff8de7
+as codex/aeon-monitor-base-20261016; independent ls-remote matches
+b9ff8de7376a7a5c541e4ebbd7161e2911cf2783. No credentials/activecheckouts copied.
+FPGAworker owns atomicAeonclaim:
+/home/claude/.local/share/codex-coordination/claims/lunar-modulator--cynthion-monitor-aeon-route-20261016/claim.md
+and is checking toolchain beforelaunch. Firmwareworker preparing fresh matchedpair
+onAeon:4concurrent2CPU/2GiB containers,16logicalshards; then4CPU/4GiBlink.
+Aeonimage differs from oldHeraimage; both freshpairbuilds must use same verified
+Aeonimage/toolchainsnapshot. No targetperformance gain inferred from this move.
+
+[verified: source note integrated] 9e8ca051d64dc219fe54010102215ca05215ee34
+integrates a8b10bfc wrapperdiscrepancynote and is originbackedup. Monitorworker
+continues bounded sampling-phase diagnosis, retaining executable scratchrepro;
+FPGAworker routes independently, with no claim that routing proves readvalues.
+12/15 oldCIjobs passed,3stillrunning atlatestpoll; queuednewCI unchanged.
+No hardwareactions. OverallgoalACTIVE; uv.lock untouched.
+
 ## Owner redirects builds to Aeon during Hera maintenance — 2026-10-16
 
 [reported: owner] Hera is online but undergoing MDADM RAID setup on two new M.2
