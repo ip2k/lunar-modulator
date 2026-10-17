@@ -47,7 +47,8 @@ def _validate_selection_request(request):
                    or any(not isinstance(module, str) for module in request[group])
                    for group in GROUPS):
                 raise ValueError('Invalid module groups for expanded-d7000 profile')
-            validate_hall_o2_stage7_modules(request)
+            if runtime == 'song-diagnostic':
+                validate_hall_o2_stage7_modules(request)
 
 
 def validate_build_profile(request, flash_layout, runtime_mode, wavetable_profile):

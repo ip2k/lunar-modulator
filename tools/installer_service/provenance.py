@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import re
+from . import continuous_profile
 
 MAX_TREE_ENTRIES = 8192
 MAX_TREE_BYTES = 512 * 1024 * 1024
@@ -119,7 +120,13 @@ def make_diagnostic_provenance(*, bindings: dict, request_sha256: str,
         "runtime_mode": (receipt.get("runtime_configuration") or {}).get("runtime_mode"),
         "shapes_voices": receipt.get("shapes_voices"),
     }
-    if profile["flash_layout"] == "expanded-d7000":
+    continuous = profile["runtime_mode"] == "continuous"
+    if continuous:
+        selected = (receipt.get("module_selection") or {}).get("selected")
+        continuous_profile.validate_image_receipt(receipt, selected)
+        profile = continuous_profile.profile_summary()
+        compatibility_reason = continuous_profile.COMPATIBILITY_REASON
+    elif profile["flash_layout"] == "expanded-d7000":
         if (profile["runtime_mode"] != "song-diagnostic"
                 or type(profile["shapes_voices"]) is not int
                 or profile["shapes_voices"] != 8):
@@ -140,7 +147,7 @@ def make_diagnostic_provenance(*, bindings: dict, request_sha256: str,
         raise ValueError("worker profile is outside the fixed diagnostic provenance profile")
     envelope = {
         "schema": 1,
-        "kind": "private-diagnostic-build-provenance",
+        "kind": continuous_profile.PROVENANCE_KIND if continuous else "private-diagnostic-build-provenance",
         "bindings": {**bindings, "request_sha256": request_sha256},
         "outputs": {
             "artifact_sha256": sha256(artifact), "artifact_bytes": len(artifact),

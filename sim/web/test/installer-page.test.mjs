@@ -204,7 +204,7 @@ test('uses injected build client only after explicit selection and preserves mod
   const checkboxes = nodes.filter((node) => node.tagName === 'INPUT' && node.type === 'checkbox');
   const radios = nodes.filter((node) => node.tagName === 'INPUT' && node.type === 'radio');
   const button = nodes.find((node) => node.tagName === 'BUTTON');
-  assert.equal(button.textContent, 'Request diagnostic build');
+  assert.equal(button.textContent, 'Request private build check');
   assert.equal(submissions.length, 0, 'mounting the page must not submit a build');
   assert.equal(cancelButton.hidden, true);
 
@@ -264,7 +264,7 @@ test('deployment marker enables only the fixed same-origin diagnostic API on exp
   });
   const nodes = walk(root);
   const button = nodes.find((node) => node.tagName === 'BUTTON');
-  assert.equal(button.textContent, 'Request diagnostic build');
+  assert.equal(button.textContent, 'Request private build check');
   assert.equal(calls.length, 1, 'page load reads only the generated catalogue');
   assert.match(serviceNotice.textContent, /availability is checked when you submit/i);
   await button.dispatch('click');
@@ -343,7 +343,7 @@ test('default Event Horizon plus selected companion SET reaches the diagnostic b
   const setCheckbox = nodes.find((node) => node.tagName === 'INPUT'
     && node.type === 'checkbox' && node.value === setId);
   const submit = nodes.find((node) => node.tagName === 'BUTTON'
-    && node.textContent === 'Request diagnostic build');
+    && node.textContent === 'Request private build check');
   assert.ok(setCheckbox, 'generated catalogue exposes the companion SET');
   assert.equal(setCheckbox.checked, false, 'companion SET remains opt-in');
   assert.equal(setCheckbox.disabled, false, 'default Event Horizon is the startup project');

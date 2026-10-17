@@ -125,8 +125,7 @@ def d7000_selection(tmp_path):
                 runtime_mode='song-diagnostic')
 
 
-@pytest.mark.parametrize('mutation', ['missing-profile', 'wrong-layout',
-                                      'missing-fixed-module', 'misgrouped-fixed-module'])
+@pytest.mark.parametrize('mutation', ['missing-profile', 'wrong-layout'])
 def test_continuous_profile_keeps_layout_and_module_guards(tmp_path, mutation):
     request = d7000_selection(tmp_path)
     request['runtime_mode'] = 'continuous'

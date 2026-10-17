@@ -58,7 +58,7 @@ BASE_INSTANCE_POOL_BYTES = 192000
 SHAPES_VOICES = 12
 
 
-def checked_wavetable_profile(verification, selected, *, target_storage=None):
+def checked_wavetable_profile(verification, selected, *, target_storage=None, selected_shapes8=False):
     """Validate one of the two explicitly reviewed linked storage profiles."""
     voices = verification.get('shapes_voices')
     flash_plaits = verification.get('flash_plaits_wavetables')
@@ -71,10 +71,11 @@ def checked_wavetable_profile(verification, selected, *, target_storage=None):
         fixed_rows = None
         indexed = True
     elif voices == 8 and flash_plaits is False:
-        if not {'macro', 'shapes'}.issubset(set(selected)):
+        if not selected_shapes8 and not {'macro', 'shapes'}.issubset(set(selected)):
             raise ValueError('Shapes8 compressed-RAM profile requires Macro and Shapes modules')
         profile = SHAPES8_WAVETABLE_PROFILE
-        expected_namespaces = ['plaits', 'braids']
+        expected_namespaces = (wavetable_namespaces(selected, flash_plaits=False)
+                               if selected_shapes8 else ['plaits', 'braids'])
         fixed_rows = {row['namespace']: row for row in SHAPES8_TABLES}
         indexed = True
     else:
@@ -201,7 +202,7 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                       if diagnostic_profile == HALL_O2_STAGE7_PROFILE else TARGET_STORAGE)
     wavetable = checked_wavetable_profile(
         verification, prepared.report['module_selection']['selected'],
-        target_storage=storage_policy)
+        target_storage=storage_policy, selected_shapes8=runtime_mode == 'continuous')
     for report in (verification, artifact):
         for key in ('installable', 'hardware_tested'):
             if report.get(key) is not False:

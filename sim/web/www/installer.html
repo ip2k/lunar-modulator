@@ -27,6 +27,16 @@
     </section>
     <p id="installer-load-status" role="status" aria-live="polite">Loading generated project catalogue…</p>
     <div id="installer-package-inspection"></div>
+    <section aria-labelledby="installer-profile-title">
+      <h2 id="installer-profile-title">Private build profile</h2>
+      <label for="installer-build-profile">Runtime check</label>
+      <select id="installer-build-profile">
+        <option value="legacy">Diagnostic · D9000 (default)</option>
+        <option value="song-diagnostic">Song diagnostic · D7000 Hall stage7</option>
+        <option value="continuous">Continuous private link · D7000</option>
+      </select>
+      <p>Continuous mode checks the selected modules and projects with no automatic return timer. Hardware playback, recovery and installation remain unverified. No firmware file is returned.</p>
+    </section>
     <div id="installer-modules"></div>
     <div id="installer-selection"></div>
     <p id="installer-export-status" class="installer-export-status" role="status" aria-live="polite"></p>

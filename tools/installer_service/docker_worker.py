@@ -45,6 +45,11 @@ GENERATED_EVIDENCE_PATHS = (
 )
 CATALOGUE_MOUNT = "/input/catalogue/"
 BUILD_LINK_MOUNT = "/tmp/lunar-worker/output/build/link/"
+_BOOTSTRAP_CONTINUOUS_ARGUMENTS = (
+    "--flash-layout", "expanded-d7000", "--runtime-mode", "continuous",
+    "--wavetable-profile", "compressed-required-banks-ram-plaits-braids-shapes8-v1",
+    "--firmware-identity", "FM-1_500",
+)
 _BOOTSTRAP_HALL_PROFILE = "hall-o2-stage7-v1"
 _BOOTSTRAP_HALL_REQUIRED_BY_GROUP = {
     "engines": frozenset(("macro", "shapes", "sixop", "drums")),
@@ -59,6 +64,8 @@ def build_profile_arguments(request: dict) -> list[str]:
     if layout == "expanded-d9000" and runtime == "diagnostic":
         return ["--flash-layout", "expanded-d9000", "--runtime-mode", "diagnostic",
                 "--wavetable-profile", "compressed-required-banks-flash-plaits-v1"]
+    if layout == "expanded-d7000" and runtime == "continuous":
+        return list(_BOOTSTRAP_CONTINUOUS_ARGUMENTS)
     if layout == "expanded-d7000" and runtime == "song-diagnostic":
         for group, required in _BOOTSTRAP_HALL_REQUIRED_BY_GROUP.items():
             selected = request.get(group, ())
@@ -84,8 +91,9 @@ def build_profile_arguments(request: dict) -> list[str]:
     raise ValueError("unsupported diagnostic layout/runtime profile")
 
 
-def verify_extracted_profile_contract(source_root: Path) -> None:
+def verify_extracted_profile_contract(source_root: Path, request=None) -> None:
     """Require the pinned source archive to agree with this standalone bootstrap."""
+    sys.path.insert(0, str(source_root))
     contract_path = source_root / "tools/native/diagnostic_profile_contract.py"
     if contract_path.is_symlink() or not contract_path.is_file():
         raise ValueError("extracted diagnostic profile contract is unavailable")
@@ -100,6 +108,17 @@ def verify_extracted_profile_contract(source_root: Path) -> None:
             or {group: frozenset(modules) for group, modules in required.items()}
             != _BOOTSTRAP_HALL_REQUIRED_BY_GROUP):
         raise ValueError("worker and extracted diagnostic profile contracts differ")
+
+    if request is not None and request.get("runtime_mode") == "continuous":
+        # The bootstrap has no source imports until the pinned archive is extracted.
+        # Import from that exact archive, never the container's mutable /workspace.
+        sys.path.insert(0, str(source_root))
+        from tools.installer_service import continuous_profile
+        from tools.installer_service.catalogue import load_trusted_catalogue
+        if tuple(continuous_profile.BUILD_ARGUMENTS) != _BOOTSTRAP_CONTINUOUS_ARGUMENTS:
+            raise ValueError("worker and extracted continuous profile contracts differ")
+        kinds, projects, parents = load_trusted_catalogue(source_root, include_sets=True)
+        continuous_profile.validate_request(request, kinds, projects, parents)
 
 
 def _unique_object(pairs):
@@ -200,7 +219,10 @@ def retain_private_evidence(build_root: Path, request_bytes: bytes) -> dict[str,
     receipt = json.loads(evidence["build_receipt.json"].decode("utf-8"),
                          object_pairs_hook=_unique_object)
     if receipt.get("flash_layout") == "expanded-d7000":
-        from native_profile import evidence_manifest, validate_receipt
+        if (receipt.get("runtime_configuration") or {}).get("runtime_mode") == "continuous":
+            from tools.installer_service.continuous_profile import evidence_manifest, validate_receipt
+        else:
+            from tools.installer_service.native_profile import evidence_manifest, validate_receipt
         validate_receipt(receipt)
         retain_bytes("native_profile.json", evidence_manifest(build_receipt_raw))
     catalogue_rows = receipt.get("catalogue_objects")
@@ -236,7 +258,7 @@ def retain_private_evidence(build_root: Path, request_bytes: bytes) -> dict[str,
         rel = _receipt_relative(path, CATALOGUE_MOUNT)
         key = "catalogue/" + rel.as_posix()
         retain(key, CATALOGUE.joinpath(*rel.parts))
-    for rel in GENERATED_EVIDENCE_PATHS:
+    for rel in generated_evidence_paths(receipt):
         retain("generated/" + rel, build_root / rel, 32 * 1024 * 1024)
     for row in linked_rows:
         if not isinstance(row, dict) or set(row) != {"path", "sha256"}:
@@ -268,6 +290,16 @@ def retain_private_evidence(build_root: Path, request_bytes: bytes) -> dict[str,
     os.chmod(evidence_root / "manifest.json", 0o600)
     return {"files": len(evidence), "bytes": sum(map(len, evidence.values())),
             "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest()}
+
+
+def generated_evidence_paths(receipt):
+    """Continuous subsets retain exactly their generated wavetable sources."""
+    if (receipt.get("runtime_configuration") or {}).get("runtime_mode") != "continuous":
+        return GENERATED_EVIDENCE_PATHS
+    namespaces = {row["namespace"] for row in receipt["compressed_wave_tables"]}
+    return tuple(path for path in GENERATED_EVIDENCE_PATHS
+                 if not path.startswith("link/resources_")
+                 or path.split("resources_", 1)[1].split(".", 1)[0] in namespaces)
 
 
 def main() -> int:
@@ -315,7 +347,7 @@ def main() -> int:
                 with source_file, destination.open("xb") as target:
                     shutil.copyfileobj(source_file, target, length=1024 * 1024)
                 os.chmod(destination, 0o755 if member.mode & 0o111 else 0o644)
-    verify_extracted_profile_contract(work)
+    verify_extracted_profile_contract(work, request)
     subprocess.run(["make", "-C", str(work / "engines"), "build/fm1-state"],
                    check=True, timeout=120)
     output = SCRATCH / "output"

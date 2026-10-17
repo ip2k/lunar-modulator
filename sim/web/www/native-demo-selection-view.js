@@ -253,7 +253,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     }
     try {
       const request = buildNativeDemoSelectionRequest(catalogue, profile, selected, startupIndex,
-        selectedSets, buildConfiguration);
+        selectedSets, typeof buildConfiguration === 'function' ? buildConfiguration() : buildConfiguration);
       busy = true;
       syncSubmit();
       status.textContent = 'Preparing selection…';
