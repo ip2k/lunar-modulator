@@ -1,6 +1,6 @@
 # Cynthion r1.4 TARGET-A power monitor prototype
 
-Status: source and limited simulation checks are ready for review; the full register-wrapper read discrepancy below remains unresolved. The owner redirected builds to Aeon during Hera RAID/NIC maintenance. An Aeon worker is preparing the routed build from exact source b9ff8de7376a7a5c541e4ebbd7161e2911cf2783. This is an offline diagnostic prototype: no accepted bitstream or physical measurement exists, and routing cannot establish register-read correctness.
+Status: source, simulation, and Aeon routing are complete pending coordinator artifact review. The full register-wrapper discrepancy was resolved as a responder fixture error, as recorded below. No bitstream has been accepted or loaded for a physical measurement.
 
 ## Scope and interface
 
@@ -39,4 +39,42 @@ PYTHONPATH=/Users/likwid/.local/share/uv/tools/cynthion/lib/python3.12/site-pack
 
 Result on assigned base `86154bc7843d7b1965d346af78620917fd2836f1`: the exact command above passed 42 tests with 69 warnings (Amaranth/LUNA deprecation and existing unused elaboratable warnings). `Fragment.get(CynthionPowerMonitorTop(), CynthionPlatformRev1D4())` elaborated successfully and reported ULPI extras `{0x39: 0x06}`. `git diff --check` passed and Ruby Psych parsed `.github/workflows/ci.yml` successfully. These are source/simulation/elaboration checks only; they do not prove routed pin OEs, timing, current sense calibration, or physical measurement.
 
-The original Hera route was blocked by network reachability. After Hera returned, the owner explicitly redirected work to Aeon during RAID/NIC maintenance, superseding the earlier host restriction. The assigned Aeon worker owns a unique coordination claim and has started bounded toolchain preparation in `docker-batch.slice` (4 CPUs, 8 GiB RAM, no extra swap). Inspect routed timing and netlist proving target GPIO OEs absent and VBUS controls CONTROL=1/TARGET-C=0/AUX=0/discharge=0, then save exact source/toolchain/bitstream hashes and receipts. Root owns all hardware operations and must review the artifact before any load. Do not build on the Mac or treat a successful route as evidence that the unresolved register-wrapper read is correct.
+The owner redirected builds to Aeon during Hera RAID/NIC maintenance. The routed build has completed there; exact artifact review remains a prerequisite to any volatile load. Root owns all hardware operations. The register-wrapper discrepancy is resolved by the simulation follow-up below; routing alone does not establish physical measurement correctness.
+
+### Nested LUNA I2C read-path simulation follow-up
+
+The ignored, self-contained reproducer is preserved at
+`scratch/cynthion-i2c-wrapper-diagnostic/repro.py` with its latest output in
+`run.log`. The initial fixture returned `0x2569` because the responder retained
+its `saw_rise` flag across the repeated START. That allowed the START setup
+edge to advance its bit counter before the first read-address bit. Clearing
+that pending edge on START fixed the fixture without changing LUNA or project
+RTL.
+
+The corrected simulation is now tracked in
+`tests/test_cynthion_power_monitor.py` as a public-API
+`I2CRegisterInterface` integration test. It verifies the transmitted bytes
+`0x20` (address write), `0x07` (register), and `0x21` (address read), all three
+address ACKs, the master's ACK after byte one, final master NACK, STOP, and
+returned two-byte value `0x1234`. It checks
+that its open-drain responder presents 16 MSB-first data bits, `0x12` then
+`0x34`, and that the wrapper combines them as `0x1234`. A separate ignored
+scratch trace captures LUNA's internal read-state sample edges and shift
+register, confirming the wrapper result and synchronized SDA match for this
+fixture. This resolves the earlier `0x2569` discrepancy as a testbench phase
+error, not evidence of a LUNA RTL defect. This is a complete simulated
+register-wrapper transaction, but the responder is an offline deterministic
+model, not a PAC1954 electrical/bus measurement or FPGA-top integration test.
+
+Validation command:
+
+```sh
+PYTHONPATH=/Users/likwid/.local/share/uv/tools/cynthion/lib/python3.12/site-packages \
+  python3 scratch/cynthion-i2c-wrapper-diagnostic/repro.py
+```
+
+It exits zero with the assertions described above. No hardware, Hera, Aeon,
+synthesis, or project RTL was touched. Serena was ready but selected a sibling
+worktree; Rarefaction was ready on the primary checkout. Neither index was
+retargeted during this task to avoid disturbing another active session.
+
