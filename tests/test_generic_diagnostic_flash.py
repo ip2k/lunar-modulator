@@ -469,10 +469,12 @@ class MemoryROM:
         return op.to_bytes(2, "big").ljust(in_size, b"\0") if in_size else b""
 
 
-def make_policy(tmp_path):
+def make_policy(tmp_path, *, nonblank_writable_baseline=False):
     baseline = bytearray(b"\xff" * module.FLASH_BYTES)
     baseline[:module.APP_BASE] = b"S" * module.APP_BASE
     baseline[module.CURRENT_END:] = b"Z" * (module.FLASH_BYTES - module.CURRENT_END)
+    if nonblank_writable_baseline:
+        baseline[module.APP_BASE:module.APP_BASE + 8192] = b"\x33" * 8192
     target = bytearray(baseline)
     target[module.APP_BASE + 4096:module.APP_BASE + 8192] = b"\x5a" * 4096
     target[module.APP_BASE:module.APP_BASE + 4096] = b"\xa5" * 4096
@@ -623,6 +625,68 @@ def test_restore_accepts_new_devnum_and_sg_node_on_same_physical_port(tmp_path, 
     session = policy.bind(restored, direction="restore", restore_read=fresh_read)
     assert session._policy.direction == "restore"
     session.close()
+
+
+def test_restore_with_reconnected_mapping_runs_to_verified_baseline(tmp_path, monkeypatch):
+    policy, baseline, target, binding = make_policy(tmp_path, nonblank_writable_baseline=True)
+    installed = MemoryROM(baseline, binding)
+    install_result = policy.bind(installed).run()
+    assert install_result["verified_sha256"] == digest(target)
+    assert bytes(installed.flash) == target
+
+    # Bind the restore to a fresh paired read on the same physical port, where
+    # both the USB devnum and SG node have changed since the install.
+    new_usb = dict(binding["usb_binding"], devnum="57")
+    new_sg = {"node": "/dev/sg-restored", "inode": 3}
+    restore_read, restore_binding = fresh_restore_read(
+        monkeypatch, binding, target, usb=new_usb, sg=new_sg)
+
+    class TracedROM(MemoryROM):
+        def __init__(self, flash, binding):
+            super().__init__(flash, binding)
+            self.trace = []
+
+        def exchange(self, cdb, payload, in_size):
+            op = int.from_bytes(cdb[:2], "big")
+            address = int.from_bytes(cdb[2:6], "big")
+            event = "read" if op == 0xFD05 else "mutation" if op in (0xFB01, 0xFB04) else "control"
+            self.trace.append((event, address))
+            return super().exchange(cdb, payload, in_size)
+
+    restored = TracedROM(target, restore_binding)
+    result = policy.bind(restored, direction="restore", restore_read=restore_read).run()
+
+    first_mutation = next(index for index, item in enumerate(restored.trace)
+                          if item[0] == "mutation")
+    expected_full_read = list(range(0, module.FLASH_BYTES, 256))
+    reads_before_mutation = [address for event, address in restored.trace[:first_mutation]
+                             if event == "read"]
+    assert reads_before_mutation[:len(expected_full_read)] == expected_full_read
+    assert any(operation == "erase" for operation, _ in restored.mutations)
+    assert any(operation == "program" for operation, _ in restored.mutations)
+    assert bytes(restored.flash) == baseline
+    assert result["direction"] == "restore"
+    assert result["verified_sha256"] == digest(baseline)
+    assert restored.closed
+
+
+def test_restore_rejects_transport_mapping_different_from_fresh_read(tmp_path, monkeypatch):
+    policy, baseline, target, binding = make_policy(tmp_path)
+    installed = MemoryROM(baseline, binding)
+    assert policy.bind(installed).run()["verified_sha256"] == digest(target)
+
+    new_usb = dict(binding["usb_binding"], devnum="58")
+    new_sg = {"node": "/dev/sg-reviewed", "inode": 4}
+    restore_read, restore_binding = fresh_restore_read(
+        monkeypatch, binding, target, usb=new_usb, sg=new_sg)
+    mismatched_binding = dict(restore_binding,
+                              sg_binding={"node": "/dev/sg-unreviewed", "inode": 5})
+    restored = MemoryROM(target, mismatched_binding)
+    with pytest.raises(ValueError, match="binding"):
+        policy.bind(restored, direction="restore", restore_read=restore_read).run()
+    assert restored.mutations == []
+    assert bytes(restored.flash) == target
+    assert restored.closed
 
 
 def test_restore_reread_must_match_fresh_manifest_before_any_mutation(tmp_path, monkeypatch):
