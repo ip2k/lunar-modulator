@@ -1,3 +1,29 @@
+## Startup allocation repair integrated; exact-head CI queued — 2026-10-16
+
+[verified: source review] cdb0235f integrates worker1a23bf92: startup harness
+reports compiled Shapes instance_size via engine registry. Tests compare request
+size to that descriptor, retain fixed pool capacities/refusal/zero-active checks,
+and Shapes8 refuses at its peak live set. Worker first run passed four cases
+then identified one remaining stale live-byte snapshot; final edit has collection
+and diff checks only, full execution pending CI. No product allocator changes.
+Worker shared Hera claim/handoff release blocked by SSH; local handoff retained:
+/Users/likwid/.codex/worktrees/demo-app-startup-size-ci-388176-20261016/scratch/
+demo-app-startup-size-ci-388176-HANDOFF.md. Investigate claim before reassignment.
+
+[verified: GitHub] cdb0235f15bc8a5deb0e9654f0a9a595cc44434a pushed and remote
+SHA matched. Full CI38986269932 targets that exact commit; status pending when
+checked. Superseded CI38986154980 cancellation requested to free its concurrency
+group; its Cynthion gateware job had succeeded, overall run was unfinished.
+Do not treat current source as CI-passing or merge before required gates.
+
+[reported: prepared full-fit worker] Separate full-fit branch4cb369b2 contains
+matched baseline86154bc7/candidatee7533516 build driver, pinned original stage7
+runner60448560/receipt6db18a77. No matched build ran: Hera remains unreachable.
+Analyzer on historical stage7ELF reports app855920, flashslack4724,
+RAMcodeslack7704 and poolslack1264; these are historical reference measurements,
+not candidate fit or performance acceptance. Monitor-only source/tests remain
+under development with both TARGET ports empty by latest owner confirmation.
+
 ## Verified cable still absent; TARGET ports empty for monitor review — 2026-10-16
 
 [reported: owner] Replaced only FM1-to-TARGET-A with independently verified
