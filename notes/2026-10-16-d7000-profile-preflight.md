@@ -28,3 +28,8 @@ worker bootstrap regression exercises contract agreement and mismatch from a
 shallow entrypoint, and verifies mismatch stops before `make`. See the
 companion isolated-worktree `scratch/d7000-profile-preflight/HANDOFF.md` for
 exact commands and commit/push evidence.
+
+Standalone-worker follow-up: branch
+`fix/2026-10-16@d7000-profile-preflight`, commit
+`6c38f3ff54480b8fab65c36b739ab531549795a8`, pushed to the authorized `origin`
+branch and verified with `git ls-remote`.
