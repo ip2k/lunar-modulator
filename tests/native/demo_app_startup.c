@@ -60,7 +60,10 @@ int main(int argc, char **argv) {
   uint8_t *bytes = NULL;
   unsigned size;
   fm1_state_report_t report;
+  fm1_state_names_t names;
+  const fm1_engine_t *shapes;
   size_t seq_size;
+  size_t shapes_instance_bytes = 0;
   unsigned active_units = 0;
   int ok;
   if (argc != 2 || !(size = read_file(argv[1], &bytes))) {
@@ -73,6 +76,13 @@ int main(int argc, char **argv) {
   }
 #endif
   fm1_app_init(&app, 44118.0f);
+  /* Instance storage is an ABI size (sizeof(Instance) in mi_shapes.cc), not a
+   * portable numeric fixture. Read it through the same descriptor callback
+   * used by project_units_plan so allocation assertions track this build. */
+  fm1_state_names_default(&names);
+  shapes = fm1_state_engine(&names, FM1_ROLE_SOUND, "shapes");
+  if (shapes && shapes->instance_size)
+    shapes_instance_bytes = shapes->instance_size(&app.host);
   seq_size = fm1_seq_size(&app.seq_lim);
   if (seq_size > FM1_APP_SEQ_BYTES || !app.seq ||
       lunar_instance_pool_init(&pool, instance_memory, sizeof instance_memory) ||
@@ -92,6 +102,7 @@ int main(int argc, char **argv) {
          "\"allocation_failures\":%zu,\"failed_allocation_request\":%zu,"
          "\"failed_allocation_attempt\":%zu,\"failed_allocation_live_bytes\":%zu,"
          "\"largest_allocation_request\":%zu,"
+         "\"shapes_instance_bytes\":%zu,"
          "\"active_units\":%u,"
          "\"modulation_active\":%s}\n",
          ok ? "true" : "false", (unsigned)report.code, report.what,
@@ -99,7 +110,7 @@ int main(int argc, char **argv) {
          INSTANCE_BYTES, peak_live_bytes, peak_live_allocations,
          pool.live_bytes, pool.live_allocations, allocation_attempts,
          allocation_failures, failed_request, failed_attempt, failed_live_bytes,
-         largest_request, active_units,
+         largest_request, shapes_instance_bytes, active_units,
          app.mod ? "true" : "false");
   free(bytes);
   return ok && report.code == FM1_STATE_OK ? 0 : 1;
