@@ -1,0 +1,16 @@
+
+/out/build/lunar-app-probe.elf:	file format ELF32-pi32v2
+
+Sections:
+Idx Name          Size      Address          Type
+  0               00000000 0000000000000000 
+  1 .text         000cd068 0000000002000120 TEXT DATA 
+  2 .ram_text     00000544 0000000001c00000 TEXT DATA 
+  3 .ram_dsp      00004114 0000000001c00544 TEXT DATA 
+  4 .data         00000078 0000000001c08000 DATA 
+  5 .bss          00005110 0000000001c08080 BSS
+  6 .pool         00066ab0 0000000001c0d190 BSS
+  7 .noinit       00000018 0000000001c7c000 BSS
+  8 .shstrtab     0000004d 0000000000000000 
+  9 .symtab       0000dc20 0000000000000000 
+ 10 .strtab       00013529 0000000000000000 

@@ -1,0 +1,87 @@
+{
+  "elf_sha256": "aa5a4faaa4af35b0c110119c2b658b3ca875de55417eacd812b282a492cb856f",
+  "app_sha256": "c1dd1270af183f507011314767c610bec4c90ba80a4e3d6b6738fa87e5774e0a",
+  "app_bytes": 856096,
+  "layout_passed": true,
+  "ram_layout": "combined",
+  "key_audit": {
+    "passed": true,
+    "linked": true,
+    "runtime": "sdk-free",
+    "inputs": [
+      "native-probe.elf",
+      "app.bin"
+    ],
+    "n_fail": 0,
+    "n_pending": 0,
+    "checks": [
+      {
+        "check": "forbidden_keycheck_symbols",
+        "status": "pass",
+        "detail": "none of mkey_check, sdk_mkey_lock, sdk_mkey_lock_v2_cfun, key_check_demo, sdk_chip_key_verify_v2 defined or referenced"
+      },
+      {
+        "check": "dormant_keycheck_absent",
+        "status": "pass",
+        "detail": "defined: []; referenced: []"
+      },
+      {
+        "check": "stub_0200012E_unused",
+        "status": "pass",
+        "detail": "no immediate 0x0200012E (key_check_demo stub call/load)"
+      },
+      {
+        "check": "keycheck_mailbox_unwritten",
+        "status": "pass",
+        "detail": "no reference to 0x01C80108-0x01C80110"
+      },
+      {
+        "check": "no_sdk_key_blob",
+        "status": "pass",
+        "detail": "no SDK JL_KEY_2020 blob bytes (FE 23 A8 B1 ...)"
+      },
+      {
+        "check": "no_key_check_demo_hash",
+        "status": "pass",
+        "detail": "no key_check_demo hash bytes (99 56 B6 46 ...)"
+      },
+      {
+        "check": "irq123_reserved",
+        "status": "pass",
+        "detail": "no reference to IRQ-123 vector 0x01C801EC"
+      },
+      {
+        "check": "irq123_unused_in_sources",
+        "status": "pass",
+        "detail": "only proven literal non-123 IRQ arguments; no IRQ-123 vector address"
+      },
+      {
+        "check": "no_efuse_controller_access",
+        "status": "pass",
+        "detail": "no reference to eFuse SFRs 0x13700-0x1371F"
+      },
+      {
+        "check": "late_initcall_group",
+        "status": "pass",
+        "detail": "SDK-free image has no initcall machinery"
+      },
+      {
+        "check": "sdk_free_linked",
+        "status": "pass",
+        "detail": "requires a linked executable; objects alone cannot establish SDK absence"
+      },
+      {
+        "check": "sdk_meky_check_scheduling",
+        "status": "pass",
+        "detail": "SDK-free runtime requires the dormant check to be absent"
+      }
+    ]
+  },
+  "flash_layout": "expanded-d7000",
+  "app_budget_bytes": 860644,
+  "hot_dsp_ram": true,
+  "disassembly_sha256": "1ea3de9717aeb7aa4b34aefcf8d4699440287203d944d5f7fb0138485bd49e6c",
+  "hardware_admitted": false,
+  "hardware_tested": false,
+  "installable": false
+}
