@@ -29,7 +29,8 @@ function durationLabel(duration) {
 
 function categoryLabel(project) {
   return project.category === 'legacy-example' ? 'Legacy example'
-    : project.category === 'replacement-showcase-candidate' ? 'Showcase candidate' : 'Example project';
+    : project.category === 'replacement-showcase-candidate' ? 'Showcase candidate'
+      : project.category === 'init-starter' ? 'Init patch (no song)' : 'Example project';
 }
 
 function selectionTitle(project) {
@@ -85,7 +86,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
   heading.id = `native-demo-title-${instance}`;
   section.append(heading);
   section.append(text(document, 'p',
-    'Choose one or more examples, then explicitly choose which selected project opens first. Selection order is preserved.'));
+    'Choose up to eight projects or init patches, then explicitly choose which selected project opens first. Selection order is preserved.'));
 
   const defaultNotice = text(document, 'aside', undefined, 'native-demo-default-status');
   defaultNotice.setAttribute('role', 'note');
@@ -186,7 +187,8 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     label.append(checkbox, text(document, 'strong', project.title || project.id));
     const item = document.createElement('article');
     item.append(label);
-    item.append(text(document, 'p', durationLabel(project.duration_estimate)));
+    item.append(text(document, 'p', project.category === 'init-starter'
+      ? 'No sequence or song; a single default sound patch.' : durationLabel(project.duration_estimate)));
     item.append(text(document, 'p', categoryLabel(project)));
     item.append(text(document, 'p', dispositionLabel(project)));
     item.append(text(document, 'p', project.reservation.label, `native-demo-reservation-${project.reservation.status}`));

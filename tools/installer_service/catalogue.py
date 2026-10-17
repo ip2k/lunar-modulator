@@ -28,7 +28,8 @@ def load_trusted_catalogue(root: Path = ROOT, *, include_sets=False):
         if not row["id"].startswith("test-")
     }
     project_ids = {row["id"] for row in PRELOAD_PROJECTS}
-    if not module_kinds or not project_ids or len(project_ids) > 8:
+    if (not module_kinds or not project_ids or len(project_ids) > 11
+            or len(project_ids) != len(PRELOAD_PROJECTS)):
         raise ValueError("trusted catalogue failed its expected bounds")
     if include_sets:
         return module_kinds, project_ids, {row['id']: row['parent_project_id'] for row in PRELOAD_SETS}

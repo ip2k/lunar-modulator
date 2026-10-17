@@ -17,7 +17,7 @@ from prepare_image_profile import GROUPS
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# These restored projects are selectable source choices. Duration is an
+# These projects and init patches are selectable source choices. Duration is an
 # arrangement estimate (bars * four beats / BPM), not a runtime receipt,
 # musical approval, or device acceptance. Keep profile content empty until a
 # owner-approved musical choice clears the separate release gates.
@@ -64,6 +64,18 @@ PRELOAD_PROJECTS = (
          source_commit='fb92cc0d4c312bbc77866c915d6fb8f159f5f92d',
          source_asset_path='engines/state/examples/satellite-hearts.lunar',
          source_sha256='090996484a125f5bde3fe4fb0a6dc3284cf7a260d6c6603298206921e78ed5d6'),
+    dict(id='init-starter-trio', title='Trio Init Starter',
+         source_path='engines/state/examples/init-starters/trio-init.lunar',
+         category='init-starter',
+         owner_disposition='single-engine init patch; no sequence or full song; native controls and playback unverified'),
+    dict(id='init-starter-macro', title='Macro Init Starter',
+         source_path='engines/state/examples/init-starters/macro-init.lunar',
+         category='init-starter',
+         owner_disposition='single-engine init patch; no sequence or full song; native controls and playback unverified'),
+    dict(id='init-starter-shapes', title='Shapes Init Starter',
+         source_path='engines/state/examples/init-starters/shapes-init.lunar',
+         category='init-starter',
+         owner_disposition='single-engine init patch; no sequence or full song; native controls and playback unverified'),
 )
 
 # This companion SET is tied to its parent project because sequence parameter
@@ -87,7 +99,9 @@ def _source_module_dependencies(project, module_groups):
             raise ValueError("Invalid preload project " + label)
         return value
 
-    for sound in rows(project.get("sounds", []), "sounds"):
+    for sound in rows(project.get("sounds", []), "sounds", nullable=True):
+        if sound is None:
+            continue
         engine = sound.get("engine")
         if engine:
             if not isinstance(engine, str):
@@ -102,7 +116,9 @@ def _source_module_dependencies(project, module_groups):
                     if not isinstance(identifier, str):
                         raise ValueError("Invalid " + field + " identifier")
                     dependencies[group].add(identifier)
-    for effect in rows(project.get("master", []), "master"):
+    for effect in rows(project.get("master", []), "master", nullable=True):
+        if effect is None:
+            continue
         identifier = effect.get("engine")
         if identifier:
             if not isinstance(identifier, str):
@@ -164,7 +180,7 @@ def export_preload_projects(root: Path, module_groups=None):
                 'bars': spec['bars'],
                 'scenes': spec['scenes'],
                 'nominal_seconds': round(spec['bars'] * 4 * 60 / spec['bpm'], 6),
-            },
+            } if 'bars' in spec else None,
             # Hash-bound chooser feedback only; packed records remain authoritative.
             'source_module_dependencies': _source_module_dependencies(project, module_groups),
             'source_dependency_scan_complete': True,

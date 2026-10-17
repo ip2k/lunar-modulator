@@ -296,3 +296,53 @@ test('shows an accessible companion choice only while its parent is selected to 
   assert.equal(parentRadio.disabled, true);
   controller.destroy();
 });
+
+test('real production init starters remain unselected and submit exact custom engine subsets', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const repository = fileURLToPath(new URL('../../../', import.meta.url));
+  const actual = JSON.parse(execFileSync('python3', ['tools/native/export_image_catalogue.py'], {
+    cwd: repository, encoding: 'utf8',
+  }));
+  assert.equal(actual.projects.length, 11);
+  for (const [engines, ids] of [
+    [['trio'], ['init-starter-trio']],
+    [['macro'], ['init-starter-macro']],
+    [['shapes'], ['init-starter-shapes']],
+    [['macro', 'shapes'], ['init-starter-macro', 'init-starter-shapes']],
+  ]) {
+    const document = new Document();
+    const root = new Element('div', document);
+    const sent = [];
+    const profile = { version: 1, engines, effects: [], midi: [], modulation: [] };
+    mountNativeDemoSelectionView(root, actual, profile, (request) => sent.push(request), {
+      flash_layout: 'expanded-d7000', runtime_mode: 'continuous',
+    });
+    const nodes = walk(root);
+    const inputs = nodes.filter((node) => node.tagName === 'INPUT');
+    const check = (id) => inputs.find((node) => node.type === 'checkbox' && node.value === id);
+    const radio = (id) => inputs.find((node) => node.type === 'radio' && node.value === id);
+    const defaultId = actual.full_song_default.project_id;
+    assert.equal(check(defaultId).checked, true);
+    for (const id of ['init-starter-trio', 'init-starter-macro', 'init-starter-shapes']) {
+      assert.equal(check(id).checked, false);
+      assert.equal(radio(id).disabled, true);
+    }
+    assert.match(root.textContent, /Init patch \(no song\)/);
+    assert.match(root.textContent, /No sequence or song; a single default sound patch/);
+    check(defaultId).checked = false;
+    await check(defaultId).dispatch('change');
+    for (const id of ids) {
+      check(id).checked = true;
+      await check(id).dispatch('change');
+    }
+    radio(ids.at(-1)).checked = true;
+    await radio(ids.at(-1)).dispatch('change');
+    const companion = check('replacement-showcase-event-horizon-companion-set');
+    assert.equal(companion.disabled, true);
+    assert.equal(companion.checked, false);
+    await nodes.find((node) => node.tagName === 'BUTTON').dispatch('click');
+    assert.deepEqual(sent, [{ ...profile, project_ids: ids, startup_index: ids.length - 1,
+      flash_layout: 'expanded-d7000', runtime_mode: 'continuous' }]);
+  }
+});
