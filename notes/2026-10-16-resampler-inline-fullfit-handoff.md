@@ -109,3 +109,67 @@ at `sha256:bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495`;
 it differs from Hera's image and no cross-image binary equivalence is assumed.
 Both fresh builds use this same image and frozen target compiler. Maximum is
 8 aggregate CPUs/8GiB catalogue RAM, then a separate 4CPU/4GiB link.
+
+## Completed matched Aeon pair (2026-10-17 UTC)
+
+This completion supersedes the earlier reachability blocker. [verified] Both
+fresh builds passed on Aeon, baseline86154bc7 and candidatee7533516, using the
+same pinned Aeon image and toolchain manifest
+`9323ff1af9ad0cad41cd884d41281ac7cba52ef137f919c28b313e106d08b650`.
+The analyzer independently verified equal image, compiler, headers, prepared
+profile, selection, compile policy and link flags; all ten retained output
+hashes passed per build. All thirteen selected sound engines are present with
+Hall-O2/SixOp-Os, indexed TFT, HOT_DSP_RAM, schema7 engine profile and SAVE
+unarmed. All34 container prestart policy/exit checks passed; no OOM kills.
+
+| Linked result [verified] | Baseline | Candidate | Delta |
+| --- | ---: | ---: | ---: |
+| App bytes /860644 | 855920 | 856096 | +176 |
+| Image slack | 4724 | 4548 | -176 |
+| RAM DSP | 15524 | 15700 | +176 |
+| RAM text | 1348 | 1348 | 0 |
+| RAM-code slack to0x01c06000 | 7704 | 7528 | -176 |
+| Globals/pool slack to0x01c74000 | 1264 | 1264 | 0 |
+
+Text838928, data120, bss20448, pool420528, noinit24 bytes are unchanged.
+The candidate fits the current linked profile. It remains a private diagnostic
+build: installable, hardware_admitted, storage_admitted, full_ram_residency,
+hardware_tested and runtime_performance_proven are all **false** in both
+receipts. RAM hot code fit is not a claim that every callee/table is RAM resident.
+The RAM-call audit hash is identical across both builds.
+
+[verified] Drums Render242bytes and SixOp Render252bytes remain in `.ram_dsp`
+and call one RAM ready-pop. Baseline ready-pop has one FIR intermediate call
+site inside its two-iteration loop (two executions per ordinary output).
+Candidate ready-pop has zero nested calls and no intermediate function survives
+anywhere in the link (baseline had five copies). Drums pop412+intermediate414
+becomes inline pop874bytes; SixOp408+484 becomes876bytes. Four Oz copies grow
+48bytes each, while the Os copy shrinks16bytes: net176bytes.
+
+[verified] Both helpers save `{rets,r15-r4}`. Drums baseline pop reserves4local
+bytes then its nested intermediate36; candidate single pop reserves52. SixOp
+baseline8+nested20 becomes36. [inferred] Counting13 saved32-bit words per
+frame, the peak nested helper frame falls144->104bytes for Drums and132->88
+for SixOp; Render's56byte frame is unchanged. These are static prologue counts,
+not a whole-program or interrupt-stack high-water proof. Candidate always
+reserves the larger local frame even on paths that previously avoided the FIR.
+No target runtime cycles or speed improvement were measured.
+
+[verified] Container timestamps show catalogue waves6.381/6.413seconds and
+link8.961/9.066seconds (baseline/candidate). These are one-shot host build
+wall times under quotas and sharing; they provide no FM1 DSP timing evidence.
+
+Artifacts remain at Aeon
+`/home/claude/mvave-fm1/resampler-inline-fullfit-aeon-20261016-v3`, including
+source snapshots, exact commands, receipts,17container inspections per build,
+ELF/map/disassembly/app and verification. Local ignored mirror:
+`/Users/likwid/.codex/worktrees/resampler-inline-fullfit/scratch/aeon-pair`.
+Tracked `linked-comparison.json` saves section/symbol/prologue analysis;
+`aeon-build-receipts.json` saves output/receipt hashes and container timing.
+No vendor binary was committed. Driver source is `543937ee` (pushed/verified);
+final analysis is a later focused checkpoint.
+
+Next dependency: coordinator independently review this fit/codegen evidence,
+then decide whether to adopt the source candidate. No integration was done.
+Any speed claim still needs a matched on-target cycle measurement and physical
+stack/audio acceptance after the coordinator's recovery gates permit it.

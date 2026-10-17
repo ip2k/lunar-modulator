@@ -104,17 +104,27 @@ def main():
     output = args.pair_output
     pair = json.loads((output / 'pair-result.json').read_text())
     rows = {}
+    receipts = {}
     for label in ['baseline', 'candidate']:
         receipt_path = output / label / 'frozen-build-input-receipt.json'
         if sha(receipt_path) != pair['results'][label]['receipt_sha256']:
             raise ValueError('build receipt changed')
         receipt = json.loads(receipt_path.read_text())
+        receipts[label] = receipt
         if receipt['source_commit'] != pair[label + '_commit']:
             raise ValueError('receipt source mismatch')
         for relative, digest in receipt['outputs'].items():
             if sha(output / label / relative) != digest:
                 raise ValueError('build output changed: ' + relative)
         rows[label] = analyze_build(output / label / 'writable-output/build')
+    for field in ['docker_image_id', 'toolchain_snapshot_tree_manifest_sha256',
+                  'headers_snapshot_tree_manifest_sha256', 'prepared_snapshot_tree_manifest_sha256',
+                  'selection_sha256', 'prepared_profile_sha256', 'link_command', 'catalogue_container_policy']:
+        if receipts['baseline'][field] != receipts['candidate'][field]:
+            raise ValueError('matched pair input differs: ' + field)
+    rows['matched_input_fields'] = ['docker_image_id', 'toolchain_snapshot_tree_manifest_sha256',
+        'headers_snapshot_tree_manifest_sha256', 'prepared_snapshot_tree_manifest_sha256',
+        'selection_sha256', 'prepared_profile_sha256', 'link_command', 'catalogue_container_policy']
     rows['delta'] = {key: rows['candidate'][key] - rows['baseline'][key]
         for key in ['app_bytes', 'app_slack_bytes', 'ram_code_slack_bytes', 'globals_pool_slack_bytes']}
     rows['delta']['sections'] = {name: rows['candidate']['sections'][name]['bytes'] - row['bytes']
