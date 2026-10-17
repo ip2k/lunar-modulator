@@ -131,11 +131,13 @@ def _canonical(data):
 def _report(source, target, count):
     return {"schema": REPORT_SCHEMA, "source_format": source, "target_format": target,
             "voice_count": count, "preserved": ["all 155 VCED bytes per voice",
-            "voice order and slots", "ten-byte voice names"],
+            "file voice order and slot numbers", "ten-byte voice names"],
             "losses": [], "defaults": [], "limitations": [
                 "DX7 voice data only; no promise of identical rendered audio.",
                 "No device reads, writes, MIDI output or network transport.",
-                "SysEx channel is transport metadata; Lunar does not store it."]}
+                "SysEx channel is transport metadata; Lunar does not store it.",
+                "Lunar sound loading reuses identical voices or free bank slots and remaps Patch; a full bank can refuse loading.",
+                "For direct user-bank replacement use Lunar's existing Load DX7 patches with the source SysEx."]}
 
 
 def import_syx(data):
