@@ -289,3 +289,76 @@ test('deployment marker enables only the fixed same-origin diagnostic API on exp
   assert.match(exportStatus.textContent, /No installable firmware file is available/);
   controller.destroy();
 });
+
+for (const changed of ['module', 'project', 'startup', 'set']) {
+  for (const outcome of ['resolve', 'reject']) {
+    test(`invalidates ${outcome === 'resolve' ? 'completed' : 'failed'} build feedback after an in-flight ${changed} edit`, async () => {
+      const document = new Document();
+      const root = new Element('div', document);
+      const moduleRoot = new Element('div', document);
+      const status = new Element('p', document);
+      document.nodes.set('installer-modules', moduleRoot);
+      document.nodes.set('installer-export-status', status);
+      const inputCatalogue = structuredClone(catalogue);
+      inputCatalogue.sets = [{
+        id: 'replacement-showcase-event-horizon-companion-set',
+        title: 'Event Horizon Companion Set', parent_project_id: ids[5],
+        source_dependency_scan_complete: false, dependency_scan_complete: false,
+        source_path: 'private/set.lunar', source_sha256: 'b'.repeat(64), content_sha256: 'c'.repeat(64),
+      }];
+      let resolveBuild, rejectBuild, progress;
+      await mountInstallerPage(root, {
+        fetchImpl: async () => ({ ok: true, json: async () => inputCatalogue }),
+        buildClient: { build(request, { onProgress }) {
+          progress = onProgress;
+          return new Promise((resolve, reject) => { resolveBuild = resolve; rejectBuild = reject; });
+        } },
+      });
+      const nodes = walk(root);
+      const submit = nodes.find(node => node.tagName === 'BUTTON');
+      if (changed === 'startup') {
+        const otherProject = nodes.find(node => node.tagName === 'INPUT' && node.type === 'checkbox' && node.value === ids[4]);
+        otherProject.checked = true;
+        await otherProject.dispatch('change');
+      }
+      const pending = submit.dispatch('click');
+      const control = changed === 'module'
+        ? walk(moduleRoot).find(node => node.tagName === 'INPUT' && node.value === 'hall')
+        : nodes.find(node => node.tagName === 'INPUT'
+          && (changed === 'set' ? node.value === 'replacement-showcase-event-horizon-companion-set'
+            : node.value === ids[changed === 'startup' ? 4 : 5] && node.type === (changed === 'startup' ? 'radio' : 'checkbox')));
+      control.checked = changed === 'set' || changed === 'startup';
+      await control.dispatch('change');
+      const changedMessage = 'Selection changed. Request a new build to measure flash usage.';
+      assert.equal(status.textContent, changedMessage);
+      progress('running');
+      assert.equal(status.textContent, changedMessage, 'late progress must not replace invalidation');
+      if (outcome === 'resolve') resolveBuild({ artifactBytes: 1234, appBudgetBytes: 868836, remainingBytes: 867602 });
+      else rejectBuild(new Error('Old build failed'));
+      await pending;
+      assert.equal(status.textContent, changedMessage);
+      const demoStatus = nodes.find(node => node.className === 'native-demo-selection-status');
+      assert.equal(demoStatus.textContent, changedMessage);
+      assert.doesNotMatch(status.textContent, /1,234|Old build failed|checks passed/);
+    });
+  }
+}
+
+test('clears a completed flash measurement when module choices change', async () => {
+  const document = new Document();
+  const root = new Element('div', document);
+  const moduleRoot = new Element('div', document);
+  const status = new Element('p', document);
+  document.nodes.set('installer-modules', moduleRoot);
+  document.nodes.set('installer-export-status', status);
+  await mountInstallerPage(root, {
+    fetchImpl: async () => ({ ok: true, json: async () => structuredClone(catalogue) }),
+    buildClient: { async build() { return { artifactBytes: 1234, appBudgetBytes: 868836, remainingBytes: 867602 }; } },
+  });
+  await walk(root).find(node => node.tagName === 'BUTTON').dispatch('click');
+  assert.match(status.textContent, /Application flash: 1,234/);
+  const hall = walk(moduleRoot).find(node => node.tagName === 'INPUT' && node.value === 'hall');
+  hall.checked = false;
+  await hall.dispatch('change');
+  assert.equal(status.textContent, 'Selection changed. Request a new build to measure flash usage.');
+});

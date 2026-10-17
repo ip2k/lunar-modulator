@@ -59,6 +59,13 @@ export async function mountInstallerPage(root, {
     throw new TypeError('buildClient must provide a build method');
   }
   let activeBuild = null;
+  let selectionRevision = 0;
+  const selectionChangedMessage = 'Selection changed. Request a new build to measure flash usage.';
+  function selectionChanged() {
+    selectionRevision++;
+    if (status) status.textContent = buildClient
+      ? selectionChangedMessage : 'Selection changed. Export a new build request for these choices.';
+  }
   if (cancelButton) {
     cancelButton.hidden = true;
     cancelButton.addEventListener('click', () => {
@@ -74,11 +81,13 @@ export async function mountInstallerPage(root, {
     const profile = catalogue.default_profile;
     mountNativeModuleSelectionView(moduleRoot, catalogue, profile, (nextProfile) => {
       Object.assign(profile, nextProfile);
+      selectionChanged();
     });
     const demoRoot = document.getElementById?.('installer-selection') ?? root;
     const controller = mountNativeDemoSelectionView(demoRoot, catalogue, profile,
       (request) => {
         if (buildClient) {
+          const submittedRevision = selectionRevision;
           activeBuild = new AbortController();
           if (cancelButton) cancelButton.hidden = false;
           if (serviceNotice) serviceNotice.textContent = 'This service returns a private diagnostic result only. It does not provide installable firmware.';
@@ -86,14 +95,19 @@ export async function mountInstallerPage(root, {
           return buildClient.build(request, {
             signal: activeBuild.signal,
             onProgress: (phase) => {
-              if (!status) return;
+              if (!status || submittedRevision !== selectionRevision) return;
               status.textContent = phase === 'queued' ? 'Build request queued…'
                 : phase === 'running' ? 'Checking the private diagnostic build…'
                   : 'Diagnostic result verified.';
             },
           }).then((result) => {
+            if (submittedRevision !== selectionRevision) throw new Error(selectionChangedMessage);
             if (status) status.textContent = `Diagnostic build checks passed. Application flash: ${result.artifactBytes.toLocaleString()} / ${result.appBudgetBytes.toLocaleString()} bytes used; ${result.remainingBytes.toLocaleString()} bytes free. No installable firmware file is available.`;
           }).catch((error) => {
+            if (submittedRevision !== selectionRevision) {
+              if (status) status.textContent = selectionChangedMessage;
+              throw new Error(selectionChangedMessage);
+            }
             if (status) status.textContent = activeBuild?.signal.aborted
               ? 'Stopped waiting for this build. The server may continue processing it.'
               : error instanceof Error ? error.message : 'The diagnostic build could not be completed.';
@@ -110,7 +124,7 @@ export async function mountInstallerPage(root, {
             ? `Request export failed: ${error.message}` : 'Request export failed.';
           throw error;
         }
-      }, buildConfiguration);
+      }, buildConfiguration, selectionChanged);
     const button = findButton(root);
     if (button) button.textContent = buildClient
       ? 'Request diagnostic build' : 'Download build request (JSON)';

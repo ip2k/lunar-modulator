@@ -7947,3 +7947,18 @@ was not changed. No installability, hardware, build-service or release claim.
 Prior source CI run 38991254950 still in progress, not restarted/cancelled.
 Next: review/push this fix, continue offline recovery/storage work on Aeon and
 physical recovery when the owner confirms the requested monitor connection.
+
+## 2026-10-17 selection/result correspondence
+
+[verified: host behavior] Added selection revisions so diagnostic flash usage
+never survives changes to modules/projects/startup/sets, and late old responses
+cannot restore it. 49 focused Node tests passed; diff check clean. Details:
+notes/2026-10-17-installer-selection-result-binding.md. No device, deployment
+or public admission change. Prior companion-warning fix independently reviewed
+with no actionable findings. Current fix independently reviewed with no actionable findings. Heavy work remains
+Aeon only; no Hera probes. Existing CI38991254950 remains live with the two
+full pytest jobs in progress; no completed-job failure at last check.
+
+Passive Cynthion check at02:10UTC17Oct: valid PAC reads around5.07V and very
+little current; bench01 sees KA6 but no FM1. Does not establish FM1 connection
+or CPU state. Keep monitor unchanged and await existing connection question.

@@ -56,11 +56,12 @@ function dispositionLabel(project) {
  * Returns a small controller with destroy() for installer route teardown.
  */
 export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest,
-  buildConfiguration = undefined) {
+  buildConfiguration = undefined, onSelectionChange = () => {}) {
   if (!root || typeof root.append !== 'function' || !root.ownerDocument) {
     throw new TypeError('A DOM root element is required');
   }
   if (typeof onRequest !== 'function') throw new TypeError('onRequest must be a function');
+  if (typeof onSelectionChange !== 'function') throw new TypeError('onSelectionChange must be a function');
 
   const document = root.ownerDocument;
   const view = describeNativeDemoCatalogue(catalogue);
@@ -129,6 +130,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
   function selectionChanged() {
     if (!busy) status.textContent = '';
     syncSubmit();
+    onSelectionChange();
   }
 
   function addStartupOption(project) {
