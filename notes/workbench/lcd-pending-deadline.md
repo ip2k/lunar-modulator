@@ -92,12 +92,66 @@ native file is absent; their bounded queries cannot cover this Aeon worktree.
 Their shared roots/config were left unchanged. Exact pinned source and the
 host compiler supply the evidence here; target ABI/code generation remain open.
 
+## Full offline target validation
+
+[verified: Aeon offline] A fresh sixteen-shard catalogue and complete native
+link passed from frozen source commit
+`853bb834a6ef5a03a8ab7f1a50f34d534e87feee` (native base plus this diagnostic).
+The existing catalogue differed in a guarded builder input, so it was rebuilt;
+no source-freshness flag was bypassed. Exact recorded schema-9 recipe and pinned
+profile/selection inputs were used from the prior frozen native build. The
+source archive SHA-256 is
+`93979792e8dce81081ec5cacd2cae51588877dbfba42584df39f61772ae52533`.
+All sixteen shards and the final link exited zero with no OOM flags. Shards ran
+at most two concurrently, each with 2 CPUs / 2 GiB memory and equal total swap;
+the final link used 4 CPUs / 4 GiB and equal total swap. Network was disabled,
+all inputs were mounted read-only, and jobs used `docker-batch.slice`.
+
+The builder reports catalogue source freshness verified, no undefined symbols,
+key/eFuse audit PASS (zero failures/pending), RAM-call allowlist PASS and combined
+RAM layout PASS. An allowlist pass does not mean every call resides in RAM.
+Toolchain/header/prepared file hashes matched their frozen manifests both before
+and after; input tree entry sets also matched. All 3,400 extracted source files
+were compared against the exact Git archive after the run without differences.
+
+A control was linked from exact native base `1f12ad5b8d6a865268af94179a3442183a680602`
+with the same fresh source-compatible catalogue and flags. Its ELF hash matches
+the prior schema-9 reference. This comparison isolates the diagnostic's resource
+delta; it is not a performance comparison.
+
+| Resource | Native control | With diagnostic | Delta |
+| --- | ---: | ---: | ---: |
+| Raw application bytes | 857,912 | 858,056 | +144 |
+| `.text` bytes | 839,784 | 839,928 | +144 |
+| `.bss` bytes | 20,752 | 20,756 | +4 |
+| `.ram_dsp` bytes | 16,660 | 16,660 | 0 |
+| `.pool` bytes | 420,528 | 420,528 | 0 |
+
+The application budget is 860,644 bytes, leaving 2,588 bytes. Candidate ELF
+SHA-256: `5cd76fab045a94aed66d370aacb2025654ff65a36ca677184789942552af22a2`;
+raw application SHA-256:
+`1c434905873d8af04392b035ef4b59bd041d1d54e447a0b05925d0e8303bdcea`.
+`lunar_lcd_pending_timeouts` survives the full target link as a retained symbol.
+These artifacts remain private, noninstallable, hardware-unadmitted and untested.
+Static fit/link checks do not establish runtime latency, sound quality, stack
+high-water use, actual SPI timing or DMA cancellation semantics.
+
+Durable verification root on Aeon:
+`/home/claude/.local/share/workbench-pilot-output/lcd-pending-deadline/`.
+`run_full_build.py` records the exact recipe; `full-build-status.json` records
+per-container exit/OOM/policy/mount receipts and input pins. Final artifacts,
+map, disassembly, guard results and source-bound catalogue are under
+`full-build/link-output/build/`; control artifacts are under
+`full-build/control-output/build/`. `full-build/resource-delta.json` and
+`full-build/source-post-verification.json` record the comparisons. No generated
+firmware binary or vendor toolchain was added to Git. This results-only note
+update does not alter any compiled source or catalogue input.
+
 ## Required next dependency
 
-Coordinator reviews the actual diff with an independent reviewer, backs up the
-returned branch to GitHub, and opens a separate PR against the installable native
-stream when authorized. Do not merge into docs/main or merge without review/CI.
-A fresh source-bound catalogue plus the approved toolchain must later establish
-whole native application link/code-generation/resource checks. No firmware image
-or device traffic is authorized by this source-only diagnostic. Automatic LCD
-recovery would need a separately reviewed DMA cancellation/ownership contract.
+The coordinator owns independent review of the actual diff and receipts plus
+exact-head CI on [native PR #152](https://github.com/ip2k/lunar-modulator/pull/152),
+against the installable stream. Do not merge into docs/main or bypass review/CI.
+No device admission, firmware publication or device traffic is authorized by this
+source-only diagnostic. Automatic LCD recovery needs a separately reviewed DMA
+cancellation/ownership contract and physical validation.
