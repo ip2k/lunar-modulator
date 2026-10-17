@@ -1,3 +1,32 @@
+## Aeon migration completed; unloaded monitor checked — 2026-10-16
+
+Owner keeps Hera reserved for MDADM/NIC maintenance. Both bounded Aeon jobs
+completed and released their claims; no owned containers remain. Firmware
+pair baseline86154bc7/candidatee7533516 passed all thirteen-engine links:
++176 bytes RAM DSP, candidate image slack4548, RAM-code slack7528. Coordinator
+reviewed header/call/fit evidence and integrated the candidate as393acb1c;
+independent sanitizer differential576000 comparisons and13 regressions passed.
+No target timing/audio acceptance claim. Exact worker branch remains backed up
+at f9a740dee5f66a509eafedb82090e172b7ee8e22; integrated fit evidence lives in
+notes/2026-10-16-resampler-inline-fullfit-handoff.md and its linked JSON files.
+
+Monitor bitstream635b7b13... passed downloaded hash/size verification and root
+routed-top review. Integrated43 gateware tests passed. Loaded volatile using
+cynthion run --bitstream with last-confirmed empty TARGET ports. Read-only JTAG
+returned PAC1/layout1, status0x105, manufacturer0x54/range0, controls1,
+VBUS5.0615–5.0718V, VSENSE0 and advancing sequences. Physical unloaded sensor
+works; no FM1 power/recovery result yet. Owner asked via async input to connect
+FM1 to TARGET A only, leave C empty/switch unchanged and avoid USER. Response
+pending. Do not issue a key or flash based on this monitor-only gateware.
+Monitor source remains b9ff8de7; wrapper follow-up changed tests/docs only.
+
+Origin backup verified305a1d83ccfe26def5c8c19df90ba4c1568c8add before this
+checkpoint. Older CI38986269932 has14 successes/macOS running; queued
+38987225483 targets earlierb7eccffb, not currentDSP change. A fresh exact-head
+CI dispatch follows this checkpoint. Overall goal ACTIVE; full firmware/audio,
+recovery/persistence and web installer release acceptance are incomplete.
+Existing untrackeduv.lock left untouched. No more Hera work authorized now.
+
 ## Aeon source exchange and Hera job stop confirmed — 2026-10-16
 
 [reported: assigned worker] Hera baseline16shards completed but link was still
