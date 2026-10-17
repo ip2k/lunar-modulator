@@ -184,7 +184,8 @@ class FakeJobAdapter:
     def set_running(self, build_id):
         self.jobs[build_id] = WorkerSnapshot("running")
 
-    def succeed(self, build_id, artifact, receipt, elf=b"diagnostic-elf", provenance=None):
+    def succeed(self, build_id, artifact, receipt, elf=b"diagnostic-elf", provenance=None,
+                private_evidence=None):
         if provenance is None:
             # Negative-path tests deliberately inject malformed receipts and
             # artifacts. Keep the fake adapter from raising before the status
@@ -202,11 +203,15 @@ class FakeJobAdapter:
                 }
                 provenance = make_diagnostic_provenance(
                     bindings=bindings, request_sha256=parsed["request_sha256"],
-                    artifact=artifact, elf=elf, receipt_raw=receipt, receipt=parsed)
+                    artifact=artifact, elf=elf, receipt_raw=receipt, receipt=parsed,
+                    lower_receipt=(json.loads(private_evidence["build_receipt.json"])
+                                   if private_evidence and "build_receipt.json" in private_evidence
+                                   and (parsed.get("runtime_configuration") or {}).get("runtime_mode") == "continuous"
+                                   else None))
             except (ValueError, KeyError, TypeError, UnicodeDecodeError, RecursionError):
                 provenance = b"{}"
         self.jobs[build_id] = WorkerSnapshot(
-            "succeeded", WorkerResult(artifact, receipt, elf, provenance))
+            "succeeded", WorkerResult(artifact, receipt, elf, provenance, private_evidence))
 
     def fail(self, build_id):
         self.jobs[build_id] = WorkerSnapshot("failed")
@@ -220,10 +225,11 @@ class Admission:
     worker_image_digest: str
 
 
-def _verify_wavetable_receipt(receipt: dict, selected: list[str], flash_layout: str) -> None:
+def _verify_wavetable_receipt(receipt: dict, selected: list[str], flash_layout: str,
+                              *, lower_receipt=None) -> None:
     """Bind the fixed compiled wavetable profile to admitted module choices."""
     if (receipt.get("runtime_configuration") or {}).get("runtime_mode") == "continuous":
-        continuous_profile.validate_image_receipt(receipt, selected)
+        continuous_profile.validate_image_receipt(receipt, selected, lower_receipt=lower_receipt)
         return
     if flash_layout == "expanded-d7000":
         expected_rows = [dict(row) for row in SHAPES8_TABLES]
@@ -318,6 +324,69 @@ def _verify_runtime_configuration(receipt: dict, *, continuous=False) -> None:
         raise ValueError("worker runtime configuration differs from canonical mode")
 
 
+def _continuous_private_build_receipt(admission: Admission, result: WorkerResult,
+                                      outer_receipt: dict) -> dict:
+    """Require and bind the adapter-validated retained continuous build evidence."""
+    evidence = result.private_evidence
+    required = {"request.json", "prepared_profile.json", "source_profile.json",
+                "artifact_receipt.json", "build_receipt.json", "image_receipt.json",
+                "catalogue_manifest.json", "linked_objects.json", "native_profile.json"}
+    if (not isinstance(evidence, dict) or not required.issubset(evidence)
+            or len(evidence) > 8192
+            or any(not isinstance(path, str) or not isinstance(raw, bytes) or not raw
+                   for path, raw in evidence.items())
+            or sum(len(raw) for raw in evidence.values()) > 512 * 1024 * 1024):
+        raise ValueError("continuous worker omitted complete private build evidence")
+    if (evidence["request.json"] != canonical_request(admission.request)
+            or evidence["image_receipt.json"] != result.receipt):
+        raise ValueError("continuous private evidence differs from submitted request or outer receipt")
+    try:
+        lower_raw = evidence["build_receipt.json"]
+        lower = json.loads(lower_raw, object_pairs_hook=_unique_object,
+                           parse_constant=_reject_constant)
+        artifact_receipt = json.loads(evidence["artifact_receipt.json"],
+                                      object_pairs_hook=_unique_object,
+                                      parse_constant=_reject_constant)
+        catalogue = json.loads(evidence["catalogue_manifest.json"],
+                               object_pairs_hook=_unique_object, parse_constant=_reject_constant)
+        linked = json.loads(evidence["linked_objects.json"],
+                            object_pairs_hook=_unique_object, parse_constant=_reject_constant)
+    except (UnicodeDecodeError, json.JSONDecodeError, DuplicateKey, ValueError,
+            RecursionError) as exc:
+        raise ValueError("continuous private build evidence contains invalid JSON") from exc
+    if not isinstance(lower, dict):
+        raise ValueError("continuous lower receipt is not an object")
+    selected = [module for group in GROUPS for module in admission.request[group]]
+    from .docker_worker import generated_evidence_paths
+    generated = {"generated/" + path for path in generated_evidence_paths(lower)}
+    if not generated.issubset(evidence):
+        raise ValueError("continuous private evidence omits required generated inputs")
+    continuous_profile.validate_receipt(lower)
+    if (not isinstance(lower.get("module_selection"), dict)
+            or lower["module_selection"].get("selected") != selected
+            or lower.get("request_sha256") != admission.request_sha256
+            or lower.get("app_sha256") != hashlib.sha256(result.artifact).hexdigest()
+            or lower.get("app_bytes") != len(result.artifact)
+            or lower.get("elf_sha256") != hashlib.sha256(result.elf).hexdigest()
+            or lower.get("elf_bytes") != len(result.elf)
+            or hashlib.sha256(lower_raw).hexdigest() != outer_receipt.get("verification_sha256")
+            or hashlib.sha256(evidence["artifact_receipt.json"]).hexdigest()
+               != outer_receipt.get("artifact_receipt_sha256")
+            or evidence.get("native_profile.json") != continuous_profile.evidence_manifest(lower_raw)
+            or hashlib.sha256(evidence["prepared_profile.json"]).hexdigest()
+               != outer_receipt.get("prepared_profile_sha256")):
+        raise ValueError("continuous lower receipt does not bind the admitted outputs and profiles")
+    if (not isinstance(artifact_receipt, dict)
+            or artifact_receipt.get("app_sha256") != lower.get("app_sha256")
+            or artifact_receipt.get("elf_sha256") != lower.get("elf_sha256")
+            or not isinstance(catalogue, dict) or catalogue.get("schema") != 1
+            or catalogue.get("objects") != lower.get("catalogue_objects")
+            or not isinstance(linked, dict) or linked.get("schema") != 1
+            or linked.get("objects") != lower.get("linked_objects")):
+        raise ValueError("continuous private artifact or object inventories differ from lower receipt")
+    return lower
+
+
 def _verify_result(admission: Admission, result: WorkerResult, trusted_set_parents=None) -> dict:
     if (not isinstance(result.artifact, bytes) or not isinstance(result.elf, bytes)
             or not isinstance(result.receipt, bytes) or not isinstance(result.provenance, bytes)
@@ -361,10 +430,13 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
     runtime_mode = request.get("runtime_mode", "diagnostic")
     selected_budget = app_budget(flash_layout) if flash_layout == "expanded-d7000" else MAX_ARTIFACT_BYTES
     continuous = runtime_mode == "continuous"
+    lower_receipt = (_continuous_private_build_receipt(admission, result, receipt)
+                     if continuous else None)
     _verify_runtime_configuration(receipt, continuous=continuous)
     if (type(receipt.get("version")) is not int or receipt["version"] != 1
             or receipt.get("status") != ("linked-private-continuous" if continuous else "linked-private-diagnostic")
-            or receipt.get("flash_layout") != flash_layout
+            or (receipt.get("flash_layout") != flash_layout
+                and not (continuous and "flash_layout" not in receipt))
             or receipt.get("request_sha256") != admission.request_sha256
             or receipt.get("project_ids") != projects
             or receipt.get("set_ids", []) != set_ids
@@ -392,7 +464,8 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
     if (not isinstance(receipt.get("module_selection"), dict)
             or receipt["module_selection"].get("selected") != expected_selected):
         raise ValueError("worker module selection differs from admission")
-    _verify_wavetable_receipt(receipt, expected_selected, flash_layout)
+    _verify_wavetable_receipt(receipt, expected_selected, flash_layout,
+                              lower_receipt=lower_receipt)
     _verify_diagnostic_provenance(provenance, admission, result, receipt,
                                   artifact_sha, elf_sha)
     expected_parents = {set_id: trusted_set_parents[set_id] for set_id in set_ids}

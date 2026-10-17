@@ -98,10 +98,22 @@ def validate_request(request, module_kinds, projects, set_parents):
         raise ValueError("private continuous content selection is malformed")
 
 
-def validate_image_receipt(receipt, selected):
+def validate_image_receipt(receipt, selected, *, lower_receipt=None):
     builder, identity, runtime = _helpers()
+    if lower_receipt is not None:
+        # The linked image.json is an outer receipt. The build's detailed
+        # flash/profile contract lives in verification.json and is validated
+        # independently; image.json binds to it by verification_sha256.
+        validate_receipt(lower_receipt)
+        lower_selected = ((lower_receipt.get("module_selection") or {}).get("selected"))
+        _expect(lower_selected, selected, "lower module selection")
+        if "flash_layout" in receipt:
+            _expect(receipt.get("flash_layout"), lower_receipt.get("flash_layout"),
+                    "outer flash layout")
+        for field in ("app_budget_bytes", "runtime_configuration", "firmware_identity"):
+            _expect(receipt.get(field), lower_receipt.get(field), "outer " + field)
     for field, expected in {
-        "flash_layout": "expanded-d7000", "app_budget_bytes": 860644,
+        "app_budget_bytes": 860644,
         "wavetable_profile": builder.SHAPES8_WAVETABLE_PROFILE,
         "shapes_voices": 8, "indexed_tft": True, "flash_plaits_wavetables": False,
         "runtime_configuration": runtime("continuous"),
@@ -109,6 +121,8 @@ def validate_image_receipt(receipt, selected):
         "native_midi_input": builder.native_midi_input_configuration(True),
     }.items():
         _expect(receipt.get(field), expected, field)
+    if lower_receipt is None:
+        _expect(receipt.get("flash_layout"), "expanded-d7000", "flash_layout")
     if (type(receipt.get("app_bytes")) is not int
             or not 0 < receipt["app_bytes"] <= 860644):
         raise ValueError("private continuous application size is unmeasured or over budget")
