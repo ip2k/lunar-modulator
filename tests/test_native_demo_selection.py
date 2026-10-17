@@ -11,7 +11,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools/native'))
-from export_image_catalogue import export_catalogue
+from export_image_catalogue import default_build_request, export_catalogue
+import export_image_catalogue
 import prepare_demo_selection as selection_module
 from prepare_demo_selection import prepare_selection
 from prepare_image_profile import sha
@@ -75,6 +76,107 @@ def test_hash_pinned_companion_set_packs_after_required_project(tmp_path):
     assert checked.packed_content[1].startswith(b'\x89Lunar\r\n')
     assert all(receipt[key] is False for key in
                ('installable', 'native_link_verified', 'native_ram_verified', 'hardware_tested'))
+
+
+def default_catalogue_and_request(tmp_path):
+    catalogue = export_catalogue(ROOT, tmp_path / 'default-catalogue')
+    request = default_build_request(catalogue)
+    assert catalogue['default_build_request'] == request
+    assert catalogue['default_profile']['content'] == []
+    assert sum(len(catalogue['groups'][group]) for group in
+               ('engines', 'effects', 'midi', 'modulation')) == 55
+    assert request['project_ids'] == ['replacement-showcase-candidate-event-horizon']
+    assert request['startup_index'] == 0
+    assert request['set_ids'] == ['replacement-showcase-event-horizon-companion-set']
+    assert request['flash_layout'] == 'expanded-d7000'
+    assert request['runtime_mode'] == 'continuous'
+    return catalogue, request
+
+
+def test_default_build_request_matches_continuous_service_contract(tmp_path):
+    _, request = default_catalogue_and_request(tmp_path)
+    # Keep the exporter independent of the service package while exercising
+    # the same strict service model and standalone worker policy in this test.
+    from tools.installer_service.api import BuildRequest, canonical_request
+    from tools.installer_service.catalogue import load_trusted_catalogue
+    from tools.installer_service.continuous_profile import validate_request
+    module_kinds, project_ids, set_parents = load_trusted_catalogue(include_sets=True)
+    BuildRequest.model_validate(request)
+    assert json.loads(canonical_request(request)) == request
+    validate_request(request, module_kinds, project_ids, set_parents)
+
+
+def test_catalogue_cli_emits_canonical_default_build_request(monkeypatch, capsys):
+    monkeypatch.setattr(sys, 'argv', ['export_image_catalogue.py', '--default-build-request'])
+    export_image_catalogue.main()
+    request = json.loads(capsys.readouterr().out)
+    assert request['project_ids'] == ['replacement-showcase-candidate-event-horizon']
+    assert request['startup_index'] == 0
+    assert request['set_ids'] == ['replacement-showcase-event-horizon-companion-set']
+    assert request['flash_layout'] == 'expanded-d7000'
+    assert request['runtime_mode'] == 'continuous'
+    assert sum(len(request[group]) for group in
+               ('engines', 'effects', 'midi', 'modulation')) == 55
+
+
+@pytest.mark.skipif(not os.environ.get('FM1_STATE_TOOL'),
+                    reason='requires an existing pinned FM1_STATE_TOOL; no local compile in this task')
+def test_default_build_request_prepares_all55_event_horizon_and_companion_set(tmp_path):
+    _, request = default_catalogue_and_request(tmp_path)
+    output = tmp_path / 'default-selection'
+    receipt = prepare_selection(ROOT, request, Path(os.environ['FM1_STATE_TOOL']), output)
+    assert receipt == json.loads((output / 'selection.json').read_text())
+    assert receipt['project_ids'] == request['project_ids']
+    assert receipt['startup_index'] == 0
+    assert receipt['startup_project_id'] == request['project_ids'][0]
+    assert receipt['set_ids'] == request['set_ids']
+    assert receipt['selected_content'] == [
+        {'kind': 'project', 'id': request['project_ids'][0]},
+        {'kind': 'set', 'id': request['set_ids'][0],
+         'parent_project_id': request['project_ids'][0]},
+    ]
+    checked = load_prepared_profile(output / 'prepared', receipt['prepared_profile_sha256'])
+    assert [asset['id'] for asset in receipt['content']] == request['project_ids'] + request['set_ids']
+    assert [asset['kind'] for asset in receipt['content']] == ['project', 'set']
+    assert receipt['content'][0]['dependency_scan_complete'] is True
+    assert receipt['content'][1]['dependency_scan_complete'] is False
+    assert receipt['content'][1]['parent_project_id'] == request['project_ids'][0]
+    assert len(checked.report['module_selection']['selected']) == 55
+    assert checked.report['content'][0]['dependency_scan_complete'] is True
+    assert checked.report['content'][1]['dependency_scan_complete'] is False
+    assert checked.packed_content[1].startswith(b'\x89Lunar\r\n')
+    assert receipt['packed_content_bytes'] == sum(map(len, checked.packed_content))
+    for asset, packed in zip(receipt['content'], checked.packed_content):
+        assert asset['packed_sha256'] == sha(packed)
+        assert asset['bytes'] == len(packed)
+    assert all(receipt[key] is False for key in
+               ('installable', 'native_link_verified', 'native_ram_verified', 'hardware_tested'))
+
+
+@pytest.mark.parametrize('mutation', [
+    'missing-set', 'wrong-set-parent', 'missing-default-project', 'unapproved-song',
+    'test-module', 'duplicate-module',
+])
+def test_default_build_request_requires_trusted_full_song_companion(mutation, tmp_path):
+    catalogue = export_catalogue(ROOT, tmp_path / ('catalogue-' + mutation))
+    if mutation == 'missing-set':
+        catalogue['sets'] = []
+    elif mutation == 'wrong-set-parent':
+        catalogue['sets'][0]['parent_project_id'] = 'legacy-example-afterglow-relay'
+    else:
+        if mutation == 'missing-default-project':
+            catalogue['full_song_default']['project_id'] = 'legacy-example-afterglow-relay'
+        elif mutation == 'unapproved-song':
+            catalogue['full_song_default']['musical_choice_approved'] = False
+        elif mutation == 'test-module':
+            catalogue['groups']['engines'][0] = 'test-not-production'
+        else:
+            catalogue['groups']['effects'][0] = catalogue['groups']['engines'][0]
+    match = ('module groups' if mutation == 'test-module' else
+             'all 55' if mutation == 'duplicate-module' else
+             'full-song project and companion SET')
+    with pytest.raises(ValueError, match=match):
+        default_build_request(catalogue)
 
 
 @pytest.mark.parametrize('project_ids,startup_index,set_ids', [

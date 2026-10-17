@@ -86,6 +86,72 @@ PRELOAD_SETS = (
          parent_project_id="replacement-showcase-candidate-event-horizon"),
 )
 
+FULL_SONG_DEFAULT_ID = 'replacement-showcase-candidate-event-horizon'
+FULL_SONG_DEFAULT_SET_ID = 'replacement-showcase-event-horizon-companion-set'
+DEFAULT_FLASH_LAYOUT = 'expanded-d7000'
+DEFAULT_RUNTIME_MODE = 'continuous'
+
+
+def default_build_request(catalogue):
+    """Return the canonical all-production continuous default build request.
+
+    This is separate from ``default_profile``, which intentionally remains a
+    module-only selection with no content. The request uses the exporter-owned
+    full-song project and its fixed companion SET; downstream preparation still
+    verifies packed bytes and module dependencies, and linking remains a later
+    independent check.
+    """
+    if not isinstance(catalogue, dict):
+        raise ValueError('Expected an exported image catalogue')
+    groups = catalogue.get('groups')
+    if not isinstance(groups, dict) or set(groups) != set(GROUPS):
+        raise ValueError('Default request requires the complete production module catalogue')
+    selected = []
+    normalized_groups = {}
+    for group in GROUPS:
+        identifiers = groups[group]
+        if (not isinstance(identifiers, list) or not identifiers
+                or any(not isinstance(identifier, str) or not identifier
+                       or identifier.startswith('test-') for identifier in identifiers)
+                or len(identifiers) != len(set(identifiers))):
+            raise ValueError('Default request module groups must contain unique production IDs')
+        normalized_groups[group] = list(identifiers)
+        selected.extend(identifiers)
+    if len(selected) != 55 or len(selected) != len(set(selected)):
+        raise ValueError('Default request requires all 55 unique production modules')
+
+    full_song = catalogue.get('full_song_default')
+    projects = catalogue.get('projects')
+    sets = catalogue.get('sets')
+    project_rows = ([row for row in projects if isinstance(row, dict)
+                     and row.get('id') == FULL_SONG_DEFAULT_ID]
+                    if isinstance(projects, list) else [])
+    set_rows = ([row for row in sets if isinstance(row, dict)
+                 and row.get('id') == FULL_SONG_DEFAULT_SET_ID]
+                if isinstance(sets, list) else [])
+    project = project_rows[0] if len(project_rows) == 1 else None
+    companion = set_rows[0] if len(set_rows) == 1 else None
+    disposition = project.get('owner_disposition') if project is not None else None
+    if (not isinstance(full_song, dict)
+            or full_song.get('required') is not True
+            or full_song.get('status') != 'owner-approved'
+            or full_song.get('musical_choice_approved') is not True
+            or full_song.get('project_id') != FULL_SONG_DEFAULT_ID
+            or project is None
+            or project.get('category') != 'replacement-showcase-candidate'
+            or not isinstance(disposition, str)
+            or 'owner-approved musical full-song default' not in disposition
+            or companion is None
+            or companion.get('parent_project_id') != FULL_SONG_DEFAULT_ID
+            or companion.get('dependency_scan_complete') is not False
+            or companion.get('source_dependency_scan_complete') is not False):
+        raise ValueError('Default full-song project and companion SET are not present in the trusted catalogue')
+
+    return dict(version=1, **normalized_groups,
+                project_ids=[FULL_SONG_DEFAULT_ID], startup_index=0,
+                set_ids=[FULL_SONG_DEFAULT_SET_ID],
+                flash_layout=DEFAULT_FLASH_LAYOUT, runtime_mode=DEFAULT_RUNTIME_MODE)
+
 
 def _source_module_dependencies(project, module_groups):
     """Read source IDs for chooser preflight; packed validation stays backend-only."""
@@ -254,11 +320,12 @@ def export_catalogue(root: Path, build: Path):
     if catalogue_path.read_bytes() != before:
         raise ValueError('Module catalogue changed during export')
     projects = export_preload_projects(root, groups)
-    return dict(version=1, groups=groups, projects=projects, sets=export_preload_sets(root, projects),
+    sets = export_preload_sets(root, projects)
+    catalogue = dict(version=1, groups=groups, projects=projects, sets=sets,
                 full_song_default={
                     'required': True,
                     'status': 'owner-approved',
-                    'project_id': 'replacement-showcase-candidate-event-horizon',
+                    'project_id': FULL_SONG_DEFAULT_ID,
                     'musical_choice_approved': True,
                     'blockers': [
                         'exact packed-content and module-dependency validation',
@@ -270,17 +337,24 @@ def export_catalogue(root: Path, build: Path):
                 default_header_sha256=default['header_sha256'],
                 installable=False, native_link_verified=False,
                 native_ram_verified=False, hardware_tested=False)
+    catalogue['default_build_request'] = default_build_request(catalogue)
+    return catalogue
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.parse_args()
+    parser.add_argument('--default-build-request', action='store_true',
+                        help='print the canonical all-production Event Horizon continuous request')
+    args = parser.parse_args()
     try:
         with tempfile.TemporaryDirectory(prefix='lunar-image-catalogue-') as scratch:
             report = export_catalogue(ROOT, Path(scratch))
     except (OSError, ValueError) as error:
         parser.error(str(error))
-    print(json.dumps(report, indent=2))
+    if args.default_build_request:
+        print(json.dumps(report['default_build_request'], indent=2))
+    else:
+        print(json.dumps(report, indent=2))
 
 
 if __name__ == '__main__':
