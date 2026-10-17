@@ -166,6 +166,61 @@ def collect(data, trace_sha=None):
         expected_tuple_sha256="d" * 64, official_sources=data["notices"])
 
 
+def _install_catalogue_alias_evidence(data, *, bad_mount=None):
+    trace_path = data["trace_path"]
+    base = trace_path.parent
+    output_root = base.parent.resolve()
+    catalogue_root = output_root / "catalogue"
+    roots = [{"path": "/catalogue", "class": "catalogue-and-cxx"},
+             {"path": "/output/catalogue", "class": "catalogue-and-cxx"},
+             {"path": "/output", "class": "fresh-build-output"}]
+    targets = [{"path": "/output", "source": str(output_root), "readonly": False},
+               {"path": "/catalogue", "source": str(catalogue_root), "readonly": True}]
+    contracts = {mode: {"mode": mode, "allowed_roots": roots,
+                        "mount_targets": targets} for mode in ("catalogue", "highlevel")}
+    image_id = "sha256:" + "a" * 64
+    launcher_raw = write_json(base / "execution/launch-pins.json", {
+        "container_image_id": image_id, "mount_contracts": contracts})
+    trace = json.loads(trace_path.read_text())
+    trace["execution"]["launcher_pins"].update(
+        sha256=digest(launcher_raw), bytes=len(launcher_raw))
+    for mode in ("catalogue", "highlevel"):
+        mounts = [{"Type": "bind", "Source": str(output_root),
+                   "Destination": "/output", "RW": True},
+                  {"Type": "bind", "Source": str(catalogue_root),
+                   "Destination": "/catalogue", "RW": False}]
+        if bad_mount == mode:
+            mounts[1]["Source"] = str(output_root / "elsewhere")
+        raw = write_json(base / f"execution/{mode}.created.inspect.json", [{
+            "Image": image_id, "Config": {"Labels": {"codex.mode": mode}}, "Mounts": mounts}])
+        trace["execution"]["terminal_records"].append({
+            "path": f"execution/{mode}.created.inspect.json",
+            "sha256": digest(raw), "bytes": len(raw)})
+    write_json(trace_path, trace)
+
+
+def _rewrite_link_input(data, path, *, sha=None, size=None):
+    trace_path = data["trace_path"]
+    base = trace_path.parent
+    trace = json.loads(trace_path.read_text())
+    receipt_path = trace["final_link_receipt"]["receipt_path"]
+    receipt_file = base / receipt_path
+    receipt = json.loads(receipt_file.read_text())
+    receipt["inputs"][0].update(path=path)
+    if sha is not None:
+        receipt["inputs"][0]["sha256"] = sha
+    if size is not None:
+        receipt["inputs"][0]["size"] = size
+    raw = write_json(receipt_file, receipt)
+    trace["final_link_receipt"].update(
+        receipt_sha256=digest(raw), inputs=receipt["inputs"])
+    manifest_sha, manifest_bytes = refresh_receipt_manifest(trace_path, [{
+        "path": receipt_path, "kind": "final-link", "sha256": digest(raw), "bytes": len(raw)}])
+    trace["receipt_manifest"].update(sha256=manifest_sha, bytes=manifest_bytes)
+    write_json(trace_path, trace)
+    data["trace_sha"] = digest(trace_path.read_bytes())
+
+
 def test_collects_only_consumed_pinned_header_and_retains_anchor(tmp_path, monkeypatch):
     data = fixture(tmp_path, monkeypatch)
     entries, report = collect(data)
@@ -177,6 +232,56 @@ def test_collects_only_consumed_pinned_header_and_retains_anchor(tmp_path, monke
     assert report["corresponding_source_complete"] is False
     assert report["distribution_eligible"] is False
     assert report["reproducible_build"] is False
+
+
+def test_accepts_catalogue_alias_only_with_exact_pinned_mounts(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    _rewrite_link_input(data, "/catalogue/one.o")
+    entries, _ = collect(data)
+    assert entries["compiler-trace/aggregate.json"] == data["trace_path"].read_bytes()
+
+
+def test_rejects_catalogue_alias_with_mismatched_object_bytes(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    _rewrite_link_input(data, "/catalogue/one.o", sha="e" * 64)
+    with pytest.raises(ValueError, match="catalogue alias bytes differ"):
+        collect(data)
+
+
+def test_rejects_catalogue_alias_without_matching_created_mount(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data, bad_mount="highlevel")
+    _rewrite_link_input(data, "/catalogue/one.o")
+    with pytest.raises(ValueError, match="created-container mounts"):
+        collect(data)
+
+
+def test_rejects_unsafe_or_unrelated_final_link_alias_paths(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    _rewrite_link_input(data, "/catalogue/../one.o")
+    with pytest.raises(ValueError, match="unsafe final-link catalogue alias"):
+        collect(data)
+
+    data = fixture(tmp_path / "other", monkeypatch)
+    _rewrite_link_input(data, "/unrelated/one.o")
+    with pytest.raises(ValueError, match="exactly one additional pinned linker script"):
+        collect(data)
+
+
+def test_rejects_symlinked_catalogue_object_even_with_valid_mount_evidence(tmp_path, monkeypatch):
+    data = fixture(tmp_path, monkeypatch)
+    _install_catalogue_alias_evidence(data)
+    _rewrite_link_input(data, "/catalogue/one.o")
+    object_path = tmp_path / "output/catalogue/one.o"
+    target = tmp_path / "output/catalogue/object-bytes"
+    target.write_bytes(object_path.read_bytes())
+    object_path.unlink()
+    object_path.symlink_to(target.name)
+    with pytest.raises(ValueError, match="symlink in compiler header path"):
+        collect(data)
 
 
 def test_rejects_wrong_independent_trace_anchor(tmp_path, monkeypatch):
