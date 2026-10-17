@@ -8373,3 +8373,14 @@ retainedmanifest. Fourfilesampleonly, no completeness/legalclaim. Luna fixes
 minorremainingcountwording thenexits; nextdependency remainsoneTUtrace smoke.
 CI38998982780still4native/testjobsrunning/no failures; goalACTIVE, physical
 connection/recovery stillpending. NoHera/deviceoperations; uv.lockpreserved.
+
+### Aeon compiler trace smoke checkpoint
+
+[verified] One representative C++ TU compiled byte-identically through the
+private tracing facade, with 77 hashed dependency rows. See
+notes/2026-10-17-tuple-bound-libcxx-source.md and shared handoff
+lunar--compilertrace-smoke-20261017.md. The prototype needs unique per-invocation
+records before concurrent use; the same worker is assigned a 2–4 TU concurrency
+smoke on Aeon .25 only. Hera remains excluded for maintenance. No device writes
+occurred; physical recovery/audio/release gates remain unresolved. CI run
+38998982780 still has three running jobs and no failures at this checkpoint.

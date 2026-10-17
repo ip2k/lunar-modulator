@@ -179,3 +179,26 @@ retained with hashes in the private comparison report. The vendor bundle has no
 root umbrella notices; representative headers have component-specific notices.
 This is provenance evidence, not a distribution/legal/source-completeness claim.
 Use the new consumed-header trace before extending exact-source comparisons.
+
+## Aeon one-translation-unit trace smoke
+
+[verified: coordinator inspected prototype and saved smoke result] The private
+compiler facade preserved the original compile arguments for
+`virtual_analog_engine.cc`. Direct and facade compiler/version/include-search
+probes matched, and both object hashes were
+`a6675e6c21ed13213156f976c3b06bdd30868a0a07337ef848e537fbe327c1e9`.
+The separate system-inclusive dependency pass recorded 77 hashed prerequisites:
+13 source, 40 configured libc++ and 24 pinned-toolchain files. This is new
+single-file evidence, not historical receipts or whole-build coverage.
+
+Private handoff `lunar--compilertrace-smoke-20261017.md` has SHA256
+`536cdebae5d60161f220c9e46c3d25908f30a413a2be9208428dce1c729ce34a`.
+Its artifact paths, input pins and constrained container settings are retained
+there. No hardware action or Hera connection occurred.
+
+Coordinator review identified that the prototype's single trace.json/temporary
+filename would lose records under concurrent compilation. A new bounded Aeon
+experiment is assigned to use unique atomic per-invocation records, verify
+missing/duplicate object coverage and compare 2–4 concurrent compile outputs
+with direct baselines. Full tracing remains gated on that result. All release
+and source-completeness flags remain false.
