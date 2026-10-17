@@ -16,4 +16,4 @@ There is no demonstrated supported engine-free platform-only seam compatible wit
 
 ## Limits
 
-The hashes identify inspected bytes; they do not establish licence clearance, successful builds, target behavior, recovery, or image distribution rights. See [recovery assets](recovery-assets.md) for the separate stock FWSC, decoded stock SPL/OTA, Open-build SPL and historical owner full-flash evidence. No vendor executable or device was opened by the verifier.\n
+The hashes identify inspected bytes; they do not establish licence clearance, successful builds, target behavior, recovery, or image distribution rights. See [recovery assets](recovery-assets.md) for the separate stock FWSC, decoded stock SPL/OTA, Open-build SPL and historical owner full-flash evidence. No vendor executable or device was opened by the verifier.
