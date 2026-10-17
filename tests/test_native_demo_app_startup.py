@@ -69,7 +69,7 @@ def _build_selected_startup(build_root, modules):
         f"$(SIM_ENGINE_OBJ) $(SIM_META_OBJ) " + " ".join(map(str, objects)) + "\n"
         "\t$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm\n"
         f"{harness_obj}: {harness}\n\t@mkdir -p $(dir $@)\n"
-        f"\t$(CC) $(SIM_CFLAGS) -Istate -I{native} -I{tlsf} -c $< -o $@\n" +
+        f"\t$(CC) $(SIM_CFLAGS) -DINSTANCE_BYTES=165376u -Istate -I{native} -I{tlsf} -c $< -o $@\n" +
         "".join(
             f"{obj}: {source}\n\t@mkdir -p $(dir $@)\n"
             f"\t$(CC) $(SIM_CFLAGS) -Istate -I{native} -I{tlsf} "
@@ -87,7 +87,7 @@ def _build_selected_startup(build_root, modules):
         "BUILD=" + str(build), "FM1_GPL_MODS=1", "FM1_MODULES=" + ",".join(modules),
         "CC=" + os.environ.get("FM1_SIM_CC", "cc"),
         "CXX=" + os.environ.get("FM1_SIM_CXX", "c++"),
-        "OPT=-O2", "EXTRA=-DFM1_APP_EXTERNAL_ARENAS=1 -I" + str(native),
+        "OPT=-O2", "EXTRA=-DFM1_APP_EXTERNAL_ARENAS=1 -DFM1_SHAPES_VOICES=8 -I" + str(native),
         "-j4", str(build / "demo-app-startup"),
     ], check=True, env=env)
     return build / "demo-app-startup"
@@ -157,6 +157,7 @@ def test_trusted_init_starter_cold_start_and_repeatable_host_note(
         metrics = [json.loads(result.stdout) for result in outputs]
         for result in metrics:
             assert result["passed"] and result["report_code"] == 0
+            assert result["pool_capacity"] == 165376
             assert result["registered_starter_engines"] == expected_engines
             assert result["loaded_engine_ids"] == [
                 project_id.removeprefix("init-starter-")]
