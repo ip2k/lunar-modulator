@@ -1,3 +1,30 @@
+## Monitor prototype integrated; Hera power state needs reconciliation — 2026-10-16
+
+[verified: source/simulation] f6a76630 integrates monitor worker2bbd1905,
+backed up with matching origin SHA. Root repeated exact expanded CI gateware
+suite on integrated checkout:42passed69warnings2.08s. Top elaboration/YAML/source
+checks passed in worker. Dedicated CI job now includes monitor tests. No routed
+build, timing/netlist/pad-OE proof or bitstream exists yet; do not load hardware.
+See notes/2026-10-16-cynthion-power-monitor.md. Root corrected period_cyc600
+for nominal100kHz before integration. Byte-order evidence is realinitiatorbus
+simulation plus wrapper-source check, not full register-read integration.
+
+[reported: owner] Hera is shut down. [verified: read-only live BMC] Existing
+Aeon lan-ipmi helper subsequently reports Chassis Power is on; Linux SSH still
+times out. No power/reset/wake command was sent. Root asked whether Hera is
+starting up, unavailable for maintenance, or expected available. Preserve power
+state pending reconciliation. Mac coordinator still owns all bench/device writes.
+Last owner physical confirmation: both TARGET ports empty, CONTROL connected.
+No new key attempt/FPGA load/USB device commands have run.
+
+[verified: current live CI] CI38986269932 on exactcdb0235f remains in progress;
+7of15jobs completed successfully at latest check,8running. Root ghwatch handle
+4729 watches same run. This older head covers threeCIrepairs, not the later
+monitorprototype. Require current-head CI before integration/release claims.
+Full13engine resampler comparison prepared in separate branche6c83397, neither
+matched build started. Preserve unique Hera claims and inspect their ownership
+before resuming; no silent claim takeover on connectivity recovery.
+
 ## Startup allocation repair integrated; exact-head CI queued — 2026-10-16
 
 [verified: source review] cdb0235f integrates worker1a23bf92: startup harness
