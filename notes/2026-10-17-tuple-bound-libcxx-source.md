@@ -132,3 +132,30 @@ were not retained. A dependency-only pass is assigned to identify the consumed
 subset with exact target/defines/include flags. Compiler/linker/LTO/container
 are build tools; their presence alone is not evidence of linked runtime code.
 No completeness or legal conclusion follows from this inventory.
+
+## Historical dependency evidence boundary
+
+[verified: retained-receipt audit and coordinator report review] The original
+capture did not save per-TU compiler argv or dependency receipts for catalogue
+and ordinary app objects. Common musl flags and66result rows, and state-bin
+compile flags, survive; they do not fill the other historical rows. The six
+built-but-unlinked catalogue objects are explicitly identified in private
+handoff lunar--aeon-translation-header-deps-20261017.md SHA256
+19cfcf34e80ce52ba12d4fc0155308e19db07177de041417f4e78c48d0829248.
+The earlier external-input inventory appSHA typo was corrected; report digest is
+ece8911a0f8d4bb986968b7a51483a7069e0b11bc4d571724e8de9fe3e3168ca.
+
+Do not reconstruct recipe flags and label them historical consumed dependencies.
+The next private smoke instead traces the fresh reproducible build: run original
+compile argv unchanged, then a separate system-inclusive -M preprocessing pass.
+An immutable pinned compiler and read-only extracted source sit behind a private
+facade; compare direct/facade object hashes before attempting full trace. Record
+cwd, argv, source/compiler/object identity and bounded hashed dependency rows.
+This is a design/assigned experiment, not a completed trace. Component header
+provenance is separately under bounded read-only review. All releaseflagsfalse.
+
+A design worker initially attempted to save its handoff to obsolete Hera .48;
+SSH returned no route before any connection/change. It corrected to Aeon .25,
+saved handoff lunar--compile-trace-design-20261017.md SHA256
+b64d4b48f36c7b51a7ca2d3f97cfa80b16cf9f923d47d53d364112360c39d9c5,
+and released only its own Aeon claim. Do not repeat the excluded-host probe.

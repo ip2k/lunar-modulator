@@ -8357,3 +8357,12 @@ sources archived; two additional externalheader searchroots107target+93resource.
 worker correcting a report appSHAtranscription typo and then deriving per-TU
 system-inclusive dependency receipts against exact capturedcommands on Aeon.
 No recompile/relink/device/Hera operations assigned. Keep all releaseflagsfalse.
+
+Historical per-TU audit19cfcf34 confirmsmissingargv/deps forcatalogue/app; no
+historicaltraceclaim possible. Exactcommonmusl/statebinflags retained butpartial.
+Sourceworker nowimplements PRIVATE oneTU direct/facadecompile+separate-M smoke
+on Aeon. No fullbuildyet, no trackedsourcechange. SeparateLuna compiler-header
+provenance worker inspectsrootnotices/versionmarkers/primary-source comparisons.
+Designworker corrected failedobsoleteHera.48handoffattempt (noconnection/change)
+toAeon.25; savedsharedb64d4b48report/releasedownclaim. InventorycorrectedSHAece8911a.
+Preserve fullgoal/recovery/audio/storage/releasegates; no flags promoted.
