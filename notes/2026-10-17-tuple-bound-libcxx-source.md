@@ -202,3 +202,38 @@ experiment is assigned to use unique atomic per-invocation records, verify
 missing/duplicate object coverage and compare 2–4 concurrent compile outputs
 with direct baselines. Full tracing remains gated on that result. All release
 and source-completeness flags remain false.
+
+## Concurrent tracing and consumed-header follow-up
+
+[verified: coordinator read fresh concurrent-summary.json and recorder] Three
+concurrent original Make compile recipes (two C++, one C) produced direct/facade
+object hash equality. Six unique complete records cover three compiler probes
+and three compiles; the aggregator's missing/duplicate check passed. A separate
+64-writer synthetic check preserves every record and rejects publication of a
+duplicate ID. The prototype now publishes unique complete records atomically
+and forwards probe stdout/stderr. Earlier bounded attempts failed before
+compilation on probe passthrough/recipe matching, or rejected stale probe
+records; their output is separate from the clean run.
+
+Clean summary: Aeon private
+`source-libcxx-archive-check-20261017/scratch/compiletrace-concurrency-smoke-20261017/out/concurrent-summary.json`.
+Dependency-manifest SHA256:
+`aba2d9504dbcc3e40944ccc28d89ca7ab3b96c503c21def329994df5fd2ec382`.
+This is three-TU evidence only. A full fresh traced catalogue/application
+reproduction is now authorized after the worker's final negative-mode check;
+unknown compiler modes or uncovered host/link steps must stop/report rather
+than silently bypass tracing. No full trace result is claimed here.
+
+[reported: worker comparison; coordinator read report] All 24 pinned-toolchain
+headers consumed by the earlier one-TU trace match their recorded vendor
+hashes/sizes. Nine match the pinned official tagged sources; thirteen differ
+from same-path Newlib candidates, one is generated newlib.h compared to its
+template, and sys/_stdint.h has no same-path file in that tagged include tree.
+A different hash does not establish the reason or original source revision.
+The report and retained component notices are provenance pointers, not a legal
+or source-completeness determination. Shared handoff
+`lunar--consumed-compiler-headers-20261017.md` SHA256
+`c3e38ba1021a582441c67ec0249efd48e6100625be3e5779e5569a56cad371f9`;
+private comparison manifest SHA256
+`15875b688e45ba66847d6d12fefc8fe6e3a2215ee1fbc11f133638fc8ac062f6`.
+All distribution, admission and source-completeness flags remain false.
