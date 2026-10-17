@@ -1,3 +1,38 @@
+## Active routing and continuous installer checkpoint — 2026-10-17 UTC
+
+Owner reserves Hera for MDADM/M.2 and 25G NIC maintenance. Aeon-only work
+continues; do not probe Hera or launch jobs there. [verified: live SSH] Aeon
+192.168.1.25 is reachable as claude; its coordination README was reread.
+Mac retains exclusive bench/Cynthion/device-write ownership.
+
+[verified] Integration source 0ecf508bfc71182f424f46fc36df450af7b42310
+is pushed. Focused integrated checks: 317 Python passed, one retained-build
+skip; 54 browser tests passed. CI 39004179460 is pending on this exact SHA.
+Fresh Aeon all-55/Event Horizon build independently rehashed: app 854528 bytes,
+SHA f91bc8da94ddbf40ef1a75e85bf8802aef28a5b153025ce7f1d420e056907338;
+ELF 1f4c007df2216721fd44dd380b242d604930a812be9c813c4ed675ace2e5b132.
+App slack is 6116 bytes. Tuple continuous-ed3b1a93a93d0916737c6d35,
+SHA 8ec4d70232d6bb5613d4fb77384e0f14eb0b1515ccad88fbac872feb47d0041a,
+keeps installable/hardware flags false. Output lives on Aeon at
+/home/claude/mvave-fm1/private-continuous-installer-targetfit-0ecf508b-20261017/run-all55-event-horizon.
+
+E7 fresh trace-02 finished with matching app/ELF and all 17 terminal
+container records successful, without OOM. Aggregate receipt joins and exact
+consumed-header archive verification remain in progress; no source-closure
+or distribution claim follows yet. Trace-01 failure remains preserved.
+
+The project format requires Sound 1 to contain an engine. The starter worker
+is implementing three valid, default-unselected init projects (Trio, Macro,
+Shapes), preserving that format and the eight-selected-project request limit.
+Four subsequent target fits must use real trusted IDs: Trio-only, Macro-only,
+Shapes-only, and Macro+Shapes. Event Horizon remains the default full song.
+
+Recovery, severe physical audio slowdown, storage ownership, migration,
+rollback, real MIDI, browser flashing and release acceptance remain open.
+No new hardware actions were performed for this checkpoint. Goal ACTIVE;
+unrelated uv.lock preserved. Next: finish trace/header review, integrate valid
+starters, then run the bounded subset fits on Aeon.
+
 ## Aeon availability and public VM descriptor review — 2026-10-17 UTC
 
 Owner reaffirmed Aeon-only routing while Hera receives MDADM/M.2 and25G NIC
