@@ -129,12 +129,16 @@ def _tree(root: Path, *, allow_symlinks: bool = False):
                          "kind": "symlink-dir", "target": os.readlink(link),
                          "resolved": resolved.relative_to(root).as_posix(),
                          "mode": link.lstat().st_mode & 0o777})
+            if len(rows) > MAX_TREE_ENTRIES:
+                raise ValueError("tree exceeds fixed manifest entry bound")
             dirs.remove(name)
         dirs.sort()
         for name in dirs:
             path = here / name
             rows.append({"path": path.relative_to(root).as_posix(),
                          "kind": "directory", "mode": path.stat().st_mode & 0o777})
+            if len(rows) > MAX_TREE_ENTRIES:
+                raise ValueError("tree exceeds fixed manifest entry bound")
         for name in sorted(files):
             path = here / name
             rel = path.relative_to(root).as_posix()
@@ -204,8 +208,12 @@ def _read_header_tree(root: Path):
     rows = []
     contents = {}
     total = 0
+    entries = 0
     for current, dirs, files in os.walk(root, topdown=True, followlinks=False):
         here = Path(current)
+        entries += len(dirs) + len(files)
+        if entries > MAX_TREE_ENTRIES:
+            raise ValueError("tree exceeds fixed manifest entry bound")
         if any((here / name).is_symlink() for name in dirs):
             raise ValueError("pristine header tree contains a symlink directory")
         dirs.sort()
