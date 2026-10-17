@@ -75,7 +75,8 @@ def main() -> None:
         raise RuntimeError("schema-9 catalogue flag delta is not exactly the opt-in profile flag")
 
     git = ["git", "--git-dir=" + str(EXCHANGE)]
-    actual_tree = subprocess.check_output(git + ["show", SOURCE_COMMIT + "^{tree}"], text=True).strip()
+    subprocess.run(git + ["cat-file", "-e", SOURCE_COMMIT + "^{commit}"], check=True)
+    actual_tree = subprocess.check_output(git + ["rev-parse", SOURCE_COMMIT + "^{tree}"], text=True).strip()
     if len(actual_tree) != 40:
         raise RuntimeError("exact target source commit is absent from Aeon exchange")
     output.mkdir(parents=True, mode=0o700)
