@@ -124,3 +124,15 @@ common v1.0 sound/unit/DX7 fields. This is an offline file pilot. No target
 build, current hardware state, browser visual test, device transport,
 rendered-audio or listening acceptance is implied.
 
+
+[verified executed checks] The source-owned one-voice and 32-voice banks
+round-tripped byte-identically through this adapter at channel0. The exact
+native-reference Python state codec and metadata were read from Git objects
+into a temporary directory: both generated sounds parsed with zero skipped,
+repaired or unknown fields; each155-byte voice matched, Patch UID1 had
+index32 (User1), and native canonical rewrite re-exported the same SysEx.
+This is native-branch Python file-codec compatibility, not execution of the
+native C loader or firmware. Synthetic container inspection accepted project
+v3/v4/tuned envelopes, v1 timbre, empty/rounded samples and legacy maximum;
+bad checksums, truncation and newer timbre version were refused. CLI
+exclusive output/report creation and repeated-output refusal passed.

@@ -55,6 +55,9 @@ def vectors():
     out["sample-round-up-321.fm1s"] = sample_bank(321)
     # Largest complete chunk count accepted by old read bound; the tail sector
     # reserved for tuning makes this exceed the new-transfer capacity.
+    transfer_frames = ((462848 - 512) // 228) * 320
+    out["sample-new-transfer-max.fm1s"] = sample_bank(transfer_frames)
+    out["sample-over-new-transfer.fm1s"] = sample_bank(transfer_frames + 320)
     out["sample-legacy-max.fm1s"] = sample_bank(((466944 - 512) // 228) * 320)
     return out
 
