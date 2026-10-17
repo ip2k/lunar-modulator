@@ -19,7 +19,9 @@ from runtime_mode import runtime_configuration
 from module_selection import wavetable_namespaces
 from firmware_identity import identity_configuration
 from flash_layout import app_budget
-from build_application_probe import native_midi_input_configuration
+from build_application_probe import (native_midi_input_configuration,
+    diagnostic_telemetry_configuration, validate_diagnostic_song_play,
+    trio_diagnostic_pulse_configuration, hot_dsp_ram_configuration)
 if __package__:
     from .diagnostic_profile_contract import (
         HALL_O2_STAGE7_PROFILE, validate_hall_o2_stage7_modules,
@@ -149,6 +151,29 @@ def checked_continuous_midi_input(verification):
     return expected
 
 
+def continuous_link_configuration():
+    """Canonical instrumentation/optimization policy for a private continuous link."""
+    return dict(
+        probe_return_to_rom_seconds=None,
+        diagnostic_cpu_rate=None, diagnostic_producer_gaps=None,
+        diagnostic_irq_profile=None, render_stage_profile=None,
+        diagnostic_engine_render_profile=None, diagnostic_clock_snapshot=None,
+        diagnostic_resampler_stage_profile=None,
+        diagnostic_telemetry=diagnostic_telemetry_configuration(False),
+        diagnostic_song_play=validate_diagnostic_song_play(False, 'continuous', None, False, False),
+        diagnostic_trio_pulse=trio_diagnostic_pulse_configuration(False),
+        hot_dsp_ram=dict(hot_dsp_ram_configuration(False, 'continuous'), extent=None),
+        catalogue_optimization_overrides={}, catalogue_limiter_os=False, catalogue_hall_o2=False)
+
+
+def checked_continuous_configuration(receipt):
+    expected = continuous_link_configuration()
+    for field, value in expected.items():
+        if json.dumps(receipt.get(field), sort_keys=True) != json.dumps(value, sort_keys=True):
+            raise ValueError('Private continuous instrumentation/policy mismatch: ' + field)
+    return expected
+
+
 def checked_link_receipt(selection, prepared, verification, artifact, app, elf, *,
                          runtime_mode='diagnostic', require_save_service=False,
                          firmware_identity=None, flash_layout=None, diagnostic_profile=None):
@@ -244,6 +269,8 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                 or sum(row.get('path') == codec['fresh_object'] for row in linked) != 1
                 or any(row.get('path') == codec['cached_object'] for row in linked)):
             raise ValueError('Production SAVE codec must replace exactly one cached object')
+    continuous = (checked_continuous_configuration(verification)
+                  if runtime_mode == 'continuous' else {})
     midi = (checked_continuous_midi_input(verification)
             if runtime_mode == 'continuous' else None)
     return dict(version=1, status='linked-private-diagnostic',
@@ -262,6 +289,7 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                 content=expected_assets, runtime_configuration=expected_runtime,
                 firmware_identity=expected_identity,
                 **({'native_midi_input': midi} if midi is not None else {}),
+                **continuous,
                 app_sha256=sha(app), elf_sha256=sha(elf),
                 app_bytes=len(app), app_budget_bytes=artifact['app_budget_bytes'],
                 installable=False, hardware_admitted=False, hardware_tested=False,

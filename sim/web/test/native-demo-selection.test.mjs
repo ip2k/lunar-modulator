@@ -257,3 +257,14 @@ test('companion SET is optional, trusted, ordered, and bound to its parent start
     assert.throws(() => describeNativeDemoCatalogue({ ...expanded, sets: [bad] }), /unsupported companion SET/);
   }
 });
+
+
+test('explicit continuous profile preserves custom modules and selected startup project', () => {
+  const request = buildNativeDemoSelectionRequest(catalogue, profile,
+    ['legacy-example-event-horizon', 'legacy-example-afterglow-relay'], 1, [], {
+      flash_layout: 'expanded-d7000', runtime_mode: 'continuous',
+    });
+  assert.deepEqual(request, { version: 1, engines: [...profile.engines], effects: ['plate'], midi: [],
+    modulation: ['lfo'], project_ids: ['legacy-example-event-horizon', 'legacy-example-afterglow-relay'],
+    startup_index: 1, flash_layout: 'expanded-d7000', runtime_mode: 'continuous' });
+});

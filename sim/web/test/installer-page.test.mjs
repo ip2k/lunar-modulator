@@ -374,7 +374,7 @@ test('default Event Horizon plus selected companion SET reaches the diagnostic b
   assert.match(exportStatus.textContent,
     /785,312 \/ 868,836 bytes used; 83,524 bytes free/);
   assert.match(exportStatus.textContent, /No installable firmware file is available/);
-  assert.match(serviceNotice.textContent, /private diagnostic result only/i);
+  assert.match(serviceNotice.textContent, /measured summary only/i);
   controller.destroy();
 });
 
@@ -449,4 +449,39 @@ test('clears a completed flash measurement when module choices change', async ()
   hall.checked = false;
   await hall.dispatch('change');
   assert.equal(status.textContent, 'Selection changed. Request a new build to measure flash usage.');
+});
+
+
+test('profile selector explicitly changes runtime, preserves choices and clears measured flash', async () => {
+  const document = new Document();
+  const root = new Element('div', document);
+  const status = new Element('p', document);
+  document.nodes.set('installer-modules', new Element('div', document));
+  const select = new Element('select', document);
+  select.value = 'legacy';
+  document.nodes.set('installer-export-status', status);
+  document.nodes.set('installer-build-profile', select);
+  const requests = [];
+  await mountInstallerPage(root, {
+    fetchImpl: async () => ({ ok: true, json: async () => structuredClone(catalogue) }),
+    buildClient: { async build(request) {
+      requests.push(request);
+      return { artifactBytes: 1234, appBudgetBytes: 860644, remainingBytes: 859410 };
+    } },
+  });
+  const button = walk(root).find(node => node.tagName === 'BUTTON');
+  await button.dispatch('click');
+  assert.equal(requests[0].runtime_mode, undefined, 'diagnostic default remains unchanged');
+  assert.match(status.textContent, /1,234/);
+  select.value = 'continuous';
+  await select.dispatch('change');
+  assert.equal(status.textContent, 'Selection changed. Request a new build to measure flash usage.');
+  assert.equal(requests.length, 1, 'profile change does not submit automatically');
+  await button.dispatch('click');
+  assert.deepEqual(requests[1], { ...requests[0], flash_layout: 'expanded-d7000', runtime_mode: 'continuous' });
+  assert.match(status.textContent, /Continuous/);
+  select.value = 'song-diagnostic';
+  await select.dispatch('change');
+  await button.dispatch('click');
+  assert.deepEqual(requests[2], { ...requests[0], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' });
 });

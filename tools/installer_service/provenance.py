@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Bounded local provenance for the diagnostic installer worker.
+"""Bounded local provenance for the private installer worker.
 
 This records build inputs and output bindings for later trusted review. It is
 not a release tuple, installability decision, or hardware admission.

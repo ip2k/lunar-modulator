@@ -90,7 +90,7 @@ class BuildRequest(BaseModel):
     startup_index: StrictInt = Field(ge=0)
     set_ids: list[StrictStr] = Field(default_factory=list, max_length=8)
     # Omitted D9000 requests retain their historical canonical bytes. D7000
-    # must be an explicit, schema-2-shaped diagnostic profile selection.
+    # must be an explicit, explicit private profile selection.
     flash_layout: Literal["expanded-d9000", "expanded-d7000"] = "expanded-d9000"
     runtime_mode: Literal["diagnostic", "song-diagnostic", "continuous"] = "diagnostic"
 
@@ -107,7 +107,7 @@ class BuildRequest(BaseModel):
             raise ValueError("startup_index is outside project_ids")
         if self.flash_layout == "expanded-d7000":
             if self.runtime_mode not in ("song-diagnostic", "continuous"):
-                raise ValueError("expanded-d7000 requires the schema-2 song-diagnostic runtime")
+                raise ValueError("expanded-d7000 requires song-diagnostic or continuous runtime")
             if self.runtime_mode == "song-diagnostic":
                 validate_hall_o2_stage7_modules({
                     "engines": self.engines, "effects": self.effects,
@@ -303,14 +303,13 @@ def _verify_wavetable_receipt(receipt: dict, selected: list[str], flash_layout: 
 
 
 def _verify_runtime_configuration(receipt: dict, *, continuous=False) -> None:
-    """Require an exact supported diagnostic runtime description from the worker."""
+    """Require the exact runtime description for the admitted private profile from the worker."""
     config = receipt.get("runtime_configuration")
     fields = {"runtime_mode", "return_to_rom_seconds", "define", "release_accepted"}
     if not isinstance(config, dict) or set(config) != fields:
         raise ValueError("worker runtime configuration is missing or malformed")
     mode = config.get("runtime_mode")
-    # The builder currently admits only bounded diagnostics. The canonical
-    # helper also describes continuous mode, but it is not an installer mode.
+    # Continuous is admitted only through its separate explicit D7000 profile.
     if type(mode) is not str or mode not in (("continuous",) if continuous else ("diagnostic", "song-diagnostic")):
         raise ValueError("worker runtime mode is unsupported")
     expected = runtime_configuration(mode)
@@ -385,7 +384,7 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
             or (flash_layout == "expanded-d7000"
                 and receipt["runtime_configuration"].get("runtime_mode") != runtime_mode)
             or any(receipt.get(key) is not False for key in false_fields)):
-        raise ValueError("worker receipt does not bind the admitted diagnostic build")
+        raise ValueError("worker receipt does not bind the admitted private build")
     if any(not isinstance(receipt.get(key), str) or not SHA256.fullmatch(receipt[key])
            for key in ("app_sha256", "request_sha256", "prepared_profile_sha256", "elf_sha256",
                        "verification_sha256", "artifact_receipt_sha256")):

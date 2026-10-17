@@ -285,6 +285,8 @@ def test_checked_link_accepts_named_shapes8_compressed_ram_profile():
 
 def continuous_inputs():
     values = shapes8_inputs()
+    from build_demo_image import continuous_link_configuration
+    values[2].update(continuous_link_configuration())
     values[2]['runtime_configuration'] = runtime_configuration('continuous')
     values[2]['probe_return_to_rom_seconds'] = None
     values[2]['native_midi_input'] = native_midi_input_configuration(True)

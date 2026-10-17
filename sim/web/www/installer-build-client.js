@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-// Same-origin client for the private diagnostic-build API. The service returns
+// Same-origin client for the private build API. The service returns
 // a verified summary only; it does not expose firmware bytes or installation.
-import { D7000_REQUIRED_BY_GROUP } from './native-build-selection.js';
+import { D7000_REQUIRED_BY_GROUP, CONTINUOUS_BUILD_PROFILE } from './native-build-selection.js';
 
 const BUILD_PATH = '/api/v1/builds';
 const OPAQUE_ID = /^[A-Za-z0-9_-]{32}$/;
@@ -155,7 +155,7 @@ function validateSnapshot(body, id, request) {
       || !['queued', 'running', 'succeeded', 'failed'].includes(body.status)) {
     fail('The build service returned an invalid job status.');
   }
-  if (body.status === 'failed') fail('The private diagnostic build failed. No firmware was produced.');
+  if (body.status === 'failed') fail('The private build failed. No firmware was produced.');
   if (body.status !== 'succeeded') return Object.freeze({ status: body.status });
   const result = body.result;
   if (!result || result.status !== status
@@ -168,7 +168,7 @@ function validateSnapshot(body, id, request) {
       || !Number.isInteger(result.remaining_bytes)
       || result.remaining_bytes !== result.app_budget_bytes - result.artifact_bytes
       || result.installable !== false || result.hardware_tested !== false) {
-    fail('The build result did not pass diagnostic receipt checks.');
+    fail('The build result did not pass private receipt checks.');
   }
   if (continuous) {
     const provenance = result.provenance;
@@ -179,8 +179,8 @@ function validateSnapshot(body, id, request) {
         || provenance?.kind !== 'private-continuous-build-provenance'
         || provenance.trusted_fwsc_packager_compatible !== false
         || typeof provenance.sha256 !== 'string' || !SHA256.test(provenance.sha256)
-        || profile?.profile_id !== 'fm1-500-d7000-continuous-selected-v1'
-        || typeof profile.profile_sha256 !== 'string' || !SHA256.test(profile.profile_sha256)
+        || profile?.profile_id !== CONTINUOUS_BUILD_PROFILE.profileId
+        || profile.profile_sha256 !== CONTINUOUS_BUILD_PROFILE.profileSha256
         || profile.flash_layout !== 'expanded-d7000' || profile.runtime_mode !== 'continuous'
         || profile.shapes_voices !== 8
         || provenance.output_bindings?.artifact_sha256 !== result.artifact_sha256

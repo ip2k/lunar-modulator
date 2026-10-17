@@ -28,6 +28,8 @@ PROFILE_CONTRACT = {
     "native_midi_input": {"enabled": True, "transport": "UART1-RX/PH8",
                           "ring_bytes": 256, "bytes_per_poll": 32,
                           "usb_midi_preserved": True},
+    "diagnostic_instrumentation": "disabled-all", "hot_dsp_ram": False,
+    "catalogue_optimization": "z-no-overrides",
     "project_save_service_armed": False, "installable": False,
     "trusted_fwsc_packager_compatible": False,
 }
@@ -52,6 +54,11 @@ def _helpers():
     if native not in sys.path:
         sys.path.insert(0, native)
     import build_demo_image
+    import firmware_identity
+    import runtime_mode
+    for module in (build_demo_image, firmware_identity, runtime_mode):
+        if Path(module.__file__).resolve() != Path(native) / (module.__name__ + ".py"):
+            raise ValueError("continuous helper was not loaded from the pinned source")
     from firmware_identity import identity_configuration
     from runtime_mode import runtime_configuration
     return build_demo_image, identity_configuration, runtime_configuration
@@ -95,6 +102,8 @@ def validate_image_receipt(receipt, selected):
     builder, identity, runtime = _helpers()
     for field, expected in {
         "flash_layout": "expanded-d7000", "app_budget_bytes": 860644,
+        "wavetable_profile": builder.SHAPES8_WAVETABLE_PROFILE,
+        "shapes_voices": 8, "indexed_tft": True, "flash_plaits_wavetables": False,
         "runtime_configuration": runtime("continuous"),
         "firmware_identity": identity("FM-1_500"),
         "native_midi_input": builder.native_midi_input_configuration(True),
@@ -105,6 +114,7 @@ def validate_image_receipt(receipt, selected):
         raise ValueError("private continuous application size is unmeasured or over budget")
     if not isinstance(selected, list) or any(type(item) is not str for item in selected):
         raise ValueError("private continuous module selection is malformed")
+    builder.checked_continuous_configuration(receipt)
     checked = builder.checked_wavetable_profile(receipt, selected,
         target_storage=builder.CONTINUOUS_TARGET_STORAGE, selected_shapes8=True)
     expected_rows = [dict(row) for row in builder.SHAPES8_TABLES
@@ -124,6 +134,7 @@ def validate_receipt(receipt):
         raise ValueError("private continuous module selection is malformed")
     for field, expected in {
         "flash_layout": "expanded-d7000", "app_budget_bytes": 860644,
+        "shapes_voices": 8, "indexed_tft": True, "flash_plaits_wavetables": False,
         "runtime_configuration": runtime("continuous"),
         "probe_return_to_rom_seconds": None,
         "firmware_identity": identity("FM-1_500"),
@@ -137,17 +148,12 @@ def validate_receipt(receipt):
     }.items():
         _expect(receipt.get(field), expected, field)
     builder.checked_continuous_midi_input(receipt)
-    builder.checked_wavetable_profile(receipt, selected,
+    checked = builder.checked_wavetable_profile(receipt, selected,
         target_storage=builder.CONTINUOUS_TARGET_STORAGE, selected_shapes8=True)
-    # A continuous worker never enables the diagnostic instrumentation family.
-    for field in ("diagnostic_cpu_rate", "diagnostic_producer_gaps", "diagnostic_irq_profile",
-                  "render_stage_profile", "diagnostic_engine_render_profile",
-                  "diagnostic_clock_snapshot", "diagnostic_resampler_stage_profile"):
-        _expect(receipt.get(field), None, field)
-    for field in ("diagnostic_telemetry", "diagnostic_song_play", "diagnostic_trio_pulse"):
-        value = receipt.get(field)
-        if not isinstance(value, dict) or value.get("enabled") is not False:
-            raise ValueError("private continuous diagnostic instrumentation enabled")
+    _expect(checked["compressed_wave_tables"], [dict(row) for row in builder.SHAPES8_TABLES
+        if row["namespace"] in builder.wavetable_namespaces(selected, flash_plaits=False)],
+        "compressed_wave_tables")
+    builder.checked_continuous_configuration(receipt)
 
 
 def evidence_manifest(build_receipt_raw):

@@ -42,6 +42,11 @@
 .installer-export-status { min-height: 1.5em; }
 .installer-cancel-build { min-height: 44px; padding: 9px 16px; }
 
+.installer-profile { max-width: 78ch; margin: 24px 0; }
+.installer-profile label { display: block; margin: 12px 0 8px; }
+.installer-profile select { min-height: 44px; max-width: 100%; padding: 8px 12px; }
+.installer-profile p { line-height: 1.5; }
+
 .native-module-selection { margin-top: 26px; }
 .native-module-selection > h2 { font: 400 1.25rem/1.4 var(--display); }
 .native-module-selection fieldset {

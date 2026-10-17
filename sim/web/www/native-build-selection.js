@@ -17,6 +17,12 @@ export const D7000_REQUIRED_BY_GROUP = Object.freeze({
   effects: Object.freeze(['hall']),
 });
 
+// Cross-language policy binding is checked in test_installer_continuous_profile.py.
+export const CONTINUOUS_BUILD_PROFILE = Object.freeze({
+  profileId: 'fm1-500-d7000-continuous-selected-v1',
+  profileSha256: 'fcfba36ad8d98a15367db8d5ad0e9959e879238a2122940d215d702baff6fce0',
+});
+
 export function missingD7000ProfileModules(selectedByGroup) {
   return Object.fromEntries(Object.entries(D7000_REQUIRED_BY_GROUP).map(([group, required]) => [
     group, required.filter((id) => !selectedByGroup[group].includes(id)),

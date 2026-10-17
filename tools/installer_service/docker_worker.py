@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import importlib
 import json
 import os
 from pathlib import Path
@@ -71,7 +72,7 @@ def build_profile_arguments(request: dict) -> list[str]:
             selected = request.get(group, ())
             if not isinstance(selected, (list, tuple)) or not all(
                     isinstance(module, str) for module in selected):
-                raise ValueError("unsupported diagnostic layout/runtime profile")
+                raise ValueError("unsupported private build layout/runtime profile")
         missing = {
             group: sorted(required - set(request.get(group, ())))
             for group, required in _BOOTSTRAP_HALL_REQUIRED_BY_GROUP.items()
@@ -88,11 +89,12 @@ def build_profile_arguments(request: dict) -> list[str]:
         return ["--flash-layout", "expanded-d7000", "--runtime-mode", "song-diagnostic",
                 "--wavetable-profile", "compressed-required-banks-ram-plaits-braids-shapes8-v1",
                 "--diagnostic-profile", _BOOTSTRAP_HALL_PROFILE]
-    raise ValueError("unsupported diagnostic layout/runtime profile")
+    raise ValueError("unsupported private build layout/runtime profile")
 
 
 def verify_extracted_profile_contract(source_root: Path, request=None) -> None:
     """Require the pinned source archive to agree with this standalone bootstrap."""
+    source_root = source_root.resolve()
     sys.path.insert(0, str(source_root))
     contract_path = source_root / "tools/native/diagnostic_profile_contract.py"
     if contract_path.is_symlink() or not contract_path.is_file():
@@ -112,9 +114,19 @@ def verify_extracted_profile_contract(source_root: Path, request=None) -> None:
     if request is not None and request.get("runtime_mode") == "continuous":
         # The bootstrap has no source imports until the pinned archive is extracted.
         # Import from that exact archive, never the container's mutable /workspace.
-        sys.path.insert(0, str(source_root))
-        from tools.installer_service import continuous_profile
-        from tools.installer_service.catalogue import load_trusted_catalogue
+        modules = {}
+        for name in ("tools.installer_service", "tools.installer_service.continuous_profile",
+                     "tools.installer_service.catalogue"):
+            module = importlib.import_module(name)
+            expected = source_root.joinpath(*name.split("."))
+            expected = expected / "__init__.py" if name == "tools.installer_service" else expected.with_suffix(".py")
+            if (not getattr(module, "__file__", None)
+                    or Path(module.__file__).resolve() != expected
+                    or expected.is_symlink() or not expected.is_file()):
+                raise ValueError("worker import was not loaded from the extracted pinned source: " + name)
+            modules[name] = module
+        continuous_profile = modules["tools.installer_service.continuous_profile"]
+        load_trusted_catalogue = modules["tools.installer_service.catalogue"].load_trusted_catalogue
         if tuple(continuous_profile.BUILD_ARGUMENTS) != _BOOTSTRAP_CONTINUOUS_ARGUMENTS:
             raise ValueError("worker and extracted continuous profile contracts differ")
         kinds, projects, parents = load_trusted_catalogue(source_root, include_sets=True)
