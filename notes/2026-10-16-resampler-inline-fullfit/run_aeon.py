@@ -334,7 +334,7 @@ def create_inspect_run(*, docker: str, name: str, labels: dict, source: Path,
         host, config = inspected["HostConfig"], inspected["Config"]
         expected_mounts = {dst: str(path) for dst, path in mounts}
         actual_mounts = {row["Destination"]: row["Source"] for row in inspected.get("Mounts", [])}
-        expected_labels = labels
+        expected_labels = {"project": "lunar-modulator", "session": "gplfu", **labels}
         states = inspected.get("State", {})
         expected_mem = int(memory[:-1]) * 1024**3
         expected_swap = int(memory_swap[:-1]) * 1024**3

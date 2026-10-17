@@ -39,7 +39,7 @@ def main():
     original_runner = STAGE7 / 'run-build.py'
     runner = Path(__file__).with_name('run_aeon.py')
     receipt_path = STAGE7 / 'output/frozen-build-input-receipt.json'
-    if sha(original_runner) != RUNNER_SHA or sha(runner) != 'ee16ce4b461e44af402b32416c675f257bd689936e3cba18f837809bb2fedff4' or sha(receipt_path) != RECEIPT_SHA:
+    if sha(original_runner) != RUNNER_SHA or sha(runner) != '41d1b44b5f7dd303f5d44b4c19fa693b076d26d88abd5d93eaa4d778e661c808' or sha(receipt_path) != RECEIPT_SHA:
         raise RuntimeError('stage-7 runner or receipt differs from reviewed external pin')
     original = json.loads(receipt_path.read_text())
     frozen = Path('/home/claude/mvave-fm1/resampler-fullfit-exact-snapshots-20261016')
