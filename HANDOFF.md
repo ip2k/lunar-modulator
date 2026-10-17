@@ -1,3 +1,27 @@
+## D7000 preflight integrated after bootstrap correction — 2026-10-17 UTC
+
+[verified: reviewed source and independent host checks] Worker079441ec plus
+bootstrap correction6c38f3ff and note8fe4bc61 integrated as87807f33/5af73c54/
+15ba8306; all pushed and remoteSHAverified. D7000 requires engines Macro,
+Shapes, SixOp, Drums and effect Hall in their correct groups. Browser client
+and serializer share the JS contract; API/preparer/builder share Python.
+Standalone /input worker checks its bootstrap contract against the extracted
+source before make. Matching/mismatching deployed-path regressions pass;
+mismatch proves no build invocation. The older held-integration note below
+is superseded by this correction and review.
+
+Coordinator independently passed151backend/native-profile tests (1existing
+skip,1Starlette/httpx deprecation warning),6preparation rejection checks,
+34browser checks and diffcheck. No firmware compilation, physical boot,
+SAVE admission or deployment claim. No diagnostic source-pin files changed.
+No new Hera work; Aeon-only direction retained. Overall goal ACTIVE.
+
+[verified: passive read only, 2026-10-17 01:29:25–27UTC] Cynthion TARGETA
+monitor valid/PACerror0, samples17891/17899, VBUS5073242/5075195microvolts,
+current0microamps. Bench lsusb shows roots and KA6 only. This does not prove
+FM1 attachment, switch state, CPU power or recovery. Pending owner connection
+request remains unanswered; no duplicate request or hardware mutation made.
+
 ## Owner routing reaffirmed; preflight integration held for bootstrap fix — 2026-10-17 UTC
 
 [verified: live SSH] Aeon 192.168.1.25 is reachable as claude. Owner reserves
