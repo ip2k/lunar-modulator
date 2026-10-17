@@ -35,7 +35,7 @@ def _fixture(tmp_path):
         "Id": "b" * 64,
         "Config": {"Image": PINNED_IMAGE_ID,
                    "Cmd": ["python3", "/workspace/" + WORKER_REL],
-                   "User": "1001:1001", "Env": ["LUNAR_SOURCE_COMMIT=" + "a" * 40] + PINNED_IMAGE_ENV,
+                   "User": "1003:1003", "Env": ["LUNAR_SOURCE_COMMIT=" + "a" * 40] + PINNED_IMAGE_ENV,
                    "Entrypoint": None, "WorkingDir": "", "Tty": False,
                    "OpenStdin": False, "StdinOnce": False, "AttachStdout": True, "AttachStderr": True,
                    "Labels": {**PINNED_IMAGE_LABELS, "lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"}},
@@ -68,10 +68,12 @@ def test_producer_and_capture_pin_same_aeon_image():
     assert PINNED_IMAGE_ID == "sha256:" + PINNED_TOOLCHAIN_IMAGE
 
 
-@pytest.mark.parametrize("mutation", ["image", "command", "network", "resource", "mount", "privileged", "device", "cap_add", "pid_mode", "ipc_mode", "runtime", "entrypoint", "extra_env", "missing_base_label", "changed_base_label", "extra_label"])
+@pytest.mark.parametrize("mutation", ["image", "command", "network", "resource", "mount", "privileged", "device", "cap_add", "pid_mode", "ipc_mode", "runtime", "entrypoint", "extra_env", "missing_base_label", "changed_base_label", "extra_label", "wrong_user"])
 def test_inspection_refuses_changed_container_policy(tmp_path, mutation):
     inspect, expected, _ = _fixture(tmp_path)
-    if mutation == "image":
+    if mutation == "wrong_user":
+        inspect["Config"]["User"] = "1001:1001"
+    elif mutation == "image":
         inspect["Image"] = "sha256:" + "0" * 64
     elif mutation == "command":
         inspect["Config"]["Cmd"][-1] = "/tmp/user-command.py"
@@ -170,6 +172,7 @@ def _run_inputs(tmp_path):
 def test_run_build_refuses_source_snapshot_mismatch_before_docker_create(tmp_path,monkeypatch):
     import json, shutil, run_trusted_continuous_build as wrapper
     root,request,toolchain,catalogue,output=_run_inputs(tmp_path)
+    monkeypatch.setattr(wrapper,"_require_runner_identity",lambda: None)
     calls=[]; real_copytree=shutil.copytree
     def corrupt_copy(*args,**kwargs):
         result=real_copytree(*args,**kwargs)
@@ -192,6 +195,7 @@ def test_run_build_refuses_source_snapshot_mismatch_before_docker_create(tmp_pat
 def test_run_build_refuses_snapshot_mutated_during_container_before_capture(tmp_path,monkeypatch):
     import json, subprocess, run_trusted_continuous_build as wrapper
     root,request,toolchain,catalogue,output=_run_inputs(tmp_path)
+    monkeypatch.setattr(wrapper,"_require_runner_identity",lambda: None)
     calls=[]; inspect_count=0; real_subprocess_run=subprocess.run
     def fake_run(docker,args,**kwargs):
         calls.append(args)
@@ -259,3 +263,82 @@ def test_private_snapshot_cleanup_removes_readonly_tree_and_rejects_unowned_path
     assert not snapshot.exists()
     with pytest.raises(ValueError, match="unowned private snapshot"):
         wrapper._remove_private_snapshot(tmp_path / "elsewhere", parent, ".candidate-catalogue-")
+
+
+def test_aeon_runner_identity_matches_owner_only_mounts(monkeypatch):
+    import run_trusted_continuous_build as wrapper
+    monkeypatch.setattr(wrapper.os, "geteuid", lambda: 1003)
+    monkeypatch.setattr(wrapper.os, "getegid", lambda: 1003)
+    wrapper._require_runner_identity()
+    monkeypatch.setattr(wrapper.os, "geteuid", lambda: 1001)
+    with pytest.raises(ValueError, match="pinned Aeon uid/gid"):
+        wrapper._require_runner_identity()
+    monkeypatch.setattr(wrapper.os, "geteuid", lambda: 1003)
+    monkeypatch.setattr(wrapper.os, "getegid", lambda: 1001)
+    with pytest.raises(ValueError, match="pinned Aeon uid/gid"):
+        wrapper._require_runner_identity()
+
+
+def test_failed_worker_log_retains_bounded_private_excerpt(tmp_path, monkeypatch):
+    import os, subprocess, run_trusted_continuous_build as wrapper
+    def run(command, **kwargs):
+        assert command == ["docker", "logs", "--tail", "200", "b" * 64]
+        assert kwargs["stderr"] == subprocess.STDOUT
+        assert kwargs["timeout"] == 10
+        return subprocess.CompletedProcess(command, 0, b"x" * (wrapper.MAX_FAILURE_LOG + 1))
+    monkeypatch.setattr(wrapper.subprocess, "run", run)
+    wrapper._retain_failure_log("docker", "b" * 64, tmp_path)
+    log = tmp_path / "failed-worker.log"
+    assert log.read_bytes() == b"x" * wrapper.MAX_FAILURE_LOG
+    assert os.stat(log).st_mode & 0o777 == 0o600
+
+
+def test_log_collection_failure_does_not_replace_build_error(tmp_path, monkeypatch):
+    import subprocess, run_trusted_continuous_build as wrapper
+    def run(*args, **kwargs):
+        raise subprocess.TimeoutExpired(args[0], 10)
+    monkeypatch.setattr(wrapper.subprocess, "run", run)
+    wrapper._retain_failure_log("docker", "b" * 64, tmp_path)
+    assert not list(tmp_path.iterdir())
+
+
+def test_nonzero_worker_log_survives_container_cleanup(tmp_path, monkeypatch):
+    import json, subprocess, run_trusted_continuous_build as wrapper
+    root, request, toolchain, catalogue, output = _run_inputs(tmp_path)
+    monkeypatch.setattr(wrapper, '_require_runner_identity', lambda: None)
+    calls = []
+    real_run = subprocess.run
+    inspections = iter(['created', 'exited', 'exited'])
+
+    def docker_run(_docker, args, **kwargs):
+        if args[:2] == ['image', 'inspect']:
+            return (wrapper.PINNED_IMAGE_ID.encode() if '{{.Id}}' in args
+                    else json.dumps(wrapper.PINNED_IMAGE_ENV).encode())
+        if args[0] == 'create':
+            return b'b' * 64
+        assert args[0] == 'start'
+        return b''
+
+    def contract(*args):
+        state = next(inspections)
+        return {'state': {'status': state, 'running': False,
+                          'exit_code': 1 if state == 'exited' else 0}}
+
+    def subprocess_run(args, **kwargs):
+        if args[0] == 'docker':
+            calls.append(args[1])
+            return subprocess.CompletedProcess(args, 0, b'worker PermissionError\n')
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(wrapper, '_run', docker_run)
+    monkeypatch.setattr(wrapper, '_inspect', lambda *args: {})
+    monkeypatch.setattr(wrapper, 'inspected_contract', contract)
+    monkeypatch.setattr(subprocess, 'run', subprocess_run)
+    with pytest.raises(ValueError, match='did not exit successfully'):
+        wrapper.run_build(request_path=request, toolchain_path=toolchain,
+                          catalogue_path=catalogue, output_path=output, source_root=root)
+    assert calls == ['logs', 'rm']
+    assert (output / 'failed-worker.log').read_bytes() == b'worker PermissionError\n'
+    assert not (output / 'build_tuple.json').exists()
+    assert not list(output.parent.glob('.build-output-source-*'))
+    assert not list(output.parent.glob('.build-output-catalogue-*'))

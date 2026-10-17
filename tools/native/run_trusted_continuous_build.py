@@ -35,12 +35,13 @@ DOCKER_POLICY = {
     "readonly_rootfs": True,
     "cap_drop": ["ALL"],
     "security_opt": ["no-new-privileges"],
-    "user": "1001:1001",
+    "user": "1003:1003",
     "tmpfs": {"/tmp": "rw,nosuid,nodev,exec,size=3221225472"},
     "labels": {"lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"},
 }
 MAX_REQUEST = 65536
 MAX_INSPECT = 2 * 1024 * 1024
+MAX_FAILURE_LOG = 1024 * 1024
 
 
 def _json(raw: bytes, label: str):
@@ -100,7 +101,7 @@ def container_command(docker: str, container_name: str, source: Path, request: P
            "--cpu-quota=400000", "--cpu-period=100000",
            "--memory=8g", "--memory-swap=8g", "--pids-limit=512",
            "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges",
-           "--user=1001:1001", "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=3221225472",
+           "--user=1003:1003", "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=3221225472",
            "--env", "LUNAR_SOURCE_COMMIT=" + source_commit]
     for mount in mounts:
         cmd.extend(["--mount", mount])
@@ -261,11 +262,31 @@ def _catalogue_snapshot_fields(source: Path, snapshot: Path,
     }
 
 
+def _require_runner_identity():
+    # Owner-only request/output mounts must remain accessible without chmod 777
+    # or a privileged worker. This contract is pinned to Aeon's build account.
+    if (os.geteuid(), os.getegid()) != (1003, 1003):
+        raise ValueError("build runner requires pinned Aeon uid/gid 1003:1003")
+
+
+def _retain_failure_log(docker: str, container_id: str, output: Path):
+    """Keep a private excerpt before cleanup; log failure cannot replace build error."""
+    try:
+        result = subprocess.run(
+            [docker, "logs", "--tail", "200", container_id],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, timeout=10, check=False)
+        _write_exclusive(output / "failed-worker.log", result.stdout[:MAX_FAILURE_LOG])
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def run_build(*, request_path: Path,
               toolchain_path: Path, catalogue_path: Path, output_path: Path,
               source_root: Path = ROOT, docker_binary="docker", timeout_seconds=1200,
               poll_seconds=1, monotonic=time.monotonic):
     """Run the single fixed build; caller controls only trusted local input paths."""
+    _require_runner_identity()
     source = _safe(Path(source_root), directory=True)
     request = _safe(Path(request_path), directory=False)
     toolchain = _safe(Path(toolchain_path), directory=True)
@@ -413,6 +434,8 @@ def run_build(*, request_path: Path,
                                            wrapper_path=snapshot / WORKER_REL.replace("trusted_continuous_worker.py", "run_trusted_continuous_build.py"))
     except Exception:
         # Keep the private output directory and evidence for diagnosis; never reuse it.
+        if container_id is not None:
+            _retain_failure_log(docker_binary, container_id, output)
         raise
     finally:
         cleanup_target = container_id or container_name

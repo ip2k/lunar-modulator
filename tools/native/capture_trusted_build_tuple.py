@@ -546,7 +546,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         "--cgroup-parent=docker-batch.slice", "--network=none",
         "--cpu-quota=400000", "--cpu-period=100000", "--memory=8g",
         "--memory-swap=8g", "--pids-limit=512", "--read-only",
-        "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=1001:1001",
+        "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=1003:1003",
         "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=3221225472",
         "--env", "LUNAR_SOURCE_COMMIT=" + source_commit,
     ]
@@ -565,7 +565,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         "network_mode": "none", "cgroup_parent": "docker-batch.slice", "cpus": 4,
         "memory": 8589934592, "memory_swap": 8589934592, "pids_limit": 512,
         "readonly_rootfs": True, "cap_drop": ["ALL"],
-        "security_opt": ["no-new-privileges"], "user": "1001:1001",
+        "security_opt": ["no-new-privileges"], "user": "1003:1003",
         "tmpfs": {"/tmp": "rw,nosuid,nodev,exec,size=3221225472"},
         "labels": {"lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"},
     }
@@ -576,7 +576,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
             or contract.get("container_id") != invocation.get("container_id")
             or contract.get("config_image") != "sha256:" + PINNED_TOOLCHAIN_IMAGE
             or contract.get("command") != ["python3", "/workspace/" + "tools/native/trusted_continuous_worker.py"]
-            or contract.get("user") != "1001:1001"
+            or contract.get("user") != "1003:1003"
             or contract.get("labels") != {"project": "lunar-modulator", "session": "gplfu",
                                           "lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"}
             or contract.get("environment_keys") != ["LUNAR_SOURCE_COMMIT", "PATH"]

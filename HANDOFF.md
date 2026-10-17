@@ -8200,3 +8200,18 @@ or installability admission. Next: genuine continuous producer on Aeon with
 current committed source, all55 catalogue and SAVE retained. Hera untouched.
 CI38994186689 succeeded; exact c9 CI38997155738 pending at last inspection.
 Goal ACTIVE; physical connection question still pending; uv.lock preserved.
+
+### Real continuous producer permission failure repaired
+
+Aeon all55 Shapes8 catalogue passed all16 shards; all549 source inputs match
+9172c03. Actual wrapper stopped with worker PermissionError: host1003:1003
+versus old fixedworker1001:1001 blocked request400/output700. No app/tuple.
+Worker handoff saved and claim released; no live build remains from that run.
+Root repaired producer+independentcapture to pinnedAeon1003:1003, earlyrunner
+identity refusal and private failed-worker.log retention beforecleanup.
+46tests passed/1optional skip; independentstaticreview no blockingissue.
+Next rerun actualproducer fromnewcommittedsource with unchangedall55 request
+and checked compatible freshcatalogue; noCLIshim or permissionrelaxation.
+Separate corresponding-source audit found externalC++headertree is notyet
+bundled/bound as original source input; provenance/license review next.
+Hera/device untouched; hardwareconnection question pending; goalACTIVE.
