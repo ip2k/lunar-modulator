@@ -1,3 +1,31 @@
+## Alias review checkpoint; checkout isolation restored — 2026-10-17 UTC
+
+[verified: Git branches, remote SHA and focused pytest] Worker accidentally used
+integration checkout for fix/2026-10-17@catalogue-trace-alias. Both commits were
+preserved: root docs13264bf51c0b9c5f23b76196f0022a2026c96446 pushed to integration;
+worker ba11f3a32d8f3755e62a9bd9ed76b6e7950f96d1 pushed to alias branch; both
+remote SHAs verified. Root restored integration branch via fast-forward to13264,
+then created exclusive worker worktree
+/Users/likwid/.codex/worktrees/catalogue-trace-alias/mvave-fm1-firmware.
+Pre-existing untracked uv.lock preserved. No reset or lost tracked edits.
+
+Root independently reran test_source_compiler_headers.py and
+ test_gpl_source_bundle.py:52 passed/1 skipped, exit0. Initial invocation named a
+nonexistent test_source_bundle.py and collected no tests; corrected above.
+Review withheld integration: alias evidence must cover producing containers,
+reject shadowing nested mounts, and retain safe path checks. Worker assigned
+bounded amendments in isolated checkout; no new target build/export authorized.
+Current CI39010710174 remains in_progress at38e027; earlier8e086 CI succeeded.
+This is not current-head CI acceptance. Serena/Rarefaction still select primary
+checkout, not integration/alias worktrees; no shared server retarget performed.
+
+PAC2 remains loaded after verified unloaded baseline. Existing FM1 connection
+question pending: verified cable toTARGET_A, CONTROL Mac,TARGET_Cempty,
+switchRIGHT,noUSER/RESET. Do not infer physical connection from earlier lamp
+removal confirmation. Next hardware action is read-only signed-current capture
+on connection confirmation; no flash/key/power operation. AeonONLY; no Hera.
+Overall firmware/recovery/audio/public release goal remains ACTIVE.
+
 ## PAC2 physical unloaded readback passed; owner connection pending — 2026-10-17 UTC
 
 [verified: root direct build, routed netlist/timing, volatile load and PAC reads]
