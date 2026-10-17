@@ -12,6 +12,7 @@ import json
 import os
 import re
 import stat
+import sys
 from pathlib import Path, PurePosixPath
 
 HASH = re.compile(r"^[0-9a-f]{64}$")
@@ -205,10 +206,6 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
     manifest_bytes = _canonical(toolchain_manifest)
     if not HASH.fullmatch(toolchain_manifest_sha256) or _sha(manifest_bytes) != toolchain_manifest_sha256:
         raise ValueError("toolchain manifest bytes do not match pinned digest")
-    try:
-        from .capture_trusted_build_tuple import _toolchain_manifest
-    except ImportError:
-        from capture_trusted_build_tuple import _toolchain_manifest
     actual_manifest = _toolchain_manifest(Path(toolchain_root))
     if actual_manifest != manifest_bytes:
         raise ValueError("supplied toolchain manifest differs from current pinned toolchain tree")
@@ -588,6 +585,23 @@ def _canonical(value):
 
 def _tree_digest(manifest):
     return _sha(_canonical(manifest))
+
+
+def _toolchain_manifest(root: Path):
+    """Load the existing script-oriented helper from package or CLI use."""
+    native_dir = str(Path(__file__).resolve().parent)
+    added = native_dir not in sys.path
+    if added:
+        sys.path.insert(0, native_dir)
+    try:
+        try:
+            from .capture_trusted_build_tuple import _toolchain_manifest as build_manifest
+        except ImportError:
+            from capture_trusted_build_tuple import _toolchain_manifest as build_manifest
+        return build_manifest(root)
+    finally:
+        if added:
+            sys.path.remove(native_dir)
 
 
 def _safe_under(root: Path, rel: str) -> Path:
