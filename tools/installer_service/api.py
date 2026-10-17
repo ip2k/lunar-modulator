@@ -524,6 +524,8 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
                 or row.get("kind") != expected_row["kind"]
                 or ((not continuous or "id" in row)
                     and row.get("id") != expected_row["id"])
+                or (continuous and expected_row["kind"] == "project"
+                    and "parent_project_id" in row)
                 or (expected_row["kind"] == "set"
                     and ((not continuous and row.get("parent_project_id")
                           != expected_row["parent_project_id"])

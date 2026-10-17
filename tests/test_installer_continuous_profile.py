@@ -198,6 +198,21 @@ def test_continuous_api_binds_lower_receipt_digest(kinds):
     assert c.get(accepted["status_url"]).status_code == 502
 
 
+def test_continuous_project_content_rejects_set_parent_field(kinds):
+    c, adapter = service(kinds)
+    doc = request_doc()
+    accepted = c.post("/api/v1/builds", json=doc).json()
+    image, evidence = api_evidence(doc, receipt(doc))
+    outer = json.loads(image)
+    outer["content"][0]["parent_project_id"] = "song-one"
+    outer["embedded_content"]["assets"][0]["parent_project_id"] = "song-one"
+    image_raw = json.dumps(outer, sort_keys=True, separators=(",", ":")).encode()
+    evidence["image_receipt.json"] = image_raw
+    adapter.succeed(accepted["id"], b"continuous-app", image_raw, TEST_ELF,
+                    private_evidence=evidence)
+    assert c.get(accepted["status_url"]).status_code == 502
+
+
 def test_continuous_api_binds_idless_content_rows_to_prepared_source_order(kinds):
     c, adapter = service(kinds)
     doc = request_doc()
