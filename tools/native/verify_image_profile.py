@@ -18,6 +18,7 @@ class PreparedInputs:
     report: dict
     module_header: bytes
     packed_content: tuple
+    source_content: tuple = ()
 
 
 def load_prepared_profile(directory: Path, expected_sha256: str):
@@ -49,6 +50,7 @@ def load_prepared_profile(directory: Path, expected_sha256: str):
     if not isinstance(assets, list) or len(assets) > 64:
         raise ValueError('Prepared content exceeds asset bound')
     payloads = []
+    sources = []
     for index, asset in enumerate(assets):
         name = f'content-{index:02d}.bin'
         if asset['packed'] != name:
@@ -63,10 +65,11 @@ def load_prepared_profile(directory: Path, expected_sha256: str):
             raise ValueError('Prepared content must not claim sequence acceptance')
         if set(asset['dependencies']) - set(report['module_selection']['selected']):
             raise ValueError('Prepared content needs omitted modules')
+        sources.append(source)
         payloads.append(payload)
     if sum(map(len, payloads)) != report['packed_content_bytes']:
         raise ValueError('Prepared content total mismatch')
-    return PreparedInputs(report, header, tuple(payloads))
+    return PreparedInputs(report, header, tuple(payloads), tuple(sources))
 
 
 def main():
