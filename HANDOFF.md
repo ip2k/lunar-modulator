@@ -1,3 +1,38 @@
+## Generated source inventory integrated; Chrome review passed — 2026-10-17 UTC
+
+Current code checkpoint8e086a365e98167272172bbdbd803b5de53972d7 is pushed and
+GitHub remote SHA verified. Aeon only; no Hera contact during owner maintenance.
+Goal ACTIVE. Recovery, target audio/timing, storage and release acceptance remain open.
+
+[verified: source review, coordinator integration and combined ten-suite run]
+Generated-link inventory capture/export is forward-only: tuple-bound schema1
+marker, exact allowlisted source paths, conditional content/resources, bounded
+regular-file reads, hash/size/path/symlink checks. Optional export includes staged
+text payloads under generated-link/link/. Existing legacy tuples remain readable;
+new export rejects old unmarked tuples. No compiler-consumption or source-complete
+claim. Integrated checks:363passed/16fixture-or-toolskips, existing httpx warning.
+The earlier standalone four-suite run at4495 was95passed/15skips.
+
+[verified: real installed Chrome review report, coordinator screenshot inspection
+and independent rehash of four served UI inputs] Mocked loopback UI review passed
+at375px and1440px, no horizontal overflow; receipt rows fit. Public-disabled mobile
+page retained disabled marker and made0APIcalls. Report SHA
+ af60755aebe43fb93e04ec298e4aacc0569658b6db13bd17254a5061088d47db.
+Root review: scratch/aeon-routing-resume-20261017/chrome-receipt-root-review.json.
+This is synthetic response/UI evidence only, not actual service/hardware acceptance.
+The optional local harness uses explicitly selected installed Chrome and temporary
+profile, while preserving the default pinned-container mode.
+
+CI39009495567 at8e086a36 is pending behind older39006742422 (13jobs succeeded,
+2full-Python jobs running at last check). No current-HEAD green claim.
+Active bounded Aeon tasks: read-only retained d4f all55/Trio evidence replay under
+26b receipt-preview validator; review-only preflight for a fresh8e all55 capture
+and generated-source export. Neither authorizes source resealing or new hardware
+operations. Root must review fresh runner/recorder/preflight hashes before launch.
+All hardware/installable/release gates remain false; SAVE disarmed and public
+service/download/deployment disabled. Pending passive cable-state question remains
+unanswered; don't repeat or assume a connection. Preserve untracked uv.lock.
+
 ## Trio pipeline verified; receipt preview integrated — 2026-10-17 UTC
 
 Aeon only (`claude@192.168.1.25`). No Hera access during owner maintenance.
