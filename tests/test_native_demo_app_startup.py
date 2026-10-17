@@ -112,6 +112,13 @@ def test_trusted_init_starter_cold_start_and_repeatable_host_note(
             assert result["render_peak"] > 1e-6
         assert metrics[0]["render_hash"] == metrics[1]["render_hash"]
         assert metrics[0]["render_peak"] == metrics[1]["render_peak"]
+        print(json.dumps({
+            "project_id": project_id,
+            "selected_engines": list(engines),
+            "compressed_table_namespaces": [r["namespace"] for r in table_records],
+            "compressed_tables": table_records,
+            "cold_start_metrics": metrics[0],
+        }, sort_keys=True))
 
 
 @pytest.fixture(scope="session")
