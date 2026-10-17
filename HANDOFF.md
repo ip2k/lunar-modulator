@@ -1,3 +1,47 @@
+## Selected builds captured; private FWSC composed — 2026-10-17 UTC
+
+Owner routing remains Aeon only (`claude@192.168.1.25`); no Hera probes or jobs
+during RAID/M.2/25G NIC maintenance. Maximum two bounded heavy containers total.
+
+[verified] Source-generator isolation and fresh before/after source-manifest
+checks are integrated and GitHub-backed at
+`71e1e164e57a33b6d6be6031d835faeeca09d6be`. Coordinator focused checks:
+122 passed, one skipped. CI39006017372 targets that exact source and is pending;
+the older 0ecf run still has three active jobs and twelve successful jobs.
+
+All four fresh target builds and captures succeeded at 71e1: Trio 308548 bytes,
+Macro 362192, Shapes 370740, Macro+Shapes 437860. Coordinator independently
+rehashed all 100 inventory rows and checked actual app/ELF/tuple/source bindings,
+selected modules and false eligibility flags. Summary SHA256:
+`52fdaf1dac400f469979d526d0f230cc2568d1010ea048aad8d61ce2e0326379`.
+Outputs: `/home/claude/mvave-fm1/private-continuous-subset-capture-71e1e164-20261017`.
+Prior failed attempts remain preserved. A fresh all-55/Event Horizon default
+link/capture at 71e1 is the next consistency check, using the validated catalogue.
+
+[verified: coordinator remote rehash/report inspection] The canonical 0ecf
+all-55/Event Horizon tuple produced a private 978484-byte FWSC candidate, SHA256
+`10bdcc871fb534690f50b767a59990a70c9eaf27603265b8d2e8330eec1d95a5`.
+Worker saved-output reopen verifies eight outer entry CRCs and nested app and
+protected-component preservation. Path:
+`/home/claude/mvave-fm1/private-web-fwsc-candidate-0ecf508b-20261017-retry1/FM-1_500-private-candidate.fwsc`.
+All hardware, installability, updater and release flags remain false. Model
+inputs and outputs are private; no vendor binaries were committed or published.
+
+Selected-startup host tests now use selected compressed banks and Shapes 8,
+with a conservative host-only 165376-byte arena. The earlier 12-voice attempt
+failed two cases and remains preserved. The corrected retry is running on Aeon
+from pushed/transferred test-only commit
+`1e82660002dc73771c139467489a985dcc0bbb40`; coordinator observed its actual
+running container and 4CPU/8GiB memory+swap-total/512pid/network-none/batch-slice
+limits. This does not measure pi32 timing or target RAM.
+
+The private service packaging adapter is assigned separately. It must invoke
+the real trusted wrapper/capture; incompatible service provenance must never
+be relabeled trusted. Public status/download/deployment remains disabled.
+No new device writes. Recovery, failed physical audio performance, storage
+ownership/migration/SAVE, public installation and release acceptance remain open.
+Goal ACTIVE; unrelated uv.lock preserved.
+
 ## Exact source archive and selected-build verification — 2026-10-17 UTC
 
 [verified] Header collector plus package-import and exact three-starter source
