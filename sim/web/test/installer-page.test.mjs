@@ -87,11 +87,13 @@ test('loads generated catalogue, mounts the shared chooser and exports only a va
   const document = new Document();
   const root = new Element('div', document);
   const moduleRoot = new Element('div', document);
+  const packageRoot = new Element('div', document);
   const loadStatus = new Element('p', document);
   const exportStatus = new Element('p', document);
   document.nodes.set('installer-load-status', loadStatus);
   document.nodes.set('installer-export-status', exportStatus);
   document.nodes.set('installer-modules', moduleRoot);
+  document.nodes.set('installer-package-inspection', packageRoot);
   const fetches = [];
   const originalCreate = URL.createObjectURL;
   const originalRevoke = URL.revokeObjectURL;
@@ -109,6 +111,8 @@ test('loads generated catalogue, mounts the shared chooser and exports only a va
     assert.equal(loadStatus.textContent, '');
     assert.equal(moduleRoot.children[0].className, 'native-module-selection');
     assert.equal(moduleRoot.children[0].children.filter((node) => node.tagName === 'FIELDSET').length, 4);
+    assert.equal(packageRoot.children[0].className, 'installer-package-inspection');
+    assert.equal(walk(packageRoot).some((node) => node.type === 'file'), true);
     assert.equal(catalogue.full_song_default.status, 'owner-approved');
     assert.ok(catalogue.projects.every((project) => project.default_candidate === false));
 
@@ -149,6 +153,7 @@ test('loads generated catalogue, mounts the shared chooser and exports only a va
     assert.match(exportStatus.textContent, /Request exported\. No build or install was performed/);
     assert.equal(controller.getSelection().startupId, ids[1]);
     controller.destroy();
+    assert.equal(packageRoot.children[0].removed, true);
   } finally {
     URL.createObjectURL = originalCreate;
     URL.revokeObjectURL = originalRevoke;

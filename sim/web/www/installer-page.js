@@ -5,6 +5,7 @@
 import { createInstallerBuildClient } from './installer-build-client.js';
 import { mountNativeDemoSelectionView } from './native-demo-selection-view.js';
 import { mountNativeModuleSelectionView } from './native-module-selection-view.js';
+import { mountLocalPackageInspection } from './installer-package-inspection.js';
 
 function downloadRequest(request, document, status) {
   const payload = `${JSON.stringify(request, null, 2)}\n`;
@@ -51,6 +52,9 @@ export async function mountInstallerPage(root, {
   const moduleRoot = document.getElementById?.('installer-modules');
   const cancelButton = document.getElementById?.('installer-cancel-build');
   const serviceNotice = document.getElementById?.('installer-service-notice');
+  const packageInspectionRoot = document.getElementById?.('installer-package-inspection');
+  const packageInspection = packageInspectionRoot
+    ? mountLocalPackageInspection(packageInspectionRoot) : null;
   if (buildClient !== null && typeof buildClient.build !== 'function') {
     throw new TypeError('buildClient must provide a build method');
   }
@@ -114,7 +118,10 @@ export async function mountInstallerPage(root, {
       serviceNotice.textContent = 'Private diagnostic build requests are enabled for this origin. Availability is checked when you submit. Results do not establish installability or hardware acceptance.';
     }
     if (loading) loading.textContent = '';
-    return controller;
+    return Object.freeze({
+      destroy() { controller.destroy(); packageInspection?.destroy(); },
+      getSelection() { return controller.getSelection(); },
+    });
   } catch (error) {
     if (loading) {
       loading.textContent = error instanceof Error
