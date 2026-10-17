@@ -15,6 +15,7 @@ import subprocess
 from pathlib import Path, PurePosixPath
 
 from compile_catalogue import optimization_overrides
+from build_demo_image import checked_continuous_midi_input
 
 TUPLE_SCHEMA = 2
 PROVENANCE_SCHEMA = 1
@@ -363,6 +364,12 @@ def _false_flags(obj, fields, label):
             raise ValueError(f"{label} must keep {field}=false")
 
 
+def _verify_continuous_midi_receipts(image, verification):
+    midi = checked_continuous_midi_input(verification)
+    if canonical(image.get("native_midi_input")) != canonical(midi):
+        raise ValueError("continuous image does not bind the enabled TRS MIDI input")
+
+
 def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolchain: Path, *,
                                 invocation_path: Path, worker_source_path: Path,
                                 worker_provenance_path: Path, wrapper_path: Path):
@@ -443,6 +450,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raise ValueError("continuous runtime policy digest is not pinned")
     if verification.get("probe_return_to_rom_seconds") is not None:
         raise ValueError("continuous link unexpectedly has a bounded return timer")
+    _verify_continuous_midi_receipts(image, verification)
     if (verification.get("flash_layout") != "expanded-d7000"
             or type(verification.get("app_budget_bytes")) is not int
             or image.get("target_app_storage") is None):

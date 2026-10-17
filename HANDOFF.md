@@ -8470,3 +8470,15 @@ union/provenance review remains next; reused hostcodec is outside new host
 compile coverage. Aeon only; do not contact Hera during maintenance. Physical
 monitor connection question is still pending. Recovery/audio/storage/public
 release acceptance remains open; overall goal ACTIVE.
+
+
+### Continuous TRS MIDI release gap
+
+The fresh fulltrace aggregate and consumed36 header review are complete as bounded
+evidence; see notes/2026-10-17-tuple-bound-libcxx-source.md. Header/source-distribution
+and physical acceptance gaps remain. The next candidate now requires enabled
+TRS in continuous mode, its linked parser objects and matching image/tuple
+receipts. Focused host suites passed; independent review and fresh Aeon target
+fit remain next. See notes/2026-10-17-continuous-trs-midi.md. Old reproduced
+app888ef842/ELFfed2d7e remain historical, not this changed candidate. No new
+hardware action; pending physical monitor connection remains the recovery blocker.

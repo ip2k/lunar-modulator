@@ -16,6 +16,7 @@ from runtime_mode import runtime_configuration
 from firmware_identity import identity_configuration
 from flash_layout import app_budget
 from build_demo_image import build_selection
+from build_application_probe import native_midi_input_configuration
 
 
 def inputs(runtime_mode='diagnostic', project_count=2, include_set=False):
@@ -56,6 +57,10 @@ def inputs(runtime_mode='diagnostic', project_count=2, include_set=False):
                     elf_sha256=sha(b'elf'), app_sha256=sha(b'app'), app_bytes=3,
                     flash_layout='expanded-d9000', app_budget_bytes=100)
     if runtime_mode == 'continuous':
+        verification['native_midi_input'] = native_midi_input_configuration(True)
+        verification['linked_objects'] = [
+            dict(path='/output/link/' + name, sha256=sha(name.encode()))
+            for name in ('midi_uart_stream.o', 'midi_stream.o')]
         verification['target_app_storage'] = dict(rgb565_bytes=220848, indexed_bytes=163760,
                                                    pool_credit_bytes=57088)
     return selection, prepared, verification, artifact, b'app', b'elf'
@@ -282,6 +287,8 @@ def continuous_inputs():
     values = shapes8_inputs()
     values[2]['runtime_configuration'] = runtime_configuration('continuous')
     values[2]['probe_return_to_rom_seconds'] = None
+    values[2]['native_midi_input'] = native_midi_input_configuration(True)
+    values[2]['linked_objects'] = inputs('continuous')[2]['linked_objects']
     values[2]['target_app_storage'] = dict(rgb565_bytes=220848, indexed_bytes=163760,
                                           pool_credit_bytes=57088)
     return values
@@ -292,6 +299,7 @@ def test_continuous_receipt_accepts_exact_current_target_abi_without_admission()
     assert receipt['target_app_storage'] == dict(rgb565_bytes=220848, indexed_bytes=163760,
                                                pool_credit_bytes=57088)
     assert receipt['instance_pool_bytes'] == 165376
+    assert receipt['native_midi_input'] == native_midi_input_configuration(True)
     for flag in ('installable', 'hardware_admitted', 'hardware_tested',
                  'native_ram_verified', 'native_playback_verified',
                  'full_song_default_accepted'):
@@ -390,3 +398,56 @@ def test_save_receipt_refuses_wrong_or_duplicate_codec(fault):
     elif fault == 'mode': values[2]['state_bin_codec']['mode'] = 'default'
     with pytest.raises(ValueError, match='SAVE codec'):
         checked_link_receipt(*values, require_save_service=True)
+
+
+@pytest.mark.parametrize('fault', [
+    'missing', 'disabled', 'ring', 'poll', 'usb', 'hardware', 'bool-as-int',
+    'missing-object', 'duplicate-object', 'bad-object-hash',
+])
+def test_continuous_image_refuses_disabled_or_unbound_trs_midi(fault):
+    values = continuous_inputs()
+    verification = values[2]
+    if fault == 'missing':
+        verification.pop('native_midi_input')
+    elif fault == 'disabled':
+        verification['native_midi_input'] = native_midi_input_configuration(False)
+    elif fault in ('missing-object', 'duplicate-object', 'bad-object-hash'):
+        rows = verification['linked_objects']
+        if fault == 'missing-object':
+            rows.pop()
+        elif fault == 'duplicate-object':
+            rows.append(dict(rows[0]))
+        else:
+            rows[0]['sha256'] = 'not-a-digest'
+    else:
+        key, value = {
+            'ring': ('ring_bytes', 512), 'poll': ('bytes_per_poll', 64),
+            'usb': ('usb_midi_preserved', False),
+            'hardware': ('hardware_tested', True), 'bool-as-int': ('enabled', 1),
+        }[fault]
+        verification['native_midi_input'][key] = value
+    with pytest.raises(ValueError, match='TRS MIDI'):
+        checked_link_receipt(*values, runtime_mode='continuous')
+
+
+@pytest.mark.parametrize('runtime_mode', ['continuous', 'diagnostic', 'song-diagnostic'])
+def test_actual_lower_builder_command_enables_trs_for_continuous_only(
+        monkeypatch, tmp_path, runtime_mode):
+    import build_demo_image as builder
+    monkeypatch.setattr(builder, 'validate_build_profile', lambda *args: None)
+    monkeypatch.setattr(builder, 'prepare_selection', lambda *args, **kwargs: {
+        'prepared_profile_sha256': sha(b'prepared'), 'startup_index': 0})
+    commands = []
+
+    def stop_at_compiler(command, **kwargs):
+        commands.append(command)
+        raise RuntimeError('captured lower builder')
+
+    monkeypatch.setattr(builder.subprocess, 'run', stop_at_compiler)
+    with pytest.raises(RuntimeError, match='captured lower builder'):
+        builder.build_selection({}, tmp_path / 'codec', tmp_path / 'toolchain',
+                                tmp_path / 'catalogue', tmp_path / 'out',
+                                runtime_mode=runtime_mode)
+    assert len(commands) == 1
+    assert commands[0].count('--enable-trs-midi') == (runtime_mode == 'continuous')
+    assert '--diagnostic-telemetry' not in commands[0]

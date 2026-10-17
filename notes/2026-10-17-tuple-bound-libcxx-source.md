@@ -380,3 +380,23 @@ Final consumed-header union/provenance review is still pending. The reused
 host state codec remains outside new host-compiler dependency coverage.
 No source-complete, distribution, installable-release or physical acceptance
 flag is promoted by this result.
+
+
+[verified: coordinator aggregate read/hash plus independent receipt checks]
+Final aggregate SHA256:
+`3e2d622ce8ff42274d04650bd076844ad78da32d86210b67f760e29f17251882`,
+with empty errors. All281 final-link objects match fresh compile receipts;
+288objects were compiled in total,7not linked. The36consumed toolchain-header
+identities were independently reconstructed by the provenance worker and match
+the aggregate exactly. All24prior identities remain unchanged. Of12new headers,
+6match tagged Clang/Newlib sources and6differ from same-path Newlib candidates.
+Overall classification is15exact,19same-path differences,1generated header and
+1without a direct path in the selected tag. This is bounded comparison evidence,
+not proof of all edit history or complete distribution clearance.
+
+Delta manifest SHA256:
+`24e73c191cc8497c3d3fc86beaaba12ce20848881f16a452cd6b5bb8d60789ff`;
+shared handoff `lunar--compiler-header-full-build-delta-20261017.md` SHA256
+`f538d7c54399a7b9f8e78db9a98dc011f2aa7d998a778d10d865942494da04a3`.
+Official Newlib/Clang/LLVM notices are retained privately. Modified/generated
+header provenance gaps and host/compiler environment limits remain recorded.

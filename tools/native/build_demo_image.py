@@ -19,6 +19,7 @@ from runtime_mode import runtime_configuration
 from module_selection import wavetable_namespaces
 from firmware_identity import identity_configuration
 from flash_layout import app_budget
+from build_application_probe import native_midi_input_configuration
 if __package__:
     from .diagnostic_profile_contract import (
         HALL_O2_STAGE7_PROFILE, validate_hall_o2_stage7_modules,
@@ -128,6 +129,25 @@ def checked_wavetable_profile(verification, selected, *, target_storage=None):
 
 
 
+def checked_continuous_midi_input(verification):
+    """Require the fixed UART receiver and its two freshly linked inputs."""
+    expected = native_midi_input_configuration(True)
+    actual = verification.get('native_midi_input')
+    if (actual != expected or not isinstance(actual, dict)
+            or any(type(actual.get(key)) is not type(value)
+                   for key, value in expected.items())):
+        raise ValueError('Continuous image requires the fixed enabled TRS MIDI input')
+    linked = verification.get('linked_objects', [])
+    for name in ('midi_uart_stream.o', 'midi_stream.o'):
+        rows = [row for row in linked if isinstance(row, dict)
+                and isinstance(row.get('path'), str)
+                and Path(row.get('path', '')).name == name]
+        if (len(rows) != 1 or not isinstance(rows[0].get('sha256'), str)
+                or not re.fullmatch(r'[0-9a-f]{64}', rows[0]['sha256'])):
+            raise ValueError('Continuous TRS MIDI receiver objects must be linked exactly once')
+    return expected
+
+
 def checked_link_receipt(selection, prepared, verification, artifact, app, elf, *,
                          runtime_mode='diagnostic', require_save_service=False,
                          firmware_identity=None, flash_layout=None, diagnostic_profile=None):
@@ -223,6 +243,8 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                 or sum(row.get('path') == codec['fresh_object'] for row in linked) != 1
                 or any(row.get('path') == codec['cached_object'] for row in linked)):
             raise ValueError('Production SAVE codec must replace exactly one cached object')
+    midi = (checked_continuous_midi_input(verification)
+            if runtime_mode == 'continuous' else None)
     return dict(version=1, status='linked-private-diagnostic',
                 request_sha256=selection['request_sha256'],
                 prepared_profile_sha256=selection['prepared_profile_sha256'],
@@ -238,6 +260,7 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
                 embedded_content=embedded,
                 content=expected_assets, runtime_configuration=expected_runtime,
                 firmware_identity=expected_identity,
+                **({'native_midi_input': midi} if midi is not None else {}),
                 app_sha256=sha(app), elf_sha256=sha(elf),
                 app_bytes=len(app), app_budget_bytes=artifact['app_budget_bytes'],
                 installable=False, hardware_admitted=False, hardware_tested=False,
@@ -308,6 +331,7 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
                     '--stack-watermark', '--flash-layout', flash_layout,
                     *identity_flags,
                     *profile_flags, *diagnostic_flags,
+                    *(['--enable-trs-midi'] if runtime_mode == 'continuous' else []),
                     '--prepared-profile', str(prepared_dir),
                     '--expected-profile-sha256', manifest_sha, '--link-project-loader',
                     '--link-project-save-service',

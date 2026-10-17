@@ -405,3 +405,20 @@ def test_tuple_schema_is_v2_while_capture_sidecars_keep_independent_versions():
     provenance = dict(value)
     provenance["schema"] = PROVENANCE_SCHEMA
     assert provenance["schema"] == 1
+
+
+def test_tuple_capture_requires_matching_enabled_trs_receipts():
+    from copy import deepcopy
+    from capture_trusted_build_tuple import _verify_continuous_midi_receipts
+    from test_native_demo_image_controller import continuous_inputs
+    verification = continuous_inputs()[2]
+    image = {'native_midi_input': deepcopy(verification['native_midi_input'])}
+    _verify_continuous_midi_receipts(image, verification)
+    for field, value in [('enabled', False), ('enabled', 1),
+                         ('bytes_per_poll', 64), ('hardware_tested', True)]:
+        changed = deepcopy(image)
+        changed['native_midi_input'][field] = value
+        with pytest.raises(ValueError, match='TRS MIDI'):
+            _verify_continuous_midi_receipts(changed, verification)
+    with pytest.raises(ValueError, match='TRS MIDI'):
+        _verify_continuous_midi_receipts({}, verification)
