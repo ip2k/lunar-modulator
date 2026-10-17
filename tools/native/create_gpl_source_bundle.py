@@ -348,8 +348,14 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
     if generated_link_metadata is not None:
         source_scope+=" and tuple-bound generated link source inputs"
     source_scope+="; see MANIFEST.json.\n"
+    building=(f"Source commit: {commit}\nGit tree: {tree}\nProfile: {rec.get('profile_id')}\nToolchain image SHA-256: {rec.get('toolchain_image_sha256')}\nToolchain tree SHA-256: {rec.get('toolchain_tree_sha256')} (not included)\n"
+              "\nHost state-codec tool (fm1-state):\n"
+              "From a clean source extraction, build with a fresh output directory:\n"
+              "  make -C engines BUILD=build/source-bundle-host FM1_GPL_MODS=1 FM1_MODULES=all OPT=-O2 EXTRA= CC=cc CXX=g++ -j4 build/source-bundle-host/fm1-state\n"
+              "This host recipe uses the host C/C++ compilers; it is separate from the pi32v2 target compiler/toolchain identified above. The host compiler binaries, versions and consumed system dependencies are not separately inventoried here.\n"
+              "No reproducible environment or distribution authorization is provided.\n")
     entries={"SOURCE-COMPLETENESS.txt":("INCOMPLETE SOURCE/NOTICES BUNDLE\ncorresponding_source_complete=false\ndistribution_eligible=false\n"+source_scope+("Exact project/SET source bytes used by the state codec are included.\n" if prepared_dir is not None else "Packed project/SET inputs are not bound to their original source bytes.\n")+"The external JieLi toolchain is identified by digest but is not included.\nDo not distribute as complete corresponding source.\n").encode(),
-    "BUILDING.txt":(f"Source commit: {commit}\nGit tree: {tree}\nProfile: {rec.get('profile_id')}\nToolchain image SHA-256: {rec.get('toolchain_image_sha256')}\nToolchain tree SHA-256: {rec.get('toolchain_tree_sha256')} (not included)\nNo reproducible environment or distribution authorization is provided.\n").encode()}
+    "BUILDING.txt":building.encode()}
     entries.update(dict(rows)); files=[{"path":p,"sha256":sha(b),"bytes":len(b)} for p,b in rows]
     selected_rows=[]
     for item in selected_inputs:
