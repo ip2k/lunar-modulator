@@ -112,3 +112,30 @@ def test_report_reserves_complete_frame_and_snapshot_is_coherent():
     assert 'last_report) < 4000u' in report
     snapshot=source.split('void lunar_resampler_profile_snapshot(',1)[1].split('\n}',1)[0]
     assert snapshot.index('irq_save()') < snapshot.index('fm1_ticks()') < snapshot.index('busy_ticks') < snapshot.index('irq_restore(')
+
+
+@pytest.mark.parametrize("hot_dsp_os,limiter_os,hall_o2", [
+    (False, False, False), (True, False, False), (False, True, False),
+    (False, False, True), (True, True, True),
+])
+def test_postlink_report_optimization_expression_accepts_profile_args(hot_dsp_os, limiter_os, hall_o2):
+    """Evaluate the real post-link report expression without a target build.
+
+    Report construction occurs after linking; unsupported keywords here can
+    waste a complete target build despite passing catalogue validation.
+    """
+    import ast
+    from types import SimpleNamespace
+    tree = ast.parse((ROOT / "tools/native/build_application_probe.py").read_text())
+    expressions = [node.value for node in ast.walk(tree)
+                   if isinstance(node, ast.keyword) and
+                   node.arg == "catalogue_optimization_overrides"]
+    assert len(expressions) == 1
+    expression = ast.Expression(body=expressions[0])
+    ast.fix_missing_locations(expression)
+    args = SimpleNamespace(hot_dsp_os=hot_dsp_os, limiter_os=limiter_os,
+                           hall_o2=hall_o2, diagnostic_resampler_stage_profile=True)
+    overrides = eval(compile(expression, "postlink-report", "eval"),
+                     {"optimization_overrides": builder.optimization_overrides, "args": args})
+    assert overrides == builder.optimization_overrides(
+        "z", hot_dsp_os, limiter_os, hall_o2=hall_o2)

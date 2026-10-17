@@ -1051,8 +1051,7 @@ def main():
                   instance_pool_bytes=instance_pool_bytes, target_app_storage=app_storage,
                   catalogue_objects=catalogue_receipts,
                   catalogue_optimization_overrides=optimization_overrides(
-                      'z', args.hot_dsp_os, args.limiter_os, hall_o2=args.hall_o2,
-        resampler_stage_profile=args.diagnostic_resampler_stage_profile),
+                      'z', args.hot_dsp_os, args.limiter_os, hall_o2=args.hall_o2),
                   catalogue_limiter_os=args.limiter_os,
                   catalogue_hall_o2=args.hall_o2,
                   hot_dsp_ram=dict(hot_dsp_ram_receipt,
