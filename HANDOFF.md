@@ -1,3 +1,37 @@
+## Verified cable still absent; TARGET ports empty for monitor review — 2026-10-16
+
+[reported: owner] Replaced only FM1-to-TARGET-A with independently verified
+USB data cable. [verified: passive bench inventory] At 2026-10-17 00:19:25 UTC,
+FM1 still absent; raw inventory: scratch/cynthion-usb-key-20261016/
+debug-readback-control-power/verified-cable-enumeration.txt. No new key attempt
+has run with this cable. Terminal layout6 operation remains stopped/high-Z.
+
+[reported: owner, latest reply] Both TARGET ports now empty; CONTROL remains
+connected to Mac. Preserve empty topology until reviewed monitor-only gateware
+is ready. Assigned worker installer_evidence_contract is implementing bounded
+PAC1954 CH1 voltage/sense readback using maintained LUNA I2C support; no key,
+SOF or data-output enable. PinsN pwrdn logical zero is physical high/enabled,
+confirmed against factory self-test. Power readings will describe USB load,
+not directly establish CPU supply or switch ON direction. No new device writes.
+
+[verified: source review/backups] NOR analysis overlay anchor repaired in
+86154bc7 (19 tests / 26 subtests passed). Canonical metadata regenerated in
+6761a7b6: Shapes RAM 207728 to 207736, consequent CRC53ec1875 to64c1b688;
+worker reports 15 focused schema checks plus exact exporter comparison pass.
+Root environments currently skip schema module for missing dependencies;
+locating worker interpreter before repeating. Both commits pushed with remote
+SHA verified. Startup allocation test repair remains assigned; full current
+CI dispatch still pending these repairs. No CI/main/release success claimed.
+
+[verified: offline experiment] Separate resampler branch fd853c5c passed
+576000 bit-exact output/full-state samples in each of O2, Oz and sanitized O3,
+plus 13 focused tests. Isolated target Oz RAM +48 bytes, stack use increased;
+no speed gain demonstrated. Worker now assigned full current-profile 13-engine
+baseline/candidate link, RAM fit and codegen review. Not integrated.
+
+Overall goal remains active: recovery, real-time audio, persistence, production
+installer delivery, physical acceptance and release gates remain unresolved.
+
 ## Installer profile bridge integrated; hardware cable check pending — 2026-10-16
 
 [verified: host tests/source] Internal explicit D7000/song-diagnostic configuration
