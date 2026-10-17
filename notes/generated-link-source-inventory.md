@@ -32,3 +32,16 @@ No new target build or hardware run was performed for this change. Tests cover
 synthetic capture/export, conditional content selection, deterministic archive
 bytes, tamper/path/bound rejection, and downstream loader/packager row
 validation.
+
+## Full tree manifest versus catalogue receipt
+
+[verified: fresh bff915 build receipts and exporter input validation]
+When exporting libc++ inputs, `catalogue_manifest` requires the full schema-1
+`trusted-build/catalogue-tree-manifest.json`, bound by provenance field
+`catalogue_tree_sha256`. The separate schema-2
+`trusted-build/build/catalogue-manifest.json` is the selected catalogue receipt,
+bound by the tuple's `catalogue_sha256`; it cannot substitute for the tree
+manifest. The exporter checks raw manifest bytes against the tree digest before
+reading catalogue headers. A mistaken invocation fails closed and does not
+invalidate an otherwise completed tuple capture. Corrected exports must use a
+separate output directory and leave the retained build evidence unchanged.

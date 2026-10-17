@@ -1,3 +1,30 @@
+## Fresh trusted capture/package passed; export invocation stopped — 2026-10-17 UTC
+
+[verified: coordinator independently checked retained digest bindings, raw app/ELF
+equality, and independent FWSC header/table/all8payload CRCs]
+Fresh bff915ba0ee4922121a0623ebd1691346bd48e62 service and trusted builds passed.
+Tuple32d2718546179ee9b10f5cd861622379206a0457d8a5a816e306d5befcd621a5;
+provenance01e93a88391ea61c0c20488f668285d2732bdef340e3ee8e444c208b7d113563.
+App854528B/ELF989648B remain byte-identical across independent build paths.
+Private package978484B SHA10bdcc871fb534690f50b767a59990a70c9eaf27603265b8d2e8330eec1d95a5.
+Root proof: scratch/aeon-routing-resume-20261017/bff915-package-root-verification.json.
+Run /home/claude/mvave-fm1/private-generated-link-bff915-preflight-20261017.
+The OUTER runner exited1 afterward: source export incorrectly supplied schema2
+build/catalogue-manifest.json instead of schema1 trusted-build/catalogue-tree-manifest.json.
+Exporter rejected the digest mismatch; completed tuple/package evidence remains intact.
+No source archive completed. A separate read-only export preflight is being prepared;
+no rebuild/reseal/retry of the retained run. Root must review before export execution.
+Full run inventory/terminal evidence worker handoff remains pending at this checkpoint.
+
+[verified: coordinator review, integration and three-suite rerun] Current code
+38e02719530d36b004665bb483890f90d9380862 adds bounded retained private failure-log
+prefixes with exclusive owner-only paths and generic public errors.209passed/1skip,
+existing Starlette/httpx warning. This does not bound existing in-memory PIPE capture
+or change timeout behavior. CI39010710174 dispatched for current code; older8e run
+39009495567 still had4jobs running at latest query. No current green claim.
+All installability/hardware/release gates false; public service disabled, SAVE disarmed.
+Aeon only; no Hera/device writes. Goal ACTIVE; recovery/audio/physical acceptance open.
+
 ## Prepared-content digest fix integrated — 2026-10-17 UTC
 
 [verified: coordinator code review, cherry-pick, four focused suites and remote SHA]
