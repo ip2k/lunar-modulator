@@ -85,6 +85,16 @@ def _json_bytes(raw: bytes) -> dict:
     return value
 
 
+def _json_array_bytes(raw: bytes) -> list:
+    def reject_constant(_value):
+        raise ValueError("non-finite JSON number is not permitted")
+    value = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique,
+                       parse_constant=reject_constant)
+    if not isinstance(value, list):
+        raise ValueError("JSON input must be an array")
+    return value
+
+
 def _safe_ref(base: Path, ref: str) -> Path:
     if not isinstance(ref, str):
         raise ValueError("unsafe relative trace reference")
@@ -122,6 +132,104 @@ def _canonical_linked_path(path: str) -> str:
     if path.startswith(prefix):
         return "/catalogue/" + path[len(prefix):]
     return path
+
+
+def _catalogue_alias_path(path: str) -> str | None:
+    """Return the output-root identity for a canonical /catalogue alias."""
+    prefix = "/catalogue/"
+    if not isinstance(path, str) or not path.startswith(prefix):
+        return None
+    rel = path[len(prefix):]
+    parts = PurePosixPath(rel)
+    if (not rel or not parts.parts or "\\" in rel or parts.is_absolute() or parts.as_posix() != rel
+            or any(part in ("", ".", "..") for part in parts.parts)):
+        raise ValueError("unsafe final-link catalogue alias path")
+    return "/output/catalogue/" + rel
+
+
+def _check_catalogue_alias_mounts(launcher_pins: dict, created_inspects: list[list[dict]],
+                                  output_root: Path) -> None:
+    """Require pinned policy and actual created-container mounts for the alias."""
+    output_root = Path(output_root).resolve(strict=True)
+    catalogue_root = output_root / "catalogue"
+    if (catalogue_root.is_symlink() or not catalogue_root.is_dir()
+            or catalogue_root.resolve(strict=True) != output_root / "catalogue"):
+        raise ValueError("fresh catalogue mount source is not a safe directory")
+    expected_sources = {"/output": (str(output_root), False),
+                        "/catalogue": (str(catalogue_root), True)}
+    expected_actual_mounts = {"/output": (str(output_root), True),
+                              "/catalogue": (str(catalogue_root), False)}
+    image_id = launcher_pins.get("container_image_id")
+    if not isinstance(image_id, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
+        raise ValueError("catalogue alias container image pin is malformed")
+
+    contracts = launcher_pins.get("mount_contracts")
+    if not isinstance(contracts, dict):
+        raise ValueError("catalogue alias lacks pinned launcher mount contracts")
+    for mode in ("catalogue", "highlevel"):
+        contract = contracts.get(mode)
+        if not isinstance(contract, dict) or contract.get("mode") != mode:
+            raise ValueError("catalogue alias launcher mode contract is missing")
+        roots = contract.get("allowed_roots")
+        if not isinstance(roots, list):
+            raise ValueError("catalogue alias allowed-root evidence is malformed")
+        expected_roots = {"/catalogue": "catalogue-and-cxx",
+                          "/output/catalogue": "catalogue-and-cxx",
+                          "/output": "fresh-build-output"}
+        seen_roots = {}
+        for row in roots:
+            if not isinstance(row, dict):
+                raise ValueError("catalogue alias allowed-root row is malformed")
+            path, root_class = row.get("path"), row.get("class")
+            if not isinstance(path, str) or not isinstance(root_class, str):
+                raise ValueError("catalogue alias allowed-root identity is malformed")
+            if path in expected_roots:
+                if path in seen_roots:
+                    raise ValueError("duplicate catalogue alias allowed-root path")
+                seen_roots[path] = root_class
+        if seen_roots != expected_roots:
+            raise ValueError("catalogue alias mount contract does not declare exact roots")
+        targets = contract.get("mount_targets")
+        if not isinstance(targets, list):
+            raise ValueError("catalogue alias mount targets are malformed")
+        target_map = {}
+        for target in targets:
+            if (not isinstance(target, dict) or not isinstance(target.get("path"), str)
+                    or type(target.get("readonly")) is not bool or target.get("path") in target_map):
+                raise ValueError("duplicate or malformed catalogue alias mount target")
+            target_map[target["path"]] = (target.get("source"), target.get("readonly"))
+        if any(target_map.get(path) != identity for path, identity in expected_sources.items()):
+            raise ValueError("pinned catalogue alias mounts do not identify the fresh output tree")
+
+    seen_modes = set()
+    for inspect in created_inspects:
+        if not isinstance(inspect, list) or len(inspect) != 1 or not isinstance(inspect[0], dict):
+            raise ValueError("created-container inspect evidence is malformed")
+        container = inspect[0]
+        if container.get("Image") != image_id:
+            raise ValueError("created-container image differs from pinned launcher image")
+        labels = container.get("Config", {}).get("Labels", {})
+        mode = labels.get("codex.mode") if isinstance(labels, dict) else None
+        if mode not in ("catalogue", "highlevel"):
+            raise ValueError("created-container inspect mode is missing")
+        mounts = container.get("Mounts")
+        if not isinstance(mounts, list):
+            raise ValueError("created-container mount evidence is missing")
+        actual = {}
+        for mount in mounts:
+            if not isinstance(mount, dict):
+                raise ValueError("created-container mount row is malformed")
+            target = mount.get("Destination")
+            if target in expected_sources:
+                if (target in actual or mount.get("Type") != "bind"
+                        or type(mount.get("RW")) is not bool):
+                    raise ValueError("duplicate actual catalogue alias mount")
+                actual[target] = (mount.get("Source"), mount.get("RW"))
+        if actual != expected_actual_mounts:
+            raise ValueError("created-container mounts do not prove the exact catalogue alias")
+        seen_modes.add(mode)
+    if seen_modes != {"catalogue", "highlevel"}:
+        raise ValueError("created-container mount evidence does not cover both launch modes")
 
 
 def _classify_compile_receipt(receipt_path: str) -> tuple[str, str]:
@@ -262,6 +370,7 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
     if not isinstance(execution.get("terminal_records"), list):
         raise ValueError("trace terminal records must be an array")
     execution_seen = {}
+    execution_payloads = {}
     for ref in execution_refs:
         if not isinstance(ref, dict):
             raise ValueError("trace execution evidence reference is malformed")
@@ -276,6 +385,7 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
             continue
         execution_seen[name] = identity
         entries[name] = raw
+        execution_payloads[ref["path"]] = raw
 
     receipt_manifest_ref = trace.get("receipt_manifest")
     if not isinstance(receipt_manifest_ref, dict):
@@ -450,10 +560,43 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
         if not isinstance(item, dict) or not isinstance(item.get("path"), str) or item["path"] in input_map:
             raise ValueError("duplicate or malformed final link input")
         input_map[item["path"]] = (item.get("sha256"), item.get("size"))
+    raw_input_map = dict(input_map)
     expected_link_inputs = {p: (h, object_rows[p]["size"]) for p, h in expected_objects.items()}
     for key in ("linker", "plugin"):
         item = trace["toolchain"].get(key, {})
         expected_link_inputs[item.get("path")] = (item.get("sha256"), _toolchain_size(toolchain_manifest, item.get("path"), toolchain_root))
+    aliases = {path: _catalogue_alias_path(path) for path in input_map
+               if path.startswith("/catalogue/")}
+    if aliases:
+        launcher_ref = execution.get("launcher_pins")
+        launcher_raw = execution_payloads.get(launcher_ref.get("path")) if isinstance(launcher_ref, dict) else None
+        if launcher_raw is None:
+            raise ValueError("catalogue alias lacks hash-pinned launcher mount evidence")
+        launcher_pins = _json_bytes(launcher_raw)
+        created_inspects = []
+        for ref in execution.get("terminal_records", []):
+            name = ref.get("path") if isinstance(ref, dict) else None
+            if isinstance(name, str) and name.endswith(".created.inspect.json"):
+                raw = execution_payloads.get(name)
+                if raw is None:
+                    raise ValueError("catalogue alias lacks hash-pinned created-container evidence")
+                created_inspects.append(_json_array_bytes(raw))
+        _check_catalogue_alias_mounts(launcher_pins, created_inspects, output_root)
+        normalized_inputs = {}
+        for path, identity in input_map.items():
+            normalized = aliases.get(path, path)
+            if normalized in normalized_inputs:
+                raise ValueError("duplicate final-link input after catalogue alias normalization")
+            if path in aliases:
+                expected = expected_link_inputs.get(normalized)
+                if expected is None:
+                    raise ValueError("catalogue alias does not identify an expected linked object")
+                actual = _runtime_file(normalized, "/output", output_root)
+                if (identity != expected or _sha(actual) != expected[0]
+                        or len(actual) != expected[1]):
+                    raise ValueError("catalogue alias bytes differ from linked compile identity")
+            normalized_inputs[normalized] = identity
+        input_map = normalized_inputs
     extras = {p:v for p,v in input_map.items() if p not in expected_link_inputs}
     if len(extras) != 1:
         raise ValueError("final link must have exactly one additional pinned linker script input")
@@ -481,7 +624,7 @@ def collect_compiler_headers(*, trace_path: Path, expected_trace_sha256: str,
     expected_link_inputs[script_path] = script_identity
     aggregate_inputs = final.get("inputs")
     if (not isinstance(aggregate_inputs, list)
-            or {x.get("path"):(x.get("sha256"),x.get("size")) for x in aggregate_inputs} != input_map
+            or {x.get("path"):(x.get("sha256"),x.get("size")) for x in aggregate_inputs} != raw_input_map
             or input_map != expected_link_inputs):
         raise ValueError("final link input set does not exactly match linked objects + pinned linker inputs")
     linkname = "compiler-trace/receipts/" + final["receipt_path"]
