@@ -10,6 +10,19 @@ export const CONTENT_LIMITS = Object.freeze({
   maxPackedTotalBytes: 1048576,
 });
 
+// Must match tools/native/diagnostic_profile_contract.py. These are explicit
+// caller-selected groups for the fixed private Hall O2 stage7 profile.
+export const D7000_REQUIRED_BY_GROUP = Object.freeze({
+  engines: Object.freeze(['macro', 'shapes', 'sixop', 'drums']),
+  effects: Object.freeze(['hall']),
+});
+
+export function missingD7000ProfileModules(selectedByGroup) {
+  return Object.fromEntries(Object.entries(D7000_REQUIRED_BY_GROUP).map(([group, required]) => [
+    group, required.filter((id) => !selectedByGroup[group].includes(id)),
+  ]));
+}
+
 const fail = (message) => { throw new TypeError(message); };
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const isByteCount = (value) => Number.isSafeInteger(value) && value >= 0;

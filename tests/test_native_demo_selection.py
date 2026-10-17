@@ -117,15 +117,17 @@ def test_client_catalogue_override_is_refused_before_output(tmp_path):
 
 def d7000_selection(tmp_path):
     catalogue = export_catalogue(ROOT, tmp_path / 'catalogue-d7000')
-    engines = sorted(set(catalogue['groups']['engines']) | {'macro', 'shapes'})
-    return dict(version=1, **{**catalogue['groups'], 'engines': engines},
+    engines = sorted(set(catalogue['groups']['engines']) | {'macro', 'shapes', 'sixop', 'drums'})
+    effects = sorted(set(catalogue['groups']['effects']) | {'hall'})
+    return dict(version=1, **{**catalogue['groups'], 'engines': engines, 'effects': effects},
                 project_ids=['replacement-showcase-candidate-event-horizon'],
                 startup_index=0, flash_layout='expanded-d7000',
                 runtime_mode='song-diagnostic')
 
 
 @pytest.mark.parametrize('mutation', [
-    'wrong-runtime', 'missing-runtime', 'missing-layout', 'missing-fixed-module', 'unknown-key',
+    'wrong-runtime', 'missing-runtime', 'missing-layout', 'missing-fixed-module',
+    'misgrouped-fixed-module', 'unknown-key',
 ])
 def test_prepare_selection_rejects_unbound_or_invalid_profile_before_output(tmp_path, mutation):
     request = d7000_selection(tmp_path)
@@ -137,6 +139,9 @@ def test_prepare_selection_rejects_unbound_or_invalid_profile_before_output(tmp_
         del request['flash_layout']
     elif mutation == 'missing-fixed-module':
         request['engines'] = ['trio']
+    elif mutation == 'misgrouped-fixed-module':
+        request['engines'].remove('sixop')
+        request['effects'].append('sixop')
     else:
         request['unknown'] = True
     output = tmp_path / 'rejected-selection'

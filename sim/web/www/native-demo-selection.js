@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Build the narrow native demo-selection request without coupling to simulator state.
 
-import { BUILDER_GROUPS, validateNativeBuildSelection } from './native-build-selection.js';
+import {
+  BUILDER_GROUPS, missingD7000ProfileModules, validateNativeBuildSelection,
+} from './native-build-selection.js';
 
 const fail = (message) => { throw new TypeError(message); };
 const RESERVATIONS = Object.freeze({
@@ -176,7 +178,8 @@ export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, 
         || keys.some((key) => !Object.hasOwn(buildConfiguration, key))
         || buildConfiguration.flash_layout !== 'expanded-d7000'
         || buildConfiguration.runtime_mode !== 'song-diagnostic'
-        || !['macro', 'shapes'].every((id) => modules.selectedByGroup.engines.includes(id))) {
+        || Object.values(missingD7000ProfileModules(modules.selectedByGroup))
+          .some((missing) => missing.length > 0)) {
       fail('The explicit native build configuration is invalid');
     }
   }

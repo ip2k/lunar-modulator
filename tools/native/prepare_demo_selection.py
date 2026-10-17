@@ -15,6 +15,10 @@ from export_image_catalogue import export_preload_projects, export_preload_sets
 from prepare_image_profile import GROUPS, bounded_read, prepare, sha, unique_object
 from stage_demo_profile import stage_profile
 from verify_image_profile import load_prepared_profile
+if __package__:
+    from .diagnostic_profile_contract import validate_hall_o2_stage7_modules
+else:  # Direct script execution keeps tools/native on sys.path.
+    from diagnostic_profile_contract import validate_hall_o2_stage7_modules
 
 ROOT = Path(__file__).resolve().parents[2]
 _SELECTION_KEYS = {'version', *GROUPS, 'project_ids', 'startup_index'}
@@ -42,9 +46,7 @@ def _validate_selection_request(request):
                    or any(not isinstance(module, str) for module in request[group])
                    for group in GROUPS):
                 raise ValueError('Invalid module groups for expanded-d7000 profile')
-            selected = {module for group in GROUPS for module in request[group]}
-            if not {'macro', 'shapes'}.issubset(selected):
-                raise ValueError('expanded-d7000 requires the fixed Macro+Shapes8 profile')
+            validate_hall_o2_stage7_modules(request)
 
 
 def validate_build_profile(request, flash_layout, runtime_mode, wavetable_profile):

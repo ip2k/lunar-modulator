@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, Validat
 from tools.native.module_selection import wavetable_namespaces
 from tools.native.flash_layout import app_budget
 from tools.native.runtime_mode import runtime_configuration
+from tools.native.diagnostic_profile_contract import validate_hall_o2_stage7_modules
 from .provenance import make_diagnostic_provenance, sha256 as provenance_sha256
 
 MAX_BODY_BYTES = 65536
@@ -106,9 +107,9 @@ class BuildRequest(BaseModel):
         if self.flash_layout == "expanded-d7000":
             if self.runtime_mode != "song-diagnostic":
                 raise ValueError("expanded-d7000 requires the schema-2 song-diagnostic runtime")
-            selected = set(self.engines + self.effects + self.midi + self.modulation)
-            if not {"macro", "shapes"}.issubset(selected):
-                raise ValueError("expanded-d7000 requires the fixed Macro+Shapes8 profile")
+            validate_hall_o2_stage7_modules({
+                "engines": self.engines, "effects": self.effects,
+            })
         elif self.runtime_mode != "diagnostic":
             raise ValueError("legacy expanded-d9000 requests use the bounded diagnostic runtime")
         return self

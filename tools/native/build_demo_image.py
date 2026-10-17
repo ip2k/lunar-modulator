@@ -19,12 +19,18 @@ from runtime_mode import runtime_configuration
 from module_selection import wavetable_namespaces
 from firmware_identity import identity_configuration
 from flash_layout import app_budget
+if __package__:
+    from .diagnostic_profile_contract import (
+        HALL_O2_STAGE7_PROFILE, validate_hall_o2_stage7_modules,
+    )
+else:  # Direct script execution keeps tools/native on sys.path.
+    from diagnostic_profile_contract import (
+        HALL_O2_STAGE7_PROFILE, validate_hall_o2_stage7_modules,
+    )
 
 ROOT = Path(__file__).resolve().parents[2]
 WAVETABLE_PROFILE = 'compressed-required-banks-flash-plaits-v1'
 SHAPES8_WAVETABLE_PROFILE = 'compressed-required-banks-ram-plaits-braids-shapes8-v1'
-HALL_O2_STAGE7_PROFILE = 'hall-o2-stage7-v1'
-HALL_O2_STAGE7_REQUIRED_MODULES = frozenset(('macro', 'sixop', 'drums', 'hall'))
 BRAIDS_TABLE = dict(namespace='braids', symbol='wt_waves', width=1, raw_bytes=33024,
                     raw_sha256='c672fccb061496d0229bfc5c2d55ec61f367e1539dda5870fd667a059c90f634')
 SHAPES8_TABLES = (
@@ -274,11 +280,7 @@ def build_selection(request, state_tool, toolchain, catalogue, output, *,
                                            or runtime_mode != 'song-diagnostic'):
         raise ValueError('Named diagnostic profile requires expanded-d7000 song-diagnostic')
     if diagnostic_profile is not None:
-        selected = set(request.get('engines', []) + request.get('effects', [])
-                       + request.get('midi', []) + request.get('modulation', []))
-        if not HALL_O2_STAGE7_REQUIRED_MODULES.issubset(selected):
-            missing = ', '.join(sorted(HALL_O2_STAGE7_REQUIRED_MODULES - selected))
-            raise ValueError('Named diagnostic profile requires caller-selected modules: ' + missing)
+        validate_hall_o2_stage7_modules(request)
         if firmware_identity not in (None, 'FM-1_500'):
             raise ValueError('Named diagnostic profile requires explicit FM-1_500 identity')
         firmware_identity = 'FM-1_500'

@@ -27,7 +27,8 @@ from tools.native.runtime_mode import runtime_configuration
 from tools.native.flash_layout import app_budget
 
 MODULES = {"sound-a": "sound", "macro": "sound", "shapes": "sound",
-           "fx-a": "audio_fx", "midi-a": "midi_fx", "mod-a": "mod"}
+           "sixop": "sound", "drums": "sound", "fx-a": "audio_fx", "hall": "audio_fx",
+           "midi-a": "midi_fx", "mod-a": "mod"}
 PROJECTS = {"song-one", "song-two"}
 SETS = {"companion-one": "song-one"}
 TEMPLATE = WorkerTemplate("sha256:" + "a" * 64, "lunar-private-builds")
@@ -80,7 +81,8 @@ def test_accepts_canonical_request_with_opaque_id_and_fixed_template():
 
 
 def d7000_request_doc():
-    return {**request_doc(), "engines": ["macro", "shapes"],
+    return {**request_doc(), "engines": ["macro", "shapes", "sixop", "drums"],
+            "effects": ["fx-a", "hall"],
             "flash_layout": "expanded-d7000", "runtime_mode": "song-diagnostic"}
 
 
@@ -180,6 +182,29 @@ def test_default_d9000_encoding_remains_legacy_and_worker_flags_are_fixed():
         "--flash-layout", "expanded-d7000", "--runtime-mode", "song-diagnostic",
         "--wavetable-profile", SHAPES8_WAVETABLE_PROFILE,
         "--diagnostic-profile", "hall-o2-stage7-v1"]
+
+
+@pytest.mark.parametrize(("group", "module"), [
+    ("engines", "macro"), ("engines", "shapes"), ("engines", "sixop"),
+    ("engines", "drums"), ("effects", "hall"),
+])
+def test_d7000_prerequisites_are_grouped_and_rejected_before_enqueue(group, module):
+    c, adapter = client()
+    doc = d7000_request_doc()
+    doc[group].remove(module)
+    assert c.post("/api/v1/builds", json=doc).status_code == 422
+    assert adapter.jobs == {}
+    assert adapter.submissions == {}
+
+
+def test_d7000_wrong_group_module_is_rejected_before_enqueue():
+    c, adapter = client()
+    doc = d7000_request_doc()
+    doc["engines"].remove("sixop")
+    doc["effects"].append("sixop")
+    assert c.post("/api/v1/builds", json=doc).status_code == 422
+    assert adapter.jobs == {}
+    assert adapter.submissions == {}
 
 
 def test_rejects_duplicate_json_keys_before_queueing():
