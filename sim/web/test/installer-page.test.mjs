@@ -335,6 +335,21 @@ test('default Event Horizon plus selected companion SET reaches the service clie
         status: 'linked-private-diagnostic', artifact_sha256: artifactSha,
         artifact_bytes: 785312, app_budget_bytes: 868836, remaining_bytes: 83524,
         installable: false, hardware_tested: false,
+        provenance: { kind: 'private-diagnostic-build-provenance', sha256: 'e'.repeat(64) },
+        receipt_preview: {
+          flash_layout: 'expanded-d9000', runtime_mode: 'diagnostic',
+          profile: { flash_layout: 'expanded-d9000', runtime_mode: 'diagnostic', shapes_voices: 12 },
+          modules: [...catalogue.default_profile.engines, ...catalogue.default_profile.effects,
+            ...catalogue.default_profile.midi, ...catalogue.default_profile.modulation],
+          projects: [{ id: ids[5], startup: true }],
+          sets: [{ id: setId, parent_project_id: ids[5] }],
+          packed_content: { bytes: 192, assets: [
+            { kind: 'project', id: ids[5], bytes: 128, sha256: 'a'.repeat(64) },
+            { kind: 'set', id: setId, parent_project_id: ids[5], bytes: 64, sha256: 'b'.repeat(64) },
+          ] },
+          application: { sha256: artifactSha, bytes: 785312, budget_bytes: 868836, remaining_bytes: 83524 },
+          provenance: { kind: 'private-diagnostic-build-provenance', sha256: 'e'.repeat(64) },
+        },
       } }), { status: 200, headers: { 'content-type': 'application/json' } });
   };
 
@@ -375,6 +390,12 @@ test('default Event Horizon plus selected companion SET reaches the service clie
     /785,312 \/ 868,836 bytes used; 83,524 bytes free/);
   assert.match(exportStatus.textContent, /No installable firmware file is available/);
   assert.match(serviceNotice.textContent, /measured summary only/i);
+  const preview = nodes.find(node => node.className === 'installer-receipt-preview');
+  assert.ok(preview && !preview.hidden);
+  assert.match(preview.textContent, /Startup project: replacement-showcase-candidate-event-horizon/);
+  assert.match(preview.textContent, /replacement-showcase-event-horizon-companion-set → replacement-showcase-candidate-event-horizon/);
+  assert.match(preview.textContent, /browser cannot independently derive them from the catalogue/i);
+  assert.match(preview.textContent, /not installable/);
   controller.destroy();
 });
 

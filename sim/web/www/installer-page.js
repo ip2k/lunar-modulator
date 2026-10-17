@@ -48,6 +48,11 @@ export async function mountInstallerPage(root, {
     }
   }
   const status = document.getElementById?.('installer-export-status');
+  const receiptSummary = document.createElement('section');
+  receiptSummary.className = 'installer-receipt-preview';
+  receiptSummary.setAttribute('role', 'status');
+  receiptSummary.setAttribute('aria-label', 'Verified private build receipt preview');
+  receiptSummary.hidden = true;
   const loading = document.getElementById?.('installer-load-status');
   const moduleRoot = document.getElementById?.('installer-modules');
   const cancelButton = document.getElementById?.('installer-cancel-build');
@@ -65,6 +70,8 @@ export async function mountInstallerPage(root, {
   const selectionChangedMessage = 'Selection changed. Request a new build to measure flash usage.';
   function selectionChanged() {
     selectionRevision++;
+    receiptSummary.textContent = '';
+    receiptSummary.hidden = true;
     if (status) status.textContent = buildClient
       ? selectionChangedMessage : 'Selection changed. Export a new build request for these choices.';
   }
@@ -104,6 +111,8 @@ export async function mountInstallerPage(root, {
           if (cancelButton) cancelButton.hidden = false;
           if (serviceNotice) serviceNotice.textContent = `${label} returns a measured summary only. It does not provide installable firmware.`;
           if (status) status.textContent = `Submitting the selected ${label.toLowerCase()}…`;
+          receiptSummary.textContent = '';
+          receiptSummary.hidden = true;
           return buildClient.build(request, {
             signal: activeBuild.signal,
             onProgress: (phase) => {
@@ -115,6 +124,32 @@ export async function mountInstallerPage(root, {
           }).then((result) => {
             if (submittedRevision !== selectionRevision) throw new Error(selectionChangedMessage);
             if (status) status.textContent = `${label} checks passed. Application flash: ${result.artifactBytes.toLocaleString()} / ${result.appBudgetBytes.toLocaleString()} bytes used; ${result.remainingBytes.toLocaleString()} bytes free. No installable firmware file is available.`;
+            const preview = result.receiptPreview;
+            if (preview) {
+              const startup = preview.projects.find(project => project.startup)?.id;
+              const lines = [
+                `Profile: ${preview.profile.profile_id ?? preview.runtimeMode} · ${preview.flashLayout}`,
+                `Modules (${preview.modules.length}): ${preview.modules.join(', ')}`,
+                `Projects in startup order: ${preview.projects.map(project => project.id).join(', ')}`,
+                `Startup project: ${startup}`,
+                `Companion SETs: ${preview.sets.length ? preview.sets.map(set => `${set.id} → ${set.parentProjectId}`).join(', ') : 'none'}`,
+                `Packed content: ${preview.packedContentBytes.toLocaleString()} bytes`,
+                ...preview.assets.map(asset => `  ${asset.kind} ${asset.id}: ${asset.bytes.toLocaleString()} bytes · SHA-256 ${asset.sha256}`),
+                `Application: ${preview.application.bytes.toLocaleString()} bytes · SHA-256 ${preview.application.sha256}`,
+                `Provenance receipt: ${preview.provenance.kind} · SHA-256 ${preview.provenance.sha256}`,
+                'Packed-content hashes are reported by the verified service; this browser cannot independently derive them from the catalogue.',
+              ];
+              receiptSummary.textContent = '';
+              const heading = document.createElement('h3');
+              heading.textContent = 'Private build receipt preview · service-verified summary · not installable';
+              receiptSummary.append(heading);
+              for (const line of lines) {
+                const detail = document.createElement('p');
+                detail.textContent = line;
+                receiptSummary.append(detail);
+              }
+              receiptSummary.hidden = false;
+            }
           }).catch((error) => {
             if (submittedRevision !== selectionRevision) {
               if (status) status.textContent = selectionChangedMessage;
@@ -138,6 +173,7 @@ export async function mountInstallerPage(root, {
         }
       }, () => selectedBuildConfiguration, selectionChanged);
     const button = findButton(root);
+    root.append(receiptSummary);
     if (button) button.textContent = buildClient
       ? 'Request private build check' : 'Download build request (JSON)';
     if (buildClient && serviceNotice) {

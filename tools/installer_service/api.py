@@ -563,9 +563,33 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
             or any(not isinstance(codec.get(key), str) or not SHA256.fullmatch(codec[key])
                    for key in ("source_sha256", "fresh_object_sha256", "cached_object_sha256"))):
         raise ValueError("worker codec metadata is missing or invalid")
+    receipt_preview = {
+        "flash_layout": flash_layout,
+        "runtime_mode": runtime_mode,
+        "profile": provenance["profile"],
+        "modules": expected_selected,
+        "projects": [{"id": project, "startup": index == startup_index}
+                     for index, project in enumerate(projects)],
+        "sets": [{"id": set_id, "parent_project_id": expected_parents[set_id]}
+                 for set_id in set_ids],
+        "packed_content": {
+            "bytes": packed_content_bytes,
+            "assets": [{"kind": row["kind"], "id": expected_row["id"],
+                        **({"parent_project_id": expected_row["parent_project_id"]}
+                           if expected_row["kind"] == "set" else {}),
+                        "bytes": row["bytes"], "sha256": row["packed_sha256"]}
+                       for expected_row, row in zip(expected_identity, content)],
+        },
+        "application": {"sha256": artifact_sha, "bytes": len(result.artifact),
+                        "budget_bytes": receipt["app_budget_bytes"],
+                        "remaining_bytes": receipt["app_budget_bytes"] - len(result.artifact)},
+        "provenance": {"kind": provenance["kind"],
+                       "sha256": provenance_sha256(result.provenance)},
+    }
     return {"status": receipt["status"], "artifact_sha256": artifact_sha,
             "artifact_bytes": len(result.artifact), "elf_sha256": elf_sha,
             "elf_bytes": len(result.elf), "installable": False,
+            "receipt_preview": receipt_preview,
             "provenance": _provenance_summary(provenance, result.provenance),
             "app_budget_bytes": receipt["app_budget_bytes"],
             "remaining_bytes": receipt["app_budget_bytes"] - len(result.artifact),
