@@ -1,3 +1,27 @@
+## Profile correction verified; durable reopen assigned — 2026-10-17 UTC
+
+[verified: independent offline] Corrected schema9 worker36988d0c passed174focused
+tests from coordinator (resampler, wire, builder, recorder, analyzer, catalogue).
+It remains on the worker branch pending independent source review. The earlier
+unsupported optimization-report keyword is fixed, with five regression cases.
+Aeon buildworker audio_offline_gap now uses exact36988d0c for both builds.
+Control schema7 disallows IRQ tracking; schema9 requires it. Authorized pair
+therefore differs in both IRQ and resampler-stage options/cadence. Keep that
+explicit: compare full profiling package, never isolated resampler-hook cost.
+Do not weaken the old scheduler/validator to force a one-flag comparison.
+
+Read-only new-process recovery design returned. reconnect_resume now owns
+bounded private sealed-policy reopen implementation on a separate branch from
+5efd8847, with independent caller-supplied seal SHA256, original evidence
+revalidation, no-follow bounded reads and subprocess restart/synthetic recovery
+tests. No opener, public endpoint or hardware permission added. Final source
+hashes and downstream boot/adaptor review remain coordinator responsibilities.
+
+[verified: read-only monitor] Two fresh sweeps at01:09UTC reported valid PAC
+readings, TARGET-A VBUS5072754/5073730uV, current0uA, no PAC errors. This does
+not establish FM1 connection/CPU rail/recovery. No gateware or device writes.
+Unrelated uv.lock remains untouched. Full goal ACTIVE, no release acceptance.
+
 ## Aeon-only routing and profiling review — 2026-10-17 UTC
 
 Owner reiterated Hera is under MDADM/M.2 and 25G NIC maintenance: use Aeon.
