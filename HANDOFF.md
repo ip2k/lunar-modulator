@@ -1,3 +1,41 @@
+## Exact alias collector integrated; real replay active — 2026-10-17 UTC
+
+[verified: coordinator review, integrated tests and remote SHA] Integrated
+ba11f3a3 +0ba95f69 as92ca6135 and2905381a1b707e1011f5e25e006c00d120484ce6;
+remote integration SHA verified. Collector now admits catalogue path aliases
+only with hash-pinned launcher and exact shard-derived created-container set,
+matching image, mode and unique TRACE_SHARD identity, safe mount sources,
+no shadow mounts, and exact linked-object bytes. Raw trace remains unchanged.
+Integrated focused suites57passed/1skipped; skip at test_gpl_source_bundle.py355
+requires freshFM1_STATE_TOOL. gitdiffcheckpassed. CI39013381883 is pinned to
+2905381a and pending behind earlier branch run; no exact-head green claim.
+
+compiler_header_provenance has new claim
+lunar--r3-compiler-header-collector-replay-20261017 and is preparing collector-only
+host replay under Aeon
+/home/claude/mvave-fm1/private-bff-compiler-header-collector-replay-20261017/replay-r3-01.
+No target rebuild or sourcearchive export authorized. Independently pinned R3
+aggregate6f1cff3eec54774f25526c74f95671743b8beab5ebbd9c03f76b25b1cd013ea2;
+original BFF tuple32d2718546179ee9b10f5cd861622379206a0457d8a5a816e306d5befcd621a5.
+
+[reported: active source_bundle_closure actual log/source-tar/archive comparison]
+Exact BFF hostcodec was freshly built. All152 compiled repo sources size/hash
+match archive,3174321B; sortedmanifestSHA
+fa445b5cd6f682f0b3b41143179aca4d2ea02c38af6874251c380c1e95635c17.
+Makefile,modules/catalogue.mk,modules/default.list,host/state_tool.c match too.
+Await savedmanifest/handoff and rootreview. No hostsystem compiler/dependency
+trace retained; this is separate from missing first-party source and is not a
+legal conclusion that compiler/systemlibraries must be redistributed.
+
+[verified: root read-only live PAC sweep at07:24:36-40UTC] Loaded hardware still
+PAC2/layout2,active4000,fault0,controls1,all3valid,freshsequences4378/4392/4406.
+VBUS5.063965/5.077637/5.079590V,current+458/+1068/0uA. Raw readings saved under
+scratch/cynthion-pac2-root-direct-20261017/pending-connection-monitor-check.jsonl.
+No FM1connectionconfirmation received; these are unknown-load readings, not
+FM1 CPU/connection/recovery proof. Existing connect question remains pending.
+No flash/key/power command. AeonONLY,Hera untouched; uv.lock preserved.
+GoalACTIVE; hardwareaudio/recovery/persistence/webrelease remain unaccepted.
+
 ## Alias review checkpoint; checkout isolation restored — 2026-10-17 UTC
 
 [verified: Git branches, remote SHA and focused pytest] Worker accidentally used
