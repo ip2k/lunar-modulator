@@ -40,3 +40,34 @@ PYTHONPATH=/Users/likwid/.local/share/uv/tools/cynthion/lib/python3.12/site-pack
 Result on assigned base `86154bc7843d7b1965d346af78620917fd2836f1`: the exact command above passed 42 tests with 69 warnings (Amaranth/LUNA deprecation and existing unused elaboratable warnings). `Fragment.get(CynthionPowerMonitorTop(), CynthionPlatformRev1D4())` elaborated successfully and reported ULPI extras `{0x39: 0x06}`. `git diff --check` passed and Ruby Psych parsed `.github/workflows/ci.yml` successfully. These are source/simulation/elaboration checks only; they do not prove routed pin OEs, timing, current sense calibration, or physical measurement.
 
 The requested Hera routed build is blocked by current network reachability: root independently saw Hera SSH timeout and a bounded ping from bench01 also fail. Do not build on the Mac, use another host, or load hardware as a substitute. Once Hera is reachable, acquire the assigned unique coordination claim, build with the documented OSS CAD toolchain in the bounded `docker-batch.slice` container, inspect routed timing and netlist proving target GPIO OEs absent and VBUS controls CONTROL=1/TARGET-C=0/AUX=0/discharge=0, then save the bitstream hash/receipt and release the claim. Root owns all hardware operations and must review the artifact before any load.
+### Nested LUNA I2C read-path simulation follow-up
+
+The ignored, self-contained reproducer is preserved at
+`scratch/cynthion-i2c-wrapper-diagnostic/repro.py` with its latest output in
+`run.log`. The initial fixture returned `0x2569` because the responder retained
+its `saw_rise` flag across the repeated START. That allowed the START setup
+edge to advance its bit counter before the first read-address bit. Clearing
+that pending edge on START fixed the fixture without changing LUNA or project
+RTL.
+
+The corrected wrapper-level simulation now verifies the transmitted bytes
+`0x20` (address write), `0x07` (register), and `0x21` (address read), all three
+ACKs, final master NACK, STOP, and returned two-byte value `0x1234`. It checks
+all 16 actual `READ-DATA-SCL-H` sample exits: SCL output and the initiator's
+SCL feedback are high; physical SDA matches the initiator's synchronized SDA.
+The captured `r_shreg` evolution produces `0x12`, then `0x34`. This resolves
+the earlier `0x2569` discrepancy as a testbench phase error, not evidence of a
+LUNA RTL defect. The responder is still an offline deterministic model, not a
+PAC1954 electrical/bus measurement or FPGA-top integration test.
+
+Validation command:
+
+```sh
+PYTHONPATH=/Users/likwid/.local/share/uv/tools/cynthion/lib/python3.12/site-packages \
+  python3 scratch/cynthion-i2c-wrapper-diagnostic/repro.py
+```
+
+It exits zero with the assertions described above. No hardware, Hera, Aeon,
+synthesis, or project RTL was touched. Serena was ready but selected a sibling
+worktree; Rarefaction was ready on the primary checkout. Neither index was
+retargeted during this task to avoid disturbing another active session.
