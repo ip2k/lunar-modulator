@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Browser integration check for the injected same-origin diagnostic client.
 // Run in the pinned Playwright image with a static site and writable output dir.
+// For an explicitly local review, set LUNAR_BROWSER_MODE=chrome and
+// LUNAR_PLAYWRIGHT_NODE_MODULES to the installed node_modules directory.
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
@@ -8,13 +10,22 @@ import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
-const require = createRequire('/pw/');
+const localChrome = process.env.LUNAR_BROWSER_MODE === 'chrome';
+if (process.env.LUNAR_BROWSER_MODE && !localChrome) throw new Error('Unsupported browser review mode.');
+const moduleRoot = process.env.LUNAR_PLAYWRIGHT_NODE_MODULES;
+const require = createRequire(localChrome
+  ? path.join(moduleRoot || '', '..', 'playwright-review-loader.cjs') : '/pw/');
 const { chromium } = require('playwright');
+const playwrightVersion = require('playwright/package.json').version;
 const siteRoot = path.resolve(process.argv[2] || '');
 const artifactRoot = path.resolve(process.argv[3] || '');
 const imageDigest = process.argv[4] || '';
-if (!process.argv[2] || !process.argv[3] || !imageDigest.startsWith('sha256:')) {
-  throw new Error('Expected static site, output directory and pinned image digest.');
+if (!process.argv[2] || !process.argv[3]
+    || (!localChrome && !imageDigest.startsWith('sha256:'))
+    || (localChrome && !moduleRoot)) {
+  throw new Error(localChrome
+    ? 'Expected static site, output directory and LUNAR_PLAYWRIGHT_NODE_MODULES.'
+    : 'Expected static site, output directory and pinned image digest.');
 }
 await mkdir(artifactRoot, { recursive: true });
 const catalogue = JSON.parse(await readFile(path.join(siteRoot, 'demo-image-catalogue.json'), 'utf8'));
@@ -61,12 +72,15 @@ const server = createServer(async (request, response) => {
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch();
+const browser = await chromium.launch(localChrome ? { channel: 'chrome', headless: true } : {});
 const errors = [];
 const report = {
-  browser: `Chromium ${browser.version()} / Playwright 1.63.0`,
-  image_digest: imageDigest,
-  origin: 'loopback inside isolated container',
+  browser: `${localChrome ? 'Google Chrome' : 'Playwright Chromium'} ${browser.version()}`,
+  runtime: `Node ${process.version} / Playwright ${playwrightVersion}`,
+  execution_mode: localChrome ? 'local-installed-chrome' : 'pinned-playwright-container',
+  ...(localChrome ? { profile: 'fresh temporary Playwright profile' } : { image_digest: imageDigest }),
+  origin: localChrome ? 'loopback local mock server' : 'loopback inside isolated container',
+  fixture_data: 'synthetic local catalogue and mocked request-bound service response; no external API',
   errors,
   scenarios: [],
   screenshots: [],
@@ -136,6 +150,17 @@ try {
       || !offlineStatus.includes('No build or install was performed')) {
     throw new Error('The default disabled marker did not preserve offline request export.');
   }
+  const offlineState = await offlinePage.evaluate(() => ({
+    pageWidth: document.documentElement.scrollWidth,
+    viewportWidth: window.innerWidth,
+    overflow: document.documentElement.scrollWidth > window.innerWidth,
+    buildMarker: document.querySelector('meta[name="lunar-installer-build-service"]').content,
+  }));
+  if (offlineState.overflow || offlineState.buildMarker !== 'disabled') {
+    throw new Error('The public static state overflowed or enabled the private service marker.');
+  }
+  await offlinePage.screenshot({ path: path.join(artifactRoot, 'installer-public-disabled-mobile.png'), fullPage: true });
+  report.screenshots.push({ name: 'public-disabled-mobile', width: 375, height: 812, ...offlineState });
   report.scenarios.push({ name: 'default-static-page-offline-export', api_calls: offlineApiCalls,
     download_name: offlineDownload.suggestedFilename(), default_project: offlineRequest.project_ids[0] });
   await offlinePage.close();
@@ -189,7 +214,7 @@ try {
     });
     await mountClient(page);
     await selectBuild(page);
-    const button = page.getByRole('button', { name: 'Request diagnostic build' });
+    const button = page.getByRole('button', { name: 'Request private build check' });
     if (successfulRequests.length !== (viewport.name === 'desktop' ? 0 : 1)) {
       throw new Error(`${viewport.name}: a build was submitted before explicit action`);
     }
@@ -198,14 +223,14 @@ try {
     const state = await page.evaluate(() => ({
       pageWidth: document.documentElement.scrollWidth,
       viewportWidth: window.innerWidth,
-      fullSongPending: document.body.innerText.includes('Full-song default status: pending'),
+      fullSongChoiceApproved: document.body.innerText.includes('Full-song default status: owner-approved'),
       status: document.getElementById('installer-export-status').textContent,
       overflow: document.documentElement.scrollWidth > window.innerWidth,
       receiptVisible: !document.querySelector('.installer-receipt-preview').hidden,
       receiptRowsFit: [...document.querySelectorAll('.installer-receipt-preview p')]
         .every(row => row.scrollWidth <= row.clientWidth),
     }));
-    if (state.overflow || !state.fullSongPending || !state.receiptVisible || !state.receiptRowsFit) {
+    if (state.overflow || !state.fullSongChoiceApproved || !state.receiptVisible || !state.receiptRowsFit) {
       throw new Error(`${viewport.name}: clipping, receipt layout or pending status check failed`);
     }
     await page.screenshot({ path: path.join(artifactRoot, `installer-${viewport.name}.png`), fullPage: true });
@@ -236,7 +261,7 @@ try {
   });
   await mountClient(cancelPage);
   await selectBuild(cancelPage);
-  await cancelPage.getByRole('button', { name: 'Request diagnostic build' }).click();
+  await cancelPage.getByRole('button', { name: 'Request private build check' }).click();
   await cancelPage.getByRole('button', { name: 'Stop waiting' }).waitFor();
   await cancelPage.getByRole('button', { name: 'Stop waiting' }).click();
   await cancelPage.getByText(/Stopped waiting for this build/).waitFor();
@@ -252,7 +277,7 @@ try {
   }));
   await mountClient(rejectPage);
   await selectBuild(rejectPage);
-  await rejectPage.getByRole('button', { name: 'Request diagnostic build' }).click();
+  await rejectPage.getByRole('button', { name: 'Request private build check' }).click();
   await rejectPage.locator('#installer-export-status').getByText(/build request was rejected/i).waitFor();
   report.scenarios.push({ name: 'request-rejected' });
   await rejectPage.close();
