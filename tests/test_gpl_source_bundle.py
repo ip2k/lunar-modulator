@@ -186,7 +186,7 @@ def test_binds_exact_selected_project_and_set_sources_deterministically(tmp_path
     assert [row['sha256'] for row in manifest_obj['selected_source_inputs']]==[_sha(project),_sha(companion)]
     assert manifest_obj['corresponding_source_complete'] is False
     assert manifest_obj['distribution_eligible'] is False
-    assert 'external toolchain/source inputs are not included' in manifest_obj['unresolved']
+    assert 'external compiler/toolchain sources and executables are not included' in manifest_obj['unresolved']
     assert not any('project and companion SET' in row for row in manifest_obj['unresolved'])
 
 def test_rejects_tuple_prepared_digest_mismatch(tmp_path):

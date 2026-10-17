@@ -146,7 +146,10 @@ def _prepared_source_inputs(prepared_dir,rec):
     return result
 
 def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected_tuple_sha256,output,*,prepared_dir=None,
-                 catalogue_root=None,catalogue_manifest=None,libcxx_license=None,pristine_headers=None):
+                 catalogue_root=None,catalogue_manifest=None,libcxx_license=None,pristine_headers=None,
+                 compiler_trace=None,expected_trace_sha256=None,toolchain_root=None,
+                 toolchain_manifest=None,newlib_copying_newlib=None,newlib_copying=None,
+                 clang_license=None,llvm_license=None):
     if not isinstance(expected_tuple_sha256,str) or not HASH.fullmatch(expected_tuple_sha256): raise ValueError("external tuple SHA-256 invalid")
     tr,rec=_json(tuple_path)
     if sha(tr)!=expected_tuple_sha256: raise ValueError("tuple differs from external trust anchor")
@@ -160,6 +163,7 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
     mr,sm=_json(source_manifest_path)
     if sha(mr)!=rec.get("source_tree_sha256"): raise ValueError("source manifest differs from tuple digest")
     if sm.get("commit")!=commit or type(sm.get("schema")) is not int or sm.get("schema")!=1: raise ValueError("source manifest commit/schema mismatch")
+    tree,rows=_source_rows(source.resolve(),commit,sm)
     header_options=(catalogue_root,catalogue_manifest,libcxx_license,pristine_headers)
     if any(option is not None for option in header_options) and not all(
             option is not None for option in header_options):
@@ -174,7 +178,34 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
             catalogue_root=Path(catalogue_root),catalogue_manifest=Path(catalogue_manifest),
             expected_catalogue_tree_sha256=prov.get("catalogue_tree_sha256"),
             official_license=Path(libcxx_license),pristine_headers=Path(pristine_headers))
-    tree,rows=_source_rows(source.resolve(),commit,sm)
+    compiler_options=(compiler_trace,expected_trace_sha256,toolchain_root,toolchain_manifest,
+                      newlib_copying_newlib,newlib_copying,clang_license,llvm_license)
+    if any(option is not None for option in compiler_options) and not all(
+            option is not None for option in compiler_options):
+        raise ValueError("compiler-header inclusion requires trace anchor, toolchain, manifest and all fixed notices")
+    compiler_entries={}; compiler_metadata=None
+    if all(option is not None for option in compiler_options):
+        if __package__:
+            from .source_compiler_headers import collect_compiler_headers
+        else:
+            from source_compiler_headers import collect_compiler_headers
+        manifest_raw,manifest_value=_json(Path(toolchain_manifest))
+        manifest_digest=sha(manifest_raw)
+        try:
+            manifest_canonical=(json.dumps(manifest_value,sort_keys=True,separators=(",", ":"),ensure_ascii=True).encode("ascii"))
+        except (TypeError,ValueError) as exc:
+            raise ValueError("toolchain manifest is not canonical JSON data") from exc
+        if manifest_raw.rstrip(b"\n") != manifest_canonical:
+            raise ValueError("toolchain manifest must use canonical JSON encoding")
+        compiler_entries,compiler_metadata=collect_compiler_headers(
+            trace_path=Path(compiler_trace),expected_trace_sha256=expected_trace_sha256,
+            tuple_record=rec,provenance=prov,source_root=Path(source).resolve(),toolchain_root=Path(toolchain_root),
+            toolchain_manifest=manifest_value,toolchain_manifest_sha256=manifest_digest,
+            expected_tuple_sha256=expected_tuple_sha256,
+            official_sources={
+                "newlib/COPYING.NEWLIB":Path(newlib_copying_newlib),
+                "newlib/COPYING":Path(newlib_copying),
+                "clang/LICENSE.TXT":Path(clang_license),"llvm/LICENSE.TXT":Path(llvm_license)})
     if prepared_dir is not None and (
             prov.get("prepared_profile_sha256") != rec.get("prepared_profile_sha256")
             or prov.get("request_sha256") != rec.get("request_sha256")
@@ -195,7 +226,7 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
     for item in selected_inputs:
         entries[item["path"]]=item["data"]
         selected_rows.append({k:v for k,v in item.items() if k!="data"})
-    unresolved=["external toolchain/source inputs are not included"]
+    unresolved=["external compiler/toolchain sources and executables are not included"]
     if prepared_dir is None:
         unresolved.insert(0,"original project and companion SET source bytes are not bound by the tuple")
     manifest={"schema":1,"source_commit":commit,"git_tree":tree,"source_tree_sha256":rec["source_tree_sha256"],"external_tuple_sha256":expected_tuple_sha256,"files":files,"selected_source_inputs":selected_rows,"corresponding_source_complete":False,"distribution_eligible":False,"unresolved":unresolved}
@@ -210,6 +241,16 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
         entries["SOURCE-COMPLETENESS.txt"]+=(
             b"Tuple-bound libc++ source headers and fixed component notice are included.\n"
             b"This bounded addition does not establish complete corresponding source.\n")
+    if compiler_metadata is not None:
+        if set(entries) & set(compiler_entries):
+            raise ValueError("compiler trace/source paths collide with archive inputs")
+        entries.update(compiler_entries)
+        manifest["compiler_headers"]=compiler_metadata
+        manifest["unresolved"].append(
+            "container/system dependencies and non-header toolchain files in the trace are not exported by the compiler-header collector")
+        entries["SOURCE-COMPLETENESS.txt"]+=(
+            b"Independently anchored target trace, consumed pi32v2/Clang headers and fixed upstream notices are included.\n"
+            b"System/container dependencies remain unarchived; this addition does not establish complete corresponding source.\n")
     entries["MANIFEST.json"]=(json.dumps(manifest,sort_keys=True,indent=2)+"\n").encode()
     if len(entries)>MAX_FILES or sum(len(raw) for raw in entries.values())>MAX_BYTES:
         raise ValueError("complete source archive exceeds bounds")
@@ -228,8 +269,20 @@ def main():
     p.add_argument("--catalogue-manifest",type=Path)
     p.add_argument("--libcxx-license",type=Path)
     p.add_argument("--pristine-headers",type=Path)
+    p.add_argument("--compiler-trace",type=Path,help="independent final target trace aggregate (requires an external expected SHA-256)")
+    p.add_argument("--expected-trace-sha256")
+    p.add_argument("--toolchain-root",type=Path)
+    p.add_argument("--toolchain-manifest",type=Path)
+    p.add_argument("--newlib-copying-newlib",type=Path)
+    p.add_argument("--newlib-copying",type=Path)
+    p.add_argument("--clang-license",type=Path)
+    p.add_argument("--llvm-license",type=Path)
     a=p.parse_args(); print(json.dumps(build_bundle(a.source,a.tuple_path,a.provenance,a.source_manifest,a.expected_tuple_sha256,a.output,prepared_dir=a.prepared_dir,
         catalogue_root=a.catalogue_root,catalogue_manifest=a.catalogue_manifest,
-        libcxx_license=a.libcxx_license,pristine_headers=a.pristine_headers),sort_keys=True))
+        libcxx_license=a.libcxx_license,pristine_headers=a.pristine_headers,
+        compiler_trace=a.compiler_trace,expected_trace_sha256=a.expected_trace_sha256,
+        toolchain_root=a.toolchain_root,toolchain_manifest=a.toolchain_manifest,
+        newlib_copying_newlib=a.newlib_copying_newlib,newlib_copying=a.newlib_copying,
+        clang_license=a.clang_license,llvm_license=a.llvm_license),sort_keys=True))
 if __name__=="__main__": main()
 
