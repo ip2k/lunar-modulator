@@ -1,3 +1,32 @@
+## Nested browser inspection integrated; Hera intentionally offline — 2026-10-16
+
+[reported: owner] Hera is shut down. Leave its power state alone; no wake/reset
+is authorized or needed for current source work. Prior BMC-on observation does
+not override owner intent. Heavy FPGA/firmware builds remain waiting for Hera.
+Both Cynthion TARGET ports last confirmed empty; CONTROL connected. No new
+hardware load, key attempt, flash, USB command or physical boot in this turn.
+
+[verified: review/local tests/backup] Reviewed worker bbbbd6fa against Python
+092 model and integrated as b7eccffbd598f5c3a43d456121f79f69f1aa585a; origin
+SHA matched. Bounded D7000 nested JLFS/SFC geometry and CRC checks support 092
+and Lunar 5xx identity selectors. Protected-stock correspondence and hardware
+behavior remain unverified; admission/release flags stay false and verifier
+rejects. Root repeated browser inspection/admission tests: 10 passed, 1 optional
+private-artifact check skipped. No vendor bytes committed.
+
+[verified: CI dispatched] Current-source CI38987225483 targets b7eccffb and
+includes both monitor prototype and nested browser inspection. Earlier
+CI38986269932 (cdb0235f) has 11 successful jobs and 4 still running at latest
+observation. Neither run is yet full green. Current run:
+https://github.com/ip2k/lunar-modulator/actions/runs/38987225483
+
+Existing monitor worker assigned a bounded follow-up: actual LUNA register-read
+bus simulation to close documented wrapper byte-order evidence gap. No FPGA
+synthesis/heavy work or hardware access. Next: review that result/current CI;
+when Hera is available resume claimed routed monitor build and exact matched
+resampler builds. Keep hardware/recovery and musical acceptance gates intact.
+Overall goal ACTIVE; unrelated untracked uv.lock untouched.
+
 ## Independent browser inspection work dispatched — 2026-10-16
 
 [verified: source audit] Browser outer FWSC checks and exact linked-app flash
