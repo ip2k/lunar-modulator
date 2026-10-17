@@ -1,3 +1,31 @@
+## Independent bff source export verified; passive recovery check — 2026-10-17 UTC
+
+[verified: coordinator independently rehashed archive members, original-run files,
+generated payloads and retained terminal resource receipts] Separate export completed:
+4,473,327 bytes, SHA256 96840b6bf386d99ce351b40f0a8a14b66d9711786198004c1279a5653b160b8a.
+Archive/replay byte-identical; 1,235 unique safe regular members, 14 generated
+sources (715,837 bytes), selected Event Horizon project/SET and 189 libc++ headers
+plus license. Exact bff source and tuple remain bound. All709 original regular
+files were independently rehashed; full1,343-entry inventory is unchanged.
+Both original build containers exited0/noOOM and met recorded resource controls.
+Proof: scratch/aeon-routing-resume-20261017/bff915-export-root-verification.json.
+Archive remains on Aeon under private-generated-link-bff915-export-review-20261017/output/.
+No original-run rebuild, recapture, reseal or mutation was performed.
+Corresponding-source completeness/distribution/hardware/installability remain false.
+Next offline dependency: fresh bff dependency-trace preflight, being prepared by
+installer_release_gap; no trace/container run authorized until coordinator review.
+E7 trace cannot establish bff consumed-header coverage; host codec closure separate.
+
+[verified: coordinator three read-only PAC1/layout1 JTAG sweeps after owner confirmed
+FM1-to-TARGET-A verified cable, CONTROL-to-Mac, TARGET-C empty] Monitor valid,
+status0x105, fault0, advancing sequence, controls1. TARGET-A reads5.050781–5.061035V
+and0uA. These do not establish FM1 CPU power or recovery. Raw saved evidence:
+scratch/aeon-routing-resume-20261017/owner-connected-passive.jsonl.
+Owner asked to move FM1 switch once and report screen/light changes, with cabling
+unchanged and no USER press. No FPGA reconfiguration, recovery key or flash command.
+Aeon only; Hera untouched. Current code38e02719 CI pending;8e CI still running at
+last query. Goal ACTIVE; physical recovery/audio acceptance remain unresolved.
+
 ## Fresh trusted capture/package passed; export invocation stopped — 2026-10-17 UTC
 
 [verified: coordinator independently checked retained digest bindings, raw app/ELF
