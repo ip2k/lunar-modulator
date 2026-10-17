@@ -8,7 +8,8 @@ HASH=re.compile(r"^[0-9a-f]{64}$"); MAX_JSON=4*1024*1024; MAX_FILES=10000; MAX_B
 ID=re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 PREFIXES=("engines/","firmware/native/","firmware/third_party/","tools/native/","tools/jieli/","sim/web/")
 ROOT_FILES=("LICENSE","LICENSE-MIT","LICENSING.md","README.md","DEVELOPERS.md","Makefile")
-SOURCE_BUILD_INPUTS=frozenset({"engines/modules/default.list"})
+SOURCE_BUILD_INPUTS=frozenset({"engines/modules/default.list", "tools/lunar_state.py",
+                               "tests/__init__.py", "tests/state_canon.py"})
 # Preparation exports the entire fixed preload catalogue before selecting IDs.
 # Retain those committed source inputs independently of selected-input snapshots.
 SOURCE_PRELOAD_INPUTS=frozenset(
@@ -39,7 +40,7 @@ def _git(root,*args): return subprocess.check_output(["git","-C",str(root),*args
 def _selected(path):
     p=PurePosixPath(path)
     if p.is_absolute() or any(x in ("",".","..") or x in FORBIDDEN_PARTS for x in p.parts): return False
-    if path in ROOT_FILES: return True
+    if path in ROOT_FILES or path in SOURCE_BUILD_INPUTS: return True
     if not path.startswith(PREFIXES) or path.lower().endswith(FORBIDDEN_SUFFIXES): return False
     return path in SOURCE_BUILD_INPUTS or path in SOURCE_PRELOAD_INPUTS or path in SOURCE_MEDIA or p.name in {"Makefile","CMakeLists.txt","meson.build","UPSTREAM.md","LICENSE","LICENSE-Open303","COPYING","COPYRIGHT","NOTICE","LICENSING.md"} or p.suffix.lower() in {".c",".cc",".cpp",".h",".hpp",".py",".mk",".cmake",".json",".md",".txt",".S",".s",".inc",".ld",".sh",".yml",".yaml",".ini",".patch"}
 def _source_rows(root,commit,expected):
@@ -144,7 +145,8 @@ def _prepared_source_inputs(prepared_dir,rec):
                        "sha256":sha(raw),"bytes":len(raw),"data":raw})
     return result
 
-def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected_tuple_sha256,output,*,prepared_dir=None):
+def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected_tuple_sha256,output,*,prepared_dir=None,
+                 catalogue_root=None,catalogue_manifest=None,libcxx_license=None,pristine_headers=None):
     if not isinstance(expected_tuple_sha256,str) or not HASH.fullmatch(expected_tuple_sha256): raise ValueError("external tuple SHA-256 invalid")
     tr,rec=_json(tuple_path)
     if sha(tr)!=expected_tuple_sha256: raise ValueError("tuple differs from external trust anchor")
@@ -158,6 +160,20 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
     mr,sm=_json(source_manifest_path)
     if sha(mr)!=rec.get("source_tree_sha256"): raise ValueError("source manifest differs from tuple digest")
     if sm.get("commit")!=commit or type(sm.get("schema")) is not int or sm.get("schema")!=1: raise ValueError("source manifest commit/schema mismatch")
+    header_options=(catalogue_root,catalogue_manifest,libcxx_license,pristine_headers)
+    if any(option is not None for option in header_options) and not all(
+            option is not None for option in header_options):
+        raise ValueError("libc++ inclusion requires catalogue root, manifest, license and pristine headers")
+    external_entries={}; external_metadata=None
+    if all(option is not None for option in header_options):
+        if __package__:
+            from .source_libcxx_inputs import collect_libcxx_inputs
+        else:
+            from source_libcxx_inputs import collect_libcxx_inputs
+        external_entries,external_metadata=collect_libcxx_inputs(
+            catalogue_root=Path(catalogue_root),catalogue_manifest=Path(catalogue_manifest),
+            expected_catalogue_tree_sha256=prov.get("catalogue_tree_sha256"),
+            official_license=Path(libcxx_license),pristine_headers=Path(pristine_headers))
     tree,rows=_source_rows(source.resolve(),commit,sm)
     if prepared_dir is not None and (
             prov.get("prepared_profile_sha256") != rec.get("prepared_profile_sha256")
@@ -166,7 +182,13 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
             or prov.get("request_receipt_sha256") != rec.get("request_sha256")):
         raise ValueError("tuple/provenance prepared selection identity mismatch")
     selected_inputs=_prepared_source_inputs(prepared_dir,rec) if prepared_dir is not None else []
-    entries={"SOURCE-COMPLETENESS.txt":("INCOMPLETE SOURCE/NOTICES BUNDLE\ncorresponding_source_complete=false\ndistribution_eligible=false\nBounded committed source paths and tuple-bound selected project/SET inputs only; see MANIFEST.json.\n"+("Exact project/SET source bytes used by the state codec are included.\n" if prepared_dir is not None else "Packed project/SET inputs are not bound to their original source bytes.\n")+"The external JieLi toolchain is identified by digest but is not included.\nDo not distribute as complete corresponding source.\n").encode(),
+    source_scope="Bounded committed source paths"
+    if prepared_dir is not None:
+        source_scope+=" and tuple-bound selected project/SET inputs"
+    if external_metadata is not None:
+        source_scope+=" and verified libc++ sources"
+    source_scope+="; see MANIFEST.json.\n"
+    entries={"SOURCE-COMPLETENESS.txt":("INCOMPLETE SOURCE/NOTICES BUNDLE\ncorresponding_source_complete=false\ndistribution_eligible=false\n"+source_scope+("Exact project/SET source bytes used by the state codec are included.\n" if prepared_dir is not None else "Packed project/SET inputs are not bound to their original source bytes.\n")+"The external JieLi toolchain is identified by digest but is not included.\nDo not distribute as complete corresponding source.\n").encode(),
     "BUILDING.txt":(f"Source commit: {commit}\nGit tree: {tree}\nProfile: {rec.get('profile_id')}\nToolchain image SHA-256: {rec.get('toolchain_image_sha256')}\nToolchain tree SHA-256: {rec.get('toolchain_tree_sha256')} (not included)\nNo reproducible environment or distribution authorization is provided.\n").encode()}
     entries.update(dict(rows)); files=[{"path":p,"sha256":sha(b),"bytes":len(b)} for p,b in rows]
     selected_rows=[]
@@ -177,7 +199,20 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
     if prepared_dir is None:
         unresolved.insert(0,"original project and companion SET source bytes are not bound by the tuple")
     manifest={"schema":1,"source_commit":commit,"git_tree":tree,"source_tree_sha256":rec["source_tree_sha256"],"external_tuple_sha256":expected_tuple_sha256,"files":files,"selected_source_inputs":selected_rows,"corresponding_source_complete":False,"distribution_eligible":False,"unresolved":unresolved}
+    if external_metadata is not None:
+        if set(entries) & set(external_entries):
+            raise ValueError("external source paths collide with archive inputs")
+        entries.update(external_entries)
+        manifest["libcxx"]=external_metadata
+        manifest["external_source_inputs"]=[
+            {"path":name,"sha256":sha(raw),"bytes":len(raw)}
+            for name,raw in sorted(external_entries.items())]
+        entries["SOURCE-COMPLETENESS.txt"]+=(
+            b"Tuple-bound libc++ source headers and fixed component notice are included.\n"
+            b"This bounded addition does not establish complete corresponding source.\n")
     entries["MANIFEST.json"]=(json.dumps(manifest,sort_keys=True,indent=2)+"\n").encode()
+    if len(entries)>MAX_FILES or sum(len(raw) for raw in entries.values())>MAX_BYTES:
+        raise ValueError("complete source archive exceeds bounds")
     raw=io.BytesIO()
     with tarfile.open(fileobj=raw,mode="w",format=tarfile.PAX_FORMAT) as tar:
         for name in sorted(entries):
@@ -189,6 +224,12 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
 def main():
     p=argparse.ArgumentParser(description=__doc__); p.add_argument("--source",type=Path,required=True); p.add_argument("--tuple",dest="tuple_path",type=Path,required=True); p.add_argument("--provenance",type=Path,required=True); p.add_argument("--source-manifest",type=Path,required=True); p.add_argument("--expected-tuple-sha256",required=True); p.add_argument("--output",type=Path,required=True)
     p.add_argument("--prepared-dir",type=Path,help="tuple-bound prepared profile directory containing exact project/SET source snapshots")
-    a=p.parse_args(); print(json.dumps(build_bundle(a.source,a.tuple_path,a.provenance,a.source_manifest,a.expected_tuple_sha256,a.output,prepared_dir=a.prepared_dir),sort_keys=True))
+    p.add_argument("--catalogue-root",type=Path)
+    p.add_argument("--catalogue-manifest",type=Path)
+    p.add_argument("--libcxx-license",type=Path)
+    p.add_argument("--pristine-headers",type=Path)
+    a=p.parse_args(); print(json.dumps(build_bundle(a.source,a.tuple_path,a.provenance,a.source_manifest,a.expected_tuple_sha256,a.output,prepared_dir=a.prepared_dir,
+        catalogue_root=a.catalogue_root,catalogue_manifest=a.catalogue_manifest,
+        libcxx_license=a.libcxx_license,pristine_headers=a.pristine_headers),sort_keys=True))
 if __name__=="__main__": main()
 

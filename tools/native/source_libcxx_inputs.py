@@ -18,7 +18,7 @@ from pathlib import Path, PurePosixPath
 LLVM_RELEASE = "llvmorg-12.0.0"
 SDK_COMMIT = "e30b1ee375d1f2993fc23bf92c8b99006a6e5f9d"
 SDK_PATH = "include_lib/c++/include"
-LIBCXX_SUBTREE_COMMIT = "43eed217352338ad4de6a824fc835befd2e60b18"
+LIBCXX_SUBTREE_TREE = "43eed217352338ad4de6a824fc835befd2e60b18"
 LIBCXX_TREE_SHA256 = "2e92acfe3d2c9cac278fa0ba30f0e9ecf542df52056a0984af6e33bc17a2a4ce"
 LIBCXX_LICENSE_SHA256 = "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b"
 LIBCXX_LICENSE_URL = (
@@ -315,7 +315,7 @@ def collect_libcxx_inputs(*, catalogue_root: Path, catalogue_manifest: Path,
         "release": LLVM_RELEASE,
         "sdk_commit": SDK_COMMIT,
         "sdk_header_path": SDK_PATH,
-        "libcxx_subtree_commit": LIBCXX_SUBTREE_COMMIT,
+        "libcxx_subtree_tree": LIBCXX_SUBTREE_TREE,
         "catalogue_tree_sha256": expected_catalogue_tree_sha256,
         "header_file_count": len(source_bytes),
         "header_bytes": sum(map(len, source_bytes.values())),

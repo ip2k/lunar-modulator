@@ -371,3 +371,103 @@ def test_selected_source_export_rebuilds_complete_preload_catalogue(tmp_path):
     (exported / PRELOAD_PROJECTS[0]['source_path']).unlink()
     with pytest.raises(ValueError, match='Missing regular preload source'):
         export_preload_projects(exported)
+
+
+@pytest.mark.parametrize('option', ['catalogue_root', 'catalogue_manifest',
+                                    'libcxx_license', 'pristine_headers'])
+def test_refuses_partial_external_header_inputs(tmp_path, option):
+    args = _fixture(tmp_path)
+    output = tmp_path / 'partial.tgz'
+    with pytest.raises(ValueError, match=r'libc\+\+ inclusion requires'):
+        build_bundle(*args, output, **{option: tmp_path / 'external'})
+    assert not output.exists()
+
+
+def test_bundle_binds_external_header_collector_to_provenance(tmp_path, monkeypatch):
+    # Header tree verification has its own mutation suite. This checks the
+    # archive boundary passes the tuple-bound digest, rather than a CLI hash.
+    import types
+    args = _fixture(tmp_path)
+    src, tup, prov, manifest, _ = args
+    catalogue_sha = 'a' * 64
+    provenance = json.loads(prov.read_bytes())
+    provenance['catalogue_tree_sha256'] = catalogue_sha
+    provenance_raw = json.dumps(provenance).encode()
+    prov.write_bytes(provenance_raw)
+    tuple_obj = json.loads(tup.read_bytes())
+    tuple_obj['build_provenance_sha256'] = _sha(provenance_raw)
+    tuple_raw = json.dumps(tuple_obj).encode()
+    tup.write_bytes(tuple_raw)
+    calls = []
+    external = {'external/libcxx-12.0.0/include/__config': b'pristine headers',
+                'external/libcxx-12.0.0/LICENSE.TXT': b'component notice'}
+    def collect(**kwargs):
+        calls.append(kwargs)
+        assert kwargs['expected_catalogue_tree_sha256'] == catalogue_sha
+        return external, {'source_identity_verified': True}
+    monkeypatch.setitem(sys.modules, 'tools.native.source_libcxx_inputs',
+                        types.SimpleNamespace(collect_libcxx_inputs=collect))
+    options = {name: tmp_path / name for name in (
+        'catalogue_root', 'catalogue_manifest', 'libcxx_license', 'pristine_headers')}
+    outputs = [tmp_path / 'headers-one.tgz', tmp_path / 'headers-two.tgz']
+    for output in outputs:
+        result = build_bundle(src, tup, prov, manifest, _sha(tuple_raw), output, **options)
+        assert result['corresponding_source_complete'] is False
+        assert result['distribution_eligible'] is False
+    assert outputs[0].read_bytes() == outputs[1].read_bytes()
+    assert len(calls) == 2
+    assert calls[0]['official_license'] == options['libcxx_license']
+    with tarfile.open(outputs[0], 'r:gz') as archive:
+        report = json.load(archive.extractfile('MANIFEST.json'))
+        assert report['libcxx']['source_identity_verified'] is True
+        text = archive.extractfile('SOURCE-COMPLETENESS.txt').read().decode()
+        assert 'Bounded committed source paths and verified libc++ sources;' in text
+        assert 'tuple-bound selected project/SET inputs' not in text
+        assert 'Packed project/SET inputs are not bound' in text
+        assert report['corresponding_source_complete'] is False
+        assert report['distribution_eligible'] is False
+        for row in report['external_source_inputs']:
+            raw = archive.extractfile(row['path']).read()
+            assert raw == external[row['path']]
+            assert row['sha256'] == _sha(raw)
+            assert row['bytes'] == len(raw)
+
+
+def test_extracted_recompressor_imports_only_archived_dependencies(tmp_path):
+    exported = tmp_path / 'source'
+    paths = ('tools/native/recompress_project.py', 'tools/lunar_state.py',
+             'tests/__init__.py', 'tests/state_canon.py')
+    for name in paths:
+        assert _selected(name)
+        target = exported / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / name).read_bytes())
+    # Isolated Python excludes the checkout, PYTHONPATH and user site packages.
+    # Import both transitive dependencies and require their actual file paths.
+    code = """import sys
+from pathlib import Path
+root = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(root))
+from tools.native import recompress_project
+from tools import lunar_state
+from tests import state_canon
+for module in (recompress_project, lunar_state, state_canon):
+    assert Path(module.__file__).resolve().is_relative_to(root)
+assert recompress_project.MAX_FILE == lunar_state.BIN_MAX
+"""
+    subprocess.run([sys.executable, '-I', '-c', code, str(exported)],
+                   check=True, cwd=tmp_path, capture_output=True)
+    assert not _selected('tools/private_utility.py')
+    assert not _selected('tests/test_private_fixture.py')
+
+
+def test_prepared_source_status_text_names_only_included_inputs(tmp_path):
+    args = _fixture(tmp_path)
+    prepared, anchor = _prepared_fixture(tmp_path, args)
+    output = tmp_path / 'prepared-status.tgz'
+    build_bundle(*args[:4], anchor, output, prepared_dir=prepared)
+    with tarfile.open(output, 'r:gz') as archive:
+        text = archive.extractfile('SOURCE-COMPLETENESS.txt').read().decode()
+    assert 'and tuple-bound selected project/SET inputs;' in text
+    assert 'verified libc++ sources' not in text
+    assert 'Exact project/SET source bytes' in text

@@ -8288,3 +8288,26 @@ Aeon; actual direct-link result remains under worker review. A corrected archive
 still needs high-level preparation verification. Header-byte bundling is being
 implemented in an isolated worker; no source completeness/distribution or
 hardware flags have changed. Hera excluded. Goal ACTIVE; uv.lock untouched.
+
+### Extracted link verified; source preparation and header binding
+
+[verified] An independent Aeon rebuild of the frozen 352 source archive compiled
+all16 catalogue shards and directly linked all55 modules. Its embedded app is
+852720 bytes with SHA256 888ef842ea67fb46a010226456568452bc32b3ceca13362caaab7119774db437,
+identical to the successful original producer. ELF identity is not claimed.
+This reused the prepared profile and packed project/SET bytes; it does not prove
+regeneration of those inputs. Shared report:
+handoffs/lunar--extracted-source-rebuild-event-horizon-20261017.md.
+
+[verified] A subsequent archive with all eight preload sources reached another
+preparation dependency gap: recompress_project imports tools/lunar_state.py and
+then tests/state_canon.py. Those exact files plus tests/__init__.py are now
+selected; isolated import regression excludes checkout/user-package fallback.
+Optional libc++ source inclusion now validates the retained catalogue against
+the tuple-bound provenance digest, all16 header copies, the fixed pristine189
+header pin and fixed component notice. See
+notes/2026-10-17-tuple-bound-libcxx-source.md. Both release/completeness flags stay
+false. Next: real retained-header inclusion and high-level extracted preparation
+on Aeon; do not contact Hera during owner maintenance. Hardware recovery,
+real-time playback, storage and release remain open; existing connection question
+pending. Goal ACTIVE; unrelated uv.lock preserved.
