@@ -42,7 +42,7 @@ def main():
     if sha(original_runner) != RUNNER_SHA or sha(runner) != 'ee16ce4b461e44af402b32416c675f257bd689936e3cba18f837809bb2fedff4' or sha(receipt_path) != RECEIPT_SHA:
         raise RuntimeError('stage-7 runner or receipt differs from reviewed external pin')
     original = json.loads(receipt_path.read_text())
-    frozen = STAGE7 / 'output/snapshots'
+    frozen = Path('/home/claude/mvave-fm1/resampler-fullfit-exact-snapshots-20261016')
     for name, digest in original['outputs'].items():
         if sha(STAGE7 / 'output' / name) != digest:
             raise RuntimeError('stage-7 retained output hash mismatch: ' + name)
