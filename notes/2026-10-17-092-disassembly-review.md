@@ -229,3 +229,10 @@ flash erase/program migration path rather than RAM memcpy. Complete helper
 semantics, branch prerequisites, actual selected addresses, runtime activation
 and historical E8000 provenance remain unproven. No new hardware operation or
 storage admission follows. Preserve the descriptor tail and unknown records.
+
+[verified: coordinator rehashed corrected Aeon artifacts] Retained report
+`/home/claude/.local/share/codex-coordination/tasks/mvave-fm1-vm-descriptor-consumers-20261017/report.md`
+SHA-256 `374cd3d118bbd3d3eb57b002994ef38ab9dc4df0a3a042d58afe91d79dccc49b`;
+adjacent `handoff.md` SHA-256
+`86d4d2acdf2139da4c46905502fb90e136715b5f4a63a2c2d720458f0012290e`.
+These corrected artifacts supersede the earlier report/handoff pins.

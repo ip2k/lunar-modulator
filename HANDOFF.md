@@ -8045,3 +8045,27 @@ for the offline source/notices bundle on an isolated branch. Completeness,
 distribution and hardware flags must remain false. Root must review returned
 commit/tests and integrate; no public release is implied. CI38994186689
 remains the current running job; do not restart just for elapsed time.
+
+### Selected source snapshots integrated; Aeon routing retained
+
+Integrated reviewed worker commits as 7aa71416, ad99719c and ce85fb19;
+ce85fb194517365d53d23f190684540092fc1f7d pushed and remote SHA verified.
+Optional prepared source input now archives exact validator-returned project
+and SET bytes, binds canonical provenance receipt pins and selection identity,
+and rejects symlink/traversal paths. Independent review caught and corrected
+the initial producer/consumer field-name mismatch before integration. The new
+real prepare_selection/Event Horizon regression exercises the actual codec.
+Completeness, distribution and hardware admission flags remain false.
+
+Coordinator independently passed test_gpl_source_bundle.py,
+test_native_image_profile_integrity.py, test_native_image_profile.py and
+test_native_profile_recompression.py using the existing arm64 fm1-state codec;
+git diff --check passed. This is host verification, not a new target build or
+physical acceptance. Required fresh CI is next; older CI38994186689 still has
+three running jobs and no completed failures at last check.
+
+Aeon SSH/coordination reread succeeded; no Hera probes/jobs. Corrected retained
+tail report/handoff hashes independently rechecked and recorded in the092 note.
+Existing passive-monitor FM1 connection question remains pending; no new device
+operation or recovery claim. Preserve unrelated untracked uv.lock. Goal ACTIVE;
+physical recovery, realtime audio, persistence, release gates remain open.
