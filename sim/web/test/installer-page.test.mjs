@@ -290,6 +290,94 @@ test('deployment marker enables only the fixed same-origin diagnostic API on exp
   controller.destroy();
 });
 
+test('default Event Horizon plus selected companion SET reaches the diagnostic builder and reports linked usage', async () => {
+  const document = new Document();
+  const marker = new Element('meta', document);
+  marker.setAttribute('content', 'enabled');
+  document.serviceMarker = marker;
+  const root = new Element('div', document);
+  const moduleRoot = new Element('div', document);
+  const loadStatus = new Element('p', document);
+  const exportStatus = new Element('p', document);
+  const serviceNotice = new Element('p', document);
+  document.nodes.set('installer-load-status', loadStatus);
+  document.nodes.set('installer-export-status', exportStatus);
+  document.nodes.set('installer-service-notice', serviceNotice);
+  document.nodes.set('installer-modules', moduleRoot);
+
+  const setId = 'replacement-showcase-event-horizon-companion-set';
+  const setCatalogue = {
+    ...structuredClone(catalogue),
+    sets: [{
+      id: setId,
+      title: 'Event Horizon Companion Set',
+      parent_project_id: ids[5],
+      source_dependency_scan_complete: false,
+      dependency_scan_complete: false,
+    }],
+  };
+  const calls = [];
+  const jobId = 'c'.repeat(32);
+  const artifactSha = 'd'.repeat(64);
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url: String(url), options });
+    if (String(url) === './demo-image-catalogue.json') {
+      return { ok: true, json: async () => structuredClone(setCatalogue) };
+    }
+    if (options.method === 'POST') {
+      return new Response(JSON.stringify({ id: jobId, status: 'queued',
+        status_url: '/api/v1/builds/' + jobId }), {
+        status: 202, headers: { 'content-type': 'application/json' },
+      });
+    }
+    return new Response(JSON.stringify({ id: jobId, status: 'succeeded',
+      kind: 'private-diagnostic-build', result: {
+        status: 'linked-private-diagnostic', artifact_sha256: artifactSha,
+        artifact_bytes: 785312, app_budget_bytes: 868836, remaining_bytes: 83524,
+        installable: false, hardware_tested: false,
+      } }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  const controller = await mountInstallerPage(root, { fetchImpl });
+  const nodes = walk(root);
+  const setCheckbox = nodes.find((node) => node.tagName === 'INPUT'
+    && node.type === 'checkbox' && node.value === setId);
+  const submit = nodes.find((node) => node.tagName === 'BUTTON'
+    && node.textContent === 'Request diagnostic build');
+  assert.ok(setCheckbox, 'generated catalogue exposes the companion SET');
+  assert.equal(setCheckbox.checked, false, 'companion SET remains opt-in');
+  assert.equal(setCheckbox.disabled, false, 'default Event Horizon is the startup project');
+  assert.ok(submit);
+
+  setCheckbox.checked = true;
+  await setCheckbox.dispatch('change');
+  await submit.dispatch('click');
+
+  assert.deepEqual(calls.map((call) => call.url), [
+    './demo-image-catalogue.json',
+    'https://lunar.test/api/v1/builds',
+    'https://lunar.test/api/v1/builds/' + jobId,
+  ]);
+  const posted = JSON.parse(calls[1].options.body);
+  assert.deepEqual(posted, {
+    version: 1,
+    engines: catalogue.default_profile.engines,
+    effects: catalogue.default_profile.effects,
+    midi: catalogue.default_profile.midi,
+    modulation: catalogue.default_profile.modulation,
+    project_ids: [ids[5]],
+    startup_index: 0,
+    set_ids: [setId],
+  });
+  assert.equal(calls[1].options.credentials, 'same-origin');
+  assert.equal(calls[2].options.credentials, 'same-origin');
+  assert.match(exportStatus.textContent,
+    /785,312 \/ 868,836 bytes used; 83,524 bytes free/);
+  assert.match(exportStatus.textContent, /No installable firmware file is available/);
+  assert.match(serviceNotice.textContent, /private diagnostic result only/i);
+  controller.destroy();
+});
+
 for (const changed of ['module', 'project', 'startup', 'set']) {
   for (const outcome of ['resolve', 'reject']) {
     test(`invalidates ${outcome === 'resolve' ? 'completed' : 'failed'} build feedback after an in-flight ${changed} edit`, async () => {
