@@ -52,8 +52,9 @@ Focused verification: sanitizer C harness checks bit-identical4096outputs with
 hooks disabled/enabled, deterministic128samples and empty/active/tail paths;
 wire roundtrip/canonical digits/truncation/packet boundary tests; builder
 exclusions, wrap-safe host deltas and IRQ error validity. Existing telemetry,
-builder, analyzer, recorder and catalogue-receipt gates pass before final added
-reservation/recorder tests; final count recorded in coordinator handoff.
+builder, analyzer, recorder and catalogue-receipt gates pass. Final added recorder
+test found the existing bounded-length allowlist also needed schema9; corrected.
+Final focused run:169tests passed.
 
 Next: coordinator review; generic receipt integration; fresh Aeon target full
 catalogue compile/link/codegen/RAM fit using both flags; exact-head CI; explicit
