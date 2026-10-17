@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 
 from tools.native import source_compiler_headers as collector
-from tools.native.capture_trusted_build_tuple import _toolchain_manifest
 
 
 def digest(raw):
@@ -43,7 +42,7 @@ def fixture(tmp_path, monkeypatch):
     (root / "bin/clang").write_bytes(b"compiler")
     (root / "bin/ld").write_bytes(b"linker")
     (root / "bin/plugin.so").write_bytes(b"plugin")
-    tool_manifest_raw = _toolchain_manifest(root)
+    tool_manifest_raw = collector._toolchain_manifest(root)
     tool_manifest = json.loads(tool_manifest_raw)
     tool_manifest_sha = digest(tool_manifest_raw)
 

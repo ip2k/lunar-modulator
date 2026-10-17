@@ -353,7 +353,14 @@ def test_selected_source_export_rebuilds_complete_preload_catalogue(tmp_path):
     from export_image_catalogue import (
         PRELOAD_PROJECTS, export_preload_projects, export_preload_sets,
     )
-    assert SOURCE_PRELOAD_INPUTS == frozenset(row['source_path'] for row in PRELOAD_PROJECTS)
+    catalogue_sources = frozenset(row['source_path'] for row in PRELOAD_PROJECTS)
+    trusted_init_starters = frozenset(
+        f'engines/state/examples/init-starters/{name}.lunar'
+        for name in ('macro-init', 'shapes-init', 'trio-init'))
+    assert catalogue_sources <= SOURCE_PRELOAD_INPUTS
+    assert trusted_init_starters <= SOURCE_PRELOAD_INPUTS
+    assert SOURCE_PRELOAD_INPUTS <= catalogue_sources | trusted_init_starters
+    assert all(_selected(path) for path in trusted_init_starters)
     exported = tmp_path / 'exported'
     for row in PRELOAD_PROJECTS:
         relative = row['source_path']

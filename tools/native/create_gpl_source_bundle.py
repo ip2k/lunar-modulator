@@ -17,7 +17,9 @@ SOURCE_PRELOAD_INPUTS=frozenset(
      ("afterglow-relay", "event-horizon", "packet-bloom", "neon-transit")]
     + [f"engines/state/examples/replacement-showcases/{name}.lunar" for name in
        ("afterglow-relay-showcase", "event-horizon-showcase",
-        "packet-bloom-showcase", "satellite-hearts")])
+        "packet-bloom-showcase", "satellite-hearts")]
+    + [f"engines/state/examples/init-starters/{name}.lunar" for name in
+       ("macro-init", "shapes-init", "trio-init")])
 SOURCE_MEDIA=frozenset(f"engines/third_party/fm1-x0x/assets/909/{name}.wav"
                        for name in ("hh","ride","crash"))
 FORBIDDEN_SUFFIXES=(".fwsc",".bin",".elf",".o",".a",".so",".dylib",".wasm",".zip",".tar",".gz")
