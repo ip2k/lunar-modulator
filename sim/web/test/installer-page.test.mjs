@@ -396,7 +396,29 @@ test('default Event Horizon plus selected companion SET reaches the service clie
   assert.match(preview.textContent, /replacement-showcase-event-horizon-companion-set → replacement-showcase-candidate-event-horizon/);
   assert.match(preview.textContent, /browser cannot independently derive them from the catalogue/i);
   assert.match(preview.textContent, /not installable/);
+  const hall = walk(moduleRoot).find(node => node.tagName === 'INPUT' && node.value === 'hall');
+  hall.checked = false;
+  await hall.dispatch('change');
+  assert.equal(preview.hidden, true, 'a changed selection clears the prior receipt preview');
+  assert.equal(preview.textContent, '');
   controller.destroy();
+});
+
+test('a failed build leaves the receipt preview empty and hidden', async () => {
+  const document = new Document();
+  const root = new Element('div', document);
+  document.nodes.set('installer-modules', new Element('div', document));
+  document.nodes.set('installer-export-status', new Element('p', document));
+  await mountInstallerPage(root, {
+    fetchImpl: async () => ({ ok: true, json: async () => structuredClone(catalogue) }),
+    buildClient: { async build() { throw new Error('private build rejected'); } },
+  });
+  const preview = walk(root).find(node => node.className === 'installer-receipt-preview');
+  assert.ok(preview && preview.hidden && preview.textContent === '');
+  await walk(root).find(node => node.tagName === 'BUTTON').dispatch('click');
+  assert.equal(preview.hidden, true);
+  assert.equal(preview.textContent, '');
+  assert.match(document.getElementById('installer-export-status').textContent, /private build rejected/);
 });
 
 for (const changed of ['module', 'project', 'startup', 'set']) {

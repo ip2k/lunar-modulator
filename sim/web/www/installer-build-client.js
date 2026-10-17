@@ -156,6 +156,19 @@ function exactKeys(value, keys) {
     && sameJson(Object.keys(value).sort(), [...keys].sort());
 }
 
+function sameProjectRows(actual, expected) {
+  return Array.isArray(actual) && actual.length === expected.length
+    && actual.every((row, index) => exactKeys(row, ['id', 'startup'])
+      && row.id === expected[index].id && row.startup === expected[index].startup);
+}
+
+function sameSetRows(actual, expected) {
+  return Array.isArray(actual) && actual.length === expected.length
+    && actual.every((row, index) => exactKeys(row, ['id', 'parent_project_id'])
+      && row.id === expected[index].id
+      && row.parent_project_id === expected[index].parent_project_id);
+}
+
 function validateReceiptPreview(preview, result, request) {
   if (preview === undefined) return null; // Older private service deployments remain readable.
   const keys = ['flash_layout', 'runtime_mode', 'profile', 'modules', 'projects',
@@ -195,8 +208,8 @@ function validateReceiptPreview(preview, result, request) {
   const sets = (request.set_ids ?? []).map(id => ({
     id, parent_project_id: request.project_ids[request.startup_index],
   }));
-  if (!sameJson(preview.modules, modules) || !sameJson(preview.projects, projects)
-      || !sameJson(preview.sets, sets)) {
+  if (!sameJson(preview.modules, modules) || !sameProjectRows(preview.projects, projects)
+      || !sameSetRows(preview.sets, sets)) {
     fail('The build receipt preview identities differ from the request.');
   }
   const packed = preview.packed_content;

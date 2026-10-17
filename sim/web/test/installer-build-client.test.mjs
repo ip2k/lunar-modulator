@@ -326,7 +326,9 @@ test('receipt preview binds companion SET identity and parent to the requested s
   const requestWithSet = { ...continuousRequest, set_ids: ['event-horizon-set'] };
   const snapshot = continuousSnapshot();
   const preview = snapshot.result.receipt_preview;
-  preview.sets = [{ id: 'event-horizon-set', parent_project_id: 'event-horizon' }];
+  // JSON object property order is not part of the service contract; array order is.
+  preview.projects = preview.projects.map(({ id, startup }) => ({ startup, id }));
+  preview.sets = [{ parent_project_id: 'event-horizon', id: 'event-horizon-set' }];
   preview.packed_content.bytes += 64;
   preview.packed_content.assets.push({ kind: 'set', id: 'event-horizon-set',
     parent_project_id: 'event-horizon', bytes: 64, sha256: 'f'.repeat(64) });
