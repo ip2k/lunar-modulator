@@ -3,6 +3,7 @@
 """Create deterministic, explicitly incomplete native source/notices inventory."""
 from __future__ import annotations
 import argparse,gzip,hashlib,io,json,re,subprocess,tarfile
+import os,stat
 from pathlib import Path,PurePosixPath
 HASH=re.compile(r"^[0-9a-f]{64}$"); MAX_JSON=4*1024*1024; MAX_FILES=10000; MAX_BYTES=512*1024*1024
 ID=re.compile(r"^[a-z][a-z0-9-]{0,63}$")
@@ -22,6 +23,21 @@ SOURCE_PRELOAD_INPUTS=frozenset(
        ("macro-init", "shapes-init", "trio-init")])
 SOURCE_MEDIA=frozenset(f"engines/third_party/fm1-x0x/assets/909/{name}.wav"
                        for name in ("hh","ride","crash"))
+GENERATED_LINK_SOURCE_FIXED=frozenset({
+    "link/crt0.S", "link/gen/fm1_gpl_mods.h", "link/gfx.c", "link/libc.c",
+    "link/gen/fm1_modules.h", "link/lunar_font.h", "link/measure_app_storage.c", "link/platform.c",
+    "link/wave_tables.inc",
+})
+GENERATED_LINK_LEGACY_METADATA=frozenset({
+    "selection/prepared/fm1_modules.h",
+    "selection/prepared/modules/gen/fm1_modules.h",
+    "link/module-all/gen/fm1_modules.h",
+    "link/module-selection/gen/fm1_modules.h",
+    "link/wave_tables.json",
+})
+GENERATED_LINK_RESOURCE_NAMESPACES=("braids","plaits")
+MAX_GENERATED_LINK_FILE=8*1024*1024
+MAX_GENERATED_LINK_BYTES=32*1024*1024
 FORBIDDEN_SUFFIXES=(".fwsc",".bin",".elf",".o",".a",".so",".dylib",".wasm",".zip",".tar",".gz")
 FORBIDDEN_PARTS={"photos","scratch","reference","out","build","__pycache__",".git"}
 def sha(b): return hashlib.sha256(b).hexdigest()
@@ -147,11 +163,116 @@ def _prepared_source_inputs(prepared_dir,rec):
                        "sha256":sha(raw),"bytes":len(raw),"data":raw})
     return result
 
+def _generated_link_source_paths(prov):
+    """Return the exact allowed generated-source set asserted by a fresh capture."""
+    marker=prov.get("generated_link_source_inventory")
+    if (not isinstance(marker,dict) or set(marker)!={"schema","paths","bytes"}
+            or type(marker.get("schema")) is not int or marker["schema"]!=1
+            or type(marker.get("bytes")) is not int or marker["bytes"]<0):
+        raise ValueError("fresh generated-link source inventory marker is required")
+    rows=prov.get("generated_link_resources")
+    if rows!=prov.get("module_and_generated_inputs") or not isinstance(rows,list):
+        raise ValueError("generated-link inventory differs from tuple capture rows")
+    recorded={}
+    for row in rows:
+        if not isinstance(row,dict) or set(row)!={"path","sha256"}:
+            raise ValueError("generated-link provenance row is malformed")
+        path=row["path"]
+        if not isinstance(path,str) or not path or "\\" in path:
+            raise ValueError("generated-link provenance path is malformed")
+        rel=PurePosixPath(path)
+        if rel.is_absolute() or str(rel)!=path or any(part in ("",".","..") for part in rel.parts):
+            raise ValueError("generated-link provenance path is unsafe")
+        if not isinstance(row["sha256"],str) or not HASH.fullmatch(row["sha256"]):
+            raise ValueError("generated-link provenance digest is malformed")
+        if path in recorded:
+            raise ValueError("generated-link provenance repeats a path")
+        recorded[path]=row["sha256"]
+    embedded=prov.get("embedded_content")
+    has_content=isinstance(embedded,dict) and bool(embedded)
+    expected=set(GENERATED_LINK_SOURCE_FIXED)
+    if has_content:
+        if (type(embedded.get("asset_count")) is not int or embedded["asset_count"]<=0
+                or not isinstance(embedded.get("source_sha256"),str)
+                or not HASH.fullmatch(embedded["source_sha256"])):
+            raise ValueError("embedded-content receipt cannot select generated content source")
+        expected.add("link/content_catalogue.c")
+    resource_rows={path for path in recorded if path.startswith("link/resources_")}
+    allowed_resources=set()
+    for namespace in GENERATED_LINK_RESOURCE_NAMESPACES:
+        pair={f"link/resources_{namespace}.cc",f"link/resources_{namespace}.h"}
+        if pair & resource_rows:
+            if not pair <= resource_rows:
+                raise ValueError("generated resource namespace is missing its source/header pair")
+            allowed_resources.update(pair)
+    if resource_rows!=allowed_resources:
+        raise ValueError("generated resource namespace is not in the fixed selection policy")
+    expected.update(allowed_resources)
+    expected_rows=expected|GENERATED_LINK_LEGACY_METADATA
+    if recorded.keys()!=expected_rows:
+        raise ValueError("generated-link provenance has missing or unexpected inventory paths")
+    paths=marker.get("paths")
+    if (not isinstance(paths,list) or paths!=sorted(expected)
+            or len(paths)!=len(set(paths))):
+        raise ValueError("generated-link marker paths differ from fixed selected-source policy")
+    # Other rows are pre-existing generated metadata (selected module headers,
+    # wave_tables.json, etc.); they remain validated by the package loader but
+    # are intentionally outside this source-payload namespace.
+    return sorted(expected),recorded,marker["bytes"]
+
+def _collect_generated_link_sources(root,prov):
+    paths,recorded,expected_total=_generated_link_source_paths(prov)
+    root=Path(root)
+    lexical=root if root.is_absolute() else Path.cwd()/root
+    if ".." in lexical.parts:
+        raise ValueError("generated-link root must not contain parent traversal")
+    current=Path(lexical.anchor)
+    for part in lexical.parts[1:]:
+        current=current/part
+        if current.is_symlink():
+            raise ValueError("generated-link root contains a symlink")
+    resolved=lexical.resolve(strict=True)
+    if not resolved.is_dir():
+        raise ValueError("generated-link root is not a directory")
+    entries={}; rows=[]; total=0
+    for path in paths:
+        rel=PurePosixPath(path)
+        candidate=resolved.joinpath(*rel.parts)
+        current=resolved
+        for part in rel.parts:
+            current=current/part
+            if current.is_symlink():
+                raise ValueError("generated-link source contains a symlink")
+        try:
+            descriptor=os.open(candidate,os.O_RDONLY|getattr(os,"O_NOFOLLOW",0)|getattr(os,"O_NONBLOCK",0))
+        except OSError as exc:
+            raise ValueError("generated-link source is not a regular file: "+path) from exc
+        with os.fdopen(descriptor,"rb") as stream:
+            info=os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or not 0<info.st_size<=MAX_GENERATED_LINK_FILE:
+                raise ValueError("generated-link source exceeds per-file bound or is not regular")
+            raw=stream.read(MAX_GENERATED_LINK_FILE+1)
+            if len(raw)!=info.st_size:
+                raise ValueError("generated-link source changed while reading")
+        if not raw:
+            raise ValueError("generated-link source is not a regular file: "+path)
+        total+=len(raw)
+        if total>MAX_GENERATED_LINK_BYTES:
+            raise ValueError("generated-link source inventory exceeds aggregate bound")
+        if sha(raw)!=recorded[path]:
+            raise ValueError("generated-link source bytes differ from tuple-bound provenance: "+path)
+        archive_path="generated-link/"+path
+        entries[archive_path]=raw
+        rows.append({"source_path":path,"path":archive_path,"sha256":sha(raw),"bytes":len(raw)})
+    if total!=expected_total:
+        raise ValueError("generated-link source byte total differs from capture marker")
+    return entries,{"schema":1,"bytes":total,"files":rows}
+
 def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected_tuple_sha256,output,*,prepared_dir=None,
                  catalogue_root=None,catalogue_manifest=None,libcxx_license=None,pristine_headers=None,
                  compiler_trace=None,expected_trace_sha256=None,toolchain_root=None,
                  toolchain_manifest=None,newlib_copying_newlib=None,newlib_copying=None,
-                 clang_license=None,llvm_license=None):
+                 clang_license=None,llvm_license=None,generated_link_root=None):
     if not isinstance(expected_tuple_sha256,str) or not HASH.fullmatch(expected_tuple_sha256): raise ValueError("external tuple SHA-256 invalid")
     tr,rec=_json(tuple_path)
     if sha(tr)!=expected_tuple_sha256: raise ValueError("tuple differs from external trust anchor")
@@ -215,11 +336,17 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
             or prov.get("request_receipt_sha256") != rec.get("request_sha256")):
         raise ValueError("tuple/provenance prepared selection identity mismatch")
     selected_inputs=_prepared_source_inputs(prepared_dir,rec) if prepared_dir is not None else []
+    generated_link_entries={}; generated_link_metadata=None
+    if generated_link_root is not None:
+        generated_link_entries,generated_link_metadata=_collect_generated_link_sources(
+            generated_link_root,prov)
     source_scope="Bounded committed source paths"
     if prepared_dir is not None:
         source_scope+=" and tuple-bound selected project/SET inputs"
     if external_metadata is not None:
         source_scope+=" and verified libc++ sources"
+    if generated_link_metadata is not None:
+        source_scope+=" and tuple-bound generated link source inputs"
     source_scope+="; see MANIFEST.json.\n"
     entries={"SOURCE-COMPLETENESS.txt":("INCOMPLETE SOURCE/NOTICES BUNDLE\ncorresponding_source_complete=false\ndistribution_eligible=false\n"+source_scope+("Exact project/SET source bytes used by the state codec are included.\n" if prepared_dir is not None else "Packed project/SET inputs are not bound to their original source bytes.\n")+"The external JieLi toolchain is identified by digest but is not included.\nDo not distribute as complete corresponding source.\n").encode(),
     "BUILDING.txt":(f"Source commit: {commit}\nGit tree: {tree}\nProfile: {rec.get('profile_id')}\nToolchain image SHA-256: {rec.get('toolchain_image_sha256')}\nToolchain tree SHA-256: {rec.get('toolchain_tree_sha256')} (not included)\nNo reproducible environment or distribution authorization is provided.\n").encode()}
@@ -232,6 +359,14 @@ def build_bundle(source,tuple_path,provenance_path,source_manifest_path,expected
     if prepared_dir is None:
         unresolved.insert(0,"original project and companion SET source bytes are not bound by the tuple")
     manifest={"schema":1,"source_commit":commit,"git_tree":tree,"source_tree_sha256":rec["source_tree_sha256"],"external_tuple_sha256":expected_tuple_sha256,"files":files,"selected_source_inputs":selected_rows,"corresponding_source_complete":False,"distribution_eligible":False,"unresolved":unresolved}
+    if generated_link_metadata is not None:
+        if set(entries)&set(generated_link_entries):
+            raise ValueError("generated-link source paths collide with archive inputs")
+        entries.update(generated_link_entries)
+        manifest["generated_link_sources"]=generated_link_metadata
+        entries["SOURCE-COMPLETENESS.txt"]+=(
+            b"Tuple-bound generated link source payloads are included under generated-link/.\n"
+            b"This inventory does not prove compiler consumption or complete corresponding source.\n")
     if external_metadata is not None:
         if set(entries) & set(external_entries):
             raise ValueError("external source paths collide with archive inputs")
@@ -279,12 +414,15 @@ def main():
     p.add_argument("--newlib-copying",type=Path)
     p.add_argument("--clang-license",type=Path)
     p.add_argument("--llvm-license",type=Path)
+    p.add_argument("--generated-link-root",type=Path,
+                   help="build output root containing generated link sources; requires fresh inventory marker")
     a=p.parse_args(); print(json.dumps(build_bundle(a.source,a.tuple_path,a.provenance,a.source_manifest,a.expected_tuple_sha256,a.output,prepared_dir=a.prepared_dir,
         catalogue_root=a.catalogue_root,catalogue_manifest=a.catalogue_manifest,
         libcxx_license=a.libcxx_license,pristine_headers=a.pristine_headers,
         compiler_trace=a.compiler_trace,expected_trace_sha256=a.expected_trace_sha256,
         toolchain_root=a.toolchain_root,toolchain_manifest=a.toolchain_manifest,
         newlib_copying_newlib=a.newlib_copying_newlib,newlib_copying=a.newlib_copying,
-        clang_license=a.clang_license,llvm_license=a.llvm_license),sort_keys=True))
+        clang_license=a.clang_license,llvm_license=a.llvm_license,
+        generated_link_root=a.generated_link_root),sort_keys=True))
 if __name__=="__main__": main()
 

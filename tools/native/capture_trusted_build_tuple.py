@@ -35,6 +35,8 @@ MAX_JSON = 32 * 1024 * 1024
 MAX_APP = 1024 * 1024
 MAX_TREE_ENTRIES = 8192
 MAX_TREE_BYTES = 512 * 1024 * 1024
+MAX_GENERATED_SOURCE_FILE = 8 * 1024 * 1024
+MAX_GENERATED_SOURCE_BYTES = 32 * 1024 * 1024
 _HASH = re.compile(r"^[0-9a-f]{64}$")
 GENERATED_FIXED_PATHS = (
     "selection/prepared/fm1_modules.h",
@@ -46,6 +48,15 @@ GENERATED_FIXED_PATHS = (
     "link/wave_tables.inc",
 )
 RESOURCE_NAMESPACE_ORDER = ("braids", "plaits")
+GENERATED_LINK_SOURCE_PATHS = (
+    "link/crt0.S",
+    "link/gen/fm1_gpl_mods.h",
+    "link/gfx.c",
+    "link/libc.c",
+    "link/lunar_font.h",
+    "link/measure_app_storage.c",
+    "link/platform.c",
+)
 _WAVETABLE_GENERATOR = r'''import json
 from pathlib import Path
 import sys
@@ -170,14 +181,54 @@ def _verified_generated_inputs(root: Path, output: Path, prepared, image, verifi
                 raise ValueError("generated selected resource differs from pinned source: " + name)
             generated[rel] = actual
 
-    # Preserve the historic all-bank field ordering, so an all-55 capture has
-    # identical tuple/provenance bytes when all generated contents are equal.
+        # These are generated text inputs staged by the build/link pipeline.
+        # Retain the exact staged bytes so a future source export can bind them
+        # to a fresh tuple. This inventory is not a compiler-consumption trace.
+        source_paths = ["link/wave_tables.inc", *resource_paths,
+                        *GENERATED_LINK_SOURCE_PATHS]
+        embedded_image = image.get("embedded_content")
+        embedded_build = verification.get("embedded_content")
+        if embedded_image in (None, {}) and embedded_build in (None, {}):
+            embedded = None
+            content_path = output / "link/content_catalogue.c"
+            if content_path.exists() or content_path.is_symlink():
+                raise ValueError("unexpected generated content source without linked-content receipt")
+        elif embedded_image != embedded_build:
+            raise ValueError("image and build embedded-content receipts differ")
+        else:
+            embedded = embedded_build
+            if (not isinstance(embedded, dict)
+                    or type(embedded.get("asset_count")) is not int
+                    or embedded["asset_count"] <= 0
+                    or not isinstance(embedded.get("assets"), list)
+                    or len(embedded["assets"]) != embedded["asset_count"]
+                    or not isinstance(embedded.get("prepared_sha256"), str)
+                    or embedded.get("prepared_sha256") != prepared.get("profile_sha256")
+                    or not isinstance(embedded.get("source_sha256"), str)
+                    or not _HASH.fullmatch(embedded["source_sha256"])):
+                raise ValueError("embedded-content source receipt is malformed")
+            source_paths.append("link/content_catalogue.c")
+
+        for rel in source_paths:
+            raw = read(_safe_rel(output, rel), MAX_GENERATED_SOURCE_FILE)
+            generated[rel] = raw
+        source_bytes = sum(len(generated[rel]) for rel in source_paths)
+        if source_bytes > MAX_GENERATED_SOURCE_BYTES:
+            raise ValueError("generated link source inventory exceeds byte bound")
+        if embedded is not None and sha(generated["link/content_catalogue.c"]) != embedded["source_sha256"]:
+            raise ValueError("generated content source differs from linked-content receipt")
+
+    # Preserve the historical ordering of existing generated rows, then append
+    # the new generated-link source payloads in their fixed order.
     paths = [rel for rel in GENERATED_FIXED_PATHS
              if rel not in ("link/wave_tables.json", "link/wave_tables.inc")]
     paths += ["link/wave_tables.json"]
     paths += [f"link/resources_{n}.cc" for n in RESOURCE_NAMESPACE_ORDER if n in namespaces]
     paths += [f"link/resources_{n}.h" for n in RESOURCE_NAMESPACE_ORDER if n in namespaces]
     paths += ["link/wave_tables.inc"]
+    paths += [rel for rel in GENERATED_LINK_SOURCE_PATHS]
+    if "link/content_catalogue.c" in generated:
+        paths += ["link/content_catalogue.c"]
     generated_rows = [{"path": rel, "sha256": sha(generated[rel])} for rel in paths]
     return generated, generated_rows
 
@@ -198,6 +249,23 @@ def _verified_generated_inputs_from_pinned_source(
     if (after_commit != before_commit or after_manifest != before_manifest):
         raise ValueError("captured source snapshot changed during regeneration")
     return (*generated, before_commit, before_manifest)
+
+
+def _generated_link_source_inventory(generated):
+    """Describe the supported generated source payloads from verified bytes."""
+    paths = sorted(
+        rel for rel in generated
+        if rel in GENERATED_LINK_SOURCE_PATHS
+        or rel == "link/gen/fm1_modules.h"
+        or rel in ("link/wave_tables.inc", "link/content_catalogue.c")
+        or re.fullmatch(r"link/resources_(?:braids|plaits)\.(?:cc|h)", rel)
+    )
+    if not set(GENERATED_LINK_SOURCE_PATHS + ("link/gen/fm1_modules.h", "link/wave_tables.inc")) <= set(paths):
+        raise ValueError("generated link source inventory is incomplete")
+    total = sum(len(generated[path]) for path in paths)
+    if total > MAX_GENERATED_SOURCE_BYTES:
+        raise ValueError("generated link source inventory exceeds byte bound")
+    return {"schema": 1, "paths": paths, "bytes": total}
 
 
 def sha(raw: bytes) -> str:
@@ -837,6 +905,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         "prepared_profile_receipt_sha256": prepared_sha,
         "module_and_generated_inputs": generated_rows,
         "generated_link_resources": generated_rows,
+        "generated_link_source_inventory": _generated_link_source_inventory(generated),
         "embedded_content": image.get("embedded_content"),
         "instance_pool_bytes": verification.get("instance_pool_bytes"),
         "shapes_voices": 8,
