@@ -52,6 +52,36 @@ test('builds exact backend keys while preserving selected order and startup inde
   });
 });
 
+test('serializes only the explicit supported D7000 diagnostic build configuration', () => {
+  const request = buildNativeDemoSelectionRequest(catalogue, profile,
+    ['legacy-example-event-horizon'], 0, [], {
+      flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic',
+    });
+  assert.deepEqual(request, {
+    version: 1, engines: ['macro', 'shapes'], effects: ['plate'], midi: [], modulation: ['lfo'],
+    project_ids: ['legacy-example-event-horizon'], startup_index: 0,
+    flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic',
+  });
+  assert.equal(Object.isFrozen(request), true);
+});
+
+test('rejects incomplete or incompatible explicit build configuration', () => {
+  const projectIds = ['legacy-example-event-horizon'];
+  for (const configuration of [
+    { flash_layout: 'expanded-d7000' },
+    { flash_layout: 'expanded-d7000', runtime_mode: 'diagnostic' },
+    { flash_layout: 'expanded-d9000', runtime_mode: 'song-diagnostic' },
+    { flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic', extra: true },
+  ]) {
+    assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile,
+      projectIds, 0, [], configuration), /build configuration is invalid/);
+  }
+  const incompleteModules = { ...profile, engines: ['macro'] };
+  assert.throws(() => buildNativeDemoSelectionRequest(catalogue, incompleteModules,
+    projectIds, 0, [], { flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' }),
+  /build configuration is invalid/);
+});
+
 test('rejects unknown, repeated, empty and unavailable project selections', () => {
   assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile, ['unknown'], 0), /known/);
   assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile,

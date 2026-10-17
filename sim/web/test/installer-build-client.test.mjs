@@ -53,6 +53,22 @@ test('submits the ordered v1 request same-origin and polls a verified diagnostic
   assert.ok(calls.every((call) => call.options.cache === 'no-store'));
 });
 
+test('posts the explicit D7000 song-diagnostic request without changing its schema', async () => {
+  const d7000Request = {
+    ...request,
+    engines: ['macro', 'shapes'],
+    flash_layout: 'expanded-d7000',
+    runtime_mode: 'song-diagnostic',
+  };
+  let posted;
+  const client = createInstallerBuildClient({ origin: 'https://lunar.test', fetchImpl: async (_url, options) => {
+    posted = JSON.parse(options.body);
+    return response(422, { detail: 'expected diagnostic rejection' });
+  } });
+  await assert.rejects(client.build(d7000Request), /request was rejected/);
+  assert.deepEqual(posted, d7000Request);
+});
+
 test('rejects remote status URLs and diagnostic overclaims', async (t) => {
   await t.test('remote status URL', async () => {
     const client = createInstallerBuildClient({ origin: 'https://lunar.test', fetchImpl: async () => response(202, {
@@ -136,6 +152,13 @@ test('bounds timing configuration and rejects invalid selected request', async (
   const client = createInstallerBuildClient({ origin: 'https://lunar.test', fetchImpl: async () => assert.fail('must not fetch') });
   await assert.rejects(client.build({ ...request, startup_index: 9 }), /request is invalid/);
   await assert.rejects(client.build({ ...request, engines: [] }), /request is invalid/);
+  for (const invalid of [
+    { ...request, flash_layout: 'expanded-d7000' },
+    { ...request, flash_layout: 'expanded-d7000', runtime_mode: 'diagnostic' },
+    { ...request, engines: ['macro'], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
+  ]) {
+    await assert.rejects(client.build(invalid), /request is invalid/);
+  }
   await assert.rejects(client.build([]), /request is invalid/);
   const largeSelection = Object.fromEntries(['engines', 'effects', 'midi', 'modulation']
     .map((key) => [key, Array.from({ length: 128 }, (_, index) => `${String(index).padStart(3, '0')}${'🎛'.repeat(62)}`)]));

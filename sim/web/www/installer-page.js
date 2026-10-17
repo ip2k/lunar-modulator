@@ -31,6 +31,7 @@ function findButton(root) {
 export async function mountInstallerPage(root, {
   fetchImpl = globalThis.fetch,
   buildClient = null,
+  buildConfiguration = undefined,
 } = {}) {
   if (!root || !root.ownerDocument || typeof root.append !== 'function') {
     throw new TypeError('A DOM root element is required');
@@ -105,7 +106,7 @@ export async function mountInstallerPage(root, {
             ? `Request export failed: ${error.message}` : 'Request export failed.';
           throw error;
         }
-      });
+      }, buildConfiguration);
     const button = findButton(root);
     if (button) button.textContent = buildClient
       ? 'Request diagnostic build' : 'Download build request (JSON)';

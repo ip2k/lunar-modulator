@@ -14,7 +14,14 @@ function validateRequest(request) {
   const groups = ['engines', 'effects', 'midi', 'modulation'];
   const keys = ['version', ...groups, 'project_ids', 'startup_index'];
   const hasSets = request && Object.hasOwn(request, 'set_ids');
-  const allowedKeys = hasSets ? [...keys, 'set_ids'] : keys;
+  const hasLayout = request && Object.hasOwn(request, 'flash_layout');
+  const hasRuntime = request && Object.hasOwn(request, 'runtime_mode');
+  const hasBuildConfiguration = hasLayout && hasRuntime;
+  const allowedKeys = [
+    ...keys,
+    ...(hasSets ? ['set_ids'] : []),
+    ...(hasBuildConfiguration ? ['flash_layout', 'runtime_mode'] : []),
+  ];
   if (!request || typeof request !== 'object'
       || (Object.getPrototypeOf(request) !== Object.prototype && Object.getPrototypeOf(request) !== null)
       || request.version !== 1 || !Array.isArray(request.project_ids)
@@ -25,6 +32,12 @@ function validateRequest(request) {
       || request.startup_index < 0 || request.startup_index >= request.project_ids.length) {
     fail('The selected build request is invalid.');
   }
+  if (hasLayout !== hasRuntime
+      || (hasBuildConfiguration
+        && (request.flash_layout !== 'expanded-d7000'
+          || request.runtime_mode !== 'song-diagnostic'))) {
+    fail('The selected build request is invalid.');
+  }
   for (const key of [...groups, 'project_ids']) {
     const maxLength = key === 'project_ids' ? 8 : 128;
     if (!Array.isArray(request[key]) || request[key].length > maxLength
@@ -33,6 +46,10 @@ function validateRequest(request) {
         || new Set(request[key]).size !== request[key].length) {
       fail('The selected build request is invalid.');
     }
+  }
+  if (hasBuildConfiguration
+      && !['macro', 'shapes'].every((id) => groups.some((group) => request[group].includes(id)))) {
+    fail('The selected build request is invalid.');
   }
   if (hasSets && (!Array.isArray(request.set_ids) || request.set_ids.length > 8
       || request.set_ids.some((value) => typeof value !== 'string' || value.length === 0)

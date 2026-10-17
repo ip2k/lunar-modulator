@@ -55,7 +55,8 @@ function dispositionLabel(project) {
  * buildNativeDemoSelectionRequest. The caller owns transport and build steps.
  * Returns a small controller with destroy() for installer route teardown.
  */
-export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest) {
+export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest,
+  buildConfiguration = undefined) {
   if (!root || typeof root.append !== 'function' || !root.ownerDocument) {
     throw new TypeError('A DOM root element is required');
   }
@@ -244,7 +245,8 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
       return;
     }
     try {
-      const request = buildNativeDemoSelectionRequest(catalogue, profile, selected, startupIndex, selectedSets);
+      const request = buildNativeDemoSelectionRequest(catalogue, profile, selected, startupIndex,
+        selectedSets, buildConfiguration);
       busy = true;
       syncSubmit();
       status.textContent = 'Preparing selection…';
