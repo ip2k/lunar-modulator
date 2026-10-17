@@ -1,3 +1,23 @@
+## Real selected-image builds exposed two remaining assumptions — 2026-10-17 UTC
+
+[verified] Three valid init starters integrated/pushed at bd64c60b; coordinator
+reran 125 Python and 37 browser checks successfully. Four real Aeon builds from
+that exact source are retained under
+/home/claude/mvave-fm1/private-continuous-starter-targetfits-20261017.
+Trio-only linked (308548-byte app, SHA
+0447476179fe08aeb4f4a37ab93a5e0822bfe1ea2646275315bc04af37b9ca99),
+but tuple capture wrongly required unselected Braids resource files. Macro,
+Shapes and their combined selection were rejected before link by an
+unconditional initial-Trio guard. None has a successful tuple yet.
+
+Coordinator narrowed the guard to permit only continuous validated PROJECT
+startup to omit Trio; fallback and both diagnostic modes retain the previous
+requirement. Real CLI control-flow regressions plus runtime/SAVE tests passed:
+90 tests and 13 subtests. The tuple-capture worker separately owns strict
+selected-bank resource pinning and tests. Preserve original failure runs;
+fresh four-case retries need both fixes integrated and a new exact source pin.
+No hardware or release acceptance follows. Aeon-only routing remains active.
+
 ## Active routing and continuous installer checkpoint — 2026-10-17 UTC
 
 Owner reserves Hera for MDADM/M.2 and 25G NIC maintenance. Aeon-only work

@@ -790,7 +790,10 @@ def main():
         module_header, module_selection = resolve_modules(ROOT, out / 'module-selection', specification)
     except ValueError as error:
         parser.error(str(error))
-    if 'trio' not in module_selection['selected']:
+    # PROJECT startup is validated above and loads its selected sound before
+    # audio refill. Only that continuous path can omit the fallback Trio.
+    project_startup = args.runtime_mode == 'continuous' and args.startup_project_index is not None
+    if 'trio' not in module_selection['selected'] and not project_startup:
         parser.error('Timed probe must retain the initial Trio engine')
     if content_inputs and module_header != content_inputs.module_header:
         parser.error('Prepared module header differs from current module selection')
