@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import sys
 import pytest
-from tools.native.create_gpl_source_bundle import build_bundle, _selected
+from tools.native.create_gpl_source_bundle import build_bundle, _selected, SOURCE_PRELOAD_INPUTS
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools/native'))
@@ -346,3 +346,28 @@ def test_refuses_true_prepared_selection_admission_flags(tmp_path):
         build_bundle(src,tup,prov,manifest,anchor,output,prepared_dir=prepared)
     assert not output.exists()
 
+
+
+def test_selected_source_export_rebuilds_complete_preload_catalogue(tmp_path):
+    """Preparation reads every catalogue project, even for a single-song image."""
+    from export_image_catalogue import (
+        PRELOAD_PROJECTS, export_preload_projects, export_preload_sets,
+    )
+    assert SOURCE_PRELOAD_INPUTS == frozenset(row['source_path'] for row in PRELOAD_PROJECTS)
+    exported = tmp_path / 'exported'
+    for row in PRELOAD_PROJECTS:
+        relative = row['source_path']
+        # Apply the real archive selector, rather than copying a second list.
+        if _selected(relative):
+            target = exported / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((ROOT / relative).read_bytes())
+    projects = export_preload_projects(exported)
+    assert projects == export_preload_projects(ROOT)
+    assert export_preload_sets(exported, projects) == export_preload_sets(ROOT)
+    assert not _selected('engines/state/examples/unregistered.lunar')
+    assert not _selected('scratch/private-song.lunar')
+    # Losing an unselected legacy project still prevents normal preparation.
+    (exported / PRELOAD_PROJECTS[0]['source_path']).unlink()
+    with pytest.raises(ValueError, match='Missing regular preload source'):
+        export_preload_projects(exported)

@@ -8271,3 +8271,20 @@ Latest exact-head CI38997994037 is pending with no jobs started at inspection.
 Hera is excluded during owner maintenance; do not contact it to clean stale
 claims. Device acceptance/recovery/persistence and release remain open. Existing
 physical connection question is pending. Goal ACTIVE; uv.lock preserved.
+
+### Extracted-source preparation input gap repaired
+
+[verified] The exact 352 tuple-bound archive lacks eight committed preload
+project sources. Normal preparation exports all eight before choosing IDs,
+so selected originals alone cannot satisfy it. The selector now retains only
+those exact eight source paths; no general song inclusion. Regression exercises
+the real project+SET exporters on isolated selected bytes, exact allowlist
+agreement, and the missing-unselected-project failure. All25 bundle tests
+passed with the existing local state codec. Independent static review clean;
+diff check passed. See notes/2026-10-17-source-preload-catalogue-closure.md.
+
+The frozen original archive independently compiled all16 catalogue chunks on
+Aeon; actual direct-link result remains under worker review. A corrected archive
+still needs high-level preparation verification. Header-byte bundling is being
+implemented in an isolated worker; no source completeness/distribution or
+hardware flags have changed. Hera excluded. Goal ACTIVE; uv.lock untouched.
