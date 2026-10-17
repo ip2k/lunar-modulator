@@ -1,3 +1,33 @@
+## Aeon-only routing and profiling review — 2026-10-17 UTC
+
+Owner reiterated Hera is under MDADM/M.2 and 25G NIC maintenance: use Aeon.
+AGENTS.md and CLAUDE.md now record that routing. [verified] Aeon SSH returned
+hostname aeon, uptime about one hour and low load. No Hera operations this turn.
+Integration base f1b419a70a7df72777f2a431875e3350e6708155 is pushed/verified;
+reconnect-resume review plus downstream source pin checks passed44 focused tests.
+New-process durable policy reopen remains OPEN; worker installer_next_dependency
+is preparing the bounded design. No physical recovery or release claim.
+
+Schema9 worker source7ecb536b is NOT yet integrated. Coordinator found an
+unsupported resampler_stage_profile keyword in the report's optimization_overrides
+call. resampler_stage_profile worker owns correction and regression coverage;
+audio_offline_gap has a matched Aeon target-build task but was explicitly told
+to hold launch pending corrected commit. bringup_review independently reviews
+schema9 timing/IRQ/queue/contracts. Their final handoffs must be reviewed before
+integration. Heavy work Aeon only,16logical shards/4concurrent under8CPU8GiB
+aggregate and docker-batch.slice; no worker hardware permissions.
+
+CI38988984046 on olderd68f6396 is live in_progress on latest query; do not restart
+it because of elapsed time. New exact-head CI follows coherent source integration.
+Both semantic tools still select primary checkout; no global retarget performed.
+
+Hardware remains unaccepted/blank/no USB on last checked FM1 state; Cynthion has
+monitor-only volatile gateware. Prior pending owner connection question has no
+new answer. Do not assume TARGET connection, arm USB_KEY or issue flash commands.
+No physical operation was performed in this checkpoint. Overall goal ACTIVE;
+full audio, persistence, verified recovery, installer delivery and release gates
+remain open. Unrelated uv.lock left untouched.
+
 ## Installer inspection / recovery audit checkpoint — 2026-10-16
 
 Active goal remains incomplete. Use Aeon while Hera RAID/NIC maintenance is

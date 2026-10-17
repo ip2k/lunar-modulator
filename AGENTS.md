@@ -42,8 +42,11 @@ firmware is intended for GPLv3 distribution with all source and component notice
 the root LICENSE now carries GPL-3.0-only, with the prior MIT grant preserved
 in LICENSE-MIT and component notices retained. See
 `notes/2026-10-12-native-gpl-firmware-direction.md` for existing-switch evidence,
-platform candidates and pending physical acceptance. Heavy builds run on Hera;
-parallelizable verification uses 30 chunks (current active goal).
+platform candidates and pending physical acceptance. Owner routing update,
+2026-10-16: run heavy builds and offline verification on Aeon while Hera is
+under MDADM/M.2 and 25G NIC maintenance. Do not start new work on Hera.
+Parallelizable tests use sixteen logical chunks where useful, under the
+selected host's documented aggregate resource limits.
 
 ## Automatic integration — owner, 2026-10-09
 
