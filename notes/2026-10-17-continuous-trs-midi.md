@@ -40,3 +40,38 @@ is not yet claimed. The Aeon worker is preparing a fresh target build from the
 exact transferred Git base. Reusing the old catalogue requires an unchanged
 catalogue source manifest; it is not permission to reseal changed cached inputs.
 Target fit and physical acceptance remain pending.
+
+
+## Fresh Aeon build result
+
+[verified: canonical output rehash and receipt inspection] Exact source
+`e7b65f1a103ac049ff4f898c7980b10433ca2ecb` built successfully on Aeon.
+Tuple `continuous-ef8fc7af36a40c874b303435` has SHA256
+`1564cfb7716bc51d9ae6afa2f8aa8be6bede4980db6a1a1e079052cb16364ca9`.
+App: 854,528 bytes, SHA256
+`f91bc8da94ddbf40ef1a75e85bf8802aef28a5b153025ce7f1d420e056907338`;
+ELF SHA256 `1f4c007df2216721fd44dd380b242d604930a812be9c813c4ed675ace2e5b132`.
+Expanded D7000 budget is 860,644 bytes, leaving 6,116 bytes. All 55 selected
+modules, Shapes 8, Event Horizon project and companion SET remain included.
+Both MIDI parser object files were independently rehashed and each occurs once
+as a LOAD input in the map. USB MIDI is preserved alongside UART1 RX/PH8.
+No SDK archives are linked; key and RAM-call audits passed.
+
+[verified: retained terminal container inspection] Exit code 0; 4 CPUs,
+8 GiB memory/swap-total, 512 pids, docker-batch.slice, no network, read-only
+root and input mounts, cap-drop ALL, no-new-privileges. The receipt records
+Docker create with auto_remove=false; the container is now absent. Do not
+attribute its removal to --rm. Codec rebuild hash matches the prior retained
+binary, but host compiler dependency tracing is not covered.
+
+RAM storage reports RGB565 220,848 bytes, indexed 163,760 bytes and pool
+165,376 bytes. Stack-watermark instrumentation is present, not a worst-case
+stack proof. SAVE remains linked but disarmed, without storage admission or
+live flash binding. Hardware testing, runtime verification, installability
+and distribution completeness remain false. The earlier hardware audio
+failure is not resolved by a successful build. Prior compiler traces belong
+to the old tuple; fresh source closure is the next offline dependency.
+
+Routing: Aeon only while the owner performs RAID/M.2/NIC maintenance on Hera.
+No Hera probes or device operations were performed. CI39002512160 for E7
+currently has seven successful jobs and eight running, with no failure yet.
