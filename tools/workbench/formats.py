@@ -153,6 +153,8 @@ def import_syx(data):
 
 def export_syx(data, channel=0, allow_loss=False):
     """Export 1 or 32 contiguous slots; refuse destructive state loss by default."""
+    _check(isinstance(data, bytes), "INPUT_TYPE", "input must be bytes")
+    _check(len(data) <= MAX_INPUT, "SIZE", "input exceeds the pilot bound")
     _check(type(channel) is int and 0 <= channel <= 15, "CHANNEL", "channel must be 0..15")
     _, doc = _canonical(data)
     _check(doc["kind"] == "sound" and doc["sound"]["engine"] == "dx7",
