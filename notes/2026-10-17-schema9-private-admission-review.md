@@ -25,3 +25,23 @@ in `2026-10-17-schema9-aeon-independent-review.md`. Physical FM1 recovery is
 still required before any diagnostic installation or boot. No clean audio,
 profiler overhead, persistence, public installation or release acceptance is
 established by receipt validation or host tests.
+
+## Actual Aeon receipt composition check
+
+[verified: offline, coordinator source db10fc3c] Retrieved only bounded JSON
+metadata from both completed Aeon runs over authenticated SSH. Rechecked each
+frozen receipt's SHA-256 against the independently retained pin and the exact
+verification, prepared-profile and selection hashes against that receipt.
+Both actual verification objects passed `_validate_diagnostic_mode` with their
+actual prepared Event Horizon profile and hash-bound selection JSON. This
+exercised the complete project/companion SET validation without mocking it.
+Results are in `2026-10-17-resampler-stage-profile-aeon/actual-mode-validation.json`.
+The reproducer and copied metadata are ignored local scratch files under
+`scratch/schema9-real-receipt-check/`.
+
+The first report serialization failed because the successful validator returns
+Path/bytes evidence as well as scalar fields; the report was corrected to emit
+field names only and rerun successfully. No production implementation changed.
+This check covers receipt composition, not full `_check_build`, current-target
+binding, fresh read provenance, source/ELF admission, installation or boot.
+Hardware and installability flags remain false.

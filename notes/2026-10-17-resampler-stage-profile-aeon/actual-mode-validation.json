@@ -1,0 +1,42 @@
+{
+  "schema7-control": {
+    "diagnostic_mode_validation": "passed",
+    "frozen_receipt_sha256": "11f7bc853beb9592b8bc322b14d830796498548434967db443c2bb904e291143",
+    "hardware_tested": false,
+    "installable": false,
+    "prepared_profile_sha256": "fd68a478ea594ab9c3a7f34a604e23f99614e707bb9840b8a91947b07e547738",
+    "selection_sha256": "bf8bf47385901432c277f27e3892f7e41c43d78204eed30323556855756db45c",
+    "validated_profile_fields": [
+      "asset_count",
+      "packed_content_bytes",
+      "project_id",
+      "selection_path",
+      "selection_raw",
+      "selection_receipt_sha256",
+      "set_id",
+      "startup_project_index",
+      "startup_set_index"
+    ],
+    "verification_sha256": "a51959d05a71e388b4db2810ef9fb81f6e78ae44c0e46a1d338af4a0e43f1a0c"
+  },
+  "schema9-enabled": {
+    "diagnostic_mode_validation": "passed",
+    "frozen_receipt_sha256": "70a4f2c90d938e25544380bc41467bef80d2bbca9a6f568168596ecf491286b7",
+    "hardware_tested": false,
+    "installable": false,
+    "prepared_profile_sha256": "fd68a478ea594ab9c3a7f34a604e23f99614e707bb9840b8a91947b07e547738",
+    "selection_sha256": "bf8bf47385901432c277f27e3892f7e41c43d78204eed30323556855756db45c",
+    "validated_profile_fields": [
+      "asset_count",
+      "packed_content_bytes",
+      "project_id",
+      "selection_path",
+      "selection_raw",
+      "selection_receipt_sha256",
+      "set_id",
+      "startup_project_index",
+      "startup_set_index"
+    ],
+    "verification_sha256": "e5cedaa90c07fa3c8cc53a1e9391e7e609793dfc2664b4df42c9f69cabcbeaf9"
+  }
+}
