@@ -1,7 +1,12 @@
 import hashlib, json, subprocess, tarfile, gzip
+import os
 from pathlib import Path
+import sys
 import pytest
 from tools.native.create_gpl_source_bundle import build_bundle
+
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/'tools/native'))
 
 def _sha(b): return hashlib.sha256(b).hexdigest()
 def _fixture(tmp_path):
@@ -78,8 +83,9 @@ def _prepared_fixture(tmp_path,args,*,extra=False):
                'installable':False,'native_link_verified':False,
                'native_ram_verified':False,'hardware_tested':False}
     (prepared.parent/'selection.json').write_text(json.dumps(selection))
+    # Exercise the canonical receipt pins without depending on tuple aliases.
     provenance=json.loads(prov.read_text()); provenance.update(
-        prepared_profile_sha256=prepared_sha,request_sha256=request_sha)
+        prepared_profile_receipt_sha256=prepared_sha,request_receipt_sha256=request_sha)
     provenance_raw=json.dumps(provenance).encode(); prov.write_bytes(provenance_raw)
     tuple_obj=json.loads(tup.read_text()); tuple_obj.update(
         build_provenance_sha256=_sha(provenance_raw),prepared_profile_sha256=prepared_sha,
@@ -145,13 +151,71 @@ def test_binds_exact_selected_project_and_set_sources_deterministically(tmp_path
 def test_rejects_tuple_prepared_digest_mismatch(tmp_path):
     args=_fixture(tmp_path); prepared,anchor=_prepared_fixture(tmp_path,args)
     src,tup,prov,manifest,_=args
-    provenance=json.loads(prov.read_text()); provenance['prepared_profile_sha256']='0'*64
+    provenance=json.loads(prov.read_text()); provenance['prepared_profile_receipt_sha256']='0'*64
     raw=json.dumps(provenance).encode(); prov.write_bytes(raw)
     tuple_obj=json.loads(tup.read_text()); tuple_obj['build_provenance_sha256']=_sha(raw)
     tuple_obj['prepared_profile_sha256']='0'*64
     tuple_raw=json.dumps(tuple_obj).encode(); tup.write_bytes(tuple_raw)
     with pytest.raises(ValueError,match='manifest digest mismatch'):
         build_bundle(src,tup,prov,manifest,_sha(tuple_raw),tmp_path/'mismatch.tgz',prepared_dir=prepared)
+
+def test_rejects_missing_canonical_receipt_pins_even_when_tuple_aliases_match(tmp_path):
+    args=_fixture(tmp_path); prepared,anchor=_prepared_fixture(tmp_path,args)
+    src,tup,prov,manifest,_=args
+    provenance=json.loads(prov.read_text())
+    provenance['request_sha256']=json.loads(tup.read_text())['request_sha256']
+    provenance['prepared_profile_sha256']=json.loads(tup.read_text())['prepared_profile_sha256']
+    provenance.pop('request_receipt_sha256')
+    provenance.pop('prepared_profile_receipt_sha256')
+    raw=json.dumps(provenance).encode(); prov.write_bytes(raw)
+    tuple_obj=json.loads(tup.read_text()); tuple_obj['build_provenance_sha256']=_sha(raw)
+    tuple_raw=json.dumps(tuple_obj).encode(); tup.write_bytes(tuple_raw)
+    with pytest.raises(ValueError,match='tuple/provenance prepared selection identity mismatch'):
+        build_bundle(src,tup,prov,manifest,_sha(tuple_raw),tmp_path/'missing-receipts.tgz',prepared_dir=prepared)
+
+def test_rejects_mismatched_canonical_receipt_pin_despite_matching_alias(tmp_path):
+    args=_fixture(tmp_path); prepared,anchor=_prepared_fixture(tmp_path,args)
+    src,tup,prov,manifest,_=args
+    provenance=json.loads(prov.read_text())
+    provenance['request_sha256']=json.loads(tup.read_text())['request_sha256']
+    provenance['prepared_profile_sha256']=json.loads(tup.read_text())['prepared_profile_sha256']
+    provenance['request_receipt_sha256']='0'*64
+    raw=json.dumps(provenance).encode(); prov.write_bytes(raw)
+    tuple_obj=json.loads(tup.read_text()); tuple_obj['build_provenance_sha256']=_sha(raw)
+    tuple_raw=json.dumps(tuple_obj).encode(); tup.write_bytes(tuple_raw)
+    with pytest.raises(ValueError,match='tuple/provenance prepared selection identity mismatch'):
+        build_bundle(src,tup,prov,manifest,_sha(tuple_raw),tmp_path/'wrong-receipt.tgz',prepared_dir=prepared)
+
+@pytest.mark.skipif(not os.environ.get('FM1_STATE_TOOL'), reason='requires fresh FM1_STATE_TOOL')
+def test_real_prepare_selection_receipt_binds_bundle_sources(tmp_path):
+    from export_image_catalogue import export_catalogue
+    from prepare_demo_selection import prepare_selection
+
+    catalogue=export_catalogue(ROOT,tmp_path/'catalogue')
+    project_id='replacement-showcase-candidate-event-horizon'
+    assert project_id in [row['id'] for row in catalogue['projects']]
+    request=dict(version=1,**catalogue['groups'],project_ids=[project_id],startup_index=0)
+    selection_dir=tmp_path/'real-selection'
+    receipt=prepare_selection(ROOT,request,Path(os.environ['FM1_STATE_TOOL']),selection_dir)
+
+    args=_fixture(tmp_path); src,tup,prov,manifest,_=args
+    provenance=json.loads(prov.read_text())
+    provenance.update(request_receipt_sha256=receipt['request_sha256'],
+        prepared_profile_receipt_sha256=receipt['prepared_profile_sha256'])
+    provenance_raw=json.dumps(provenance).encode(); prov.write_bytes(provenance_raw)
+    tuple_obj=json.loads(tup.read_text())
+    tuple_obj.update(build_provenance_sha256=_sha(provenance_raw),
+        request_sha256=receipt['request_sha256'],
+        prepared_profile_sha256=receipt['prepared_profile_sha256'])
+    tuple_raw=json.dumps(tuple_obj).encode(); tup.write_bytes(tuple_raw)
+    output=tmp_path/'real-prepared.tgz'
+    result=build_bundle(src,tup,prov,manifest,_sha(tuple_raw),output,
+                        prepared_dir=selection_dir/'prepared')
+    assert result['corresponding_source_complete'] is False
+    assert result['distribution_eligible'] is False
+    with tarfile.open(fileobj=gzip.GzipFile(fileobj=output.open('rb')),mode='r:') as archive:
+        names=archive.getnames()
+    assert f'selected-inputs/projects/{project_id}.lunar' in names
 
 def test_rejects_changed_original_source_before_archive_write(tmp_path):
     args=_fixture(tmp_path); prepared,anchor=_prepared_fixture(tmp_path,args)
