@@ -1,3 +1,19 @@
+## Aeon routing retained; exact 092 startup alias checked — 2026-10-17 UTC
+
+Owner reserves Hera for MDADM/M.2 and 25G NIC maintenance. No Hera probes or
+jobs; active VM extraction worker confirmed Aeon-only and uses one bounded
+1 CPU/1 GiB, network-disabled container. Both selected SDK vm.c.o members are
+LLVM bitcode; emitted IR remains candidate-library evidence pending review.
+
+Coordinator independently reran the exact092 startup verifier successfully.
+See notes/2026-10-17-092-disassembly-review.md for the concrete flash-to-RAM
+alias and limitations. Audio scheduling review saved at
+scratch/native-scheduling-review-20261017/HANDOFF.md: pixel DMA is asynchronous;
+foreground conversion cost remains unmeasured. No new performance acceptance.
+CI38991254950 remains in progress; completed jobs currently successful.
+FM1 recovery and the existing owner connection question remain pending.
+Overall goal ACTIVE; no hardware writes. Unrelated uv.lock preserved.
+
 ## D7000 preflight integrated after bootstrap correction — 2026-10-17 UTC
 
 [verified: reviewed source and independent host checks] Worker079441ec plus
