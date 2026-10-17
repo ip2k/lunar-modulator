@@ -126,6 +126,11 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     submit.disabled = busy || selected.length === 0 || startupId === null;
   }
 
+  function selectionChanged() {
+    if (!busy) status.textContent = '';
+    syncSubmit();
+  }
+
   function addStartupOption(project) {
     const id = `native-demo-startup-option-${instance}-${startupControls.size}`;
     const label = document.createElement('label');
@@ -136,7 +141,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     radio.disabled = true;
     radio.addEventListener('change', () => {
       startupId = radio.checked ? project.id : startupId;
-      syncSubmit();
+      selectionChanged();
     });
     const title = text(document, 'span', `${selectionTitle(project)} (${categoryLabel(project)})`);
     label.htmlFor = id;
@@ -173,7 +178,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
         radio.disabled = true;
         if (startupId === project.id) startupId = null;
       }
-      syncSubmit();
+      selectionChanged();
     });
     label.htmlFor = id;
     label.append(checkbox, text(document, 'strong', project.title || project.id));
@@ -215,7 +220,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
           const index = selectedSets.indexOf(set.id);
           if (index !== -1) selectedSets.splice(index, 1);
         }
-        syncSubmit();
+        selectionChanged();
       });
       label.htmlFor = id;
       label.append(checkbox, text(document, 'span', set.title));

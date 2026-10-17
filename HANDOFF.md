@@ -7927,3 +7927,23 @@ demo_controller_review owns offline exact93fc tools/exact6b native exports and
 strict runtime-source inventory. These are offline workers; Mac exclusively
 owns bench admission/writes. Fresh deployment runtime/ROM pins remain unresolved.
 SAVE disarmed; overall goal ACTIVE; uv.lock untouched.
+
+## 2026-10-17 installer feedback and compute routing checkpoint
+
+Owner routing remains Aeon only (`claude@192.168.1.25`) while Hera undergoes
+MDADM/M.2/25G NIC work. Do not probe or schedule Hera. Mac owns bench/device
+actions. Goal remains active; physical recovery and realtime audio acceptance
+are outstanding. Existing monitor connection question remains pending.
+
+[verified: local tests and real Chrome] Fixed stale companion-set warning when
+returning to Event Horizon as startup. Selection changes clear old feedback;
+submission finalization preserves request success/error feedback. The removed
+companion stays unchecked. Node focused selection/view suites: 19 passed;
+`git diff --check` passed. Chrome reproduced removal warning and confirmed it
+clears on restoring Event Horizon using versioned disposable preview assets.
+The first reload used cached old assets; it did not count as verification.
+Package chooser remains blocked by Chrome extension file-URL access; permission
+was not changed. No installability, hardware, build-service or release claim.
+Prior source CI run 38991254950 still in progress, not restarted/cancelled.
+Next: review/push this fix, continue offline recovery/storage work on Aeon and
+physical recovery when the owner confirms the requested monitor connection.

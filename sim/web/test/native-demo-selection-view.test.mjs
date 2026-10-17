@@ -279,6 +279,15 @@ test('shows an accessible companion choice only while its parent is selected to 
   assert.match(nodes.find((node) => node.getAttribute('aria-live') === 'polite').textContent,
     /needs Event Horizon selected as the startup project/);
 
+  // Returning to the required startup clears the obsolete warning without
+  // silently reselecting the companion set that was removed.
+  parentRadio.checked = true;
+  await parentRadio.dispatch('change');
+  assert.equal(setCheckbox.disabled, false);
+  assert.equal(setCheckbox.checked, false);
+  assert.deepEqual(controller.getSelection().setIds, []);
+  assert.equal(nodes.find((node) => node.getAttribute('aria-live') === 'polite').textContent, '');
+
   const parentCheckbox = nodes.find((node) => node.tagName === 'INPUT' && node.type === 'checkbox'
     && node.value === parentId);
   parentCheckbox.checked = false;
