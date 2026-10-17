@@ -28,6 +28,13 @@ REPLACEMENT_PROJECTS = (
     "satellite-hearts",
 )
 
+INIT_STARTER_CASES = (
+    (('trio',), ('init-starter-trio',)),
+    (('macro',), ('init-starter-macro',)),
+    (('shapes',), ('init-starter-shapes',)),
+    (('macro', 'shapes'), ('init-starter-macro', 'init-starter-shapes')),
+)
+
 
 def _production_modules(tmp_path):
     from tools.native.module_selection import resolve_modules
@@ -36,6 +43,131 @@ def _production_modules(tmp_path):
     modules = [item for item in catalogue["selected"] if not item.startswith("test-")]
     assert len(modules) == 55
     return ",".join(modules)
+
+
+def _build_selected_startup(build_root, modules):
+    """Build the real native app with only the requested starter sound engines."""
+    from tools.native.module_selection import resolve_modules
+
+    build_root.mkdir(parents=True, exist_ok=True)
+    build = build_root / "engine-build"
+    _, catalogue = resolve_modules(ROOT, build, ",".join(modules))
+    assert catalogue["selected"] == list(modules)
+    native = ROOT / "firmware/native"
+    tlsf = ROOT / "firmware/third_party/tlsf"
+    harness = ROOT / "tests/native/demo_app_startup.c"
+    harness_obj = build / "sim/test/demo_app_startup.o"
+    sources = [native / name for name in (
+        "project_boot.c", "project_seq.c", "project_engines.c",
+        "project_start.c", "project_mod.c", "project_units.c", "content_set.c",
+        "instance_pool.c", "../third_party/tlsf/tlsf.c",
+    )]
+    objects = [build / ("demo-native-" + str(i) + ".o") for i in range(len(sources))]
+    fragment = build_root / "demo-app.mk"
+    fragment.write_text(
+        f"{build / 'demo-app-startup'}: $(SIM_APP_OBJ) {harness_obj} "
+        f"$(SIM_ENGINE_OBJ) $(SIM_META_OBJ) " + " ".join(map(str, objects)) + "\n"
+        "\t$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm\n"
+        f"{harness_obj}: {harness}\n\t@mkdir -p $(dir $@)\n"
+        f"\t$(CC) $(SIM_CFLAGS) -Istate -I{native} -I{tlsf} -c $< -o $@\n" +
+        "".join(
+            f"{obj}: {source}\n\t@mkdir -p $(dir $@)\n"
+            f"\t$(CC) $(SIM_CFLAGS) -Istate -I{native} -I{tlsf} "
+            + ("-Dlunar_instance_pool_alloc=lunar_instance_pool_alloc_actual "
+               if source.name == "instance_pool.c" else "")
+            + "-c $< -o $@\n"
+            for obj, source in zip(objects, sources)))
+    env = os.environ.copy()
+    env["FM1_GPL_MODS"] = "1"
+    env["FM1_MODULES"] = ",".join(modules)
+    subprocess.run([
+        "make", "-s", "--no-print-directory", "-C", str(ROOT / "engines"),
+        "-f", "Makefile", "-f", str(ROOT / "sim/web/mk/sim.mk"),
+        "-f", str(fragment), "SIM=" + str(ROOT / "sim/web"),
+        "BUILD=" + str(build), "FM1_GPL_MODS=1", "FM1_MODULES=" + ",".join(modules),
+        "CC=" + os.environ.get("FM1_SIM_CC", "cc"),
+        "CXX=" + os.environ.get("FM1_SIM_CXX", "c++"),
+        "OPT=-O2", "EXTRA=-DFM1_APP_EXTERNAL_ARENAS=1 -I" + str(native),
+        "-j4", str(build / "demo-app-startup"),
+    ], check=True, env=env)
+    return build / "demo-app-startup"
+
+
+@pytest.fixture(scope="session")
+def init_starter_state_tool(tmp_path_factory):
+    """Build the host codec used by the real trusted-selection preparer."""
+    build_root = tmp_path_factory.mktemp("native-init-starter-state-tool")
+    modules = _production_modules(build_root)
+    build = build_root / "engine-build"
+    env = os.environ.copy()
+    env["FM1_GPL_MODS"] = "1"
+    env["FM1_MODULES"] = modules
+    env["BUILD"] = str(build)
+    subprocess.run([
+        "make", "-s", "--no-print-directory", "-C", str(ROOT / "engines"),
+        "-f", "Makefile", "FM1_GPL_MODS=1", "FM1_MODULES=" + modules,
+        "BUILD=" + str(build), str(build / "fm1-state"),
+    ], check=True, env=env)
+    return build / "fm1-state"
+
+
+@pytest.mark.parametrize(("engines", "project_ids"), INIT_STARTER_CASES,
+                         ids=("trio", "macro", "shapes", "macro-shapes"))
+def test_trusted_init_starter_cold_start_and_repeatable_host_note(
+        engines, project_ids, init_starter_state_tool, tmp_path):
+    """Prepared starter bytes cold-start with exactly their selected engines."""
+    native_tools = str(ROOT / "tools/native")
+    sys.path.insert(0, native_tools)
+    try:
+        from prepare_demo_selection import prepare_selection
+        from verify_image_profile import load_prepared_profile
+    finally:
+        sys.path.remove(native_tools)
+
+    request = dict(
+        version=1, engines=list(engines), effects=[], midi=[], modulation=[],
+        project_ids=list(project_ids), startup_index=len(project_ids) - 1,
+        flash_layout="expanded-d7000", runtime_mode="continuous")
+    prepared_root = tmp_path / "selection"
+    receipt = prepare_selection(
+        ROOT, request, init_starter_state_tool, prepared_root)
+    prepared = prepared_root / "prepared"
+    checked = load_prepared_profile(prepared, receipt["prepared_profile_sha256"])
+    assert checked.report["module_selection"]["selected"] == list(engines)
+    assert receipt["project_ids"] == list(project_ids)
+    assert receipt["set_ids"] == []
+    assert receipt["selected_content"] == [
+        {"kind": "project", "id": project_id} for project_id in project_ids]
+    assert [row["dependencies"] for row in checked.report["content"]] == [
+        [project_id.removeprefix("init-starter-")] for project_id in project_ids]
+    assert all(receipt[key] is False for key in (
+        "installable", "native_link_verified", "native_ram_verified", "hardware_tested"))
+    startup = _build_selected_startup(tmp_path / "runtime", engines)
+    env = os.environ.copy()
+    env["LUNAR_TEST_RENDER_NOTE"] = "1"
+    expected_engines = {name: name in engines for name in ("trio", "macro", "shapes")}
+    for project_id, asset in zip(project_ids, checked.report["content"]):
+        packed = prepared / asset["packed"]
+        assert hashlib.sha256(packed.read_bytes()).hexdigest() == asset["packed_sha256"]
+        outputs = [subprocess.run(
+            [str(startup), str(packed)], check=False, capture_output=True,
+            text=True, env=env) for _ in range(2)]
+        assert [result.returncode for result in outputs] == [0, 0], [
+            result.stderr + result.stdout for result in outputs]
+        metrics = [json.loads(result.stdout) for result in outputs]
+        for result in metrics:
+            assert result["passed"] and result["report_code"] == 0
+            assert result["registered_starter_engines"] == expected_engines
+            assert result["loaded_engine_ids"] == [
+                project_id.removeprefix("init-starter-")]
+            assert result["active_units"] == 1
+            assert result["allocation_failures"] == 0
+            assert result["render_enabled"]
+            assert result["render_samples"] == 4096
+            assert result["render_nonfinite"] == 0
+            assert result["render_peak"] > 1e-6
+        assert metrics[0]["render_hash"] == metrics[1]["render_hash"]
+        assert metrics[0]["render_peak"] == metrics[1]["render_peak"]
 
 
 @pytest.fixture(scope="session")

@@ -4,6 +4,7 @@
 #include "fm1_app.h"
 #include "project_boot.h"
 #include "instance_pool.h"
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,6 +66,9 @@ int main(int argc, char **argv) {
   size_t seq_size;
   size_t shapes_instance_bytes = 0;
   unsigned active_units = 0;
+  unsigned render_enabled = 0, render_nonfinite = 0, render_samples = 0;
+  float render_peak = 0.0f;
+  uint64_t render_hash = UINT64_C(14695981039346656037);
   int ok;
   if (argc != 2 || !(size = read_file(argv[1], &bytes))) {
     fprintf(stderr, "expected one readable packed project path\n"); return 2;
@@ -94,6 +98,30 @@ int main(int argc, char **argv) {
   ok = lunar_project_start(&app, &pool, bytes, size, 44118, &report);
   for (unsigned i = 0; i < FM1_APP_UNITS; ++i)
     if (app.unit[i].e) ++active_units;
+  const char *render_request = getenv("LUNAR_TEST_RENDER_NOTE");
+  render_enabled = render_request && strcmp(render_request, "1") == 0;
+  if (ok && render_enabled) {
+    fm1_app_note_on(&app, 60, 100);
+    for (unsigned block = 0; block < 32; ++block) {
+      const float *samples = fm1_app_render(&app, 64);
+      for (unsigned i = 0; i < 128; ++i) {
+        float sample = samples[i];
+        uint32_t bits;
+        if (!isfinite(sample)) {
+          ++render_nonfinite;
+        } else if (fabsf(sample) > render_peak) {
+          render_peak = fabsf(sample);
+        }
+        memcpy(&bits, &sample, sizeof bits);
+        for (unsigned byte = 0; byte < sizeof bits; ++byte) {
+          render_hash ^= (uint8_t)(bits >> (byte * 8));
+          render_hash *= UINT64_C(1099511628211);
+        }
+        ++render_samples;
+      }
+    }
+    fm1_app_all_notes_off(&app);
+  }
   printf("{\"passed\":%s,\"report_code\":%u,\"report_what\":\"%s\","
          "\"seq_tracks\":%u,\"seq_bytes\":%zu,\"seq_capacity\":%u,"
          "\"pool_capacity\":%u,\"pool_peak_live_bytes\":%zu,"
@@ -104,14 +132,30 @@ int main(int argc, char **argv) {
          "\"largest_allocation_request\":%zu,"
          "\"shapes_instance_bytes\":%zu,"
          "\"active_units\":%u,"
-         "\"modulation_active\":%s}\n",
+         "\"modulation_active\":%s,"
+         "\"registered_starter_engines\":{\"trio\":%s,\"macro\":%s,\"shapes\":%s},"
+         "\"loaded_engine_ids\":[",
          ok ? "true" : "false", (unsigned)report.code, report.what,
          (unsigned)app.seq_lim.tracks, seq_size, FM1_APP_SEQ_BYTES,
          INSTANCE_BYTES, peak_live_bytes, peak_live_allocations,
          pool.live_bytes, pool.live_allocations, allocation_attempts,
          allocation_failures, failed_request, failed_attempt, failed_live_bytes,
          largest_request, shapes_instance_bytes, active_units,
-         app.mod ? "true" : "false");
+         app.mod ? "true" : "false",
+         fm1_state_engine(&names, FM1_ROLE_SOUND, "trio") ? "true" : "false",
+         fm1_state_engine(&names, FM1_ROLE_SOUND, "macro") ? "true" : "false",
+         fm1_state_engine(&names, FM1_ROLE_SOUND, "shapes") ? "true" : "false");
+  unsigned emitted = 0;
+  for (unsigned i = 0; i < FM1_APP_UNITS; ++i) {
+    if (!app.unit[i].e) continue;
+    printf("%s\"%s\"", emitted++ ? "," : "", app.unit[i].e->id);
+  }
+  printf("],\"render_enabled\":%s,\"render_samples\":%u,"
+         "\"render_nonfinite\":%u,\"render_peak\":%.9g,"
+         "\"render_hash\":\"%016llx\"}\n",
+         render_enabled ? "true" : "false", render_samples,
+         render_nonfinite, (double)render_peak,
+         (unsigned long long)render_hash);
   free(bytes);
   return ok && report.code == FM1_STATE_OK ? 0 : 1;
 }
