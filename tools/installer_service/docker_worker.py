@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -15,18 +16,12 @@ import sys
 import tarfile
 from pathlib import PurePosixPath
 
-_WORKSPACE = Path(__file__).resolve().parents[2]
-if str(_WORKSPACE) not in sys.path:
-    sys.path.insert(0, str(_WORKSPACE))
-from tools.native.diagnostic_profile_contract import (
-    HALL_O2_STAGE7_PROFILE, validate_hall_o2_stage7_modules,
-)
-
+INPUT = Path(__file__).resolve().parent
 SOURCE = Path("/workspace")
-SOURCE_ARCHIVE = Path("/input/source.tar")
-REQUEST = Path("/input/request.json")
+SOURCE_ARCHIVE = INPUT / "source.tar"
+REQUEST = INPUT / "request.json"
 TOOLCHAIN = Path("/opt/pi32v2")
-CATALOGUE = Path("/input/catalogue")
+CATALOGUE = INPUT / "catalogue"
 RESULT = Path("/result")
 SCRATCH = Path("/tmp/lunar-worker")
 MAX_REQUEST = 65536
@@ -50,6 +45,11 @@ GENERATED_EVIDENCE_PATHS = (
 )
 CATALOGUE_MOUNT = "/input/catalogue/"
 BUILD_LINK_MOUNT = "/tmp/lunar-worker/output/build/link/"
+_BOOTSTRAP_HALL_PROFILE = "hall-o2-stage7-v1"
+_BOOTSTRAP_HALL_REQUIRED_BY_GROUP = {
+    "engines": frozenset(("macro", "shapes", "sixop", "drums")),
+    "effects": frozenset(("hall",)),
+}
 
 
 def build_profile_arguments(request: dict) -> list[str]:
@@ -60,11 +60,46 @@ def build_profile_arguments(request: dict) -> list[str]:
         return ["--flash-layout", "expanded-d9000", "--runtime-mode", "diagnostic",
                 "--wavetable-profile", "compressed-required-banks-flash-plaits-v1"]
     if layout == "expanded-d7000" and runtime == "song-diagnostic":
-        validate_hall_o2_stage7_modules(request)
+        for group, required in _BOOTSTRAP_HALL_REQUIRED_BY_GROUP.items():
+            selected = request.get(group, ())
+            if not isinstance(selected, (list, tuple)) or not all(
+                    isinstance(module, str) for module in selected):
+                raise ValueError("unsupported diagnostic layout/runtime profile")
+        missing = {
+            group: sorted(required - set(request.get(group, ())))
+            for group, required in _BOOTSTRAP_HALL_REQUIRED_BY_GROUP.items()
+        }
+        missing = {group: ids for group, ids in missing.items() if ids}
+        if missing:
+            details = "; ".join(
+                f"{group}: {', '.join(ids)}" for group, ids in sorted(missing.items())
+            )
+            raise ValueError(
+                f"Named diagnostic profile {_BOOTSTRAP_HALL_PROFILE} requires caller-selected "
+                f"modules in their catalogue groups ({details})"
+            )
         return ["--flash-layout", "expanded-d7000", "--runtime-mode", "song-diagnostic",
                 "--wavetable-profile", "compressed-required-banks-ram-plaits-braids-shapes8-v1",
-                "--diagnostic-profile", HALL_O2_STAGE7_PROFILE]
+                "--diagnostic-profile", _BOOTSTRAP_HALL_PROFILE]
     raise ValueError("unsupported diagnostic layout/runtime profile")
+
+
+def verify_extracted_profile_contract(source_root: Path) -> None:
+    """Require the pinned source archive to agree with this standalone bootstrap."""
+    contract_path = source_root / "tools/native/diagnostic_profile_contract.py"
+    if contract_path.is_symlink() or not contract_path.is_file():
+        raise ValueError("extracted diagnostic profile contract is unavailable")
+    spec = importlib.util.spec_from_file_location("_worker_profile_contract", contract_path)
+    if spec is None or spec.loader is None:
+        raise ValueError("extracted diagnostic profile contract is unavailable")
+    contract = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(contract)
+    required = getattr(contract, "HALL_O2_STAGE7_REQUIRED_BY_GROUP", None)
+    if (getattr(contract, "HALL_O2_STAGE7_PROFILE", None) != _BOOTSTRAP_HALL_PROFILE
+            or not isinstance(required, dict)
+            or {group: frozenset(modules) for group, modules in required.items()}
+            != _BOOTSTRAP_HALL_REQUIRED_BY_GROUP):
+        raise ValueError("worker and extracted diagnostic profile contracts differ")
 
 
 def _unique_object(pairs):
@@ -280,6 +315,7 @@ def main() -> int:
                 with source_file, destination.open("xb") as target:
                     shutil.copyfileobj(source_file, target, length=1024 * 1024)
                 os.chmod(destination, 0o755 if member.mode & 0o111 else 0o644)
+    verify_extracted_profile_contract(work)
     subprocess.run(["make", "-C", str(work / "engines"), "build/fm1-state"],
                    check=True, timeout=120)
     output = SCRATCH / "output"

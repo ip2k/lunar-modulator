@@ -8,10 +8,13 @@ preflight does not add modules.
 
 `tools/native/diagnostic_profile_contract.py` is the lightweight Python source
 of truth for backend group membership. The API and preparer reject incomplete
-requests before work is queued or staged, the worker repeats the preflight, and
-the image builder retains its direct-call guard. Browser serializer and client
-mirror the small grouped contract so malformed requests fail before a POST.
-The browser contract test pins the same module IDs and groups.
+requests before work is queued or staged, and the image builder retains its
+direct-call guard. The deployed worker runs from a shallow `/input` mount before
+its source archive exists, so it uses a small pinned bootstrap contract and
+checks it against the shared module in the safely extracted source before
+invoking the build. Browser serializer and client use the same JavaScript
+contract exported by `native-build-selection.js`; tests pin the IDs and groups
+independently in each language.
 
 Ordinary D9000 request bytes and default behavior remain unchanged. The static
 installer page does not enable the optional private D7000 configuration. This
@@ -19,7 +22,9 @@ change makes no package publication, installability, hardware, playback or
 release claim.
 
 Focused validation on 2026-10-16: service and native-profile Python tests passed
-149 with one existing skip; native-selection prerequisite preflight tests passed
-6 (12 deselected); browser selection/client/page tests passed 33. See the
+151 with one existing skip; native-selection prerequisite preflight tests passed
+6 (12 deselected); browser selection/client/page tests passed 34. The deployed
+worker bootstrap regression exercises contract agreement and mismatch from a
+shallow entrypoint, and verifies mismatch stops before `make`. See the
 companion isolated-worktree `scratch/d7000-profile-preflight/HANDOFF.md` for
 exact commands and commit/push evidence.

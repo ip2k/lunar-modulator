@@ -69,6 +69,28 @@ test('posts the explicit D7000 song-diagnostic request without changing its sche
   assert.deepEqual(posted, d7000Request);
 });
 
+test('rejects incomplete D7000 groups before making a service request', async () => {
+  let calls = 0;
+  const client = createInstallerBuildClient({ origin: 'https://lunar.test', fetchImpl: async () => {
+    calls += 1;
+    return response(422, { detail: 'unexpected request' });
+  } });
+  const complete = {
+    ...request,
+    engines: ['macro', 'shapes', 'sixop', 'drums'], effects: ['hall'],
+    flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic',
+  };
+  for (const [group, required] of Object.entries({
+    engines: ['macro', 'shapes', 'sixop', 'drums'], effects: ['hall'],
+  })) {
+    for (const module of required) {
+      const invalid = { ...complete, [group]: complete[group].filter((id) => id !== module) };
+      await assert.rejects(client.build(invalid), /selected build request is invalid/);
+    }
+  }
+  assert.equal(calls, 0);
+});
+
 test('rejects remote status URLs and diagnostic overclaims', async (t) => {
   await t.test('remote status URL', async () => {
     const client = createInstallerBuildClient({ origin: 'https://lunar.test', fetchImpl: async () => response(202, {

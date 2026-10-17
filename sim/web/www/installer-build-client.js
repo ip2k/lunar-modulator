@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Same-origin client for the private diagnostic-build API. The service returns
 // a verified summary only; it does not expose firmware bytes or installation.
+import { D7000_REQUIRED_BY_GROUP } from './native-build-selection.js';
 
 const BUILD_PATH = '/api/v1/builds';
 const OPAQUE_ID = /^[A-Za-z0-9_-]{32}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const MAX_RESPONSE_BYTES = 65536;
 const MAX_ARTIFACT_BYTES = 1048576;
-const D7000_REQUIRED_BY_GROUP = Object.freeze({
-  engines: Object.freeze(['macro', 'shapes', 'sixop', 'drums']),
-  effects: Object.freeze(['hall']),
-});
 
 function fail(message) { throw new Error(message); }
 

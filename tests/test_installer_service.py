@@ -184,6 +184,77 @@ def test_default_d9000_encoding_remains_legacy_and_worker_flags_are_fixed():
         "--diagnostic-profile", "hall-o2-stage7-v1"]
 
 
+@pytest.mark.parametrize("contract_mismatch", [False, True])
+def test_standalone_worker_bootstrap_runs_from_shallow_deployed_path(tmp_path, contract_mismatch):
+    """Exercise the copied /input entrypoint before and after source extraction."""
+    import os
+    import subprocess
+    import tarfile
+
+    input_root = tmp_path / "input"
+    input_root.mkdir()
+    worker = input_root / "docker_worker.py"
+    worker_source = (ROOT / "tools/installer_service/docker_worker.py").read_text()
+    replacements = {
+        'TOOLCHAIN = Path("/opt/pi32v2")': f'TOOLCHAIN = Path({str(tmp_path / "toolchain")!r})',
+        'RESULT = Path("/result")': f'RESULT = Path({str(tmp_path / "result")!r})',
+        'SCRATCH = Path("/tmp/lunar-worker")': f'SCRATCH = Path({str(tmp_path / "scratch")!r})',
+    }
+    for before, after in replacements.items():
+        assert worker_source.count(before) == 1
+        worker_source = worker_source.replace(before, after)
+    worker.write_text(worker_source)
+
+    (input_root / "catalogue/shard-00").mkdir(parents=True)
+    (input_root / "catalogue/shard-00/objects.json").write_text("{}")
+    (tmp_path / "toolchain").mkdir()
+    (tmp_path / "result").mkdir()
+    (input_root / "request.json").write_text(json.dumps(d7000_request_doc()))
+
+    source = tmp_path / "archive-source"
+    (source / "tools/native").mkdir(parents=True)
+    (source / "engines").mkdir()
+    (source / "tools/__init__.py").write_text("")
+    (source / "tools/native/__init__.py").write_text("")
+    contract_source = (ROOT / "tools/native/diagnostic_profile_contract.py").read_text()
+    if contract_mismatch:
+        contract_source = contract_source.replace(
+            'HALL_O2_STAGE7_PROFILE = "hall-o2-stage7-v1"',
+            'HALL_O2_STAGE7_PROFILE = "unexpected-profile"')
+    (source / "tools/native/diagnostic_profile_contract.py").write_text(contract_source)
+    (source / "tools/native/build_demo_image.py").write_text(
+        "print('extracted builder reached', flush=True)\nraise SystemExit(19)\n")
+    with tarfile.open(input_root / "source.tar", "w") as archive:
+        for path in sorted(source.rglob("*")):
+            archive.add(path, path.relative_to(source).as_posix(), recursive=False)
+
+    fake_bin = tmp_path / "fake-bin"
+    fake_bin.mkdir()
+    fake_make = fake_bin / "make"
+    make_marker = tmp_path / "make-invoked"
+    fake_make.write_text(f"#!/bin/sh\ntouch {make_marker}\nexit 0\n")
+    fake_make.chmod(0o755)
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+    env["PATH"] = str(fake_bin) + os.pathsep + env.get("PATH", "")
+    completed = subprocess.run([sys.executable, str(worker)], cwd=tmp_path, env=env,
+                               capture_output=True, text=True, timeout=10)
+
+    if contract_mismatch:
+        assert completed.returncode == 1
+        assert "extracted builder reached" not in completed.stdout
+        assert "diagnostic worker failed: ValueError" in completed.stderr
+        assert not make_marker.exists()
+    else:
+        # The intentionally failing builder is reached only after the deployed
+        # shallow worker matches the extracted contract and invokes the build step.
+        assert completed.returncode == 1
+        assert "extracted builder reached" in completed.stdout
+        assert "diagnostic worker failed: CalledProcessError" in completed.stderr
+        assert make_marker.exists()
+    assert "ModuleNotFoundError" not in completed.stderr
+
+
 @pytest.mark.parametrize(("group", "module"), [
     ("engines", "macro"), ("engines", "shapes"), ("engines", "sixop"),
     ("engines", "drums"), ("effects", "hall"),
