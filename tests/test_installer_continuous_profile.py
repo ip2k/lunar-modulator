@@ -80,6 +80,11 @@ def api_evidence(doc, outer, app=b"continuous-app", elf=TEST_ELF):
     outer["artifact_receipt_sha256"] = hashlib.sha256(artifact_receipt).hexdigest()
     outer["embedded_content"]["prepared_sha256"] = outer["prepared_profile_sha256"]
     outer.pop("flash_layout", None)
+    # Captured image.json reports content measurements separately from the
+    # ordered selected_content identity list; IDs are absent from these rows.
+    for row in outer["content"] + outer["embedded_content"]["assets"]:
+        row.pop("id", None)
+        row.pop("parent_project_id", None)
     image_raw = json.dumps(outer, sort_keys=True, separators=(",", ":")).encode()
     evidence = {
         "request.json": request,
