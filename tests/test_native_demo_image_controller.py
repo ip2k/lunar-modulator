@@ -9,6 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools/native'))
 from build_demo_image import (checked_link_receipt, checked_wavetable_profile,
+                              continuous_link_configuration,
                               SHAPES8_TABLES, SHAPES8_WAVETABLE_PROFILE,
                               WAVETABLE_PROFILE, wavetable_build_flags)
 from prepare_image_profile import sha
@@ -57,6 +58,7 @@ def inputs(runtime_mode='diagnostic', project_count=2, include_set=False):
                     elf_sha256=sha(b'elf'), app_sha256=sha(b'app'), app_bytes=3,
                     flash_layout='expanded-d9000', app_budget_bytes=100)
     if runtime_mode == 'continuous':
+        verification.update(continuous_link_configuration())
         verification['native_midi_input'] = native_midi_input_configuration(True)
         verification['linked_objects'] = [
             dict(path='/output/link/' + name, sha256=sha(name.encode()))
