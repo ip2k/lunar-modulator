@@ -8384,3 +8384,22 @@ records before concurrent use; the same worker is assigned a 2–4 TU concurrenc
 smoke on Aeon .25 only. Hera remains excluded for maintenance. No device writes
 occurred; physical recovery/audio/release gates remain unresolved. CI run
 38998982780 still has three running jobs and no failures at this checkpoint.
+
+### Concurrent trace review and passive bench check
+
+[verified] Concurrent smoke summary independently read: three C/C++ TUs have
+matching direct/facade object hashes and exactly six records. Private handoff
+`lunar--compiletrace-concurrent-smoke-20261017.md` SHA256
+`6dfbdbdf325bda2272f68cb64016232b083a65f1100c21db0a6402ec983598d6`.
+Unique atomic records, output forwarding and stale-run rejection are checked.
+Full fresh traced catalogue/high-level reproduction assigned on Aeon .25 only;
+no full-trace result or live container is claimed at this checkpoint. Target
+compile coverage must remain separate from host codec/linker input coverage.
+
+At03:51UTC17Oct the existing read-only PAC1 reader returned two valid fresh
+sweeps:5.077637/5.060059V, nominal1373/229uA, PACerror0. The offsets do not prove
+an FM1 load, CPU state or connected cable. bench01 lsusb still lists KA6 and
+root hubs, no FM1. Raw private evidence saved at
+`scratch/aeon-routing-resume-20261017/passive-0351utc.json`. No gateware load,
+key generation, device reboot or flash operation occurred. Existing physical
+monitor-connection question remains pending; hardware recovery/audio unaccepted.
