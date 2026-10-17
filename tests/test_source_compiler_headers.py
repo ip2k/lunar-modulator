@@ -259,6 +259,31 @@ def _add_catalogue_dependency(data, path="/catalogue/shard-00/cxx/stddef.h", *,
     data["trace_sha"] = digest(trace_path.read_bytes())
 
 
+def _rewrite_catalogue_dependency_path(data, path):
+    trace_path = data["trace_path"]
+    base = trace_path.parent
+    compile_path = base / "catalogue/shard-00/records/compile.json"
+    receipt = json.loads(compile_path.read_text())
+    receipt["dependencies"][-1].update(spelling=path, resolved=path)
+    compile_raw = write_json(compile_path, receipt)
+    trace = json.loads(trace_path.read_text())
+    compile_row = trace["compile_receipts"][0]
+    compile_row["receipt_sha256"] = digest(compile_raw)
+    manifest_path = base / "receipt-manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    receipt_path = compile_row["receipt_path"]
+    for row in manifest["receipts"]:
+        if row["path"] == receipt_path:
+            row.update(sha256=digest(compile_raw), bytes=len(compile_raw))
+            break
+    else:
+        raise AssertionError("compile receipt missing from receipt manifest")
+    manifest_raw = write_json(manifest_path, manifest)
+    trace["receipt_manifest"].update(sha256=digest(manifest_raw), bytes=len(manifest_raw))
+    write_json(trace_path, trace)
+    data["trace_sha"] = digest(trace_path.read_bytes())
+
+
 def test_collects_only_consumed_pinned_header_and_retains_anchor(tmp_path, monkeypatch):
     data = fixture(tmp_path, monkeypatch)
     entries, report = collect(data)
@@ -422,8 +447,10 @@ def test_rejects_catalogue_dependency_alias_without_mount_evidence(tmp_path, mon
 def test_rejects_unsafe_catalogue_dependency_alias_path(tmp_path, monkeypatch):
     data = fixture(tmp_path, monkeypatch)
     _install_catalogue_alias_evidence(data)
+    _add_catalogue_dependency(data)
+    _rewrite_catalogue_dependency_path(data, "/catalogue/../outside.h")
     with pytest.raises(ValueError, match="unsafe catalogue alias"):
-        _add_catalogue_dependency(data, path="/catalogue/../outside.h")
+        collect(data)
 
 
 def test_rejects_symlinked_catalogue_dependency_alias(tmp_path, monkeypatch):
