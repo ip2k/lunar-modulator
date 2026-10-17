@@ -10,6 +10,7 @@ import pytest
 
 from tools.installer_service import private_package_candidate as adapter
 from tools.installer_service.api import WorkerResult, canonical_request
+from tools.jieli import trusted_fwsc_package as packager
 from tools.jieli.trusted_fwsc_package import HASH_FIELDS, TUPLE_KEYS
 
 
@@ -22,6 +23,7 @@ def _trusted_output(output: Path, catalogue_root: Path, request: bytes, source_c
                     app: bytes, elf: bytes):
     build = output / "build"
     generated = b"generated-input"
+    generated_source = b"/* generated link source */\n"
     catalogue = b"catalogue-object"
     files = {
         "selection/request.json": request,
@@ -33,6 +35,7 @@ def _trusted_output(output: Path, catalogue_root: Path, request: bytes, source_c
         "link/artifact/app.bin": app,
         "link/lunar-app-probe.elf": elf,
         "link/generated.cc": generated,
+        "link/gfx.c": generated_source,
     }
     for relative, raw in files.items():
         _write(build / relative, raw)
@@ -42,9 +45,17 @@ def _trusted_output(output: Path, catalogue_root: Path, request: bytes, source_c
         "path": "/catalogue/object.o", "sha256": hashlib.sha256(catalogue).hexdigest()}]}
     catalogue_raw = json.dumps(catalogue_manifest, sort_keys=True, separators=(",", ":")).encode()
     _write(build / "catalogue-manifest.json", catalogue_raw)
+    generated_rows = [
+        {"path": "link/generated.cc", "sha256": hashlib.sha256(generated).hexdigest()},
+        {"path": "link/gfx.c", "sha256": hashlib.sha256(generated_source).hexdigest()},
+    ]
     provenance = {"source_commit": source_commit,
-                  "module_and_generated_inputs": [{
-        "path": "link/generated.cc", "sha256": hashlib.sha256(generated).hexdigest()}]}
+                  "module_and_generated_inputs": generated_rows,
+                  "generated_link_resources": generated_rows,
+                  "generated_link_source_inventory": {
+                      "schema": 1, "paths": ["link/gfx.c"],
+                      "bytes": len(generated_source),
+                  }}
     provenance_raw = json.dumps(provenance, sort_keys=True, separators=(",", ":")).encode()
     _write(build / "build-provenance.json", provenance_raw)
     tuple_value = {key: "e" * 64 for key in HASH_FIELDS}
@@ -226,6 +237,19 @@ def test_trusted_generated_input_cannot_escape_build_root(tmp_path):
     (build / "link").symlink_to(external, target_is_directory=True)
     with pytest.raises(ValueError, match="parent is missing or unsafe"):
         adapter._load_trusted_package_inputs(output, tmp_path / "catalogue", "c" * 40)
+
+
+def test_trusted_loader_and_packager_accept_tuple_bound_generated_source_rows(tmp_path):
+    request = _request()
+    output = tmp_path / "trusted"
+    output.mkdir()
+    _trusted_output(output, tmp_path / "catalogue", request, "c" * 40,
+                    b"app", b"elf")
+    values = adapter._load_trusted_package_inputs(output, tmp_path / "catalogue", "c" * 40)
+    provenance = json.loads(values["build_provenance"])
+    assert values["generated_files"]["link/gfx.c"] == b"/* generated link source */\n"
+    packager._validate_provenance_rows(
+        provenance, "module_and_generated_inputs", values["generated_files"])
 
 
 def test_special_file_input_is_rejected_without_blocking(tmp_path):

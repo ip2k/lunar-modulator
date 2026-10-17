@@ -478,6 +478,13 @@ def _generated_capture_fixture(tmp_path, selected, source_root=ROOT):
         "shapes_voices": 8,
         "flash_plaits_wavetables": False,
     }
+    for relative in (
+        "link/crt0.S", "link/gen/fm1_gpl_mods.h", "link/gfx.c", "link/libc.c",
+        "link/lunar_font.h", "link/measure_app_storage.c", "link/platform.c",
+    ):
+        path = output / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(("generated fixture: " + relative + "\n").encode())
     return output, {"module_selection": module_selection}, image, verification
 
 
@@ -605,7 +612,85 @@ def test_generated_bank_inventory_follows_digest_bound_selected_modules(
             "link/resources_braids.h",
             "link/resources_plaits.h",
             "link/wave_tables.inc",
+            "link/crt0.S",
+            "link/gen/fm1_gpl_mods.h",
+            "link/gfx.c",
+            "link/libc.c",
+            "link/lunar_font.h",
+            "link/measure_app_storage.c",
+            "link/platform.c",
         ]
+
+
+def test_generated_link_source_marker_tracks_selected_resources_and_bounds(tmp_path):
+    import capture_trusted_build_tuple as capture
+    output, prepared, image, verification = _generated_capture_fixture(
+        tmp_path, ["macro", "shapes"],
+    )
+    generated, rows = _verified_generated_inputs(ROOT, output, prepared, image, verification)
+    assert len([path for path in generated if path.startswith("link/resources_")]) == 4
+    assert set(generated) >= {
+        "link/wave_tables.inc", "link/crt0.S", "link/gen/fm1_gpl_mods.h",
+        "link/gfx.c", "link/libc.c", "link/lunar_font.h",
+        "link/measure_app_storage.c", "link/platform.c",
+    }
+    assert all(row["sha256"] == sha(generated[row["path"]]) for row in rows)
+    marker = capture._generated_link_source_inventory(generated)
+    assert marker["schema"] == 1
+    assert marker["paths"] == sorted(
+        path for path in generated
+        if path in capture.GENERATED_LINK_SOURCE_PATHS
+        or path in ("link/gen/fm1_modules.h", "link/wave_tables.inc")
+        or path.startswith("link/resources_")
+    )
+    assert marker["bytes"] == sum(len(generated[path]) for path in marker["paths"])
+
+
+def test_embedded_content_source_is_required_and_receipt_bound(tmp_path):
+    output, prepared, image, verification = _generated_capture_fixture(tmp_path, ["trio"])
+    profile_sha = "a" * 64
+    prepared["profile_sha256"] = profile_sha
+    content = b"/* selected content catalogue */\n"
+    receipt = {
+        "prepared_sha256": profile_sha,
+        "source_sha256": sha(content),
+        "asset_count": 1,
+        "assets": [{"kind": "project", "bytes": 3, "packed_sha256": "b" * 64}],
+        "packed_content_bytes": 3,
+        "packed_sha256": ["b" * 64],
+        "sequence_semantics_verified": False,
+        "native_playback_verified": False,
+    }
+    verification["embedded_content"] = receipt
+    image["embedded_content"] = receipt
+    (output / "link/content_catalogue.c").write_bytes(content)
+    generated, rows = _verified_generated_inputs(ROOT, output, prepared, image, verification)
+    assert generated["link/content_catalogue.c"] == content
+    assert any(row["path"] == "link/content_catalogue.c" for row in rows)
+
+    (output / "link/content_catalogue.c").write_bytes(content + b"tamper")
+    with pytest.raises(ValueError, match="differs from linked-content receipt"):
+        _verified_generated_inputs(ROOT, output, prepared, image, verification)
+
+    output, prepared, image, verification = _generated_capture_fixture(tmp_path / "empty", ["trio"])
+    (output / "link/content_catalogue.c").write_bytes(b"stale content source")
+    with pytest.raises(ValueError, match="unexpected generated content source"):
+        _verified_generated_inputs(ROOT, output, prepared, image, verification)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "symlink"])
+def test_generated_link_source_capture_rejects_missing_or_symlink_inputs(tmp_path, mutation):
+    output, prepared, image, verification = _generated_capture_fixture(tmp_path, ["trio"])
+    path = output / "link/gfx.c"
+    if mutation == "missing":
+        path.unlink()
+    else:
+        outside = tmp_path / "outside.c"
+        outside.write_bytes(b"outside generated source")
+        path.unlink()
+        path.symlink_to(outside)
+    with pytest.raises((ValueError, OSError), match="missing regular input|invalid or oversized input|symlink"):
+        _verified_generated_inputs(ROOT, output, prepared, image, verification)
 
 
 @pytest.mark.parametrize("mutation, message", [
