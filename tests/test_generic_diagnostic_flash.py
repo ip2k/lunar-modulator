@@ -30,6 +30,135 @@ def _schema7_receipts():
     return engine, stages
 
 
+def _schema9_song_receipts(*, autoplay=True):
+    engine, stages = _schema7_receipts()
+    irq = {
+        "enabled": True, "schema": 6,
+        "compile_definition": "LUNAR_DIAGNOSTIC_IRQ_PROFILE=1",
+        "frame_bytes": 119, "packets_per_frame": 40,
+        "transport": "USB-MIDI-SysEx", "hardware_tested": False,
+    }
+    schema9 = json.loads(json.dumps(
+        builder.resampler_stage_profile_configuration(True)))
+    return {
+        "diagnostic_trio_pulse": {
+            "enabled": False, "compile_definition": None, "note": None,
+            "velocity": None, "start_ms": None, "end_ms": None,
+            "once": True, "hardware_tested": False,
+        },
+        "diagnostic_telemetry": {
+            "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TELEMETRY=1",
+            "interval_ms": 1000, "transport": "USB-MIDI-SysEx",
+            "hardware_tested": False,
+        },
+        "diagnostic_song_play": builder.validate_diagnostic_song_play(
+            autoplay, "song-diagnostic", 0 if autoplay else None, True, False),
+        "diagnostic_irq_profile": irq,
+        "diagnostic_engine_render_profile": engine,
+        "render_stage_profile": stages,
+        "diagnostic_resampler_stage_profile": schema9,
+    }
+
+
+def test_schema9_receipt_matches_exact_builder_contract():
+    receipt = _schema9_song_receipts()["diagnostic_resampler_stage_profile"]
+    assert receipt == json.loads(json.dumps(
+        builder.resampler_stage_profile_configuration(True)))
+    assert module._exact_resampler_stage_profile_receipt(receipt)
+    for bad in (
+        dict(receipt, schema=True),
+        dict(receipt, frame_bytes=188),
+        dict(receipt, packets_per_frame=62),
+        dict(receipt, sample_stride=31),
+        dict(receipt, counter_semantics="CPU cycles"),
+        dict(receipt, hardware_tested=True),
+        dict(receipt, counters=list(reversed(receipt["counters"]))),
+        dict(receipt, counters=receipt["counters"][:-1]),
+        dict(receipt, counters=receipt["counters"] + ["extra"]),
+        dict(receipt, counters=tuple(receipt["counters"])),
+        dict(receipt, enabled=1),
+        dict(receipt, extra=False),
+    ):
+        assert not module._exact_resampler_stage_profile_receipt(bad)
+
+
+@pytest.mark.parametrize("autoplay", [True, False])
+def test_schema9_song_mode_requires_exact_composition_and_allows_bounded_play_modes(
+        monkeypatch, autoplay):
+    monkeypatch.setattr(module, "_validate_event_horizon_set_profile",
+                        lambda *_args: {"validated": True})
+    receipts = _schema9_song_receipts(autoplay=autoplay)
+    assert module._validate_diagnostic_mode(
+        {"kind": module.SONG_INPUT_KIND}, {}, receipts, b"") == {"validated": True}
+
+    changed_receipts = []
+    for key in ("diagnostic_irq_profile", "diagnostic_engine_render_profile",
+                "render_stage_profile"):
+        malformed = dict(receipts)
+        del malformed[key]
+        changed_receipts.append(malformed)
+    for key in ("diagnostic_cpu_rate", "diagnostic_producer_gaps"):
+        changed_receipts.append(dict(receipts, **{key: {}}))
+    changed_receipts.extend((
+        dict(receipts, diagnostic_engine_render_profile=
+             dict(receipts["diagnostic_engine_render_profile"], schema=True)),
+        dict(receipts, render_stage_profile=
+             dict(receipts["render_stage_profile"], schema=3)),
+        dict(receipts, diagnostic_irq_profile=
+             dict(receipts["diagnostic_irq_profile"], packets_per_frame=41)),
+        dict(receipts, diagnostic_clock_snapshot={"enabled": True}),
+        dict(receipts, diagnostic_song_play={"enabled": False}),
+    ))
+    for malformed in changed_receipts:
+        with pytest.raises(ValueError):
+            module._validate_diagnostic_mode(
+                {"kind": module.SONG_INPUT_KIND}, {}, malformed, b"")
+    legacy_shape_with_bad_new_key = {
+        "diagnostic_trio_pulse": receipts["diagnostic_trio_pulse"],
+        "diagnostic_telemetry": receipts["diagnostic_telemetry"],
+        "diagnostic_song_play": receipts["diagnostic_song_play"],
+        "diagnostic_resampler_stage_profile": {"schema": 9},
+    }
+    with pytest.raises(ValueError, match="resampler-stage profile receipt"):
+        module._validate_diagnostic_mode(
+            {"kind": module.SONG_INPUT_KIND}, {}, legacy_shape_with_bad_new_key, b"")
+
+
+def test_schema9_cannot_fall_through_to_pulse_or_cpu_modes(monkeypatch):
+    monkeypatch.setattr(module, "_validate_event_horizon_set_profile",
+                        lambda *_args: {"validated": True})
+    receipts = _schema9_song_receipts()
+    with pytest.raises(ValueError, match="Song-only"):
+        module._validate_diagnostic_mode(
+            {"kind": module.INPUT_KIND}, {}, receipts, b"")
+
+    cpu_receipts = {
+        "diagnostic_trio_pulse": receipts["diagnostic_trio_pulse"],
+        "diagnostic_telemetry": receipts["diagnostic_telemetry"],
+        "diagnostic_song_play": builder.validate_diagnostic_song_play(
+            False, "song-diagnostic", None, True, False),
+        "diagnostic_cpu_rate": builder.diagnostic_cpu_rate_configuration(True),
+        "diagnostic_resampler_stage_profile":
+            receipts["diagnostic_resampler_stage_profile"],
+    }
+    with pytest.raises(ValueError, match="schema-7/2/6"):
+        module._validate_diagnostic_mode(
+            {"kind": module.SONG_INPUT_KIND}, {}, cpu_receipts, b"")
+
+    pulse = {
+        "diagnostic_trio_pulse": {
+            "enabled": True, "compile_definition": "LUNAR_DIAGNOSTIC_TRIO_PULSE=1",
+            "note": 60, "velocity": 100, "start_ms": 3000, "end_ms": 5000,
+            "once": True, "hardware_tested": False,
+        },
+        "diagnostic_resampler_stage_profile":
+            receipts["diagnostic_resampler_stage_profile"],
+    }
+    with pytest.raises(ValueError, match="Song-only"):
+        module._validate_diagnostic_mode(
+            {"kind": module.INPUT_KIND}, {}, pulse, b"")
+
+
 def test_schema7_engine_profile_receipt_is_exact_and_strictly_typed():
     engine, stages = _schema7_receipts()
     assert module._exact_engine_render_profile_receipt(engine)
