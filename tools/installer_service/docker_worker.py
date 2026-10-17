@@ -22,7 +22,8 @@ SOURCE = Path("/workspace")
 SOURCE_ARCHIVE = INPUT / "source.tar"
 REQUEST = INPUT / "request.json"
 TOOLCHAIN = Path("/opt/pi32v2")
-CATALOGUE = INPUT / "catalogue"
+CATALOGUE = Path("/catalogue")
+OUTPUT = Path("/output")
 RESULT = Path("/result")
 SCRATCH = Path("/tmp/lunar-worker")
 MAX_REQUEST = 65536
@@ -44,8 +45,8 @@ GENERATED_EVIDENCE_PATHS = (
     "link/resources_plaits.h",
     "link/wave_tables.inc",
 )
-CATALOGUE_MOUNT = "/input/catalogue/"
-BUILD_LINK_MOUNT = "/tmp/lunar-worker/output/build/link/"
+CATALOGUE_MOUNT = "/catalogue/"
+BUILD_LINK_MOUNT = "/output/build/link/"
 _BOOTSTRAP_CONTINUOUS_ARGUMENTS = (
     "--flash-layout", "expanded-d7000", "--runtime-mode", "continuous",
     "--wavetable-profile", "compressed-required-banks-ram-plaits-braids-shapes8-v1",
@@ -314,6 +315,44 @@ def generated_evidence_paths(receipt):
                  or path.split("resources_", 1)[1].split(".", 1)[0] in namespaces)
 
 
+def require_private_empty_root(path: Path) -> None:
+    """Require an adapter-created canonical tmpfs root, never a path alias."""
+    info = path.lstat()
+    if (not stat.S_ISDIR(info.st_mode) or path.resolve() != path
+            or info.st_uid != os.getuid() or info.st_gid != os.getgid()
+            or stat.S_IMODE(info.st_mode) != 0o700
+            or any(path.iterdir())):
+        raise ValueError("canonical build mount is not an empty private owned directory")
+
+
+def freeze_source_tree(root: Path) -> None:
+    """Keep extracted pinned source bytes read-only; build products live elsewhere."""
+    for path in root.rglob("*"):
+        info = path.lstat()
+        if stat.S_ISDIR(info.st_mode):
+            os.chmod(path, 0o555)
+        elif stat.S_ISREG(info.st_mode):
+            os.chmod(path, 0o555 if info.st_mode & 0o111 else 0o444)
+        else:
+            raise ValueError("source tree contains an unsafe entry")
+    os.chmod(root, 0o555)
+
+
+def build_commands(work: Path, output: Path, profile_args: list[str]) -> tuple[list[str], list[str]]:
+    """Use the trusted worker's canonical source/output paths and host codec recipe."""
+    state_dir = SCRATCH / "state"
+    state_tool = state_dir / "fm1-state"
+    state_command = ["make", "-C", str(work / "engines"), "BUILD=" + str(state_dir),
+                     "FM1_GPL_MODS=1", "-j4", str(state_tool)]
+    image_command = [
+        sys.executable, str(work / "tools/native/build_demo_image.py"),
+        "--request", str(REQUEST), "--state-tool", str(state_tool),
+        "--toolchain", str(TOOLCHAIN), "--catalogue", str(CATALOGUE),
+        "--out", str(output / "build"), *profile_args,
+    ]
+    return state_command, image_command
+
+
 def main() -> int:
     request_bytes = regular_file(REQUEST, MAX_REQUEST)
     request = json.loads(request_bytes)
@@ -329,8 +368,10 @@ def main() -> int:
     # Extract only the server-created git archive into bounded tmpfs. Reject
     # links and path traversal even though the archive is generated locally.
     SCRATCH.mkdir(mode=0o700, parents=True, exist_ok=False)
-    work = SCRATCH / "source"
-    work.mkdir(mode=0o700)
+    work = SOURCE
+    output = OUTPUT
+    require_private_empty_root(work)
+    require_private_empty_root(output)
     seen = set()
     with tarfile.open(SOURCE_ARCHIVE, "r:") as archive:
         members = archive.getmembers()
@@ -359,20 +400,11 @@ def main() -> int:
                 with source_file, destination.open("xb") as target:
                     shutil.copyfileobj(source_file, target, length=1024 * 1024)
                 os.chmod(destination, 0o755 if member.mode & 0o111 else 0o644)
+    freeze_source_tree(work)
     verify_extracted_profile_contract(work, request)
-    subprocess.run(["make", "-C", str(work / "engines"), "build/fm1-state"],
-                   check=True, timeout=120)
-    output = SCRATCH / "output"
-    (output / "build").parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run([
-        sys.executable, str(work / "tools/native/build_demo_image.py"),
-        "--request", str(REQUEST),
-        "--state-tool", str(work / "engines/build/fm1-state"),
-        "--toolchain", str(TOOLCHAIN),
-        "--catalogue", str(CATALOGUE),
-        "--out", str(output / "build"),
-        *profile_args,
-    ], check=True, timeout=1200)
+    state_command, image_command = build_commands(work, output, profile_args)
+    subprocess.run(state_command, check=True, timeout=180)
+    subprocess.run(image_command, check=True, timeout=1200)
     app, elf, receipt = verified_build_outputs(output / "build")
     evidence_summary = retain_private_evidence(output / "build", request_bytes)
     (RESULT / "app.bin").write_bytes(app)
