@@ -1,3 +1,18 @@
+## Target-correct VM comparison reviewed; bank-argument trace assigned — 2026-10-17 UTC
+
+Coordinator verified corrected V1.1.9 IR hash and exact single-line target-triple
+delta. Detailed algorithm motifs support candidate defragmentation correspondence
+at exact09202028F10, not SDK-version or bank-ownership proof. Source note:
+notes/2026-10-17-092-vm-candidate-markers.md. Copied report/IR remain ignored.
+Worker bringup_review now traces candidate VM initialization and actual bank
+arguments offline on Aeon. It has no device/Hera/write authority. Prior report
+wording 'loads two bytes' is being corrected to 'loads value2'.
+CI38991254950 last verified in progress with only Ubuntu/macOS full suites and
+ASan/UBSan pending; all completed jobs passed. FM1 recovery remains unresolved;
+existing owner connection question still pending. No new hardware action.
+Overall goal ACTIVE; unrelateduv.lock untouched. Prior checkpoint0b04913c was
+pushed and remoteSHAverified; this note is the next focused checkpoint.
+
 ## SDK VM markers found in exact 092 payload — 2026-10-17 UTC
 
 Coordinator exact-hash scan found all three candidate SDK VM markers in 092,

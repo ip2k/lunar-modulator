@@ -65,3 +65,30 @@ those calls through the one known RAM alias would yield addresses below
 `0x01C00000`. Stop there: complete runtime aliasing, instruction interpretation
 and reachability remain unresolved. Do not infer RAM closure, controller
 semantics or a callable flash writer from this partial trace.
+
+## Target-correct IR review
+
+[verified: coordinator file hash and complete text comparison] Corrected V1.1.9
+IR SHA-256 is `1a4b69b08ece41d21f259aadf9311adc6c0f77546765453f593b138d3dc1e8c1`.
+It has exactly the same line count as the initial extraction; the only changed
+line is line 4, from target triple x86_64-unknown-linux-gnu to pi32v2. No function
+body or type-layout text changed. The worker used the explicit firmware target
+flags in one bounded Aeon container. This verifies the IR correction, not
+machine code or physical ABI behavior.
+
+[reported: worker comparison; verified: coordinator inspected both motifs]
+The exact092 cluster matches the SDK defragmentation algorithm in ordered
+markers, 256-entry loop, two-byte descriptor and 12-byte area strides, record
+length/capacity guard, copy/update, and reset branch. This is a strong
+algorithmic correspondence. It still cannot distinguish the two SDK revisions
+or establish bank arguments/ownership. V1.1.9 has three literal i8 fields after
+its i32 field in _VM_STRUCT; V1.2.13 has four. The initial report's wording
+about two flag bytes is superseded; no field meaning follows from that count.
+
+Detailed reviewed comparison (before a wording-only correction from “two bytes”
+to “value 2”) is retained as
+`scratch/sdk-vm-ir-20261017/analysis-pi32v2.md`, SHA-256
+`b5bad8eb82305ad46edd6f6d6a6465dea0a25a269e40e7543ba61073d0d03b0c`.
+The next assigned read-only trace identifies candidate vm_init in the 092
+0x02033xxx–0x020342xx region and follows concrete callsites/bank arguments.
+There is no storage admission or physical recovery claim.
