@@ -145,8 +145,25 @@
   white-space: pre-wrap;
 }
 
+.installer-receipt-preview {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 18px 0;
+  min-width: 0;
+  max-width: 78ch;
+  overflow-wrap: anywhere;
+  padding: 14px 16px;
+}
+.installer-receipt-preview h3 { margin: 0 0 8px; }
+.installer-receipt-preview p {
+  line-height: 1.5;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 520px) {
   .installer-top { align-items: flex-start; flex-direction: column; gap: 4px; }
   .installer-top span { text-align: left; }
-  .installer-status, .native-demo-default-status { padding: 12px 14px; }
+  .installer-status, .native-demo-default-status, .installer-receipt-preview { padding: 12px 14px; }
 }

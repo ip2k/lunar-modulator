@@ -166,6 +166,23 @@ try {
               status: 'linked-private-diagnostic', artifact_sha256: 'c'.repeat(64), artifact_bytes: 785312,
               app_budget_bytes: 868836, remaining_bytes: 83524,
               installable: false, hardware_tested: false,
+              provenance: { kind: 'private-diagnostic-build-provenance', sha256: 'e'.repeat(64) },
+              receipt_preview: {
+                flash_layout: 'expanded-d9000', runtime_mode: 'diagnostic',
+                profile: { flash_layout: 'expanded-d9000', runtime_mode: 'diagnostic', shapes_voices: 12 },
+                modules: ['engines', 'effects', 'midi', 'modulation']
+                  .flatMap(group => successfulRequests.at(-1)[group]),
+                projects: successfulRequests.at(-1).project_ids.map((id, index) => ({
+                  id, startup: index === successfulRequests.at(-1).startup_index,
+                })),
+                sets: [],
+                packed_content: { bytes: 256, assets: successfulRequests.at(-1).project_ids.map(id => ({
+                  kind: 'project', id, bytes: 128, sha256: 'a'.repeat(64),
+                })) },
+                application: { sha256: 'c'.repeat(64), bytes: 785312,
+                  budget_bytes: 868836, remaining_bytes: 83524 },
+                provenance: { kind: 'private-diagnostic-build-provenance', sha256: 'e'.repeat(64) },
+              },
             } };
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
       }
@@ -184,8 +201,13 @@ try {
       fullSongPending: document.body.innerText.includes('Full-song default status: pending'),
       status: document.getElementById('installer-export-status').textContent,
       overflow: document.documentElement.scrollWidth > window.innerWidth,
+      receiptVisible: !document.querySelector('.installer-receipt-preview').hidden,
+      receiptRowsFit: [...document.querySelectorAll('.installer-receipt-preview p')]
+        .every(row => row.scrollWidth <= row.clientWidth),
     }));
-    if (state.overflow || !state.fullSongPending) throw new Error(`${viewport.name}: clipping or pending status check failed`);
+    if (state.overflow || !state.fullSongPending || !state.receiptVisible || !state.receiptRowsFit) {
+      throw new Error(`${viewport.name}: clipping, receipt layout or pending status check failed`);
+    }
     await page.screenshot({ path: path.join(artifactRoot, `installer-${viewport.name}.png`), fullPage: true });
     report.screenshots.push({ name: viewport.name, ...viewport, ...state });
     report.scenarios.push({ name: `${viewport.name}-success`, polls: poll, request: successfulRequests.at(-1) });
