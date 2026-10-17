@@ -155,3 +155,25 @@ Aeon report under coordination tasks:
 `mvave-fm1-spl-entry-contract-20261017/spl-entry-r0-review.md`, SHA-256
 `3400ebd62e7c38c06eb8ef4ee62d01a1039f74e26e8dfcbaf1dab1913d1f540b`.
 No hardware actions or new builds occurred.
+
+
+## Historical marker cross-check and explicit conditional ranges
+
+[verified: bounded instruction/SDK IR comparison; conditional ranges inferred]
+The follow-up review confirms `umin` at `0x020340B4` is an unsigned minimum,
+consistent with the pinned V1.1.9 `vm_init` IR's unsigned comparisons/selects.
+For descriptor base `0xD9000`, already aligned to both supported start
+boundaries, mode 1 computes total span `0x2000`, with halves
+`[0xD9000,0xDA000)` and `[0xDA000,0xDB000)`. Other modes compute total span
+`0x4000`, with halves `[0xD9000,0xDB000)` and `[0xDB000,0xDD000)`.
+These remain conditional on the traced initializer receiving the descriptor
+and completing; the runtime mode and active bank were not observed.
+
+[verified: read-only historical image inventory] The matching retained
+2026-10-07 backup pair has a marker and candidate records at `0xE8000`,
+outside both computed extents. This is the descriptor's final sector start,
+not its exclusive endpoint `0xE9000`. It cannot be classified as an active
+bank, an end marker or safely reusable residual data from location alone.
+The historical record/CRC results are in
+`2026-10-17-sdk-vm-record-format.md`. No live ownership or erase authority is
+established, and the unexplained second location must remain preserved.

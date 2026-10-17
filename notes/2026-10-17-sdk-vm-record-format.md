@@ -107,3 +107,35 @@ Probe source/IR/assembly/disassembly and exact commands are retained in
 appended section. The earlier report hash pins its earlier revision only.
 Aeon coordination handoff `lunar--vm-crc-packet-semantics-20261017.md` has
 SHA-256 `4deb2e27eaff03727b2f698be57e940c8e71bf5bd33c7053a52d997d0b8610ec`.
+
+
+## Retained historical record/CRC check
+
+[verified: bounded offline scan; independently rerun by coordinator] Both
+retained 2026-10-07 private dumps are 1,048,576 bytes and byte-identical, with
+SHA-256 `96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4`.
+A marker-gated, sector-bounded walk beginning at base+4, capped at 64 records,
+uses the traced four-byte header and `4 + length` advancement. It stops at an
+erased header without reading beyond the candidate sector.
+
+| Historical candidate sector | Records | Low-byte CRC matches | Erased header stop |
+| --- | ---: | ---: | --- |
+| `[0xD9000,0xDA000)` | 6 | 6/6 | `0xD90AD` |
+| `[0xE8000,0xE9000)` | 8 | 8/8 | `0xE80F5` |
+
+The candidate algorithm is zero-seeded, non-reflected `0x1021` with no final
+xor, comparing only the low byte, as the reader does. These observations
+corroborate historical format and checksum behavior; they do not uniquely
+identify full 16-bit CRC parameters. Matching copies are repeated observations
+of one image, not independent vectors; records may also repeat across sectors.
+No payloads or record IDs are included in these notes or emitted by the walker.
+
+Ignored reproducible walker:
+`scratch/vm-known-record-check-20261017/walk_historical_candidates.py`, SHA-256
+`5d6dfea8fa60968b63fd2cd797cac2e25328aea58fd27ba848ab7c7fd9129ed5`.
+Detailed report `historical-candidate-walk.md` in the same directory, SHA-256
+`e80bde2d6f319359b268b318dd1e8a1e1998b1f8492323121074b791c0ee92e7`.
+This does not establish current contents, active bank, ownership, record
+semantics, production decoder correctness, recovery, SAVE or reuse permission.
+The second historical sector lies outside the initializer's conditional
+extents; preserve it until that discrepancy is resolved.

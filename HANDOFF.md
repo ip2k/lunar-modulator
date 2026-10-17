@@ -7998,3 +7998,22 @@ ownership or reuse permission. Bringup reviewer is rechecking exact bank
 arithmetic before any record-walk interpretation. Do not publish dump payloads.
 CI38994186689 remains in progress. Existing passive-monitor connection question
 remains pending; no new hardware connection or recovery success is claimed.
+
+
+### Historical record check and bank arithmetic review
+
+Read-only known-record check completed and independently rerun: the pinned
+historical matching backups give 6/6 and 8/8 candidate low-byte CRC matches
+at D9004 and E8004 respectively, ending at erased headers. No payloads/IDs
+were emitted. Notes now distinguish this from full CRC identification and
+current ownership. The bank arithmetic review confirms unsigned min behavior;
+conditional extent ends are DB000 (mode1) or DD000 (other modes). E8000 lies
+outside both; do not classify or reuse it. Actual runtime activation and
+ownership remain unresolved. No production decoder or device write added.
+
+Passive check at 02:19UTC17Oct: valid TARGET-A monitor about5.07V, current
+0/1373microamps; bench01 enumerates KA6 but no FM1. It does not establish FM1
+connection/CPU power. Existing owner connection question remains pending;
+monitor gateware unchanged. CI38994186689 still live with no completed-job
+failures at last check. Goal ACTIVE: recovery/audio/physical/persistence and
+release gates remain open. Aeon only; no Hera probes/jobs.
