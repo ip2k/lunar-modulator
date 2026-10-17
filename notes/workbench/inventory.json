@@ -60,7 +60,7 @@
     "owner_historical_full_flash": {
       "bytes":1048576,
       "sha256":"96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4",
-      "present":false,
+      "included_in_public_inventory":false,
       "provenance":"Retained bench record reports matching copies and a previous complete stock-baseline restore/read-back."
     },
     "last_retained_passive_observation_utc":"2026-10-17T16:46:00Z",
@@ -81,4 +81,4 @@
     "checks":["kit and pinned source digests","safe archive paths; reject traversal, symlink/special files, duplicate normalized paths","exact 150-file path/content comparison","all 65 internal SDK manifest hashes"],
     "limits":"No downloads, vendor executable invocation or device access."
   }
-}\n
+}

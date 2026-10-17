@@ -15,4 +15,4 @@ The retained parser evidence checked the container/table, unencrypted-entry and 
 
 The Workbench updater requires a responding compatible USB-MIDI app or OTA endpoint and identity/protocol responses, including in force mode. Raw `UBOOT1.00` without its MIDI updater, or no USB enumeration, requires separately reviewed recovery tooling and separately admitted hardware work. The public stock FWSC supplies asset provenance; it provides no demonstrated entry path.
 
-No binary is committed. No USB, MIDI, flash, reboot, restore or vendor-tool operation was performed.\n
+No binary is committed. No USB, MIDI, flash, reboot, restore or vendor-tool operation was performed.
