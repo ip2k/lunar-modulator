@@ -1,3 +1,19 @@
+## Live FM1 supply measured; exact source CI green — 2026-10-17 16:43 UTC
+
+[verified] Owner confirmed FM1 TARGET A, verified cable, TARGET C empty,
+switch RIGHT. Five passive PAC2 samples show4.970215–4.977539V and
+347.137–348.358mA toward FM1; allvalid/fault0. Evidence and limits:
+notes/2026-10-17-fm1-passive-power-check.md. No CPU/charging/switch-position
+conclusion. Requested owner moveRIGHT→LEFT for comparison; awaiting reply.
+No key/flash/power/reboot command. CONTROL remains Mac.
+
+[verified: GitHub live] CI39013975680 completedSUCCESS at exact source HEAD
+f9af83fde2b02e92651b801445d138fcaf30eb30. Later99825509 is docs-only.
+Current firmware hardware recovery/audio acceptance and public release remain
+incomplete. Source archive comparison found a known reversible __config patch
+and distinct catalogue module header variants; worker preparing exact plan.
+Aeon only, Hera untouched. Preexisting uv.lock preserved. GoalACTIVE.
+
 ## R4 collector accepted; PAC2 unloaded check — 2026-10-17 07:37 UTC
 
 [verified: root archive validation and worker saved handoff] Source HEAD
