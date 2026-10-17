@@ -8052,8 +8052,10 @@ Integrated reviewed worker commits as 7aa71416, ad99719c and ce85fb19;
 ce85fb194517365d53d23f190684540092fc1f7d pushed and remote SHA verified.
 Optional prepared source input now archives exact validator-returned project
 and SET bytes, binds canonical provenance receipt pins and selection identity,
-and rejects symlink/traversal paths. Independent review caught and corrected
-the initial producer/consumer field-name mismatch before integration. The new
+and rejects symlink/traversal paths. Initial review incorrectly inferred a
+producer/consumer field-name mismatch; full producer inspection showed it
+emits both inherited tuple pins and receipt-specific copies. Follow-up b0c41b70
+requires all four to agree and corrects the implementation note. The new
 real prepare_selection/Event Horizon regression exercises the actual codec.
 Completeness, distribution and hardware admission flags remain false.
 

@@ -236,3 +236,26 @@ SHA-256 `374cd3d118bbd3d3eb57b002994ef38ab9dc4df0a3a042d58afe91d79dccc49b`;
 adjacent `handoff.md` SHA-256
 `86d4d2acdf2139da4c46905502fb90e136715b5f4a63a2c2d720458f0012290e`.
 These corrected artifacts supersede the earlier report/handoff pins.
+
+### Bounded migration branch prerequisites
+
+[verified: coordinator reread listing 0x02029776–0x02029876] The initial
+gate compares halfword `[0x01C0E8D4]` with `0x5A02`; a mismatch exits.
+Selector 206 fills a temporary record, and `end = record[+4] + record[+12]`.
+The first 80-byte candidate read starts at `end - 0x100`. If its parser
+fails, the scan step is `mode * 0x100` for modes 1–16 inclusive, otherwise
+`0x1000`. A helper uses selector 103 for an as-yet opaque scan cursor;
+candidates are read at `cursor - step - 0x100`, stepping downward.
+
+Parser success yields the marker address as its output word plus the
+candidate's dword at offset 72. The marker must read `0x55AAAA55`.
+Transfer length is the unsigned minimum of `end - marker` and a RAM limit
+at `0x01C10EB0`; destination comes from `0x01C10EAC`. Mode 1 selects
+operation 3 and chunks up to 256 bytes; other modes select operation 2
+and chunks up to 4096 bytes. Each chunk then passes through `0x02028FF8`.
+
+These formulas explain how an address could come from parsed metadata;
+they do not establish any runtime global value, scan cursor, actual parser
+success, selection of E8000, execution of a migration, or permission to
+reuse a sector. The conditional bank arithmetic and historical E8000
+records therefore remain insufficient for storage admission.
