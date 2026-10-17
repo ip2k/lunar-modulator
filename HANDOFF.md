@@ -1,3 +1,42 @@
+## R4 collector accepted; PAC2 unloaded check — 2026-10-17 07:37 UTC
+
+[verified: root archive validation and worker saved handoff] Source HEAD
+f9af83fde2b02e92651b801445d138fcaf30eb30 is pushed and remote-SHA verified.
+Integrated host-codec rebuild recipe (361c1794), dependency alias handling
+(e077d004), and meaningful raw-receipt traversal regression (f9af83fd).
+Combined tests/test_source_compiler_headers.py and tests/test_gpl_source_bundle.py:
+62 passed, 1 skipped; skip requires fresh FM1_STATE_TOOL. No current-head CI
+success: run39013975680 is pending at f9af83fd behind in-progress39010710174
+at38e02719530d36b004665bb483890f90d9380862.
+
+R4 collector-only replay succeeded, exit0, at Aeon
+/home/claude/mvave-fm1/private-bff-compiler-header-collector-replay-20261017/replay-r4-01/output/.
+Payload compiler-header-collector-payload.tar.gz is1166456B,
+SHA d62894308ace1571aebf04066c9e42ced6d11955dfa98471b1174ca55dd4cd35.
+Root independently verified453 safe unique regular members and all452 metadata
+rows by size/hash.36 consumed target headers,261246B, four notices,294 raw
+receipts. Before/after R3 inventory and fixed input pins match. Worker handoff:
+scratch/r3-collector-replay-20261017/replay-r4-01-handoff.md,
+SHA217e5925f58823f3b1072ed7b369705b5ec9f795f6611612e62bcfdd0733eb8d.
+707 checked dependency identities remain outside this collector payload:
+692 catalogue/cxx and15 fresh-output dependencies. Coverage by the separate
+source archive is under read-only investigation; no full export/replay yet.
+Completeness, distribution and reproducibility flags remain false.
+
+[verified: live read-only sweep07:36:48-52UTC after owner's lamp-disconnect
+confirmation] PAC2/layout2, active range4000, controls1, fault0; all3 samples
+valid/fresh. VBUS5.082031/5.070801/5.076172V; current-916/+763/-1221uA.
+Saved scratch/cynthion-pac2-root-direct-20261017/post-lamp-disconnect-monitor-check.jsonl
+and stderr. TARGET ports confirmed empty, CONTROL to Mac. Requested FM1
+connection to TARGET A with verified cable, TARGET C empty, switch RIGHT,
+no USER/RESET; awaiting owner confirmation. No key, flash, power or reboot.
+
+Next: read passive FM1 samples after confirmation; review worker's exact
+source-bundle export plan and coverage comparison, then stage bounded export
+and deterministic replay. Aeon only; Hera untouched. Root exclusively owns
+bench/device writes. Preexisting untracked uv.lock preserved. Goal remains
+ACTIVE: recovery, acceptable hardware audio, persistence and web release unaccepted.
+
 ## Exact alias collector integrated; real replay active — 2026-10-17 UTC
 
 [verified: coordinator review, integrated tests and remote SHA] Integrated
