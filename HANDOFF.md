@@ -7980,3 +7980,21 @@ preservation. Next offline dependency: corroborate pi32v2 parallel-packet load
 semantics and hardware CRC parameters with exact evidence. Physical dependency
 remains existing monitor connection question; don't duplicate or drive lines
 until the requested connection state is established. Aeon only; no Hera jobs.
+
+### Aeon routing reconfirmed and CRC packet check
+
+Owner reconfirmed Hera is online but reserved for MDADM/M.2/25G NIC setup.
+Continue builds/tests on Aeon; do not probe Hera. The bounded CRC compiler
+probe completed on Aeon and its container exited/claim released. Compiler
+output corroborates old-register parallel-packet reads, with the limits in
+notes/2026-10-17-sdk-vm-record-format.md. No device action occurred.
+
+Read-only inventory of the matching historical 2026-10-07 private dumps found
+non-erased sectors at D9000 and E8000 inside the descriptor's VM range, each
+with a 55AAAA55 marker. Metadata only is saved in
+scratch/vm-known-record-check-20261017/historical-region-inventory.json.
+This is historical data, possibly residual; it does not prove active banks,
+ownership or reuse permission. Bringup reviewer is rechecking exact bank
+arithmetic before any record-walk interpretation. Do not publish dump payloads.
+CI38994186689 remains in progress. Existing passive-monitor connection question
+remains pending; no new hardware connection or recovery success is claimed.

@@ -89,3 +89,21 @@ Ignored report `scratch/vm-crc-source-20261017/HANDOFF.md`, SHA-256
 Next: corroborate packet semantics, then use authoritative peripheral or known
 input/output evidence for the exact hardware CRC. No decoder or SAVE authority
 is added by an SDK fallback match.
+
+### Parallel-packet compiler corroboration
+
+[verified: pinned compiler output; coordinator report review] An independent
+volatile-load-then-call C probe compiled on Aeon with the pinned pi32v2 r3
+clang emits `r0 = r1 # r4 = h[r0+4]`. Its C semantics require the load to use
+the original pointer while the call receives a different pointer. This
+corroborates the compiler's expectation that the 092 wrapper's parallel packet
+reads old `r0+4`, consistent with the CRC result register. It is compiler
+expectation evidence, not an independent silicon or ISA-manual verification.
+The probe uses a halfword load; the 092 packet uses a word load. No CRC
+polynomial, live record validity or storage reuse authority follows.
+
+Probe source/IR/assembly/disassembly and exact commands are retained in
+`scratch/vm-crc-source-20261017/packet-semantics/`; the report above now has an
+appended section. The earlier report hash pins its earlier revision only.
+Aeon coordination handoff `lunar--vm-crc-packet-semantics-20261017.md` has
+SHA-256 `4deb2e27eaff03727b2f698be57e940c8e71bf5bd33c7053a52d997d0b8610ec`.
