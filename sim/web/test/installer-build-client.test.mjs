@@ -156,6 +156,7 @@ test('bounds timing configuration and rejects invalid selected request', async (
     { ...request, flash_layout: 'expanded-d7000' },
     { ...request, flash_layout: 'expanded-d7000', runtime_mode: 'diagnostic' },
     { ...request, engines: ['macro'], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
+    { ...request, engines: ['macro'], effects: ['shapes'], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
   ]) {
     await assert.rejects(client.build(invalid), /request is invalid/);
   }

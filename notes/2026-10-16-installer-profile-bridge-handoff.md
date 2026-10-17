@@ -26,3 +26,17 @@ The installer request path now carries an explicit optional native build configu
 ## Next dependency
 
 Parent review and integration through the required CI/review gates. Physical and release acceptance remain separate owner gates.
+
+## Coordinator integration
+
+[verified: source and host tests] Integrated worker20d44c45 and handoff9113a203
+as0b16a51a/a8014b23. Tightened client profile prerequisites to the engines group,
+matching serializer behavior; a misgrouped Shapes regression sends no request.
+Combined selection/view/page/client suite38passed,0failed,0skipped. Backend
+legacy canonical and explicit D7000 request-contract tests2passed. No browser
+render or live service, package, device or release acceptance is claimed.
+
+The optional internal buildConfiguration reaches page→view→serializer→client.
+Omitting it preserves the legacy shape. Public marker/defaults/UI stay as before.
+This closes the explicit diagnostic-profile transport gap; it does not supply
+a production firmware download or meet the full release goal.

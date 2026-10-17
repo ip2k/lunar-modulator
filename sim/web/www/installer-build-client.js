@@ -48,7 +48,7 @@ function validateRequest(request) {
     }
   }
   if (hasBuildConfiguration
-      && !['macro', 'shapes'].every((id) => groups.some((group) => request[group].includes(id)))) {
+      && !['macro', 'shapes'].every((id) => request.engines.includes(id))) {
     fail('The selected build request is invalid.');
   }
   if (hasSets && (!Array.isArray(request.set_ids) || request.set_ids.length > 8

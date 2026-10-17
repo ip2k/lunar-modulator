@@ -1,3 +1,33 @@
+## Installer profile bridge integrated; hardware cable check pending — 2026-10-16
+
+[verified: host tests/source] Internal explicit D7000/song-diagnostic configuration
+now traverses installer page/view/serializer/client; legacy requests preserve
+their shape. Modules remain separately validated. Root tightened required
+Macro+Shapes membership to engines; malformed/misgrouped requests do not fetch.
+38JS tests passed,0skipped; targeted backend contracts2passed. Source0b16a51a
+plus coordinator follow-up. See notes/2026-10-16-installer-profile-bridge-handoff.md.
+No public deployment, firmware download, packaging or device acceptance claimed.
+
+[reported: read-only worker] PAC1954CH1 can measure TARGET-A USB power but
+current operationbit doesnotexpose it; not CPUrail evidence. Cable data check
+is moredirect next discriminator. Owner asked substitute verified data cable
+or test existing FM1→A cable with knownworkingUSBdevice; reply pending. Both
+TARGET ports last reported connected, FM1switchLEFT, layout6 terminal highZ.
+Do not reconfigure or issue device commands while that physical step is pending.
+
+[verified: source/objdump research] Existing Luna audit located pinned stage7
+ELF84a00f0e… onHera; two outofline RAM intermediate FIR calls/output confirmed,
+no tap helper calls observed. Bounded Sol experiment resampler_inline_experiment
+is running in isolated branch to validate bitexact output/state and target
+RAM/codegen fit before proposing integration. No audio improvement established.
+
+Previous goal turn added owner charge-status evidence and confirmed live research;
+this turn completed monitor/source review and closes a tested installer request
+gap. Full goal remains active and incomplete: recovery, native audio, persistence,
+production packaging/download, physical acceptance and required release gates.
+SemantictoolsstillselectprimaryDevelopercheckout: Rarefaction absolute orient
+refused thisworktree; Serena config primarycpp. No shared retarget attempted.
+
 ## Owner reports green charge indicator in both switch positions — 2026-10-16
 
 [verified: owner report] Charging indicator is lit with the switch in either
