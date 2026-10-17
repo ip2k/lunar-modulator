@@ -50,15 +50,20 @@ edge to advance its bit counter before the first read-address bit. Clearing
 that pending edge on START fixed the fixture without changing LUNA or project
 RTL.
 
-The corrected wrapper-level simulation now verifies the transmitted bytes
+The corrected simulation is now tracked in
+`tests/test_cynthion_power_monitor.py` as a public-API
+`I2CRegisterInterface` integration test. It verifies the transmitted bytes
 `0x20` (address write), `0x07` (register), and `0x21` (address read), all three
-ACKs, final master NACK, STOP, and returned two-byte value `0x1234`. It checks
-all 16 actual `READ-DATA-SCL-H` sample exits: SCL output and the initiator's
-SCL feedback are high; physical SDA matches the initiator's synchronized SDA.
-The captured `r_shreg` evolution produces `0x12`, then `0x34`. This resolves
-the earlier `0x2569` discrepancy as a testbench phase error, not evidence of a
-LUNA RTL defect. The responder is still an offline deterministic model, not a
-PAC1954 electrical/bus measurement or FPGA-top integration test.
+address ACKs, the master's ACK after byte one, final master NACK, STOP, and
+returned two-byte value `0x1234`. It checks
+that its open-drain responder presents 16 MSB-first data bits, `0x12` then
+`0x34`, and that the wrapper combines them as `0x1234`. A separate ignored
+scratch trace captures LUNA's internal read-state sample edges and shift
+register, confirming the wrapper result and synchronized SDA match for this
+fixture. This resolves the earlier `0x2569` discrepancy as a testbench phase
+error, not evidence of a LUNA RTL defect. This is a complete simulated
+register-wrapper transaction, but the responder is an offline deterministic
+model, not a PAC1954 electrical/bus measurement or FPGA-top integration test.
 
 Validation command:
 

@@ -130,6 +130,116 @@ class _TwoByteI2CSlave(Elaboratable):
         return (self.bit_index != 8) & ~read_bit
 
 
+class _RegisterReadSlave(Elaboratable):
+    """Minimal open-drain target for one register-addressed two-byte read."""
+
+    def __init__(self, pads):
+        self.pads = pads
+        self.phase = Signal(3)  # SLA+W, register, SLA+R, data0, data1, done
+        self.bit_index = Signal(range(9))
+        self.rx_shift = Signal(8)
+        self.address_write = Signal(8)
+        self.register = Signal(8)
+        self.address_read = Signal(8)
+        self.address_ack_mask = Signal(3)
+        self.first_data_ack = Signal()
+        self.final_nack = Signal()
+        self.start_count = Signal(2)
+        self.stop_seen = Signal()
+        self.sampled_read = Signal(16)
+        self.read_sample_count = Signal(range(17))
+
+    def elaborate(self, platform):
+        m = Module()
+        scl_d = Signal(init=1)
+        sda_d = Signal(init=1)
+        saw_rise = Signal()
+        line = Signal()
+        rising = Signal()
+        falling = Signal()
+        start = Signal()
+        stop = Signal()
+        m.d.comb += [
+            line.eq(~(self.pads.sda.oe | self._target_pulls_low())),
+            self.pads.sda.i.eq(line),
+            rising.eq(~scl_d & self.pads.scl.o),
+            falling.eq(scl_d & ~self.pads.scl.o),
+            start.eq(self.pads.scl.o & sda_d & ~line),
+            stop.eq(self.pads.scl.o & ~sda_d & line),
+        ]
+        m.d.sync += [scl_d.eq(self.pads.scl.o), sda_d.eq(line)]
+
+        with m.If(start):
+            # The START setup edge is not part of the following address byte.
+            m.d.sync += [self.start_count.eq(self.start_count + 1), saw_rise.eq(0)]
+            with m.If(self.phase == 0):
+                m.d.sync += [self.phase.eq(1), self.bit_index.eq(0)]
+            with m.Elif(self.phase == 2):
+                m.d.sync += [self.phase.eq(3), self.bit_index.eq(0)]
+        with m.If(stop):
+            m.d.sync += self.stop_seen.eq(1)
+
+        with m.If(~start):
+            with m.If(rising):
+                m.d.sync += saw_rise.eq(1)
+                with m.If((self.phase >= 1) & (self.phase <= 3)
+                          & (self.bit_index < 8)):
+                    m.d.sync += self.rx_shift.eq((self.rx_shift << 1) | line)
+                    with m.If(self.bit_index == 7):
+                        with m.Switch(self.phase):
+                            with m.Case(1):
+                                m.d.sync += self.address_write.eq((self.rx_shift << 1) | line)
+                            with m.Case(2):
+                                m.d.sync += self.register.eq((self.rx_shift << 1) | line)
+                            with m.Case(3):
+                                m.d.sync += self.address_read.eq((self.rx_shift << 1) | line)
+                with m.If((self.phase >= 1) & (self.phase <= 3)
+                          & (self.bit_index == 8)):
+                    with m.Switch(self.phase):
+                        with m.Case(1):
+                            m.d.sync += self.address_ack_mask[0].eq(~line)
+                        with m.Case(2):
+                            m.d.sync += self.address_ack_mask[1].eq(~line)
+                        with m.Case(3):
+                            m.d.sync += self.address_ack_mask[2].eq(~line)
+                with m.If((self.phase == 5) & (self.bit_index == 8)):
+                    m.d.sync += self.final_nack.eq(line)
+                with m.If((self.phase == 4) & (self.bit_index == 8)):
+                    m.d.sync += self.first_data_ack.eq(~line)
+                with m.If((self.phase == 4) | (self.phase == 5)):
+                    with m.If(self.bit_index < 8):
+                        m.d.sync += [
+                            self.sampled_read.eq((self.sampled_read << 1) | line),
+                            self.read_sample_count.eq(self.read_sample_count + 1),
+                        ]
+
+            with m.If(falling & saw_rise):
+                m.d.sync += saw_rise.eq(0)
+                with m.If(self.bit_index == 8):
+                    m.d.sync += [self.bit_index.eq(0), self.rx_shift.eq(0)]
+                    with m.Switch(self.phase):
+                        with m.Case(1):
+                            m.d.sync += self.phase.eq(2)
+                        with m.Case(3):
+                            m.d.sync += self.phase.eq(4)
+                        with m.Case(4):
+                            m.d.sync += self.phase.eq(5)
+                        with m.Case(5):
+                            m.d.sync += self.phase.eq(6)
+                with m.Else():
+                    m.d.sync += self.bit_index.eq(self.bit_index + 1)
+        return m
+
+    def _target_pulls_low(self):
+        from amaranth import Mux
+        ack_phase = (self.phase >= 1) & (self.phase <= 3)
+        ack_slot = self.bit_index == 8
+        read_byte = Mux(self.phase == 4, 0x12, 0x34)
+        read_bit = read_byte.bit_select(self.bit_index[:3] ^ 7, 1)
+        return ack_phase & ack_slot | ((self.phase == 4) | (self.phase == 5)) \
+            & ~ack_slot & ~read_bit
+
+
 class PowerMonitorTests(unittest.TestCase):
     def test_scale_conversion_endpoints(self):
         self.assertEqual(vbus_uv_from_raw(0), 0)
@@ -348,6 +458,50 @@ class PowerMonitorTests(unittest.TestCase):
                     break
             self.assertEqual(ctx.get(i2c.data_o), 0x34)
             self.assertEqual(ctx.get(slave.byte_index), 1)
+
+        sim.add_testbench(bench)
+        sim.run()
+
+    def test_real_luna_register_wrapper_repeated_start_read(self):
+        pads = SimpleNamespace(
+            scl=SimpleNamespace(o=Signal(init=1)),
+            sda=SimpleNamespace(i=Signal(init=1), o=Signal(), oe=Signal()),
+        )
+        i2c = I2CRegisterInterface(
+            pads, period_cyc=64, address=PAC1954Channel1.I2C_ADDRESS,
+            data_bytes=2)
+        slave = _RegisterReadSlave(pads)
+        m = Module()
+        m.submodules.i2c = i2c
+        m.submodules.slave = slave
+        sim = Simulator(m)
+        sim.add_clock(1e-6)
+
+        async def bench(ctx):
+            ctx.set(i2c.address, 0x07)
+            ctx.set(i2c.size, 2)
+            ctx.set(i2c.read_request, 1)
+            await ctx.tick()
+            ctx.set(i2c.read_request, 0)
+            done_seen = False
+            for _ in range(20_000):
+                await ctx.tick()
+                done_seen |= bool(ctx.get(i2c.done))
+                if done_seen and ctx.get(slave.stop_seen):
+                    break
+
+            self.assertTrue(done_seen)
+            self.assertEqual(ctx.get(i2c.read_data), 0x1234)
+            self.assertEqual(ctx.get(slave.address_write), 0x20)
+            self.assertEqual(ctx.get(slave.register), 0x07)
+            self.assertEqual(ctx.get(slave.address_read), 0x21)
+            self.assertEqual(ctx.get(slave.start_count), 2)  # START + repeated START.
+            self.assertEqual(ctx.get(slave.address_ack_mask), 0b111)
+            self.assertEqual(ctx.get(slave.first_data_ack), 1)
+            self.assertEqual(ctx.get(slave.final_nack), 1)
+            self.assertEqual(ctx.get(slave.stop_seen), 1)
+            self.assertEqual(ctx.get(slave.read_sample_count), 16)
+            self.assertEqual(ctx.get(slave.sampled_read), 0x1234)
 
         sim.add_testbench(bench)
         sim.run()
