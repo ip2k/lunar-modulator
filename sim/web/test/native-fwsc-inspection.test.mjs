@@ -105,3 +105,52 @@ test('successful inspection remains immutable and cannot enable the OTA adapter'
   await assert.rejects(verifyNativePackage(raw), /release admission/);
   assert.throws(() => inspectFwscEnvelope(new Uint8Array(2 * 1024 * 1024 + 1)), /size/);
 });
+
+function nestedFixture(mode = 'valid', identity = 'FM-1_500') {
+  const generated = spawnSync(process.env.LUNAR_PYTHON || 'python3', [fileURLToPath(new URL('./nested-092-fixture.py', import.meta.url)), mode]);
+  assert.equal(generated.status, 0, generated.stderr.toString());
+  const flash = new Uint8Array(generated.stdout);
+  const tail = new Uint8Array(64); tail.set(new TextEncoder().encode('JLUFW'), 48);
+  const logical = new Uint8Array(0x400 + flash.length + 96);
+  const rows = [[0, 'flash.bin', 0x400, flash], [100, 'ota.bin', 0x400 + flash.length, new Uint8Array(32)],
+    [255, 'tail.bin', 0x420 + flash.length, tail]];
+  rows.forEach(([kind, name, offset, payload], i) => {
+    const row = new Uint8Array(80), v = new DataView(row.buffer);
+    v.setUint16(0, kind, true); v.setUint16(2, i, true); v.setUint16(4, crc(payload), true);
+    v.setUint32(8, offset, true); v.setUint32(12, payload.length, true); v.setUint32(16, payload.length, true);
+    row.set(new TextEncoder().encode(name), 64); logical.set(encode(row), 64 + i * 80); logical.set(payload, offset);
+  });
+  const header = new Uint8Array(64), v = new DataView(header.buffer);
+  v.setUint16(2, crc(logical.subarray(64, 304)), true); v.setUint32(4, logical.length, true); v.setUint16(8, 3, true);
+  header.set(new TextEncoder().encode('AC791N'), 16); v.setUint16(0, crc(header.subarray(2)), true); logical.set(encode(header));
+  const raw = new Uint8Array(logical.length + 20);
+  for (let i = 0; i < 20; i += 1) { raw.set(logical.subarray(i * 47, (i + 1) * 47), i * 48); raw[i * 48 + 47] = i < 8 ? identity.charCodeAt(i) + i + 1 : 125; }
+  raw.set(logical.subarray(940), 960); return raw;
+}
+
+test('092 D7000 synthetic structure agrees with Python model and stays non-admissible', async () => {
+  for (const identity of ['FM-1_092', 'FM-1_500', 'FM-1_503']) {
+    const raw = nestedFixture('valid', identity), report = inspectFwscEnvelope(raw);
+    assert.equal(report.nestedFlashVerified, true);
+    assert.equal(report.nestedInspection.profile, 'FM-1_092-D7000');
+    assert.equal(report.nestedInspection.appBytes, 13);
+    assert.equal(report.nestedInspection.cfgEnd, 0x4120 + 13 + 383 + 2937);
+    assert.equal(report.nestedInspection.protectedStockCorrespondence, 'unverified');
+    assert.equal(report.admissible, false); assert.equal(report.releaseAccepted, false);
+    assert.equal(Object.isFrozen(report.nestedInspection.records[0]), true);
+    assert.equal('logicalImage' in report, false);
+    await assert.rejects(verifyNativePackage(raw), /release admission/);
+  }
+});
+
+test('repaired outer and area CRCs cannot hide nested malformed geometry, CRC or wrong SFC origin', () => {
+  for (const mode of ['overlap', 'reserved', 'length', 'data', 'header', 'decryption', 'top-header', 'config-crc', 'spl-crc', 'cfg-crc', 'truncated', 'oversized']) {
+    assert.throws(() => inspectFwscEnvelope(nestedFixture(mode)), /092 nested/);
+  }
+});
+
+test('unknown identity keeps nested inspection explicitly incomplete', () => {
+  const report = inspectFwscEnvelope(nestedFixture('valid', 'FM-1_600'));
+  assert.equal(report.nestedFlashVerified, false);
+  assert.equal(report.nestedInspection.status, 'unsupported-profile');
+});
