@@ -806,7 +806,7 @@ def test_actual_retained_controller_receipt_through_testclient():
 
 def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path, monkeypatch):
     import subprocess
-    from tools.installer_service.docker_adapter import DockerJobAdapter, DockerWorkerConfig
+    from tools.installer_service.docker_adapter import DockerJobAdapter, DockerWorkerConfig, _IMAGE_ID
 
     source = tmp_path / "source"
     toolchain = tmp_path / "toolchain"
@@ -829,6 +829,25 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     commit = subprocess.run(["git", "-C", str(source), "rev-parse", "HEAD"],
                             check=True, capture_output=True, text=True).stdout.strip()
     config = DockerWorkerConfig(source, toolchain, runtime, commit, catalogue_root=catalogue)
+    assert config.worker_uid == runtime.stat().st_uid
+    assert config.worker_gid == runtime.stat().st_gid
+    from dataclasses import replace
+    for invalid_uid in (0, True, "1003"):
+        with pytest.raises(ValueError, match="worker_uid"):
+            replace(config, worker_uid=invalid_uid)
+    for invalid_gid in (0, True, "1003"):
+        with pytest.raises(ValueError, match="worker_gid"):
+            replace(config, worker_gid=invalid_gid)
+    wrong_owner_uid = 1 if config.worker_uid != 1 else 2
+    with pytest.raises(ValueError, match="runtime directory owner"):
+        replace(config, worker_uid=wrong_owner_uid)
+    wrong_owner_gid = 1 if config.worker_gid != 1 else 2
+    with pytest.raises(ValueError, match="runtime directory owner"):
+        replace(config, worker_gid=wrong_owner_gid)
+    runtime.chmod(0o770)
+    with pytest.raises(ValueError, match="group or world writable"):
+        replace(config)
+    runtime.chmod(0o700)
     adapter = DockerJobAdapter(config)
     # The worker entrypoint must come from the pinned commit even if the live
     # checkout changes after configuration validation.
@@ -836,7 +855,7 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     monkeypatch.setattr(adapter, "_run", lambda _build_id: None)
     data = canonical_request(request_doc())
     build_id = "A" * 32
-    pinned_template = WorkerTemplate("sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d",
+    pinned_template = WorkerTemplate(_IMAGE_ID,
                                     "lunar-private-builds")
     adapter.submit(build_id, data, hashlib.sha256(data).hexdigest(), pinned_template)
     base = runtime / build_id
@@ -851,12 +870,13 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     assert (base / "input/docker_worker.py").stat().st_mode & 0o777 == 0o400
     command = adapter._command(build_id, base)
     joined = " ".join(command)
-    for option in ("--cgroup-parent=docker-batch.slice", "--network=none", "--cpus=4", "--memory=8g",
+    for option in ("--pull=never", "--cgroup-parent=docker-batch.slice", "--network=none", "--cpus=4", "--memory=8g",
                    "--memory-swap=8g", "--pids-limit=512", "--read-only",
                    "--cap-drop=ALL", "--security-opt=no-new-privileges",
-                   "--user 1001:1001"):
+                   f"--user {config.worker_uid}:{config.worker_gid}"):
         assert option in joined
     assert config.image_reference in command
+    assert command[-3] == _IMAGE_ID
     assert "/output/build" not in joined
     assert "request.json" in joined and "source.tar" in joined
     assert "/input/docker_worker.py" in joined
@@ -891,9 +911,14 @@ def test_docker_adapter_rejects_mutable_source_and_unpinned_image(tmp_path):
     with pytest.raises(ValueError, match="clean commit"):
         DockerWorkerConfig(source, toolchain, runtime, commit, catalogue_root=catalogue)
     (source / "tracked.txt").write_text("tracked")
-    with pytest.raises(ValueError, match="immutable image"):
-        DockerWorkerConfig(source, toolchain, runtime, commit, catalogue_root=catalogue,
-                           image_reference="lunar-recovery-pytest:latest")
+    for obsolete_reference in (
+        "lunar-recovery-pytest:latest",
+        "lunar-recovery-pytest@sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d",
+        "sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d",
+    ):
+        with pytest.raises(ValueError, match="immutable image"):
+            DockerWorkerConfig(source, toolchain, runtime, commit, catalogue_root=catalogue,
+                               image_reference=obsolete_reference)
 
 
 def _docker_lifecycle_adapter(tmp_path):
@@ -959,7 +984,7 @@ def _docker_lifecycle_adapter(tmp_path):
         "schema": 1, "source_commit": commit, "source_tree_oid": config.source_tree_oid,
         "source_archive_sha256": prov_sha(archive_bytes),
         "worker_sha256": prov_sha(pinned_worker),
-        "worker_image_digest": config.image_reference.split("@", 1)[1],
+        "worker_image_digest": config.image_reference,
         "catalogue_manifest_sha256": prov_sha(catalogue_manifest),
         "toolchain_manifest_sha256": prov_sha(toolchain_manifest),
         "request_sha256": request_sha,

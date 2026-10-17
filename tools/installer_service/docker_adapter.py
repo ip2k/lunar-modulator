@@ -26,7 +26,11 @@ from .provenance import (make_diagnostic_provenance, sha256 as _sha256,
                          tree_manifest)
 
 _BUILD_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
-_IMAGE = "lunar-recovery-pytest@sha256:7e32dd6d9d9d02ed13b5d5b1480486e60a0010a8247d7e76c52cb9552c61ce5d"
+# The service deliberately pins the locally provisioned image ID.  A Docker
+# image ID is an immutable sha256 digest but is not a repository-qualified
+# pull reference; treating it as one makes Docker try to pull a nonexistent
+# repository name.
+_IMAGE_ID = "sha256:bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495"
 _MAX_PRIVATE_EVIDENCE_FILE = 128 * 1024 * 1024
 _MAX_PRIVATE_EVIDENCE_TOTAL = 512 * 1024 * 1024
 _CATALOGUE_MOUNT = "/input/catalogue/"
@@ -237,7 +241,9 @@ class DockerWorkerConfig:
     runtime_root: Path
     source_commit: str
     catalogue_root: Path | None = None
-    image_reference: str = _IMAGE
+    image_reference: str = _IMAGE_ID
+    worker_uid: int | None = None
+    worker_gid: int | None = None
     docker_binary: str = "docker"
     cpu_limit: str = "4"
     memory_limit: str = "8g"
@@ -250,7 +256,7 @@ class DockerWorkerConfig:
     def __post_init__(self):
         if not re.fullmatch(r"[0-9a-f]{40}", self.source_commit):
             raise ValueError("source must be pinned to a full Git commit")
-        if self.image_reference != _IMAGE:
+        if self.image_reference != _IMAGE_ID:
             raise ValueError("worker image must match the reviewed immutable image")
         if self.catalogue_root is None:
             raise ValueError("fixed verified catalogue cache is required")
@@ -259,6 +265,19 @@ class DockerWorkerConfig:
             if not path.is_dir():
                 raise ValueError(field + " must be an existing directory")
             object.__setattr__(self, field, path)
+        runtime_info = self.runtime_root.stat()
+        for name, owner_id in (("worker_uid", runtime_info.st_uid),
+                               ("worker_gid", runtime_info.st_gid)):
+            value = getattr(self, name)
+            if value is None:
+                value = owner_id
+            if type(value) is not int or not 1 <= value <= 65535:
+                raise ValueError(name + " must be an unprivileged numeric ID")
+            if value != owner_id:
+                raise ValueError(name + " must match the private runtime directory owner")
+            object.__setattr__(self, name, value)
+        if runtime_info.st_mode & 0o022:
+            raise ValueError("private runtime directory must not be group or world writable")
         if any("," in str(getattr(self, field)) or "\n" in str(getattr(self, field)) for field in ("source_root", "toolchain_root", "runtime_root", "catalogue_root")):
             raise ValueError("Docker mount path contains unsupported delimiter")
         head = subprocess.run(["git", "-C", str(self.source_root), "rev-parse", "HEAD"],
@@ -312,7 +331,7 @@ class DockerJobAdapter:
             raise ValueError("request digest mismatch")
         if not re.fullmatch(r"sha256:[0-9a-f]{64}", template.image_digest):
             raise ValueError("invalid image pin")
-        if self.config.image_reference.split("@", 1)[-1] != template.image_digest:
+        if self.config.image_reference != template.image_digest:
             raise ValueError("request template differs from pinned worker image")
         with self.lock:
             if self.stopping:
@@ -400,6 +419,7 @@ class DockerJobAdapter:
         return [
             cfg.docker_binary, "run",
             "--name", "lunar-private-" + build_id,
+            "--pull=never",
             "--label", "lan.project=lunar-modulator",
             "--label", "lan.session=installer-diagnostic-worker",
             "--cgroup-parent=docker-batch.slice", "--network=none", "--cpus=" + cfg.cpu_limit,
@@ -407,7 +427,7 @@ class DockerJobAdapter:
             "--pids-limit=512", "--read-only", "--cap-drop=ALL",
             "--security-opt=no-new-privileges",
             "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=" + str(cfg.scratch_bytes),
-            "--user", "1001:1001",
+            "--user", f"{cfg.worker_uid}:{cfg.worker_gid}",
             "--mount", "type=bind,src=" + str(base / "input" / "source.tar") + ",dst=/input/source.tar,readonly",
             "--mount", "type=bind,src=" + str(base / "input" / "docker_worker.py") + ",dst=/input/docker_worker.py,readonly",
             "--mount", "type=bind,src=" + str(cfg.toolchain_root) + ",dst=/opt/pi32v2,readonly",
@@ -512,7 +532,7 @@ class DockerJobAdapter:
                     or type(binding.get("schema")) is not int or binding["schema"] != 1
                     or binding.get("source_commit") != self.config.source_commit
                     or binding.get("source_tree_oid") != self.config.source_tree_oid
-                    or binding.get("worker_image_digest") != self.config.image_reference.split("@", 1)[1]
+                    or binding.get("worker_image_digest") != self.config.image_reference
                     or _sha256(catalogue_manifest) != binding.get("catalogue_manifest_sha256")
                     or _sha256(toolchain_manifest) != binding.get("toolchain_manifest_sha256")
                     or tree_manifest(self.config.catalogue_root) != catalogue_manifest
