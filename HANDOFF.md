@@ -1,3 +1,42 @@
+## Default song preset and actual adapter failure — 2026-10-17 UTC
+
+Owner routing remains Aeon only, claude@192.168.1.25. Do not probe/contact Hera
+while its RAID/M.2/25G NIC work proceeds. Source6bd944e808904f41cb263d72a52d3a450975a6d3
+is pushed and remote-SHA verified. Goal ACTIVE; hardware/release gates remain open.
+
+[verified: coordinator review and38passed/1codecskip focused checks] The default
+build-request preset now selects all55 modules plus Event Horizon and its
+companion SET at startup. An actual Aeon host-codec build/test additionally
+passed1 selected case,31deselected; worker terminal0/noOOM. This checks packed
+preparation, not target playback. The first launcher attempt lacked g++ and ran
+no test; it is retained separately. Coordinator terminal-receipt review pending.
+
+[verified: actual retained run and worker read-only replay] The real675 service
+worker exited0/noOOM and produced app854528B with canonical SHA
+f91bc8da94ddbf40ef1a75e85bf8802aef28a5b153025ce7f1d420e056907338.
+Host validation rejected the outer image receipt's absent flash_layout before
+any trusted-wrapper build or package. Lower verification receipt has that field;
+strict lower/outer binding correction is assigned. Raw ELF also differs from the
+retained trusted build in linker filename metadata; deterministic path-contract
+investigation is assigned, with no ELF normalization or identity-gate relaxation.
+Actual run: /home/claude/mvave-fm1/private-adapter-real-run-67586bb6-20261017.
+Summary SHA1ec769115d529f2d3dd5d1ac5773c348c201beadcca750ed1b540d853383e331.
+
+[verified: coordinator hash/replay/member comparisons and selected-source hashes]
+Exact E7 prepared project/SET inputs were added using the existing exporter.
+New private archive+replay:5404714B,1632 regular unique members,SHA
+bcfc309d1ba76a238f00683dc1efa72128c51f2e4e8e67d6f546719406408392.
+Prior1628 payload members are unchanged; MANIFEST.json and SOURCE-COMPLETENESS.txt
+were updated alongside two added source files. Completeness/distribution remain
+false. Root receipt: scratch/aeon-routing-resume-20261017/prepared-archive-root-verification.json.
+
+Old CI39004179460 completed with the same diagnostic_telemetry fixture failure
+on macOS and Ubuntu (Ubuntu11635passed/641skipped/2xfail/1failed). Existing
+e32de6c9 fixes that case and its current-source focused replay passed. Newer
+CI39006742422 at9b is running; it does not cover6bd. No full-current-CI claim.
+Pending owner passive connection-state confirmation still gates recovery work.
+No device writes, public deployment, or new installation acceptance. uv.lock kept.
+
 ## Real-input adapter and reconnect verification — 2026-10-17 UTC
 
 Aeon only; no Hera contact. Source `67586bb63662f1f1e22bfeed7ab60ea3071bf163`
