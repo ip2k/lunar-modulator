@@ -10,6 +10,7 @@ import pytest
 
 from tools.installer_service import private_package_candidate as adapter
 from tools.installer_service.api import WorkerResult, canonical_request
+from tools.jieli.trusted_fwsc_package import HASH_FIELDS, TUPLE_KEYS
 
 
 def _write(path: Path, raw: bytes):
@@ -41,14 +42,26 @@ def _trusted_output(output: Path, catalogue_root: Path, request: bytes, source_c
         "path": "/catalogue/object.o", "sha256": hashlib.sha256(catalogue).hexdigest()}]}
     catalogue_raw = json.dumps(catalogue_manifest, sort_keys=True, separators=(",", ":")).encode()
     _write(build / "catalogue-manifest.json", catalogue_raw)
-    provenance = {"module_and_generated_inputs": [{
+    provenance = {"source_commit": source_commit,
+                  "module_and_generated_inputs": [{
         "path": "link/generated.cc", "sha256": hashlib.sha256(generated).hexdigest()}]}
     provenance_raw = json.dumps(provenance, sort_keys=True, separators=(",", ":")).encode()
     _write(build / "build-provenance.json", provenance_raw)
-    tuple_raw = json.dumps({"source_commit": source_commit,
-                            "catalogue_sha256": hashlib.sha256(catalogue_raw).hexdigest(),
-                            "source_tree_sha256": "d" * 64,
-                            "request_sha256": hashlib.sha256(request).hexdigest()},
+    tuple_value = {key: "e" * 64 for key in HASH_FIELDS}
+    tuple_value.update({"schema": 2, "profile_id": "fm1-092-d7000",
+                        "flash_layout": "expanded-d7000", "app_bytes": len(app),
+                        "application_identity": "FM-1_500", "recovery_identity": "FM-1_000",
+                        "runtime_mode": "continuous", "hardware_admitted": False,
+                        "hardware_tested": False, "installable": False,
+                        "tuple_id": "continuous-test-shape"})
+    tuple_value.update(catalogue_sha256=hashlib.sha256(catalogue_raw).hexdigest(),
+                       source_tree_sha256="d" * 64,
+                       request_sha256=hashlib.sha256(request).hexdigest(),
+                       app_sha256=hashlib.sha256(app).hexdigest(),
+                       elf_sha256=hashlib.sha256(elf).hexdigest(),
+                       build_provenance_sha256=hashlib.sha256(provenance_raw).hexdigest())
+    assert set(tuple_value) == TUPLE_KEYS and "source_commit" not in tuple_value
+    tuple_raw = json.dumps(tuple_value,
                            sort_keys=True, separators=(",", ":")).encode()
     _write(build / "build_tuple.json", tuple_raw)
     capture = {"tuple_sha256": hashlib.sha256(tuple_raw).hexdigest(),
@@ -186,7 +199,14 @@ def test_trusted_generated_input_cannot_escape_build_root(tmp_path):
     (build / "link").rename(build / "link-original")
     (build / "link").symlink_to(external, target_is_directory=True)
     with pytest.raises(ValueError, match="parent is missing or unsafe"):
-        adapter._load_trusted_package_inputs(output, tmp_path / "catalogue")
+        adapter._load_trusted_package_inputs(output, tmp_path / "catalogue", "c" * 40)
+
+
+def test_special_file_input_is_rejected_without_blocking(tmp_path):
+    fifo = tmp_path / "input.fifo"
+    os.mkfifo(fifo)
+    with pytest.raises(ValueError, match="bounded regular file"):
+        adapter._read_regular(fifo, 1024)
 
 
 def test_source_binding_requires_clean_pinned_commit_and_archive(tmp_path):
