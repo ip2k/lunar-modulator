@@ -8071,3 +8071,30 @@ tail report/handoff hashes independently rechecked and recorded in the092 note.
 Existing passive-monitor FM1 connection question remains pending; no new device
 operation or recovery claim. Preserve unrelated untracked uv.lock. Goal ACTIVE;
 physical recovery, realtime audio, persistence, release gates remain open.
+
+### Source archive rebuild inputs and tail prerequisites — 2026-10-17 UTC
+
+Repeated-pin hardening b0c41b70 was pushed/remote verified; coordinator passed
+38 bundle/prepared-integrity tests. The producer emits both inherited and
+receipt-specific fields, so this is consistency hardening, not a compatibility
+repair. A bounded source-closure audit then found omitted musl COPYRIGHT
+(required by build_libc's inventory check), X0X local.patch and three sample
+regeneration WAVs. Root additionally found omitted LICENSE-Open303. The small
+archive-filter patch now retains those source inputs with an exact WAV
+allowlist; 24 codec-backed bundle tests pass. Independent static review found
+no actionable issue; git diff --check passed. Coverage remains bounded;
+no full extracted-archive rebuild or source-completeness claim.
+
+Root independently checked the tail routine's RAM5A02 gate, selector206
+end calculation, metadata scan step, marker sum, dynamic destination/limit,
+and chunk dispatch. Details in the092 note; E8000 provenance and live ownership
+remain unresolved. Aeon-only bounded report:
+tasks/mvave-fm1-tail-routine-address-derivation-20261017/report.md
+SHA d7a66523c53463577379d54e70bdc2157bbce6650359bf25770486306c32838f;
+handoff SHA f6a7aa69863fa3aa205e17a791b4b1ffe696b35c3f60cabe443b3141f3e7a129.
+Claim released. No device writes. Passive sample02:35UTC gives about5.07V/0uA;
+bench01 sees KA6 and noFM1. Existing connection question remains pending.
+
+CI38994186689 still in progress with three running jobs and no completed
+failures; CI38995689033 pending at6a8f3894, superseding cancelled38995444454.
+Run fresh CI after the current code patch is committed. Goal remains ACTIVE.

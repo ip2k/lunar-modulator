@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import sys
 import pytest
-from tools.native.create_gpl_source_bundle import build_bundle
+from tools.native.create_gpl_source_bundle import build_bundle, _selected
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools/native'))
@@ -16,6 +16,14 @@ def _fixture(tmp_path):
     subprocess.run(["git","-C",str(src),"config","user.email","test@example.invalid"],check=True)
     (src/"LICENSE").write_text("GPL-3.0-only\n")
     (src/"engines").mkdir(); (src/"engines"/"main.c").write_text("int main(void){return 0;}\n")
+    for name,data in {
+        'firmware/third_party/musl/COPYRIGHT': b'musl source notice\n',
+        'engines/third_party/fm1-x0x/local.patch': b'local source adaptation\n',
+        'engines/third_party/fm1-x0x/LICENSE-Open303': b'MIT component notice\n',
+        'engines/third_party/fm1-x0x/assets/909/hh.wav': b'recorded source fixture',
+        'engines/third_party/fm1-x0x/assets/909/unrelated.wav': b'not a build input',
+    }.items():
+        path=src/name; path.parent.mkdir(parents=True,exist_ok=True); path.write_bytes(data)
     (src/"photos").mkdir(); (src/"photos"/"bench.jpg").write_bytes(b"private")
     (src/"app.bin").write_bytes(b"binary")
     subprocess.run(["git","-C",str(src),"add","-A"],check=True)
@@ -105,6 +113,37 @@ def test_bundle_deterministic_and_explicitly_incomplete(tmp_path):
         names=archive.getnames()
     assert "engines/main.c" in names and "LICENSE" in names
     assert "photos/bench.jpg" not in names and "app.bin" not in names
+
+def test_archive_retains_build_notice_and_regeneration_inputs(tmp_path):
+    src,tup,prov,manifest,anchor=_fixture(tmp_path)
+    output=tmp_path/'source-inputs.tgz'
+    build_bundle(src,tup,prov,manifest,anchor,output)
+    included=['firmware/third_party/musl/COPYRIGHT',
+              'engines/third_party/fm1-x0x/local.patch',
+              'engines/third_party/fm1-x0x/LICENSE-Open303',
+              'engines/third_party/fm1-x0x/assets/909/hh.wav']
+    with tarfile.open(output,mode='r:gz') as archive:
+        metadata=json.load(archive.extractfile('MANIFEST.json'))
+        rows={row['path']:row for row in metadata['files']}
+        for name in included:
+            data=(src/name).read_bytes()
+            assert archive.extractfile(name).read()==data
+            assert rows[name]['sha256']==_sha(data)
+            assert rows[name]['bytes']==len(data)
+        assert 'engines/third_party/fm1-x0x/assets/909/unrelated.wav' not in archive.getnames()
+        assert metadata['corresponding_source_complete'] is False
+
+def test_runtime_inventories_and_named_recording_sources_are_selected():
+    # The native runtime builders hash every inventory row, including notices.
+    for component in ('musl','dinghy','compiler-rt','printf','tlsf','tinf','arduino-midi'):
+        directory=ROOT/'firmware/third_party'/component
+        inventory=json.loads((directory/'inventory.json').read_text())
+        for name in inventory['files']:
+            assert _selected((directory/name).relative_to(ROOT).as_posix())
+    for name in ('hh','ride','crash'):
+        assert _selected(f'engines/third_party/fm1-x0x/assets/909/{name}.wav')
+    assert not _selected('engines/third_party/fm1-x0x/assets/909/extra.wav')
+    assert not _selected('engines/third_party/fm1-x0x/assets/909/app.bin')
 
 def test_requires_external_tuple_anchor_and_schema2(tmp_path):
     src,tup,prov,manifest,anchor=_fixture(tmp_path)
