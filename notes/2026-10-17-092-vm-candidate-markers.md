@@ -46,3 +46,22 @@ semantics, boot reachability or erase permission. Next compare target-correct
 IR body structure and actual 092 callsites, then trace bank arguments and
 record decoding. Do not enable SAVE or format sectors from this evidence.
 No hardware or Hera access occurred.
+
+## Common callee follow-up
+
+[verified: bounded decoded instructions] `0x02003AA8` reorders the second and
+third argument registers, calls `0x02003A20`, and returns the requested length
+only if its callee returned that length; otherwise it returns zero.
+`0x02003A20` bounds address-plus-length, splits the initial chunk at a 256-byte
+boundary and later chunks at 256 bytes, and makes two long calls whose raw
+next-PC-relative calculation targets `0x01C00700`. The verified startup copy
+maps that address to raw app offset `0x84760`. These are additional write-family
+motifs, not independently established API names or hardware execution.
+
+The raw `0x84760` routine contains a byte loop and passes the value 2 to a
+shared callee. Some of its relative call destinations in the linear listing
+precede the identified copy's raw start `0x84060`. Blindly translating all of
+those calls through the one known RAM alias would yield addresses below
+`0x01C00000`. Stop there: complete runtime aliasing, instruction interpretation
+and reachability remain unresolved. Do not infer RAM closure, controller
+semantics or a callable flash writer from this partial trace.
