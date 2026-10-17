@@ -122,7 +122,8 @@ def _canonical(data):
         _check(not (report.skipped or report.repaired or report.unknown),
                "LUNAR_REPAIR", "refusing state requiring skipped, repaired or unavailable fields")
         text, report = lunar_state.write_json(recs, _names())
-        _check(not report.skipped, "LUNAR_REPAIR", "refusing fields the codec would skip")
+        _check(not (report.skipped or report.repaired or report.unknown),
+               "LUNAR_REPAIR", "refusing output requiring skipped, repaired or unavailable fields")
         return text.encode(), json.loads(text)
     except lunar_state.Refused as error:
         raise ConversionError("LUNAR_" + error.code, str(error)) from error
