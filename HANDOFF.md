@@ -8134,3 +8134,23 @@ in092reviewnote. Runtime/parser/E8000ownership unproven; preserveunknownbytes.
 Both Aeon claims released; no Hera/device operations. Existing monitor question
 pending. Goal ACTIVE; genuine tuple-bound archive rebuild and physical recovery,
 realtimeaudio, persistence and release acceptance remain open.
+
+### Aeon routing and genuine producer prerequisite — October 17 UTC
+
+Owner requires Aeon while Hera undergoes MDADM/M.2/25G maintenance. No Hera
+commands were issued. Aeon readiness audit found the exact production image
+0fcc80c729c795f96758e301a86df8c42b466cc0b40cb9dfbaf8db693589eefc absent.
+The cached bcff image supports the prior compile smoke but is not interchangeable
+with that pin. Older build outputs also lack genuine request/worker/capture
+receipts. No tuple was fabricated or pin relaxed. Saved Aeon handoff:
+handoffs/lunar--tuple-capture-readiness-20261017.md SHA
+860589dc5be324883490f50b4dc17b886372b597278568dbfeb4bbb52b43afdf.
+Worker is investigating a retained exact image or reproducible recipe next.
+
+Root reran the bounded historical metadata scan and checked parser instructions,
+including its unsigned halfword comparison at nested offset zero. No candidate
+passes the first two gates, even in a full-offset sweep. The 092 review note
+records formulas, pins and limits. This does not establish live ownership or
+explain E8000; no erase/storage permission follows. No hardware operations.
+CI38994186689 remains live in Linuxpytest with no completed failures;
+exact0247 CI38996462807 is pending. Goal ACTIVE, physical recovery still open.

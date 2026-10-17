@@ -297,7 +297,36 @@ A report-header correction explicitly separates raw-app offset-zero runtime
 `0x02000120` from flash region base `0x02000000`; the corrected pins above
 supersede the initial report. No build or device operation was performed.
 
-Remaining: parser `0x0202970C`, actual metadata/global values, mode and
-execution; the historical E8000 records remain preserved and unexplained.
+### Metadata parser and historical negative replay
+
+[verified: coordinator reread parser and reran bounded replay] Parser
+`0x0202970C` requires candidate halfword +2 in `0x5A00..0x5A0B` and
+halfword +6 equal to `0x5441`. Its pointer at +72 must pass unsigned
+`(pointer - 1) < capacity`. It requests 32 bytes there, compares the
+unsigned halfword at nested +0 with helper `0x0200270A`'s result over
+nested +2 for 30 bytes, then compares 11 bytes at nested +16 with the
+app literal at `0x02055179`. Success returns nested dword +8; the caller
+adds candidate dword +72 to obtain the marker address. The hardware
+helper's algorithm remains unproven here.
+
+[verified: conditional historical replay] Using the pinned historical
+1 MiB dump as a hypothetical capacity and the public descriptor end
+`0xE9000`, initial candidate `0xE8F00` fails the first gate. All scan
+modes 1–16 and the out-of-range fallback were enumerated. Modes 1 and 2
+visit 4,079 and 2,039 slots respectively; neither finds a candidate
+passing both header gates. A complete byte-offset sweep finds 177
+first-gate matches and zero joint matches. Nested checks therefore were
+not simulated. This is evidence about these historical bytes under the
+stated mapping, not live metadata, migration execution or ownership.
+
+Reproduction: `python3 -B scratch/fm1-092-parser-scan-20261017/replay.py`.
+The ignored script pins both input hashes and checks listing operands;
+SHA-256 `4302d76b774051bbe161ae20bf17264d8a21f54edc72286f32123ce9bc16b9d2`.
+The corrected bounded report SHA-256 is
+`594d57621c0423f8836221649b33a18cc9b3a9b2eded7ea6cc22e899e56833f2`.
+Captured payloads and identifiers remain private and absent from this note.
+
+Remaining: actual metadata/global values, mode and execution;
+the historical E8000 records remain preserved and unexplained.
 Neither static arithmetic nor a capacity query proves ownership or migration
 execution.
