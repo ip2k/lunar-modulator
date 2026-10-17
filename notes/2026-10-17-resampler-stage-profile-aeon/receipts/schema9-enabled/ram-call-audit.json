@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "allowed_calls": [
+    {
+      "caller": "fl_jedec_ram",
+      "site": 29360522,
+      "target": "fl_jedec_checked_ram",
+      "target_address": 29360132,
+      "instruction": "1c0018a:    bf ea 3b ff       \tcall -394 <fl_jedec_checked_ram : 1c00004 >"
+    }
+  ],
+  "required_symbols": {
+    "fl_jedec_ram": {
+      "address": 29360516,
+      "size": 22
+    },
+    "fl_jedec_checked_ram": {
+      "address": 29360132,
+      "size": 384
+    }
+  }
+}

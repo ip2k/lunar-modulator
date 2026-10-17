@@ -41,8 +41,15 @@ and notes, so do not claim an identical whole-repository source SHA.
 Baseline excludes IRQ and resampler-stage profiling; enabled includes both,
 with a different report cadence. Same source/workload/compiler/image enables a
 profiling-package comparison, not isolated resampler-hook overhead attribution.
-Worker reports all32shards and both links exit0 under resource policy with no
-OOM; coordinator has not independently rechecked all container inspections yet.
-Worker detailed call/stack placement audit and final receipt handoff pending.
+Coordinator subsequently checked both prestart and postrun inspections for all
+34containers: shard2CPU/2GiB, link4CPU/4GiB, memory=swap, docker-batch.slice,
+networknone and Lunar labels all matched; each postrun exit0 and OOMfalse.
+Worker call/stack audit and compact receipts are now integrated under
+notes/2026-10-17-resampler-stage-profile-aeon/. Profiling helper calls from RAM
+enter XIP; no full-residency or runtime overhead claim. Kernel symbol size
+0xC04=3076bytes was independently checked and corrected in worker prose.
+Reproducible driver sources remain on backed-up worker commit
+b577c60e2cd589e70f1e6799e1cfe1a60b95dc6e under that same notes directory;
+this integration retains results and compact receipts, not duplicate runners.
 Physical execution, profiling overhead, stack high-water, realtime audio and
 musical acceptance are not established. No device operation was performed.
