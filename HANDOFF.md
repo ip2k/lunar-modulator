@@ -8239,3 +8239,35 @@ Header source/notice completeness remains open; worker is researching exact
 LLVM notices and three files without SPDX. No corresponding-source, hardware,
 installability or release acceptance follows. Hera and devices remain untouched;
 physical connection question pending. Goal ACTIVE; unrelated uv.lock preserved.
+
+### Genuine continuous producer and deterministic source archive
+
+[verified] The actual fixed Aeon wrapper completed exit 0 from clean source
+3520274b6a5c99d3318905b09759e01acb0331ee. It retained all 55 modules (13 engines,
+24 effects, 2 MIDI processors, 16 modulators), Shapes8, Event Horizon Showcase
+and its companion SET, SAVE linked/disarmed, and stack diagnostics. The app is
+852,720 bytes with 7,924 bytes D7000 slack; linked layout and SDK-free audits
+passed. The exact tuple SHA256 is
+53f682c0580e50b365a229184d4ce78d319f0575a737895dabe94c433418f74e.
+Root independently rehashed the tuple, provenance, worker receipt and app.
+Hardware-admitted, hardware-tested and installable remain false.
+
+[verified] Two tuple-bound source-bundle runs produced identical 3,604,392-byte
+archives, SHA256 7e2c7214cf96af203f1c276b69428a505d12ad38caa6295e8ca9ce697198cc0d.
+Their manifest binds that tuple, includes both original selected project/SET
+inputs, and covers all 549 catalogue source rows. Full source/distribution
+eligibility remains false: external source inputs still need binding/review.
+Detailed private paths/hashes are in Aeon coordination handoff
+handoffs/lunar--continuous-producer-event-horizon-20261017.md, latest section.
+Earlier failures in that append-only report are historical; this run completed,
+its container was removed, and its claim released.
+
+The header researcher matched the three unmarked SDK libc++ files to official
+LLVM 12.0.0 source by size/hash and identified that release's component notice.
+This resolves only the bounded provenance question; it does not make the current
+archive complete. Next: independent extracted-source rebuild on Aeon, plus a
+reviewed design for binding pristine header bytes/notices to captured inputs.
+Latest exact-head CI38997994037 is pending with no jobs started at inspection.
+Hera is excluded during owner maintenance; do not contact it to clean stale
+claims. Device acceptance/recovery/persistence and release remain open. Existing
+physical connection question is pending. Goal ACTIVE; uv.lock preserved.
