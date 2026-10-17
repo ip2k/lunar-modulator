@@ -1,3 +1,34 @@
+## Owner redirects builds to Aeon during Hera maintenance — 2026-10-16
+
+[reported: owner] Hera is online but undergoing MDADM RAID setup on two new M.2
+drives and installation of a 25G SFP NIC. Move work to Aeon for now; this
+supersedes prior Hera-only build direction. No Hera power commands issued.
+Workers instructed to stop only their own jobs, preserve claims/artifacts and
+launch no more Hera work. Monitor worker confirms no Hera jobs were started.
+
+[verified: read-only Aeon readiness] SSH claude@192.168.1.25 returns aeon;
+load0.82, 46GiB available, 5.1TB filesystem free; Docker is running with existing
+owner services, and docker-batch.slice MemoryMax38795214848. No service/infra
+changes. Firmware worker may use <=8 aggregate CPU/20GiB RAM, monitor worker
+<=4CPU/8GiB RAM, both batch slice, explicit equal memory/swap limits and labels.
+Retain16logical firmware shards, queue if necessary. Both comparisons must bind
+same toolchain/image/source; host move is not license to reuse unverified output.
+
+[verified: local checks/backup] Browser reason correction c967fb71627d0d922f1cc84acd4eafcb24ff8de5
+is pushed with matching originSHA. Existing nested success case now checks the
+reason reports structure/CRC success without admission; focused suite10passed,
+1optionalprivatecheck skipped. CI38986269932:12successful,3testjobsrunning.
+CI38987225483 queued onb7eccffb; later message correction not covered yet.
+
+Monitor full register-read simulation remains unresolved: responder rise-edge
+log0x1234 vs composedvalue0x2569. Worker tracing real sample/synchronizer timing;
+do not label full wrapper verified or change RTL to appease test. Prior42tests
+still cover earlier explicitly limited evidence. No routed bitstream/hardware
+load or physical recovery acceptance. Both TARGETports lastconfirmedempty.
+Overall goalACTIVE, uv.lock untouched. Next: review worker buildstarts/results,
+resolve wrapper timing, current-source CI, then root artifact review before any
+owner reconnection request.
+
 ## Nested browser inspection integrated; Hera intentionally offline — 2026-10-16
 
 [reported: owner] Hera is shut down. Leave its power state alone; no wake/reset
