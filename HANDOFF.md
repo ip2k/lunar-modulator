@@ -8215,3 +8215,27 @@ and checked compatible freshcatalogue; noCLIshim or permissionrelaxation.
 Separate corresponding-source audit found externalC++headertree is notyet
 bundled/bound as original source input; provenance/license review next.
 Hera/device untouched; hardwareconnection question pending; goalACTIVE.
+
+### Continuous all-engine link and exact target ABI receipt repair
+
+[verified] The real Aeon worker at 1aa5e4f1 linked all 55 modules, Event Horizon
+and companion SET with SAVE and watermark retained: 852,720 app bytes, 7,924
+bytes below D7000 budget; linked SDK-free audit passed. It then failed the
+controller's older fixed app-storage tuple, so no worker receipt or tuple was
+captured. Root independently rehashed app/ELF/verification and read both actual
+target IR sizeof constants: 220848/163760, with unchanged 57088 pool credit.
+
+The controller now has an explicit exact continuous-runtime storage policy;
+historic generic and stage7 diagnostic policies remain separate. Tests reject
+old/changed sizes, credit and pool values and retain false admission flags.
+110 focused tests passed, 1 optional private-artifact test skipped. Independent
+static review found no correctness/safety finding. See
+notes/2026-10-17-continuous-target-storage-contract.md for hashes and limits.
+Next: fresh actual producer/capture from this committed source on Aeon.
+
+The separately audited pristine C++ headers are pinned to SDK e30b1ee, subtree
+43eed217352338ad4de6a824fc835befd2e60b18: 189 files, 4,813,331 bytes, no symlinks.
+Header source/notice completeness remains open; worker is researching exact
+LLVM notices and three files without SPDX. No corresponding-source, hardware,
+installability or release acceptance follows. Hera and devices remain untouched;
+physical connection question pending. Goal ACTIVE; unrelated uv.lock preserved.

@@ -55,6 +55,9 @@ def inputs(runtime_mode='diagnostic', project_count=2, include_set=False):
                     layout_passed=True, key_audit=dict(passed=True, n_pending=0, n_fail=0),
                     elf_sha256=sha(b'elf'), app_sha256=sha(b'app'), app_bytes=3,
                     flash_layout='expanded-d9000', app_budget_bytes=100)
+    if runtime_mode == 'continuous':
+        verification['target_app_storage'] = dict(rgb565_bytes=220848, indexed_bytes=163760,
+                                                   pool_credit_bytes=57088)
     return selection, prepared, verification, artifact, b'app', b'elf'
 
 
@@ -273,6 +276,41 @@ def test_checked_link_accepts_named_shapes8_compressed_ram_profile():
                  'native_ram_verified', 'native_playback_verified',
                  'full_song_default_accepted'):
         assert receipt[flag] is False
+
+
+def continuous_inputs():
+    values = shapes8_inputs()
+    values[2]['runtime_configuration'] = runtime_configuration('continuous')
+    values[2]['probe_return_to_rom_seconds'] = None
+    values[2]['target_app_storage'] = dict(rgb565_bytes=220848, indexed_bytes=163760,
+                                          pool_credit_bytes=57088)
+    return values
+
+
+def test_continuous_receipt_accepts_exact_current_target_abi_without_admission():
+    receipt = checked_link_receipt(*continuous_inputs(), runtime_mode='continuous')
+    assert receipt['target_app_storage'] == dict(rgb565_bytes=220848, indexed_bytes=163760,
+                                               pool_credit_bytes=57088)
+    assert receipt['instance_pool_bytes'] == 165376
+    for flag in ('installable', 'hardware_admitted', 'hardware_tested',
+                 'native_ram_verified', 'native_playback_verified',
+                 'full_song_default_accepted'):
+        assert receipt[flag] is False
+
+
+@pytest.mark.parametrize('fault', ['old-abi', 'rgb565', 'indexed', 'credit', 'pool'])
+def test_continuous_receipt_refuses_stale_or_changed_target_abi(fault):
+    values = continuous_inputs()
+    if fault == 'old-abi':
+        values[2]['target_app_storage'].update(rgb565_bytes=220832, indexed_bytes=163744)
+    elif fault == 'pool':
+        values[2]['instance_pool_bytes'] += 1
+    else:
+        key = {'rgb565': 'rgb565_bytes', 'indexed': 'indexed_bytes',
+               'credit': 'pool_credit_bytes'}[fault]
+        values[2]['target_app_storage'][key] += 1
+    with pytest.raises(ValueError, match='storage profile|instance pool'):
+        checked_link_receipt(*values, runtime_mode='continuous')
 
 
 @pytest.mark.parametrize('fault', [

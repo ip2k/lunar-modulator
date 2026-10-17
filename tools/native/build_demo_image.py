@@ -49,6 +49,10 @@ TARGET_STORAGE = dict(rgb565_bytes=220832, indexed_bytes=163744, pool_credit_byt
 # alignment leaves its existing allocation budget unchanged.
 HALL_O2_STAGE7_TARGET_STORAGE = dict(rgb565_bytes=220848, indexed_bytes=163760,
                                      pool_credit_bytes=57088)
+# Measured by the pinned target compiler in the continuous all-55/SAVE build.
+# Keep this distinct from historical diagnostic receipts and their ABI sizes.
+CONTINUOUS_TARGET_STORAGE = dict(rgb565_bytes=220848, indexed_bytes=163760,
+                                pool_credit_bytes=57088)
 BASE_INSTANCE_POOL_BYTES = 192000
 SHAPES_VOICES = 12
 
@@ -172,8 +176,9 @@ def checked_link_receipt(selection, prepared, verification, artifact, app, elf, 
             or startup.get('runtime_hook_linked') is not (len(selection['project_ids']) > 1)
             or verification.get('module_selection') != prepared.report['module_selection']):
         raise ValueError('Linked image differs from selected project/profile identity')
-    storage_policy = (HALL_O2_STAGE7_TARGET_STORAGE if diagnostic_profile == HALL_O2_STAGE7_PROFILE
-                      else TARGET_STORAGE)
+    storage_policy = (CONTINUOUS_TARGET_STORAGE if runtime_mode == 'continuous'
+                      else HALL_O2_STAGE7_TARGET_STORAGE
+                      if diagnostic_profile == HALL_O2_STAGE7_PROFILE else TARGET_STORAGE)
     wavetable = checked_wavetable_profile(
         verification, prepared.report['module_selection']['selected'],
         target_storage=storage_policy)
