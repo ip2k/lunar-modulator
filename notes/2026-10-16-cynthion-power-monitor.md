@@ -12,6 +12,12 @@ The top uses LUNA's `period_cyc=600`, a 100 kHz I2C bus on the 60 MHz USB domain
 
 The new CI gateware step includes `tests/test_cynthion_power_monitor.py`. It covers conversion scaling, identity/range rejection, transaction timeout, sample sequence and age behavior after subsequent success/failure, real LUNA size-zero Send Byte wire behavior, a two-byte MSB-first LUNA initiator read, wrapper big-endian aggregation source, and top power/pad resource constraints. The two-byte bus exercise is against `I2CInitiator`; it is not an end-to-end PAC register-wrapper read simulation.
 
+## Follow-up: full register-wrapper read simulation attempt
+
+Root requested a complete `I2CRegisterInterface` read simulation with a two-byte responder. A temporary line-level responder acknowledged device/register/read-address bytes, issued a repeated START, emitted `0x12` then `0x34` MSB-first, ACKed the first data byte, NACKed the second, and observed STOP. The responder's own sampled data stream was `0x1234`, but the wrapper's `read_data` was `0x2569` at completion. Raising the I2C period from 16 to 64 system cycles did not change the result. This temporary experiment was not retained as a passing test because it does not yet distinguish a responder/synchronizer modeling error from an actual driver read-path issue; expecting either value would encode an unverified conclusion.
+
+The existing 42-test gateware suite still passes. The full wrapper gap remains open. Next diagnostic should instrument the actual nested `I2CInitiator.bus.sda_i` (post-synchronizer) and `data_o` at each completed read, while checking the responder's transmitted 0x20/0x07/0x21 bytes and ACK timing. No RTL was changed, no hardware was accessed, and no Hera job was launched for this follow-up.
+
 ## Evidence and sources
 
 - Cynthion r1.4 platform source: installed `cynthion/gateware/platform/cynthion_r1_4.py`; its `power_monitor` resource maps SCL D7, SDA C7, PWRDND D5 (`PinsN`), SLOW C6, and GPIO D6.
