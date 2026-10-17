@@ -198,6 +198,26 @@ def test_continuous_api_binds_lower_receipt_digest(kinds):
     assert c.get(accepted["status_url"]).status_code == 502
 
 
+def test_continuous_api_binds_idless_content_rows_to_prepared_source_order(kinds):
+    c, adapter = service(kinds)
+    doc = request_doc()
+    accepted = c.post("/api/v1/builds", json=doc).json()
+    image, evidence = api_evidence(doc, receipt(doc))
+    outer = json.loads(image)
+    prepared = json.loads(evidence["prepared_profile.json"])
+    assert "id" not in outer["content"][0]
+    prepared["content"][0]["source"] = "projects/other-project.lunar"
+    prepared_raw = json.dumps(prepared, sort_keys=True, separators=(",", ":")).encode()
+    outer["prepared_profile_sha256"] = hashlib.sha256(prepared_raw).hexdigest()
+    outer["embedded_content"]["prepared_sha256"] = outer["prepared_profile_sha256"]
+    image_raw = json.dumps(outer, sort_keys=True, separators=(",", ":")).encode()
+    evidence["prepared_profile.json"] = prepared_raw
+    evidence["image_receipt.json"] = image_raw
+    adapter.succeed(accepted["id"], b"continuous-app", image_raw, TEST_ELF,
+                    private_evidence=evidence)
+    assert c.get(accepted["status_url"]).status_code == 502
+
+
 @pytest.mark.parametrize("patch", [
     {"flash_layout": "expanded-d9000"}, {"runtime_mode": "continuous", "firmware_identity": "FM-1_501"},
     {"engines": ["test-dummy"]}, {"engines": ["hall"]}, {"engines": ["trio", "trio"]},
