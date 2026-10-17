@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE_SHA256={
- "generic_diagnostic_flash.py":"0afa6d741c4fa765c7626f1d253a89eefa4db5008fb8a29548e302e38552f573",
+ "generic_diagnostic_flash.py":"49aa6fab1c120a7883e828b3dde99e12ea5bb2fea17a272312b578e4eaee3363",
  "expanded_candidate.py":"3122bae954e71495239d210a853ea0b733d702b71350a7a2f5342a18858c7d5c",
  "expanded_sg.py":"f18e73b658c9d0b06b03b528c6fd4dd4da511a95102ea44252836d885e1a3700",
  "event120_generic_boot.py":"a060459933f8e34b34df8a0978e76e65e3d92f6bb728cbeb3306f4ffb132d820",
@@ -75,14 +75,14 @@ class _Direction:
  def check_files(self): return self.policy.check_files()
 
 class _Prepared:
- def __init__(self,policy,direction,bridge,reader,mapping,campaign,evidence=()):
+ def __init__(self,policy,direction,bridge,reader,mapping,campaign,evidence=(),file_reader=None):
   self.policy=policy; self.policies=(direction,); self.bridge=bridge
   self.header_type=reader.SGHeader; self.mapping=_canon(mapping)
-  self.campaign_sha256=campaign; self.extra_evidence=tuple(evidence)
+  self.campaign_sha256=campaign; self.extra_evidence=tuple(evidence); self.file_reader=file_reader
  def check(self):
   self.policy.check_files()
   for p,raw,_limit in self.extra_evidence:
-   if Path(p).read_bytes()!=raw: raise ValueError("Fresh read evidence changed: "+Path(p).name)
+   if self.file_reader(p,_limit)!=raw: raise ValueError("Fresh read evidence changed: "+Path(p).name)
   return True
 
 
@@ -159,7 +159,8 @@ def bind(policy,*,policy_module,sg_module,transport_factory,log_path,direction="
   read,v,req=_verified(policy_module,policy,direction,restore_read)
  dp=_Direction(policy,direction,_canon(req))
  prepared=_Prepared(policy,dp,v["bridge"],v["reader"],v["manifest"]["sg_binding"],
-                    read["campaign_sha256"],tuple(v.get("evidence",()))+source_evidence)
+                    read["campaign_sha256"],tuple(v.get("evidence",()))+source_evidence,
+                    file_reader=policy_module._bounded_file)
  prepared.check(); log=DurableLog(log_path); transport=None; logged=None
  try:
   transport=transport_factory(prepared,dp,log)

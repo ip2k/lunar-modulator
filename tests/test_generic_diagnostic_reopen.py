@@ -169,3 +169,26 @@ def test_reopen_bounds_metadata_inventory_before_evidence_reads(tmp_path, change
     seal.write_bytes(raw)
     with pytest.raises((ValueError, OSError)):
         module.reopen_policy(seal, module.digest(raw))
+
+
+
+@pytest.mark.parametrize("kind", ["fifo", "symlink", "oversize"])
+def test_fresh_resume_evidence_replaced_after_admission_is_bounded(tmp_path, monkeypatch, kind):
+    _, _, _, binding, partial, seal, pin = sealed(tmp_path)
+    policy = module.reopen_policy(seal, pin)
+    read, new_binding = fresh_restore_read(monkeypatch, binding, partial)
+    verified = module.generic_boot.verify_read_bundle()
+    evidence = tmp_path / "fresh-evidence"
+    evidence.write_bytes(b"fresh")
+    verified["evidence"] = ((evidence, b"fresh", 5),)
+    monkeypatch.setattr(module.generic_boot, "verify_read_bundle", lambda *a, **k: verified)
+    admission = policy.admit_resume(read)
+    rom = MemoryROM(partial, new_binding)
+    session = policy.bind(rom, resume=admission)
+    evidence.unlink()
+    if kind == "fifo": os.mkfifo(evidence)
+    elif kind == "symlink":
+        backing = tmp_path / "fresh-backing"; backing.write_bytes(b"fresh"); evidence.symlink_to(backing)
+    else: evidence.write_bytes(b"oversize")
+    with pytest.raises((ValueError, OSError)): session.run()
+    assert not rom.mutations and rom.closed
