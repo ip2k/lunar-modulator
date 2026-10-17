@@ -12,12 +12,14 @@ sys.path.insert(0, str(ROOT))
 from capture_trusted_build_tuple import (
     _catalogue_manifest,
     _linked_object_manifest,
+    _pinned_source_manifest,
     _source_manifest,
     _verify_catalogue_subset,
     TUPLE_SCHEMA,
     PROVENANCE_SCHEMA,
     _tuple_envelope,
     _toolchain_manifest,
+    _generate_wavetables_from_source,
     _verified_generated_inputs,
     canonical,
     sha,
@@ -29,7 +31,6 @@ from build_demo_image import (
     build_selection,
 )
 from module_selection import wavetable_namespaces
-from prepare_wavetables import prepare as prepare_wavetables
 
 
 def test_source_manifest_binds_clean_tracked_bytes_and_rejects_dirty_tree(tmp_path):
@@ -429,7 +430,9 @@ def test_tuple_capture_requires_matching_enabled_trs_receipts():
         _verify_continuous_midi_receipts({}, verification)
 
 
-def _generated_capture_fixture(tmp_path, selected):
+def _generated_capture_fixture(tmp_path, selected, source_root=ROOT):
+    import shutil
+
     output = tmp_path / "output"
     prepared_dir = output / "selection/prepared"
     link_dir = output / "link"
@@ -451,7 +454,11 @@ def _generated_capture_fixture(tmp_path, selected):
         path.write_bytes(rel.encode("ascii"))
 
     namespaces = wavetable_namespaces(selected, flash_plaits=False)
-    rows = prepare_wavetables(link_dir, namespaces)
+    generator_output = tmp_path / "generator-output"
+    generator_output.mkdir()
+    rows = _generate_wavetables_from_source(source_root, generator_output, namespaces)
+    for generated_file in generator_output.iterdir():
+        shutil.copy2(generated_file, link_dir / generated_file.name)
     verification = {
         "module_selection": module_selection,
         "compressed_wave_tables": rows,
@@ -471,6 +478,71 @@ def _generated_capture_fixture(tmp_path, selected):
         "flash_plaits_wavetables": False,
     }
     return output, {"module_selection": module_selection}, image, verification
+
+
+def _minimal_captured_wavetable_source(tmp_path):
+    import shutil
+
+    source_root = tmp_path / "captured-source"
+    for relative in (
+        "tools/native/prepare_wavetables.py",
+        "tools/native/evaluate_wavetables.py",
+        "engines/third_party/mutable/plaits/resources.cc",
+        "engines/third_party/mutable/plaits/resources.h",
+    ):
+        source = ROOT / relative
+        destination = source_root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+    subprocess.run(["git", "init", "-q", str(source_root)], check=True)
+    subprocess.run(["git", "-C", str(source_root), "add", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(source_root), "-c", "user.name=Test", "-c",
+         "user.email=test@example.invalid", "commit", "-qm", "captured source"],
+        check=True,
+    )
+    return source_root
+
+
+def test_wavetable_regeneration_uses_clean_captured_checkout_not_service_modules(
+        tmp_path, monkeypatch):
+    import prepare_wavetables as service_generator
+
+    captured_root = _minimal_captured_wavetable_source(tmp_path)
+    assert captured_root.resolve() != ROOT.resolve()
+    source_commit, source_manifest = _source_manifest(captured_root)
+    _pinned_source_manifest(captured_root, source_commit, sha(source_manifest))
+    monkeypatch.setattr(
+        service_generator, "prepare",
+        lambda *_args, **_kwargs: pytest.fail("service generator must not be executed"),
+    )
+
+    output, prepared, image, verification = _generated_capture_fixture(
+        tmp_path, ["macro"], source_root=captured_root,
+    )
+    generated, rows = _verified_generated_inputs(
+        captured_root, output, prepared, image, verification,
+    )
+    assert {row["path"] for row in rows} == set(generated)
+    assert all(row["sha256"] == sha(generated[row["path"]]) for row in rows)
+    assert json.loads(generated["link/wave_tables.json"].decode("utf-8")) == (
+        verification["compressed_wave_tables"]
+    )
+    assert generated["link/resources_plaits.cc"] == (
+        output / "link/resources_plaits.cc"
+    ).read_bytes()
+
+    service_output = tmp_path / "service-generated"
+    service_output.mkdir()
+    _generate_wavetables_from_source(ROOT, service_output, ["plaits"])
+    assert (service_output / "resources_plaits.cc").read_bytes() == (
+        output / "link/resources_plaits.cc"
+    ).read_bytes()
+
+    source_file = captured_root / "engines/third_party/mutable/plaits/resources.cc"
+    source_file.write_bytes(source_file.read_bytes() + b"/* mutated after capture */\n")
+    with pytest.raises(ValueError, match="must be clean"):
+        _pinned_source_manifest(captured_root, source_commit, sha(source_manifest))
 
 
 @pytest.mark.parametrize(("selected", "expected_namespaces"), [
