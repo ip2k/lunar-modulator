@@ -1,3 +1,52 @@
+## Strict receipt replay and canonical-path actual run — 2026-10-17 UTC
+
+Aeon only (`claude@192.168.1.25`); do not contact Hera during owner RAID/M.2/25G
+NIC maintenance. Build source `d4f79b6344751578ec33db11e751678143e9e92b` is
+pushed and remote-SHA verified. Overall goal ACTIVE; no new hardware acceptance.
+
+[verified: source review and coordinator seven-suite run] 276 passed, one skipped
+across continuous/native/service profiles, worker/adapter paths, trusted wrapper
+and private-package tests. Strict validation now joins actual lower verification,
+artifact, outer image and prepared-content receipts without inventing absent
+fields. Project/SET byte hashes and prepared source identities are bound; project
+rows reject inappropriate parent identities. Noncontinuous behavior is retained.
+
+[verified: reviewed replay script, result hashes and coordinator rehash of nine
+retained input/output files] Actual retained675 evidence now passes the corrected
+validator at67091ecf:470 files,7344512 bytes. The retained source remains67586bb6;
+this is not a fresh build or package. Result SHA
+`d20601da2fd133ddcd07d9350b7c8d08f52daf7cd448e74342a5ca558d0e861a`.
+Root: /home/claude/mvave-fm1/private-receipt-replay-5f26d5f0-20261017.
+
+[verified: source review and independently hashed preflight; actual result pending]
+Worker and trusted builder now use canonical /workspace,/catalogue,/output/build,
+/opt/pi32v2 paths. Source extraction freezes files and directories read-only;
+service scratch is partitioned within its original3GiB cap. No ELF rewriting or
+identity-gate relaxation is permitted. Fresh d4f actual service→trusted wrapper→
+privateFWSC run approved on Aeon, one sequential heavy slot, maximum two globally.
+Run root: /home/claude/mvave-fm1/private-adapter-canonical-run-d4f79b63-20261017.
+Runner SHA128a94dd333777a48b431fe7b13c4cb338f603185b6b692a210ce3cc7edeaee0;
+recorder SHAfaf3d9e9d34982a59240056bf7974248ddd493d3e9f7544a53424977c147e845;
+preflight SHA3bbb6cb35ff8348be4bec12ead5bbc2c17f55b5807eaa07f1a18b45134153402.
+Recorder retains bounded terminal inspect/log evidence before original cleanup;
+actual Docker argv/status and all CPU/memory/network/security restrictions remain.
+Do not relaunch a timed-out observation; inspect the existing run first.
+
+[verified: coordinator terminal receipt review and30 durable SHA256SUMS entries]
+The real default Event Horizon+SET packed-codec test passed1 selected case,
+31 deselected, terminal0/noOOM. Durable evidence:
+/home/claude/mvave-fm1/default-event-request-packed-codec-0a19299e-20261017.
+This validates packing only, not FM1 playback. The earlier prepared-source archive
+comparison is confirmed:1628 prior payload members unchanged, two metadata files
+updated, two original selected-content files added; completeness/distribution false.
+
+CI39008057588 atf794 is pending;39006742422 at9b in progress at last inspection.
+Neither covers finald4f; refresh CI after this coherent checkpoint. Pending owner
+passive connection-state confirmation still gates recovery. FM1 recovery, audio,
+storage ownership, public installer/release and licensing gates remain unresolved.
+Buildbase staysd4f even when this documentation checkpoint advances branch HEAD.
+Preserve untracked uv.lock. Below sections are historical checkpoints.
+
 ## Default song preset and actual adapter failure — 2026-10-17 UTC
 
 Owner routing remains Aeon only, claude@192.168.1.25. Do not probe/contact Hera
