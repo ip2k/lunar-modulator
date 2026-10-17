@@ -8311,3 +8311,26 @@ false. Next: real retained-header inclusion and high-level extracted preparation
 on Aeon; do not contact Hera during owner maintenance. Hardware recovery,
 real-time playback, storage and release remain open; existing connection question
 pending. Goal ACTIVE; unrelated uv.lock preserved.
+
+### Real extracted preparation and retained-header inclusion passed
+
+[verified] Corrected source archive e104fbf4 (1026 members) regenerated the
+all55 high-level build on Aeon. App888ef842 and ELFfed2d7e4 both exactly match
+the original producer; profile1723ae73 and packed Projectb6ca5a03/SET7c850fcf
+match too. Rebuilt extracted-source codec6b551c17 is byte-identical and
+regenerated those selection/preparation bytes. Its trailing summary print
+failed after successful preparation; independent saved-output checks passed.
+Two header-inclusive archives52914fc9 are byte-identical (4288773 bytes), with
+189 pinned headers plus exact LLVM notice, all16 captured copies validated
+against actual original tuple-bound retained catalogue. Root reviewed shared
+reports and independently rehashed outputs; see real checks in
+notes/2026-10-17-tuple-bound-libcxx-source.md. No full end-to-end fresh catalogue
+build in this check, no complete-source/distribution or physical claims.
+
+Shared reports: lunar--source-closure-prepare-20261017.md and
+lunar--aeon-libcxx-source-bundle-20261017.md. Both task claims released.
+CI38998982780 at source7e614 remains in progress, no failures at inspection.
+Next bounded worker inventories remaining actual external build inputs on Aeon;
+no Hera contact. Existing FM1 connection question remains pending. Recovery,
+realtime audio, storage, public installability and main/CI integration remain
+open. Goal ACTIVE; uv.lock untouched.

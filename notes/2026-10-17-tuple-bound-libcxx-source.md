@@ -22,8 +22,8 @@ SDK commit e30b1ee375d1f2993fc23bf92c8b99006a6e5f9d, subtree Git tree
 2e92acfe3d2c9cac278fa0ba30f0e9ecf542df52056a0984af6e33bc17a2a4ce.
 Official LLVM llvmorg-12.0.0 libcxx/LICENSE.TXT pin:
 539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b.
-The implementation still needs a real retained-artifact inclusion run; focused
-synthetic tests are not a substitute for that check or a broader license audit.
+The subsequent retained-artifact inclusion run is recorded below; focused
+synthetic tests alone do not establish that result or a broader license audit.
 
 [verified: host tests] Combined bundle/validator suites passed 39 cases with the
 existing local fm1-state codec. Tests cover partial input rejection, forwarding
@@ -48,3 +48,45 @@ Independent static review found one status-text inconsistency: an archive withou
 prepared song snapshots still claimed to include them. The text now names only
 the source classes actually included; prepared-only and header-only regression
 assertions cover that distinction.
+
+## Real Aeon checks
+
+[verified: worker run and coordinator output rehash] The corrected source archive
+is e104fbf44ec0d676067eb872c477e5da0b77f85bd8833c09c25999484318512e,
+with 1026 regular unique members and 1021 committed-source rows, built using
+7e614b20 bundler against the original clean352 source and original tuple53f682c0.
+Actual extracted-source high-level build_demo_image completed under the pinned
+bcff container with all55 modules. The prepared profile and packed project/SET
+hashes match the original producer exactly:
+
+- profile: 1723ae73ad99d3120d6b4b1c405c388b7c14c56f03481d8727d08b7213f7ff60
+- packed project: b6ca5a034c93e1093c88a8b284b9df6fde110b07de30e4836da5c76563eba163
+- packed SET: 7c850fcf8fda9ea513c8d1f14a414f638c8c1cc931156f7b000c757e7cfd0625
+- app: 888ef842ea67fb46a010226456568452bc32b3ceca13362caaab7119774db437
+- ELF: fed2d7e47ff1120a4d5c15acdb57f21cfe6144e71dd6bf689408943dbd0e6c3b
+
+Unlike the earlier direct-link check, this high-level ELF matches the original
+producer too. The initial pass used the original same-source state codec.
+[verified: worker follow-up and coordinator output rehash] Rebuilding the codec from extracted source produced
+the same codec hash6b551c1798cc6f2d90c20fd55e881ff7aeae6ed1d46fb90415de0ac170697511
+and preparation reproduced profile, selection, raw inputs and packed bytes.
+A trailing summary print queried an absent return key and exited1 after successful
+preparation; the worker independently checked the saved files afterward. Preserve
+that distinction rather than reporting that shell command as exit0.
+
+[verified: worker retained-input run and coordinator archive rehash] Two header-inclusive archives are identical:
+4288773 bytes, SHA52914fc9f7f56aadce410cb1a27c8ee334eaa213fc9548a905d00f3e3e5e8895.
+The raw retained catalogue manifest matches the tuple-bound provenance digest;
+all189 pristine headers and the official fixed notice passed actual byte checks.
+There are190 external rows. No catalogue rebuild was used to recreate provenance.
+Completeness/distribution and all hardware/admission flags remain false.
+These runs used Aeon only. They do not verify real-time audio or physical recovery.
+
+Durable Aeon reports (private host paths):
+`handoffs/lunar--source-closure-prepare-20261017.md` SHA256
+99f6add31ffbf456f89868d4e15278b5b8a97274aa0b07b1d369d2d5cea32f0a;
+`handoffs/lunar--aeon-libcxx-source-bundle-20261017.md` SHA256
+0be225adcfc2a521ba1d7a200b03c4a42b2701774f4fc1608ab85eeb649162b5.
+Both workers released their claims after saving the reports. No owned build
+containers remain. The coordinator reviewed both reports and independently
+rehashed the reported app/ELF, profile, packed bytes, rebuilt codec and archives.
