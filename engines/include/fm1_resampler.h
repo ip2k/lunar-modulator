@@ -52,7 +52,8 @@
 
 /* The trusted render path is called after its owner has checked readiness.
  * Keep its FIR/push bodies in XIP by default. In the explicit native hot-DSP
- * profile, outline ready-push, ready-pop and stage-1 interpolation helpers into RAM.
+ * profile, outline ready-push and ready-pop into RAM. Inline stage-1
+ * interpolation into ready-pop so its two calls need no separate stack frames.
  * Do not add `used`: these are static header helpers, and forcing them into
  * every translation unit that includes the header would create unused copies. */
 #if defined(FM1_HOT_DSP_RAM) && FM1_HOT_DSP_RAM && defined(__ELF__)
@@ -61,7 +62,7 @@
 #define FM1_RESAMPLER_PUSH_READY_PLACEMENT \
   __attribute__((noinline, section(".ram_dsp")))
 #define FM1_RESAMPLER_INTERMEDIATE_PLACEMENT \
-  __attribute__((noinline, section(".ram_dsp")))
+  __attribute__((__always_inline__))
 #else
 #define FM1_RESAMPLER_POP_READY_PLACEMENT
 #define FM1_RESAMPLER_PUSH_READY_PLACEMENT

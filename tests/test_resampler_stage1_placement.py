@@ -1,4 +1,4 @@
-"""Keep the opt-in stage-1 FIR helper in RAM without retaining unused copies."""
+"""Inline stage 1 into the opt-in RAM pop without retaining unused copies."""
 import pathlib
 import shutil
 import subprocess
@@ -25,15 +25,15 @@ def _compile(tmp_path, compiler, source, *, hot):
     return obj
 
 
-def test_used_stage1_helper_is_placed_in_ram_only_for_hot_elf(tmp_path):
+def test_stage1_is_inlined_into_ram_pop_only_for_hot_elf(tmp_path):
     compiler = shutil.which("clang++")
     if not compiler:
         pytest.skip("Clang cross-object compiler unavailable")
     source = tmp_path / "uses-stage1.cc"
     source.write_text(
         '#include "fm1_resampler.h"\n'
-        'float call_stage1(fm1_resampler_t *r) {\n'
-        '  return fm1_resampler_intermediate_(r);\n'
+        'float call_pop(fm1_resampler_t *r) {\n'
+        '  return fm1_resampler_pop_ready_(r);\n'
         '}\n',
         encoding="utf-8",
     )
@@ -41,8 +41,11 @@ def test_used_stage1_helper_is_placed_in_ram_only_for_hot_elf(tmp_path):
     hot_elf = Elf(_compile(tmp_path, compiler, source, hot=True).read_bytes())
     stage1 = [s for s in hot_elf.symbols
               if "fm1_resampler_intermediate_" in s["name"] and s["shndx"]]
-    assert len(stage1) == 1
-    assert hot_elf.sections[stage1[0]["shndx"]]["name"] == ".ram_dsp"
+    assert not stage1
+    pop = [s for s in hot_elf.symbols
+           if "fm1_resampler_pop_ready_" in s["name"] and s["shndx"]]
+    assert len(pop) == 1
+    assert hot_elf.sections[pop[0]["shndx"]]["name"] == ".ram_dsp"
 
     default_elf = Elf(_compile(tmp_path, compiler, source, hot=False).read_bytes())
     default_stage1 = [s for s in default_elf.symbols
