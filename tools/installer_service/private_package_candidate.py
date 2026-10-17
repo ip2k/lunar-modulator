@@ -30,6 +30,7 @@ MAX_EVIDENCE_FILE_BYTES = 128 * 1024 * 1024
 MAX_APP_BYTES = 1024 * 1024
 MAX_ELF_BYTES = 32 * 1024 * 1024
 MAX_JSON_BYTES = 32 * 1024 * 1024
+MAX_WRAPPER_LOG_BYTES = 1024 * 1024  # Per retained file; subprocess PIPE capture is unchanged.
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 SERVICE_IMAGE_DIGEST = _IMAGE_ID
 
@@ -289,17 +290,82 @@ def _load_trusted_package_inputs(trusted_output: Path, catalogue_root: Path,
     return values
 
 
+def _retain_wrapper_failure(root_fd: int, logs: dict[str, bytes],
+                            observed: dict[str, int], returncode: int) -> None:
+    """Write fixed private names relative to the directory opened before launch."""
+    name = "trusted-wrapper-failure"
+    os.mkdir(name, mode=0o700, dir_fd=root_fd)
+    directory = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=root_fd)
+    try:
+        info = os.fstat(directory)
+        if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700:
+            raise ValueError("private wrapper diagnostics directory is unsafe")
+        metadata = {"schema": 1, "reason": "nonzero_exit", "returncode": returncode, "streams": {}}
+        files = {}
+        for stream in ("stdout", "stderr"):
+            raw = logs[stream]
+            files[stream + ".bin"] = bytes(raw)
+            metadata["streams"][stream] = {
+                "bytes": len(raw), "observed_bytes": observed[stream],
+                "truncated": observed[stream] > len(raw), "capture": "prefix",
+                "sha256": sha256(raw),
+            }
+        files["failure.json"] = canonical(metadata)
+        for filename, raw in files.items():
+            fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                         0o600, dir_fd=directory)
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(raw)
+                handle.flush()
+                os.fsync(handle.fileno())
+    finally:
+        os.close(directory)
+
+
 def _run_trusted_wrapper(source_root: Path, request_path: Path, toolchain_root: Path,
                          catalogue_root: Path, output_path: Path) -> None:
     wrapper = Path(source_root) / "tools/native/run_trusted_continuous_build.py"
     command = [sys.executable, str(wrapper), "--request", str(request_path),
                "--toolchain", str(toolchain_root), "--catalogue", str(catalogue_root),
                "--out", str(output_path)]
-    completed = subprocess.run(command, cwd=source_root, stdin=subprocess.DEVNULL,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               timeout=1500, check=False)
-    if completed.returncode != 0:
-        raise ValueError("pinned trusted continuous wrapper refused or failed this request")
+    error = "pinned trusted continuous wrapper refused or failed this request"
+    root_fd = None
+    try:
+        root = Path(request_path).parent.absolute()
+        if root.resolve(strict=True) != root or Path(output_path).parent.absolute() != root:
+            raise ValueError(error)
+        root_fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        info = os.fstat(root_fd)
+        if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o077:
+            raise ValueError(error)
+        # A preexisting file, directory or dangling symlink is never reused.
+        try:
+            os.stat("trusted-wrapper-failure", dir_fd=root_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            pass
+        else:
+            raise ValueError(error)
+        # Keep the existing execution/timeout contract. These PIPEs still capture
+        # child output in memory; only the private retained files are byte capped.
+        completed = subprocess.run(command, cwd=source_root, stdin=subprocess.DEVNULL,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   timeout=1500, check=False)
+        if completed.returncode == 0:
+            return
+        logs = {"stdout": completed.stdout[:MAX_WRAPPER_LOG_BYTES],
+                "stderr": completed.stderr[:MAX_WRAPPER_LOG_BYTES]}
+        observed = {"stdout": len(completed.stdout), "stderr": len(completed.stderr)}
+        try:
+            _retain_wrapper_failure(root_fd, logs, observed, completed.returncode)
+        except (OSError, ValueError):
+            pass  # Unsafe/occupied destinations fail closed without overwriting them.
+    except OSError:
+        raise ValueError(error) from None
+    finally:
+        if root_fd is not None:
+            os.close(root_fd)
+    # Neither child output nor private diagnostic paths enter this public error.
+    raise ValueError(error) from None
 
 
 def compose_private_candidate(*, request_raw: bytes, service_result: WorkerResult,
