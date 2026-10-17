@@ -1,0 +1,63 @@
+{
+  "observed_at_utc": "2026-10-17T18:32:26.068026+00:00",
+  "scope": "read-only source/archive research; no vendor builds or device traffic",
+  "workbench_url": "https://open.m-vave.com/fm1-workbench",
+  "upstream_commit": "b178ac43c25f010c60a878056fb5331fe693fd62",
+  "development_kit_url": "https://open.m-vave.com/releases/V13/2a3b2ede16ac49c867831315714ef9d8c532c70ce28ce1dcf3fc76f0a9f68f57/FM1-Open-V13-Development-Kit.zip",
+  "zip_sha256": "2a3b2ede16ac49c867831315714ef9d8c532c70ce28ce1dcf3fc76f0a9f68f57",
+  "zip_regular_files": 150,
+  "github_regular_files_compared": 150,
+  "github_byte_differences": [],
+  "manifest_files_checked": 65,
+  "manifest_mismatches": [],
+  "refs": {
+    "main": "64209e3c08222ada0eb61afcaef89e909ae07955",
+    "origin/main": "bfa042446f36c8647efddc6d76b06753d2a5b612",
+    "origin/feature/2026-10-11@installable-firmware": "1f12ad5b8d6a865268af94179a3442183a680602",
+    "origin/codex/2026-10-14-native-license-transition": "3ac501eb8ae4fbcce2d4991ec64d22d02eae2dd2",
+    "origin/codex/2026-10-14-sdk-gpl-source-bundle": "4fc99026b1b52f1e1e7225dd7ac7dd50443b9afa",
+    "origin/codex/gpl-source-inputs-20261016": "e57577a18c819e921a43647932448135690cdcd9"
+  },
+  "selected_vendor_hashes": {
+    "sdk/lib/libfm1_engine.a": "6a22c111978c8f36827ca83b5f71828313bcb5a3464109b44754266d9bf55e09",
+    "sdk/tools/pack/uboot.boot": "b88747cb72afc554d6ca078594a89f4fdcea5a74d26345b633f8e2524e7e3415",
+    "sdk/tools/pack/ota.bin": "ef1f2db89b011fa53e71df363f0122de0ea896618c53fb53e8da676322004541",
+    "sdk/firmware/FM-1_015.fwsc": "db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a"
+  },
+  "lunar_stock_spl_sha256": "730e54f0a439f58d147be4364ad21e19566945ada9d3a7bbc8371dce5068d3ef",
+  "runtime_tested": false,
+  "hardware_tested": false,
+  "distribution_approved": false,
+  "recovery_asset_verification": {
+    "method": "Independent scratch Python stdlib bytes parser; no imports of kit/repository executables; crc_hqx polynomial 0x1021 initial 0; XOR LFSR header/bank decode from inspected formats; outer header/table/unencrypted entry/bank CRCs asserted; only metadata/hashes written",
+    "stock_recovery_asset": {
+      "path": "sdk/firmware/FM-1_015.fwsc",
+      "bytes": 699956,
+      "sha256": "db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a",
+      "product": "FM-1_015",
+      "matches_existing_v15_cdn_and_reference_copies": true,
+      "owner_full_flash_dump": false,
+      "decoded_stock_spl": {
+        "bytes": 14384,
+        "banks": 1,
+        "sha256": "730e54f0a439f58d147be4364ad21e19566945ada9d3a7bbc8371dce5068d3ef"
+      },
+      "ota": {
+        "bytes": 19969,
+        "sha256": "ef1f2db89b011fa53e71df363f0122de0ea896618c53fb53e8da676322004541"
+      }
+    },
+    "open_build_pack_spl": {
+      "bytes": 14488,
+      "sha256": "b88747cb72afc554d6ca078594a89f4fdcea5a74d26345b633f8e2524e7e3415"
+    },
+    "stock_spl_matches_lunar_guard": true,
+    "open_build_spl_matches_lunar_guard": false,
+    "limits": [
+      "Static byte/format evidence only; no vendor executable, device traffic or restore performed.",
+      "Stock FWSC identity does not provide a UBOOT/ROM transport or prove recovery for a non-enumerating device.",
+      "Stock recovery FWSC is separate from the Open-build packager resources and is not the owner full-flash backup.",
+      "Encrypted auxiliary entry plaintext CRCs were not independently validated; whole-package SHA-256 matched."
+    ]
+  }
+}
