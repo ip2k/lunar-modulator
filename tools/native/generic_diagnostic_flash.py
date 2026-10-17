@@ -9,6 +9,9 @@ claim made by this module.
 """
 from dataclasses import dataclass
 import hashlib
+import math
+import os
+import stat
 import json
 import re
 from pathlib import Path
@@ -26,7 +29,7 @@ import expanded_flash_profile as expanded
 import raw_flash_profile as raw
 from fm1_bound_diagnostic import BoundDiagnosticSession, _VALIDATED
 from fm1_flash_transaction import (create_transaction, digest, encoded,
-                                   load_transaction, checked_plan_order,
+                                   load_transaction, checked_plan_order, checked_identity,
                                    mkdir_durable, save_new, sync_directory, check_outside)
 
 KIND = "lunar-private-d7000-trio-diagnostic-plan"
@@ -783,6 +786,189 @@ def prepare(output, input_record_path, input_record_sha256, *, now=None):
     return policy
 
 
+# The seal is an offline attestation pinned by the caller, not a signature or
+# device identity. Paths use physical absolute names: symlink components reject.
+_SEAL_KIND = "lunar-private-generic-diagnostic-policy-seal"
+_META_LIMIT = 512 * 1024
+_EVIDENCE_LIMIT = 64 * 1024 * 1024
+_EVIDENCE_TOTAL = 256 * 1024 * 1024
+_EVIDENCE_COUNT = 512
+
+
+def _parent_fd(path):
+    path = Path(path)
+    if not path.is_absolute() or ".." in path.parts or path.name in ("", ".", ".."):
+        raise ValueError("Physical absolute file path required")
+    fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    try:
+        for part in path.parts[1:-1]:
+            next_fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC,
+                              dir_fd=fd)
+            os.close(fd)
+            fd = next_fd
+        return fd, path.name
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def _bounded_file(path, limit):
+    if type(limit) is not int or not 0 <= limit <= _EVIDENCE_LIMIT:
+        raise ValueError("Bounded regular-file read required")
+    parent, name = _parent_fd(path)
+    try:
+        fd = os.open(name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW | os.O_CLOEXEC,
+                     dir_fd=parent)
+    finally:
+        os.close(parent)
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode) or before.st_size > limit:
+            raise ValueError("Unsafe or oversized regular file: " + str(path))
+        pieces, total = [], 0
+        while True:
+            data = os.read(fd, min(65536, limit + 1 - total))
+            if not data:
+                break
+            pieces.append(data)
+            total += len(data)
+            if total > limit:
+                raise ValueError("Regular file exceeded bound")
+        after = os.fstat(fd)
+        if ((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) !=
+                (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns) or total != before.st_size):
+            raise ValueError("Regular file changed while reading")
+        return b"".join(pieces)
+    finally:
+        os.close(fd)
+
+
+def _canonical_json(data):
+    try:
+        value = json.loads(data, object_pairs_hook=_unique_json)
+        if encoded(value) != data:
+            raise ValueError("Canonical JSON required")
+        return value
+    except (UnicodeError, json.JSONDecodeError, TypeError) as exc:
+        raise ValueError("Invalid canonical JSON") from exc
+
+
+def _load_policy_transaction(directory):
+    """Shared bounded validation; the transport-independent core is unchanged."""
+    directory = Path(directory)
+    plan = _canonical_json(_bounded_file(directory / "plan.json", _META_LIMIT))
+    journal = _canonical_json(_bounded_file(directory / "journal.json", _META_LIMIT))
+    if (not isinstance(plan, dict) or not isinstance(journal, dict) or
+            journal.get("record_sha256") != digest(encoded({k: v for k, v in journal.items()
+                                                          if k != "record_sha256"})) or
+            plan.get("schema") != 1 or journal.get("schema") != 1 or
+            journal.get("plan_sha256") != digest(encoded(plan)) or
+            journal.get("state") not in ("prepared", "running", "recovery_required", "complete") or
+            journal.get("direction") not in (None, "install", "restore")):
+        raise ValueError("Invalid or mismatched transaction journal/plan")
+    checked_identity(plan["identity"])
+    order = checked_plan_order(plan)
+    if "sector_order" in plan and journal.get("sector_order") != order:
+        raise ValueError("Journal sector order differs from sealed plan")
+    baseline = _bounded_file(directory / "backupA.bin", FLASH_BYTES)
+    second = _bounded_file(directory / "backupB.bin", FLASH_BYTES)
+    target = _bounded_file(directory / "target.bin", FLASH_BYTES)
+    if (len(baseline) != FLASH_BYTES or baseline != second or
+            digest(baseline) != plan["baseline_sha256"] or len(target) != FLASH_BYTES or
+            digest(target) != plan["target_sha256"]):
+        raise ValueError("Transaction backup or target hash mismatch")
+    check_outside(target, baseline, plan["writable_ranges"])
+    return plan, journal, baseline, target
+
+
+def _evidence_inventory(evidence):
+    if not 0 < len(evidence) <= _EVIDENCE_COUNT:
+        raise ValueError("Bounded original evidence inventory required")
+    inventory, total = {}, 0
+    for path, expected, _limit in evidence:
+        path = str(Path(path).absolute())
+        size = len(expected)
+        if path not in inventory:
+            total += size
+        if total > _EVIDENCE_TOTAL:
+            raise ValueError("Original evidence aggregate exceeds bound")
+        if size > _EVIDENCE_LIMIT or _bounded_file(path, size) != expected:
+            raise ValueError("Original evidence changed or oversized")
+        row = {"path": path, "size": size, "sha256": digest(expected)}
+        if path in inventory and inventory[path] != row:
+            raise ValueError("Conflicting evidence path")
+        inventory[path] = row
+    return [inventory[path] for path in sorted(inventory)]
+
+
+def _validation_sources():
+    paths = {"policy": Path(__file__).absolute(), "transaction": ROOT / "fm1_flash_transaction.py",
+             "bound_session": ROOT / "fm1_bound_diagnostic.py"}
+    return {name: digest(_bounded_file(path, _META_LIMIT)) for name, path in paths.items()}
+
+
+def reopen_policy(seal_path, expected_sha256):
+    """Revalidate a durable offline policy with an independently retained pin.
+
+    Never discover a colocated hash. This preserves the original factory
+    validation by checking its exact sealed snapshots, without running builds
+    or opening devices. Fresh resume admission is a separate required step.
+    """
+    if not _valid_sha(expected_sha256):
+        raise ValueError("Independent expected seal SHA256 required")
+    data = _bounded_file(seal_path, _META_LIMIT)
+    if digest(data) != expected_sha256:
+        raise ValueError("Policy seal differs from independent pin")
+    seal = _canonical_json(data)
+    if (not isinstance(seal, dict) or set(seal) != {"schema", "kind", "directory",
+            "plan_sha256", "receipt_sha256", "binding", "read_completed_at", "sectors", "evidence", "validation_sources"} or
+            type(seal["schema"]) is not int or seal["schema"] != 1 or seal["kind"] != _SEAL_KIND or
+            type(seal["read_completed_at"]) not in (int, float) or
+            not math.isfinite(seal["read_completed_at"]) or seal["read_completed_at"] < 0 or
+            not isinstance(seal["evidence"], list) or
+            not 0 < len(seal["evidence"]) <= _EVIDENCE_COUNT):
+        raise ValueError("Exact bounded policy seal required")
+    if seal["validation_sources"] != _validation_sources():
+        raise ValueError("Policy validation sources differ from sealed implementation")
+    evidence, total, paths = [], 0, set()
+    for row in seal["evidence"]:
+        if (not isinstance(row, dict) or set(row) != {"path", "size", "sha256"} or
+                not isinstance(row["path"], str) or row["path"] in paths or
+                type(row["size"]) is not int or not 0 <= row["size"] <= _EVIDENCE_LIMIT or
+                not _valid_sha(row["sha256"])):
+            raise ValueError("Invalid bounded evidence inventory")
+        total += row["size"]
+        if total > _EVIDENCE_TOTAL:
+            raise ValueError("Original evidence aggregate exceeds bound")
+        paths.add(row["path"])
+    for row in seal["evidence"]:
+        raw = _bounded_file(row["path"], row["size"])
+        if len(raw) != row["size"] or digest(raw) != row["sha256"]:
+            raise ValueError("Pinned original evidence changed")
+        evidence.append((Path(row["path"]), raw, max(len(raw), 1)))
+    directory = Path(seal["directory"])
+    plan, _, baseline, target = _load_policy_transaction(directory)
+    receipt = _bounded_file(directory / "diagnostic-receipt.json", _META_LIMIT)
+    receipt_value = _canonical_json(receipt)
+    if (not isinstance(receipt_value, dict) or any(receipt_value.get(key) is not False
+            for key in ("hardware_admitted", "physical_writer_ready", "installable")) or
+            any(receipt_value.get(key, False) is not False for key in ("updater_accepted", "physical_recovery_verified"))):
+        raise ValueError("Offline policy receipt must retain unadmitted hardware claims")
+    binding = seal["binding"]
+    if (digest(encoded(plan)) != seal["plan_sha256"] or digest(receipt) != seal["receipt_sha256"] or
+            not isinstance(binding, dict) or binding.get("identity") != plan["identity"] or
+            binding.get("baseline_sha256") != digest(baseline) or
+            seal["sectors"] != sorted({a for start, end in plan["writable_ranges"]
+                                       for a in range(start, end, SECTOR)}) or
+            type(binding.get("loader_sha256")) is not str):
+        raise ValueError("Sealed policy transaction/binding differs")
+    policy = Policy(directory, encoded(plan), baseline, target, receipt, encoded(binding),
+                    tuple(seal["sectors"]), tuple(evidence), seal["read_completed_at"], _VALIDATED)
+    _POLICIES.add(policy)
+    policy.check_files()
+    return policy
+
+
 @dataclass(frozen=True, eq=False)
 class _ResumeAdmission:
     """Process-local, one-bind capability; serialized receipts grant no authority."""
@@ -833,16 +1019,46 @@ class Policy:
             raise ValueError("Fresh paired-ROM read evidence expired; prepare a new transaction")
         for path, expected, limit in self.evidence:
             path = Path(path)
-            data = path.read_bytes()
+            data = _bounded_file(path, limit)
             if len(data) > limit or data != expected:
                 raise ValueError("Pinned build/read evidence changed: " + path.name)
-        plan, journal, before, after = load_transaction(self.directory)
+        plan, journal, before, after = _load_policy_transaction(self.directory)
         if encoded(plan) != self.plan_bytes or before != self.baseline or after != self.target:
             raise ValueError("Generic transaction artifacts changed")
-        receipt = (self.directory / "diagnostic-receipt.json").read_bytes()
+        receipt = _bounded_file(self.directory / "diagnostic-receipt.json", _META_LIMIT)
         if receipt != self.receipt_bytes:
             raise ValueError("Diagnostic receipt changed")
         return journal
+
+    def seal(self, path):
+        """Write once and return the pin the caller must retain independently."""
+        self.check_files()
+        value = {"schema": 1, "kind": _SEAL_KIND, "directory": str(self.directory.absolute()),
+            "plan_sha256": digest(self.plan_bytes), "receipt_sha256": digest(self.receipt_bytes),
+            "binding": json.loads(self.binding_bytes), "read_completed_at": self.read_completed_at,
+            "sectors": sorted(self.sectors), "evidence": _evidence_inventory(self.evidence),
+            "validation_sources": _validation_sources()}
+        data = encoded(value)
+        if len(data) > _META_LIMIT:
+            raise ValueError("Policy seal exceeds bound")
+        parent, name = _parent_fd(path)
+        try:
+            fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                         0o600, dir_fd=parent)
+            try:
+                view = memoryview(data)
+                while view:
+                    written = os.write(fd, view)
+                    if written <= 0:
+                        raise OSError("Short policy seal write")
+                    view = view[written:]
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            os.fsync(parent)
+        finally:
+            os.close(parent)
+        return digest(data)
 
     def receipt(self):
         return json.loads(self.receipt_bytes)
