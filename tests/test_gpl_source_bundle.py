@@ -205,6 +205,18 @@ def test_rejects_escaped_source_path_in_selection_receipt(tmp_path):
         build_bundle(src,tup,prov,manifest,anchor,output,prepared_dir=prepared)
     assert not output.exists()
 
+def test_rejects_symlinked_or_traversing_prepared_directory(tmp_path):
+    args=_fixture(tmp_path); prepared,anchor=_prepared_fixture(tmp_path,args)
+    src,tup,prov,manifest,_=args
+    link=tmp_path/'prepared-link'; link.symlink_to(prepared,target_is_directory=True)
+    with pytest.raises(ValueError,match='contains a symlink'):
+        build_bundle(src,tup,prov,manifest,anchor,tmp_path/'root-link.tgz',prepared_dir=link)
+    traversing=prepared.parent/'..'/'prepared'
+    with pytest.raises(ValueError,match='parent traversal'):
+        build_bundle(src,tup,prov,manifest,anchor,tmp_path/'traversal.tgz',prepared_dir=traversing)
+    assert not (tmp_path/'root-link.tgz').exists()
+    assert not (tmp_path/'traversal.tgz').exists()
+
 def test_refuses_true_tuple_admission_flags_with_prepared_inputs(tmp_path):
     args=_fixture(tmp_path); prepared,anchor=_prepared_fixture(tmp_path,args)
     src,tup,prov,manifest,_=args

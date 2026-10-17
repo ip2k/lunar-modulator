@@ -59,6 +59,14 @@ def _prepared_source_inputs(prepared_dir,rec):
     if not isinstance(expected,str) or not HASH.fullmatch(expected):
         raise ValueError("tuple lacks a prepared profile digest for selected source inputs")
     directory=Path(prepared_dir)
+    lexical=directory if directory.is_absolute() else Path.cwd()/directory
+    if ".." in lexical.parts:
+        raise ValueError("prepared directory path must not contain parent traversal")
+    current=Path(lexical.anchor)
+    for part in lexical.parts[1:]:
+        current=current/part
+        if current.is_symlink():
+            raise ValueError("prepared directory path contains a symlink")
     # The validator reads the source files once and returns those exact bytes;
     # bundle those returned bytes rather than reopening after verification.
     checked=load_prepared_profile(directory,expected)
