@@ -98,6 +98,120 @@ def _minimal_preview(app=b"preview-app", elf=b"preview-elf"):
     return WorkerResult(app, b"service-receipt", elf, b"service-provenance", {"evidence": b"bytes"})
 
 
+def _wrapper_fixture(tmp_path, body):
+    source = tmp_path / "source"
+    _write(source / "tools/native/run_trusted_continuous_build.py", body.encode())
+    private = (tmp_path / "private").resolve()
+    private.mkdir(mode=0o700)
+    request = private / "service-request.json"
+    request.write_bytes(_request())
+    return source, private, (source, request, tmp_path, tmp_path, private / "trusted-build")
+
+
+def test_failed_wrapper_retains_private_binary_output_without_public_leakage(tmp_path):
+    _source, private, args = _wrapper_fixture(tmp_path,
+        "import os\nos.write(1, b'out\\x00')\nos.write(2, b'/private/secret tuple capture failed\\xff')\nraise SystemExit(7)\n")
+    request = args[1].read_bytes()
+    with pytest.raises(ValueError) as failure:
+        adapter._run_trusted_wrapper(*args)
+    assert str(failure.value) == "pinned trusted continuous wrapper refused or failed this request"
+    diagnostic = private / "trusted-wrapper-failure"
+    assert (diagnostic / "stdout.bin").read_bytes() == b"out\x00"
+    assert (diagnostic / "stderr.bin").read_bytes() == b"/private/secret tuple capture failed\xff"
+    metadata = json.loads((diagnostic / "failure.json").read_bytes())
+    assert metadata["reason"] == "nonzero_exit" and metadata["returncode"] == 7
+    for stream in ("stdout", "stderr"):
+        raw = (diagnostic / (stream + ".bin")).read_bytes()
+        assert metadata["streams"][stream] == {
+            "bytes": len(raw), "observed_bytes": len(raw), "truncated": False,
+            "capture": "prefix", "sha256": hashlib.sha256(raw).hexdigest()}
+    assert diagnostic.stat().st_mode & 0o777 == 0o700
+    assert all(path.stat().st_mode & 0o777 == 0o600 for path in diagnostic.iterdir())
+    assert args[1].read_bytes() == request
+    assert not (private / "candidate.fwsc").exists()
+
+
+def test_wrapper_large_dual_stream_failure_retains_bounded_prefixes(tmp_path):
+    cap = adapter.MAX_WRAPPER_LOG_BYTES
+    size = cap + 65537
+    _source, private, args = _wrapper_fixture(tmp_path,
+        f"import sys\nsys.stdout.buffer.write(b'x' * {size})\nsys.stderr.buffer.write(b'x' * {size})\nraise SystemExit(3)\n")
+    with pytest.raises(ValueError):
+        adapter._run_trusted_wrapper(*args)
+    diagnostic = private / "trusted-wrapper-failure"
+    metadata = json.loads((diagnostic / "failure.json").read_bytes())
+    for stream in ("stdout", "stderr"):
+        assert (diagnostic / (stream + ".bin")).read_bytes() == b"x" * cap
+        assert metadata["streams"][stream]["observed_bytes"] == size
+        assert metadata["streams"][stream]["truncated"] is True
+    assert sum(path.stat().st_size for path in diagnostic.iterdir()) < 2 * cap + 2048
+
+
+@pytest.mark.parametrize("destination", ["directory", "file", "symlink", "dangling-symlink"])
+def test_wrapper_refuses_preexisting_failure_destination_before_launch(tmp_path, destination):
+    _source, private, args = _wrapper_fixture(tmp_path,
+        "from pathlib import Path\nPath('launched').write_text('unexpected')\nraise SystemExit(1)\n")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    sentinel = outside / "sentinel"
+    sentinel.write_bytes(b"preserve")
+    diagnostic = private / "trusted-wrapper-failure"
+    if destination in ("symlink", "dangling-symlink"):
+        diagnostic.symlink_to(outside if destination == "symlink" else outside / "missing",
+                              target_is_directory=True)
+    elif destination == "file":
+        diagnostic.write_bytes(b"preserve")
+    else:
+        diagnostic.mkdir()
+    with pytest.raises(ValueError, match="^pinned trusted continuous wrapper refused or failed this request$"):
+        adapter._run_trusted_wrapper(*args)
+    assert not (_source / "launched").exists()
+    assert sentinel.read_bytes() == b"preserve"
+    assert list(outside.iterdir()) == [sentinel]
+    if destination == "file":
+        assert diagnostic.read_bytes() == b"preserve"
+
+
+def test_successful_wrapper_does_not_retain_failure_output(tmp_path):
+    _source, private, args = _wrapper_fixture(tmp_path,
+        "import os\nos.write(1, b'output')\nos.write(2, b'warning')\n")
+    adapter._run_trusted_wrapper(*args)
+    assert not (private / "trusted-wrapper-failure").exists()
+    assert list(private.iterdir()) == [args[1]]
+
+
+@pytest.mark.parametrize("root_kind", ["missing", "unsafe", "symlink"])
+def test_wrapper_root_refusal_is_generic_and_does_not_launch(tmp_path, root_kind):
+    source, private, args = _wrapper_fixture(tmp_path,
+        "from pathlib import Path\nPath('launched').touch()\n")
+    if root_kind == "missing":
+        args[1].unlink()
+        private.rmdir()
+    elif root_kind == "unsafe":
+        private.chmod(0o755)
+    else:
+        real = tmp_path / "real-private"
+        private.rename(real)
+        private.symlink_to(real, target_is_directory=True)
+    with pytest.raises(ValueError, match="^pinned trusted continuous wrapper refused or failed this request$") as failure:
+        adapter._run_trusted_wrapper(*args)
+    assert failure.value.__cause__ is None
+    assert not (source / "launched").exists()
+
+
+def test_wrapper_cannot_redirect_failure_retention_from_inside_child(tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    _source, private, args = _wrapper_fixture(tmp_path,
+        "from pathlib import Path\nimport sys\n"
+        f"(Path(sys.argv[-1]).parent / 'trusted-wrapper-failure').symlink_to({str(outside)!r}, target_is_directory=True)\n"
+        "print('/private/secret', file=sys.stderr)\nraise SystemExit(2)\n")
+    with pytest.raises(ValueError, match="^pinned trusted continuous wrapper refused or failed this request$"):
+        adapter._run_trusted_wrapper(*args)
+    assert (private / "trusted-wrapper-failure").is_symlink()
+    assert list(outside.iterdir()) == []
+
+
 def test_service_preview_must_match_trusted_wrapper_outputs_before_packaging(tmp_path, monkeypatch):
     request = _request()
     source_commit = "a" * 40
