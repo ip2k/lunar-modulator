@@ -486,10 +486,17 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
     # sizes or hashes. Malformed JSON shapes must be a controlled refusal, not
     # an AttributeError/TypeError escaping the status route.
     for expected_row, row in zip(expected_identity, content):
-        if (not isinstance(row, dict) or row.get("kind") != expected_row["kind"]
-                or row.get("id") != expected_row["id"]
-                or (expected_row["kind"] == "set"
-                    and row.get("parent_project_id") != expected_row["parent_project_id"])
+        # Real linked image receipts keep content measurements separate from
+        # selected_content identity rows. Some older/private receipts also
+        # repeat IDs on content rows; when present, they must agree.
+        if (not isinstance(row, dict)
+                or not {"kind", "bytes", "packed_sha256"}.issubset(row)
+                or set(row) - {"kind", "id", "parent_project_id", "bytes", "packed_sha256"}
+                or row.get("kind") != expected_row["kind"]
+                or ("id" in row and row["id"] != expected_row["id"])
+                or ("parent_project_id" in row
+                    and (expected_row["kind"] != "set"
+                         or row["parent_project_id"] != expected_row["parent_project_id"]))
                 or type(row.get("bytes")) is not int or row["bytes"] <= 0
                 or not isinstance(row.get("packed_sha256"), str)
                 or not SHA256.fullmatch(row["packed_sha256"])):
