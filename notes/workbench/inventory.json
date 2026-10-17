@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "project": "Lunar Modulator",
+  "descriptor": "open firmware for the M-VAVE FM-1",
+  "classification": "personal, non-commercial",
+  "scope": "Offline provenance, licence and recovery-asset inventory; no vendor build, firmware execution, device traffic, install, restore or distribution approval.",
+  "upstream": {
+    "repository": "https://github.com/m-vave/fm1_open",
+    "commit": "b178ac43c25f010c60a878056fb5331fe693fd62",
+    "commit_url": "https://github.com/m-vave/fm1_open/tree/b178ac43c25f010c60a878056fb5331fe693fd62",
+    "codeload_tar_sha256": "b92779ec8bbff7ffdedce38932738261181aff8fa67718d7cd20cb687b789626",
+    "kit_sha256": "2a3b2ede16ac49c867831315714ef9d8c532c70ce28ce1dcf3fc76f0a9f68f57",
+    "kit_url": "https://open.m-vave.com/releases/V13/2a3b2ede16ac49c867831315714ef9d8c532c70ce28ce1dcf3fc76f0a9f68f57/FM1-Open-V13-Development-Kit.zip",
+    "release_identity": "Open V13 / FM-1_8000013",
+    "kit_regular_files": 150,
+    "source_regular_files": 150,
+    "byte_differences": [],
+    "manifest": {
+      "path": "sdk/manifest.json",
+      "internal_file_hashes_checked": 65,
+      "external_toolchain_entries": 22,
+      "external_toolchain_files_bundled": false
+    }
+  },
+  "licensing": {
+    "app": "LICENSE.md states GPL-3.0-only with an additional linking permission for the named FM1 SDK.",
+    "third_party": "THIRD_PARTY.md has component-level terms, including native engine binary terms for FM1 devices; some files retain separate notices.",
+    "boundary": "The additional SDK permission is scoped to covered APP code; it does not authorize combining unrelated GPL components with proprietary SDK binaries.",
+    "policy": "No vendor file is imported in this pilot. Review exact file notices and dependencies before any source reuse; this inventory is not distribution approval."
+  },
+  "source_build_split": {
+    "public_source": [
+      "APP and board support source",
+      "Browser simulator/workbench and build/package scripts",
+      "Public SDK headers and linker/package configuration"
+    ],
+    "native_closed_runtime": {
+      "path": "sdk/lib/libfm1_engine.a",
+      "sha256": "6a22c111978c8f36827ca83b5f71828313bcb5a3464109b44754266d9bf55e09",
+      "finding": "Single-member native archive with closed engine, sequencer, startup and platform/service symbols; no LLVM bitcode or DWARF."
+    },
+    "binary_inputs": [
+      {"path":"sdk/firmware/FM-1_015.fwsc","sha256":"db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a","role":"stock V15 recovery package"},
+      {"path":"sdk/tools/pack/uboot.boot","sha256":"b88747cb72afc554d6ca078594a89f4fdcea5a74d26345b633f8e2524e7e3415","role":"Open-build packager SPL"},
+      {"path":"sdk/tools/pack/ota.bin","sha256":"ef1f2db89b011fa53e71df363f0122de0ea896618c53fb53e8da676322004541","role":"packager OTA component"},
+      {"path":"sdk/tools/pack/cfg_tool.bin","sha256":"276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b","role":"packager configuration tool"},
+      {"path":"sdk/tools/pack/boot-config.bin","sha256":"9c2f90573c2490991fcf68f5e3d9c3d713deed5d114934477c36303d4e67df3c","role":"packager boot configuration"}
+    ],
+    "build_inputs": [
+      "Native build requires Windows x64, PowerShell and separately supplied JieLi PI32v2 clang 4.0.1 r3; external file hashes are listed but those tools are not bundled.",
+      "Web build uses WASI SDK 27; no build was run in this inventory.",
+      "A source URL shape check does not establish source completeness."
+    ]
+  },
+  "recovery": {
+    "stock_fwsc": {"path":"sdk/firmware/FM-1_015.fwsc","bytes":699956,"sha256":"db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a"},
+    "decoded_stock_spl": {"bytes":14384,"sha256":"730e54f0a439f58d147be4364ad21e19566945ada9d3a7bbc8371dce5068d3ef","matches_lunar_guard":true},
+    "decoded_stock_ota": {"bytes":19969,"sha256":"ef1f2db89b011fa53e71df363f0122de0ea896618c53fb53e8da676322004541"},
+    "open_build_spl": {"path":"sdk/tools/pack/uboot.boot","bytes":14488,"sha256":"b88747cb72afc554d6ca078594a89f4fdcea5a74d26345b633f8e2524e7e3415","matches_lunar_guard":false},
+    "owner_historical_full_flash": {
+      "bytes":1048576,
+      "sha256":"96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4",
+      "present":false,
+      "provenance":"Retained bench record reports matching copies and a previous complete stock-baseline restore/read-back."
+    },
+    "last_retained_passive_observation_utc":"2026-10-17T16:46:00Z",
+    "limits": [
+      "The public stock FWSC is not the owner's complete flash backup and supplies no entry transport.",
+      "Historical backup/restore evidence does not establish later interrupted stage7 contents or current device state.",
+      "Encrypted auxiliary plaintext CRCs were not independently validated; whole-package digest matched."
+    ]
+  },
+  "reuse_decision": {
+    "finding":"No compatible supported engine-free platform-only binary seam without vendor permissions is demonstrated.",
+    "reason":"The native APP links the closed engine archive; its exception does not cover unrelated GPL components, and exposed APP hooks do not establish Lunar's alternative-engine and timestamped MIDI/runtime boundary.",
+    "direction":"Keep Lunar's SDK-free GPL native direction; selectively reuse public source only after file-level notice and dependency review."
+  },
+  "verifier": {
+    "path":"tools/workbench/verify_inventory.py",
+    "python":"standard library only",
+    "checks":["kit and pinned source digests","safe archive paths; reject traversal, symlink/special files, duplicate normalized paths","exact 150-file path/content comparison","all 65 internal SDK manifest hashes"],
+    "limits":"No downloads, vendor executable invocation or device access."
+  }
+}\n
