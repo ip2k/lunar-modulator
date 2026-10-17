@@ -51,7 +51,7 @@ const ids = [
 const catalogue = {
   version: 1,
   groups: {
-    engines: ['macro', 'shapes'], effects: ['plate'], midi: ['arp'], modulation: ['lfo'],
+    engines: ['macro', 'shapes', 'sixop', 'drums'], effects: ['plate', 'hall'], midi: ['arp'], modulation: ['lfo'],
   },
   projects: ids.map((id) => ({
     id,
@@ -78,7 +78,7 @@ const catalogue = {
     blockers: ['exact packed-content and module-dependency validation', 'native playback and save/reload'],
   },
   default_profile: {
-    version: 1, engines: ['macro', 'shapes'], effects: ['plate'], midi: ['arp'],
+    version: 1, engines: ['macro', 'shapes', 'sixop', 'drums'], effects: ['plate', 'hall'], midi: ['arp'],
     modulation: ['lfo'], content: [],
   },
 };
@@ -219,7 +219,7 @@ test('uses injected build client only after explicit selection and preserves mod
   assert.equal(submissions.length, 1);
   assert.deepEqual(submissions[0].project_ids, [ids[5], ids[4], ids[1]]);
   assert.equal(submissions[0].startup_index, 2);
-  assert.deepEqual(submissions[0].engines, ['macro', 'shapes']);
+  assert.deepEqual(submissions[0].engines, ['macro', 'shapes', 'sixop', 'drums']);
   assert.equal(exportStatus.textContent, 'Diagnostic build checks passed. Application flash: 1,234 / 868,836 bytes used; 867,602 bytes free. No installable firmware file is available.');
   assert.equal(cancelButton.hidden, true);
   assert.match(serviceNotice.textContent, /does not provide installable firmware/i);

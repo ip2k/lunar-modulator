@@ -15,6 +15,13 @@ import sys
 import tarfile
 from pathlib import PurePosixPath
 
+_WORKSPACE = Path(__file__).resolve().parents[2]
+if str(_WORKSPACE) not in sys.path:
+    sys.path.insert(0, str(_WORKSPACE))
+from tools.native.diagnostic_profile_contract import (
+    HALL_O2_STAGE7_PROFILE, validate_hall_o2_stage7_modules,
+)
+
 SOURCE = Path("/workspace")
 SOURCE_ARCHIVE = Path("/input/source.tar")
 REQUEST = Path("/input/request.json")
@@ -53,13 +60,10 @@ def build_profile_arguments(request: dict) -> list[str]:
         return ["--flash-layout", "expanded-d9000", "--runtime-mode", "diagnostic",
                 "--wavetable-profile", "compressed-required-banks-flash-plaits-v1"]
     if layout == "expanded-d7000" and runtime == "song-diagnostic":
-        selected = [module for group in ("engines", "effects", "midi", "modulation")
-                    for module in request.get(group, [])]
-        if not {"macro", "shapes"}.issubset(set(selected)):
-            raise ValueError("expanded-d7000 requires the fixed Macro+Shapes8 profile")
+        validate_hall_o2_stage7_modules(request)
         return ["--flash-layout", "expanded-d7000", "--runtime-mode", "song-diagnostic",
                 "--wavetable-profile", "compressed-required-banks-ram-plaits-braids-shapes8-v1",
-                "--diagnostic-profile", "hall-o2-stage7-v1"]
+                "--diagnostic-profile", HALL_O2_STAGE7_PROFILE]
     raise ValueError("unsupported diagnostic layout/runtime profile")
 
 

@@ -7,6 +7,10 @@ const OPAQUE_ID = /^[A-Za-z0-9_-]{32}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const MAX_RESPONSE_BYTES = 65536;
 const MAX_ARTIFACT_BYTES = 1048576;
+const D7000_REQUIRED_BY_GROUP = Object.freeze({
+  engines: Object.freeze(['macro', 'shapes', 'sixop', 'drums']),
+  effects: Object.freeze(['hall']),
+});
 
 function fail(message) { throw new Error(message); }
 
@@ -47,8 +51,8 @@ function validateRequest(request) {
       fail('The selected build request is invalid.');
     }
   }
-  if (hasBuildConfiguration
-      && !['macro', 'shapes'].every((id) => request.engines.includes(id))) {
+  if (hasBuildConfiguration && Object.entries(D7000_REQUIRED_BY_GROUP).some(([group, required]) =>
+    required.some((id) => !request[group].includes(id)))) {
     fail('The selected build request is invalid.');
   }
   if (hasSets && (!Array.isArray(request.set_ids) || request.set_ids.length > 8

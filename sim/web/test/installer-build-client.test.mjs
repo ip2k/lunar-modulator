@@ -56,7 +56,7 @@ test('submits the ordered v1 request same-origin and polls a verified diagnostic
 test('posts the explicit D7000 song-diagnostic request without changing its schema', async () => {
   const d7000Request = {
     ...request,
-    engines: ['macro', 'shapes'],
+    engines: ['macro', 'shapes', 'sixop', 'drums'], effects: ['hall'],
     flash_layout: 'expanded-d7000',
     runtime_mode: 'song-diagnostic',
   };
@@ -155,8 +155,11 @@ test('bounds timing configuration and rejects invalid selected request', async (
   for (const invalid of [
     { ...request, flash_layout: 'expanded-d7000' },
     { ...request, flash_layout: 'expanded-d7000', runtime_mode: 'diagnostic' },
-    { ...request, engines: ['macro'], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
-    { ...request, engines: ['macro'], effects: ['shapes'], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
+    { ...request, engines: ['macro', 'shapes', 'drums'], effects: [], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
+    { ...request, engines: ['macro', 'shapes', 'sixop'], effects: ['hall'], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
+    { ...request, engines: ['shapes', 'sixop', 'drums'], effects: ['hall'], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
+    { ...request, engines: ['macro', 'shapes', 'sixop', 'drums'], effects: [], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
+    { ...request, engines: ['macro', 'shapes', 'sixop', 'drums', 'hall'], effects: [], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' },
   ]) {
     await assert.rejects(client.build(invalid), /request is invalid/);
   }

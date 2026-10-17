@@ -221,15 +221,43 @@ def test_private_evidence_reader_requires_profile_digest_bound_to_receipt(tmp_pa
 def test_worker_selects_named_profile_without_changing_d9000_flags():
     from tools.installer_service.docker_worker import build_profile_arguments
 
-    d7000 = {"engines": ["macro", "shapes"], "effects": [], "midi": [],
+    d7000 = {"engines": ["macro", "shapes", "sixop", "drums"], "effects": ["hall"], "midi": [],
              "modulation": [], "flash_layout": "expanded-d7000",
              "runtime_mode": "song-diagnostic"}
     d9000 = {"engines": ["a"], "effects": [], "midi": [], "modulation": []}
     assert build_profile_arguments(d7000)[-2:] == [
         "--diagnostic-profile", "hall-o2-stage7-v1"]
+    incomplete = {**d7000, "engines": ["macro", "shapes"]}
+    with pytest.raises(ValueError, match="engines: drums, sixop"):
+        build_profile_arguments(incomplete)
     assert build_profile_arguments(d9000) == [
         "--flash-layout", "expanded-d9000", "--runtime-mode", "diagnostic",
         "--wavetable-profile", "compressed-required-banks-flash-plaits-v1"]
+
+
+@pytest.mark.parametrize(("group", "module"), [
+    ("engines", "macro"), ("engines", "shapes"), ("engines", "sixop"),
+    ("engines", "drums"), ("effects", "hall"),
+])
+def test_worker_rejects_missing_named_profile_prerequisite(group, module):
+    from tools.installer_service.docker_worker import build_profile_arguments
+
+    request = {"engines": ["macro", "shapes", "sixop", "drums"],
+               "effects": ["hall"], "midi": [], "modulation": [],
+               "flash_layout": "expanded-d7000", "runtime_mode": "song-diagnostic"}
+    request[group].remove(module)
+    with pytest.raises(ValueError, match="requires caller-selected modules"):
+        build_profile_arguments(request)
+
+
+def test_worker_rejects_named_profile_module_in_wrong_group():
+    from tools.installer_service.docker_worker import build_profile_arguments
+
+    request = {"engines": ["macro", "shapes", "drums"],
+               "effects": ["hall", "sixop"], "midi": [], "modulation": [],
+               "flash_layout": "expanded-d7000", "runtime_mode": "song-diagnostic"}
+    with pytest.raises(ValueError, match="engines: sixop"):
+        build_profile_arguments(request)
 
 
 def test_named_profile_forwards_fixed_flags_to_the_lower_builder():
@@ -285,13 +313,21 @@ def test_named_profile_flags_are_in_the_actual_lower_builder_invocation(tmp_path
 
 
 
-def test_named_profile_refuses_subset_without_adding_modules_before_build_output(tmp_path):
+@pytest.mark.parametrize(("engines", "effects", "missing"), [
+    (["macro", "shapes"], [], "effects: hall; engines: drums, sixop"),
+    (["macro", "shapes", "drums"], ["hall", "sixop"], "engines: sixop"),
+    (["shapes", "sixop", "drums"], ["hall"], "engines: macro"),
+    (["macro", "sixop", "drums"], ["hall"], "engines: shapes"),
+    (["macro", "shapes", "sixop", "drums", "hall"], [], "effects: hall"),
+])
+def test_named_profile_refuses_missing_or_misgrouped_modules_before_build_output(
+        tmp_path, engines, effects, missing):
     from tools.native import build_demo_image as builder
 
     output = tmp_path / "out"
-    with pytest.raises(ValueError, match="caller-selected modules: drums, hall, sixop"):
+    with pytest.raises(ValueError, match=missing):
         builder.build_selection(
-            {"version": 1, "engines": ["macro", "shapes"], "effects": [],
+            {"version": 1, "engines": engines, "effects": effects,
              "midi": [], "modulation": [], "project_ids": ["project"],
              "startup_index": 0, "flash_layout": "expanded-d7000",
              "runtime_mode": "song-diagnostic"},

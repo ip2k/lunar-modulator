@@ -5,6 +5,7 @@ import {
   buildNativeDemoSelectionRequest,
   describeNativeDemoCatalogue,
 } from '../www/native-demo-selection.js';
+import { D7000_REQUIRED_BY_GROUP } from '../www/native-build-selection.js';
 
 const projects = [
   { id: 'legacy-example-afterglow-relay', title: 'Afterglow Relay', category: 'legacy-example',
@@ -30,11 +31,21 @@ const projects = [
 ];
 const catalogue = {
   version: 1,
-  groups: { engines: ['macro', 'shapes'], effects: ['plate'], midi: ['arp'], modulation: ['lfo'] },
+  groups: { engines: ['macro', 'shapes', 'sixop', 'drums'], effects: ['plate', 'hall'], midi: ['arp'], modulation: ['lfo'] },
   projects,
   full_song_default: { required: true, status: 'pending', blockers: ['owner-approved full-song composition'] },
 };
 const profile = { version: 1, engines: ['macro', 'shapes'], effects: ['plate'], midi: [], modulation: ['lfo'] };
+const d7000Profile = {
+  version: 1, engines: ['macro', 'shapes', 'sixop', 'drums'],
+  effects: ['plate', 'hall'], midi: [], modulation: ['lfo'],
+};
+
+test('names exact grouped prerequisites for the fixed D7000 profile', () => {
+  assert.deepEqual(D7000_REQUIRED_BY_GROUP, {
+    engines: ['macro', 'shapes', 'sixop', 'drums'], effects: ['hall'],
+  });
+});
 
 test('builds exact backend keys while preserving selected order and startup index', () => {
   const request = buildNativeDemoSelectionRequest(catalogue, profile,
@@ -53,12 +64,12 @@ test('builds exact backend keys while preserving selected order and startup inde
 });
 
 test('serializes only the explicit supported D7000 diagnostic build configuration', () => {
-  const request = buildNativeDemoSelectionRequest(catalogue, profile,
+  const request = buildNativeDemoSelectionRequest(catalogue, d7000Profile,
     ['legacy-example-event-horizon'], 0, [], {
       flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic',
     });
   assert.deepEqual(request, {
-    version: 1, engines: ['macro', 'shapes'], effects: ['plate'], midi: [], modulation: ['lfo'],
+    version: 1, engines: ['macro', 'shapes', 'sixop', 'drums'], effects: ['plate', 'hall'], midi: [], modulation: ['lfo'],
     project_ids: ['legacy-example-event-horizon'], startup_index: 0,
     flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic',
   });
@@ -73,13 +84,20 @@ test('rejects incomplete or incompatible explicit build configuration', () => {
     { flash_layout: 'expanded-d9000', runtime_mode: 'song-diagnostic' },
     { flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic', extra: true },
   ]) {
-    assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile,
-      projectIds, 0, [], configuration), /build configuration is invalid/);
+    assert.throws(() => buildNativeDemoSelectionRequest(catalogue, d7000Profile,
+      projectIds, 0, [], configuration));
   }
-  const incompleteModules = { ...profile, engines: ['macro'] };
-  assert.throws(() => buildNativeDemoSelectionRequest(catalogue, incompleteModules,
-    projectIds, 0, [], { flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' }),
-  /build configuration is invalid/);
+  const completeConfiguration = { flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' };
+  for (const incompleteModules of [
+    { ...d7000Profile, engines: ['macro', 'shapes', 'drums'] },
+    { ...d7000Profile, engines: ['macro', 'shapes', 'sixop'] },
+    { ...d7000Profile, engines: ['shapes', 'sixop', 'drums'] },
+    { ...d7000Profile, effects: ['plate'] },
+    { ...d7000Profile, engines: ['macro', 'shapes', 'drums', 'hall'], effects: ['plate'] },
+  ]) {
+    assert.throws(() => buildNativeDemoSelectionRequest(catalogue, incompleteModules,
+      projectIds, 0, [], completeConfiguration));
+  }
 });
 
 test('rejects unknown, repeated, empty and unavailable project selections', () => {
