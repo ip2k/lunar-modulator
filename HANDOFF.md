@@ -1,3 +1,32 @@
+## Fresh BFF traced build passed; PAC2 route in progress — 2026-10-17 UTC
+
+[verified: coordinator rehash and terminal inspection] Revision3 offline trace
+at Aeon /home/claude/mvave-fm1/private-bff-compiler-trace-bff915-r3-20261017/
+fresh-run-bff915-trace-r3-01 completed. All16 catalogue shards passed; selected
+161-object hash gate passed. Raw app f91bc8da94ddbf40ef1a75e85bf8802aef28a5b153025ce7f1d420e056907338
+and ELF1f4c007df2216721fd44dd380b242d604930a812be9c813c4ed675ace2e5b132
+match retained BFF bytes. Root independently parsed all17 terminal inspections
+and exits:0/noOOM,4CPU,8GiB memory and memory+swap,512PIDs,read-only root,
+networknone,uid1003:1003,capdropALL,no-new-privileges,batchslice,nodevices.
+Original-run inventory comparison matches. Worker is completing trace/header
+collection; corresponding-source completeness and distribution remain false.
+R2 failure retained separately: compiler commands passed but trace resolver
+required missing /catalogue. R3 adds read-only fresh catalogue alias in all modes.
+
+[verified: GitHub run status] CI39009495567 for8e086a365e98167272172bbdbd803b5de53972d7
+completedSUCCESS; this is not current-head CI. Later38e run39010710174 was still
+running at latest query; current PAC2 code has43 focused cases passing locally.
+
+PAC2 gateware offline build now running under bringup_review on Aeon using
+sourcea9b907b0 and retained d065eaf image/venv/OSS CAD. Failed runtime/preflight
+attempts preserved:54edd hosttestimage had no/venv; AMARANTH_ENV_TRELLIS sourced
+Bash-onlyenvironment from generated/bin/sh; one unset-check draft was escaped
+incorrectly. Final known-runtime-retry2 passes shell/source/tool preflight and
+unsets that variable while preserving pinnedPATH. Runner manifest6f1997e31be50a59fc5d0d226fc460e8759c8dd16ec10a8b8e322ba2d79022e6.
+No new bitstream accepted or loaded yet. BOTH TARGET ports remain empty by
+owner confirmation; CONTROL Mac. Loaded image remains PAC1/unipolar. Physical
+recovery/audio/public release remain unaccepted. AeonONLY; no Hera. GoalACTIVE.
+
 ## PAC2 bipolar monitor integrated; hardware build pending — 2026-10-17 UTC
 
 [verified: coordinator diff review, focused simulation/readout rerun, remote SHA]
