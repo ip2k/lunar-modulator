@@ -19,7 +19,8 @@ from compile_catalogue import optimization_overrides
 TUPLE_SCHEMA = 2
 PROVENANCE_SCHEMA = 1
 
-PINNED_TOOLCHAIN_IMAGE = "0fcc80c729c795f96758e301a86df8c42b466cc0b40cb9dfbaf8db693589eefc"
+# Aeon image contract v2. Independently pinned here as well as in the wrapper.
+PINNED_TOOLCHAIN_IMAGE = "bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495"
 PROFILE_ID = "fm1-092-d7000"
 WAVETABLE_PROFILE = "compressed-required-banks-ram-plaits-braids-shapes8-v1"
 MAX_JSON = 32 * 1024 * 1024
@@ -576,7 +577,8 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
             or contract.get("config_image") != "sha256:" + PINNED_TOOLCHAIN_IMAGE
             or contract.get("command") != ["python3", "/workspace/" + "tools/native/trusted_continuous_worker.py"]
             or contract.get("user") != "1001:1001"
-            or contract.get("labels") != {"lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"}
+            or contract.get("labels") != {"project": "lunar-modulator", "session": "gplfu",
+                                          "lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"}
             or contract.get("environment_keys") != ["LUNAR_SOURCE_COMMIT", "PATH"]
             or contract.get("environment_sha256") != sha(canonical([
                 "LUNAR_SOURCE_COMMIT=" + source_commit,

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Run and attest one private continuous Shapes8/D7000 build on pinned Hera Docker."""
+"""Run and attest one private continuous Shapes8/D7000 build on pinned Docker."""
 from __future__ import annotations
 
 import argparse
@@ -19,9 +19,11 @@ from capture_trusted_build_tuple import (capture_trusted_build_tuple, canonical,
                                                  _source_manifest, _toolchain_manifest)
 
 ROOT = Path(__file__).resolve().parents[2]
-PINNED_IMAGE_ID = "sha256:0fcc80c729c795f96758e301a86df8c42b466cc0b40cb9dfbaf8db693589eefc"
+# Aeon image contract v2; historical tuples retain their original image ID.
+PINNED_IMAGE_ID = "sha256:bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495"
 IMAGE_SHA = PINNED_IMAGE_ID.split(":", 1)[1]
 PINNED_IMAGE_ENV = ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]
+PINNED_IMAGE_LABELS = {"project": "lunar-modulator", "session": "gplfu"}
 WORKER_REL = "tools/native/trusted_continuous_worker.py"
 DOCKER_POLICY = {
     "network_mode": "none",
@@ -154,7 +156,7 @@ def inspected_contract(inspect: dict, expected_mounts: list[dict], source_commit
             or host.get("CapDrop") != ["ALL"]
             or host.get("SecurityOpt") != ["no-new-privileges"]
             or host.get("Tmpfs") != DOCKER_POLICY["tmpfs"]
-            or config.get("Labels") != DOCKER_POLICY["labels"]
+            or config.get("Labels") != {**PINNED_IMAGE_LABELS, **DOCKER_POLICY["labels"]}
             or config.get("Entrypoint") is not None
             or config.get("WorkingDir") != ""
             or config.get("Tty") is not False

@@ -8154,3 +8154,21 @@ records formulas, pins and limits. This does not establish live ownership or
 explain E8000; no erase/storage permission follows. No hardware operations.
 CI38994186689 remains live in Linuxpytest with no completed failures;
 exact0247 CI38996462807 is pending. Goal ACTIVE, physical recovery still open.
+
+### Versioned Aeon private build image and extracted-source follow-up
+
+Root inspected Aeon's exact cached bcff image, environment, base labels and
+host build prerequisites in a bounded offline container. It is a distinct
+image, not the absent Hera0fcc image. Updated the two continuous-path pins
+to this reviewed image and preserved strict full merged-label equality in
+wrapper and independent capture. Frozen Trio and historical receipts remain
+unchanged. Wrapper/capture tests:41 passed,1 optional private-artifact skip.
+Full audit and limits: notes/2026-10-17-aeon-build-image-contract.md.
+
+Worker has exact clean d4c16640 on Aeon, prepared all55 modules with Event
+Horizon and companion SET, and confirmed all549 catalogue input bytes exist
+in the1010-file selected-source export. It is preparing a fresh catalogue
+and private extracted-tree application build, not a trusted tuple or device
+installation. Review live worker before assuming success. No Hera/device
+writes. Passive02:55UTC monitor remains about5.07V/0uA; benchUSB has KA6 only.
+Physical connection question remains pending; goal ACTIVE and uv.lock preserved.

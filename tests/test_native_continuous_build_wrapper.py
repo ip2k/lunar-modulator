@@ -12,6 +12,7 @@ from run_trusted_continuous_build import (  # noqa: E402
     WORKER_REL,
     _expected_mounts,
     PINNED_IMAGE_ENV,
+    PINNED_IMAGE_LABELS,
     container_command,
     inspected_contract,
     require_successful_exit,
@@ -37,7 +38,7 @@ def _fixture(tmp_path):
                    "User": "1001:1001", "Env": ["LUNAR_SOURCE_COMMIT=" + "a" * 40] + PINNED_IMAGE_ENV,
                    "Entrypoint": None, "WorkingDir": "", "Tty": False,
                    "OpenStdin": False, "StdinOnce": False, "AttachStdout": True, "AttachStderr": True,
-                   "Labels": {"lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"}},
+                   "Labels": {**PINNED_IMAGE_LABELS, "lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"}},
         "HostConfig": {"NetworkMode": "none", "CgroupParent": "docker-batch.slice",
                        "ReadonlyRootfs": True, "CpuQuota": 400000, "CpuPeriod": 100000,
                        "NanoCpus": 0, "Memory": 8589934592, "MemorySwap": 8589934592, "PidsLimit": 512,
@@ -62,7 +63,12 @@ def test_inspected_container_matches_fixed_image_mounts_and_limits(tmp_path):
     assert len(contract["mounts"]) == 5
 
 
-@pytest.mark.parametrize("mutation", ["image", "command", "network", "resource", "mount", "privileged", "device", "cap_add", "pid_mode", "ipc_mode", "runtime", "entrypoint", "extra_env"])
+def test_producer_and_capture_pin_same_aeon_image():
+    from capture_trusted_build_tuple import PINNED_TOOLCHAIN_IMAGE
+    assert PINNED_IMAGE_ID == "sha256:" + PINNED_TOOLCHAIN_IMAGE
+
+
+@pytest.mark.parametrize("mutation", ["image", "command", "network", "resource", "mount", "privileged", "device", "cap_add", "pid_mode", "ipc_mode", "runtime", "entrypoint", "extra_env", "missing_base_label", "changed_base_label", "extra_label"])
 def test_inspection_refuses_changed_container_policy(tmp_path, mutation):
     inspect, expected, _ = _fixture(tmp_path)
     if mutation == "image":
@@ -89,6 +95,12 @@ def test_inspection_refuses_changed_container_policy(tmp_path, mutation):
         inspect["Config"]["Entrypoint"] = ["/bin/sh"]
     elif mutation == "extra_env":
         inspect["Config"]["Env"].append("EXTRA=1")
+    elif mutation == "missing_base_label":
+        del inspect["Config"]["Labels"]["project"]
+    elif mutation == "changed_base_label":
+        inspect["Config"]["Labels"]["session"] = "other"
+    elif mutation == "extra_label":
+        inspect["Config"]["Labels"]["unexpected"] = "1"
     else:
         inspect["Mounts"][0]["RW"] = True
     with pytest.raises(ValueError, match="pinned build policy"):
