@@ -192,3 +192,40 @@ The bank review's Aeon handoff is
 `/home/claude/.local/share/codex-coordination/handoffs/mvave-fm1-bank-span-recheck-20261017.md`,
 SHA-256 `0f6360e1be03c93a76937335edd8e3bf7aaaf49cdb52e960be8084d7b994cc59`;
 its claim is released. No build or device action was performed.
+
+
+## Initializer-called tail copy can mutate flash
+
+[verified: bounded decoded control/data flow; low-level role inferred] The
+initializer calls `0x02029776` at `0x0203416A`, after installing its two-range
+context. This routine retrieves selector 206 VM-info and checks metadata near
+the descriptor end, with a fallback scan. It can require a `0x55AAAA55` marker,
+issue operations through `0x02003B1A`, and copy via `0x02028FF8`. It must not be
+classified as read-only or treated as proof that the tail is unused.
+
+[verified: coordinator read exact public-app words] The six words beginning at
+runtime `0x0204E6F0` (raw `0x4E5D0`) are masks `FFFF0000`, `FFFFF000`,
+`FFFFFF00`, followed by selectors 201, 200, 204. Thus operation 2 aligns to
+4 KiB and dispatches selector 200; operation 3 aligns to 256 bytes and
+dispatches selector 204. The pinned SDK V1.1.9 commit
+`8eae66452ce4c34d64ad38a2764ba1c0610900e3`, header
+`include_lib/driver/device/ioctl_cmds.h`, names these selectors
+`IOCTL_ERASE_SECTOR` and `IOCTL_ERASE_PAGE`; selector 205, not 204, is
+`IOCTL_SET_VM_INFO`. Header names are SDK intent, not observed silicon effects.
+
+[verified: coordinator recomputed calls and mapped copied bytes] The six-byte
+relative calls at `0x02003B84` and `0x02003BA4` target RAM `0x01C00820`:
+`call_PC + 6 + signed_displacement`. With the verified startup copy, that maps
+to source `0x02084880` / raw `0x84760`. Do not subtract `0x120` from an already
+runtime RAM target: the incorrect `0x01C00700` falls inside a different body.
+The selector path call at `0x020039D2` targets RAM `0x01C005E4`, mapping to
+source `0x02084644` / raw `0x84524`.
+
+The first RAM body includes selector-minus-200 dispatch, a 4096-byte default
+and output value `0x20`, with a 256-byte/`0x81` alternative. The writer body
+outputs `0x02`, an address and source bytes through shared helpers. Together
+with the command dispatch and buffer direction, this strongly supports a
+flash erase/program migration path rather than RAM memcpy. Complete helper
+semantics, branch prerequisites, actual selected addresses, runtime activation
+and historical E8000 provenance remain unproven. No new hardware operation or
+storage admission follows. Preserve the descriptor tail and unknown records.

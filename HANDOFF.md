@@ -8027,3 +8027,21 @@ reviewer completed and released Aeon claim; detailed report/handoff pins are
 in the disassembly note. Next offline dependency: trace other VM descriptor
 consumers/writers and historical layout provenance before claiming any free
 space. Current physical recovery dependency is unchanged.
+
+
+### Tail path correction: possible flash mutation
+
+Bounded trace found initializer0203416A calls tail path02029776. Root rejected
+an erroneous draft RAM-memcpy/read-only classification: helper02028FF8 feeds
+a stack buffer through02003BC8 and lower copied RAM code. Exact table maps
+ops2/3 to200/204 with4KiB/256byte alignment; pinned SDK names those erase
+sector/page (205 is VM SET). Writer relative calls targetRAM01C00820, not700;
+root independently recalculated PC+6+displacement and startup-copy mapping.
+The decoded writer emits02/address/sourcebytes. Details/limits in the092
+review note; no runtime or affected-range proof, no reuse permission.
+
+Release-gap worker is implementing exact prepared project/SET source inclusion
+for the offline source/notices bundle on an isolated branch. Completeness,
+distribution and hardware flags must remain false. Root must review returned
+commit/tests and integrate; no public release is implied. CI38994186689
+remains the current running job; do not restart just for elapsed time.
