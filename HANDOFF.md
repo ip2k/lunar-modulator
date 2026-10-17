@@ -1,3 +1,29 @@
+## Durable policy reopen integrated — 2026-10-17 UTC
+
+[verified: review and independent offline execution] Integrated sealed-policy
+reopen worker819fd35d/a832c7e4 as48d6e301/229c1c52. Independently passed79tests
+across reopen/flash/SG/boot including true subprocess restart followed by fresh
+read admission and MemoryROM convergence. Reviewed seal external-pin requirement,
+source/evidence identity, original-read freshness, bounded regular no-follow
+reads, file+parentfsync, preserved hardwarefalse flags and no new device opener.
+Coordinator requested retained fresh-evidence/journal reads use the bounded
+reader too; worker fixed this and added FIFO/symlink/oversize tests. Refreshed
+boot source pins; live file-only _source_evidence check passedall11entries.
+
+This closes only private offline new-process reopen coverage. Real FM1 recovery,
+physical identity/authentication, musical/audio acceptance, production installer
+and full release gates remain OPEN. Seals require independently retained SHA256
+and exact original validation source fingerprints; changed sources failclosed.
+Existing fresh-bundle verifier limits and hostile same-user concurrency are
+outside this bounded factory guarantee. Unrelated uv.lock untouched.
+
+BothAeonbuilds completed and retainedtarget outputhashes independentlychecked;
+workerclaimreleased, noLunarcontainersremain. Detailedtargetreceiptintegration
+pending correction of reportkernel size0xc04=3076bytes (wrong12292inworkerprose).
+Sourceprofilealreadyintegrated. Targetfirmware stillinstallablefalse/nohardware
+acceptance. PhysicalnextstepfirstrequiresFM1 recovery; currentCynthionmonitor
+only, pendingownerconnectionunanswered. OverallgoalACTIVE.
+
 ## Schema9 integrated after review — 2026-10-17 UTC
 
 [verified: source review + host tests] Corrected worker commits integrated as
