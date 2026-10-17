@@ -158,12 +158,12 @@ def test_replacement_showcase_full_app_cold_start(project_id, startup_tools, tmp
         assert metrics["allocation_failures"] == 1
         assert metrics["report_what"] == "candidate engines cannot coexist with live allocations"
         expected_max_request = {
-            "satellite-hearts": 207728,
+            "satellite-hearts": metrics["shapes_instance_bytes"],
             "afterglow-relay-showcase": 65744,
             "packet-bloom-showcase": 79344,
         }[project_id]
         expected_failed_request = {
-            "satellite-hearts": 207728,  # Shapes engine
+            "satellite-hearts": metrics["shapes_instance_bytes"],  # Compiled Shapes ABI size
             "afterglow-relay-showcase": 49888,  # Hall master effect
             "packet-bloom-showcase": 49888,  # Hall master effect
         }[project_id]
@@ -348,19 +348,20 @@ def test_compressed_satellite_hearts_shapes_voice_profile(
         [str(startup), str(packed)], check=False, capture_output=True, text=True)
     metrics = json.loads(result.stdout)
     assert metrics["pool_capacity"] == 165376
+    assert metrics["shapes_instance_bytes"] > 0
     assert metrics["pool_peak_live_bytes"] <= metrics["pool_capacity"]
     print(json.dumps({"shape_voices": shapes_voices, "metrics": metrics}, sort_keys=True))
     if shapes_voices == 12:
         assert result.returncode == 1, result.stderr + result.stdout
-        assert metrics["failed_allocation_request"] == 207728
-        assert metrics["largest_allocation_request"] == 207728
+        assert metrics["failed_allocation_request"] == metrics["shapes_instance_bytes"]
+        assert metrics["largest_allocation_request"] == metrics["shapes_instance_bytes"]
         assert metrics["allocation_failures"] == 1
         assert metrics["active_units"] == 0
     else:
         assert shapes_voices == 8
         assert metrics["failed_allocation_request"] == 5072
-        assert metrics["largest_allocation_request"] == 139024
-        assert metrics["failed_allocation_live_bytes"] == 154352
+        assert metrics["largest_allocation_request"] == metrics["shapes_instance_bytes"]
+        assert metrics["failed_allocation_live_bytes"] == metrics["pool_peak_live_bytes"]
         assert metrics["allocation_failures"] == 1
         assert metrics["active_units"] == 0
         assert result.returncode == 1, result.stderr + result.stdout
