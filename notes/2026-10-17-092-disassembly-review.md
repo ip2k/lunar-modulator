@@ -177,3 +177,18 @@ bank, an end marker or safely reusable residual data from location alone.
 The historical record/CRC results are in
 `2026-10-17-sdk-vm-record-format.md`. No live ownership or erase authority is
 established, and the unexplained second location must remain preserved.
+
+
+[verified: coordinator reran existing strict raw-image parser] The historical
+backup's decoded guarded components byte-match the public 092 reference via
+`tools/jieli/raw_flash_profile.py::_parse`. The app SHA-256 is
+`9c5a44706b7686746b389e3e8fe6ff051fc50028f9b708ac59f493300f793a7b`,
+the exact app used for this instruction analysis. Thus the unexplained E8000
+records coexist in the historical image with the analyzed app; a mismatched
+app binary does not explain them. This still does not establish activation,
+mode, another user's ownership, or how those records were written.
+
+The bank review's Aeon handoff is
+`/home/claude/.local/share/codex-coordination/handoffs/mvave-fm1-bank-span-recheck-20261017.md`,
+SHA-256 `0f6360e1be03c93a76937335edd8e3bf7aaaf49cdb52e960be8084d7b994cc59`;
+its claim is released. No build or device action was performed.

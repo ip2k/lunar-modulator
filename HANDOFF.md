@@ -8017,3 +8017,13 @@ connection/CPU power. Existing owner connection question remains pending;
 monitor gateware unchanged. CI38994186689 still live with no completed-job
 failures at last check. Goal ACTIVE: recovery/audio/physical/persistence and
 release gates remain open. Aeon only; no Hera probes/jobs.
+
+
+Coordinator also reran strict raw_flash_profile._parse on the pinned historical
+dump against the public092 reference: all guarded component bytes match and
+app SHA9c5a4470 is the analyzed app. This eliminates a mismatched app as the
+explanation for E8000; its lifecycle/ownership remains unexplained. Bank
+reviewer completed and released Aeon claim; detailed report/handoff pins are
+in the disassembly note. Next offline dependency: trace other VM descriptor
+consumers/writers and historical layout provenance before claiming any free
+space. Current physical recovery dependency is unchanged.
