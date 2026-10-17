@@ -282,3 +282,59 @@ state codec may be reused with that limitation explicit; it does not become
 new host-compiler dependency coverage. No full trace result is yet claimed.
 Shared linker-smoke handoff SHA256
 `449d854152ce70906b06e2ab0eb1142255f0f24fc9efcb377acb014d6e0a0cf6`.
+
+## Additional target invocation modes and real sizing comparison
+
+[verified] Static command inventory found two additional families beyond ordinary
+`-c` compilation and the final LTO link: two `-S -emit-llvm` C99 sizing commands,
+and `tools/native/Makefile`'s 32-object arithmetic validation `ld -r` link. Both
+clang paths resolve to the pinned common compiler; recording only the common
+path without preserving the target alias would leave a coverage gap.
+
+[verified] Private IR adapter SHA256
+`e51cf6b1f7b0460152d8d1eb1d66e1d5b96176fafff45cb2df93ca57a980a418`
+preserves original compiler arguments and removes both IR-mode flags only for
+the separate dependency pass. Root reran its synthetic suite. The first real
+fixture failed before the facade because a host-absolute include symlink did
+not resolve inside the container. Its logs were preserved; it is not passing
+evidence. A fresh corrected-mount run exited0 on Aeon:
+`57c28fa0d16352bdd16c5627f436a21422d29864b1ad074af990ea09dec69209`.
+Root independently compared actual direct/facade IR bytes, receipt status,
+source and output hashes:
+
+| Display index | App size | IR SHA256 | Receipt SHA256 |
+| --- | ---: | --- | --- |
+| 0 | 220848 | `86a609093b18315c9882510dba6b5be5f40a93733942331b30d57952d2f43b7f` | `1733b6486c1d8f5dc3bd5f9774f264975277d2fbad30cc51b631ab6fd21c1e66` |
+| 1 | 163760 | `3f737a413a5f6a5c61ecf3addb590ce0919a0e0d054ea84da3bceec7ee6716df` | `d44fad3eaec766f6ec857bd606813f396144cc6d0593ffe9234b1c25d8c94e5d` |
+
+Both receipts contain40 dependencies and successful compiler/dependency exits.
+The sizes match retained constants; fresh IR hashes differ from historical IR
+because its ModuleID includes the fresh source path. This proves current
+fixture equivalence, not historical argv. Evidence root:
+`/home/claude/mvave-fm1/private-compilertrace-full-build-20261017/ir-smoke-retry1/`;
+summary SHA256 `e14e75f4106d60d6f1ef5a49281a18b24f179bf26dd4fc1ff1839919e4c08576`.
+
+[verified] Separate private relocatable-link recorder SHA256
+`422718061b59711603d1a8224f217baa79c07a574ee2b05c0fb6fc4326cefa49`
+passed17 independently rerun tests, preserving the11 final-link tests. Its
+real arithmetic comparison is assigned but not yet accepted at this checkpoint.
+Full traced build and source/distribution/hardware acceptance remain open.
+
+[verified] Arithmetic comparison subsequently passed: container479e34a1b87a
+exited0 without OOM. Root read its receipt/inspect and independently rehashed
+both generated objects:15636bytes, SHA256
+`4f427eac4be57d92992f9d69c36bf382da577f330c335ed8b17cc4400eaca61b`,
+matching retained output. Receipt has33 inputs (pinned linker plus32objects),
+return0 and trace_complete=true. Summary SHA256
+`310f4e72285384284dd3920b05bff3892896d4001bd9737697204e3928639226`;
+receipt SHA256
+`a82d32b89bd7cb25fff44a26a476138cbf84d8e9aa69da8238eb52a5d077d10b`.
+Evidence root is the sibling `arithmetic-smoke-20261017/` under the private
+full-build directory above. The initial Docker-create syntax error did not
+create a container and is separately logged.
+
+The complete fresh target compile/link trace is cleared on Aeon,16shards with
+at most4concurrent containers. It has not completed at this checkpoint. The
+host codec is explicitly reused and is outside new host-compile coverage.
+CI run38998982780 completed SUCCESS across all15jobs; this is implementation
+CI, not physical or public-release acceptance.

@@ -8439,3 +8439,20 @@ This is prepared fixture evidence, not a newly executed link. CI38998982780
 macOS fullpytest has now passed; Ubuntu fullpytest remains running, with all
 other jobs passed at latest observation. No device writes, physical recovery,
 source-completeness or public-release acceptance is claimed.
+
+### Extra trace modes accepted; complete fresh trace cleared
+
+Root independently checked both corrected-fixture IR results and the actual
+arithmetic direct/facade outputs. Both smokes passed; detailed hashes/limits are
+in notes/2026-10-17-tuple-bound-libcxx-source.md. Full16-shard target tracing is
+cleared on Aeon only, maximum4concurrent bounded containers. Existing worker is
+preparing the launch; actual handles and final artifact/coverage results still
+must be verified. Reused host codec remains outside new host compile coverage.
+CI38998982780 completed SUCCESS, all15jobs. No flags promoted.
+
+Read-only passive check04:07UTC: valid PAC1 samples92539/92548,
+5.065918/5.074707V, nominal229/0uA, PACerrors0. bench01 still enumerates root
+hubs and KA6 only. These do not prove FM1 attachment, CPU power or recovery.
+Private summary: scratch/aeon-routing-resume-20261017/passive-0407utc.json.
+Existing physical connection question remains unanswered; no device writes.
+Overall goal remains ACTIVE; recovery, audio, storage and release gates open.
