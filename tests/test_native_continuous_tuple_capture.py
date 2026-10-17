@@ -21,6 +21,7 @@ from capture_trusted_build_tuple import (
     _toolchain_manifest,
     _generate_wavetables_from_source,
     _verified_generated_inputs,
+    _verified_generated_inputs_from_pinned_source,
     canonical,
     sha,
 )
@@ -543,6 +544,31 @@ def test_wavetable_regeneration_uses_clean_captured_checkout_not_service_modules
     source_file.write_bytes(source_file.read_bytes() + b"/* mutated after capture */\n")
     with pytest.raises(ValueError, match="must be clean"):
         _pinned_source_manifest(captured_root, source_commit, sha(source_manifest))
+
+
+def test_captured_source_mutation_during_generator_is_rejected(tmp_path, monkeypatch):
+    import capture_trusted_build_tuple as capture
+
+    captured_root = _minimal_captured_wavetable_source(tmp_path)
+    source_commit, source_manifest = _source_manifest(captured_root)
+    expected_source_sha = sha(source_manifest)
+    output, prepared, image, verification = _generated_capture_fixture(
+        tmp_path, ["macro"], source_root=captured_root,
+    )
+    generate = capture._generate_wavetables_from_source
+    source_file = captured_root / "engines/third_party/mutable/plaits/resources.cc"
+
+    def mutate_after_generation(root, destination, namespaces):
+        rows = generate(root, destination, namespaces)
+        source_file.write_bytes(source_file.read_bytes() + b"/* changed during regeneration */\n")
+        return rows
+
+    monkeypatch.setattr(capture, "_generate_wavetables_from_source", mutate_after_generation)
+    with pytest.raises(ValueError, match="tracked source tree must be clean"):
+        _verified_generated_inputs_from_pinned_source(
+            captured_root, output, prepared, image, verification,
+            source_commit, expected_source_sha,
+        )
 
 
 @pytest.mark.parametrize(("selected", "expected_namespaces"), [

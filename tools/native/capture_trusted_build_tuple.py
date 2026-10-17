@@ -182,6 +182,24 @@ def _verified_generated_inputs(root: Path, output: Path, prepared, image, verifi
     return generated, generated_rows
 
 
+def _verified_generated_inputs_from_pinned_source(
+        root: Path, output: Path, prepared, image, verification,
+        expected_commit: str, expected_source_sha256: str):
+    """Bracket generator execution with clean snapshot pin checks."""
+    before_commit, before_manifest = _pinned_source_manifest(
+        root, expected_commit, expected_source_sha256,
+        phase="before regeneration",
+    )
+    generated = _verified_generated_inputs(root, output, prepared, image, verification)
+    after_commit, after_manifest = _pinned_source_manifest(
+        root, expected_commit, expected_source_sha256,
+        phase="after regeneration",
+    )
+    if (after_commit != before_commit or after_manifest != before_manifest):
+        raise ValueError("captured source snapshot changed during regeneration")
+    return (*generated, before_commit, before_manifest)
+
+
 def sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
@@ -372,12 +390,12 @@ def _linked_object_manifest(output: Path, catalogue: Path, verification):
     return canonical({"schema": 1, "objects": rows})
 
 
-def _source_manifest(root: Path):
+def _source_manifest(root: Path, *, phase="before tuple capture"):
     status = subprocess.run(
         ["git", "-C", str(root), "status", "--porcelain=v1", "--untracked-files=all"],
         check=True, stdout=subprocess.PIPE, text=True).stdout
     if status:
-        raise ValueError("tracked source tree must be clean before tuple capture")
+        raise ValueError("tracked source tree must be clean " + phase)
     commit = subprocess.run(
         ["git", "-C", str(root), "rev-parse", "HEAD"],
         check=True, stdout=subprocess.PIPE, text=True).stdout.strip()
@@ -396,13 +414,14 @@ def _source_manifest(root: Path):
     return commit, raw
 
 
-def _pinned_source_manifest(root: Path, expected_commit: str, expected_sha256: str):
-    commit, manifest = _source_manifest(root)
+def _pinned_source_manifest(root: Path, expected_commit: str, expected_sha256: str,
+                            *, phase="before regeneration"):
+    commit, manifest = _source_manifest(root, phase=phase)
     if commit != expected_commit:
-        raise ValueError("captured source snapshot commit differs before regeneration")
+        raise ValueError("captured source snapshot commit differs " + phase)
     _require_sha(expected_sha256, "post-build source manifest")
     if sha(manifest) != expected_sha256:
-        raise ValueError("captured source snapshot differs before regeneration")
+        raise ValueError("captured source snapshot differs " + phase)
     return commit, manifest
 
 
@@ -646,17 +665,14 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raise ValueError("image receipt does not bind exact artifact receipt bytes")
     app_sha, elf_sha = _verify_app_receipts(image, artifact, verification, app, elf)
 
-    # Pin and prove the exact clean snapshot before executing its generator.
-    # The later post-build comparison still catches any change during capture.
-    source_commit, source_manifest_raw = _pinned_source_manifest(
-        root, invocation.get("source_commit"),
+    # Pin the clean source on both sides of generator execution.
+    (generated, generated_rows, source_commit,
+     source_manifest_raw) = _verified_generated_inputs_from_pinned_source(
+        root, output, prepared, image, verification,
+        invocation.get("source_commit"),
         invocation.get("post_build_source_tree_sha256"),
     )
     source_sha = sha(source_manifest_raw)
-
-    generated, generated_rows = _verified_generated_inputs(
-        root, output, prepared, image, verification,
-    )
     linked_manifest_raw = _linked_object_manifest(output, catalogue, verification)
     catalogue_raw = _catalogue_manifest(catalogue, verification)
     catalogue_sha = sha(catalogue_raw)
