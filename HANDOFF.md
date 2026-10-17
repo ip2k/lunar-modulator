@@ -1,3 +1,36 @@
+## Aeon routing and private adapter integration — 2026-10-17 UTC
+
+Owner routing: Aeon only, no Hera contact during RAID/M.2/25G NIC maintenance.
+Source HEAD `9b566fa16b04224938b67ad97dddcf78dfa84b06` is pushed and remote-SHA
+verified. Private service-to-trusted-wrapper packaging adapter is integrated;
+126 focused tests passed, one skipped. It requires byte-identical preview and
+trusted app/ELF; source binding uses the actual schema-2 capture/provenance
+records. Public admission/download/deployment remain disabled. Current-head CI
+dispatched as run39006742422; no success claim yet.
+
+[verified] Fresh all-55/Event Horizon capture at 71e1 succeeded: app854528 bytes,
+SHA f91bc8da94ddbf40ef1a75e85bf8802aef28a5b153025ce7f1d420e056907338;
+tuple SHA d2fd91db1796dcc2e2cd1b1ecc671f2f245b2f9ed2efdd955f8d36f40d5b0d41.
+Coordinator rehashed 29 default inventory rows, plus the 100 subset rows below.
+This is build/capture evidence only. All eligibility flags remain false.
+
+[verified] Selected compressed starter host renders passed with finite,
+nonsilent and repeatable output for Trio, Macro, Shapes and Macro+Shapes.
+The remaining integrated startup regression at f5de6a6e passed 25, skipped13,
+exit0/noOOM. Two earlier selector launcher errors ran no tests and are retained.
+This does not establish pi32 speed, target RAM or physical audio quality.
+
+Next: Aeon worker prepares a real same-commit service preview → trusted build →
+private package run; coordinator reviews launcher/preflight before launch.
+Archive worker is adding the exact pinned libc++ headers and notice using
+existing exporter options. Neither task establishes source completeness.
+
+Latest passive observation 2026-10-17 05:28 UTC: monitor-only Cynthion reports
+about5.08V and near-zero current; bench USB sees KA6, no FM1. Attachment and
+CPU power cannot be inferred. No device writes. Physical recovery/audio,
+persistence/migration/SAVE and public release gates remain unresolved.
+Goal ACTIVE. Unrelated uv.lock preserved.
+
 ## Selected builds captured; private FWSC composed — 2026-10-17 UTC
 
 Owner routing remains Aeon only (`claude@192.168.1.25`); no Hera probes or jobs
