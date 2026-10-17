@@ -45,76 +45,10 @@ def _production_modules(tmp_path):
     return ",".join(modules)
 
 
-def _build_selected_startup(build_root, modules):
-    """Build the real native app with only the requested starter sound engines."""
-    from tools.native.module_selection import resolve_modules
-
-    build_root.mkdir(parents=True, exist_ok=True)
-    build = build_root / "engine-build"
-    _, catalogue = resolve_modules(ROOT, build, ",".join(modules))
-    assert catalogue["selected"] == list(modules)
-    native = ROOT / "firmware/native"
-    tlsf = ROOT / "firmware/third_party/tlsf"
-    harness = ROOT / "tests/native/demo_app_startup.c"
-    harness_obj = build / "sim/test/demo_app_startup.o"
-    sources = [native / name for name in (
-        "project_boot.c", "project_seq.c", "project_engines.c",
-        "project_start.c", "project_mod.c", "project_units.c", "content_set.c",
-        "instance_pool.c", "../third_party/tlsf/tlsf.c",
-    )]
-    objects = [build / ("demo-native-" + str(i) + ".o") for i in range(len(sources))]
-    fragment = build_root / "demo-app.mk"
-    fragment.write_text(
-        f"{build / 'demo-app-startup'}: $(SIM_APP_OBJ) {harness_obj} "
-        f"$(SIM_ENGINE_OBJ) $(SIM_META_OBJ) " + " ".join(map(str, objects)) + "\n"
-        "\t$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm\n"
-        f"{harness_obj}: {harness}\n\t@mkdir -p $(dir $@)\n"
-        f"\t$(CC) $(SIM_CFLAGS) -DINSTANCE_BYTES=165376u -Istate -I{native} -I{tlsf} -c $< -o $@\n" +
-        "".join(
-            f"{obj}: {source}\n\t@mkdir -p $(dir $@)\n"
-            f"\t$(CC) $(SIM_CFLAGS) -Istate -I{native} -I{tlsf} "
-            + ("-Dlunar_instance_pool_alloc=lunar_instance_pool_alloc_actual "
-               if source.name == "instance_pool.c" else "")
-            + "-c $< -o $@\n"
-            for obj, source in zip(objects, sources)))
-    env = os.environ.copy()
-    env["FM1_GPL_MODS"] = "1"
-    env["FM1_MODULES"] = ",".join(modules)
-    subprocess.run([
-        "make", "-s", "--no-print-directory", "-C", str(ROOT / "engines"),
-        "-f", "Makefile", "-f", str(ROOT / "sim/web/mk/sim.mk"),
-        "-f", str(fragment), "SIM=" + str(ROOT / "sim/web"),
-        "BUILD=" + str(build), "FM1_GPL_MODS=1", "FM1_MODULES=" + ",".join(modules),
-        "CC=" + os.environ.get("FM1_SIM_CC", "cc"),
-        "CXX=" + os.environ.get("FM1_SIM_CXX", "c++"),
-        "OPT=-O2", "EXTRA=-DFM1_APP_EXTERNAL_ARENAS=1 -DFM1_SHAPES_VOICES=8 -I" + str(native),
-        "-j4", str(build / "demo-app-startup"),
-    ], check=True, env=env)
-    return build / "demo-app-startup"
-
-
-@pytest.fixture(scope="session")
-def init_starter_state_tool(tmp_path_factory):
-    """Build the host codec used by the real trusted-selection preparer."""
-    build_root = tmp_path_factory.mktemp("native-init-starter-state-tool")
-    modules = _production_modules(build_root)
-    build = build_root / "engine-build"
-    env = os.environ.copy()
-    env["FM1_GPL_MODS"] = "1"
-    env["FM1_MODULES"] = modules
-    env["BUILD"] = str(build)
-    subprocess.run([
-        "make", "-s", "--no-print-directory", "-C", str(ROOT / "engines"),
-        "-f", "Makefile", "FM1_GPL_MODS=1", "FM1_MODULES=" + modules,
-        "BUILD=" + str(build), str(build / "fm1-state"),
-    ], check=True, env=env)
-    return build / "fm1-state"
-
-
 @pytest.mark.parametrize(("engines", "project_ids"), INIT_STARTER_CASES,
                          ids=("trio", "macro", "shapes", "macro-shapes"))
 def test_trusted_init_starter_cold_start_and_repeatable_host_note(
-        engines, project_ids, init_starter_state_tool, tmp_path):
+        engines, project_ids, tmp_path):
     """Prepared starter bytes cold-start with exactly their selected engines."""
     native_tools = str(ROOT / "tools/native")
     sys.path.insert(0, native_tools)
@@ -124,13 +58,23 @@ def test_trusted_init_starter_cold_start_and_repeatable_host_note(
     finally:
         sys.path.remove(native_tools)
 
+    from tools.native.module_selection import wavetable_namespaces
+
+    expected_namespaces = wavetable_namespaces(engines)
+    # This host-only harness uses the conservative 165,376-byte arena. It is
+    # not a selected-profile target RAM measurement or pi32 ABI check.
+    packer, startup, _, table_records, shapes_voices = _build_compressed_startup(
+        tmp_path / "runtime", ",".join(engines), 8, expected_namespaces)
+    assert shapes_voices == 8
+    assert [record["namespace"] for record in table_records] == (
+        expected_namespaces)
     request = dict(
         version=1, engines=list(engines), effects=[], midi=[], modulation=[],
         project_ids=list(project_ids), startup_index=len(project_ids) - 1,
         flash_layout="expanded-d7000", runtime_mode="continuous")
     prepared_root = tmp_path / "selection"
     receipt = prepare_selection(
-        ROOT, request, init_starter_state_tool, prepared_root)
+        ROOT, request, packer, prepared_root)
     prepared = prepared_root / "prepared"
     checked = load_prepared_profile(prepared, receipt["prepared_profile_sha256"])
     assert checked.report["module_selection"]["selected"] == list(engines)
@@ -142,7 +86,6 @@ def test_trusted_init_starter_cold_start_and_repeatable_host_note(
         [project_id.removeprefix("init-starter-")] for project_id in project_ids]
     assert all(receipt[key] is False for key in (
         "installable", "native_link_verified", "native_ram_verified", "hardware_tested"))
-    startup = _build_selected_startup(tmp_path / "runtime", engines)
     env = os.environ.copy()
     env["LUNAR_TEST_RENDER_NOTE"] = "1"
     expected_engines = {name: name in engines for name in ("trio", "macro", "shapes")}
@@ -313,21 +256,20 @@ def test_replacement_showcase_full_app_cold_start(project_id, startup_tools, tmp
           "build_dir=" + str(build))
 
 
-@pytest.fixture(scope="session", params=(12, 8), ids=("shapes12", "shapes8"))
-def compressed_startup_tools(request, tmp_path_factory):
-    """Build the cold-start fixture with exact generated tables and sanitizers."""
+def _build_compressed_startup(build_root, modules, shapes_voices, namespaces):
+    """Build a selected native app with only its exact compressed wave banks."""
     import importlib.util
     import shutil
 
     cc, cxx = shutil.which("cc"), shutil.which("c++")
     if not cc or not cxx:
         pytest.skip("no host C/C++ compiler")
-    shapes_voices = request.param
+    namespaces = tuple(namespaces)
     # Linux ASan benefits from a fixed executable mapping; Darwin rejects -no-pie.
     pie_compile = "-fno-pie " if sys.platform.startswith("linux") else ""
     pie_link = "-fno-pie -no-pie " if sys.platform.startswith("linux") else ""
-    build_root = tmp_path_factory.mktemp("native-compressed-demo-startup-shapes" + str(shapes_voices))
-    modules = _production_modules(build_root)
+    build_root = Path(build_root)
+    build_root.mkdir(parents=True, exist_ok=True)
     build = build_root / "engine-build"
     env = os.environ.copy()
     env["FM1_GPL_MODS"] = "1"
@@ -349,8 +291,9 @@ def compressed_startup_tools(request, tmp_path_factory):
         spec.loader.exec_module(module)
         generated = build_root / "compressed-wave"
         generated.mkdir()
-        records = module.prepare(generated, storage_section=(
-            '__DATA,__lunar_waves' if sys.platform == 'darwin' else '.pool.wavetable'))
+        records = module.prepare(
+            generated, namespaces=namespaces, storage_section=(
+                '__DATA,__lunar_waves' if sys.platform == 'darwin' else '.pool.wavetable'))
     finally:
         sys.path.remove(str(tools_dir))
 
@@ -363,6 +306,8 @@ def compressed_startup_tools(request, tmp_path_factory):
                     "int lunar_wave_tables_init(void);"]
     for relative, symbol, width, size in module.ASSETS:
         namespace = Path(relative).parent.name
+        if namespace not in namespaces:
+            continue
         raw = module.asset_bytes((ROOT / relative).read_text(), symbol, width, size)
         declarations.append(
             f"static const unsigned char expected_{namespace}[{len(raw)}] = "
@@ -373,9 +318,9 @@ def compressed_startup_tools(request, tmp_path_factory):
             f'__asm__(LUNAR_WAVE_STRINGIFY(__USER_LABEL_PREFIX__) "{mangled}");')
     declarations.append(
         "static int compressed_wave_tables_match(void) { return " +
-        " && ".join(f"memcmp(lunar_waves_{r['namespace']}, "
-                    f"expected_{r['namespace']}, {r['raw_bytes']}u) == 0"
-                    for r in records) + "; }")
+        (" && ".join(f"memcmp(lunar_waves_{r['namespace']}, "
+                      f"expected_{r['namespace']}, {r['raw_bytes']}u) == 0"
+                      for r in records) or "1") + "; }")
     (generated / "compressed_wave_expected.h").write_text(
         "\n".join(declarations) + "\n")
 
@@ -393,8 +338,8 @@ def compressed_startup_tools(request, tmp_path_factory):
     )]
     native_objects = [build / ("compressed-native-" + str(i) + ".o")
                       for i in range(len(native_sources))]
-    wave_objects = [build / "compressed-waves-plaits.o",
-                    build / "compressed-waves-braids.o"]
+    wave_objects = [build / ("compressed-waves-" + namespace + ".o")
+                    for namespace in namespaces]
     fragment = build_root / "compressed-demo-app.mk"
     fragment.write_text(
         "SIM_ENGINE_OBJ := $(filter-out $(BUILD)/tp/plaits/resources.o "
@@ -423,7 +368,7 @@ def compressed_startup_tools(request, tmp_path_factory):
             "\t$(CXX) -std=c++11 $(OPT) $(EXTRA) -I" + str(generated) +
             " -I" + str(ROOT / "engines/third_party/mutable") +
             " -fsanitize=address,undefined -fno-omit-frame-pointer " + pie_compile + "-c $< -o $@\n"
-            for obj, namespace in zip(wave_objects, ("plaits", "braids"))))
+            for obj, namespace in zip(wave_objects, namespaces)))
     subprocess.run([
         "make", "-s", "--no-print-directory", "-C", str(ROOT / "engines"),
         "-f", "Makefile", "-f", str(ROOT / "sim/web/mk/sim.mk"),
@@ -435,6 +380,16 @@ def compressed_startup_tools(request, tmp_path_factory):
         "-j4", str(build / "compressed-demo-app-startup"),
     ], check=True)
     return build / "fm1-state", build / "compressed-demo-app-startup", build, records, shapes_voices
+
+
+@pytest.fixture(scope="session", params=(12, 8), ids=("shapes12", "shapes8"))
+def compressed_startup_tools(request, tmp_path_factory):
+    """Build the all-module cold-start fixture with exact generated tables."""
+    build_root = tmp_path_factory.mktemp(
+        "native-compressed-demo-startup-shapes" + str(request.param))
+    modules = _production_modules(build_root)
+    return _build_compressed_startup(build_root, modules, request.param,
+                                     ("plaits", "braids"))
 
 
 def test_compressed_event_horizon_full_app_cold_start_165376_arena(
