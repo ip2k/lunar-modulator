@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -184,7 +185,12 @@ def test_canonical_sound_bytes_are_accepted_by_python_and_c_state_parsers(tmp_pa
     imported, _ = formats.import_syx(_single_syx())
     python_doc = _read_lunar(imported)
     assert python_doc["kind"] == "sound"
-    assert C_STATE.exists(), "build the focused fm1-state parser before this acceptance check"
+    if not C_STATE.exists():
+        make = shutil.which("make")
+        compiler = shutil.which("c++") or shutil.which("g++")
+        assert make and compiler, "the C acceptance check requires make and a C++ compiler"
+        subprocess.run([make, "-C", str(ROOT / "engines"), "-j2", "build/fm1-state"], check=True)
+    assert C_STATE.is_file()
     parsed = subprocess.run(
         [str(C_STATE), "records", "-"],
         input=imported,
