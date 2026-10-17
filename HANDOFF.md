@@ -1,3 +1,26 @@
+## Aeon selected-build retry dependency — 2026-10-17 UTC
+
+[verified] Owner routing remains Aeon-only; do not contact Hera during its
+RAID/M.2/25G NIC work. Production startup and selected-bank capture fixes are
+integrated and pushed at 6ac3808ea2ccbf0a4cb6e26558b7d9c3983b634d; the exact
+ref was transferred to and verified in Aeon's bare exchange repository.
+Independent focused checks: 42 passed, one skipped, one pre-existing continuous
+policy fixture failure (diagnostic_telemetry), being corrected separately.
+
+Fresh subset preflight correctly rejected all sixteen retained catalogue
+manifests because the source-bound build_application_probe.py changed. No retry
+container had launched. Worker continuous_service is authorized to regenerate a
+fresh sixteen-shard catalogue at this exact source, maximum two bounded
+containers at once, then retry Trio-only, Macro-only, Shapes-only and combined
+Macro+Shapes. Preserve old catalogues and failed build outputs unchanged.
+
+[verified: GitHub API] E7 CI run 39002512160 completed successfully with all
+fifteen jobs green. This does not cover current HEAD. The older 0ecf CI run
+39004179460 is in progress. Final consumed-header archive verification and
+repeat determinism remain pending; prior candidate archive is superseded.
+Hardware recovery and physical audio slowdown remain unresolved. No new device
+writes were performed. Goal ACTIVE; unrelated uv.lock preserved.
+
 ## Real selected-image builds exposed two remaining assumptions — 2026-10-17 UTC
 
 [verified] Three valid init starters integrated/pushed at bd64c60b; coordinator
