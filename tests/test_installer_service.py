@@ -682,7 +682,8 @@ def test_trusted_catalogue_loader_uses_make_ids_and_project_constants():
     assert modules["plate"] == "audio_fx"
     assert "test-sine" not in modules
     assert "replacement-showcase-candidate-satellite-hearts" in projects
-    assert len(projects) == 8
+    assert {'init-starter-trio', 'init-starter-macro', 'init-starter-shapes'} <= projects
+    assert len(projects) == 11
     modules, projects, sets = load_trusted_catalogue(include_sets=True)
     assert sets == {"replacement-showcase-event-horizon-companion-set":
                     "replacement-showcase-candidate-event-horizon"}

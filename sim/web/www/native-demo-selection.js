@@ -124,9 +124,9 @@ export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, 
   // The source-hash-bound catalogue provides immediate UX feedback. The backend
   // independently validates exact packed records before it writes a receipt.
   const modules = validateNativeBuildSelection(catalogue, profile);
-  if (!Array.isArray(projectIds) || projectIds.length === 0
+  if (!Array.isArray(projectIds) || projectIds.length === 0 || projectIds.length > 8
       || projectIds.some((id) => typeof id !== 'string' || !ids.has(id))) {
-    fail('Select one or more known native demo project IDs');
+    fail('Select one to eight known native demo project IDs');
   }
   if (new Set(projectIds).size !== projectIds.length) fail('Duplicate selected demo project ID');
   const rejected = projectIds.filter((id) => reservationFor({ id }).status === 'rejected');

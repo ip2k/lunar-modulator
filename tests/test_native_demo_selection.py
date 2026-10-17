@@ -21,7 +21,7 @@ import build_demo_image
 
 def selection(tmp_path):
     catalogue = export_catalogue(ROOT, tmp_path / 'catalogue')
-    ids = [project['id'] for project in catalogue['projects']]
+    ids = [project['id'] for project in catalogue['projects'] if project['category'] != 'init-starter']
     assert catalogue['sets'][0]['parent_project_id'] == 'replacement-showcase-candidate-event-horizon'
     assert catalogue['sets'][0]['dependency_scan_complete'] is False
     return dict(version=1, **catalogue['groups'], project_ids=ids[::-1], startup_index=2)

@@ -104,7 +104,7 @@ test('rejects unknown, repeated, empty and unavailable project selections', () =
   assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile, ['unknown'], 0), /known/);
   assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile,
     ['legacy-example-afterglow-relay', 'legacy-example-afterglow-relay'], 0), /Duplicate/);
-  assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile, [], 0), /one or more/);
+  assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile, [], 0), /one to eight/);
   assert.throws(() => buildNativeDemoSelectionRequest({ ...catalogue, projects: [] }, profile,
     ['legacy-example-afterglow-relay'], 0), /known/);
   assert.throws(() => buildNativeDemoSelectionRequest({ ...catalogue,
@@ -267,4 +267,14 @@ test('explicit continuous profile preserves custom modules and selected startup 
   assert.deepEqual(request, { version: 1, engines: [...profile.engines], effects: ['plate'], midi: [],
     modulation: ['lfo'], project_ids: ['legacy-example-event-horizon', 'legacy-example-afterglow-relay'],
     startup_index: 1, flash_layout: 'expanded-d7000', runtime_mode: 'continuous' });
+});
+
+test('larger catalogue inventory does not widen eight selected project limit', () => {
+  const many = { ...catalogue, projects: Array.from({ length: 11 }, (_, i) => ({
+    ...projects[0], id: `init-starter-${i}`,
+  })) };
+  assert.throws(() => buildNativeDemoSelectionRequest(many, profile,
+    many.projects.slice(0, 9).map((row) => row.id), 0), /one to eight/);
+  assert.equal(buildNativeDemoSelectionRequest(many, profile,
+    many.projects.slice(0, 8).map((row) => row.id), 0).project_ids.length, 8);
 });

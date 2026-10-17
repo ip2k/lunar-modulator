@@ -39,7 +39,8 @@ def test_exported_builder_requests(tmp_path, case):
             'replacement-showcase-candidate-afterglow-relay',
             'replacement-showcase-candidate-event-horizon',
             'replacement-showcase-candidate-packet-bloom',
-            'replacement-showcase-candidate-satellite-hearts']
+            'replacement-showcase-candidate-satellite-hearts',
+            'init-starter-trio', 'init-starter-macro', 'init-starter-shapes']
         expected = [
             ('Afterglow Relay', 'afterglow-relay.lunar', 92, 76, 8, 'legacy-example', None),
             ('Event Horizon', 'event-horizon.lunar', 144, 116, 8, 'legacy-example', None),
