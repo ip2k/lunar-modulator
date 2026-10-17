@@ -1,3 +1,29 @@
+## PAC2 bipolar monitor integrated; hardware build pending — 2026-10-17 UTC
+
+[verified: coordinator diff review, focused simulation/readout rerun, remote SHA]
+Integrated a9fd7ab38c0bc93bda7c534ba71ce9b69a47517f from worker a9b907b0.
+PAC1954 channel1 now receives NEG_PWR_FSR=0x4000, REFRESH_V and settling,
+then requires active range0x4000 before accepting readings. PAC2/layout2 reader
+reports signed current and rejects the old monitor. Actual LUNA wire simulation
+caught and corrected an initial draft byte-order error: correct write_data4000
+emits40,00; the rejected0040 draft emitted00,40. No draft reached hardware.
+Both focused suites passed (43 cases); installed LUNA/Amaranth deprecation
+warnings remain. Root first tried a nonexistent integration pytest path (import
+failure, no tests), then used the existing primary checkout pytest package path
+with installed Cynthion Python3.12 successfully. Source/datasheet and test details:
+notes/2026-10-16-cynthion-bipolar-current-diagnostic.md.
+Both TARGET ports remain empty by owner confirmation; CONTROL remains Mac.
+Loaded hardware is STILL PAC1/unipolar635b7b13, not this correction. Await exact
+Aeon FPGA build preflight, routing review and unloaded physical acceptance.
+No FM1 recovery/flash command. Firmware/audio/recovery/release remain unaccepted.
+
+BFF compiler trace draft root review requested corrections before launch:
+actual JSON newline; canonical compiler-visible input/catalogue paths;
+retain container on evidence capture failure; after-inventory on failures;
+check global container capacity before each start. Worker preparing a separately
+pinned revision; no trace container has launched. Aeon only, Hera untouched.
+Goal remains ACTIVE. Existing untracked uv.lock is preserved.
+
 ## TARGET-A monitor polarity correction pending — 2026-10-17 UTC
 
 [verified: coordinator known-load observation, exact bitstream reload, PAC reads,
