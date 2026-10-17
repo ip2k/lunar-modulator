@@ -19,6 +19,7 @@ import sys
 
 SOURCE_COMMIT = "36988d0c2ef1b793e5f9d343fac1b9f6c4b7891f"
 RUNNER_SHA = "60448560af6f6bbe479a1510b1af4e4cd84e6186f3d01fdd0e0f61425915f446"
+FROZEN_AEON_RUNNER_SHA = "41d1b44b5f7dd303f5d44b4c19fa693b076d26d88abd5d93eaa4d778e661c808"
 RECEIPT_SHA = "6db18a773eeb48cd18b64d1d01ad184b6a691182f5800bf9e727f2cafcc0fd56"
 STAGE7 = Path("/home/claude/mvave-fm1/resampler-fullfit-frozen-20261016")
 SNAPSHOTS = Path("/home/claude/mvave-fm1/resampler-fullfit-exact-snapshots-20261016")
@@ -43,7 +44,8 @@ def main() -> None:
     receipt_path = STAGE7 / "output/frozen-build-input-receipt.json"
     frozen_runner = Path(__file__).with_name("frozen-run_aeon-stage7.py")
     runner_path = Path(__file__).with_name("run_aeon_stage9.py")
-    if sha(stage_runner) != RUNNER_SHA or sha(frozen_runner) != RUNNER_SHA:
+    if (sha(stage_runner) != RUNNER_SHA
+            or sha(frozen_runner) != FROZEN_AEON_RUNNER_SHA):
         raise RuntimeError("reviewed stage-7 runner input differs from external pin")
     if sha(receipt_path) != RECEIPT_SHA:
         raise RuntimeError("stage-7 frozen build receipt differs from external pin")
@@ -87,7 +89,7 @@ def main() -> None:
     pair = {
         "schema": 1, "source_commit": SOURCE_COMMIT, "source_tree": actual_tree,
         "host": "aeon", "stage7_runner_sha256": sha(stage_runner),
-        "frozen_stage7_runner_sha256": sha(frozen_runner), "stage7_receipt_sha256": sha(receipt_path),
+        "frozen_aeon_runner_sha256": sha(frozen_runner), "stage7_receipt_sha256": sha(receipt_path),
         "schema7_disabled_flags": {"diagnostic_irq_profile": False,
             "diagnostic_resampler_stage_profile": False, "catalogue_resampler_stage_profile": False},
         "schema9_enabled_flags": {"diagnostic_irq_profile": True,
