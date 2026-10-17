@@ -196,6 +196,9 @@ def test_standalone_worker_bootstrap_runs_from_shallow_deployed_path(tmp_path, c
     worker = input_root / "docker_worker.py"
     worker_source = (ROOT / "tools/installer_service/docker_worker.py").read_text()
     replacements = {
+        'SOURCE = Path("/workspace")': f'SOURCE = Path({str(tmp_path / "workspace")!r})',
+        'OUTPUT = Path("/output")': f'OUTPUT = Path({str(tmp_path / "output")!r})',
+        'CATALOGUE = Path("/catalogue")': f'CATALOGUE = Path({str(tmp_path / "catalogue")!r})',
         'TOOLCHAIN = Path("/opt/pi32v2")': f'TOOLCHAIN = Path({str(tmp_path / "toolchain")!r})',
         'RESULT = Path("/result")': f'RESULT = Path({str(tmp_path / "result")!r})',
         'SCRATCH = Path("/tmp/lunar-worker")': f'SCRATCH = Path({str(tmp_path / "scratch")!r})',
@@ -205,8 +208,10 @@ def test_standalone_worker_bootstrap_runs_from_shallow_deployed_path(tmp_path, c
         worker_source = worker_source.replace(before, after)
     worker.write_text(worker_source)
 
-    (input_root / "catalogue/shard-00").mkdir(parents=True)
-    (input_root / "catalogue/shard-00/objects.json").write_text("{}")
+    (tmp_path / "catalogue/shard-00").mkdir(parents=True)
+    (tmp_path / "catalogue/shard-00/objects.json").write_text("{}")
+    (tmp_path / "workspace").mkdir(mode=0o700)
+    (tmp_path / "output").mkdir(mode=0o700)
     (tmp_path / "toolchain").mkdir()
     (tmp_path / "result").mkdir()
     (input_root / "request.json").write_text(json.dumps(d7000_request_doc()))
@@ -239,6 +244,11 @@ def test_standalone_worker_bootstrap_runs_from_shallow_deployed_path(tmp_path, c
     env["PATH"] = str(fake_bin) + os.pathsep + env.get("PATH", "")
     completed = subprocess.run([sys.executable, str(worker)], cwd=tmp_path, env=env,
                                capture_output=True, text=True, timeout=10)
+    # The production worker freezes extracted source. Restore fixture directory
+    # permissions after its subprocess exits so pytest can remove the fixture.
+    for directory in (tmp_path / "workspace", *(tmp_path / "workspace").rglob("*")):
+        if directory.is_dir():
+            directory.chmod(0o700)
 
     if contract_mismatch:
         assert completed.returncode == 1
@@ -1153,7 +1163,7 @@ def test_worker_retains_real_builder_namespace_and_receipt_order(tmp_path, monke
 
     catalogue = tmp_path / "catalogue"
     result = tmp_path / "result"
-    build = tmp_path / "tmp/lunar-worker/output/build"
+    build = tmp_path / "output/build"
     catalogue.mkdir()
     result.mkdir()
     (build / "selection/prepared").mkdir(parents=True)
@@ -1176,14 +1186,14 @@ def test_worker_retains_real_builder_namespace_and_receipt_order(tmp_path, monke
     linked_rows = []
     for name, content in cat_items:
         (catalogue / name).write_bytes(content)
-        row = {"path": "/input/catalogue/" + name, "sha256": sha256(content),
+        row = {"path": docker_worker.CATALOGUE_MOUNT + name, "sha256": sha256(content),
                "optimization": "-Oz"}
         catalogue_rows.append(row)
         linked_rows.append({"path": row["path"], "sha256": row["sha256"]})
     link_items = [("z-linked.o", b"linked-z"), ("a-linked.o", b"linked-a")]
     for name, content in link_items:
         (build / "link" / name).write_bytes(content)
-        linked_rows.append({"path": "/tmp/lunar-worker/output/build/link/" + name,
+        linked_rows.append({"path": docker_worker.BUILD_LINK_MOUNT + name,
                             "sha256": sha256(content)})
     for rel in docker_worker.GENERATED_EVIDENCE_PATHS:
         path = build / rel
