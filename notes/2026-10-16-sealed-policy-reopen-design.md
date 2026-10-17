@@ -68,3 +68,12 @@ pin refresh, required CI/integration. Schema9 receipt admission is separate work
 Private subprocess recovery is demonstrated; physical device recovery, stable
 port identity/authentication, original build provenance trust, release approval
 and public installer admission remain outside these tests.
+
+Coordinator review follow-up: resume fresh-evidence reads, journal capture and
+journal comparison now use the same bounded nonfollowing reader. The injected
+SG adapter also uses it for retained fresh evidence before transport creation.
+Three added tests replace fresh evidence after admission/bind with a FIFO,
+symlink or oversized regular file: each rejects before mutation and closes the
+session. All 73 focused checks passed; the six adapter checks passed again after
+the final adapter reader change. Existing fresh-bundle verifier internals retain
+their own prior limits and are outside this private reopen implementation.

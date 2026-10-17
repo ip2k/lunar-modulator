@@ -987,10 +987,10 @@ class _ResumeAdmission:
         if not 0 <= generic_boot.time.time() - self.admitted_at <= RESUME_SESSION_SECONDS:
             raise ValueError("Resume live-session deadline expired")
         for path, expected, limit in self.evidence:
-            data = Path(path).read_bytes()
+            data = _bounded_file(path, limit)
             if len(data) > limit or data != expected:
                 raise ValueError("Fresh resume evidence changed")
-        if journal and (policy.directory / "journal.json").read_bytes() != self.journal_bytes:
+        if journal and _bounded_file(policy.directory / "journal.json", _META_LIMIT) != self.journal_bytes:
             raise ValueError("Interrupted resume journal changed")
 
 
@@ -1077,7 +1077,7 @@ class Policy:
         now = generic_boot.time.time()
         if not 0 <= now - verified["completed_at"] <= generic_boot.MAX_AGE:
             raise ValueError("Fresh resume paired read expired")
-        admission = _ResumeAdmission(self, (self.directory / "journal.json").read_bytes(),
+        admission = _ResumeAdmission(self, _bounded_file(self.directory / "journal.json", _META_LIMIT),
             encoded({**fresh_read, "manifest_path": str(fresh_read["manifest_path"])}),
             encoded(required), tuple(verified.get("evidence", ())), now,
             generic_boot.time.monotonic() + RESUME_SESSION_SECONDS)
