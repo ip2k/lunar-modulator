@@ -61,3 +61,30 @@ whole sweep atomic/stable. Safety status, GPIO and terminal markers matched.
 Raw `scratch/cynthion-left-to-right-recovery-20261018/connected-left-disarmed-status.json`.
 Owner now requested USER once then immediateLEFT/OFF→RIGHT/ON, leaveRIGHT;
 TARGET C remains empty until terminal outputs are confirmed released.
+
+## Corrected-direction attempt stopped before KEY
+
+[verified: owner] USER pressed/released, FM1 movedLEFT/OFF→RIGHT/ON and left
+RIGHT; TARGET C remained empty until coordinator confirmed outputs released.
+Read-only terminal capture07:23:12–19UTC: status0x4418, FAULT8, GPIO0/OEs0,
+selftest failure0x21 (reason1, step0, expectedK2, observedSE0), selftestmask0,
+packets0, WAIT_DP0/SOF0. Protocol receipt0x801 carries terminalvalid but no
+protocol failure reason because failure occurred in SELFTEST. This was not a
+key/ROM handshake attempt: the core never enteredKEY. Markersstableacrosssweep.
+Raw `scratch/cynthion-left-to-right-recovery-20261018/post-power-on-status.json`,
+SHA `69db2e45358579c41cdb5784943d2846b07561af530a94ab49cb5c1a4587f2b9`.
+
+[verified: owner TARGET C connection then live SSH lsusb] FM1 stillRIGHT/ON;
+bench01 lists onlyKA6 and root hubs, noFM1 app/OTA/mask-ROM USBidentity.
+Raw `scratch/cynthion-left-to-right-recovery-20261018/post-power-on-target-c-enumeration.txt`.
+
+[inferred] An attached unpowered target may alter line levels during the
+initialselftest; this cause is not established. The existing one-presssequence
+checkslinelevelswhiletargetOFF beforekeying, so a new explicitlystagedprofile
+is being implemented: firstUSERwithtargetsEMPTY runsfour-stateselftestthen
+holdsREADY/high-Z; secondUSERafterconnectionstartsunchangedboundedkey.
+Alloldmodes/interlocks/timebounds preserved, noautoKEYrestart/blindSOF.
+Independentreview/tests and routedartifactchecks precede anyload.
+Owner asked to disconnectbothTARGETports again, CONTROL→Mac, noUSER; awaiting
+confirmation. UntilreplycurrentFM1→A,C→bench01,RIGHT/ON; oldimageFAULT/high-Z.
+No flash/loader/vendor operation.

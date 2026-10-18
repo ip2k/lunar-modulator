@@ -1,3 +1,20 @@
+## Corrected attempt failed pre-key selftest; staged profile under development
+
+[verified] OwnerUSERthenLEFT/OFF→RIGHT/ON. b3b203imageFAULT8/status0x4418,
+GPIO0/OEs0, selftestfailure0x21(step0 expectedK observedSE0),mask0,packets0,
+WAIT_DP0/SOF0. NOkeytransmitted. Rawpost-power-on-status.json in
+scratch/cynthion-left-to-right-recovery-20261018/, markersstable. OwnerthenC→
+bench01;lsusbonlyKA6+roothubs,native/OTA/ROMabsent. Details in corrected-directionnote.
+OwneraskedBOTHtargetsemptyCONTROLonly,noUSER; awaitingreply. UntilthenFM1A,
+Cbench01,RIGHT/ON,oldimageFAULT/high-Z. Do notreconfigureuntilreply.
+staged_key_preflight worker owns isolated /Users/likwid/.codex/worktrees/cynthion-staged-key/mvave-fm1-firmware,
+branchfix/2026-10-18@cynthion-staged-key-preflight from01f7df96. Newprofile
+layout7+bit15 marker,READY9; firstdisconnectedUSERselftest→READY/highZ,
+secondfreshUSERafterrelease→unchangedKEY. Oldmodespreserved; testsactive.
+No FPGA build/load yet. RootAeonread-onlypreflightfoundexistingruntime and
+nolunarcontainersrunning; useoldrootdirectPythonbuildrecipe, noHera.
+GoalACTIVE; userrequestedcorrected-directionrecovery, noflashauthorization.
+
 ## Connected OFF and SAFE; corrected power-on requested — 2026-10-18 07:22 UTC
 
 [verified] FM1→TARGETA,switchLEFT/OFF,Cempty,noUSER perowner. Read-onlycapture
