@@ -149,3 +149,31 @@ No persistent flash write. This removes running analyzer gateware from next
 comparison. Asked mouse unplug/replug at A, keep C/CONTROL, FM1 detached.
 Await reply; then fresh bench enumeration. Private offline-control.txt receipt.
 Official button/port reference: https://cynthion.readthedocs.io/en/latest/hardware/device_overview.html
+
+## Mouse enumeration passes after analyzer restore and software power cycle [verified]
+
+Owner replugged mouse with FPGA offline. Fresh host receipt at08:44:33UTC
+showed no new attach, so this is inconclusive: installed r1.4 platform source
+maps TARGET VBUS switches to FPGA pins, and offline state does not establish
+powered passthrough. Private host-mouse-fpga-offline.txt preserves the receipt.
+
+Restored official analyzer with supported cynthion run analyzer (exit0; no
+persistent flash). Initial restore still produced -71 retries. Through CUA,
+verified TARGET-A power source TARGET-C, toggled TARGET power off, selected
+fixed Low1.5Mbps, started capture, then toggled TARGET power on. At08:45:46UTC
+bench01 enumerated Lenovo mouse17ef:6019 atusb1-1 and bound HID. Packetry
+independently decoded device/config descriptors, SET_ADDRESS and mouse name.
+This validates this low-speed path; exact cause is not isolated because analyzer
+restore, fixed speed and software power cycling were combined. It does not
+establish full-speed operation or any FM1 recovery state.
+
+Saved control06-low-software-power-pass.pcapng through CUA; verified806876B,
+SHA256 cc46944b45675ab9a104a7e9c788a26fb9a6583f7b82a1962f742e6aa67c1013.
+Independent tshark decoded vendor17ef/product6019/EP0max8 atframes91,209.
+Private host-mouse-software-power.txt contains successful host enumeration.
+
+Fresh fixed Full12Mbps capture is now running, TARGET power on. Asked owner
+remove mouse only, connect FM1 atA LEFT/OFF then switch RIGHT/ON; keep
+CONTROL Mac and C bench01, noUSER/RESET. Await confirmation, then inspect
+Packetry and fresh bench logs, stop/save unique FM1 capture. No firmware writes.
+

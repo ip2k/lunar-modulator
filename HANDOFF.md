@@ -1,3 +1,17 @@
+## Mouse control PASS; fresh FM1 full-speed capture ACTIVE
+
+Official analyzer restored, fixedLow and Packetry TARGET power cycle produced
+successful mouse17ef:6019/HID enumeration at08:45:46UTC. Saved control06-low-
+software-power-pass.pcapng806876B, hash and tshark evidence in today's capture
+note/private scratch. Exact fixing step not isolated. Offline mouse replug had
+no attach and is inconclusive, not a powered-passthrough failure.
+
+Fresh fixedFull12Mbps capture running, powerON. Asked owner swap mouse for
+FM1 atA: LEFT/OFF, connect verified cable, RIGHT/ON; keep Cbench/CONTROLMac,
+noUSER/RESET. Await response then fresh logs/UI and unique saved capture.
+FM1 recovery still unproven; no device writes. Overall goalACTIVE. Aeononly;
+Hera maintenance override remains. Preserve unrelated untracked uv.lock.
+
 ## FPGA OFFLINE; mouse passthrough replug pending
 
 FixedLow+TARGETCflip mouse also failed (-71), saved control05-low-flipped
