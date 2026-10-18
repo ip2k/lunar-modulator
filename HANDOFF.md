@@ -1,3 +1,18 @@
+## Corrected LEFT/OFF to RIGHT/ON test ready — 2026-10-18 07:21 UTC
+
+[reported: owner videos] RIGHT=ON,LEFT=OFF. Owner explicitlyrequested another
+boundedrecovery-keytestLEFT→RIGHT. Preparedsameb3b203operationimage, no
+waveformchange. BothTARGETslastconfirmedempty,CONTROL→Mac, noreconnection
+reported; rootvolatile-reloaded(exit0), readbackSAFE0/status0x4410,PHYready,
+nofault,OEs0,terminal0,stablemarkers. No FM1traffic/key/flashyet.
+Plan notes/2026-10-18-cynthion-left-to-right-recovery.md; artifacts
+scratch/cynthion-left-to-right-recovery-20261018/.
+Nextconnection-only: FM1LEFT/OFF→TARGETAverifiedcable,Cempty,noUSER;
+rootverifySAFEafterconnectionbeforeUSER+LEFT→RIGHTstep. Currentownerrequest
+is scopedkey+passiveenumeration, notrestore/loader/flashauthorization.
+ReplacementAGENTSdump/restorepreconditionretainedforlaterwrites.
+GoalACTIVE;uv.lockpreserved;Aeononly,Herauntouched.
+
 ## Empty-target control completed without ACK — 2026-10-18 07:13 UTC
 
 [verified] OwnerpressedUSERwithbothTARGETsempty. Pinnedb3b203imagecompleted
