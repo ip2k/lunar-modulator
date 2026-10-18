@@ -67,3 +67,20 @@ control01-reset-interrupted.pcapng; it contains only the capture-start event.
 Started fresh Auto capture, verified active in Packetry. Asked owner to connect
 a working keyboard/mouse to TARGET A, keeping TARGET C→bench01 and CONTROL→Mac,
 without RESET/USER. Connection remains pending; no control-device acceptance.
+
+## Mouse control fails through analyzer [verified]
+
+Owner connected a mouse to TARGET A, C→bench01 and CONTROL→Mac unchanged.
+Packetry detected low-speed attachment, resets and traffic. Fresh bench log
+08:34:48 UTC shows low-speed devices64–68, descriptor/setup-address errors -71,
+and unable to enumerate. No recognized mouse in lsusb. Stopped/saved through
+CUA as control02-mouse-auto.pcapng, 109868 bytes, SHA256
+0be23643253bfe1dca8c52883c330f328d9b6170aea106c41beb7a265d7b12ed.
+Independent block review: 2107 custom events, 1161 USB packet blocks. Forty-eight
+SETUP-PID and forty-eight DATA0-PID records have valid PID complements; this
+alone does not establish complete valid transactions or a device response.
+Control path has not passed. The mouse's failure prevents attributing the
+FM1 failure specifically to its firmware/hardware. Asked same mouse directly
+on bench01, bypassing Cynthion; FM1 remains detached. Direct result pending.
+Private receipts: host-mouse-control.txt, control02-tshark.txt,
+control02-review.json. Packetry stopped, official analyzer, Auto speed.

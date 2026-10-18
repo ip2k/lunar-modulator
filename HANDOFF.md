@@ -1,3 +1,15 @@
+## Mouse control failed through Cynthion; direct comparison pending
+
+Owner connected mouse. Packetry captured low-speed attach/resets; bench01
+08:34:48UTC logged descriptor/setup errors -71 and no recognized mouse.
+Stopped/saved control02-mouse-auto.pcapng (109868B) under scratch/
+cynthion-enumeration-capture-20261018/, plus tshark/JSON review and host log.
+Capture path has NOT passed; do not attribute failures solely to FM1.
+Asked same mouse directly on bench01, bypass Cynthion; FM1 detached.
+Next fresh bench lsusb/kernel after owner confirmation, compare identity.
+Official analyzer remains loaded; Packetry stopped/Auto. No FM1 writes.
+Goal ACTIVE; heavy work Aeon only. Preserve uv.lock. See detailed note.
+
 ## Fresh control capture ACTIVE after Cynthion RESET; device connection pending
 
 Owner pressed Cynthion RESET while unplugging FM1 during the first control
