@@ -1,3 +1,26 @@
+## Pico-repeat connected READY; owner repeat run pending — 08:16 UTC
+
+Owner connected FM1 OFF→TARGET A, C empty. Read-only connected-left-ready-status.json
+verified layout8/READY9/Fmask/PHYready/no fault/OEs0/selftestfailure0,
+terminal0/packets0/cycles0; safety fields stable, nonterminal ring advanced normally.
+Asked USER once→FM1 LEFT/OFF to RIGHT/ON→leave ON through55sec green/orange,
+then immediate C→bench01 ONLY on steadyLED5-alone; allLED/failure leavesCempty.
+Pending owner result. Read-only bench kernel follower exec87334 runs180sec from
+~08:16UTC to~08:19UTC, log scratch/cynthion-pico-repeat-20261018/live-kernel-log.txt.
+Next terminal read+fresh USB enumeration; do not claim recovery from scheduleDONE.
+CI39107811315 old1998c490 now confirmedSUCCESS; new profile CI manually dispatched
+at f943aebcee37973bb8eeda87a6c529dc1592e044, not yet accepted. GoalACTIVE.
+
+## Pico-repeat self-test READY; OFF connection pending — 08:15 UTC
+
+Owner pressed first USER with both TARGET ports empty. Read-only capture
+scratch/cynthion-pico-repeat-20261018/preflight-ready-status.json verified
+READY9, all four selftests/maskF, PHY ready/no fault, OEs0, no selftest failure,
+no terminal/packets/repeat cycles; safety fields stable. Asked connect FM1→A
+LEFT/OFF with C empty, no USER yet. Pending reply; then fresh READY check.
+Exact fef11263 image remains loaded. Latest checkpoint f943aebcee37973bb8eeda87a6c529dc1592e044 pushed/remote verified.
+No FM1 recovery or flash acceptance. GoalACTIVE; Aeon only.
+
 ## Pico-repeat image loaded SAFE; disconnected USER pending — 08:14 UTC
 
 Owner's repeat request implemented as finite16 cycles/55.04sec, refining initial3.
