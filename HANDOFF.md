@@ -1,3 +1,15 @@
+## Retry1 disconnected self-test passed; OFF connection pending — 07:49 UTC
+
+Owner pressedUSER withbothTARGETsempty; reports LED0purplebefore, LED1blue/
+LED4orangeafter (owner observation only; do not infer mode fromcolor).
+[verified] retry01/preflight-ready-status.json layout7/status0xC7D9 READY9,
+selftestF, PHYready/no fault, GPIO/OEs0, terminal0, packets0; safetyvaluesstable.
+Asked connectFM1→TARGET A withLEFT/OFF,Cempty,noUSER/no switchchange.
+Pendingconfirmation; next connected-left-ready-status.json requireREADY9/F/
+PHYready/nofault/OE0/terminal0 before secondUSER+LEFT→RIGHT.
+No retry1keyyet. Ownerauthorizedup to3 scopedretries,no firmwarewrite.
+Latestpusheded7545fb remoteverified. GoalACTIVE;Aeononly;uv.lockpreserved.
+
 ## Retry1 reloaded SAFE; disconnected first USER pending — 07:48 UTC
 
 Owner confirmed BOTH TARGET ports empty, CONTROL→Mac, FM1LEFT/OFF detached.

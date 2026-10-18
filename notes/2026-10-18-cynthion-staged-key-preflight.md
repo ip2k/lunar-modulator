@@ -204,3 +204,10 @@ Owner confirmed bothTARGETsempty, CONTROL→Mac, FM1LEFT/OFF detached.
 `retry01/disarmed-status.json` shows layout7/SAFE0, PHYready/no fault,
 GPIO/OEs0, terminal0, safety markers stable. Requested firstUSER disconnected;
 no retry1key sentyet. All files unique under `retry01/`.
+
+[verified] Retry1 firstUSER disconnected: at07:49UTC
+`retry01/preflight-ready-status.json` gives layout7/status0xC7D9/READY9,
+selftestF, PHYready/no fault, GPIO/OEs0, terminal0, packets0; safetyvaluesstable.
+Owner observed LED0purplebefore, LED1blue/LED4orangeafter; colors are not used
+to infer state. Requested FM1→TARGET A,LEFT/OFF,Cempty,noUSER before verifying
+connectedREADY. No key sentyet.
