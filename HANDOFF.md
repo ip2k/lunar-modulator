@@ -1,3 +1,31 @@
+## Empty-target control completed without ACK — 2026-10-18 07:13 UTC
+
+[verified] OwnerpressedUSERwithbothTARGETsempty. Pinnedb3b203imagecompleted
+30000packets andterminatedFAULT8/receipt0x843(packetlimitfromGAP),GPIO0/OEs0,
+WAIT_DP0/SOF0; selftestsF/C6 passed, ringfrozen/stable. No candidateACKlatched.
+Raw post-user-status.json SHA5cebe5db1f60c4725706c64c7b009f7cbdd8f6a0f6ffe4047d51d7439926626d
+in scratch/cynthion-empty-target-control-20261017/. Sameimageunloaded doesnot
+reproduceconnectedattempt7's832packet candidate+WAIT_DP500ms. Thisnarrows
+possibilitiesbutdoesNOTproveROMack/CPUon/recovery. Finalringhighdriveevents
+SE1unloaded vsK+SE1connected; nonuniformlast32events, notanalogvoltagetrace.
+Detailed notes/2026-10-17-cynthion-empty-target-timing-control.md.
+CurrentbothTARGETsemptyCONTROL→Mac, terminalhighZ; keepFM1disconnected.
+bringup_review independentlycomparingandplanningnexttest, nohardware.
+LatestreplacementAGENTSstrictgatecontinuesforconnectedactiveFM1operations.
+No FM1write/key/flash/power. GoalACTIVE; sourceevidenceworkerreportpending.
+
+## Empty-target diagnostic loaded SAFE — 2026-10-18 07:12 UTC
+
+[verified] Owner confirmedBOTH TARGETsempty/CONTROL→Mac/USERnotpressed. Root
+volatile-loadedexistingb3b2037b bitstream(exit0). Read-onlyLUNR/layout6 status
+0x4410: SAFE0,PHYready,nofault,OEs0,terminalreceipt0; sweepmarkersstable.
+Saved scratch/cynthion-empty-target-control-20261017/{volatile-load.log,disarmed-status.json}.
+Owner requestedpress/releaseUSERonce withtargetsEMPTY; awaitingPressed.
+Then captureterminalreceipt/eventring andverifyOEs0. DoNOTconnectFM1/benchhost
+or inferROMentryfromcontrol. NoFM1operations. LatestreplacementAGENTSrevives
+strictdump/byte-identicalrestoregateforFM1write/traffic; honoritbeforefuture
+connectedactiveexperiments. Do notoverwriteAGENTS/CLAUDE. GoalACTIVE.
+
 ## Empty-target timing control prepared — 2026-10-17
 
 [verified] Root and independent bringup_review source review agree an unloaded
