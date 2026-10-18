@@ -55,6 +55,7 @@ static void lunar_cpu_rate_calibrate(void);
 #endif
 #include "fm1_app.h"
 #include "audio_queue.h"
+#include "lcd_pending_deadline.h"
 #include "instance_pool.h"
 #include "midi_input.h"
 #include "midi_diagnostic_readout.h"
@@ -280,6 +281,11 @@ static void refill_audio(void)
     }
 }
 
+static lunar_lcd_pending_deadline_t lcd_pending_deadline;
+/* Retained diagnostic symbol, cumulative modulo uint32; no telemetry schema or
+ * LCD commands added. This observes a fault; it does not recover the display. */
+volatile uint32_t lunar_lcd_pending_timeouts __attribute__((used));
+
 static void display_strip(uint32_t *row)
 {
     LUNAR_PROFILE_START(profile_start);
@@ -288,13 +294,29 @@ static void display_strip(uint32_t *row)
     uint32_t work_start = 0;
     uint8_t did_work = 0;
 #endif
+    if (!lcd_busy) {
+        /* SAVE or another synchronous owner may have completed the transfer. */
+        lunar_lcd_pending_complete(&lcd_pending_deadline);
+    } else {
+        /* Adopt a pre-existing startup transfer from its first observation.
+         * Our own submissions below are timestamped immediately after submit. */
+        if (!lcd_pending_deadline.active)
+            lunar_lcd_pending_begin(&lcd_pending_deadline, fm1_ticks());
+        if (!(FM1_LCD_SPI_CON & 0x8000u)) {
+            if (lunar_lcd_pending_expired(&lcd_pending_deadline, fm1_ticks(),
+                    LUNAR_LCD_PENDING_DEADLINE_US * FM1_TICKS_PER_US))
+                ++lunar_lcd_pending_timeouts;
+            /* Keep busy, CS and cv_px owned by DMA, including after timeout. */
+            goto done;
+        }
+    }
     if (!fm1_tft_pixels_valid(&app.tft)) goto done;
     if (lcd_busy) {
-        if (!(FM1_LCD_SPI_CON & 0x8000u)) goto done;
 #ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
         work_start = fm1_ticks();
 #endif
         lcd_sync();
+        lunar_lcd_pending_complete(&lcd_pending_deadline);
 #ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
         wait_ticks = fm1_ticks() - work_start;
 #endif
@@ -307,6 +329,7 @@ static void display_strip(uint32_t *row)
     for (uint32_t i = 0; i < 240u * 16u; ++i)
         cv_px[i] = swap16(fm1_tft_pixel(&app.tft, *row * 240u + i));
     lcd_blit(0, *row, 240, 16, cv_px);
+    lunar_lcd_pending_begin(&lcd_pending_deadline, fm1_ticks());
     *row = (*row + 16u) % 240u;
 done:
 #ifdef LUNAR_DIAGNOSTIC_PRODUCER_GAPS
