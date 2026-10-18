@@ -105,3 +105,15 @@ therefore the helper's combined ring-stability flag is false, without a
 safety-state transition. No key had been sent. Owner asked for the second
 fresh USER press/release followed immediately by LEFT/OFF→RIGHT/ON, keeping
 TARGET C empty until terminal output-release verification.
+
+## Corrected-direction staged recovery sequence completed
+
+[verified] Owner pressed second USER and switched LEFT/OFF→RIGHT/ON.
+At 07:40 UTC, `post-power-on-status.json` reports status0xCFD7/DONE7,
+no fault, selftestF, GPIO1 with both OEs0; receipt0x701 is valid with
+protocol-failure reason0 and terminal DONE7. Recorded873 packets,
+ACKprogress397, WAIT_DP1628us, SOF1503000us, final low counter2999.
+Ring frozen at32 events (reg19=3072); status/GPIO/terminal/ring markers
+unchanged across the non-atomic read. Controller completion does not establish
+mask-ROM entry; passive USB identity remains required. Asked owner connect
+TARGET C→bench01 while leaving RIGHT/ON and not pressing USER.

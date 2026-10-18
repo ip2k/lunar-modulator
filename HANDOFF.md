@@ -1,3 +1,16 @@
+## Staged LEFT→RIGHT attempt reached DONE; TARGET C connection pending — 07:40 UTC
+
+[verified] Owner second USER then LEFT/OFF→RIGHT/ON. Layout7 capture
+scratch/cynthion-staged-key-20261018/post-power-on-status.json: status0xCFD7,
+DONE7/no fault, selftestF, GPIO1 with OEs0, terminalreceipt0x701
+(valid, reason0, DONE7), packets873, ACKprogress397, WAIT_DP1628us,
+SOF1503000us, final low counter2999. Ring frozen32 (reg19=3072);
+safety/terminal/ring markers unchanged across non-atomic sweep.
+This establishes controller completion ONLY, not mask-ROM identity/recovery.
+Asked owner leave FM1 RIGHT/ON and connect TARGET C→bench01, no USER/power
+change. Next passive lsusb check for native/OTA/ROM; no loader/flash commands.
+Goal ACTIVE; Aeon only. Previous checkpoint194f1019 pushed; verify remote SHA.
+
 ## FM1 connected OFF; READY verified; power-on key attempt requested — 07:39 UTC
 
 [verified] Owner connected FM1→TARGET A, LEFT/OFF, verified data cable,
