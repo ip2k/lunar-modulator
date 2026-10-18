@@ -1,3 +1,10 @@
+## Repeat preflight READY; FM1 connection pending
+
+Read-only08:54:21UTC: stateREADY9, four selftests passed(mask15/events01010101),
+PHYready/noFAULT/OEs0/stable sweep. Receipt retry-after-control-preflight.json.
+Asked FM1LEFT/OFF→TARGETA, keepCempty/CONTROL, noUSER, replyConnected; then
+read READY before USER2 repeating55sec instruction. No connected run yet.
+
 ## Repeat image SAFE; disconnected USER preflight pending
 
 Owner confirmed both TARGET ports empty. Exact reviewed8fcc78e5... repeat
