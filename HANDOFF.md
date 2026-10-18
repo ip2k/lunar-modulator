@@ -1,3 +1,15 @@
+## FM1 physical-switch reboot pending; Full capture ACTIVE
+
+Owner noted battery: TARGET USB-power toggle is NOT CPU-reset proof. Clean
+Full12Mbps capture running. Asked LEFT/OFF5sec then RIGHT/ON with cables
+unchanged/noUSERnoRESET and screen/light report. Next fresh bench/UI then
+stop/save attempt05. Current FM1A/Cbench/CONTROLMac, officialanalyzer,powerON.
+
+Mouse control passed (low-speed only). FM1 still absent from bench; attempt03
+save hit Packetry StreamReader error (224B incomplete), attempt04 clean USB
+supply-toggle capture saved320B/start+stop only. Details/hashes in capture note.
+No recovery/flash acceptance. GoalACTIVE, Aeononly, preserve uv.lock.
+
 ## Mouse control PASS; fresh FM1 full-speed capture ACTIVE
 
 Official analyzer restored, fixedLow and Packetry TARGET power cycle produced

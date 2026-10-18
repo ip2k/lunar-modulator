@@ -176,3 +176,26 @@ Fresh fixed Full12Mbps capture is now running, TARGET power on. Asked owner
 remove mouse only, connect FM1 atA LEFT/OFF then switch RIGHT/ON; keep
 CONTROL Mac and C bench01, noUSER/RESET. Await confirmation, then inspect
 Packetry and fresh bench logs, stop/save unique FM1 capture. No firmware writes.
+
+## FM1 capture after mouse pass; physical reboot pending [verified]
+
+Owner confirmed FM1 connected. Bench08:49:46UTC saw mouse disconnect at08:49:17
+but no FM1 attach/identity. Packetry Full capture contained prior mouse-speed
+traffic and invalid groups; save failed with StreamReader range0..1223 versus
+length1222, in segment width. attempt03-full-after-mouse-pass.pcapng is only
+224B/start custom block, SHA256
+80f7cf58920962d5d4277e6d5d499e526af0c2964d1e336a67fad0bbc568a6ca.
+Do not treat failed recording as complete FM1 evidence.
+
+Dismissed error via CUA. With FM1 already connected, toggled TARGET USB power
+off, started clean Full capture, toggled on. Host08:50:43UTC no new attach.
+Stopped/saved attempt04-full-software-power.pcapng successfully:320B, two
+custom blocks (start and stop12.392595783s), no USB packet blocks, SHA256
+051fe585642ea5d69d117dbced05af70b118b37fa214e981f3593104610235e7.
+This tests USB supply only, not CPU reboot: owner correctly noted internal
+battery can keep FM1 powered. No cold-reset claim. Private host-fm1-after-
+control-pass.txt and host-fm1-software-power.txt preserve logs.
+
+Clean Full capture now active. Asked physical LEFT/OFF5sec then RIGHT/ON,
+cables unchanged/noUSERnoRESET, report screen/light. Await confirmation;
+then inspect fresh host/UI and save attempt05. No firmware or key writes.
