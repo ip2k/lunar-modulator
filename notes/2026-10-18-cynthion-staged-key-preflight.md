@@ -290,3 +290,15 @@ terminal0,packets0;safetyvaluesstable,live ringonlychanged.
 RequestedUSER→LEFTtoRIGHT/ON→CimmediateONLYonsteadyLED5alone; pendingreply.
 Read-only180s kernel followerwriting `retry03/live-kernel-log.txt`; previous
 retry02followerfinished124(expectedtimeout), logretained.
+
+### Retry3 order variation: timeout before SOF
+
+Owner reports poweringFM1ON beforeUSERexperiment; allCynthionLEDslit.
+Actualfinalswitchposition/Cconnectionpendingclarification. [verified] At08:00UTC
+`retry03/sequence-variation-status.json`: status0xC7D8/FAULT8,GPIO0/OEs0,
+receipt0x855(reason2 WAIT_DPtimeout,origin5),12696packets,WAIT500000us,
+SOF0,selftestF/failure0,frozen32(reg19=3074),stableterminal/ring.
+This attempt neverenteredSOF and is a separate timingvariation, not an exact
+repetitionofpriorsequence. NoROMidentity/failurecauseestablished.
+Requestednoswitchchange/USER; connectCifnotalready andreportC/switchstate.
+No fourthattempt,newwaveform,loader orflash plannedfromthisresult.

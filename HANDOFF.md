@@ -1,3 +1,19 @@
+## Retry3 owner varied order; WAIT_DP timeout/FAULT/OEs0 — 08:00 UTC
+
+OwnerreportsFM1ONbeforeUSERexperiment,allLEDsrainbow. Actualswitchpositionand
+Cconnectionpendingclarification; doNOTassumeprovidedsequencefollowed.
+[verified] retry03/sequence-variation-status.json layout7/status0xC7D8,
+FAULT8,GPIO0/OEs0,receipt0x855(reason2WAIT_DPtimeout,origin5),12696packets,
+WAIT500000us,SOF0,maskF,selftestfailure0;stableterminal/ring32(reg19=3074).
+NoSOFphase. This differsfrompreviousDONE1.503s runs; noROMproof.
+Askedno switchchange/USER,connectC→bench01ifnotalready andreportC/switchstate.
+Next passivehostenumeration. Threeownerrequestedretries attempted inclthis
+ordervariation; noautomaticfourth/waveformchange/flash/loader.
+Read-onlyfollower64974runsuntil~08:02UTC;saveexitwhenfinished.
+bringup_review offlineinvestigating1kGPIOpath/SOFlowthresholdandPHYalternatives,
+nohardwareauthorizationfornewvariant. GoalACTIVE;Aeononly;uv.lockpreserved.
+Latest2b89d254pushedremoteverified. Sourceinstrumentationdesigndone,noimplementation.
+
 ## Retry3 connected READY; USER+ON/DONE-only handoff pending — 07:59 UTC
 
 OwnerconnectedOFF,Cempty,noUSER. [verified] retry03/connected-left-ready-status.json
