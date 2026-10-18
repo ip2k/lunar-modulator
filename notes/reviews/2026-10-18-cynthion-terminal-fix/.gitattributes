@@ -1,0 +1,6 @@
+*.log linguist-generated=true -whitespace
+*.txt linguist-generated=true -whitespace
+operation/** linguist-generated=true -whitespace
+pico-repeat/** linguist-generated=true -whitespace
+*.bit binary
+*.gz binary

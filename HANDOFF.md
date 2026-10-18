@@ -1,3 +1,31 @@
+## Offline Cynthion telemetry repair completed — 2026-10-18
+
+Branch: `feature/2026-10-11@installable-firmware`. Source/build commit
+`13cca5c117e5024a07c2544d42da63f4bf3d22b5` was pushed and remote-SHA verified.
+This follow-up commit adds final receipts/tests/scope preparation; consult Git
+for its SHA. Preserve unrelated untracked `uv.lock`.
+
+Read [verification](notes/2026-10-18-cynthion-terminal-fix-verification.md),
+[new build/test packet](notes/reviews/2026-10-18-cynthion-terminal-fix/README.md),
+[external erratum](notes/2026-10-18-cynthion-telemetry-erratum.md), and
+[conditional Rigol experiment plan](notes/2026-10-18-cynthion-ds1054z-scope-plan.md).
+Layout9 adds0x67 persistent local candidate; legacy0x0e remains transient.
+Production60MHz regressions and all4actual-top maps pass; old-signal mutation
+fails2candidate cases. Full suite130passes/348warnings/24.70s. Fresh Aeon
+operation/repeat builds pass final60/120MHz routing; no new image loaded.
+Coordinator review completed; this does not claim independent approval.
+Original packet unchanged and all401checksums valid.
+
+Next dependency: owner fixture continuity/second-board details and scope LAN/USB
+interface; independent review/approval of reduced acquisition coverage and
+separately authorized scope-only qualification before ONE loaded run. DS1054Z
+cannot promise the audit's continuous56s/≥1MS/s3channel record; plan proposes
+two6s windows with an explicitly unobserved middle. No waveform/polarity/PHY/
+resistance change is justified. Reference Pico loop also has2sPWM per cycle;
+faster retry is unproven. No device traffic, load, probe, power-cycle, flash or
+infrastructure operation is authorized or performed here. Recovery remains
+unproven; the full firmware goal remains unfinished. Aeon-only heavy work.
+
 ## Independent recovery audit saved; offline fixes handed to Sol — 2026-10-18
 
 Owner requested that the independent review findings and next steps be saved in

@@ -36,9 +36,21 @@ def test_production_terminal_candidate_and_reset(outcome):
         se0_sent = False
         pulse_seen = False
         candidate = outcome != 'no-candidate'
+        phase_run = 0
+        last_phase = None
+        full_phase_seen = False
         for _ in range(120_000):
             state = ctx.get(core.state)
             ctx.set(core.line_state_update, 0)
+            phase = ctx.get(core.debug_key_phase) if state == core.KEY else None
+            if phase == last_phase and phase is not None:
+                phase_run += 1
+            else:
+                if last_phase is not None and phase is not None:
+                    assert phase_run == 60  # observed production divider, not copied RTL
+                    full_phase_seen = True
+                last_phase, phase_run = phase, 1
+
             if state == core.SELFTEST:
                 echo = ctx.get(core.dp_o) | ctx.get(core.dm_o) << 1
                 if echo != previous_echo:
@@ -55,8 +67,10 @@ def test_production_terminal_candidate_and_reset(outcome):
                     ctx.set(core.line_state_value, 0)
                     ctx.set(core.line_state_update, 1)
                     se0_sent = True
-            elif state == core.WAIT_DP and outcome == 'candidate-done':
-                ctx.set(core.line_state_value, 1)
+            elif state == core.WAIT_DP:
+                # Timeout case removes SE0 long before terminal capture, so
+                # even the recurring tick predicate has expired permanently.
+                ctx.set(core.line_state_value, 1 if outcome == 'candidate-done' else 3)
             elif state == core.SOF:
                 ctx.set(core.line_state_value, 0)
             pulse_seen |= bool(ctx.get(core.debug_ack_confirm))
@@ -65,6 +79,7 @@ def test_production_terminal_candidate_and_reset(outcome):
             await ctx.tick(domain='usb')
         else:
             pytest.fail('No terminal capture within bounded production-clock simulation')
+        assert full_phase_seen
         assert pulse_seen == candidate
         assert ctx.get(core.debug_ack_confirm) == 0  # pulse expired before capture
         assert ctx.get(receipt.ack_progress) & 2 == 0  # legacy register stays transient
@@ -113,3 +128,28 @@ def test_decoder_unknown_invalid_and_preterminal():
         with pytest.raises(ValueError):
             decode_terminal(registers | change)
     assert decode_terminal(registers | {0x0c: 1, 0x67: 1})['local_ack_candidate'] is False
+
+
+@pytest.mark.parametrize('mode', ['operation', 'pico-repeat', 'staged-operation',
+                                  'disconnected-selftest'])
+def test_production_top_register_layout(mode, monkeypatch):
+    """Elaborate actual board integration offline; inspect registered fields."""
+    from tools.cynthion_usb_key.top import (
+        CynthionUsbKeyTop, CynthionUsbKeyPlatform, JTAGRegisterInterface)
+    registers = {}
+    original = JTAGRegisterInterface.add_read_only_register
+
+    def record(interface, address, *, read):
+        assert address not in registers
+        registers[address] = read
+        return original(interface, address, read=read)
+
+    monkeypatch.setattr(JTAGRegisterInterface, 'add_read_only_register', record)
+    # prepare also elaborates the resource buffers; no synthesis or device IO.
+    CynthionUsbKeyPlatform().prepare(CynthionUsbKeyTop(mode=mode))
+    assert registers[1] == 0x4C554E52
+    assert registers[2] == 9
+    assert len(registers[0x67]) == 32
+    assert all(address in registers for address in range(12, 19))
+    assert (0x65 in registers) == (mode == 'pico-repeat')
+    assert (0x66 in registers) == (mode == 'pico-repeat')

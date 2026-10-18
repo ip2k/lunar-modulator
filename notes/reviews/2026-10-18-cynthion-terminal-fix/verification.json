@@ -1,0 +1,162 @@
+{
+  "source_commit": "13cca5c117e5024a07c2544d42da63f4bf3d22b5",
+  "scope": "offline only; not loaded or recovery accepted",
+  "tests": {
+    "passed": 130,
+    "command": "PYTHONPATH=<existing-cynthion-site-packages> <existing-project-venv>/bin/python -m pytest -o addopts= -p no:cacheprovider tests/test_ulpi_safe_phy.py tests/test_cynthion_usb_key_gateware.py tests/test_cynthion_usb_key_ack_gap_reset.py tests/test_cynthion_usb_key_pico_repeat.py tests/test_cynthion_usb_key_protocol_review.py tests/test_cynthion_power_monitor.py tests/test_cynthion_power_readout.py tests/test_cynthion_target_usb_probe.py tests/test_cynthion_usb_key_terminal.py",
+    "python": "3.12.14 (main, Sep  1 2026, 14:09:38) [Clang 22.1.3 ]",
+    "dependencies": {
+      "amaranth": "0.5.10",
+      "apollo-fpga": "1.1.1",
+      "cynthion": "0.2.5",
+      "luna-usb": "0.2.3",
+      "luna-soc": "0.3.2",
+      "pytest": "9.1.1"
+    }
+  },
+  "builds": {
+    "operation": {
+      "files": {
+        "cynthion_usb_key.tim": {
+          "sha256": "bdf0cf113b6fbb20ab04c283dc9c1a6a053b61da0e9bfb178532e778c87a1311",
+          "bytes": 53478
+        },
+        "cynthion_usb_key.bit": {
+          "sha256": "ef50d2daa551917af254f19fd4350121158a864ed6f1cd66bae990370410e1bc",
+          "bytes": 174163
+        },
+        "cynthion_usb_key.lpf": {
+          "sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+          "bytes": 8097
+        },
+        "build_cynthion_usb_key.sh": {
+          "sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720",
+          "bytes": 560
+        },
+        "cynthion_usb_key.rpt": {
+          "original_sha256": "9f72ad132ac26250a81ad99e5ca430b0d6a9324b547c42fd4edb8e0bc2796b96",
+          "gzip_sha256": "4803c14e40b4f1442ac704dea1150ed256e329b7ea205728e7562c8b06f78505"
+        }
+      },
+      "final_routed_clocks": {
+        "$glbnet$car.clk_usb": {
+          "mhz": 66.22,
+          "result": "PASS",
+          "required_mhz": 60.0
+        },
+        "$glbnet$car._clk_120MHz": {
+          "mhz": 201.29,
+          "result": "PASS",
+          "required_mhz": 120.0
+        }
+      },
+      "state": {
+        "Status": "exited",
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "StartedAt": "2026-10-18T10:16:40.093430722Z",
+        "FinishedAt": "2026-10-18T10:17:02.357001218Z"
+      },
+      "image_id": "sha256:d065eaf170070135564c88bd4273f30784278b35c9355d36a0a96bd6ba20cc8c",
+      "policy": {
+        "CgroupParent": "docker-batch.slice",
+        "NanoCpus": 4000000000,
+        "Memory": 6442450944,
+        "MemorySwap": 6442450944,
+        "PidsLimit": 512,
+        "NetworkMode": "none",
+        "ReadonlyRootfs": true,
+        "CapDrop": [
+          "ALL"
+        ],
+        "SecurityOpt": [
+          "no-new-privileges"
+        ],
+        "Devices": []
+      },
+      "user": "1003:1003",
+      "build_python": "3.12.3",
+      "pinned_dependency_versions": {
+        "amaranth": "0.5.10",
+        "apollo-fpga": "1.1.1",
+        "cynthion": "0.2.5",
+        "luna-usb": "0.2.3",
+        "luna-soc": "0.3.2"
+      }
+    },
+    "pico-repeat": {
+      "files": {
+        "cynthion_usb_key.tim": {
+          "sha256": "18f9207a11a4a9669ab3fc6538146b6946fcbb0cf96d3ef27f4b7800e8d9e806",
+          "bytes": 53773
+        },
+        "cynthion_usb_key.bit": {
+          "sha256": "d4bd9c8d4f7eafc6a5d9fc15811d94bd7532a92396ec4cdc788c3c7cc3eac69f",
+          "bytes": 174506
+        },
+        "cynthion_usb_key.lpf": {
+          "sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+          "bytes": 8097
+        },
+        "build_cynthion_usb_key.sh": {
+          "sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720",
+          "bytes": 560
+        },
+        "cynthion_usb_key.rpt": {
+          "original_sha256": "ac4ae6721b666e2bec6b2077bd802a6a865c5b84e47deba33190bb5c54e9c9ca",
+          "gzip_sha256": "8cc67f1f93cda9f4b6fa649cd5020d6d995208e12e8439de93a9faa21752d1ef"
+        }
+      },
+      "final_routed_clocks": {
+        "$glbnet$car._clk_120MHz": {
+          "mhz": 187.16,
+          "result": "PASS",
+          "required_mhz": 120.0
+        },
+        "$glbnet$car.clk_usb": {
+          "mhz": 69.7,
+          "result": "PASS",
+          "required_mhz": 60.0
+        }
+      },
+      "state": {
+        "Status": "exited",
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "StartedAt": "2026-10-18T10:16:40.208353921Z",
+        "FinishedAt": "2026-10-18T10:17:04.114589908Z"
+      },
+      "image_id": "sha256:d065eaf170070135564c88bd4273f30784278b35c9355d36a0a96bd6ba20cc8c",
+      "policy": {
+        "CgroupParent": "docker-batch.slice",
+        "NanoCpus": 4000000000,
+        "Memory": 6442450944,
+        "MemorySwap": 6442450944,
+        "PidsLimit": 512,
+        "NetworkMode": "none",
+        "ReadonlyRootfs": true,
+        "CapDrop": [
+          "ALL"
+        ],
+        "SecurityOpt": [
+          "no-new-privileges"
+        ],
+        "Devices": []
+      },
+      "user": "1003:1003",
+      "build_python": "3.12.3",
+      "pinned_dependency_versions": {
+        "amaranth": "0.5.10",
+        "apollo-fpga": "1.1.1",
+        "cynthion": "0.2.5",
+        "luna-usb": "0.2.3",
+        "luna-soc": "0.3.2"
+      }
+    }
+  },
+  "packet_integrity": {
+    "historical_checksum_entries": 401,
+    "verified": true,
+    "packet_changed": false
+  }
+}

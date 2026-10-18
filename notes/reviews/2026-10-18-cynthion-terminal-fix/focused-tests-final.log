@@ -1,0 +1,167 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.14, pytest-9.1.1, pluggy-1.7.0
+rootdir: /Users/<owner>/.codex/worktrees/installable-firmware/mvave-fm1-firmware
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 11 items
+
+tests/test_cynthion_usb_key_terminal.py ...........                      [100%]
+
+=============================== warnings summary ===============================
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:11
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:11: DeprecationWarning: instead of `amaranth.hdl.ast.ValueCastable`, use `amaranth.hdl.ValueCastable`
+    from amaranth.hdl.ast import ValueCastable
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:117
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:117: DeprecationWarning: `ValueCastable.lowermethod` is no longer required and will be removed in Amaranth 0.6
+    @ValueCastable.lowermethod
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:121
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:121: DeprecationWarning: `ValueCastable.lowermethod` is no longer required and will be removed in Amaranth 0.6
+    @ValueCastable.lowermethod
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.Record`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_NONE`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/utils/io.py:11
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/utils/io.py:11: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/utils/io.py:11
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/utils/io.py:11: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+tests/test_cynthion_usb_key_terminal.py: 14 warnings
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/hdl/_ast.py:1975: DeprecationWarning: `reset=` is deprecated, use `init=` instead
+    signal = super().__call__(shape, **kwargs, src_loc_at=src_loc_at + 1)
+
+tests/test_cynthion_usb_key_terminal.py: 24 warnings
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:205: DeprecationWarning: Using platform.request without `dir="-"` is deprecated; use `amaranth.lib.io.*Buffer` components instead
+    member = resolve(sub, dir[sub.name], xdr[sub.name],
+
+tests/test_cynthion_usb_key_terminal.py: 64 warnings
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:266: DeprecationWarning: Using platform.request without `dir="-"` is deprecated; use `amaranth.lib.io.*Buffer` components instead
+    value = resolve(resource,
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:259: DeprecationWarning: `Signal.reset` is deprecated, use `Signal.init` instead
+    m.d.sync += instruction_register.eq(instruction_register.reset)
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:268: DeprecationWarning: `Signal.reset` is deprecated, use `Signal.init` instead
+    m.d.sync += data_register.eq(data_register.reset)
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tools/cynthion_usb_key/top.py:144: DeprecationWarning: Domain 'usb' is used in 'top', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    with m.If(~ResetSignal("usb")):
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.codex/worktrees/installable-firmware/mvave-fm1-firmware/gateware/ulpi_safe_phy.py:195: DeprecationWarning: Domain 'usb' is used in 'top.safe_phy', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    window.read_request.eq(0),
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:92: DeprecationWarning: Domain 'usb' is used in 'top.safe_phy.register_window', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    self.ulpi_out_req.eq(0),
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tools/cynthion_usb_key/gateware.py:250: DeprecationWarning: Domain 'usb' is used in 'top.protocol', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    d += history_last_state.eq(self.state)
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/lib/cdc.py:106: DeprecationWarning: Domain 'usb' is used in 'top.protocol.button_sync', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    m.d[self._o_domain] += o.eq(i)
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tools/cynthion_usb_key/gateware.py:42: DeprecationWarning: Domain 'usb' is used in 'top.protocol.event_history', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    with m.If(~self.frozen):
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:243: DeprecationWarning: Domain 'usb' is used in 'top.debug_registers.interface', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    m.d.sync += jtag_clk_delayed.eq(jtag_clk)
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tools/cynthion_usb_key/top.py:70: DeprecationWarning: Domain 'usb' is used in 'top.terminal', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    with m.If(~terminal_snapshot_valid &
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tools/cynthion_usb_key/top.py:114: DeprecationWarning: Domain 'usb' is used in 'top.<unnamed #5>', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    target_phy.clk.o.eq(ClockSignal("usb")),
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tools/cynthion_usb_key/top.py:115: DeprecationWarning: Domain 'usb' is used in 'top.<unnamed #5>', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    target_phy.rst.o.eq(ResetSignal("usb")),
+
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[pico-repeat]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[staged-operation]
+tests/test_cynthion_usb_key_terminal.py::test_production_top_register_layout[disconnected-selftest]
+  /Users/<owner>/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tools/cynthion_usb_key/top.py:144: DeprecationWarning: Domain 'usb' is used in 'top.<unnamed #5>', but defined in 'top.car', which will not be supported in Amaranth 0.6; define the domain in 'top' or one of its parents
+    with m.If(~ResetSignal("usb")):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+====================== 11 passed, 167 warnings in 10.16s =======================
