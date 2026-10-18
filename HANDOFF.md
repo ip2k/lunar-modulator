@@ -1,3 +1,14 @@
+## Disconnected staged self-test passed; FM1 OFF connection requested — 07:38 UTC
+
+[verified] Owner pressed USER with BOTH TARGET ports empty. Layout7 capture
+scratch/cynthion-staged-key-20261018/preflight-ready-status.json shows
+status0xC7D9, READY9, selftestmaskF, PHYready/no fault, GPIO/OEs0,
+terminalreceipt0, packets0. Safety markers stable across read-only sweep.
+Asked owner connect FM1 → TARGET A with verified cable, LEFT/OFF, C empty,
+NO USER. Next capture fresh connected-left-ready-status.json and verify READY9/
+maskF/PHYready/no fault/OE0/terminal0 before second fresh USER + LEFT→RIGHT/ON.
+Prior SAFE checkpoint pushed/remoteverified05785900. No recovery key sent yet.
+
 ## Staged diagnostic loaded SAFE; disconnected USER preflight pending — 2026-10-18 07:37 UTC
 
 [verified] Owner confirmed BOTH TARGET ports empty, CONTROL → Mac, no USER.

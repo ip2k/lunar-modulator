@@ -87,3 +87,10 @@ exit0 and log `volatile-load.log` retained alongside the capture.
 Owner asked to press/release USER once while both TARGET ports remain empty.
 This is only the disconnected preflight; connection and second USER press remain
 separate later steps after READY9/selftestF/high-Z verification.
+
+[verified] Owner pressed/released USER while both TARGET ports empty. At
+07:38 UTC, `preflight-ready-status.json` reports status0xC7D9: READY9, all
+four self-tests passed (maskF), PHY ready/no fault, GPIO/OEs0, terminal0,
+packets0. Safety markers unchanged across sweep. Asked owner connect FM1 on
+TARGET A with LEFT/OFF, TARGET C empty and no USER; connection verification
+remains pending before the second fresh USER recovery attempt.
