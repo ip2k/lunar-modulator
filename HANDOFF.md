@@ -1,3 +1,11 @@
+## Seller operation link checked — 2026-10-18
+
+Exact Bilibili profile opened successfully in real Chrome: six gaming uploads,
+no listed JieLi downloader demonstration. Account 爱米饭的小韩. Seller link
+appears wrong/outdated; no compatibility or operating instructions inferred.
+Details in the official/Pico recovery research note. No bench action; owner
+deferred Pico connection until tomorrow.
+
 ## Failure-onset bootloader audit rechecked — 2026-10-18
 
 Read [forensic report](notes/2026-10-18-fm1-interrupted-write-forensics.md) and

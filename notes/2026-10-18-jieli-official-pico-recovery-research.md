@@ -154,3 +154,15 @@ minimal circuit and self-test. If no suitable resistors are available, record
 that parts dependency; do not introduce resistorless push-pull drive silently.
 The desired endpoint is stock firmware restored and booting normally. UBOOT
 entry is the immediate enabling milestone, not the final recovery verdict.
+
+## Seller Bilibili link checked in Chrome — 2026-10-18
+
+[verified: rendered Chrome profile] Opened the exact supplied URL
+https://space.bilibili.com/15172053 after the web reader could not retrieve it.
+The profile title identifies 爱米饭的小韩 and its visible uploads count is six.
+All six listed uploads concern games; no JieLi downloader operation video was
+listed. This is a current profile observation, not proof that no relevant video
+ever existed. The seller link appears incorrect or outdated [inferred]. No
+video was watched or used to infer switch settings or AC791N compatibility.
+Use the linked official JieLi instructions as the operation reference pending
+a correct seller video or inspection of the actual ordered adapter.
