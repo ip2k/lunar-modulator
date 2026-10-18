@@ -35,3 +35,42 @@ Handoff: branch `fix/2026-10-18@cynthion-staged-key-preflight`, isolated checkou
 `/Users/likwid/.codex/worktrees/cynthion-staged-key/mvave-fm1-firmware`, exact base
 `01f7df96`. Coordinator must review/integrate, teach its read-only reader explicit
 layout7/bit15/state9 identity, and separately authorize/build/load the exact image.
+
+## Coordinator integration and offline routed build
+
+[verified] Integrated workerccd79e6a as1998c49055da5f8a130dcac81752f65eb6072604;
+pushed and remoteSHA verified. Root combined ULPI/key/power monitor/readout
+suites:82passed. CI39107811315 exactsource1998c490 gateware job passed; overall
+CI remainedinprogress at review, not an exacthead fullCIclaim.
+
+Aeon build root `/home/claude/.local/share/codex-builds/lunar/cynthion-staged-key-1998c490-20261018`.
+Pinned image d065eaf170070135564c88bd4273f30784278b35c9355d36a0a96bd6ba20cc8c,
+existingrovenv/OSSCAD;4CPU/8GiBRAM+memoryswap/512PID/docker-batch.slice,netnone,
+readonlyroot,capdropALL,no-new-privileges,uid1003,no devices. Root verified
+created/terminalreceipts; container2cf3543e exited0/noOOM. Logs and receipts
+saved before explicit removal; buildclaim released after sharedhandoff.
+
+Bitstream175113B, SHA bf0f00293a24ea7dc909737f23dd23ed58acc2fddf451e1a3cd744af5ae94826.
+NetlistSHA503ac8c0ed2198bc39596e9fff575649740340eb5a115f595966efc52c840572.
+LPF7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3.
+Final routed68.92MHz PASS60 and217.68MHz PASS120; earlier placement-only
+58.44MHzFAIL is superseded by final routed analysis, not ignored.
+Root netlistcheck CONTROL1,C0,AUX0,discharge0, DP N4/DM P3 LVCMOS33/NONE
+with actual bidirectional tri-state cells.
+
+Actual versions: Python3.12.3,Amaranth0.5.10,Apollo1.1.1,Cynthion0.2.5,
+LUNA0.2.3,luna-soc0.3.2; Yosys0.70+145,nextpnr0.11.1-63,ecppack1.4-86.
+Nonfatal wrapper XDG/font-config warnings under readonlyroot retained; final
+route/pack completed normally. A local runner-template syntaxerror was caught
+before remote build, preserved, corrected; only one actual container run.
+
+Local artifacts/independentrootchecks: `scratch/cynthion-staged-key-build-20261018/`,
+includingroot-review.json,sourcearchive,runner,created/terminal/logs.
+Sharedhandoff `handoffs/lunar-modulator--staged-key-1998c490-20261018.md`,
+SHA6e34d83264b9cdc17d0b5509ac5af17a74c806936265bfa7cc6d156345491fd7.
+Explicit staged reader `scratch/cynthion-staged-key-20261018/read_status.py`
+requiresLUNR/layout7 andprofilebit15+CONTROLbit14/selftestmodeoff before
+interpretingregisters; SHAaff10638d3bf3a00f0c33d5f5847863eb5ab417d899aa8ae5bbc6c5ededc9b64.
+
+No stagedbitstreamload yet. AwaitownerBOTHtargetsemptyconfirmation; existing
+oldlayout6 operationimage remainsFAULT/high-Z. No FM1write/flash/loader.

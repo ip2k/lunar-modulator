@@ -1,3 +1,24 @@
+## Staged profile routed and reviewed; empty-port confirmation pending
+
+[verified] Source1998c49055da5f8a130dcac81752f65eb6072604 pushed/remoteverified;
+82combinedgatewaretestspass;CI39107811315 gatewarejobSUCCESS,overallinprogress.
+SingleAeoncontainer2cf3543e exited0/noOOM,receipts/resourcegatesverified,saved,
+explicitlyremoved; claimreleasedaftersharedhandoff. Bit175113B SHA
+bf0f00293a24ea7dc909737f23dd23ed58acc2fddf451e1a3cd744af5ae94826,
+local scratch/cynthion-staged-key-build-20261018/cynthion_usb_key.bit.
+Finalrouted68.92MHzPASS60/217.68MHzPASS120; powerCONTROL1/C0/AUX0/discharge0,
+DP N4/DM P3 tri-state/LVCMOS33/NONE. RootreviewJSON andexactpins retained.
+Newreadonlyreader scratch/cynthion-staged-key-20261018/read_status.py accepts
+ONLYlayout7/stagedbit15/CONTROLbit14 andselftestmodeoff. DoNOTuseoldlayout6reader.
+Plan: ownerconfirmbothTARGETsempty(CONTROLonly), volatileloadreviewedbit,
+verifySAFE/PHYready/nofault/OE0/profile, requestfirstUSERdisconnected,verify
+READY9/selftestF/OE0/terminal0. ThenownerconnectFM1OFF(LEFT)withCempty,
+verifyREADYstillholds;secondfreshUSERthenLEFT→RIGHT/ON. No sameinitialselftest
+whileunpoweredtargetattached. Keepallinterlocks/timebounds/noautoKEYretry.
+NO newhardwareloadyet; owneremptyreplypending. UntilreplyoldimageFAULT/OE0,
+lastknownFM1A/Cbench01/switchRIGHT. GoalACTIVE;Aeononly;uv.lockpreserved.
+Detailed notes/2026-10-18-cynthion-staged-key-preflight.md.
+
 ## Corrected attempt failed pre-key selftest; staged profile under development
 
 [verified] OwnerUSERthenLEFT/OFF→RIGHT/ON. b3b203imageFAULT8/status0x4418,
