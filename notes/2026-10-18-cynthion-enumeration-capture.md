@@ -253,3 +253,12 @@ Private retry-after-control-host-connected.txt under repeat scratch. Requested
 keepFM1RIGHT/ON, verified data cable directly tobench01 withoutpowercycle to
 retain any ROMstate and separate current custom-gateware path. Await direct
 confirmation, then freshhost. No loader/flash/MIDI commands issued.
+
+## Direct connection still has no attach; connector orientation pending
+
+Owner confirms directFM1→bench01 withoutpowercycle. Fresh08:57:47UTC roots+KA6
+only and no USBattach in2min window. Receipt retry-after-control-direct.txt.
+This has no valid transport for flashing. Requested one FM1-end USB-C180degree
+flip/reseat, hostend/switchRIGHTunchanged, before electrical measurements.
+Await reply thenfreshhost. Boundedkernel follower4538 endedtimeout124 as
+expected; no monitor remains running. No repeatkey/loader/flash command.

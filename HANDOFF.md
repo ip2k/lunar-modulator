@@ -1,3 +1,11 @@
+## Direct FM1 also no attach; FM1 USB-C orientation check pending
+
+Owner directconnected preservingRIGHT/ON. Fresh08:57:47UTC roots+KA6 only,
+noUSBattach/descriptor attempt. Receipt retry-after-control-direct.txt.
+Asked unplug/flip180/reseat ONLY FM1USB-C plug, hostendunchanged/no switchcycle;
+awaitFlipped thenfreshkernel. NoROM identity/no flasher transport. Do not
+repeat key again without new evidence. CurrentcustomkeyDONE/OEs0, FM1direct.
+
 ## Repeat redLED/Cconnected confirmed; no host attach; direct comparison pending
 
 Owner confirms redLED and TARGETCconnected. Fresh08:57:02UTC bench roots+KA6
