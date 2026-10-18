@@ -199,3 +199,21 @@ control-pass.txt and host-fm1-software-power.txt preserve logs.
 Clean Full capture now active. Asked physical LEFT/OFF5sec then RIGHT/ON,
 cables unchanged/noUSERnoRESET, report screen/light. Await confirmation;
 then inspect fresh host/UI and save attempt05. No firmware or key writes.
+
+## Physical boot also shows no attach [verified/reported]
+
+Owner reports physical LEFT/OFF5sec then RIGHT/ON, no screen/light change.
+Fresh bench08:52:01UTC has roots/KA6 only and no USB attach in kernel interval.
+Clean Full capture stopped/saved via CUA: attempt05-full-physical-cycle.pcapng,
+320B, SHA256 e3988c02ddbdf879313969ce63fd37a67933912fc0452a4ec343b96f5ea360a3.
+Only capture start/stop displayed, no USB packets. Private host-fm1-physical-
+cycle.txt. This observes failure before descriptor exchange; it is not evidence
+of CPU-rail state, damaged hardware or mask-ROM acceptance. Low-speed mouse
+control has passed; no full-speed known-device control has passed yet.
+
+Requested both TARGET ports empty/CONTROL retained/FM1 LEFT/OFF to prepare
+one bounded repeating-key retry after restored mouse control. Await explicit
+empty confirmation before any gateware load. Existing exact repeat bitstream
+8fcc78e5... and source/test/routing receipts re-read; no new image loaded yet.
+Prior repeat and directUSB both failed -71; restored analyzer control does not
+prove key electrical compatibility. Do not launch an open-ended retry loop.

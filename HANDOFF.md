@@ -1,3 +1,15 @@
+## Both TARGET ports empty confirmation pending; analyzer stopped
+
+Physical FM1 OFF5sec→ON produced no screen/light change (owner), no bench USB
+attach08:52:01UTC, clean Full capture only start/stop; attempt05 saved320B/hash
+in capture note. Mouse low-speed control passed; full-speed control unproven.
+Asked disconnect BOTH TARGET ports, keepCONTROL, FM1LEFT/OFF/noUSER to prepare
+one bounded repeat after restored control. Await confirmation before load.
+Reviewed existing repeat source/test/routing receipts and bit hash8fcc78e5...;
+not loaded. Previous repeat+direct failed-71; do not run open-ended retries or
+claim recovery/electrical compatibility. Mac coordinator only device operations.
+No firmware writes; goalACTIVE; Aeononly; preserve unrelated uv.lock.
+
 ## FM1 physical-switch reboot pending; Full capture ACTIVE
 
 Owner noted battery: TARGET USB-power toggle is NOT CPU-reset proof. Clean
