@@ -211,3 +211,9 @@ selftestF, PHYready/no fault, GPIO/OEs0, terminal0, packets0; safetyvaluesstable
 Owner observed LED0purplebefore, LED1blue/LED4orangeafter; colors are not used
 to infer state. Requested FM1→TARGET A,LEFT/OFF,Cempty,noUSER before verifying
 connectedREADY. No key sentyet.
+
+[verified] Retry1 connectedOFF capture at07:50UTC:
+`retry01/connected-left-ready-status.json` status0xC7D9/READY9,selftestF,
+PHYready/no fault,GPIO/OEs0,terminal0,packets0. Safetyvaluesstable; live
+ringchangednormally. SourceREADYLEDmask0b010010 confirmsLED1+4 pattern.
+Requested secondUSER then immediateLEFT/OFF→RIGHT/ON,Cempty; pendingreply.

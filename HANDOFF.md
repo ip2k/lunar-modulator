@@ -1,3 +1,14 @@
+## Retry1 connected OFF READY verified; second USER+ON pending — 07:50 UTC
+
+Owner connectedFM1→A,LEFT/OFF,Cempty,noUSER. [verified] retry01/
+connected-left-ready-status.json status0xC7D9/READY9,Fmask,PHYready/no fault,
+GPIO/OEs0,terminal0,packets0. Status/GPIO/terminal stable; liveringchangedonly.
+Asked secondfreshUSER then immediateLEFT→RIGHT/ON,Cempty. Pendingreply.
+Next terminalread retry01/post-power-on-status.json and verifyOEs0 beforeC
+connectionrequest. Userauthorized up to3 finite retries,no firmwarewrites.
+SourceREADYLEDmask0b010010 confirmsLED1+4 pattern. Latestfacac6c7pushedverified.
+GoalACTIVE;Aeononly;uv.lockpreserved.
+
 ## Retry1 disconnected self-test passed; OFF connection pending — 07:49 UTC
 
 Owner pressedUSER withbothTARGETsempty; reports LED0purplebefore, LED1blue/
