@@ -217,3 +217,15 @@ empty confirmation before any gateware load. Existing exact repeat bitstream
 8fcc78e5... and source/test/routing receipts re-read; no new image loaded yet.
 Prior repeat and directUSB both failed -71; restored analyzer control does not
 prove key electrical compatibility. Do not launch an open-ended retry loop.
+
+## Reviewed repeating image reloaded SAFE; disconnected preflight pending
+
+Owner confirmed both TARGET ports empty. Verified exact170402B bitstream hash
+8fcc78e502dc692cd6d0f8daeab01030c2ae815326e624879f95bb24b65cd28f,
+then supported cynthion run --bitstream completed0. No persistent flash write.
+Read-only layout8 capture08:53:33–41UTC verifies stateSAFE0, PHYready1/fault0,
+OEs0, stable safety sweep, repeatprofile0x0bb81001/counters0. Private receipts:
+scratch/cynthion-pico-repeat-20261018/retry-after-control-{load.log,safe.json}.
+Requested USER once with BOTH TARGET ports still empty, noFM1 yet. Await reply
+then read preflight before permitting connection. One bounded retry is intended
+after restored low-speed control; electrical compatibility remains unproven.

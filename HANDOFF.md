@@ -1,3 +1,15 @@
+## Repeat image SAFE; disconnected USER preflight pending
+
+Owner confirmed both TARGET ports empty. Exact reviewed8fcc78e5... repeat
+bitstream loaded volatile via cynthion CLI exit0. Read-only08:53:41UTC confirms
+SAFE0/PHYready/noFAULT/OEs0/layout8/profile0x0bb81001/counters0/stable sweep.
+Asked USER once with BOTH TARGET ports still empty, CONTROL retained/noFM1.
+Await reply then read preflight, require READY/all4tests before connection.
+Private retry-after-control-load.log/safe.json under scratch/cynthion-pico-repeat-
+20261018. No connected repeat yet this retry. No persistent flash/firmware write.
+GoalACTIVE; Aeononly; preserve uv.lock. Earlier full capture after physical
+FM1boot had no attach; mouse low-speed control passed, full-speed unverified.
+
 ## Both TARGET ports empty confirmation pending; analyzer stopped
 
 Physical FM1 OFF5sec→ON produced no screen/light change (owner), no bench USB
