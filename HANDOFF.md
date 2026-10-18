@@ -1,3 +1,15 @@
+## Direct USB comparison requested; no further key attempt — 07:44 UTC
+
+Owner asked leave FM1 RIGHT/ON and connect directly to bench01 using verified
+cable, bypassing Cynthion, no USER/switch cycle. Pending confirmation; until
+then previous A/C wiring remains last known. Next passive lsusb/kernel check.
+[reported] Reference jl-uboot-tool/docs/how-to-enter-uboot.md says calibration
+needs four consistent1ms periods; D+ pull-up drops after timeout too. Observed
+SOF1.503s and DONE-on-low therefore do NOT establish calibration success.
+Independent bringup_review audit running read-only/offline; no device actions.
+Raw prior host descriptor errors and terminal readbacks saved; latest pushed
+checkpointb7a93d5c verified. No flashing/loader/reset issued by coordinator.
+
 ## Host detects full-speed attachment but enumeration fails — 07:41 UTC
 
 [verified] Owner connected TARGET C→bench01, FM1 RIGHT/ON unchanged.

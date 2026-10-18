@@ -134,3 +134,11 @@ The frozen final32 events show SOF low pulses with J roughly4us later every
 1ms, then final low lasting3000us before DONE. This is digital line-history
 evidence, not analogue waveform quality or proof of the source of the response.
 Owner told leave cabling/power unchanged pending timing review.
+
+[reported] Local primary-reference copy `reference/jl-uboot-tool/docs/how-to-enter-uboot.md`
+describes four consistent1ms measurements for calibration, and D+ pull-up
+release after timeout as well. Therefore the observed1.503s SOF phase plus
+DONE-on-low is ambiguous; it is not evidence of successful calibration.
+Next comparison requested: owner leave RIGHT/ON and connect directly to bench01
+with verified cable, bypassing Cynthion, no USER or switch cycle. No new key
+attempt or reset command is planned; only host identity/kernel observations.
