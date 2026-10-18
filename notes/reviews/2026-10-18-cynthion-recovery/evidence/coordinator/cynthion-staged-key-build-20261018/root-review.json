@@ -1,0 +1,58 @@
+{
+  "status": "root-offline-reviewed",
+  "source_commit": "1998c49055da5f8a130dcac81752f65eb6072604",
+  "profile": "staged-operation",
+  "layout": 7,
+  "profile_status_bit": 15,
+  "container_id": "2cf3543ef170a681a9b8cad66394fe396f892d3f55dd55b75292699795aad4ff",
+  "container_exit": 0,
+  "oom": false,
+  "resource_controls_verified": true,
+  "power_constants": {
+    "control_vbus_en": "1",
+    "target_c_vbus_en": "0",
+    "aux_vbus_en": "0",
+    "target_a_discharge": "0"
+  },
+  "gpio_pins": {
+    "dp": "N4",
+    "dm": "P3"
+  },
+  "final_routed_timing": [
+    "Info: Max frequency for clock     '$glbnet$car.clk_usb': 68.92 MHz (PASS at 60.00 MHz)",
+    "Info: Max frequency for clock '$glbnet$car._clk_120MHz': 217.68 MHz (PASS at 120.00 MHz)"
+  ],
+  "artifact_files": {
+    "cynthion_usb_key.bit": {
+      "bytes": 175113,
+      "sha256": "bf0f00293a24ea7dc909737f23dd23ed58acc2fddf451e1a3cd744af5ae94826"
+    },
+    "cynthion_usb_key.json": {
+      "bytes": 9653886,
+      "sha256": "503ac8c0ed2198bc39596e9fff575649740340eb5a115f595966efc52c840572"
+    },
+    "cynthion_usb_key.lpf": {
+      "bytes": 8097,
+      "sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    "cynthion_usb_key.tim": {
+      "bytes": 57442,
+      "sha256": "a257e639cb0154cdab4de495db76d9dd3106a5cc3a501df9ed7a7db7888cefd0"
+    },
+    "root-build.py": {
+      "bytes": 1600,
+      "sha256": "e2cfe0ffbb5c3f917e41401b962337a683f2202c5c989c13eeae965eac65591c"
+    },
+    "source.tar": {
+      "bytes": 49479680,
+      "sha256": "e62496cd06aabcbd76897a259788030ec64c2e6747b16bde2eb54fb85cfe840a"
+    }
+  },
+  "tests": "82 integrated gateware tests passed",
+  "ci": "39107811315 at1998c490 gateware job passed; overall in progress",
+  "limits": [
+    "Source/simulation/routing only; no new hardware load",
+    "Nonfatal nextpnr wrapper XDG/font config warnings under readonly root; final timing after routing passes",
+    "No FM1 recovery/hardware or flash acceptance"
+  ]
+}

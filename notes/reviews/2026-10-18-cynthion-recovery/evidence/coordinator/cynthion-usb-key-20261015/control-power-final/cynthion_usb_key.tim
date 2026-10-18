@@ -1,0 +1,1248 @@
+Info: constraining clock net 'clk_60MHz_0__io' to 60.00 MHz
+
+Info: Logic utilisation before packing:
+Info:     Total LUT4s:      1143/24288     4%
+Info:         logic LUTs:    659/24288     2%
+Info:         carry LUTs:    484/24288     1%
+Info:           RAM LUTs:      0/ 3036     0%
+Info:          RAMW LUTs:      0/ 6072     0%
+
+Info:      Total DFFs:       333/24288     1%
+
+Info: Packing IOs..
+Info: target_usb_dp_0__io feeds TRELLIS_IO pin_target_usb_dp_0.buf.buf.buf0, removing $nextpnr_iobuf target_usb_dp_0__io.
+Info: pin 'pin_target_usb_dp_0.buf.buf.buf0' constrained to Bel 'X0/Y38/PIOA'.
+Info: target_usb_dm_0__io feeds TRELLIS_IO pin_target_usb_dm_0.buf.buf.buf0, removing $nextpnr_iobuf target_usb_dm_0__io.
+Info: pin 'pin_target_usb_dm_0.buf.buf.buf0' constrained to Bel 'X0/Y38/PIOB'.
+Info: target_phy_0__data__io[7] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf7, removing $nextpnr_iobuf target_phy_0__data__io[7].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf7' constrained to Bel 'X0/Y26/PIOC'.
+Info: target_phy_0__data__io[6] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf6, removing $nextpnr_iobuf target_phy_0__data__io[6].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf6' constrained to Bel 'X0/Y26/PIOD'.
+Info: target_phy_0__data__io[5] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf5, removing $nextpnr_iobuf target_phy_0__data__io[5].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf5' constrained to Bel 'X0/Y32/PIOA'.
+Info: target_phy_0__data__io[4] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf4, removing $nextpnr_iobuf target_phy_0__data__io[4].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf4' constrained to Bel 'X0/Y35/PIOD'.
+Info: target_phy_0__data__io[3] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf3, removing $nextpnr_iobuf target_phy_0__data__io[3].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf3' constrained to Bel 'X0/Y35/PIOA'.
+Info: target_phy_0__data__io[2] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf2, removing $nextpnr_iobuf target_phy_0__data__io[2].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf2' constrained to Bel 'X0/Y32/PIOB'.
+Info: target_phy_0__data__io[1] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf1, removing $nextpnr_iobuf target_phy_0__data__io[1].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf1' constrained to Bel 'X0/Y35/PIOB'.
+Info: target_phy_0__data__io[0] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf0, removing $nextpnr_iobuf target_phy_0__data__io[0].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf0' constrained to Bel 'X0/Y38/PIOC'.
+Info: target_phy_0__stp__io feeds TRELLIS_IO pin_target_phy_0__stp.buf.buf.buf0, removing $nextpnr_obuf target_phy_0__stp__io.
+Info: pin 'pin_target_phy_0__stp.buf.buf.buf0' constrained to Bel 'X0/Y41/PIOD'.
+Info: target_phy_0__rst__io feeds TRELLIS_IO pin_target_phy_0__rst.buf.buf.buf0, removing $nextpnr_obuf target_phy_0__rst__io.
+Info: pin 'pin_target_phy_0__rst.buf.buf.buf0' constrained to Bel 'X0/Y41/PIOC'.
+Info: target_phy_0__nxt__io feeds TRELLIS_IO pin_target_phy_0__nxt.buf.buf.buf0, removing $nextpnr_ibuf target_phy_0__nxt__io.
+Info: pin 'pin_target_phy_0__nxt.buf.buf.buf0' constrained to Bel 'X0/Y38/PIOD'.
+Info: target_phy_0__dir__io feeds TRELLIS_IO pin_target_phy_0__dir.buf.buf.buf0, removing $nextpnr_ibuf target_phy_0__dir__io.
+Info: pin 'pin_target_phy_0__dir.buf.buf.buf0' constrained to Bel 'X0/Y41/PIOB'.
+Info: target_phy_0__clk__io feeds TRELLIS_IO pin_target_phy_0__clk.buf.buf.buf0, removing $nextpnr_obuf target_phy_0__clk__io.
+Info: pin 'pin_target_phy_0__clk.buf.buf.buf0' constrained to Bel 'X0/Y44/PIOB'.
+Info: target_c_vbus_en_0__io feeds TRELLIS_IO pin_target_c_vbus_en_0.buf.buf.buf0, removing $nextpnr_obuf target_c_vbus_en_0__io.
+Info: pin 'pin_target_c_vbus_en_0.buf.buf.buf0' constrained to Bel 'X0/Y29/PIOB'.
+Info: target_a_discharge_0__io feeds TRELLIS_IO pin_target_a_discharge_0.buf.buf.buf0, removing $nextpnr_obuf target_a_discharge_0__io.
+Info: pin 'pin_target_a_discharge_0.buf.buf.buf0' constrained to Bel 'X0/Y29/PIOA'.
+Info: pseudo_vccio_0__io[30] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf30, removing $nextpnr_obuf pseudo_vccio_0__io[30].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf30' constrained to Bel 'X4/Y50/PIOB'.
+Info: pseudo_vccio_0__io[29] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf29, removing $nextpnr_obuf pseudo_vccio_0__io[29].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf29' constrained to Bel 'X0/Y23/PIOB'.
+Info: pseudo_vccio_0__io[28] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf28, removing $nextpnr_obuf pseudo_vccio_0__io[28].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf28' constrained to Bel 'X0/Y23/PIOA'.
+Info: pseudo_vccio_0__io[27] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf27, removing $nextpnr_obuf pseudo_vccio_0__io[27].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf27' constrained to Bel 'X0/Y20/PIOC'.
+Info: pseudo_vccio_0__io[26] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf26, removing $nextpnr_obuf pseudo_vccio_0__io[26].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf26' constrained to Bel 'X0/Y17/PIOD'.
+Info: pseudo_vccio_0__io[25] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf25, removing $nextpnr_obuf pseudo_vccio_0__io[25].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf25' constrained to Bel 'X0/Y17/PIOC'.
+Info: pseudo_vccio_0__io[24] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf24, removing $nextpnr_obuf pseudo_vccio_0__io[24].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf24' constrained to Bel 'X0/Y17/PIOB'.
+Info: pseudo_vccio_0__io[23] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf23, removing $nextpnr_obuf pseudo_vccio_0__io[23].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf23' constrained to Bel 'X0/Y17/PIOA'.
+Info: pseudo_vccio_0__io[22] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf22, removing $nextpnr_obuf pseudo_vccio_0__io[22].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf22' constrained to Bel 'X0/Y11/PIOA'.
+Info: pseudo_vccio_0__io[21] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf21, removing $nextpnr_obuf pseudo_vccio_0__io[21].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf21' constrained to Bel 'X0/Y8/PIOD'.
+Info: pseudo_vccio_0__io[20] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf20, removing $nextpnr_obuf pseudo_vccio_0__io[20].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf20' constrained to Bel 'X0/Y47/PIOA'.
+Info: pseudo_vccio_0__io[19] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf19, removing $nextpnr_obuf pseudo_vccio_0__io[19].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf19' constrained to Bel 'X0/Y41/PIOA'.
+Info: pseudo_vccio_0__io[18] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf18, removing $nextpnr_obuf pseudo_vccio_0__io[18].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf18' constrained to Bel 'X0/Y44/PIOD'.
+Info: pseudo_vccio_0__io[17] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf17, removing $nextpnr_obuf pseudo_vccio_0__io[17].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf17' constrained to Bel 'X0/Y44/PIOC'.
+Info: pseudo_vccio_0__io[16] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf16, removing $nextpnr_obuf pseudo_vccio_0__io[16].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf16' constrained to Bel 'X0/Y44/PIOA'.
+Info: pseudo_vccio_0__io[15] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf15, removing $nextpnr_obuf pseudo_vccio_0__io[15].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf15' constrained to Bel 'X0/Y35/PIOC'.
+Info: pseudo_vccio_0__io[14] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf14, removing $nextpnr_obuf pseudo_vccio_0__io[14].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf14' constrained to Bel 'X0/Y29/PIOC'.
+Info: pseudo_vccio_0__io[13] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf13, removing $nextpnr_obuf pseudo_vccio_0__io[13].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf13' constrained to Bel 'X72/Y47/PIOD'.
+Info: pseudo_vccio_0__io[12] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf12, removing $nextpnr_obuf pseudo_vccio_0__io[12].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf12' constrained to Bel 'X72/Y47/PIOC'.
+Info: pseudo_vccio_0__io[11] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf11, removing $nextpnr_obuf pseudo_vccio_0__io[11].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf11' constrained to Bel 'X72/Y47/PIOA'.
+Info: pseudo_vccio_0__io[10] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf10, removing $nextpnr_obuf pseudo_vccio_0__io[10].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf10' constrained to Bel 'X72/Y41/PIOA'.
+Info: pseudo_vccio_0__io[9] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf9, removing $nextpnr_obuf pseudo_vccio_0__io[9].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf9' constrained to Bel 'X72/Y38/PIOA'.
+Info: pseudo_vccio_0__io[8] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf8, removing $nextpnr_obuf pseudo_vccio_0__io[8].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf8' constrained to Bel 'X72/Y29/PIOD'.
+Info: pseudo_vccio_0__io[7] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf7, removing $nextpnr_obuf pseudo_vccio_0__io[7].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf7' constrained to Bel 'X72/Y29/PIOB'.
+Info: pseudo_vccio_0__io[6] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf6, removing $nextpnr_obuf pseudo_vccio_0__io[6].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf6' constrained to Bel 'X72/Y17/PIOD'.
+Info: pseudo_vccio_0__io[5] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf5, removing $nextpnr_obuf pseudo_vccio_0__io[5].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf5' constrained to Bel 'X72/Y8/PIOD'.
+Info: pseudo_vccio_0__io[4] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf4, removing $nextpnr_obuf pseudo_vccio_0__io[4].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf4' constrained to Bel 'X51/Y0/PIOB'.
+Info: pseudo_vccio_0__io[3] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf3, removing $nextpnr_obuf pseudo_vccio_0__io[3].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf3' constrained to Bel 'X47/Y0/PIOB'.
+Info: pseudo_vccio_0__io[2] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf2, removing $nextpnr_obuf pseudo_vccio_0__io[2].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf2' constrained to Bel 'X47/Y0/PIOA'.
+Info: pseudo_vccio_0__io[1] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf1, removing $nextpnr_obuf pseudo_vccio_0__io[1].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf1' constrained to Bel 'X24/Y0/PIOA'.
+Info: pseudo_vccio_0__io[0] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf0, removing $nextpnr_obuf pseudo_vccio_0__io[0].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf0' constrained to Bel 'X20/Y0/PIOA'.
+Info: pseudo_gnd_0__io[19] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf19, removing $nextpnr_obuf pseudo_gnd_0__io[19].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf19' constrained to Bel 'X0/Y20/PIOB'.
+Info: pseudo_gnd_0__io[18] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf18, removing $nextpnr_obuf pseudo_gnd_0__io[18].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf18' constrained to Bel 'X0/Y14/PIOD'.
+Info: pseudo_gnd_0__io[17] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf17, removing $nextpnr_obuf pseudo_gnd_0__io[17].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf17' constrained to Bel 'X0/Y14/PIOC'.
+Info: pseudo_gnd_0__io[16] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf16, removing $nextpnr_obuf pseudo_gnd_0__io[16].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf16' constrained to Bel 'X0/Y14/PIOB'.
+Info: pseudo_gnd_0__io[15] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf15, removing $nextpnr_obuf pseudo_gnd_0__io[15].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf15' constrained to Bel 'X0/Y8/PIOC'.
+Info: pseudo_gnd_0__io[14] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf14, removing $nextpnr_obuf pseudo_gnd_0__io[14].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf14' constrained to Bel 'X0/Y47/PIOC'.
+Info: pseudo_gnd_0__io[13] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf13, removing $nextpnr_obuf pseudo_gnd_0__io[13].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf13' constrained to Bel 'X0/Y47/PIOD'.
+Info: pseudo_gnd_0__io[12] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf12, removing $nextpnr_obuf pseudo_gnd_0__io[12].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf12' constrained to Bel 'X0/Y47/PIOB'.
+Info: pseudo_gnd_0__io[11] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf11, removing $nextpnr_obuf pseudo_gnd_0__io[11].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf11' constrained to Bel 'X0/Y32/PIOD'.
+Info: pseudo_gnd_0__io[10] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf10, removing $nextpnr_obuf pseudo_gnd_0__io[10].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf10' constrained to Bel 'X0/Y32/PIOC'.
+Info: pseudo_gnd_0__io[9] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf9, removing $nextpnr_obuf pseudo_gnd_0__io[9].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf9' constrained to Bel 'X0/Y29/PIOD'.
+Info: pseudo_gnd_0__io[8] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf8, removing $nextpnr_obuf pseudo_gnd_0__io[8].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf8' constrained to Bel 'X72/Y47/PIOB'.
+Info: pseudo_gnd_0__io[7] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf7, removing $nextpnr_obuf pseudo_gnd_0__io[7].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf7' constrained to Bel 'X72/Y44/PIOD'.
+Info: pseudo_gnd_0__io[6] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf6, removing $nextpnr_obuf pseudo_gnd_0__io[6].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf6' constrained to Bel 'X72/Y44/PIOC'.
+Info: pseudo_gnd_0__io[5] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf5, removing $nextpnr_obuf pseudo_gnd_0__io[5].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf5' constrained to Bel 'X72/Y35/PIOC'.
+Info: pseudo_gnd_0__io[4] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf4, removing $nextpnr_obuf pseudo_gnd_0__io[4].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf4' constrained to Bel 'X72/Y8/PIOC'.
+Info: pseudo_gnd_0__io[3] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf3, removing $nextpnr_obuf pseudo_gnd_0__io[3].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf3' constrained to Bel 'X58/Y0/PIOB'.
+Info: pseudo_gnd_0__io[2] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf2, removing $nextpnr_obuf pseudo_gnd_0__io[2].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf2' constrained to Bel 'X40/Y0/PIOB'.
+Info: pseudo_gnd_0__io[1] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf1, removing $nextpnr_obuf pseudo_gnd_0__io[1].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf1' constrained to Bel 'X33/Y0/PIOA'.
+Info: pseudo_gnd_0__io[0] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf0, removing $nextpnr_obuf pseudo_gnd_0__io[0].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf0' constrained to Bel 'X13/Y0/PIOA'.
+Info: led_5__io feeds TRELLIS_IO pin_led_5.buf.buf.buf0, removing $nextpnr_obuf led_5__io.
+Info: pin 'pin_led_5.buf.buf.buf0' constrained to Bel 'X49/Y0/PIOB'.
+Info: led_4__io feeds TRELLIS_IO pin_led_4.buf.buf.buf0, removing $nextpnr_obuf led_4__io.
+Info: pin 'pin_led_4.buf.buf.buf0' constrained to Bel 'X58/Y0/PIOA'.
+Info: led_3__io feeds TRELLIS_IO pin_led_3.buf.buf.buf0, removing $nextpnr_obuf led_3__io.
+Info: pin 'pin_led_3.buf.buf.buf0' constrained to Bel 'X67/Y0/PIOB'.
+Info: led_2__io feeds TRELLIS_IO pin_led_2.buf.buf.buf0, removing $nextpnr_obuf led_2__io.
+Info: pin 'pin_led_2.buf.buf.buf0' constrained to Bel 'X67/Y0/PIOA'.
+Info: led_1__io feeds TRELLIS_IO pin_led_1.buf.buf.buf0, removing $nextpnr_obuf led_1__io.
+Info: pin 'pin_led_1.buf.buf.buf0' constrained to Bel 'X60/Y0/PIOB'.
+Info: led_0__io feeds TRELLIS_IO pin_led_0.buf.buf.buf0, removing $nextpnr_obuf led_0__io.
+Info: pin 'pin_led_0.buf.buf.buf0' constrained to Bel 'X62/Y0/PIOB'.
+Info: control_vbus_en_0__io feeds TRELLIS_IO pin_control_vbus_en_0.buf.buf.buf0, removing $nextpnr_obuf control_vbus_en_0__io.
+Info: pin 'pin_control_vbus_en_0.buf.buf.buf0' constrained to Bel 'X0/Y26/PIOA'.
+Info: clk_60MHz_0__io feeds TRELLIS_IO pin_clk_60MHz_0.buf.buf.buf0, removing $nextpnr_ibuf clk_60MHz_0__io.
+Info: pin 'pin_clk_60MHz_0.buf.buf.buf0' constrained to Bel 'X29/Y0/PIOB'.
+Info: button_user_0__io feeds TRELLIS_IO pin_button_user_0.buf.buf.buf0, removing $nextpnr_ibuf button_user_0__io.
+Info: pin 'pin_button_user_0.buf.buf.buf0' constrained to Bel 'X72/Y32/PIOD'.
+Info: aux_vbus_en_0__io feeds TRELLIS_IO pin_aux_vbus_en_0.buf.buf.buf0, removing $nextpnr_obuf aux_vbus_en_0__io.
+Info: pin 'pin_aux_vbus_en_0.buf.buf.buf0' constrained to Bel 'X0/Y26/PIOB'.
+Info: placed PLL 'car.pll' at bel 'X2/Y49/EHXPLL_LL'
+Info: Packing constants..
+Info: Packing carries...
+Info: Packing LUTs...
+Info: Packing LUT5-7s...
+Info: Packing FFs...
+Info:     266 FFs paired with LUTs.
+Info: Generating derived timing constraints...
+Info:     Input frequency of PLL 'car.pll' is constrained to 60.0 MHz
+Info:     Derived frequency constraint of 240.0 MHz for net car._clk_240MHz
+Info:     Derived frequency constraint of 120.0 MHz for net car._clk_120MHz
+Info:     Derived frequency constraint of 60.0 MHz for net car.clk_usb
+Info: Promoting globals...
+Info:     promoting clock net car.clk_usb to global network
+Info:     promoting clock net car._clk_120MHz to global network
+Info: Checksum: 0x7dbd6579
+
+Info: Device utilisation:
+Info: 	          TRELLIS_IO:      78/    197    39%
+Info: 	                DCCA:       2/     56     3%
+Info: 	              DP16KD:       0/     56     0%
+Info: 	          MULT18X18D:       0/     28     0%
+Info: 	              ALU54B:       0/     14     0%
+Info: 	             EHXPLLL:       1/      2    50%
+Info: 	             EXTREFB:       0/      1     0%
+Info: 	                DCUA:       0/      1     0%
+Info: 	           PCSCLKDIV:       0/      2     0%
+Info: 	             IOLOGIC:       0/    128     0%
+Info: 	            SIOLOGIC:       0/     69     0%
+Info: 	                 GSR:       0/      1     0%
+Info: 	               JTAGG:       1/      1   100%
+Info: 	                OSCG:       0/      1     0%
+Info: 	               SEDGA:       0/      1     0%
+Info: 	                 DTR:       0/      1     0%
+Info: 	             USRMCLK:       0/      1     0%
+Info: 	             CLKDIVF:       0/      4     0%
+Info: 	           ECLKSYNCB:       0/     10     0%
+Info: 	             DLLDELD:       0/      8     0%
+Info: 	              DDRDLL:       0/      4     0%
+Info: 	             DQSBUFM:       0/      8     0%
+Info: 	     TRELLIS_ECLKBUF:       0/      8     0%
+Info: 	        ECLKBRIDGECS:       0/      2     0%
+Info: 	                DCSC:       0/      2     0%
+Info: 	          TRELLIS_FF:     333/  24288     1%
+Info: 	        TRELLIS_COMB:    1273/  24288     5%
+Info: 	        TRELLIS_RAMW:       0/   3036     0%
+
+Info: Placed 79 cells based on constraints.
+Info: Creating initial analytic placement for 712 cells, random placement wirelen = 50952.
+Info:     at initial placer iter 0, wirelen = 1502
+Info:     at initial placer iter 1, wirelen = 1557
+Info:     at initial placer iter 2, wirelen = 1564
+Info:     at initial placer iter 3, wirelen = 1530
+Info: Running main analytical placer, max placement attempts per cell = 356168.
+Info:     at iteration #1, type ALL: wirelen solved = 1521, spread = 6831, legal = 7158; time = 0.02s
+Info:     at iteration #2, type ALL: wirelen solved = 1708, spread = 5761, legal = 6178; time = 0.01s
+Info:     at iteration #3, type ALL: wirelen solved = 1857, spread = 5035, legal = 5586; time = 0.01s
+Info:     at iteration #4, type ALL: wirelen solved = 2074, spread = 4234, legal = 4957; time = 0.01s
+Info:     at iteration #5, type ALL: wirelen solved = 2204, spread = 4196, legal = 4875; time = 0.01s
+Info:     at iteration #6, type ALL: wirelen solved = 2225, spread = 3815, legal = 4533; time = 0.01s
+Info:     at iteration #7, type ALL: wirelen solved = 2135, spread = 3946, legal = 4711; time = 0.01s
+Info:     at iteration #8, type ALL: wirelen solved = 2258, spread = 3887, legal = 4557; time = 0.01s
+Info:     at iteration #9, type ALL: wirelen solved = 2360, spread = 3623, legal = 4402; time = 0.01s
+Info:     at iteration #10, type ALL: wirelen solved = 2369, spread = 3598, legal = 4323; time = 0.01s
+Info:     at iteration #11, type ALL: wirelen solved = 2427, spread = 3625, legal = 4413; time = 0.01s
+Info:     at iteration #12, type ALL: wirelen solved = 2493, spread = 3485, legal = 4205; time = 0.01s
+Info:     at iteration #13, type ALL: wirelen solved = 2414, spread = 3738, legal = 4357; time = 0.01s
+Info:     at iteration #14, type ALL: wirelen solved = 2477, spread = 3559, legal = 4298; time = 0.01s
+Info:     at iteration #15, type ALL: wirelen solved = 2509, spread = 3497, legal = 4301; time = 0.01s
+Info:     at iteration #16, type ALL: wirelen solved = 2494, spread = 3558, legal = 4326; time = 0.01s
+Info:     at iteration #17, type ALL: wirelen solved = 2582, spread = 3637, legal = 4339; time = 0.01s
+Info: HeAP Placer Time: 0.33s
+Info:   of which solving equations: 0.18s
+Info:   of which spreading cells: 0.04s
+Info:   of which strict legalisation: 0.02s
+
+Info: Running simulated annealing placer for refinement.
+Info:   at iteration #1: temp = 0.000000, timing cost = 245, wirelen = 4205
+Info:   at iteration #5: temp = 0.000000, timing cost = 248, wirelen = 3800
+Info:   at iteration #10: temp = 0.000000, timing cost = 258, wirelen = 3663
+Info:   at iteration #14: temp = 0.000000, timing cost = 233, wirelen = 3635 
+Info: SA placement time 0.86s
+
+Info: Max frequency for clock     '$glbnet$car.clk_usb': 158.60 MHz (PASS at 60.00 MHz)
+Info: Max frequency for clock '$glbnet$car._clk_120MHz': 291.46 MHz (PASS at 120.00 MHz)
+
+Info: Max delay <async>                         -> <async>                    : 2.97 ns
+Info: Max delay <async>                         -> posedge $glbnet$car.clk_usb: 6.14 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> <async>                    : 3.55 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> posedge $glbnet$car.clk_usb: 3.71 ns
+Info: Max delay posedge $glbnet$car.clk_usb     -> <async>                    : 40.62 ns
+
+Info: Slack histogram:
+Info:  legend: times are in ps
+Info:          * represents 1 endpoint(s)
+Info:          + represents [1,1) endpoint(s)
+Info: [  4902,   5462) |***+
+Info: [  5462,   6022) |*+
+Info: [  6022,   6582) |+
+Info: [  6582,   7142) |*****+
+Info: [  7142,   7702) |*+
+Info: [  7702,   8262) | 
+Info: [  8262,   8822) | 
+Info: [  8822,   9382) | 
+Info: [  9382,   9942) | 
+Info: [  9942,  10502) |****+
+Info: [ 10502,  11062) |**************+
+Info: [ 11062,  11622) |*************************************************+
+Info: [ 11622,  12182) |*********************************************+
+Info: [ 12182,  12742) |*****************************************+
+Info: [ 12742,  13302) |*******************************************************+
+Info: [ 13302,  13862) |**************************************************+
+Info: [ 13862,  14422) |************************************************************ 
+Info: [ 14422,  14982) |*******************************************************+
+Info: [ 14982,  15542) |********************+
+Info: [ 15542,  16102) |**************************+
+Info: Checksum: 0xaac27e69
+Info: Routing globals...
+Info:     routing clock net $glbnet$car._clk_120MHz using global 0
+Info:     routing clock net $glbnet$car.clk_usb using global 1
+
+Info: Routing..
+Info: Setting up routing queue.
+Info: Routing 3979 arcs.
+Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
+Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
+Info:       1000 |      162        837 |  162   837 |      3150|       0.18       0.18|
+Info:       2000 |      422       1541 |  260   704 |      2445|       0.12       0.31|
+Info:       3000 |      575       2312 |  153   771 |      1606|       0.10       0.41|
+Info:       4000 |      601       3148 |   26   836 |       633|       0.15       0.56|
+Info:       4644 |      613       3676 |   12   528 |         0|       0.11       0.66|
+Info: Routing complete.
+Info: Router1 time 0.66s
+Info: Checksum: 0xc00002b7
+
+Info: Critical path report for clock '$glbnet$car.clk_usb' (posedge -> posedge):
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source protocol.div_TRELLIS_FF_Q_2.Q
+Info:    routing  0.72  1.12 Net protocol.div[3] (5,27) -> (6,27)
+Info:                          Sink protocol.packets_TRELLIS_FF_Q_3_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_A1_COUT_LUT4_Z_2_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /source/tools/cynthion_usb_key/gateware.py:83
+Info:      logic  0.18  1.30 Source protocol.packets_TRELLIS_FF_Q_3_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_A1_COUT_LUT4_Z_2_D_LUT4_Z.F
+Info:    routing  0.31  1.61 Net protocol.packets_TRELLIS_FF_Q_3_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_A1_COUT_LUT4_Z_2_D[2] (6,27) -> (6,27)
+Info:                          Sink protocol.packets_TRELLIS_FF_Q_3_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_A1_COUT_LUT4_Z_2.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  1.79 Source protocol.packets_TRELLIS_FF_Q_3_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_A1_COUT_LUT4_Z_2.F
+Info:    routing  0.87  2.65 Net protocol.ack_ticks_TRELLIS_FF_Q_3_DI_LUT4_Z_B_CCU2C_S1_S0_LUT4_B_Z[2] (6,27) -> (9,22)
+Info:                          Sink protocol.receiver_live_LUT4_B.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.83 Source protocol.receiver_live_LUT4_B.F
+Info:    routing  0.03  2.87 Net protocol.ack_ticks_TRELLIS_FF_Q_3_DI_LUT4_Z_B_CCU2C_S1_S0[2] (9,22) -> (9,22)
+Info:                          Sink protocol.state_TRELLIS_FF_Q_3_DI_LUT4_Z_D_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.05 Source protocol.state_TRELLIS_FF_Q_3_DI_LUT4_Z_D_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.33  3.38 Net protocol.state_TRELLIS_FF_Q_3_DI_LUT4_Z_D_LUT4_Z_D[3] (9,22) -> (9,22)
+Info:                          Sink protocol.state_TRELLIS_FF_Q_3_DI_LUT4_Z_D_LUT4_Z_D_LUT4_D.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.56 Source protocol.state_TRELLIS_FF_Q_3_DI_LUT4_Z_D_LUT4_Z_D_LUT4_D.F
+Info:    routing  0.52  4.07 Net protocol.phase_TRELLIS_FF_Q_4_DI_LUT4_Z_D_LUT4_D_Z_LUT4_C_B[3] (9,22) -> (9,22)
+Info:                          Sink protocol.receiver_live_LUT4_B_C_LUT4_D_Z_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  4.25 Source protocol.receiver_live_LUT4_B_C_LUT4_D_Z_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.49  4.74 Net protocol.receiver_live_LUT4_B_C_LUT4_D_Z_LUT4_Z_D[3] (9,22) -> (12,22)
+Info:                          Sink protocol.receiver_live_LUT4_B_C_LUT4_D_Z_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  4.92 Source protocol.receiver_live_LUT4_B_C_LUT4_D_Z_LUT4_Z.F
+Info:    routing  0.39  5.31 Net protocol.receiver_live_LUT4_B_C_LUT4_D_Z[3] (12,22) -> (12,20)
+Info:                          Sink safe_phy.line_state_valid_LUT4_A.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  5.49 Source safe_phy.line_state_valid_LUT4_A.F
+Info:    routing  0.57  6.07 Net safe_phy.line_state_valid_LUT4_A_Z (12,20) -> (11,21)
+Info:                          Sink protocol.dp_low_ticks_TRELLIS_FF_Q_3.CE
+Info:      setup  0.00  6.07 Source protocol.dp_low_ticks_TRELLIS_FF_Q_3.CE
+Info: 1.84 ns logic, 4.23 ns routing
+
+Info: Critical path report for clock '$glbnet$car._clk_120MHz' (posedge -> posedge):
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_6.Q
+Info:    routing  0.74  1.13 Net car.usb_reset.cycles_in_reset[0] (8,31) -> (9,31)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1$CCU2_COMB0.B
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  1.49 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  1.49 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1$CCU2_FCI_INT (9,31) -> (9,31)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.00  1.49 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1$CCU2_COMB1.FCO
+Info:    routing  0.00  1.49 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT (9,31) -> (9,31)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/architecture/car.py:88
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.33  1.81 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN$CCU2_COMB0.F
+Info:    routing  0.84  2.66 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1[0] (9,31) -> (9,30)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_LUT4_Z.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.84 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.03  2.87 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D[2] (9,30) -> (9,30)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.05 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0_LUT4_Z.F
+Info:    routing  0.33  3.38 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0[3] (9,30) -> (9,30)
+Info:                          Sink car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.56 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.47  4.03 Net car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z_D[3] (9,30) -> (9,30)
+Info:                          Sink car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  4.21 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z.F
+Info:    routing  0.48  4.69 Net car.usb_reset.fsm_state_TRELLIS_FF_Q_CE (9,30) -> (10,30)
+Info:                          Sink car.usb_reset.fsm_state_TRELLIS_FF_Q_1.CE
+Info:      setup  0.00  4.69 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_1.CE
+Info: 1.80 ns logic, 2.89 ns routing
+
+Info: Critical path report for cross-domain path '<async>' -> '<async>':
+Info:       type curr  total name
+Info:     source  0.00  0.00 Source pin_target_phy_0__dir.buf.buf.buf0.O
+Info:    routing  1.33  1.33 Net safe_phy.read_request_LUT4_A_C[3] (0,41) -> (2,32)
+Info:                          Sink pin_target_phy_0__data.buf.buf.buf0_T_LUT4_Z.C
+Info:                          Defined in:
+Info:                               /source/tools/cynthion_usb_key/top.py:68
+Info:      logic  0.18  1.50 Source pin_target_phy_0__data.buf.buf.buf0_T_LUT4_Z.F
+Info:    routing  1.16  2.67 Net pin_target_phy_0__data.buf.buf.buf0_T (2,32) -> (0,35)
+Info:                          Sink pin_target_phy_0__data.buf.buf.buf4.T
+Info: 0.18 ns logic, 2.49 ns routing
+
+Info: Critical path report for cross-domain path '<async>' -> 'posedge $glbnet$car.clk_usb':
+Info:       type curr  total name
+Info:     source  0.00  0.00 Source debug_registers.interface.jtag.JRSTN
+Info:    routing  2.82  2.82 Net debug_registers.interface.delayed_LUT4_C_Z[1] (4,49) -> (17,20)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_29_DI_LUT4_Z_D_PFUMX_Z_ALUT_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.99 Source debug_registers.interface.data_register_TRELLIS_FF_Q_29_DI_LUT4_Z_D_PFUMX_Z_ALUT_LUT4_Z.F
+Info:    routing  0.00  2.99 Net debug_registers.interface.data_register_TRELLIS_FF_Q_29_DI_LUT4_Z_D_PFUMX_Z_ALUT (17,20) -> (17,20)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_29_DI_LUT4_Z_D_PFUMX_Z_BLUT_LUT4_Z.F1
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:133.22-133.24
+Info:      logic  0.13  3.12 Source debug_registers.interface.data_register_TRELLIS_FF_Q_29_DI_LUT4_Z_D_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  0.32  3.44 Net debug_registers.interface.data_register_TRELLIS_FF_Q_29_DI_LUT4_Z_D[4] (17,20) -> (15,20)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_23_DI_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.62 Source debug_registers.interface.data_register_TRELLIS_FF_Q_23_DI_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.51  4.13 Net debug_registers.interface.data_register_TRELLIS_FF_Q_23_DI_LUT4_Z_D[4] (15,20) -> (15,21)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_10_DI_PFUMX_Z_BLUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  4.32 Source debug_registers.interface.data_register_TRELLIS_FF_Q_10_DI_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  0.35  4.68 Net debug_registers.interface.data_register_TRELLIS_FF_Q_10_DI (15,21) -> (15,21)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_10.M
+Info:      setup  0.00  4.68 Source debug_registers.interface.data_register_TRELLIS_FF_Q_10.M
+Info: 0.68 ns logic, 4.00 ns routing
+
+Info: Critical path report for cross-domain path 'posedge $glbnet$car._clk_120MHz' -> '<async>':
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_1.Q
+Info:    routing  0.73  1.12 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0[0] (10,30) -> (8,29)
+Info:                          Sink safe_phy.fault_TRELLIS_FF_Q_DI_LUT4_Z_D_LUT4_Z_1_A_LUT4_C_Z_LUT4_Z_1.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  1.30 Source safe_phy.fault_TRELLIS_FF_Q_DI_LUT4_Z_D_LUT4_Z_1_A_LUT4_C_Z_LUT4_Z_1.F
+Info:    routing  1.87  3.18 Net protocol.arm_event_TRELLIS_FF_Q_LSR_LUT4_Z_D[2] (8,29) -> (0,41)
+Info:                          Sink pin_target_phy_0__rst.buf.buf.buf0.I
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info: 0.57 ns logic, 2.60 ns routing
+
+Info: Critical path report for cross-domain path 'posedge $glbnet$car._clk_120MHz' -> 'posedge $glbnet$car.clk_usb':
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_1.Q
+Info:    routing  0.73  1.12 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0[0] (10,30) -> (8,29)
+Info:                          Sink safe_phy.fault_TRELLIS_FF_Q_DI_LUT4_Z_D_LUT4_Z_1_A_LUT4_C_Z_LUT4_Z_1.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  1.30 Source safe_phy.fault_TRELLIS_FF_Q_DI_LUT4_Z_D_LUT4_Z_1_A_LUT4_C_Z_LUT4_Z_1.F
+Info:    routing  0.79  2.10 Net protocol.arm_event_TRELLIS_FF_Q_LSR_LUT4_Z_D[2] (8,29) -> (2,31)
+Info:                          Sink safe_phy.register_window.ulpi_stop_TRELLIS_FF_Q_LSR_LUT4_Z.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.28 Source safe_phy.register_window.ulpi_stop_TRELLIS_FF_Q_LSR_LUT4_Z.F
+Info:    routing  0.43  2.71 Net safe_phy.register_window.ulpi_stop_TRELLIS_FF_Q_LSR (2,31) -> (2,32)
+Info:                          Sink safe_phy.register_window.ulpi_stop_TRELLIS_FF_Q.LSR
+Info:      setup  0.29  2.99 Source safe_phy.register_window.ulpi_stop_TRELLIS_FF_Q.LSR
+Info: 1.04 ns logic, 1.95 ns routing
+
+Info: Critical path report for cross-domain path 'posedge $glbnet$car.clk_usb' -> '<async>':
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source protocol.sof_ticks_TRELLIS_FF_Q.Q
+Info:    routing  1.26  1.66 Net protocol.sof_ticks[0] (11,21) -> (13,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               /source/tools/cynthion_usb_key/gateware.py:101
+Info:      logic  0.35  2.01 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.01 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (13,24) -> (13,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.01 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.01 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (13,24) -> (13,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.07 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.07 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (13,24) -> (13,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.07 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.07 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (13,24) -> (13,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.12 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.12 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (13,24) -> (13,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.12 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.12 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (13,24) -> (14,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.18 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.18 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (14,24) -> (14,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.18 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.18 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (14,24) -> (14,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.23 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.23 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (14,24) -> (14,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.23 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.23 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (14,24) -> (14,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.29 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.29 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (14,24) -> (14,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.29 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.29 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (14,24) -> (14,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.35 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.35 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (14,24) -> (14,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.35 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.35 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (14,24) -> (15,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.40 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.40 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (15,24) -> (15,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.40 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.40 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (15,24) -> (15,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.46 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.46 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (15,24) -> (15,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.46 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.46 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (15,24) -> (15,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.52 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.52 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (15,24) -> (15,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.52 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.52 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN (15,24) -> (15,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.57 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.57 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT$CCU2_FCI_INT (15,24) -> (15,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.57 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.57 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1_CIN (15,24) -> (16,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  2.63 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  2.63 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1$CCU2_FCI_INT (16,24) -> (16,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.29  2.92 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D_CCU2C_S1$CCU2_COMB1.F
+Info:    routing  0.91  3.83 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_D[1] (16,24) -> (17,23)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_S0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  4.01 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_S0_LUT4_Z.F
+Info:    routing  0.85  4.86 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_S0[0] (17,23) -> (17,22)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  5.22 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  5.22 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_FCI_INT (17,22) -> (17,22)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.00  5.22 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCO
+Info:    routing  0.00  5.22 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT (17,22) -> (17,22)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  5.27 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  5.27 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_FCI_INT (17,22) -> (17,22)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  5.27 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  5.27 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN (17,22) -> (18,22)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.33  5.60 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.F
+Info:    routing  0.89  6.49 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1[2] (18,22) -> (18,23)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  6.67 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z.F
+Info:    routing  0.85  7.52 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0[0] (18,23) -> (19,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  7.88 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  7.88 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_FCI_INT (19,24) -> (19,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  7.88 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  7.88 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT (19,24) -> (19,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  7.93 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  7.93 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (19,24) -> (19,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  7.93 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  7.93 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (19,24) -> (19,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  7.99 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.FCO
+Info:    routing  0.00  7.99 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_FCI_INT (19,24) -> (19,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.FCI
+Info:      logic  0.29  8.28 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.F
+Info:    routing  0.74  9.02 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C[2] (19,24) -> (18,23)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_PFUMX_Z_BLUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  9.21 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  1.19  10.40 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1[0] (18,23) -> (17,26)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  10.76 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCO
+Info:    routing  0.00  10.76 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT (17,26) -> (17,26)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  10.81 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  10.81 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_FCI_INT (17,26) -> (17,26)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  10.81 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  10.81 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN (17,26) -> (17,26)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.33  11.14 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.F
+Info:    routing  1.05  12.19 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1[2] (17,26) -> (18,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_A1_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  12.37 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_A1_LUT4_Z.F
+Info:    routing  0.87  13.24 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_A1 (18,27) -> (18,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.A
+Info:      logic  0.35  13.59 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  13.59 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (18,28) -> (18,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  13.65 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.FCO
+Info:    routing  0.00  13.65 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_FCI_INT (18,28) -> (18,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.FCI
+Info:      logic  0.29  13.94 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.F
+Info:    routing  0.67  14.61 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C[2] (18,28) -> (17,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  14.79 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z.F
+Info:    routing  0.81  15.61 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1[0] (17,27) -> (17,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  15.96 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCO
+Info:    routing  0.00  15.96 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT (17,29) -> (18,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  16.02 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  16.02 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_FCI_INT (18,29) -> (18,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.00  16.02 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCO
+Info:    routing  0.00  16.02 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT (18,29) -> (18,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  16.08 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  16.08 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_FCI_INT (18,29) -> (18,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  16.08 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  16.08 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN (18,29) -> (18,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.33  16.40 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.F
+Info:    routing  0.87  17.27 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1[2] (18,29) -> (17,30)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  17.45 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z.F
+Info:    routing  1.35  18.80 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0[0] (17,30) -> (17,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  19.16 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  19.16 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_FCI_INT (17,31) -> (17,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  19.16 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  19.16 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT (17,31) -> (18,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  19.21 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  19.21 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (18,31) -> (18,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  19.21 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  19.21 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (18,31) -> (18,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  19.27 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.FCO
+Info:    routing  0.00  19.27 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_FCI_INT (18,31) -> (18,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.FCI
+Info:      logic  0.29  19.56 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.F
+Info:    routing  0.74  20.30 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C[2] (18,31) -> (16,32)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z_C_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  20.48 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z_C_LUT4_Z.F
+Info:    routing  1.01  21.50 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z_C[1] (16,32) -> (14,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  21.85 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.FCO
+Info:    routing  0.00  21.85 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_FCI_INT (14,31) -> (14,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.FCI
+Info:      logic  0.00  21.85 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.FCO
+Info:    routing  0.00  21.85 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1_COUT (14,31) -> (14,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  21.91 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  21.91 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_FCI_INT (14,31) -> (14,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.00  21.91 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCO
+Info:    routing  0.00  21.91 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT (14,31) -> (15,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  21.96 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  21.96 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_FCI_INT (15,31) -> (15,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  21.96 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  21.96 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN (15,31) -> (15,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.33  22.29 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.F
+Info:    routing  0.73  23.02 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1[2] (15,31) -> (15,31)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_A1_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  23.20 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_A1_LUT4_Z.F
+Info:    routing  0.84  24.05 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_A1 (15,31) -> (15,30)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB1.A
+Info:      logic  0.35  24.40 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  24.40 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT (15,30) -> (15,30)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  24.46 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  24.46 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (15,30) -> (15,30)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  24.46 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  24.46 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (15,30) -> (16,30)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  24.51 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  24.51 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_FCI_INT (16,30) -> (16,30)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.29  24.81 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.F
+Info:    routing  1.00  25.81 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C[2] (16,30) -> (14,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_S0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  25.99 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_S0_LUT4_Z.F
+Info:    routing  1.04  27.03 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_S0[0] (14,29) -> (14,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  27.39 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  27.39 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_FCI_INT (14,28) -> (14,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.00  27.39 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCO
+Info:    routing  0.00  27.39 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT (14,28) -> (14,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  27.44 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  27.44 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_FCI_INT (14,28) -> (14,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  27.44 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  27.44 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN (14,28) -> (15,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.33  27.77 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.F
+Info:    routing  0.74  28.51 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1[2] (15,28) -> (14,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1_S0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  28.69 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1_S0_LUT4_Z.F
+Info:    routing  1.02  29.71 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1_S0[0] (14,29) -> (12,30)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  30.07 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.FCO
+Info:    routing  0.00  30.07 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_FCI_INT (12,30) -> (12,30)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.FCI
+Info:      logic  0.29  30.36 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.F
+Info:    routing  0.81  31.17 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_LUT4_Z_C[2] (12,30) -> (12,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z_C_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  31.35 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z_C_LUT4_Z.F
+Info:    routing  1.07  32.42 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z_C[1] (12,24) -> (12,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  32.77 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  32.77 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_FCI_INT (12,29) -> (12,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.00  32.77 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCO
+Info:    routing  0.00  32.77 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT (12,29) -> (12,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  32.83 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  32.83 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_FCI_INT (12,29) -> (12,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.00  32.83 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCO
+Info:    routing  0.00  32.83 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT (12,29) -> (12,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  32.88 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  32.88 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_FCI_INT (12,29) -> (12,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  32.88 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  32.88 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0_CIN (12,29) -> (12,29)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.33  33.21 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S0$CCU2_COMB0.F
+Info:    routing  0.90  34.12 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S1[2] (12,29) -> (12,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  34.29 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0_LUT4_Z.F
+Info:    routing  0.95  35.24 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S0[0] (12,27) -> (14,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  35.60 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  35.60 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_FCI_INT (14,27) -> (14,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  35.60 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  35.60 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT (14,27) -> (14,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  35.65 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  35.65 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (14,27) -> (14,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  35.65 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  35.65 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (14,27) -> (14,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  35.71 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB0.FCO
+Info:    routing  0.00  35.71 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_FCI_INT (14,27) -> (14,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.FCI
+Info:      logic  0.29  36.00 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C_CCU2C_A1_COUT_CCU2C_CIN_S1_CCU2C_S1_1$CCU2_COMB1.F
+Info:    routing  1.24  37.24 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z_C[2] (14,27) -> (11,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  37.42 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1_LUT4_Z.F
+Info:    routing  1.06  38.49 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_S1[0] (11,24) -> (8,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0$CCU2_COMB1.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  38.84 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0$CCU2_COMB1.FCO
+Info:    routing  0.00  38.84 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT (8,27) -> (9,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  38.90 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  38.90 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN$CCU2_FCI_INT (9,27) -> (9,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  38.90 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  38.90 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT (9,27) -> (9,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  38.95 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  38.95 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (9,27) -> (9,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  38.95 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  38.95 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (9,27) -> (9,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  39.01 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  39.01 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (9,27) -> (9,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  39.01 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  39.01 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (9,27) -> (9,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  39.06 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  39.06 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (9,27) -> (9,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  39.06 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  39.06 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (9,27) -> (10,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  39.12 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  39.12 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (10,27) -> (10,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  39.12 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  39.12 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (10,27) -> (10,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  39.18 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  39.18 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (10,27) -> (10,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  39.18 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  39.18 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (10,27) -> (10,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  39.23 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  39.23 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (10,27) -> (10,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  39.23 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  39.23 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT (10,27) -> (10,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:339.28-339.64
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:469.4-474.3
+Info:                               /work/oss-cad-suite/lib/../share/yosys/techmap.v:536.4-540.3
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  39.29 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB0.FCO
+Info:    routing  0.00  39.29 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_FCI_INT (10,27) -> (10,27)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCI
+Info:      logic  0.00  39.29 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C_CCU2C_A0_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  39.29 Net $nextpnr_CCU2C_47$CIN (10,27) -> (11,27)
+Info:                          Sink $nextpnr_CCU2C_47$CCU2_COMB0.FCI
+Info:      logic  0.33  39.62 Source $nextpnr_CCU2C_47$CCU2_COMB0.F
+Info:    routing  0.82  40.44 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A0_LUT4_Z_C[2] (11,27) -> (8,24)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A1_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  40.62 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A1_LUT4_Z.F
+Info:    routing  0.93  41.55 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_A1 (8,24) -> (8,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.A
+Info:      logic  0.35  41.90 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  41.90 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT_CIN (8,28) -> (8,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  41.96 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  41.96 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (8,28) -> (8,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  41.96 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  41.96 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT_CIN (8,28) -> (9,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  42.01 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  42.01 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT$CCU2_FCI_INT (9,28) -> (9,28)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  42.01 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  42.01 Net $nextpnr_CCU2C_37$CIN (9,28) -> (9,28)
+Info:                          Sink $nextpnr_CCU2C_37$CCU2_COMB0.FCI
+Info:      logic  0.33  42.34 Source $nextpnr_CCU2C_37$CCU2_COMB0.F
+Info:    routing  0.55  42.90 Net pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z_D (9,28) -> (9,26)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /source/tools/cynthion_usb_key/gateware.py:173
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.18  43.08 Source pin_target_usb_dp_0.buf.buf.buf0_T_LUT4_Z.F
+Info:    routing  1.22  44.30 Net pin_target_usb_dp_0.buf.buf.buf0_T (9,26) -> (0,38)
+Info:                          Sink pin_target_usb_dp_0.buf.buf.buf0.T
+Info: 15.29 ns logic, 29.01 ns routing
+
+Info: Max frequency for clock     '$glbnet$car.clk_usb': 164.80 MHz (PASS at 60.00 MHz)
+Info: Max frequency for clock '$glbnet$car._clk_120MHz': 213.22 MHz (PASS at 120.00 MHz)
+
+Info: Max delay <async>                         -> <async>                    : 2.67 ns
+Info: Max delay <async>                         -> posedge $glbnet$car.clk_usb: 4.68 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> <async>                    : 3.18 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> posedge $glbnet$car.clk_usb: 2.99 ns
+Info: Max delay posedge $glbnet$car.clk_usb     -> <async>                    : 44.30 ns
+
+Info: Slack histogram:
+Info:  legend: times are in ps
+Info:          * represents 1 endpoint(s)
+Info:          + represents [1,1) endpoint(s)
+Info: [  3643,   4259) |**+
+Info: [  4259,   4875) |+
+Info: [  4875,   5491) | 
+Info: [  5491,   6107) |*+
+Info: [  6107,   6723) |*+
+Info: [  6723,   7339) |****+
+Info: [  7339,   7955) | 
+Info: [  7955,   8571) | 
+Info: [  8571,   9187) | 
+Info: [  9187,   9803) | 
+Info: [  9803,  10419) | 
+Info: [ 10419,  11035) |**************+
+Info: [ 11035,  11651) |***************************************+
+Info: [ 11651,  12267) |*******************************************+
+Info: [ 12267,  12883) |*********************************+
+Info: [ 12883,  13499) |*********************************************************+
+Info: [ 13499,  14115) |************************************************************ 
+Info: [ 14115,  14731) |**************************************************+
+Info: [ 14731,  15347) |*************+
+Info: [ 15347,  15963) |**************************+
+
+Info: Program finished normally.

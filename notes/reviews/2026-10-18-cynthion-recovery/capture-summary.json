@@ -1,0 +1,178 @@
+{
+  "scope": "Independent PCAPNG block framing and tshark device-descriptor decoding. Valid block framing does not mean a capture is complete or USB packets valid; attempt03 is explicitly incomplete. Block type0x6 is Enhanced Packet, not decoded-valid USB proof.",
+  "captures": [
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt01-auto.pcapng",
+      "bytes": 404,
+      "sha256": "9aa83955c9a6690fbe9c126d5d6e0e739cbe415e78a78070af89fbd1847eeae3",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 5,
+        "0x5": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [],
+      "stderr": ""
+    },
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt02-full.pcapng",
+      "bytes": 4920,
+      "sha256": "422a508f3879faa8cf4e4dd139ec5553be29f7a60458c5b5ca2cad905ef9db8d",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 4,
+        "0x6": 126,
+        "0x5": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [],
+      "stderr": ""
+    },
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt03-full-after-mouse-pass.pcapng",
+      "bytes": 224,
+      "sha256": "80f7cf58920962d5d4277e6d5d499e526af0c2964d1e336a67fad0bbc568a6ca",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [],
+      "stderr": ""
+    },
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt04-full-software-power.pcapng",
+      "bytes": 320,
+      "sha256": "051fe585642ea5d69d117dbced05af70b118b37fa214e981f3593104610235e7",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 2,
+        "0x5": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [],
+      "stderr": ""
+    },
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt05-full-physical-cycle.pcapng",
+      "bytes": 320,
+      "sha256": "e3988c02ddbdf879313969ce63fd37a67933912fc0452a4ec343b96f5ea360a3",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 2,
+        "0x5": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [],
+      "stderr": ""
+    },
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/control01-reset-interrupted.pcapng",
+      "bytes": 276,
+      "sha256": "a98f0935dec5014fedf76ba967a456a484641772f4101083f4323de2a543071d",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 1,
+        "0x5": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [],
+      "stderr": ""
+    },
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/control02-mouse-auto.pcapng",
+      "bytes": 109868,
+      "sha256": "0be23643253bfe1dca8c52883c330f328d9b6170aea106c41beb7a265d7b12ed",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 2107,
+        "0x6": 1161,
+        "0x5": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [],
+      "stderr": ""
+    },
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/control03-mouse-replacement.pcapng",
+      "bytes": 70308,
+      "sha256": "dcb74ad2b1248e723799ef074f8a565b87540ea5f70221d6f0fb45578af3920b",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 2092,
+        "0x6": 78,
+        "0x5": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [],
+      "stderr": ""
+    },
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/control04-cold-auto.pcapng",
+      "bytes": 67804,
+      "sha256": "e24627cd6f09663f8ce8ba11e3b11588590967383906a77b32031917ac28c1a6",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 1992,
+        "0x6": 96,
+        "0x5": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [],
+      "stderr": ""
+    },
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/control05-low-flipped.pcapng",
+      "bytes": 68696,
+      "sha256": "8a8b6ab914ff9a8f77be34b5adbd784d4c760e70437cc72f4e0a0b8091b9c975",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 2003,
+        "0x6": 110,
+        "0x5": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [],
+      "stderr": ""
+    },
+    {
+      "file": "evidence/coordinator/cynthion-enumeration-capture-20261018/control06-low-software-power-pass.pcapng",
+      "bytes": 806876,
+      "sha256": "cc46944b45675ab9a104a7e9c788a26fb9a6583f7b82a1962f742e6aa67c1013",
+      "block_framing_valid": true,
+      "block_types": {
+        "0xa0d0d0a": 1,
+        "0x1": 1,
+        "0x40000bad": 21898,
+        "0x6": 2921,
+        "0x5": 1
+      },
+      "tshark_exit": 0,
+      "decoded_device_descriptors": [
+        "91\t0x17ef\t0x6019\t8",
+        "209\t0x17ef\t0x6019\t8"
+      ],
+      "stderr": ""
+    }
+  ]
+}

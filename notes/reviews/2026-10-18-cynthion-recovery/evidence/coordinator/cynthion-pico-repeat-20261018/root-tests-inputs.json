@@ -1,0 +1,10 @@
+{
+  "result": "117 passed in 15.09s",
+  "checks": "ULPI/key gateware/power monitor/readout combined; source-only simulation; no hardware",
+  "files": {
+    "tools/cynthion_usb_key/gateware.py": "d260878aa2add66ebc5a13cd5b46ee74edb5fe335a2727e3c3109899e3331b86",
+    "tools/cynthion_usb_key/top.py": "2f0ba70006b5531b890147f84da9bbc7f444cd7bfbe493f5b6151d6218c7f5c6",
+    "tools/cynthion_usb_key/build.py": "b57ec400cef588a333fc109634ba5d55203bab199d9168e35173a73d930633fa",
+    "tests/test_cynthion_usb_key_pico_repeat.py": "065c067572300511e43554e5bce9f46da16acf830813522780c5e59a076b21f1"
+  }
+}

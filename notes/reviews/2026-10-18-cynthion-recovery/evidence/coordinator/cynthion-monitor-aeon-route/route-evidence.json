@@ -1,0 +1,200 @@
+{
+  "purpose": "source-only routed Cynthion r1.4 power-monitor prototype",
+  "source": {
+    "commit": "b9ff8de7376a7a5c541e4ebbd7161e2911cf2783",
+    "tree": "78e95d1f263ffc97e627f4d82d6bb5cedee147de",
+    "clean_before_output_mounts": true,
+    "sha256": {
+      "tools/cynthion_usb_key/power_monitor.py": "79df441f1c9894d7557c2d0f2d572ecca75fd4d03df09b455de745064767925f",
+      "gateware/ulpi_safe_phy.py": "88483a1b828c52ec5e3e64c3600af29a270bc8cd2029364a851087f85eab21f1",
+      "gateware/requirements-test.txt": "72b53fb0259bb4f8e1e7dbfcfe6ba884ee3edd80c2cd2f1f805fd8f3246fa1e8",
+      "cynthion_platform_r1_4.py": "d874be68494149f685b2314bd7974c934727918f5f7a241e0ae079f1340f91fc"
+    }
+  },
+  "build_command": "SOURCE_COMMIT=b9ff8de7376a7a5c541e4ebbd7161e2911cf2783 /venv/bin/python -m tools.cynthion_usb_key.power_monitor --build-dir /out/build",
+  "container": {
+    "id": "09614e66358061c5ece77e836fb8ee9dee8c886186753260ff24735a1b033f3e",
+    "image": "lunar-modulator-manual:ubuntu-24.04",
+    "image_id": "sha256:d065eaf170070135564c88bd4273f30784278b35c9355d36a0a96bd6ba20cc8c",
+    "network_disconnected_for_build": true,
+    "cgroup_parent": "docker-batch.slice",
+    "cpus": 4,
+    "memory_bytes": 8589934592,
+    "memory_swap_bytes": 8589934592,
+    "effective_swap_max_bytes": 0,
+    "effective_cpu_max": "400000 100000",
+    "labels": {
+      "lan.project": "lunar-modulator",
+      "lan.session": "cynthion-monitor-aeon-route-20261016"
+    }
+  },
+  "toolchain": {
+    "oss_cad_suite_release": "2026-10-16",
+    "asset": "oss-cad-suite-linux-x64-20261016.tgz",
+    "asset_url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-10-16/oss-cad-suite-linux-x64-20261016.tgz",
+    "asset_bytes": 748221305,
+    "asset_sha256": "95aead487287adf8fbbe965799e88e2ccb12a544f3d0a27b27f80bfc7c892911",
+    "yosys": "Yosys 0.70+145 (git sha1 a31d95ea0, Release, Clang /usr/bin/clang++ 21.1.8)",
+    "nextpnr_ecp5": "\"nextpnr-ecp5\" -- Next Generation Place and Route (Version nextpnr-0.11.1-63-g44a6c739)",
+    "ecppack": "Project Trellis ecppack Version 1.4-86-ga31ff70",
+    "python_packages": {
+      "cynthion": "0.2.5",
+      "amaranth": "0.5.10",
+      "luna-usb": "0.2.3",
+      "apollo-fpga": "1.1.1",
+      "pytest": "9.1.1"
+    }
+  },
+  "route": {
+    "programmed": false,
+    "program_api_invoked": false,
+    "timing_report_pass_fmax_mhz": [
+      {
+        "line": "Info: Max frequency for clock     '$glbnet$car.clk_usb': 137.78 MHz (PASS at 60.00 MHz)",
+        "mhz": 137.78
+      },
+      {
+        "line": "Info: Max frequency for clock '$glbnet$car._clk_120MHz': 246.85 MHz (PASS at 120.00 MHz)",
+        "mhz": 246.85
+      },
+      {
+        "line": "Info: Max frequency for clock     '$glbnet$car.clk_usb': 171.61 MHz (PASS at 60.00 MHz)",
+        "mhz": 171.61
+      },
+      {
+        "line": "Info: Max frequency for clock '$glbnet$car._clk_120MHz': 209.29 MHz (PASS at 120.00 MHz)",
+        "mhz": 209.29
+      }
+    ],
+    "final_routed_clock_summary": [
+      {
+        "line": "Info: Max frequency for clock     '$glbnet$car.clk_usb': 171.61 MHz (PASS at 60.00 MHz)",
+        "mhz": 171.61
+      },
+      {
+        "line": "Info: Max frequency for clock '$glbnet$car._clk_120MHz': 209.29 MHz (PASS at 120.00 MHz)",
+        "mhz": 209.29
+      }
+    ],
+    "target_dp_dm_gpio_ports": [],
+    "target_dp_dm_gpio_oe_absent": true,
+    "vbus_output_iobuf": {
+      "control_vbus_en_0__io": {
+        "direction": "output",
+        "value": "1",
+        "tri_state": "0"
+      },
+      "target_c_vbus_en_0__io": {
+        "direction": "output",
+        "value": "0",
+        "tri_state": "0"
+      },
+      "aux_vbus_en_0__io": {
+        "direction": "output",
+        "value": "0",
+        "tri_state": "0"
+      },
+      "target_a_discharge_0__io": {
+        "direction": "output",
+        "value": "0",
+        "tri_state": "0"
+      }
+    },
+    "bitstream_sha256": "635b7b1376db0d97656932df57ff3fc331379876f21c2509f9803928b122e378",
+    "artifacts": {
+      "build_cynthion_power_monitor.bat": {
+        "bytes": 860,
+        "sha256": "c116d71ca87262cfe378e22f08fd1ddeec3931a73c2bda57e13ecc08b95ae18c"
+      },
+      "build_cynthion_power_monitor.json": {
+        "bytes": 588,
+        "sha256": "1b386501263b3370afcee4bedebb68fb7c59a763f7858d4d670b001f99afb2e9"
+      },
+      "build_cynthion_power_monitor.sh": {
+        "bytes": 614,
+        "sha256": "9f9f197f7e47556657e9f2f2cfe797dabc9f47d502b8dd9095214a2e94fd8d9b"
+      },
+      "cynthion_power_monitor.bit": {
+        "bytes": 119280,
+        "sha256": "635b7b1376db0d97656932df57ff3fc331379876f21c2509f9803928b122e378"
+      },
+      "cynthion_power_monitor.config": {
+        "bytes": 589273,
+        "sha256": "992e3c8266ddf8c18632ecfd46b91cff72ff0525a742cc92ec444f6f840d0016"
+      },
+      "cynthion_power_monitor.debug.v": {
+        "bytes": 107,
+        "sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+      },
+      "cynthion_power_monitor.il": {
+        "bytes": 362149,
+        "sha256": "ae85657cca41bb8d6682f84e62cfc220543c03951013fe56812a9a2312a83493"
+      },
+      "cynthion_power_monitor.json": {
+        "bytes": 3397441,
+        "sha256": "db1093889b0d278a163aa38279939ecf57e575dfed4436fe9abc93d5ecafbcff"
+      },
+      "cynthion_power_monitor.lpf": {
+        "bytes": 7910,
+        "sha256": "6b306df417f5bf130807b876ec126da719015133313e44f049636f24892bd2c3"
+      },
+      "cynthion_power_monitor.rpt": {
+        "bytes": 248288,
+        "sha256": "a45be44b05ac8ba31deb5b3bfc2dd8516d07fbd10f7fb9ebd0b3a72f842694f8"
+      },
+      "cynthion_power_monitor.svf": {
+        "bytes": 253168,
+        "sha256": "8e12bf1aa5d3572cdb5fde36b28a4c8a4c7a22d6f0b788c7bc43fd99f62e7686"
+      },
+      "cynthion_power_monitor.tim": {
+        "bytes": 42452,
+        "sha256": "fd73948d6f6e4bb76283381b096bd5fa14ede22b16cd251fa1d3ac98f536ac55"
+      },
+      "cynthion_power_monitor.ys": {
+        "bytes": 247,
+        "sha256": "f7be96ae3408df9a5bef4f599ee468fbda7c6b7e4cd13a99315aa64397c79a7a"
+      },
+      "cynthion_power_monitor_receipt.json": {
+        "bytes": 1457,
+        "sha256": "011e2b1aac8fce29d10768a988290628b0cb8a45756ca939378c087f131d607c"
+      },
+      "build.log": {
+        "bytes": 1457,
+        "sha256": "011e2b1aac8fce29d10768a988290628b0cb8a45756ca939378c087f131d607c"
+      },
+      "focused-pytest.log": {
+        "bytes": 13729,
+        "sha256": "ab49623eef4b6b14cbcaeb9c7c65023823cebf8a7226815027a1ca039d7e5c37"
+      },
+      "pip-install.log": {
+        "bytes": 11561,
+        "sha256": "a7c155955f484dc2c62f21c80a5320d586c38a13922f4083d97f8155d4f9a298"
+      },
+      "pip-freeze.txt": {
+        "bytes": 513,
+        "sha256": "8c8bb6e649f5e7582e0ce0735841e7a3487accf722dae744de52f2c5e9e70b8d"
+      },
+      "oss-cad-suite-download.json": {
+        "bytes": 308,
+        "sha256": "4e75876c9235847c949f0d448fd25075eab378a400fd4a865d9ae953b1308d8d"
+      },
+      "yosys-version.txt": {
+        "bytes": 76,
+        "sha256": "7d56623538f179980b7871aa28d7249ba38b3310e343f6cd8d6c07aeccbda4fa"
+      },
+      "nextpnr-version.txt": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "ecppack-version.txt": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "limits": [
+    "No hardware was connected or accessed; bitstream was not loaded.",
+    "Routed timing/netlist proves synthesis and route properties only, not external PHY behavior or current measurement calibration.",
+    "PAC register wrapper has no end-to-end register-read BFM; keep it as a separately open verification gap."
+  ]
+}

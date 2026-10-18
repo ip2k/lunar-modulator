@@ -1,0 +1,32 @@
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+Oct 18 00:56:10 bench01 kernel: usb 3-2: new full-speed USB device number 52 using xhci-hcd
+Oct 18 00:56:10 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 00:56:11 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 00:56:11 bench01 kernel: usb 3-2: device not accepting address 52, error -71
+Oct 18 00:56:11 bench01 kernel: usb 3-2: WARN: invalid context state for evaluate context command.
+Oct 18 00:56:11 bench01 kernel: usb 3-2: new full-speed USB device number 53 using xhci-hcd
+Oct 18 00:56:11 bench01 kernel: usb 3-2: device descriptor read/64, error -71
+Oct 18 00:56:11 bench01 kernel: usb 3-2: device descriptor read/64, error -71
+Oct 18 00:56:11 bench01 kernel: usb usb3-port2: attempt power cycle
+Oct 18 00:56:12 bench01 kernel: usb 3-2: new full-speed USB device number 54 using xhci-hcd
+Oct 18 00:56:12 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 00:56:12 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 00:56:12 bench01 kernel: usb 3-2: device not accepting address 54, error -71
+Oct 18 00:56:12 bench01 kernel: usb 3-2: WARN: invalid context state for evaluate context command.
+Oct 18 00:56:12 bench01 kernel: usb 3-2: new full-speed USB device number 55 using xhci-hcd
+Oct 18 00:56:12 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 00:56:12 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 00:56:13 bench01 kernel: usb 3-2: device not accepting address 55, error -71
+Oct 18 00:56:13 bench01 kernel: usb 3-2: WARN: invalid context state for evaluate context command.
+Oct 18 00:56:13 bench01 kernel: usb usb3-port2: unable to enumerate USB device
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]

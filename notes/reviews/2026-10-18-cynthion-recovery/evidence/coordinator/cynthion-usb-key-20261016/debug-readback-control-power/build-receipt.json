@@ -1,0 +1,47 @@
+{
+  "artifact": "cynthion_usb_key.bit",
+  "artifact_bytes": 174763,
+  "artifact_sha256": "b3b2037bf2e7e743c0d8ade268a22c5e8f9ef3859426bf7f10e3951c56c56a2e",
+  "build_mode": "operation",
+  "container_limits": {
+    "cgroup_parent": "docker-batch.slice",
+    "cpu": 4,
+    "memory_gib": 8,
+    "network": "none",
+    "swap_gib": 8
+  },
+  "hardware_access": false,
+  "image": "sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1",
+  "lpf_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+  "netlist_power_outputs": {
+    "AUX_VBUS": 0,
+    "CONTROL_VBUS": 1,
+    "TARGET_A_DISCHARGE": 0,
+    "TARGET_C_VBUS": 0
+  },
+  "netlist_sha256": "c804c8419b4f46f25f812f1da4abd5f5a4e11fd7e1a88938aba623a852071378",
+  "source_branch": "codex/cynthion-debug-readback-20261016",
+  "source_commit": "62ca873fb1c54975902376cdc7d557674c06d0e8",
+  "target_power_from_control": true,
+  "timing_mhz": {
+    "$glbnet$car._clk_120MHz": {
+      "max_mhz": 212.77,
+      "target_mhz": 120.0
+    },
+    "$glbnet$car.clk_usb": {
+      "max_mhz": 66.68,
+      "target_mhz": 60.0
+    }
+  },
+  "timing_report": "cynthion_usb_key.tim",
+  "timing_report_sha256": "25a2c1b57d5a7749d5af5b22d9956e3723b2ce69e5fa03fb061a2834df6a5179",
+  "toolchain": {
+    "amaranth": "0.5.10",
+    "apollo-fpga": "1.1.1",
+    "cynthion": "0.2.5",
+    "ecppack": "1.4-86",
+    "luna-usb": "0.2.3",
+    "nextpnr-ecp5": "0.11.1-63",
+    "yosys": "0.70+16"
+  }
+}

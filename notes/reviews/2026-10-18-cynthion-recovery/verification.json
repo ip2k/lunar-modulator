@@ -1,0 +1,26 @@
+{
+  "review_base": "e0713b3db7dcbd03b75c1b720baa3d0f747b34a7",
+  "current_tests": {
+    "passed": 119,
+    "warnings": 177,
+    "seconds": 20.65,
+    "exit": 0,
+    "log": "current-tests.log",
+    "scope": "Offline digital simulation; no new FPGA build, device operations, or physical acceptance for this packet"
+  },
+  "evidence": {
+    "original_files": 397,
+    "exported_files": 394,
+    "export_hashes_verified": 394,
+    "original_files_untouched": true,
+    "json_exports_parse": true,
+    "six_current_repeat_source_pins_match_routed_build_inputs": true,
+    "raw_captures": 11,
+    "pcapng_block_framing_valid": 11,
+    "descriptor_decoding_present_in": [
+      "control06-low-software-power-pass.pcapng"
+    ],
+    "public_text_scan": "No known device serial/UID, owner home paths, GitHub/OpenAI token patterns or private-key markers found, including decompressed text. This is a bounded scan, not a comprehensive security audit."
+  },
+  "hardware_status": "Recovery unproven; no valid current FM1 USB identity; FM1 direct to bench01 RIGHT/ON; Cynthion terminal DONE/OEs0; no active workers or capture processes."
+}

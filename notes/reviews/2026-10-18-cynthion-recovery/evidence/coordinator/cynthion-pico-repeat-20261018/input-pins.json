@@ -1,0 +1,13 @@
+{
+  "source_commit": "fef11263c88f4b79193ceff9b590094110124491",
+  "files": {
+    "tools/cynthion_usb_key/build.py": "b57ec400cef588a333fc109634ba5d55203bab199d9168e35173a73d930633fa",
+    "tools/cynthion_usb_key/top.py": "2f0ba70006b5531b890147f84da9bbc7f444cd7bfbe493f5b6151d6218c7f5c6",
+    "tools/cynthion_usb_key/gateware.py": "d260878aa2add66ebc5a13cd5b46ee74edb5fe335a2727e3c3109899e3331b86",
+    "gateware/ulpi_safe_phy.py": "88483a1b828c52ec5e3e64c3600af29a270bc8cd2029364a851087f85eab21f1",
+    "dongle/sim/params.py": "f3f8f883cc433e55f704030e0dbde18efc76580a5610d18f176ebb8592c9b93c",
+    "dongle/firmware/config.h": "82686343ad43505fd58fb7a24c3bdb744521ee6abb046eb47226084ea4ebb0e2"
+  },
+  "archive_sha256": "c876fec15374ca3f760e33fcbe010c4df44e8381344426305c3bd6e64832354d",
+  "runner_sha256": "53c3b51a3ccb1829ccba3e6da180836d0b81f8c33684243f045cdc54ba76b869"
+}

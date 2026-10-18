@@ -1,0 +1,18 @@
+Sun Oct 18 08:57:02 UTC 2026
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 051: ID 17cc:1001 Native Instruments Komplete Audio 6
+Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+Bus 003 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 004 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]

@@ -1,0 +1,10 @@
+mkdir: cannot create directory '//.config': Read-only file system
+mkdir: cannot create directory '//.cache': Read-only file system
+mkdir: cannot create directory '//.local': Read-only file system
+/opt/oss-cad-suite/bin/nextpnr-ecp5: line 26: //.config/yosyshq/fonts.conf: No such file or directory
+"nextpnr-ecp5" -- Next Generation Place and Route (Version nextpnr-0.11.1-63-g44a6c739)
+Project Trellis ecppack Version 1.4-86-ga31ff70
+mkdir: cannot create directory '//.config': Read-only file system
+mkdir: cannot create directory '//.cache': Read-only file system
+mkdir: cannot create directory '//.local': Read-only file system
+/opt/oss-cad-suite/bin/nextpnr-ecp5: line 26: //.config/yosyshq/fonts.conf: No such file or directory

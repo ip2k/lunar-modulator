@@ -1,0 +1,26 @@
+{
+  "base_commit": "e0713b3db7dcbd03b75c1b720baa3d0f747b34a7",
+  "files": {
+    "dongle/firmware/config.h": "82686343ad43505fd58fb7a24c3bdb744521ee6abb046eb47226084ea4ebb0e2",
+    "dongle/sim/params.py": "f3f8f883cc433e55f704030e0dbde18efc76580a5610d18f176ebb8592c9b93c",
+    "gateware/requirements-test.txt": "72b53fb0259bb4f8e1e7dbfcfe6ba884ee3edd80c2cd2f1f805fd8f3246fa1e8",
+    "gateware/ulpi_safe_phy.py": "88483a1b828c52ec5e3e64c3600af29a270bc8cd2029364a851087f85eab21f1",
+    "tests/test_cynthion_power_monitor.py": "e868ff13262daea951f7272c1a62b47be2f026467dcbce2a7df709a120104328",
+    "tests/test_cynthion_power_readout.py": "feb4c31153efb84b997a14f70809a60080f5c2dd919845e3458f8103796eeb76",
+    "tests/test_cynthion_target_usb_probe.py": "6cf8133989283634af6caeb8b7855bdbbf35d02d5e1ccd74e4458db452fb6122",
+    "tests/test_cynthion_usb_key_ack_gap_reset.py": "7d33e0cfcb3238ce05d2b0562d817c86988a2bb9c64e20b9c4c6180e4fd53c93",
+    "tests/test_cynthion_usb_key_gateware.py": "d507e8616334914f324b9df1bf0c1f6980e62e448b77b561af26e14b057395b5",
+    "tests/test_cynthion_usb_key_pico_repeat.py": "065c067572300511e43554e5bce9f46da16acf830813522780c5e59a076b21f1",
+    "tests/test_cynthion_usb_key_protocol_review.py": "343d7c30d8d955dc71aeacc6e7b48dfd34820cd9f50d7e40be385be81461b0fc",
+    "tests/test_ulpi_safe_phy.py": "50e6be15b12cc91e901618cab3117f2112bf151834f88dec0e4e05a3fabae0e1",
+    "tools/cynthion_usb_key/README.md": "0ebb5d5c658aba8e52397db83a80feba977043836c7cce1a4b7ca258bf7e3eea",
+    "tools/cynthion_usb_key/__init__.py": "13dc69369f5cd992bfe38e8fc2515c15ef2c95f1b3915f0d88d3abde4a02f758",
+    "tools/cynthion_usb_key/build.py": "b57ec400cef588a333fc109634ba5d55203bab199d9168e35173a73d930633fa",
+    "tools/cynthion_usb_key/build_target_usb_probe.py": "68d1e34d9174aaa303e04e68a5f78bdff5cf90672c0c2f60d0a841b9f2603014",
+    "tools/cynthion_usb_key/gateware.py": "d260878aa2add66ebc5a13cd5b46ee74edb5fe335a2727e3c3109899e3331b86",
+    "tools/cynthion_usb_key/power_monitor.py": "69b4fc892b6eb686e02c3082b6cd91a32610abbba4ad442e97ec2d64bd1e073a",
+    "tools/cynthion_usb_key/read_power_monitor.py": "a06d0b999f747ae7ffd2b6707f15ca4b102bca26154f313223d2265d12f49ccd",
+    "tools/cynthion_usb_key/target_usb_probe.py": "46cb7d089bcb7f9434810685a7b4f7ac77b0266c74af26d3138fed9de278702c",
+    "tools/cynthion_usb_key/top.py": "2f0ba70006b5531b890147f84da9bbc7f444cd7bfbe493f5b6151d6218c7f5c6"
+  }
+}

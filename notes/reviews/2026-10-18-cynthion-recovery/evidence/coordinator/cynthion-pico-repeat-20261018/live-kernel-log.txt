@@ -1,0 +1,30 @@
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+Oct 18 01:17:41 bench01 kernel: usb 3-2: new full-speed USB device number 56 using xhci-hcd
+Oct 18 01:17:41 bench01 kernel: usb 3-2: device descriptor read/64, error -71
+Oct 18 01:17:41 bench01 kernel: usb 3-2: device descriptor read/64, error -71
+Oct 18 01:17:42 bench01 kernel: usb 3-2: new full-speed USB device number 57 using xhci-hcd
+Oct 18 01:17:42 bench01 kernel: usb 3-2: device descriptor read/64, error -71
+Oct 18 01:17:42 bench01 kernel: usb 3-2: device descriptor read/64, error -71
+Oct 18 01:17:42 bench01 kernel: usb usb3-port2: attempt power cycle
+Oct 18 01:17:42 bench01 kernel: usb 3-2: new full-speed USB device number 58 using xhci-hcd
+Oct 18 01:17:42 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 01:17:43 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 01:17:43 bench01 kernel: usb 3-2: device not accepting address 58, error -71
+Oct 18 01:17:43 bench01 kernel: usb 3-2: WARN: invalid context state for evaluate context command.
+Oct 18 01:17:43 bench01 kernel: usb 3-2: new full-speed USB device number 59 using xhci-hcd
+Oct 18 01:17:43 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 01:17:43 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 01:17:43 bench01 kernel: usb 3-2: device not accepting address 59, error -71
+Oct 18 01:17:43 bench01 kernel: usb 3-2: WARN: invalid context state for evaluate context command.
+Oct 18 01:17:43 bench01 kernel: usb usb3-port2: unable to enumerate USB device
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]

@@ -1,0 +1,36 @@
+Sun Oct 18 08:45:52 UTC 2026
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 004: ID 17ef:6019 Lenovo M-U0025-O Mouse
+Bus 001 Device 051: ID 17cc:1001 Native Instruments Komplete Audio 6
+Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+Bus 003 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 004 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+Oct 18 01:45:20 bench01 kernel: usb 1-1: new low-speed USB device number 126 using xhci-hcd
+Oct 18 01:45:20 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:45:21 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:45:21 bench01 kernel: usb 1-1: new low-speed USB device number 127 using xhci-hcd
+Oct 18 01:45:21 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:45:21 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:45:21 bench01 kernel: usb usb1-port1: attempt power cycle
+Oct 18 01:45:22 bench01 kernel: usb 1-1: new low-speed USB device number 2 using xhci-hcd
+Oct 18 01:45:22 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:45:22 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:45:22 bench01 kernel: usb 1-1: device not accepting address 2, error -71
+Oct 18 01:45:22 bench01 kernel: usb 1-1: new low-speed USB device number 3 using xhci-hcd
+Oct 18 01:45:22 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:45:22 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:45:23 bench01 kernel: usb 1-1: device not accepting address 3, error -71
+Oct 18 01:45:23 bench01 kernel: usb usb1-port1: unable to enumerate USB device
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+Oct 18 01:45:46 bench01 kernel: usb 1-1: new low-speed USB device number 4 using xhci-hcd
+Oct 18 01:45:46 bench01 kernel: usb 1-1: New USB device found, idVendor=17ef, idProduct=6019, bcdDevice= 1.00
+Oct 18 01:45:46 bench01 kernel: usb 1-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+Oct 18 01:45:46 bench01 kernel: usb 1-1: Product: Lenovo USB Optical Mouse
+Oct 18 01:45:46 bench01 kernel: usb 1-1: Manufacturer: PixArt
+Oct 18 01:45:46 bench01 kernel: input: PixArt Lenovo USB Optical Mouse as /devices/platform/axi/1000120000.pcie/1f00200000.usb/xhci-hcd.0/usb1/1-1/1-1:1.0/0003:17EF:6019.000B/input/input15
+Oct 18 01:45:46 bench01 kernel: hid-generic 0003:17EF:6019.000B: input,hidraw0: USB HID v1.11 Mouse [PixArt Lenovo USB Optical Mouse] on usb-xhci-hcd.0-1/input0

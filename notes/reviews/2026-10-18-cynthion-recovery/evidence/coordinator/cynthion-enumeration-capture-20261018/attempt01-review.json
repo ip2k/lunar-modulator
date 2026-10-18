@@ -1,0 +1,16 @@
+{
+  "file": "attempt01-auto.pcapng",
+  "bytes": 404,
+  "sha256": "9aa83955c9a6690fbe9c126d5d6e0e739cbe415e78a78070af89fbd1847eeae3",
+  "usb_packet_count": 0,
+  "analyzer_event_count": 5,
+  "duration_seconds": 84.0160805,
+  "events": [
+    "capture start auto",
+    "46.145221850 VBUS valid",
+    "56.827273400 low speed idle",
+    "56.827273550 SE0",
+    "84.016080500 capture stopped by request"
+  ],
+  "limit": "No USB enumeration reproduced; no device response or ROM identity established."
+}

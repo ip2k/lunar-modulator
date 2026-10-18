@@ -1,0 +1,57 @@
+Fri Oct 16 03:10:25 UTC 2026
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 051: ID 17cc:1001 Native Instruments Komplete Audio 6
+Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+Bus 003 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 003 Device 043: ID 1209:cc01 Generic Cynthion TARGET-C descriptor probe
+Bus 004 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+/:  Bus 001.Port 001: Dev 001, Class=root_hub, Driver=xhci-hcd/2p, 480M
+    |__ Port 002: Dev 051, If 0, Class=Audio, Driver=snd-usb-audio, 480M
+    |__ Port 002: Dev 051, If 1, Class=Audio, Driver=snd-usb-audio, 480M
+    |__ Port 002: Dev 051, If 2, Class=Audio, Driver=snd-usb-audio, 480M
+    |__ Port 002: Dev 051, If 3, Class=Audio, Driver=snd-usb-audio, 480M
+    |__ Port 002: Dev 051, If 4, Class=Application Specific Interface, Driver=[none], 480M
+/:  Bus 002.Port 001: Dev 001, Class=root_hub, Driver=xhci-hcd/1p, 5000M
+/:  Bus 003.Port 001: Dev 001, Class=root_hub, Driver=xhci-hcd/2p, 480M
+    |__ Port 002: Dev 043, If 0, Class=Vendor Specific Class, Driver=[none], 12M
+/:  Bus 004.Port 001: Dev 001, Class=root_hub, Driver=xhci-hcd/1p, 5000M
+
+Bus 003 Device 043: ID 1209:cc01 Generic Cynthion TARGET-C descriptor probe
+Negotiated speed: Full Speed (12Mbps)
+Device Descriptor:
+  bLength                18
+  bDescriptorType         1
+  bcdUSB               2.00
+  bDeviceClass            0 [unknown]
+  bDeviceSubClass         0 [unknown]
+  bDeviceProtocol         0 
+  bMaxPacketSize0        64
+  idVendor           0x1209 Generic
+  idProduct          0xcc01 Cynthion TARGET-C descriptor probe
+  bcdDevice            0.00
+  iManufacturer           1 Lunar development test
+  iProduct                2 Cynthion TARGET-C descriptor probe
+  iSerial                 3 temporary
+  bNumConfigurations      1
+  Configuration Descriptor:
+    bLength                 9
+    bDescriptorType         2
+    wTotalLength       0x0012
+    bNumInterfaces          1
+    bConfigurationValue     1
+    iConfiguration          0 
+    bmAttributes         0x80
+      (Bus Powered)
+    MaxPower                0mA
+    Interface Descriptor:
+      bLength                 9
+      bDescriptorType         4
+      bInterfaceNumber        0
+      bAlternateSetting       0
+      bNumEndpoints           0
+      bInterfaceClass       255 Vendor Specific Class
+      bInterfaceSubClass      0 [unknown]
+      bInterfaceProtocol      0 
+      iInterface              0 
+Device Status:     0x0000
+  (Bus Powered)

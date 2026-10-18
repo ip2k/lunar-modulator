@@ -1,0 +1,173 @@
+........................................................................ [ 87%]
+..........                                                               [100%]
+=============================== warnings summary ===============================
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.Record`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_NONE`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/utils/io.py:11
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/utils/io.py:11: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/utils/io.py:11
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/utils/io.py:11: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:11
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:11: DeprecationWarning: instead of `amaranth.hdl.ast.ValueCastable`, use `amaranth.hdl.ValueCastable`
+    from amaranth.hdl.ast import ValueCastable
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:117
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:117: DeprecationWarning: `ValueCastable.lowermethod` is no longer required and will be removed in Amaranth 0.6
+    @ValueCastable.lowermethod
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:121
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:121: DeprecationWarning: `ValueCastable.lowermethod` is no longer required and will be removed in Amaranth 0.6
+    @ValueCastable.lowermethod
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/i2c.py:13
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/i2c.py:13: DeprecationWarning: instead of `amaranth.hdl.rec.Record`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/i2c.py:13
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/i2c.py:13: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT
+
+../../../../.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/i2c.py:13
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/luna/gateware/interface/i2c.py:13: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT
+
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:205: DeprecationWarning: Using platform.request without `dir="-"` is deprecated; use `amaranth.lib.io.*Buffer` components instead
+    member = resolve(sub, dir[sub.name], xdr[sub.name],
+
+tests/test_cynthion_usb_key_ack_gap_reset.py: 6 warnings
+tests/test_cynthion_usb_key_gateware.py: 34 warnings
+tests/test_cynthion_usb_key_protocol_review.py: 8 warnings
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/hdl/_ast.py:1975: DeprecationWarning: `reset=` is deprecated, use `init=` instead
+    signal = super().__call__(shape, **kwargs, src_loc_at=src_loc_at + 1)
+
+tests/test_cynthion_usb_key_gateware.py::test_target_gpio_resources_expose_input_output_and_output_enable
+tests/test_cynthion_usb_key_gateware.py::test_target_gpio_resources_expose_input_output_and_output_enable
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:266: DeprecationWarning: Using platform.request without `dir="-"` is deprecated; use `amaranth.lib.io.*Buffer` components instead
+    value = resolve(resource,
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_terminates_without_entering_key_state
+  /Users/REDACTED/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tests/test_cynthion_usb_key_gateware.py:48: UnusedElaboratable: <tools.cynthion_usb_key.top.CynthionUsbKeyTop object at 0x109c66c30> created but never used
+    assert CynthionUsbKeyTop().target_power_from_control is False
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_terminates_without_entering_key_state
+  /Users/REDACTED/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tests/test_cynthion_usb_key_gateware.py:49: UnusedElaboratable: <tools.cynthion_usb_key.top.CynthionUsbKeyTop object at 0x109c67140> created but never used
+    assert CynthionUsbKeyTop(target_power_from_control=True).target_power_from_control
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_terminates_without_entering_key_state
+  /Users/REDACTED/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tests/test_cynthion_usb_key_gateware.py:51: UnusedElaboratable: <tools.cynthion_usb_key.top.CynthionUsbKeyTop object at 0x109bcc050> created but never used
+    CynthionUsbKeyTop(mode="disconnected-selftest", target_power_from_control=True)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_terminates_without_entering_key_state
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x109bcc590> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_terminates_without_entering_key_state
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x109bcd040> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_latches_first_failed_line_and_gpio_evidence
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x1092e3110> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_latches_first_failed_line_and_gpio_evidence
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x1092e12b0> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_latches_first_failed_line_and_gpio_evidence
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x1092e27b0> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_latches_first_failed_line_and_gpio_evidence
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x1092e3b60> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_latches_first_failed_line_and_gpio_evidence
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x1092e3e30> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_latches_first_failed_line_and_gpio_evidence
+  /Users/REDACTED/.local/share/uv/tools/cynthion/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x1094dc050> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_protocol_review.py::test_absent_target_echo_never_acknowledges_and_hits_packet_limit
+  /Users/REDACTED/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tests/test_cynthion_usb_key_gateware.py:605: UnusedElaboratable: <tools.cynthion_usb_key.gateware.CynthionUsbKey object at 0x109f86930> created but never used
+    CynthionUsbKey(staged_operation=True, auto_selftest=True)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_protocol_review.py::test_absent_target_echo_never_acknowledges_and_hits_packet_limit
+  /Users/REDACTED/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tests/test_cynthion_usb_key_gateware.py:607: UnusedElaboratable: <tools.cynthion_usb_key.gateware.CynthionUsbKey object at 0x109f86690> created but never used
+    CynthionUsbKey(staged_operation=True, selftest_only=True)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_cynthion_usb_key_protocol_review.py::test_absent_target_echo_never_acknowledges_and_hits_packet_limit
+  /Users/REDACTED/.codex/worktrees/installable-firmware/mvave-fm1-firmware/tests/test_cynthion_usb_key_gateware.py:608: UnusedElaboratable: <tools.cynthion_usb_key.top.CynthionUsbKeyTop object at 0x109f874d0> created but never used
+    assert CynthionUsbKeyTop(mode='staged-operation',
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+82 passed, 86 warnings in 2.36s

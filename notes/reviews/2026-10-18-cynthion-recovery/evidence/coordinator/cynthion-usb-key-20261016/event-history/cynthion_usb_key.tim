@@ -1,0 +1,609 @@
+Info: constraining clock net 'clk_60MHz_0__io' to 60.00 MHz
+
+Info: Logic utilisation before packing:
+Info:     Total LUT4s:      4102/24288    16%
+Info:         logic LUTs:   3790/24288    15%
+Info:         carry LUTs:    312/24288     1%
+Info:           RAM LUTs:      0/ 3036     0%
+Info:          RAMW LUTs:      0/ 6072     0%
+
+Info:      Total DFFs:      2456/24288    10%
+
+Info: Packing IOs..
+Info: target_usb_dp_0__io feeds TRELLIS_IO pin_target_usb_dp_0.buf.buf.buf0, removing $nextpnr_iobuf target_usb_dp_0__io.
+Info: pin 'pin_target_usb_dp_0.buf.buf.buf0' constrained to Bel 'X0/Y38/PIOA'.
+Info: target_usb_dm_0__io feeds TRELLIS_IO pin_target_usb_dm_0.buf.buf.buf0, removing $nextpnr_iobuf target_usb_dm_0__io.
+Info: pin 'pin_target_usb_dm_0.buf.buf.buf0' constrained to Bel 'X0/Y38/PIOB'.
+Info: target_phy_0__data__io[7] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf7, removing $nextpnr_iobuf target_phy_0__data__io[7].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf7' constrained to Bel 'X0/Y26/PIOC'.
+Info: target_phy_0__data__io[6] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf6, removing $nextpnr_iobuf target_phy_0__data__io[6].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf6' constrained to Bel 'X0/Y26/PIOD'.
+Info: target_phy_0__data__io[5] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf5, removing $nextpnr_iobuf target_phy_0__data__io[5].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf5' constrained to Bel 'X0/Y32/PIOA'.
+Info: target_phy_0__data__io[4] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf4, removing $nextpnr_iobuf target_phy_0__data__io[4].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf4' constrained to Bel 'X0/Y35/PIOD'.
+Info: target_phy_0__data__io[3] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf3, removing $nextpnr_iobuf target_phy_0__data__io[3].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf3' constrained to Bel 'X0/Y35/PIOA'.
+Info: target_phy_0__data__io[2] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf2, removing $nextpnr_iobuf target_phy_0__data__io[2].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf2' constrained to Bel 'X0/Y32/PIOB'.
+Info: target_phy_0__data__io[1] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf1, removing $nextpnr_iobuf target_phy_0__data__io[1].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf1' constrained to Bel 'X0/Y35/PIOB'.
+Info: target_phy_0__data__io[0] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf0, removing $nextpnr_iobuf target_phy_0__data__io[0].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf0' constrained to Bel 'X0/Y38/PIOC'.
+Info: target_phy_0__stp__io feeds TRELLIS_IO pin_target_phy_0__stp.buf.buf.buf0, removing $nextpnr_obuf target_phy_0__stp__io.
+Info: pin 'pin_target_phy_0__stp.buf.buf.buf0' constrained to Bel 'X0/Y41/PIOD'.
+Info: target_phy_0__rst__io feeds TRELLIS_IO pin_target_phy_0__rst.buf.buf.buf0, removing $nextpnr_obuf target_phy_0__rst__io.
+Info: pin 'pin_target_phy_0__rst.buf.buf.buf0' constrained to Bel 'X0/Y41/PIOC'.
+Info: target_phy_0__nxt__io feeds TRELLIS_IO pin_target_phy_0__nxt.buf.buf.buf0, removing $nextpnr_ibuf target_phy_0__nxt__io.
+Info: pin 'pin_target_phy_0__nxt.buf.buf.buf0' constrained to Bel 'X0/Y38/PIOD'.
+Info: target_phy_0__dir__io feeds TRELLIS_IO pin_target_phy_0__dir.buf.buf.buf0, removing $nextpnr_ibuf target_phy_0__dir__io.
+Info: pin 'pin_target_phy_0__dir.buf.buf.buf0' constrained to Bel 'X0/Y41/PIOB'.
+Info: target_phy_0__clk__io feeds TRELLIS_IO pin_target_phy_0__clk.buf.buf.buf0, removing $nextpnr_obuf target_phy_0__clk__io.
+Info: pin 'pin_target_phy_0__clk.buf.buf.buf0' constrained to Bel 'X0/Y44/PIOB'.
+Info: target_c_vbus_en_0__io feeds TRELLIS_IO pin_target_c_vbus_en_0.buf.buf.buf0, removing $nextpnr_obuf target_c_vbus_en_0__io.
+Info: pin 'pin_target_c_vbus_en_0.buf.buf.buf0' constrained to Bel 'X0/Y29/PIOB'.
+Info: target_a_discharge_0__io feeds TRELLIS_IO pin_target_a_discharge_0.buf.buf.buf0, removing $nextpnr_obuf target_a_discharge_0__io.
+Info: pin 'pin_target_a_discharge_0.buf.buf.buf0' constrained to Bel 'X0/Y29/PIOA'.
+Info: pseudo_vccio_0__io[30] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf30, removing $nextpnr_obuf pseudo_vccio_0__io[30].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf30' constrained to Bel 'X4/Y50/PIOB'.
+Info: pseudo_vccio_0__io[29] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf29, removing $nextpnr_obuf pseudo_vccio_0__io[29].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf29' constrained to Bel 'X0/Y23/PIOB'.
+Info: pseudo_vccio_0__io[28] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf28, removing $nextpnr_obuf pseudo_vccio_0__io[28].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf28' constrained to Bel 'X0/Y23/PIOA'.
+Info: pseudo_vccio_0__io[27] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf27, removing $nextpnr_obuf pseudo_vccio_0__io[27].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf27' constrained to Bel 'X0/Y20/PIOC'.
+Info: pseudo_vccio_0__io[26] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf26, removing $nextpnr_obuf pseudo_vccio_0__io[26].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf26' constrained to Bel 'X0/Y17/PIOD'.
+Info: pseudo_vccio_0__io[25] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf25, removing $nextpnr_obuf pseudo_vccio_0__io[25].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf25' constrained to Bel 'X0/Y17/PIOC'.
+Info: pseudo_vccio_0__io[24] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf24, removing $nextpnr_obuf pseudo_vccio_0__io[24].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf24' constrained to Bel 'X0/Y17/PIOB'.
+Info: pseudo_vccio_0__io[23] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf23, removing $nextpnr_obuf pseudo_vccio_0__io[23].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf23' constrained to Bel 'X0/Y17/PIOA'.
+Info: pseudo_vccio_0__io[22] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf22, removing $nextpnr_obuf pseudo_vccio_0__io[22].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf22' constrained to Bel 'X0/Y11/PIOA'.
+Info: pseudo_vccio_0__io[21] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf21, removing $nextpnr_obuf pseudo_vccio_0__io[21].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf21' constrained to Bel 'X0/Y8/PIOD'.
+Info: pseudo_vccio_0__io[20] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf20, removing $nextpnr_obuf pseudo_vccio_0__io[20].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf20' constrained to Bel 'X0/Y47/PIOA'.
+Info: pseudo_vccio_0__io[19] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf19, removing $nextpnr_obuf pseudo_vccio_0__io[19].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf19' constrained to Bel 'X0/Y41/PIOA'.
+Info: pseudo_vccio_0__io[18] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf18, removing $nextpnr_obuf pseudo_vccio_0__io[18].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf18' constrained to Bel 'X0/Y44/PIOD'.
+Info: pseudo_vccio_0__io[17] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf17, removing $nextpnr_obuf pseudo_vccio_0__io[17].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf17' constrained to Bel 'X0/Y44/PIOC'.
+Info: pseudo_vccio_0__io[16] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf16, removing $nextpnr_obuf pseudo_vccio_0__io[16].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf16' constrained to Bel 'X0/Y44/PIOA'.
+Info: pseudo_vccio_0__io[15] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf15, removing $nextpnr_obuf pseudo_vccio_0__io[15].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf15' constrained to Bel 'X0/Y35/PIOC'.
+Info: pseudo_vccio_0__io[14] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf14, removing $nextpnr_obuf pseudo_vccio_0__io[14].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf14' constrained to Bel 'X0/Y29/PIOC'.
+Info: pseudo_vccio_0__io[13] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf13, removing $nextpnr_obuf pseudo_vccio_0__io[13].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf13' constrained to Bel 'X72/Y47/PIOD'.
+Info: pseudo_vccio_0__io[12] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf12, removing $nextpnr_obuf pseudo_vccio_0__io[12].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf12' constrained to Bel 'X72/Y47/PIOC'.
+Info: pseudo_vccio_0__io[11] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf11, removing $nextpnr_obuf pseudo_vccio_0__io[11].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf11' constrained to Bel 'X72/Y47/PIOA'.
+Info: pseudo_vccio_0__io[10] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf10, removing $nextpnr_obuf pseudo_vccio_0__io[10].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf10' constrained to Bel 'X72/Y41/PIOA'.
+Info: pseudo_vccio_0__io[9] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf9, removing $nextpnr_obuf pseudo_vccio_0__io[9].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf9' constrained to Bel 'X72/Y38/PIOA'.
+Info: pseudo_vccio_0__io[8] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf8, removing $nextpnr_obuf pseudo_vccio_0__io[8].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf8' constrained to Bel 'X72/Y29/PIOD'.
+Info: pseudo_vccio_0__io[7] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf7, removing $nextpnr_obuf pseudo_vccio_0__io[7].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf7' constrained to Bel 'X72/Y29/PIOB'.
+Info: pseudo_vccio_0__io[6] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf6, removing $nextpnr_obuf pseudo_vccio_0__io[6].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf6' constrained to Bel 'X72/Y17/PIOD'.
+Info: pseudo_vccio_0__io[5] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf5, removing $nextpnr_obuf pseudo_vccio_0__io[5].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf5' constrained to Bel 'X72/Y8/PIOD'.
+Info: pseudo_vccio_0__io[4] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf4, removing $nextpnr_obuf pseudo_vccio_0__io[4].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf4' constrained to Bel 'X51/Y0/PIOB'.
+Info: pseudo_vccio_0__io[3] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf3, removing $nextpnr_obuf pseudo_vccio_0__io[3].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf3' constrained to Bel 'X47/Y0/PIOB'.
+Info: pseudo_vccio_0__io[2] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf2, removing $nextpnr_obuf pseudo_vccio_0__io[2].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf2' constrained to Bel 'X47/Y0/PIOA'.
+Info: pseudo_vccio_0__io[1] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf1, removing $nextpnr_obuf pseudo_vccio_0__io[1].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf1' constrained to Bel 'X24/Y0/PIOA'.
+Info: pseudo_vccio_0__io[0] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf0, removing $nextpnr_obuf pseudo_vccio_0__io[0].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf0' constrained to Bel 'X20/Y0/PIOA'.
+Info: pseudo_gnd_0__io[19] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf19, removing $nextpnr_obuf pseudo_gnd_0__io[19].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf19' constrained to Bel 'X0/Y20/PIOB'.
+Info: pseudo_gnd_0__io[18] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf18, removing $nextpnr_obuf pseudo_gnd_0__io[18].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf18' constrained to Bel 'X0/Y14/PIOD'.
+Info: pseudo_gnd_0__io[17] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf17, removing $nextpnr_obuf pseudo_gnd_0__io[17].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf17' constrained to Bel 'X0/Y14/PIOC'.
+Info: pseudo_gnd_0__io[16] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf16, removing $nextpnr_obuf pseudo_gnd_0__io[16].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf16' constrained to Bel 'X0/Y14/PIOB'.
+Info: pseudo_gnd_0__io[15] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf15, removing $nextpnr_obuf pseudo_gnd_0__io[15].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf15' constrained to Bel 'X0/Y8/PIOC'.
+Info: pseudo_gnd_0__io[14] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf14, removing $nextpnr_obuf pseudo_gnd_0__io[14].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf14' constrained to Bel 'X0/Y47/PIOC'.
+Info: pseudo_gnd_0__io[13] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf13, removing $nextpnr_obuf pseudo_gnd_0__io[13].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf13' constrained to Bel 'X0/Y47/PIOD'.
+Info: pseudo_gnd_0__io[12] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf12, removing $nextpnr_obuf pseudo_gnd_0__io[12].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf12' constrained to Bel 'X0/Y47/PIOB'.
+Info: pseudo_gnd_0__io[11] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf11, removing $nextpnr_obuf pseudo_gnd_0__io[11].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf11' constrained to Bel 'X0/Y32/PIOD'.
+Info: pseudo_gnd_0__io[10] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf10, removing $nextpnr_obuf pseudo_gnd_0__io[10].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf10' constrained to Bel 'X0/Y32/PIOC'.
+Info: pseudo_gnd_0__io[9] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf9, removing $nextpnr_obuf pseudo_gnd_0__io[9].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf9' constrained to Bel 'X0/Y29/PIOD'.
+Info: pseudo_gnd_0__io[8] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf8, removing $nextpnr_obuf pseudo_gnd_0__io[8].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf8' constrained to Bel 'X72/Y47/PIOB'.
+Info: pseudo_gnd_0__io[7] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf7, removing $nextpnr_obuf pseudo_gnd_0__io[7].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf7' constrained to Bel 'X72/Y44/PIOD'.
+Info: pseudo_gnd_0__io[6] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf6, removing $nextpnr_obuf pseudo_gnd_0__io[6].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf6' constrained to Bel 'X72/Y44/PIOC'.
+Info: pseudo_gnd_0__io[5] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf5, removing $nextpnr_obuf pseudo_gnd_0__io[5].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf5' constrained to Bel 'X72/Y35/PIOC'.
+Info: pseudo_gnd_0__io[4] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf4, removing $nextpnr_obuf pseudo_gnd_0__io[4].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf4' constrained to Bel 'X72/Y8/PIOC'.
+Info: pseudo_gnd_0__io[3] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf3, removing $nextpnr_obuf pseudo_gnd_0__io[3].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf3' constrained to Bel 'X58/Y0/PIOB'.
+Info: pseudo_gnd_0__io[2] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf2, removing $nextpnr_obuf pseudo_gnd_0__io[2].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf2' constrained to Bel 'X40/Y0/PIOB'.
+Info: pseudo_gnd_0__io[1] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf1, removing $nextpnr_obuf pseudo_gnd_0__io[1].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf1' constrained to Bel 'X33/Y0/PIOA'.
+Info: pseudo_gnd_0__io[0] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf0, removing $nextpnr_obuf pseudo_gnd_0__io[0].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf0' constrained to Bel 'X13/Y0/PIOA'.
+Info: led_5__io feeds TRELLIS_IO pin_led_5.buf.buf.buf0, removing $nextpnr_obuf led_5__io.
+Info: pin 'pin_led_5.buf.buf.buf0' constrained to Bel 'X49/Y0/PIOB'.
+Info: led_4__io feeds TRELLIS_IO pin_led_4.buf.buf.buf0, removing $nextpnr_obuf led_4__io.
+Info: pin 'pin_led_4.buf.buf.buf0' constrained to Bel 'X58/Y0/PIOA'.
+Info: led_3__io feeds TRELLIS_IO pin_led_3.buf.buf.buf0, removing $nextpnr_obuf led_3__io.
+Info: pin 'pin_led_3.buf.buf.buf0' constrained to Bel 'X67/Y0/PIOB'.
+Info: led_2__io feeds TRELLIS_IO pin_led_2.buf.buf.buf0, removing $nextpnr_obuf led_2__io.
+Info: pin 'pin_led_2.buf.buf.buf0' constrained to Bel 'X67/Y0/PIOA'.
+Info: led_1__io feeds TRELLIS_IO pin_led_1.buf.buf.buf0, removing $nextpnr_obuf led_1__io.
+Info: pin 'pin_led_1.buf.buf.buf0' constrained to Bel 'X60/Y0/PIOB'.
+Info: led_0__io feeds TRELLIS_IO pin_led_0.buf.buf.buf0, removing $nextpnr_obuf led_0__io.
+Info: pin 'pin_led_0.buf.buf.buf0' constrained to Bel 'X62/Y0/PIOB'.
+Info: control_vbus_en_0__io feeds TRELLIS_IO pin_control_vbus_en_0.buf.buf.buf0, removing $nextpnr_obuf control_vbus_en_0__io.
+Info: pin 'pin_control_vbus_en_0.buf.buf.buf0' constrained to Bel 'X0/Y26/PIOA'.
+Info: clk_60MHz_0__io feeds TRELLIS_IO pin_clk_60MHz_0.buf.buf.buf0, removing $nextpnr_ibuf clk_60MHz_0__io.
+Info: pin 'pin_clk_60MHz_0.buf.buf.buf0' constrained to Bel 'X29/Y0/PIOB'.
+Info: button_user_0__io feeds TRELLIS_IO pin_button_user_0.buf.buf.buf0, removing $nextpnr_ibuf button_user_0__io.
+Info: pin 'pin_button_user_0.buf.buf.buf0' constrained to Bel 'X72/Y32/PIOD'.
+Info: aux_vbus_en_0__io feeds TRELLIS_IO pin_aux_vbus_en_0.buf.buf.buf0, removing $nextpnr_obuf aux_vbus_en_0__io.
+Info: pin 'pin_aux_vbus_en_0.buf.buf.buf0' constrained to Bel 'X0/Y26/PIOB'.
+Info: placed PLL 'car.pll' at bel 'X2/Y49/EHXPLL_LL'
+Info: Packing constants..
+Info: Packing carries...
+Info: Packing LUTs...
+Info: Packing LUT5-7s...
+Info: Packing FFs...
+Info:     453 FFs paired with LUTs.
+Info: Generating derived timing constraints...
+Info:     Input frequency of PLL 'car.pll' is constrained to 60.0 MHz
+Info:     Derived frequency constraint of 240.0 MHz for net car._clk_240MHz
+Info:     Derived frequency constraint of 120.0 MHz for net car._clk_120MHz
+Info:     Derived frequency constraint of 60.0 MHz for net car.clk_usb
+Info: Promoting globals...
+Info:     promoting clock net car.clk_usb to global network
+Info:     promoting clock net car._clk_120MHz to global network
+Info: Checksum: 0x40d7ed70
+
+Info: Device utilisation:
+Info: 	          TRELLIS_IO:      78/    197    39%
+Info: 	                DCCA:       2/     56     3%
+Info: 	              DP16KD:       0/     56     0%
+Info: 	          MULT18X18D:       0/     28     0%
+Info: 	              ALU54B:       0/     14     0%
+Info: 	             EHXPLLL:       1/      2    50%
+Info: 	             EXTREFB:       0/      1     0%
+Info: 	                DCUA:       0/      1     0%
+Info: 	           PCSCLKDIV:       0/      2     0%
+Info: 	             IOLOGIC:       0/    128     0%
+Info: 	            SIOLOGIC:       0/     69     0%
+Info: 	                 GSR:       0/      1     0%
+Info: 	               JTAGG:       1/      1   100%
+Info: 	                OSCG:       0/      1     0%
+Info: 	               SEDGA:       0/      1     0%
+Info: 	                 DTR:       0/      1     0%
+Info: 	             USRMCLK:       0/      1     0%
+Info: 	             CLKDIVF:       0/      4     0%
+Info: 	           ECLKSYNCB:       0/     10     0%
+Info: 	             DLLDELD:       0/      8     0%
+Info: 	              DDRDLL:       0/      4     0%
+Info: 	             DQSBUFM:       0/      8     0%
+Info: 	     TRELLIS_ECLKBUF:       0/      8     0%
+Info: 	        ECLKBRIDGECS:       0/      2     0%
+Info: 	                DCSC:       0/      2     0%
+Info: 	          TRELLIS_FF:    2456/  24288    10%
+Info: 	        TRELLIS_COMB:    4208/  24288    17%
+Info: 	        TRELLIS_RAMW:       0/   3036     0%
+
+Info: Placed 79 cells based on constraints.
+Info: Creating initial analytic placement for 4653 cells, random placement wirelen = 223537.
+Info:     at initial placer iter 0, wirelen = 1928
+Info:     at initial placer iter 1, wirelen = 1634
+Info:     at initial placer iter 2, wirelen = 1565
+Info:     at initial placer iter 3, wirelen = 1627
+Info: Running main analytical placer, max placement attempts per cell = 5688564.
+Info:     at iteration #1, type ALL: wirelen solved = 1567, spread = 30679, legal = 31968; time = 0.10s
+Info:     at iteration #2, type ALL: wirelen solved = 3690, spread = 23134, legal = 24481; time = 0.10s
+Info:     at iteration #3, type ALL: wirelen solved = 7142, spread = 21495, legal = 22943; time = 0.09s
+Info:     at iteration #4, type ALL: wirelen solved = 9727, spread = 19710, legal = 21396; time = 0.09s
+Info:     at iteration #5, type ALL: wirelen solved = 11493, spread = 19622, legal = 21147; time = 0.09s
+Info:     at iteration #6, type ALL: wirelen solved = 12651, spread = 19074, legal = 20581; time = 0.09s
+Info:     at iteration #7, type ALL: wirelen solved = 13036, spread = 18237, legal = 20018; time = 0.08s
+Info:     at iteration #8, type ALL: wirelen solved = 13389, spread = 17510, legal = 19440; time = 0.09s
+Info:     at iteration #9, type ALL: wirelen solved = 13506, spread = 17511, legal = 19381; time = 0.08s
+Info:     at iteration #10, type ALL: wirelen solved = 13884, spread = 16965, legal = 18859; time = 0.08s
+Info:     at iteration #11, type ALL: wirelen solved = 13805, spread = 17141, legal = 19035; time = 0.08s
+Info:     at iteration #12, type ALL: wirelen solved = 13901, spread = 16687, legal = 18592; time = 0.09s
+Info:     at iteration #13, type ALL: wirelen solved = 13742, spread = 16818, legal = 18747; time = 0.08s
+Info:     at iteration #14, type ALL: wirelen solved = 13914, spread = 16579, legal = 18500; time = 0.08s
+Info:     at iteration #15, type ALL: wirelen solved = 13912, spread = 16529, legal = 18420; time = 0.08s
+Info:     at iteration #16, type ALL: wirelen solved = 14054, spread = 16605, legal = 18535; time = 0.08s
+Info:     at iteration #17, type ALL: wirelen solved = 13972, spread = 16472, legal = 18356; time = 0.08s
+Info:     at iteration #18, type ALL: wirelen solved = 14059, spread = 16582, legal = 18250; time = 0.08s
+Info:     at iteration #19, type ALL: wirelen solved = 14106, spread = 16131, legal = 18099; time = 0.08s
+Info:     at iteration #20, type ALL: wirelen solved = 13976, spread = 16141, legal = 17932; time = 0.08s
+Info:     at iteration #21, type ALL: wirelen solved = 13998, spread = 16218, legal = 17935; time = 0.08s
+Info:     at iteration #22, type ALL: wirelen solved = 14080, spread = 16267, legal = 18095; time = 0.08s
+Info:     at iteration #23, type ALL: wirelen solved = 14123, spread = 16340, legal = 17996; time = 0.08s
+Info:     at iteration #24, type ALL: wirelen solved = 14184, spread = 16624, legal = 18225; time = 0.08s
+Info:     at iteration #25, type ALL: wirelen solved = 14428, spread = 16751, legal = 18403; time = 0.08s
+Info: HeAP Placer Time: 3.20s
+Info:   of which solving equations: 1.97s
+Info:   of which spreading cells: 0.24s
+Info:   of which strict legalisation: 0.15s
+
+Info: Running simulated annealing placer for refinement.
+Info:   at iteration #1: temp = 0.000000, timing cost = 1943, wirelen = 17932
+Info:   at iteration #5: temp = 0.000000, timing cost = 2165, wirelen = 16226
+Info:   at iteration #10: temp = 0.000000, timing cost = 1946, wirelen = 15616
+Info:   at iteration #15: temp = 0.000000, timing cost = 1768, wirelen = 15252
+Info:   at iteration #20: temp = 0.000000, timing cost = 1936, wirelen = 15123
+Info:   at iteration #23: temp = 0.000000, timing cost = 1599, wirelen = 15073 
+Info: SA placement time 5.62s
+
+Info: Max frequency for clock     '$glbnet$car.clk_usb': 65.34 MHz (PASS at 60.00 MHz)
+Info: Max frequency for clock '$glbnet$car._clk_120MHz': 286.78 MHz (PASS at 120.00 MHz)
+
+Info: Max delay <async>                         -> <async>                    : 3.71 ns
+Info: Max delay <async>                         -> posedge $glbnet$car.clk_usb: 6.56 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> <async>                    : 3.43 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> posedge $glbnet$car.clk_usb: 6.75 ns
+Info: Max delay posedge $glbnet$car.clk_usb     -> <async>                    : 7.70 ns
+
+Info: Slack histogram:
+Info:  legend: times are in ps
+Info:          * represents 14 endpoint(s)
+Info:          + represents [1,14) endpoint(s)
+Info: [  1361,   2098) |+
+Info: [  2098,   2835) |+
+Info: [  2835,   3572) |+
+Info: [  3572,   4309) | 
+Info: [  4309,   5046) |+
+Info: [  5046,   5783) |+
+Info: [  5783,   6520) |+
+Info: [  6520,   7257) |+
+Info: [  7257,   7994) |**********+
+Info: [  7994,   8731) |******************************************+
+Info: [  8731,   9468) |*****************************************+
+Info: [  9468,  10205) |**************************************+
+Info: [ 10205,  10942) |***************+
+Info: [ 10942,  11679) |*********+
+Info: [ 11679,  12416) |********+
+Info: [ 12416,  13153) |***********+
+Info: [ 13153,  13890) |********************+
+Info: [ 13890,  14627) |************************************************************ 
+Info: [ 14627,  15364) |*************************************************+
+Info: [ 15364,  16101) |***********+
+Info: Checksum: 0x9373f25f
+Info: Routing globals...
+Info:     routing clock net $glbnet$car._clk_120MHz using global 0
+Info:     routing clock net $glbnet$car.clk_usb using global 1
+
+Info: Routing..
+Info: Setting up routing queue.
+Info: Routing 20490 arcs.
+Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
+Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
+Info:       1000 |       36        963 |   36   963 |     19565|       0.38       0.38|
+Info:       2000 |      115       1884 |   79   921 |     18720|       0.20       0.58|
+Info:       3000 |      237       2762 |  122   878 |     17953|       0.22       0.81|
+Info:       4000 |      338       3661 |  101   899 |     17435|       0.20       1.00|
+Info:       5000 |      488       4511 |  150   850 |     16719|       0.22       1.23|
+Info:       6000 |      683       5316 |  195   805 |     16174|       0.24       1.46|
+Info:       7000 |      904       6095 |  221   779 |     15632|       0.22       1.68|
+Info:       8000 |     1119       6880 |  215   785 |     14991|       0.22       1.90|
+Info:       9000 |     1369       7630 |  250   750 |     14391|       0.24       2.13|
+Info:      10000 |     1606       8393 |  237   763 |     13973|       0.24       2.37|
+Info:      11000 |     1871       9128 |  265   735 |     13453|       0.23       2.61|
+Info:      12000 |     2187       9812 |  316   684 |     12871|       0.24       2.84|
+Info:      13000 |     2518      10481 |  331   669 |     12410|       0.24       3.09|
+Info:      14000 |     2919      11080 |  401   599 |     11975|       0.22       3.31|
+Info:      15000 |     3274      11725 |  355   645 |     11530|       0.21       3.52|
+Info:      16000 |     3674      12325 |  400   600 |     11101|       0.21       3.73|
+Info:      17000 |     3959      13030 |  285   705 |     10441|       0.21       3.95|
+Info:      18000 |     4190      13730 |  231   700 |      9746|       0.19       4.14|
+Info:      19000 |     4428      14381 |  238   651 |      9037|       0.18       4.32|
+Info:      20000 |     4658      15049 |  230   668 |      8353|       0.20       4.52|
+Info:      21000 |     4872      15750 |  214   701 |      7628|       0.22       4.74|
+Info:      22000 |     5126      16412 |  254   662 |      7015|       0.21       4.95|
+Info:      23000 |     5383      17088 |  257   676 |      6357|       0.27       5.22|
+Info:      24000 |     5685      17740 |  302   652 |      5738|       0.27       5.49|
+Info:      25000 |     5936      18471 |  251   731 |      5059|       0.32       5.81|
+Info:      26000 |     6180      19220 |  244   749 |      4469|       0.36       6.17|
+Info:      27000 |     6410      19968 |  230   748 |      3817|       0.31       6.47|
+Info:      28000 |     6679      20696 |  269   728 |      3389|       0.38       6.85|
+Info:      29000 |     6921      21448 |  242   752 |      2740|       0.29       7.15|
+Info:      30000 |     7165      22182 |  244   734 |      2062|       0.27       7.42|
+Info:      31000 |     7481      22824 |  316   642 |      1632|       0.41       7.83|
+Info:      32000 |     7798      23436 |  317   612 |      1086|       0.39       8.22|
+Info:      33000 |     8041      24187 |  243   751 |       745|       0.40       8.61|
+Info:      33955 |     8188      24803 |  147   616 |         0|       0.47       9.08|
+Info: Routing complete.
+Info: Router1 time 9.08s
+Info: Checksum: 0x43ee3523
+
+Info: Critical path report for clock '$glbnet$car.clk_usb' (posedge -> posedge):
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source debug_registers.interface.command_TRELLIS_FF_Q.Q
+Info:    routing  0.67  1.06 Net debug_registers.interface.command[0] (11,5) -> (12,4)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D_L6MUX21_Z_SD_LUT4_Z_1.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  1.24 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D_L6MUX21_Z_SD_LUT4_Z_1.F
+Info:    routing  0.50  1.74 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D_L6MUX21_Z_SD[5] (12,4) -> (13,4)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  1.93 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.00  1.93 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D_L6MUX21_Z_D1 (13,4) -> (13,4)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.FXB
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.70-157.72
+Info:      logic  0.18  2.11 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.62  2.73 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D[1] (13,4) -> (13,6)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D_LUT4_D_1.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.91 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_D_LUT4_Z_D_LUT4_D_1.F
+Info:    routing  0.93  3.84 Net terminal_snapshot_valid_LUT4_B_Z_LUT4_D_Z_LUT4_Z_1_D_LUT4_Z_D[3] (13,6) -> (11,2)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  4.03 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.47  4.51 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z[4] (11,2) -> (10,2)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_BLUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  4.70 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_BLUT_LUT4_Z.OFX
+Info:    routing  0.00  4.70 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z (10,2) -> (10,2)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D.FXB
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.62-157.64
+Info:      logic  0.18  4.88 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D.OFX
+Info:    routing  0.00  4.88 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z (10,2) -> (10,2)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_D0_PFUMX_Z_ALUT_LUT4_Z.FXB
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.70-157.72
+Info:      logic  0.18  5.06 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.47  5.53 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_L6MUX21_D1_Z[6] (10,2) -> (9,2)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_BLUT_Z_L6MUX21_D0_Z_L6MUX21_D0_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  5.73 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_BLUT_Z_L6MUX21_D0_Z_L6MUX21_D0_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.80  6.53 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_BLUT_Z_L6MUX21_D0_Z_L6MUX21_D0_Z[6] (9,2) -> (8,6)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_BLUT_Z_L6MUX21_D0_Z_L6MUX21_D0_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_D0_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  6.72 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_BLUT_Z_L6MUX21_D0_Z_L6MUX21_D0_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.68  7.40 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z_D_LUT4_Z_D_LUT4_D_C_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_L6MUX21_D1_Z_LUT4_D_Z_PFUMX_BLUT_Z_L6MUX21_D0_Z_L6MUX21_D0_Z_LUT4_D_Z_PFUMX_ALUT_Z_L6MUX21_D1_Z_L6MUX21_D1_Z[6] (8,6) -> (7,7)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_C0_L6MUX21_Z_SD_L6MUX21_Z_SD_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_C0_LUT4_D_Z_L6MUX21_Z_SD_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  7.59 Source debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_C0_L6MUX21_Z_SD_L6MUX21_Z_SD_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_C0_LUT4_D_Z_L6MUX21_Z_SD_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.53  8.12 Net debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_C0_L6MUX21_Z_SD_L6MUX21_Z_SD_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_C0_LUT4_D_Z_L6MUX21_Z_SD[6] (7,7) -> (6,8)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_C0_L6MUX21_Z_SD_L6MUX21_Z_SD_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_C0_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  8.31 Source debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_C0_L6MUX21_Z_SD_L6MUX21_Z_SD_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_C0_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.89  9.20 Net debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_C0_L6MUX21_Z_SD_L6MUX21_Z_SD_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_C0_LUT4_D_Z[6] (6,8) -> (5,12)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_Z_LUT4_D_Z_L6MUX21_Z_SD_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  9.40 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_Z_LUT4_D_Z_L6MUX21_Z_SD_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.47  9.87 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_Z_LUT4_D_Z_L6MUX21_Z_SD[6] (5,12) -> (4,12)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_Z_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  10.06 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_Z_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.89  10.95 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_C_LUT4_C_Z_LUT4_D_Z[6] (4,12) -> (5,20)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_Z_LUT4_D_1_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  11.15 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_Z_LUT4_D_1_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.47  11.61 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_C_LUT4_Z_D_LUT4_D_1_Z_LUT4_D_1_Z[6] (5,20) -> (5,21)
+Info:                          Sink debug_registers.selftest_step_1_observed_LUT4_B_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  11.81 Source debug_registers.selftest_step_1_observed_LUT4_B_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.46  12.27 Net debug_registers.selftest_step_1_observed_LUT4_B_Z[6] (5,21) -> (6,21)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  12.46 Source debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.46  12.93 Net debug_registers.interface.data_register_TRELLIS_FF_Q_13_DI_LUT4_Z_D_LUT4_Z_1_D_LUT4_D_Z[5] (6,21) -> (7,21)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_1_DI_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  13.12 Source debug_registers.interface.data_register_TRELLIS_FF_Q_1_DI_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.27  13.39 Net debug_registers.interface.data_register_TRELLIS_FF_Q_1_DI (7,21) -> (7,21)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_1.M
+Info:      setup  0.00  13.39 Source debug_registers.interface.data_register_TRELLIS_FF_Q_1.M
+Info: 3.80 ns logic, 9.59 ns routing
+
+Info: Critical path report for clock '$glbnet$car._clk_120MHz' (posedge -> posedge):
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_6.Q
+Info:    routing  0.82  1.22 Net car.usb_reset.cycles_in_reset[0] (3,36) -> (4,36)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1$CCU2_COMB0.B
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  1.57 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  1.57 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1$CCU2_FCI_INT (4,36) -> (4,36)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.00  1.57 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1$CCU2_COMB1.FCO
+Info:    routing  0.00  1.57 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT (4,36) -> (4,36)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/architecture/car.py:88
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.33  1.90 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN$CCU2_COMB0.F
+Info:    routing  0.78  2.68 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1[0] (4,36) -> (3,36)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_LUT4_Z.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.86 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.31  3.17 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D[2] (3,36) -> (3,36)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.35 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0_LUT4_Z.F
+Info:    routing  0.03  3.39 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_5_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0[1] (3,36) -> (3,36)
+Info:                          Sink car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.57 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.36  3.93 Net car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z_D[3] (3,36) -> (3,36)
+Info:                          Sink car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  4.11 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z.F
+Info:    routing  0.59  4.70 Net car.usb_reset.fsm_state_TRELLIS_FF_Q_CE (3,36) -> (3,35)
+Info:                          Sink car.usb_reset.fsm_state_TRELLIS_FF_Q_1.CE
+Info:      setup  0.00  4.70 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_1.CE
+Info: 1.80 ns logic, 2.90 ns routing
+
+Info: Critical path report for cross-domain path '<async>' -> '<async>':
+Info:       type curr  total name
+Info:     source  0.00  0.00 Source pin_target_phy_0__dir.buf.buf.buf0.O
+Info:    routing  1.54  1.54 Net safe_phy.read_request_LUT4_B_D[3] (0,41) -> (2,26)
+Info:                          Sink pin_target_phy_0__data.buf.buf.buf7_T_LUT4_Z.C
+Info:                          Defined in:
+Info:                               /source/tools/cynthion_usb_key/top.py:68
+Info:      logic  0.18  1.73 Source pin_target_phy_0__data.buf.buf.buf7_T_LUT4_Z.F
+Info:    routing  1.48  3.20 Net pin_target_phy_0__data.buf.buf.buf7_T (2,26) -> (0,38)
+Info:                          Sink pin_target_phy_0__data.buf.buf.buf0.T
+Info: 0.18 ns logic, 3.02 ns routing
+
+Info: Critical path report for cross-domain path '<async>' -> 'posedge $glbnet$car.clk_usb':
+Info:       type curr  total name
+Info:     source  0.00  0.00 Source debug_registers.interface.jtag.JRSTN
+Info:    routing  3.64  3.64 Net debug_registers.interface.data_register_TRELLIS_FF_Q_10_DI_LUT4_Z_D[2] (4,49) -> (21,10)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_C0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.82 Source debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_C0_LUT4_Z.F
+Info:    routing  1.04  4.86 Net debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_C0[1] (21,10) -> (21,12)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_BLUT_LUT4_Z.B
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.31  5.16 Source debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  0.51  5.67 Net debug_registers.interface.data_register_TRELLIS_FF_Q_24_DI (21,12) -> (21,10)
+Info:                          Sink debug_registers.interface.data_register_TRELLIS_FF_Q_24.M
+Info:      setup  0.00  5.67 Source debug_registers.interface.data_register_TRELLIS_FF_Q_24.M
+Info: 0.49 ns logic, 5.19 ns routing
+
+Info: Critical path report for cross-domain path 'posedge $glbnet$car._clk_120MHz' -> '<async>':
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_1.Q
+Info:    routing  0.88  1.27 Net car.usb_reset.fsm_state[1] (3,35) -> (4,32)
+Info:                          Sink protocol.button_last_LUT4_C_Z_LUT4_D_Z_LUT4_Z.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  1.45 Source protocol.button_last_LUT4_C_Z_LUT4_D_Z_LUT4_Z.F
+Info:    routing  1.41  2.86 Net protocol.button_last_LUT4_C_Z_LUT4_D_Z[1] (4,32) -> (0,41)
+Info:                          Sink pin_target_phy_0__rst.buf.buf.buf0.I
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info: 0.57 ns logic, 2.29 ns routing
+
+Info: Critical path report for cross-domain path 'posedge $glbnet$car._clk_120MHz' -> 'posedge $glbnet$car.clk_usb':
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_1.Q
+Info:    routing  2.05  2.44 Net car.usb_reset.fsm_state[1] (3,35) -> (17,20)
+Info:                          Sink car.usb_reset.fsm_state_LUT4_D.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.62 Source car.usb_reset.fsm_state_LUT4_D.F
+Info:    routing  1.93  4.55 Net car.usb_reset.fsm_state_LUT4_D_Z[0] (17,20) -> (2,3)
+Info:                          Sink safe_phy.startup_counter_TRELLIS_FF_Q_3.LSR
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      setup  0.29  4.84 Source safe_phy.startup_counter_TRELLIS_FF_Q_3.LSR
+Info: 0.86 ns logic, 3.98 ns routing
+
+Info: Critical path report for cross-domain path 'posedge $glbnet$car.clk_usb' -> '<async>':
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source safe_phy.deadline_counter_TRELLIS_FF_Q_15.Q
+Info:    routing  0.82  1.22 Net safe_phy.deadline_counter[15] (5,3) -> (7,3)
+Info:                          Sink start_LUT4_C_Z_LUT4_Z_D_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  1.40 Source start_LUT4_C_Z_LUT4_Z_D_LUT4_Z_D_LUT4_Z_1_D_LUT4_Z.F
+Info:    routing  0.56  1.96 Net start_LUT4_C_Z_LUT4_Z_D_LUT4_Z_D_LUT4_Z_1_D[1] (7,3) -> (5,5)
+Info:                          Sink start_LUT4_C_Z_LUT4_Z_D_LUT4_Z_D_LUT4_Z_1.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.14 Source start_LUT4_C_Z_LUT4_Z_D_LUT4_Z_D_LUT4_Z_1.F
+Info:    routing  0.30  2.44 Net start_LUT4_C_Z_LUT4_Z_D_LUT4_Z_D[3] (5,5) -> (5,5)
+Info:                          Sink start_LUT4_C_Z_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.62 Source start_LUT4_C_Z_LUT4_Z_D_LUT4_Z.F
+Info:    routing  1.00  3.62 Net start_LUT4_C_Z_LUT4_Z_D[3] (5,5) -> (4,10)
+Info:                          Sink start_LUT4_C_Z_LUT4_Z_D_LUT4_D.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.80 Source start_LUT4_C_Z_LUT4_Z_D_LUT4_D.F
+Info:    routing  1.71  5.51 Net start_LUT4_C_1_Z_LUT4_A_D_LUT4_Z_C_LUT4_D_Z[4] (4,10) -> (2,26)
+Info:                          Sink pin_target_phy_0__stp.buf.buf.buf0_I_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  5.69 Source pin_target_phy_0__stp.buf.buf.buf0_I_LUT4_Z.F
+Info:    routing  1.64  7.33 Net pin_target_phy_0__stp.buf.buf.buf0_I (2,26) -> (0,41)
+Info:                          Sink pin_target_phy_0__stp.buf.buf.buf0.I
+Info: 1.29 ns logic, 6.04 ns routing
+
+Info: Max frequency for clock     '$glbnet$car.clk_usb': 74.68 MHz (PASS at 60.00 MHz)
+Info: Max frequency for clock '$glbnet$car._clk_120MHz': 212.68 MHz (PASS at 120.00 MHz)
+
+Info: Max delay <async>                         -> <async>                    : 3.20 ns
+Info: Max delay <async>                         -> posedge $glbnet$car.clk_usb: 5.67 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> <async>                    : 2.86 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> posedge $glbnet$car.clk_usb: 4.84 ns
+Info: Max delay posedge $glbnet$car.clk_usb     -> <async>                    : 7.33 ns
+
+Info: Slack histogram:
+Info:  legend: times are in ps
+Info:          * represents 16 endpoint(s)
+Info:          + represents [1,16) endpoint(s)
+Info: [  3275,   3910) |+
+Info: [  3910,   4545) |+
+Info: [  4545,   5180) |+
+Info: [  5180,   5815) |+
+Info: [  5815,   6450) |+
+Info: [  6450,   7085) |*+
+Info: [  7085,   7720) |+
+Info: [  7720,   8355) |+
+Info: [  8355,   8990) |**********************+
+Info: [  8990,   9625) |***************************************************+
+Info: [  9625,  10260) |**************************************+
+Info: [ 10260,  10895) |*******+
+Info: [ 10895,  11530) |*************+
+Info: [ 11530,  12165) |*******+
+Info: [ 12165,  12800) |*********+
+Info: [ 12800,  13435) |*********+
+Info: [ 13435,  14070) |************+
+Info: [ 14070,  14705) |***************************************+
+Info: [ 14705,  15340) |************************************************************ 
+Info: [ 15340,  15975) |*********+
+
+Info: Program finished normally.

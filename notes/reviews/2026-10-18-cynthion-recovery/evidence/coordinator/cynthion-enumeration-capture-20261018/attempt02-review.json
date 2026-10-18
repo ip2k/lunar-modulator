@@ -1,0 +1,42 @@
+{
+  "endian": ">",
+  "bytes": 4920,
+  "sha256": "422a508f3879faa8cf4e4dd139ec5553be29f7a60458c5b5ca2cad905ef9db8d",
+  "blocks": {
+    "0xa0d0d0a": 1,
+    "0x1": 1,
+    "0x40000bad": 4,
+    "0x6": 126,
+    "0x5": 1
+  },
+  "first_bytes": {
+    "0xff": 88,
+    "0xfa": 17,
+    "0xf9": 20,
+    "0xf3": 1
+  },
+  "packet_lengths": {
+    "1": 88,
+    "2": 38
+  },
+  "events": [
+    {
+      "code": 5,
+      "seconds": 0.0
+    },
+    {
+      "code": 21,
+      "seconds": 27.426888066
+    },
+    {
+      "code": 22,
+      "seconds": 31.51101975
+    },
+    {
+      "code": 1,
+      "seconds": 46.084753983
+    }
+  ],
+  "first_packet_s": 27.367840466,
+  "last_packet_s": 31.67710815
+}

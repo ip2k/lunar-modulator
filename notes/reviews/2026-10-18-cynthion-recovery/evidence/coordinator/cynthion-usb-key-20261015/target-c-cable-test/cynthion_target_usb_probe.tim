@@ -1,0 +1,700 @@
+Info: constraining clock net 'clk_60MHz_0__io' to 60.00 MHz
+
+Info: Logic utilisation before packing:
+Info:     Total LUT4s:      1270/24288     5%
+Info:         logic LUTs:   1026/24288     4%
+Info:         carry LUTs:    244/24288     1%
+Info:           RAM LUTs:      0/ 3036     0%
+Info:          RAMW LUTs:      0/ 6072     0%
+
+Info:      Total DFFs:       595/24288     2%
+
+Info: Packing IOs..
+Info: target_phy_0__data__io[7] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf7, removing $nextpnr_iobuf target_phy_0__data__io[7].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf7' constrained to Bel 'X0/Y26/PIOC'.
+Info: target_phy_0__data__io[6] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf6, removing $nextpnr_iobuf target_phy_0__data__io[6].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf6' constrained to Bel 'X0/Y26/PIOD'.
+Info: target_phy_0__data__io[5] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf5, removing $nextpnr_iobuf target_phy_0__data__io[5].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf5' constrained to Bel 'X0/Y32/PIOA'.
+Info: target_phy_0__data__io[4] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf4, removing $nextpnr_iobuf target_phy_0__data__io[4].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf4' constrained to Bel 'X0/Y35/PIOD'.
+Info: target_phy_0__data__io[3] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf3, removing $nextpnr_iobuf target_phy_0__data__io[3].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf3' constrained to Bel 'X0/Y35/PIOA'.
+Info: target_phy_0__data__io[2] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf2, removing $nextpnr_iobuf target_phy_0__data__io[2].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf2' constrained to Bel 'X0/Y32/PIOB'.
+Info: target_phy_0__data__io[1] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf1, removing $nextpnr_iobuf target_phy_0__data__io[1].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf1' constrained to Bel 'X0/Y35/PIOB'.
+Info: target_phy_0__data__io[0] feeds TRELLIS_IO pin_target_phy_0__data.buf.buf.buf0, removing $nextpnr_iobuf target_phy_0__data__io[0].
+Info: pin 'pin_target_phy_0__data.buf.buf.buf0' constrained to Bel 'X0/Y38/PIOC'.
+Info: target_phy_0__stp__io feeds TRELLIS_IO pin_target_phy_0__stp.buf.buf.buf0, removing $nextpnr_obuf target_phy_0__stp__io.
+Info: pin 'pin_target_phy_0__stp.buf.buf.buf0' constrained to Bel 'X0/Y41/PIOD'.
+Info: target_phy_0__rst__io feeds TRELLIS_IO pin_target_phy_0__rst.buf.buf.buf0, removing $nextpnr_obuf target_phy_0__rst__io.
+Info: pin 'pin_target_phy_0__rst.buf.buf.buf0' constrained to Bel 'X0/Y41/PIOC'.
+Info: target_phy_0__nxt__io feeds TRELLIS_IO pin_target_phy_0__nxt.buf.buf.buf0, removing $nextpnr_ibuf target_phy_0__nxt__io.
+Info: pin 'pin_target_phy_0__nxt.buf.buf.buf0' constrained to Bel 'X0/Y38/PIOD'.
+Info: target_phy_0__dir__io feeds TRELLIS_IO pin_target_phy_0__dir.buf.buf.buf0, removing $nextpnr_ibuf target_phy_0__dir__io.
+Info: pin 'pin_target_phy_0__dir.buf.buf.buf0' constrained to Bel 'X0/Y41/PIOB'.
+Info: target_phy_0__clk__io feeds TRELLIS_IO pin_target_phy_0__clk.buf.buf.buf0, removing $nextpnr_obuf target_phy_0__clk__io.
+Info: pin 'pin_target_phy_0__clk.buf.buf.buf0' constrained to Bel 'X0/Y44/PIOB'.
+Info: target_c_vbus_en_0__io feeds TRELLIS_IO pin_target_c_vbus_en_0.buf.buf.buf0, removing $nextpnr_obuf target_c_vbus_en_0__io.
+Info: pin 'pin_target_c_vbus_en_0.buf.buf.buf0' constrained to Bel 'X0/Y29/PIOB'.
+Info: target_a_discharge_0__io feeds TRELLIS_IO pin_target_a_discharge_0.buf.buf.buf0, removing $nextpnr_obuf target_a_discharge_0__io.
+Info: pin 'pin_target_a_discharge_0.buf.buf.buf0' constrained to Bel 'X0/Y29/PIOA'.
+Info: pseudo_vccio_0__io[30] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf30, removing $nextpnr_obuf pseudo_vccio_0__io[30].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf30' constrained to Bel 'X4/Y50/PIOB'.
+Info: pseudo_vccio_0__io[29] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf29, removing $nextpnr_obuf pseudo_vccio_0__io[29].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf29' constrained to Bel 'X0/Y23/PIOB'.
+Info: pseudo_vccio_0__io[28] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf28, removing $nextpnr_obuf pseudo_vccio_0__io[28].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf28' constrained to Bel 'X0/Y23/PIOA'.
+Info: pseudo_vccio_0__io[27] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf27, removing $nextpnr_obuf pseudo_vccio_0__io[27].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf27' constrained to Bel 'X0/Y20/PIOC'.
+Info: pseudo_vccio_0__io[26] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf26, removing $nextpnr_obuf pseudo_vccio_0__io[26].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf26' constrained to Bel 'X0/Y17/PIOD'.
+Info: pseudo_vccio_0__io[25] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf25, removing $nextpnr_obuf pseudo_vccio_0__io[25].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf25' constrained to Bel 'X0/Y17/PIOC'.
+Info: pseudo_vccio_0__io[24] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf24, removing $nextpnr_obuf pseudo_vccio_0__io[24].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf24' constrained to Bel 'X0/Y17/PIOB'.
+Info: pseudo_vccio_0__io[23] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf23, removing $nextpnr_obuf pseudo_vccio_0__io[23].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf23' constrained to Bel 'X0/Y17/PIOA'.
+Info: pseudo_vccio_0__io[22] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf22, removing $nextpnr_obuf pseudo_vccio_0__io[22].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf22' constrained to Bel 'X0/Y11/PIOA'.
+Info: pseudo_vccio_0__io[21] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf21, removing $nextpnr_obuf pseudo_vccio_0__io[21].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf21' constrained to Bel 'X0/Y8/PIOD'.
+Info: pseudo_vccio_0__io[20] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf20, removing $nextpnr_obuf pseudo_vccio_0__io[20].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf20' constrained to Bel 'X0/Y47/PIOA'.
+Info: pseudo_vccio_0__io[19] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf19, removing $nextpnr_obuf pseudo_vccio_0__io[19].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf19' constrained to Bel 'X0/Y41/PIOA'.
+Info: pseudo_vccio_0__io[18] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf18, removing $nextpnr_obuf pseudo_vccio_0__io[18].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf18' constrained to Bel 'X0/Y44/PIOD'.
+Info: pseudo_vccio_0__io[17] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf17, removing $nextpnr_obuf pseudo_vccio_0__io[17].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf17' constrained to Bel 'X0/Y44/PIOC'.
+Info: pseudo_vccio_0__io[16] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf16, removing $nextpnr_obuf pseudo_vccio_0__io[16].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf16' constrained to Bel 'X0/Y44/PIOA'.
+Info: pseudo_vccio_0__io[15] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf15, removing $nextpnr_obuf pseudo_vccio_0__io[15].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf15' constrained to Bel 'X0/Y35/PIOC'.
+Info: pseudo_vccio_0__io[14] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf14, removing $nextpnr_obuf pseudo_vccio_0__io[14].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf14' constrained to Bel 'X0/Y29/PIOC'.
+Info: pseudo_vccio_0__io[13] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf13, removing $nextpnr_obuf pseudo_vccio_0__io[13].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf13' constrained to Bel 'X72/Y47/PIOD'.
+Info: pseudo_vccio_0__io[12] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf12, removing $nextpnr_obuf pseudo_vccio_0__io[12].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf12' constrained to Bel 'X72/Y47/PIOC'.
+Info: pseudo_vccio_0__io[11] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf11, removing $nextpnr_obuf pseudo_vccio_0__io[11].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf11' constrained to Bel 'X72/Y47/PIOA'.
+Info: pseudo_vccio_0__io[10] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf10, removing $nextpnr_obuf pseudo_vccio_0__io[10].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf10' constrained to Bel 'X72/Y41/PIOA'.
+Info: pseudo_vccio_0__io[9] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf9, removing $nextpnr_obuf pseudo_vccio_0__io[9].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf9' constrained to Bel 'X72/Y38/PIOA'.
+Info: pseudo_vccio_0__io[8] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf8, removing $nextpnr_obuf pseudo_vccio_0__io[8].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf8' constrained to Bel 'X72/Y29/PIOD'.
+Info: pseudo_vccio_0__io[7] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf7, removing $nextpnr_obuf pseudo_vccio_0__io[7].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf7' constrained to Bel 'X72/Y29/PIOB'.
+Info: pseudo_vccio_0__io[6] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf6, removing $nextpnr_obuf pseudo_vccio_0__io[6].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf6' constrained to Bel 'X72/Y17/PIOD'.
+Info: pseudo_vccio_0__io[5] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf5, removing $nextpnr_obuf pseudo_vccio_0__io[5].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf5' constrained to Bel 'X72/Y8/PIOD'.
+Info: pseudo_vccio_0__io[4] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf4, removing $nextpnr_obuf pseudo_vccio_0__io[4].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf4' constrained to Bel 'X51/Y0/PIOB'.
+Info: pseudo_vccio_0__io[3] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf3, removing $nextpnr_obuf pseudo_vccio_0__io[3].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf3' constrained to Bel 'X47/Y0/PIOB'.
+Info: pseudo_vccio_0__io[2] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf2, removing $nextpnr_obuf pseudo_vccio_0__io[2].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf2' constrained to Bel 'X47/Y0/PIOA'.
+Info: pseudo_vccio_0__io[1] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf1, removing $nextpnr_obuf pseudo_vccio_0__io[1].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf1' constrained to Bel 'X24/Y0/PIOA'.
+Info: pseudo_vccio_0__io[0] feeds TRELLIS_IO pin_pseudo_vccio_0.buf.buf.buf0, removing $nextpnr_obuf pseudo_vccio_0__io[0].
+Info: pin 'pin_pseudo_vccio_0.buf.buf.buf0' constrained to Bel 'X20/Y0/PIOA'.
+Info: pseudo_gnd_0__io[19] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf19, removing $nextpnr_obuf pseudo_gnd_0__io[19].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf19' constrained to Bel 'X0/Y20/PIOB'.
+Info: pseudo_gnd_0__io[18] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf18, removing $nextpnr_obuf pseudo_gnd_0__io[18].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf18' constrained to Bel 'X0/Y14/PIOD'.
+Info: pseudo_gnd_0__io[17] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf17, removing $nextpnr_obuf pseudo_gnd_0__io[17].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf17' constrained to Bel 'X0/Y14/PIOC'.
+Info: pseudo_gnd_0__io[16] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf16, removing $nextpnr_obuf pseudo_gnd_0__io[16].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf16' constrained to Bel 'X0/Y14/PIOB'.
+Info: pseudo_gnd_0__io[15] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf15, removing $nextpnr_obuf pseudo_gnd_0__io[15].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf15' constrained to Bel 'X0/Y8/PIOC'.
+Info: pseudo_gnd_0__io[14] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf14, removing $nextpnr_obuf pseudo_gnd_0__io[14].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf14' constrained to Bel 'X0/Y47/PIOC'.
+Info: pseudo_gnd_0__io[13] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf13, removing $nextpnr_obuf pseudo_gnd_0__io[13].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf13' constrained to Bel 'X0/Y47/PIOD'.
+Info: pseudo_gnd_0__io[12] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf12, removing $nextpnr_obuf pseudo_gnd_0__io[12].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf12' constrained to Bel 'X0/Y47/PIOB'.
+Info: pseudo_gnd_0__io[11] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf11, removing $nextpnr_obuf pseudo_gnd_0__io[11].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf11' constrained to Bel 'X0/Y32/PIOD'.
+Info: pseudo_gnd_0__io[10] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf10, removing $nextpnr_obuf pseudo_gnd_0__io[10].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf10' constrained to Bel 'X0/Y32/PIOC'.
+Info: pseudo_gnd_0__io[9] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf9, removing $nextpnr_obuf pseudo_gnd_0__io[9].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf9' constrained to Bel 'X0/Y29/PIOD'.
+Info: pseudo_gnd_0__io[8] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf8, removing $nextpnr_obuf pseudo_gnd_0__io[8].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf8' constrained to Bel 'X72/Y47/PIOB'.
+Info: pseudo_gnd_0__io[7] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf7, removing $nextpnr_obuf pseudo_gnd_0__io[7].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf7' constrained to Bel 'X72/Y44/PIOD'.
+Info: pseudo_gnd_0__io[6] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf6, removing $nextpnr_obuf pseudo_gnd_0__io[6].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf6' constrained to Bel 'X72/Y44/PIOC'.
+Info: pseudo_gnd_0__io[5] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf5, removing $nextpnr_obuf pseudo_gnd_0__io[5].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf5' constrained to Bel 'X72/Y35/PIOC'.
+Info: pseudo_gnd_0__io[4] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf4, removing $nextpnr_obuf pseudo_gnd_0__io[4].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf4' constrained to Bel 'X72/Y8/PIOC'.
+Info: pseudo_gnd_0__io[3] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf3, removing $nextpnr_obuf pseudo_gnd_0__io[3].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf3' constrained to Bel 'X58/Y0/PIOB'.
+Info: pseudo_gnd_0__io[2] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf2, removing $nextpnr_obuf pseudo_gnd_0__io[2].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf2' constrained to Bel 'X40/Y0/PIOB'.
+Info: pseudo_gnd_0__io[1] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf1, removing $nextpnr_obuf pseudo_gnd_0__io[1].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf1' constrained to Bel 'X33/Y0/PIOA'.
+Info: pseudo_gnd_0__io[0] feeds TRELLIS_IO pin_pseudo_gnd_0.buf.buf.buf0, removing $nextpnr_obuf pseudo_gnd_0__io[0].
+Info: pin 'pin_pseudo_gnd_0.buf.buf.buf0' constrained to Bel 'X13/Y0/PIOA'.
+Info: control_vbus_en_0__io feeds TRELLIS_IO pin_control_vbus_en_0.buf.buf.buf0, removing $nextpnr_obuf control_vbus_en_0__io.
+Info: pin 'pin_control_vbus_en_0.buf.buf.buf0' constrained to Bel 'X0/Y26/PIOA'.
+Info: clk_60MHz_0__io feeds TRELLIS_IO pin_clk_60MHz_0.buf.buf.buf0, removing $nextpnr_ibuf clk_60MHz_0__io.
+Info: pin 'pin_clk_60MHz_0.buf.buf.buf0' constrained to Bel 'X29/Y0/PIOB'.
+Info: aux_vbus_en_0__io feeds TRELLIS_IO pin_aux_vbus_en_0.buf.buf.buf0, removing $nextpnr_obuf aux_vbus_en_0__io.
+Info: pin 'pin_aux_vbus_en_0.buf.buf.buf0' constrained to Bel 'X0/Y26/PIOB'.
+Info: placed PLL 'car.pll' at bel 'X2/Y49/EHXPLL_LL'
+Info: Packing constants..
+Info: Packing carries...
+Info: Packing LUTs...
+Info: Packing LUT5-7s...
+Info: Packing FFs...
+Info:     268 FFs paired with LUTs.
+Info: Generating derived timing constraints...
+Info:     Input frequency of PLL 'car.pll' is constrained to 60.0 MHz
+Info:     Derived frequency constraint of 240.0 MHz for net car._clk_240MHz
+Info:     Derived frequency constraint of 120.0 MHz for net car._clk_120MHz
+Info:     Derived frequency constraint of 60.0 MHz for net car.clk_usb
+Info: Promoting globals...
+Info:     promoting clock net car.clk_usb to global network
+Info:     promoting clock net car._clk_120MHz to global network
+Info: Checksum: 0xcdb5f5ef
+
+Info: Device utilisation:
+Info: 	          TRELLIS_IO:      69/    197    35%
+Info: 	                DCCA:       2/     56     3%
+Info: 	              DP16KD:       0/     56     0%
+Info: 	          MULT18X18D:       0/     28     0%
+Info: 	              ALU54B:       0/     14     0%
+Info: 	             EHXPLLL:       1/      2    50%
+Info: 	             EXTREFB:       0/      1     0%
+Info: 	                DCUA:       0/      1     0%
+Info: 	           PCSCLKDIV:       0/      2     0%
+Info: 	             IOLOGIC:       0/    128     0%
+Info: 	            SIOLOGIC:       0/     69     0%
+Info: 	                 GSR:       0/      1     0%
+Info: 	               JTAGG:       0/      1     0%
+Info: 	                OSCG:       0/      1     0%
+Info: 	               SEDGA:       0/      1     0%
+Info: 	                 DTR:       0/      1     0%
+Info: 	             USRMCLK:       0/      1     0%
+Info: 	             CLKDIVF:       0/      4     0%
+Info: 	           ECLKSYNCB:       0/     10     0%
+Info: 	             DLLDELD:       0/      8     0%
+Info: 	              DDRDLL:       0/      4     0%
+Info: 	             DQSBUFM:       0/      8     0%
+Info: 	     TRELLIS_ECLKBUF:       0/      8     0%
+Info: 	        ECLKBRIDGECS:       0/      2     0%
+Info: 	                DCSC:       0/      2     0%
+Info: 	          TRELLIS_FF:     595/  24288     2%
+Info: 	        TRELLIS_COMB:    1356/  24288     5%
+Info: 	        TRELLIS_RAMW:       0/   3036     0%
+
+Info: Placed 70 cells based on constraints.
+Info: Creating initial analytic placement for 1133 cells, random placement wirelen = 73429.
+Info:     at initial placer iter 0, wirelen = 771
+Info:     at initial placer iter 1, wirelen = 746
+Info:     at initial placer iter 2, wirelen = 853
+Info:     at initial placer iter 3, wirelen = 725
+Info: Running main analytical placer, max placement attempts per cell = 511566.
+Info:     at iteration #1, type ALL: wirelen solved = 781, spread = 8878, legal = 9196; time = 0.02s
+Info:     at iteration #2, type ALL: wirelen solved = 1278, spread = 7211, legal = 7765; time = 0.02s
+Info:     at iteration #3, type ALL: wirelen solved = 1535, spread = 6798, legal = 7265; time = 0.02s
+Info:     at iteration #4, type ALL: wirelen solved = 2116, spread = 6395, legal = 6885; time = 0.02s
+Info:     at iteration #5, type ALL: wirelen solved = 2419, spread = 5422, legal = 5770; time = 0.02s
+Info:     at iteration #6, type ALL: wirelen solved = 2520, spread = 5322, legal = 5749; time = 0.02s
+Info:     at iteration #7, type ALL: wirelen solved = 2828, spread = 5404, legal = 5825; time = 0.02s
+Info:     at iteration #8, type ALL: wirelen solved = 2900, spread = 5441, legal = 5921; time = 0.02s
+Info:     at iteration #9, type ALL: wirelen solved = 3118, spread = 5476, legal = 5847; time = 0.02s
+Info:     at iteration #10, type ALL: wirelen solved = 3224, spread = 5269, legal = 5758; time = 0.02s
+Info:     at iteration #11, type ALL: wirelen solved = 3396, spread = 5242, legal = 5737; time = 0.02s
+Info:     at iteration #12, type ALL: wirelen solved = 3410, spread = 5214, legal = 5657; time = 0.02s
+Info:     at iteration #13, type ALL: wirelen solved = 3491, spread = 5084, legal = 5597; time = 0.02s
+Info:     at iteration #14, type ALL: wirelen solved = 3483, spread = 4913, legal = 5414; time = 0.02s
+Info:     at iteration #15, type ALL: wirelen solved = 3528, spread = 4948, legal = 5419; time = 0.02s
+Info:     at iteration #16, type ALL: wirelen solved = 3633, spread = 4914, legal = 5406; time = 0.02s
+Info:     at iteration #17, type ALL: wirelen solved = 3705, spread = 5016, legal = 5457; time = 0.02s
+Info:     at iteration #18, type ALL: wirelen solved = 3699, spread = 4932, legal = 5438; time = 0.02s
+Info:     at iteration #19, type ALL: wirelen solved = 3932, spread = 5375, legal = 5683; time = 0.02s
+Info:     at iteration #20, type ALL: wirelen solved = 4072, spread = 5433, legal = 5722; time = 0.02s
+Info:     at iteration #21, type ALL: wirelen solved = 4183, spread = 5174, legal = 5667; time = 0.02s
+Info: HeAP Placer Time: 0.53s
+Info:   of which solving equations: 0.31s
+Info:   of which spreading cells: 0.05s
+Info:   of which strict legalisation: 0.03s
+
+Info: Running simulated annealing placer for refinement.
+Info:   at iteration #1: temp = 0.000000, timing cost = 394, wirelen = 5406
+Info:   at iteration #5: temp = 0.000000, timing cost = 496, wirelen = 5000
+Info:   at iteration #10: temp = 0.000000, timing cost = 455, wirelen = 4774
+Info:   at iteration #11: temp = 0.000000, timing cost = 461, wirelen = 4739 
+Info: SA placement time 0.61s
+
+Info: Max frequency for clock     '$glbnet$car.clk_usb': 94.13 MHz (PASS at 60.00 MHz)
+Info: Max frequency for clock '$glbnet$car._clk_120MHz': 246.85 MHz (PASS at 120.00 MHz)
+
+Info: Max delay <async>                         -> <async>                    : 9.89 ns
+Info: Max delay <async>                         -> posedge $glbnet$car.clk_usb: 10.01 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> <async>                    : 3.37 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> posedge $glbnet$car.clk_usb: 5.62 ns
+Info: Max delay posedge $glbnet$car.clk_usb     -> <async>                    : 9.98 ns
+
+Info: Slack histogram:
+Info:  legend: times are in ps
+Info:          * represents 2 endpoint(s)
+Info:          + represents [1,2) endpoint(s)
+Info: [  4282,   4873) |+
+Info: [  4873,   5464) |*+
+Info: [  5464,   6055) |*+
+Info: [  6055,   6646) |**+
+Info: [  6646,   7237) |******+
+Info: [  7237,   7828) |************+
+Info: [  7828,   8419) |*********+
+Info: [  8419,   9010) |*********+
+Info: [  9010,   9601) |***********+
+Info: [  9601,  10192) |**********+
+Info: [ 10192,  10783) |*************** 
+Info: [ 10783,  11374) |***************+
+Info: [ 11374,  11965) |*************************+
+Info: [ 11965,  12556) |*******************************+
+Info: [ 12556,  13147) |********************************+
+Info: [ 13147,  13738) |**********************************+
+Info: [ 13738,  14329) |************************************************+
+Info: [ 14329,  14920) |**************************************+
+Info: [ 14920,  15511) |***************************+
+Info: [ 15511,  16102) |************************************************************ 
+Info: Checksum: 0xd3cd5928
+Info: Routing globals...
+Info:     routing clock net $glbnet$car._clk_120MHz using global 0
+Info:     routing clock net $glbnet$car.clk_usb using global 1
+
+Info: Routing..
+Info: Setting up routing queue.
+Info: Routing 5679 arcs.
+Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
+Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
+Info:       1000 |      143        856 |  143   856 |      4853|       0.17       0.17|
+Info:       2000 |      419       1580 |  276   724 |      4149|       0.15       0.32|
+Info:       3000 |      803       2196 |  384   616 |      3585|       0.20       0.52|
+Info:       4000 |     1111       2792 |  308   596 |      2959|       0.15       0.67|
+Info:       5000 |     1275       3560 |  164   768 |      2135|       0.12       0.79|
+Info:       6000 |     1423       4374 |  148   814 |      1294|       0.14       0.93|
+Info:       7000 |     1513       5207 |   90   833 |       398|       0.18       1.11|
+Info:       7405 |     1521       5534 |    8   327 |         0|       0.09       1.20|
+Info: Routing complete.
+Info: Router1 time 1.20s
+Info: Checksum: 0xa40e4f85
+
+Info: Critical path report for clock '$glbnet$car.clk_usb' (posedge -> posedge):
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_1.Q
+Info:    routing  0.81  1.21 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent[1] (3,7) -> (3,8)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.B
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/usb/usb2/descriptor.py:415
+Info:      logic  0.35  1.56 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  1.56 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (3,8) -> (3,8)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/usb/usb2/descriptor.py:551
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  1.62 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  1.62 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (3,8) -> (3,8)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  1.62 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  1.62 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (3,8) -> (3,8)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/usb/usb2/descriptor.py:551
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  1.67 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  1.67 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (3,8) -> (3,8)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  1.67 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  1.67 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (3,8) -> (4,8)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/usb/usb2/descriptor.py:551
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  1.73 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  1.73 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (4,8) -> (4,8)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  1.73 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  1.73 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (4,8) -> (4,8)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/usb/usb2/descriptor.py:551
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.33  2.06 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.F
+Info:    routing  0.81  2.86 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_S0[1] (4,8) -> (4,9)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.35  3.22 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  3.22 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (4,9) -> (4,9)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  3.22 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  3.22 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT_CIN (4,9) -> (4,9)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/usb/usb2/descriptor.py:425
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  3.27 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  3.27 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (4,9) -> (4,9)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  3.27 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  3.27 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT_CIN (4,9) -> (4,9)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/usb/usb2/descriptor.py:425
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  3.33 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  3.33 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (4,9) -> (4,9)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  3.33 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  3.33 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT_CIN (4,9) -> (5,9)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/usb/usb2/descriptor.py:425
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  3.39 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  3.39 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT$CCU2_FCI_INT (5,9) -> (5,9)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  3.39 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  3.39 Net $nextpnr_CCU2C_35$CIN (5,9) -> (5,9)
+Info:                          Sink $nextpnr_CCU2C_35$CCU2_COMB0.FCI
+Info:      logic  0.33  3.71 Source $nextpnr_CCU2C_35$CCU2_COMB0.F
+Info:    routing  0.97  4.69 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.bytes_sent_TRELLIS_FF_Q_15_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S0[3] (5,9) -> (11,9)
+Info:                          Sink device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  4.87 Source device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.F
+Info:    routing  0.00  4.87 Net device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT (11,9) -> (11,9)
+Info:                          Sink device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_Z_L6MUX21_Z_D1_PFUMX_Z_BLUT_LUT4_Z.F1
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:141.30-141.32
+Info:      logic  0.13  4.99 Source device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_Z_L6MUX21_Z_D1_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  0.00  4.99 Net device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_Z_L6MUX21_Z_D1 (11,9) -> (11,9)
+Info:                          Sink device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.FXB
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:141.38-141.40
+Info:      logic  0.18  5.17 Source device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  1.01  6.18 Net device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_Z[3] (11,9) -> (14,17)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  6.38 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.00  6.38 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_L6MUX21_Z_D1 (14,17) -> (14,17)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.FXB
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.70-157.72
+Info:      logic  0.18  6.56 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.82  7.37 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C[1] (14,17) -> (13,19)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_LUT4_D.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  7.55 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_LUT4_D.F
+Info:    routing  0.60  8.15 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_11_DI_PFUMX_Z_C0[1] (13,19) -> (13,16)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_22_LSR_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  8.33 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_22_LSR_LUT4_Z.F
+Info:    routing  0.72  9.05 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_22_LSR[1] (13,16) -> (14,18)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_4_LSR_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  9.23 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_4_LSR_LUT4_Z.F
+Info:    routing  0.17  9.40 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_4_LSR (14,18) -> (13,19)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_4.LSR
+Info:      setup  0.29  9.68 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_4.LSR
+Info: 3.78 ns logic, 5.90 ns routing
+
+Info: Critical path report for clock '$glbnet$car._clk_120MHz' (posedge -> posedge):
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_2.Q
+Info:    routing  0.85  1.24 Net car.usb_reset.cycles_in_reset[3] (5,27) -> (4,28)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN$CCU2_COMB1.B
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/architecture/car.py:56
+Info:      logic  0.35  1.60 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN$CCU2_COMB1.FCO
+Info:    routing  0.00  1.60 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_COUT (4,28) -> (4,28)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/luna/gateware/architecture/car.py:88
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.06  1.65 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB0.FCO
+Info:    routing  0.00  1.65 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_FCI_INT (4,28) -> (4,28)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.FCI
+Info:      logic  0.29  1.95 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1$CCU2_COMB1.F
+Info:    routing  0.68  2.62 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1[3] (4,28) -> (4,27)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.80 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.16  2.96 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D[2] (4,27) -> (4,27)
+Info:                          Sink car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.14 Source car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0_LUT4_Z.F
+Info:    routing  0.28  3.42 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0[3] (4,27) -> (5,27)
+Info:                          Sink car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.60 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.49  4.09 Net car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z_D[1] (5,27) -> (5,27)
+Info:                          Sink car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  4.27 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_CE_LUT4_Z.F
+Info:    routing  0.50  4.76 Net car.usb_reset.fsm_state_TRELLIS_FF_Q_CE (5,27) -> (3,27)
+Info:                          Sink car.usb_reset.fsm_state_TRELLIS_FF_Q.CE
+Info:      setup  0.00  4.76 Source car.usb_reset.fsm_state_TRELLIS_FF_Q.CE
+Info: 1.82 ns logic, 2.95 ns routing
+
+Info: Critical path report for cross-domain path '<async>' -> '<async>':
+Info:       type curr  total name
+Info:     source  0.00  0.00 Source pin_target_phy_0__dir.buf.buf.buf0.O
+Info:    routing  2.75  2.75 Net device.translator.phy_ready_LUT4_A_Z_PFUMX_BLUT_Z[0] (0,41) -> (4,17)
+Info:                          Sink device.translator.phy_ready_LUT4_B.D
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/amaranth/lib/io.py:1091
+Info:      logic  0.18  2.93 Source device.translator.phy_ready_LUT4_B.F
+Info:    routing  1.22  4.14 Net device.translator.phy_ready_LUT4_B_Z[0] (4,17) -> (9,19)
+Info:                          Sink device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  4.32 Source device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.F
+Info:    routing  0.00  4.32 Net device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT (9,19) -> (9,19)
+Info:                          Sink device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_BLUT_LUT4_Z.F1
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.46-157.48
+Info:      logic  0.13  4.45 Source device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  0.00  4.45 Net device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1 (9,19) -> (9,19)
+Info:                          Sink device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.FXB
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.62-157.64
+Info:      logic  0.18  4.63 Source device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.00  4.63 Net device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1 (9,19) -> (9,19)
+Info:                          Sink device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.FXB
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.70-157.72
+Info:      logic  0.18  4.81 Source device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.74  5.55 Net device.translator.control_translator.op_mode_LUT4_D_Z[5] (9,19) -> (6,18)
+Info:                          Sink pin_target_phy_0__data.buf.buf.buf0_I_PFUMX_Z_C0_LUT4_Z_1.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  5.73 Source pin_target_phy_0__data.buf.buf.buf0_I_PFUMX_Z_C0_LUT4_Z_1.F
+Info:    routing  0.81  6.54 Net device.data_crc.crc_TRELLIS_FF_Q_14_DI_LUT4_Z_D_LUT4_Z_1_D[2] (6,18) -> (6,19)
+Info:                          Sink pin_target_phy_0__data.buf.buf.buf0_I_PFUMX_Z_BLUT_LUT4_Z.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.31  6.84 Source pin_target_phy_0__data.buf.buf.buf0_I_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  1.81  8.65 Net pin_target_phy_0__data.buf.buf.buf0_I (6,19) -> (0,38)
+Info:                          Sink pin_target_phy_0__data.buf.buf.buf0.I
+Info: 1.33 ns logic, 7.32 ns routing
+
+Info: Critical path report for cross-domain path '<async>' -> 'posedge $glbnet$car.clk_usb':
+Info:       type curr  total name
+Info:     source  0.00  0.00 Source pin_target_phy_0__dir.buf.buf.buf0.O
+Info:    routing  2.75  2.75 Net device.translator.phy_ready_LUT4_A_Z_PFUMX_BLUT_Z[0] (0,41) -> (4,17)
+Info:                          Sink device.translator.phy_ready_LUT4_B.D
+Info:                          Defined in:
+Info:                               /work/pyenv/lib/python3.12/site-packages/amaranth/lib/io.py:1091
+Info:      logic  0.18  2.93 Source device.translator.phy_ready_LUT4_B.F
+Info:    routing  1.22  4.14 Net device.translator.phy_ready_LUT4_B_Z[0] (4,17) -> (9,19)
+Info:                          Sink device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  4.32 Source device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.F
+Info:    routing  0.00  4.32 Net device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT (9,19) -> (9,19)
+Info:                          Sink device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_BLUT_LUT4_Z.F1
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.46-157.48
+Info:      logic  0.13  4.45 Source device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  0.00  4.45 Net device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1 (9,19) -> (9,19)
+Info:                          Sink device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.FXB
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.62-157.64
+Info:      logic  0.18  4.63 Source device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.00  4.63 Net device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1 (9,19) -> (9,19)
+Info:                          Sink device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.FXB
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.70-157.72
+Info:      logic  0.18  4.81 Source device.translator.control_translator.op_mode_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.51  5.32 Net device.translator.control_translator.op_mode_LUT4_D_Z[5] (9,19) -> (9,18)
+Info:                          Sink device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_D1_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  5.51 Source device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.76  6.27 Net device.translator.rxevent_decoder.target_phy_0__nxt__i_LUT4_C_Z_PFUMX_ALUT_Z_L6MUX21_D0_Z[4] (9,18) -> (13,20)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_LUT4_D_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.19  6.46 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_LUT4_D_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.75  7.21 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_23_DI_LUT4_Z_D[0] (13,20) -> (13,19)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_LUT4_B_Z_L6MUX21_Z_D0_PFUMX_Z_BLUT_LUT4_Z.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.31  7.52 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_LUT4_B_Z_L6MUX21_Z_D0_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  0.00  7.52 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_LUT4_B_Z_L6MUX21_Z_D0 (13,19) -> (13,19)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_LUT4_B_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.FXA
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:141.34-141.36
+Info:      logic  0.18  7.70 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_LUT4_B_Z_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.47  8.16 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_2_LSR_LUT4_Z_D_LUT4_Z_C_LUT4_B_Z[0] (13,19) -> (14,19)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5_DI_L6MUX21_Z_D0_L6MUX21_Z_D1_PFUMX_Z_BLUT_LUT4_Z.A
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.31  8.47 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5_DI_L6MUX21_Z_D0_L6MUX21_Z_D1_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  0.00  8.47 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5_DI_L6MUX21_Z_D0_L6MUX21_Z_D1 (14,19) -> (14,19)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5_DI_L6MUX21_Z_D0_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.FXB
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.54-157.56
+Info:      logic  0.18  8.65 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5_DI_L6MUX21_Z_D0_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.00  8.65 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5_DI_L6MUX21_Z_D0 (14,19) -> (14,19)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5_DI_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.FXA
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:157.66-157.68
+Info:      logic  0.18  8.83 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5_DI_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.26  9.09 Net device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5_DI (14,19) -> (14,19)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5.M
+Info:      setup  0.00  9.09 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.rom_read_port__data_TRELLIS_FF_Q_5.M
+Info: 2.38 ns logic, 6.71 ns routing
+
+Info: Critical path report for cross-domain path 'posedge $glbnet$car._clk_120MHz' -> '<async>':
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_1.Q
+Info:    routing  0.71  1.11 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0[0] (6,27) -> (5,27)
+Info:                          Sink pin_target_phy_0__rst.buf.buf.buf0_I_LUT4_Z.C
+Info:                          Defined in:
+Info:                               /usr/local/lib/python3.12/contextlib.py:144
+Info:      logic  0.18  1.29 Source pin_target_phy_0__rst.buf.buf.buf0_I_LUT4_Z.F
+Info:    routing  1.70  2.99 Net device.endpoint_mux.endpoint_TRELLIS_FF_Q_CE[0] (5,27) -> (0,41)
+Info:                          Sink pin_target_phy_0__rst.buf.buf.buf0.I
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info: 0.57 ns logic, 2.41 ns routing
+
+Info: Critical path report for cross-domain path 'posedge $glbnet$car._clk_120MHz' -> 'posedge $glbnet$car.clk_usb':
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source car.usb_reset.fsm_state_TRELLIS_FF_Q_1.Q
+Info:    routing  0.71  1.11 Net car.usb_reset.cycles_in_reset_TRELLIS_FF_Q_4_DI_LUT4_Z_D_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_S1_COUT_CCU2C_CIN_S0[0] (6,27) -> (5,27)
+Info:                          Sink pin_target_phy_0__rst.buf.buf.buf0_I_LUT4_Z.C
+Info:                          Defined in:
+Info:                               /usr/local/lib/python3.12/contextlib.py:144
+Info:      logic  0.18  1.29 Source pin_target_phy_0__rst.buf.buf.buf0_I_LUT4_Z.F
+Info:    routing  0.95  2.24 Net device.endpoint_mux.endpoint_TRELLIS_FF_Q_CE[0] (5,27) -> (5,21)
+Info:                          Sink device.reset_sequencer.was_hs_pre_suspend_LUT4_C_Z_LUT4_Z_1_C_LUT4_C_Z_LUT4_Z_1_D_LUT4_D.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.42 Source device.reset_sequencer.was_hs_pre_suspend_LUT4_C_Z_LUT4_Z_1_C_LUT4_C_Z_LUT4_Z_1_D_LUT4_D.F
+Info:    routing  0.03  2.45 Net device.reset_sequencer.was_hs_pre_suspend_LUT4_C_Z_LUT4_Z_1_C_LUT4_C_Z_LUT4_Z_1_D_LUT4_D_Z[1] (5,21) -> (5,21)
+Info:                          Sink device.reset_sequencer.was_hs_pre_suspend_LUT4_C_Z_LUT4_Z_1_C_LUT4_C_Z_LUT4_Z_1_D_LUT4_D_Z_LUT4_D.B
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.63 Source device.reset_sequencer.was_hs_pre_suspend_LUT4_C_Z_LUT4_Z_1_C_LUT4_C_Z_LUT4_Z_1_D_LUT4_D_Z_LUT4_D.F
+Info:    routing  0.98  3.61 Net device.reset_sequencer.was_hs_pre_suspend_LUT4_C_Z_LUT4_Z_1_C_LUT4_C_Z_LUT4_Z_1_D_LUT4_D_Z_LUT4_D_Z[2] (5,21) -> (8,18)
+Info:                          Sink device.reset_sequencer.was_hs_pre_suspend_LUT4_C_Z_LUT4_Z_1_C_LUT4_C_Z_LUT4_Z_1_D_LUT4_D_Z_LUT4_D_Z_LUT4_D.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.79 Source device.reset_sequencer.was_hs_pre_suspend_LUT4_C_Z_LUT4_Z_1_C_LUT4_C_Z_LUT4_Z_1_D_LUT4_D_Z_LUT4_D_Z_LUT4_D.F
+Info:    routing  0.97  4.76 Net device.reset_sequencer.was_hs_pre_suspend_LUT4_C_Z_LUT4_Z_1_C_LUT4_C_Z_LUT4_Z_1_D_LUT4_D_Z_LUT4_D_Z_LUT4_D_Z (8,18) -> (7,8)
+Info:                          Sink device.endpoint_mux.active_address_TRELLIS_FF_Q_6.LSR
+Info:      setup  0.29  5.05 Source device.endpoint_mux.active_address_TRELLIS_FF_Q_6.LSR
+Info: 1.40 ns logic, 3.65 ns routing
+
+Info: Critical path report for cross-domain path 'posedge $glbnet$car.clk_usb' -> '<async>':
+Info:       type curr  total name
+Info:   clk-to-q  0.40  0.40 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.fsm_state_TRELLIS_FF_Q_1.Q
+Info:    routing  0.65  1.05 Net device.USBControlEndpoint.StandardRequestHandler.expecting_ack_LUT4_C_D_PFUMX_Z_C0[1] (14,14) -> (14,14)
+Info:                          Sink device.USBControlEndpoint.StandardRequestHandler.get_descriptor.position_in_stream_TRELLIS_FF_Q_1_DI_LUT4_Z_C_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S0_LUT4_Z.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  1.23 Source device.USBControlEndpoint.StandardRequestHandler.get_descriptor.position_in_stream_TRELLIS_FF_Q_1_DI_LUT4_Z_C_CCU2C_S1_COUT_CCU2C_CIN_S1_CCU2C_A1_COUT_CCU2C_CIN_COUT_CCU2C_CIN_S0_LUT4_Z.F
+Info:    routing  1.01  2.24 Net device.handshake_generator.data_TRELLIS_FF_Q_DI_LUT4_Z_D_LUT4_B_D_LUT4_Z_D[0] (14,14) -> (10,20)
+Info:                          Sink device.transmitter.is_zlp_LUT4_B_C_LUT4_B_D_LUT4_Z_D_PFUMX_Z_C0_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  2.42 Source device.transmitter.is_zlp_LUT4_B_C_LUT4_B_D_LUT4_Z_D_PFUMX_Z_C0_LUT4_Z.F
+Info:    routing  0.73  3.15 Net device.data_crc.crc_TRELLIS_FF_Q_12_DI_LUT4_Z_D_LUT4_D_B_PFUMX_Z_BLUT_LUT4_Z_D_LUT4_Z_D_LUT4_Z_D_LUT4_Z_C[3] (10,20) -> (10,18)
+Info:                          Sink device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z_D_LUT4_Z_D_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.33 Source device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z_D_LUT4_Z_D_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.45  3.79 Net device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z_D_LUT4_Z_D_LUT4_Z_D[3] (10,18) -> (10,18)
+Info:                          Sink device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z_D_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  3.97 Source device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z_D_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.60  4.57 Net device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z_D_LUT4_Z_D[3] (10,18) -> (9,16)
+Info:                          Sink device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z_D_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  4.75 Source device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.45  5.21 Net device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z_D[3] (9,16) -> (9,16)
+Info:                          Sink device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.31  5.51 Source device.transmitter.is_zlp_LUT4_B_C_LUT4_B_Z_LUT4_D_Z_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  0.86  6.37 Net device.data_crc.crc_TRELLIS_FF_Q_12_DI_LUT4_Z_D[1] (9,16) -> (7,18)
+Info:                          Sink pin_target_phy_0__data.buf.buf.buf6_I_LUT4_Z_D_LUT4_Z.C
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  6.55 Source pin_target_phy_0__data.buf.buf.buf6_I_LUT4_Z_D_LUT4_Z.F
+Info:    routing  0.85  7.40 Net pin_target_phy_0__data.buf.buf.buf6_I_LUT4_Z_D[2] (7,18) -> (5,18)
+Info:                          Sink pin_target_phy_0__data.buf.buf.buf6_I_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /work/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.18  7.58 Source pin_target_phy_0__data.buf.buf.buf6_I_LUT4_Z.F
+Info:    routing  1.26  8.84 Net pin_target_phy_0__data.buf.buf.buf6_I (5,18) -> (0,26)
+Info:                          Sink pin_target_phy_0__data.buf.buf.buf6.I
+Info: 1.96 ns logic, 6.88 ns routing
+
+Info: Max frequency for clock     '$glbnet$car.clk_usb': 103.28 MHz (PASS at 60.00 MHz)
+Info: Max frequency for clock '$glbnet$car._clk_120MHz': 209.86 MHz (PASS at 120.00 MHz)
+
+Info: Max delay <async>                         -> <async>                    : 8.65 ns
+Info: Max delay <async>                         -> posedge $glbnet$car.clk_usb: 9.09 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> <async>                    : 2.99 ns
+Info: Max delay posedge $glbnet$car._clk_120MHz -> posedge $glbnet$car.clk_usb: 5.05 ns
+Info: Max delay posedge $glbnet$car.clk_usb     -> <async>                    : 8.84 ns
+
+Info: Slack histogram:
+Info:  legend: times are in ps
+Info:          * represents 2 endpoint(s)
+Info:          + represents [1,2) endpoint(s)
+Info: [  3568,   4188) |*+
+Info: [  4188,   4808) | 
+Info: [  4808,   5428) |+
+Info: [  5428,   6048) |+
+Info: [  6048,   6668) |*+
+Info: [  6668,   7288) |**+
+Info: [  7288,   7908) |******+
+Info: [  7908,   8528) |******+
+Info: [  8528,   9148) |********+
+Info: [  9148,   9768) |**********+
+Info: [  9768,  10388) |********************+
+Info: [ 10388,  11008) |*****************+
+Info: [ 11008,  11628) |*****************************+
+Info: [ 11628,  12248) |*************+
+Info: [ 12248,  12868) |*************************+
+Info: [ 12868,  13488) |**************************************+
+Info: [ 13488,  14108) |****************************************+
+Info: [ 14108,  14728) |**********************************************************+
+Info: [ 14728,  15348) |****************************************+
+Info: [ 15348,  15968) |************************************************************ 
+
+Info: Program finished normally.

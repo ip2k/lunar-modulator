@@ -1,0 +1,23 @@
+{
+  "status": "root-offline-reviewed",
+  "source_commit": "a9b907b09f5b21698bc0d67672b5587741125e1e",
+  "bitstream_sha256": "f4e963ada21c07a6de853abb63b664cfd0129f0945f10bc6e32776d564a89e23",
+  "bytes": 119815,
+  "container_exit": 0,
+  "oom": false,
+  "resource_controls_verified": true,
+  "vbus_constants": {
+    "control_vbus_en_0": "1",
+    "target_c_vbus_en_0": "0",
+    "aux_vbus_en_0": "0",
+    "target_a_discharge_0": "0"
+  },
+  "data_gpio_absent": true,
+  "timing_lines": [
+    "Info: Max frequency for clock     '$glbnet$car.clk_usb': 150.51 MHz (PASS at 60.00 MHz)",
+    "Info: Max frequency for clock '$glbnet$car._clk_120MHz': 290.44 MHz (PASS at 120.00 MHz)",
+    "Info: Max frequency for clock     '$glbnet$car.clk_usb': 181.95 MHz (PASS at 60.00 MHz)",
+    "Info: Max frequency for clock '$glbnet$car._clk_120MHz': 220.17 MHz (PASS at 120.00 MHz)"
+  ],
+  "hardware_programmed": false
+}

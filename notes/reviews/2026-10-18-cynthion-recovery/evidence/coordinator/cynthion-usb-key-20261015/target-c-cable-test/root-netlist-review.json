@@ -1,0 +1,35 @@
+{
+  "target_c_vbus_en": {
+    "I": [
+      "0"
+    ],
+    "T": [
+      "0"
+    ]
+  },
+  "control_vbus_en": {
+    "I": [
+      "0"
+    ],
+    "T": [
+      "0"
+    ]
+  },
+  "aux_vbus_en": {
+    "I": [
+      "0"
+    ],
+    "T": [
+      "0"
+    ]
+  },
+  "target_a_discharge": {
+    "I": [
+      "0"
+    ],
+    "T": [
+      "0"
+    ]
+  },
+  "bit_sha256": "c72a4e4e201809c0680948c43f88c9572e31cb0da037bf7031ee16f1346aecfe"
+}

@@ -1,0 +1,85 @@
+Frame 1: PCAPNG Custom Block, 16 bytes, copying not allowed
+    Section number: 1
+    Frame Number: 1
+    Frame Length: 16 bytes (128 bits)
+    Capture Length: 16 bytes (128 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    Private Enterprise Number: Great Scott Gadgets (62392)
+    Copying: Not Allowed
+    [Protocols in frame: data]
+    Character encoding: ASCII (0)
+Data (16 bytes)
+
+0000  33 43 00 07 00 00 00 00 00 00 00 00 00 00 00 00   3C..............
+    Data: 33430007000000000000000000000000
+    [Length: 16]
+
+Frame 2: PCAPNG Custom Block, 16 bytes, copying not allowed
+    Section number: 1
+    Frame Number: 2
+    Frame Length: 16 bytes (128 bits)
+    Capture Length: 16 bytes (128 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    Private Enterprise Number: Great Scott Gadgets (62392)
+    Copying: Not Allowed
+    [Protocols in frame: data]
+    Character encoding: ASCII (0)
+Data (16 bytes)
+
+0000  33 43 00 16 00 00 00 00 00 00 00 0a be 78 34 da   3C...........x4.
+    Data: 33430016000000000000000abe7834da
+    [Length: 16]
+
+Frame 3: PCAPNG Custom Block, 16 bytes, copying not allowed
+    Section number: 1
+    Frame Number: 3
+    Frame Length: 16 bytes (128 bits)
+    Capture Length: 16 bytes (128 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    Private Enterprise Number: Great Scott Gadgets (62392)
+    Copying: Not Allowed
+    [Protocols in frame: data]
+    Character encoding: ASCII (0)
+Data (16 bytes)
+
+0000  33 43 00 10 00 00 00 00 00 00 00 0d 3b 2b 60 b8   3C..........;+`.
+    Data: 33430010000000000000000d3b2b60b8
+    [Length: 16]
+
+Frame 4: PCAPNG Custom Block, 16 bytes, copying not allowed
+    Section number: 1
+    Frame Number: 4
+    Frame Length: 16 bytes (128 bits)
+    Capture Length: 16 bytes (128 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    Private Enterprise Number: Great Scott Gadgets (62392)
+    Copying: Not Allowed
+    [Protocols in frame: data]
+    Character encoding: ASCII (0)
+Data (16 bytes)
+
+0000  33 43 00 0c 00 00 00 00 00 00 00 0d 3b 2b 61 4e   3C..........;+aN
+    Data: 3343000c000000000000000d3b2b614e
+    [Length: 16]
+
+Frame 5: PCAPNG Custom Block, 16 bytes, copying not allowed
+    Section number: 1
+    Frame Number: 5
+    Frame Length: 16 bytes (128 bits)
+    Capture Length: 16 bytes (128 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    Private Enterprise Number: Great Scott Gadgets (62392)
+    Copying: Not Allowed
+    [Protocols in frame: data]
+    Character encoding: ASCII (0)
+Data (16 bytes)
+
+0000  33 43 00 01 00 00 00 00 00 00 00 13 8f bf a6 74   3C.............t
+    Data: 3343000100000000000000138fbfa674
+    [Length: 16]
+

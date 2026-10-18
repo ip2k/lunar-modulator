@@ -1,0 +1,3688 @@
+Frame 1: PCAPNG Custom Block, 16 bytes, copying not allowed
+    Section number: 1
+    Frame Number: 1
+    Frame Length: 16 bytes (128 bits)
+    Capture Length: 16 bytes (128 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    Private Enterprise Number: Great Scott Gadgets (62392)
+    Copying: Not Allowed
+    [Protocols in frame: data]
+    Character encoding: ASCII (0)
+Data (16 bytes)
+
+0000  33 43 00 05 00 00 00 00 00 00 00 00 00 00 00 00   3C..............
+    Data: 33430005000000000000000000000000
+    [Length: 16]
+
+Frame 2: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.367840466 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.367840466 UTC
+    Epoch Arrival Time: 27.367840466
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time since reference or first frame: 0.000000000 seconds]
+    Frame Number: 2
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 3: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.368441366 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.368441366 UTC
+    Epoch Arrival Time: 27.368441366
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 600.900 microseconds]
+    [Time delta from previous displayed frame: 600.900 microseconds]
+    [Time since reference or first frame: 600.900 microseconds]
+    Frame Number: 3
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 4: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.368447516 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.368447516 UTC
+    Epoch Arrival Time: 27.368447516
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 6.150 microseconds]
+    [Time delta from previous displayed frame: 6.150 microseconds]
+    [Time since reference or first frame: 607.050 microseconds]
+    Frame Number: 4
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 5: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.368472583 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.368472583 UTC
+    Epoch Arrival Time: 27.368472583
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 25.067 microseconds]
+    [Time delta from previous displayed frame: 25.067 microseconds]
+    [Time since reference or first frame: 632.117 microseconds]
+    Frame Number: 5
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 6: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.368519150 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.368519150 UTC
+    Epoch Arrival Time: 27.368519150
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 46.567 microseconds]
+    [Time delta from previous displayed frame: 46.567 microseconds]
+    [Time since reference or first frame: 678.684 microseconds]
+    Frame Number: 6
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 7: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.368833216 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.368833216 UTC
+    Epoch Arrival Time: 27.368833216
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 314.066 microseconds]
+    [Time delta from previous displayed frame: 314.066 microseconds]
+    [Time since reference or first frame: 992.750 microseconds]
+    Frame Number: 7
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 8: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.368843450 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.368843450 UTC
+    Epoch Arrival Time: 27.368843450
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 10.234 microseconds]
+    [Time delta from previous displayed frame: 10.234 microseconds]
+    [Time since reference or first frame: 1.002984 milliseconds]
+    Frame Number: 8
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 9: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.368845433 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.368845433 UTC
+    Epoch Arrival Time: 27.368845433
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.983 microseconds]
+    [Time delta from previous displayed frame: 1.983 microseconds]
+    [Time since reference or first frame: 1.004967 milliseconds]
+    Frame Number: 9
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 10: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.375946233 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.375946233 UTC
+    Epoch Arrival Time: 27.375946233
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 7.100800 milliseconds]
+    [Time delta from previous displayed frame: 7.100800 milliseconds]
+    [Time since reference or first frame: 8.105767 milliseconds]
+    Frame Number: 10
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 11: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.375948883 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.375948883 UTC
+    Epoch Arrival Time: 27.375948883
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 2.650 microseconds]
+    [Time delta from previous displayed frame: 2.650 microseconds]
+    [Time since reference or first frame: 8.108417 milliseconds]
+    Frame Number: 11
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 12: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.375961200 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.375961200 UTC
+    Epoch Arrival Time: 27.375961200
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 12.317 microseconds]
+    [Time delta from previous displayed frame: 12.317 microseconds]
+    [Time since reference or first frame: 8.120734 milliseconds]
+    Frame Number: 12
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 13: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.375973516 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.375973516 UTC
+    Epoch Arrival Time: 27.375973516
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 12.316 microseconds]
+    [Time delta from previous displayed frame: 12.316 microseconds]
+    [Time since reference or first frame: 8.133050 milliseconds]
+    Frame Number: 13
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 14: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.392855750 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.392855750 UTC
+    Epoch Arrival Time: 27.392855750
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 16.882234 milliseconds]
+    [Time delta from previous displayed frame: 16.882234 milliseconds]
+    [Time since reference or first frame: 25.015284 milliseconds]
+    Frame Number: 14
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 15: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.392860233 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.392860233 UTC
+    Epoch Arrival Time: 27.392860233
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 4.483 microseconds]
+    [Time delta from previous displayed frame: 4.483 microseconds]
+    [Time since reference or first frame: 25.019767 milliseconds]
+    Frame Number: 15
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 16: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.393217800 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.393217800 UTC
+    Epoch Arrival Time: 27.393217800
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 357.567 microseconds]
+    [Time delta from previous displayed frame: 357.567 microseconds]
+    [Time since reference or first frame: 25.377334 milliseconds]
+    Frame Number: 16
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 17: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.393233616 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.393233616 UTC
+    Epoch Arrival Time: 27.393233616
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 15.816 microseconds]
+    [Time delta from previous displayed frame: 15.816 microseconds]
+    [Time since reference or first frame: 25.393150 milliseconds]
+    Frame Number: 17
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 18: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.408739700 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.408739700 UTC
+    Epoch Arrival Time: 27.408739700
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 15.506084 milliseconds]
+    [Time delta from previous displayed frame: 15.506084 milliseconds]
+    [Time since reference or first frame: 40.899234 milliseconds]
+    Frame Number: 18
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 19: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.408855266 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.408855266 UTC
+    Epoch Arrival Time: 27.408855266
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 115.566 microseconds]
+    [Time delta from previous displayed frame: 115.566 microseconds]
+    [Time since reference or first frame: 41.014800 milliseconds]
+    Frame Number: 19
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 20: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.408873833 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.408873833 UTC
+    Epoch Arrival Time: 27.408873833
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 18.567 microseconds]
+    [Time delta from previous displayed frame: 18.567 microseconds]
+    [Time since reference or first frame: 41.033367 milliseconds]
+    Frame Number: 20
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 21: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.408882316 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.408882316 UTC
+    Epoch Arrival Time: 27.408882316
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 8.483 microseconds]
+    [Time delta from previous displayed frame: 8.483 microseconds]
+    [Time since reference or first frame: 41.041850 milliseconds]
+    Frame Number: 21
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 22: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.409565133 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.409565133 UTC
+    Epoch Arrival Time: 27.409565133
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 682.817 microseconds]
+    [Time delta from previous displayed frame: 682.817 microseconds]
+    [Time since reference or first frame: 41.724667 milliseconds]
+    Frame Number: 22
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 23: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:27.412395666 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.412395666 UTC
+    Epoch Arrival Time: 27.412395666
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 2.830533 milliseconds]
+    [Time delta from previous displayed frame: 2.830533 milliseconds]
+    [Time since reference or first frame: 44.555200 milliseconds]
+    Frame Number: 23
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 24: PCAPNG Custom Block, 16 bytes, copying not allowed
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Arrival Time: Dec 31, 1969 16:00:27.412395666 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:27.412395666 UTC
+    Epoch Arrival Time: 27.412395666
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 0.000000000 seconds]
+    [Time delta from previous displayed frame: 0.000000000 seconds]
+    [Time since reference or first frame: 44.555200 milliseconds]
+    Frame Number: 24
+    Frame Length: 16 bytes (128 bits)
+    Capture Length: 16 bytes (128 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    Private Enterprise Number: Great Scott Gadgets (62392)
+    Copying: Not Allowed
+    [Protocols in frame: data]
+    Character encoding: ASCII (0)
+Data (16 bytes)
+
+0000  33 43 00 15 00 00 00 00 00 00 00 06 62 c5 19 82   3C..........b...
+    Data: 33430015000000000000000662c51982
+    [Length: 16]
+
+Frame 25: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.510970200 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.510970200 UTC
+    Epoch Arrival Time: 31.510970200
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 4.098574534 seconds]
+    [Time delta from previous displayed frame: 4.098574534 seconds]
+    [Time since reference or first frame: 4.143129734 seconds]
+    Frame Number: 25
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 26: PCAPNG Custom Block, 16 bytes, copying not allowed
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Arrival Time: Dec 31, 1969 16:00:31.510970200 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.510970200 UTC
+    Epoch Arrival Time: 31.510970200
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 0.000000000 seconds]
+    [Time delta from previous displayed frame: 0.000000000 seconds]
+    [Time since reference or first frame: 4.143129734 seconds]
+    Frame Number: 26
+    Frame Length: 16 bytes (128 bits)
+    Capture Length: 16 bytes (128 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    Private Enterprise Number: Great Scott Gadgets (62392)
+    Copying: Not Allowed
+    [Protocols in frame: data]
+    Character encoding: ASCII (0)
+Data (16 bytes)
+
+0000  33 43 00 16 00 00 00 00 00 00 00 07 56 34 00 e6   3C..........V4..
+    Data: 334300160000000000000007563400e6
+    [Length: 16]
+
+Frame 27: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.514859466 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.514859466 UTC
+    Epoch Arrival Time: 31.514859466
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 3.889266 milliseconds]
+    [Time delta from previous displayed frame: 3.889266 milliseconds]
+    [Time since reference or first frame: 4.147019000 seconds]
+    Frame Number: 27
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 28: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.514993700 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.514993700 UTC
+    Epoch Arrival Time: 31.514993700
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 134.234 microseconds]
+    [Time delta from previous displayed frame: 134.234 microseconds]
+    [Time since reference or first frame: 4.147153234 seconds]
+    Frame Number: 28
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 29: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.515302516 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.515302516 UTC
+    Epoch Arrival Time: 31.515302516
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 308.816 microseconds]
+    [Time delta from previous displayed frame: 308.816 microseconds]
+    [Time since reference or first frame: 4.147462050 seconds]
+    Frame Number: 29
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 30: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.515601833 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.515601833 UTC
+    Epoch Arrival Time: 31.515601833
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 299.317 microseconds]
+    [Time delta from previous displayed frame: 299.317 microseconds]
+    [Time since reference or first frame: 4.147761367 seconds]
+    Frame Number: 30
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 31: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.515927733 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.515927733 UTC
+    Epoch Arrival Time: 31.515927733
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 325.900 microseconds]
+    [Time delta from previous displayed frame: 325.900 microseconds]
+    [Time since reference or first frame: 4.148087267 seconds]
+    Frame Number: 31
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 32: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.517924450 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.517924450 UTC
+    Epoch Arrival Time: 31.517924450
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.996717 milliseconds]
+    [Time delta from previous displayed frame: 1.996717 milliseconds]
+    [Time since reference or first frame: 4.150083984 seconds]
+    Frame Number: 32
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 33: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.518261516 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.518261516 UTC
+    Epoch Arrival Time: 31.518261516
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 337.066 microseconds]
+    [Time delta from previous displayed frame: 337.066 microseconds]
+    [Time since reference or first frame: 4.150421050 seconds]
+    Frame Number: 33
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 34: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.519052750 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.519052750 UTC
+    Epoch Arrival Time: 31.519052750
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 791.234 microseconds]
+    [Time delta from previous displayed frame: 791.234 microseconds]
+    [Time since reference or first frame: 4.151212284 seconds]
+    Frame Number: 34
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 35: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.520566133 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.520566133 UTC
+    Epoch Arrival Time: 31.520566133
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.513383 milliseconds]
+    [Time delta from previous displayed frame: 1.513383 milliseconds]
+    [Time since reference or first frame: 4.152725667 seconds]
+    Frame Number: 35
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 36: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.520627866 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.520627866 UTC
+    Epoch Arrival Time: 31.520627866
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 61.733 microseconds]
+    [Time delta from previous displayed frame: 61.733 microseconds]
+    [Time since reference or first frame: 4.152787400 seconds]
+    Frame Number: 36
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 37: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.520892766 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.520892766 UTC
+    Epoch Arrival Time: 31.520892766
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 264.900 microseconds]
+    [Time delta from previous displayed frame: 264.900 microseconds]
+    [Time since reference or first frame: 4.153052300 seconds]
+    Frame Number: 37
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 38: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.520903083 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.520903083 UTC
+    Epoch Arrival Time: 31.520903083
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 10.317 microseconds]
+    [Time delta from previous displayed frame: 10.317 microseconds]
+    [Time since reference or first frame: 4.153062617 seconds]
+    Frame Number: 38
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 39: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.521216983 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.521216983 UTC
+    Epoch Arrival Time: 31.521216983
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 313.900 microseconds]
+    [Time delta from previous displayed frame: 313.900 microseconds]
+    [Time since reference or first frame: 4.153376517 seconds]
+    Frame Number: 39
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 40: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.521488883 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.521488883 UTC
+    Epoch Arrival Time: 31.521488883
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 271.900 microseconds]
+    [Time delta from previous displayed frame: 271.900 microseconds]
+    [Time since reference or first frame: 4.153648417 seconds]
+    Frame Number: 40
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 41: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.522923350 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.522923350 UTC
+    Epoch Arrival Time: 31.522923350
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.434467 milliseconds]
+    [Time delta from previous displayed frame: 1.434467 milliseconds]
+    [Time since reference or first frame: 4.155082884 seconds]
+    Frame Number: 41
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 42: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.523848416 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.523848416 UTC
+    Epoch Arrival Time: 31.523848416
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 925.066 microseconds]
+    [Time delta from previous displayed frame: 925.066 microseconds]
+    [Time since reference or first frame: 4.156007950 seconds]
+    Frame Number: 42
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 43: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.523850816 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.523850816 UTC
+    Epoch Arrival Time: 31.523850816
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 2.400 microseconds]
+    [Time delta from previous displayed frame: 2.400 microseconds]
+    [Time since reference or first frame: 4.156010350 seconds]
+    Frame Number: 43
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 44: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.525292200 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.525292200 UTC
+    Epoch Arrival Time: 31.525292200
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.441384 milliseconds]
+    [Time delta from previous displayed frame: 1.441384 milliseconds]
+    [Time since reference or first frame: 4.157451734 seconds]
+    Frame Number: 44
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 45: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.525807766 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.525807766 UTC
+    Epoch Arrival Time: 31.525807766
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 515.566 microseconds]
+    [Time delta from previous displayed frame: 515.566 microseconds]
+    [Time since reference or first frame: 4.157967300 seconds]
+    Frame Number: 45
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 46: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.525978083 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.525978083 UTC
+    Epoch Arrival Time: 31.525978083
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 170.317 microseconds]
+    [Time delta from previous displayed frame: 170.317 microseconds]
+    [Time since reference or first frame: 4.158137617 seconds]
+    Frame Number: 46
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 47: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.526710816 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.526710816 UTC
+    Epoch Arrival Time: 31.526710816
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 732.733 microseconds]
+    [Time delta from previous displayed frame: 732.733 microseconds]
+    [Time since reference or first frame: 4.158870350 seconds]
+    Frame Number: 47
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 48: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527783383 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527783383 UTC
+    Epoch Arrival Time: 31.527783383
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.072567 milliseconds]
+    [Time delta from previous displayed frame: 1.072567 milliseconds]
+    [Time since reference or first frame: 4.159942917 seconds]
+    Frame Number: 48
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 49: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527825866 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527825866 UTC
+    Epoch Arrival Time: 31.527825866
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 42.483 microseconds]
+    [Time delta from previous displayed frame: 42.483 microseconds]
+    [Time since reference or first frame: 4.159985400 seconds]
+    Frame Number: 49
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 50: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527831766 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527831766 UTC
+    Epoch Arrival Time: 31.527831766
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 5.900 microseconds]
+    [Time delta from previous displayed frame: 5.900 microseconds]
+    [Time since reference or first frame: 4.159991300 seconds]
+    Frame Number: 50
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 51: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527834333 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527834333 UTC
+    Epoch Arrival Time: 31.527834333
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 2.567 microseconds]
+    [Time delta from previous displayed frame: 2.567 microseconds]
+    [Time since reference or first frame: 4.159993867 seconds]
+    Frame Number: 51
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 52: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527836900 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527836900 UTC
+    Epoch Arrival Time: 31.527836900
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 2.567 microseconds]
+    [Time delta from previous displayed frame: 2.567 microseconds]
+    [Time since reference or first frame: 4.159996434 seconds]
+    Frame Number: 52
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 53: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527843966 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527843966 UTC
+    Epoch Arrival Time: 31.527843966
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 7.066 microseconds]
+    [Time delta from previous displayed frame: 7.066 microseconds]
+    [Time since reference or first frame: 4.160003500 seconds]
+    Frame Number: 53
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 54: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527846700 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527846700 UTC
+    Epoch Arrival Time: 31.527846700
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 2.734 microseconds]
+    [Time delta from previous displayed frame: 2.734 microseconds]
+    [Time since reference or first frame: 4.160006234 seconds]
+    Frame Number: 54
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 55: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527950350 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527950350 UTC
+    Epoch Arrival Time: 31.527950350
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 103.650 microseconds]
+    [Time delta from previous displayed frame: 103.650 microseconds]
+    [Time since reference or first frame: 4.160109884 seconds]
+    Frame Number: 55
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 56: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527957333 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527957333 UTC
+    Epoch Arrival Time: 31.527957333
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 6.983 microseconds]
+    [Time delta from previous displayed frame: 6.983 microseconds]
+    [Time since reference or first frame: 4.160116867 seconds]
+    Frame Number: 56
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 57: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527963483 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527963483 UTC
+    Epoch Arrival Time: 31.527963483
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 6.150 microseconds]
+    [Time delta from previous displayed frame: 6.150 microseconds]
+    [Time since reference or first frame: 4.160123017 seconds]
+    Frame Number: 57
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 58: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.527979216 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.527979216 UTC
+    Epoch Arrival Time: 31.527979216
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 15.733 microseconds]
+    [Time delta from previous displayed frame: 15.733 microseconds]
+    [Time since reference or first frame: 4.160138750 seconds]
+    Frame Number: 58
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 59: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.528161783 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.528161783 UTC
+    Epoch Arrival Time: 31.528161783
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 182.567 microseconds]
+    [Time delta from previous displayed frame: 182.567 microseconds]
+    [Time since reference or first frame: 4.160321317 seconds]
+    Frame Number: 59
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 60: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.528176516 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.528176516 UTC
+    Epoch Arrival Time: 31.528176516
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 14.733 microseconds]
+    [Time delta from previous displayed frame: 14.733 microseconds]
+    [Time since reference or first frame: 4.160336050 seconds]
+    Frame Number: 60
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 61: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.528322083 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.528322083 UTC
+    Epoch Arrival Time: 31.528322083
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 145.567 microseconds]
+    [Time delta from previous displayed frame: 145.567 microseconds]
+    [Time since reference or first frame: 4.160481617 seconds]
+    Frame Number: 61
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf3)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 62: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.528667983 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.528667983 UTC
+    Epoch Arrival Time: 31.528667983
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 345.900 microseconds]
+    [Time delta from previous displayed frame: 345.900 microseconds]
+    [Time since reference or first frame: 4.160827517 seconds]
+    Frame Number: 62
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 63: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.542379683 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.542379683 UTC
+    Epoch Arrival Time: 31.542379683
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 13.711700 milliseconds]
+    [Time delta from previous displayed frame: 13.711700 milliseconds]
+    [Time since reference or first frame: 4.174539217 seconds]
+    Frame Number: 63
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 64: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.542787250 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.542787250 UTC
+    Epoch Arrival Time: 31.542787250
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 407.567 microseconds]
+    [Time delta from previous displayed frame: 407.567 microseconds]
+    [Time since reference or first frame: 4.174946784 seconds]
+    Frame Number: 64
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 65: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.543166816 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.543166816 UTC
+    Epoch Arrival Time: 31.543166816
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 379.566 microseconds]
+    [Time delta from previous displayed frame: 379.566 microseconds]
+    [Time since reference or first frame: 4.175326350 seconds]
+    Frame Number: 65
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 66: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.543202383 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.543202383 UTC
+    Epoch Arrival Time: 31.543202383
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 35.567 microseconds]
+    [Time delta from previous displayed frame: 35.567 microseconds]
+    [Time since reference or first frame: 4.175361917 seconds]
+    Frame Number: 66
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 67: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.543270116 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.543270116 UTC
+    Epoch Arrival Time: 31.543270116
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 67.733 microseconds]
+    [Time delta from previous displayed frame: 67.733 microseconds]
+    [Time since reference or first frame: 4.175429650 seconds]
+    Frame Number: 67
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 68: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.544204100 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.544204100 UTC
+    Epoch Arrival Time: 31.544204100
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 933.984 microseconds]
+    [Time delta from previous displayed frame: 933.984 microseconds]
+    [Time since reference or first frame: 4.176363634 seconds]
+    Frame Number: 68
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 69: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.544241833 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.544241833 UTC
+    Epoch Arrival Time: 31.544241833
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 37.733 microseconds]
+    [Time delta from previous displayed frame: 37.733 microseconds]
+    [Time since reference or first frame: 4.176401367 seconds]
+    Frame Number: 69
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 70: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.544328316 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.544328316 UTC
+    Epoch Arrival Time: 31.544328316
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 86.483 microseconds]
+    [Time delta from previous displayed frame: 86.483 microseconds]
+    [Time since reference or first frame: 4.176487850 seconds]
+    Frame Number: 70
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 71: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.556738283 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.556738283 UTC
+    Epoch Arrival Time: 31.556738283
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 12.409967 milliseconds]
+    [Time delta from previous displayed frame: 12.409967 milliseconds]
+    [Time since reference or first frame: 4.188897817 seconds]
+    Frame Number: 71
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 72: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.557196350 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.557196350 UTC
+    Epoch Arrival Time: 31.557196350
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 458.067 microseconds]
+    [Time delta from previous displayed frame: 458.067 microseconds]
+    [Time since reference or first frame: 4.189355884 seconds]
+    Frame Number: 72
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 73: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.557737500 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.557737500 UTC
+    Epoch Arrival Time: 31.557737500
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 541.150 microseconds]
+    [Time delta from previous displayed frame: 541.150 microseconds]
+    [Time since reference or first frame: 4.189897034 seconds]
+    Frame Number: 73
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 74: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.557859316 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.557859316 UTC
+    Epoch Arrival Time: 31.557859316
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 121.816 microseconds]
+    [Time delta from previous displayed frame: 121.816 microseconds]
+    [Time since reference or first frame: 4.190018850 seconds]
+    Frame Number: 74
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 75: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.558076383 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.558076383 UTC
+    Epoch Arrival Time: 31.558076383
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 217.067 microseconds]
+    [Time delta from previous displayed frame: 217.067 microseconds]
+    [Time since reference or first frame: 4.190235917 seconds]
+    Frame Number: 75
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 76: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.558110700 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.558110700 UTC
+    Epoch Arrival Time: 31.558110700
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 34.317 microseconds]
+    [Time delta from previous displayed frame: 34.317 microseconds]
+    [Time since reference or first frame: 4.190270234 seconds]
+    Frame Number: 76
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 77: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.558161266 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.558161266 UTC
+    Epoch Arrival Time: 31.558161266
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 50.566 microseconds]
+    [Time delta from previous displayed frame: 50.566 microseconds]
+    [Time since reference or first frame: 4.190320800 seconds]
+    Frame Number: 77
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 78: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.558222250 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.558222250 UTC
+    Epoch Arrival Time: 31.558222250
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 60.984 microseconds]
+    [Time delta from previous displayed frame: 60.984 microseconds]
+    [Time since reference or first frame: 4.190381784 seconds]
+    Frame Number: 78
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 79: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.558232650 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.558232650 UTC
+    Epoch Arrival Time: 31.558232650
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 10.400 microseconds]
+    [Time delta from previous displayed frame: 10.400 microseconds]
+    [Time since reference or first frame: 4.190392184 seconds]
+    Frame Number: 79
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 80: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.558272216 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.558272216 UTC
+    Epoch Arrival Time: 31.558272216
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 39.566 microseconds]
+    [Time delta from previous displayed frame: 39.566 microseconds]
+    [Time since reference or first frame: 4.190431750 seconds]
+    Frame Number: 80
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 81: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.559395100 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.559395100 UTC
+    Epoch Arrival Time: 31.559395100
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.122884 milliseconds]
+    [Time delta from previous displayed frame: 1.122884 milliseconds]
+    [Time since reference or first frame: 4.191554634 seconds]
+    Frame Number: 81
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 82: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.560525733 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.560525733 UTC
+    Epoch Arrival Time: 31.560525733
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.130633 milliseconds]
+    [Time delta from previous displayed frame: 1.130633 milliseconds]
+    [Time since reference or first frame: 4.192685267 seconds]
+    Frame Number: 82
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 83: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.560800966 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.560800966 UTC
+    Epoch Arrival Time: 31.560800966
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 275.233 microseconds]
+    [Time delta from previous displayed frame: 275.233 microseconds]
+    [Time since reference or first frame: 4.192960500 seconds]
+    Frame Number: 83
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 84: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.560849283 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.560849283 UTC
+    Epoch Arrival Time: 31.560849283
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 48.317 microseconds]
+    [Time delta from previous displayed frame: 48.317 microseconds]
+    [Time since reference or first frame: 4.193008817 seconds]
+    Frame Number: 84
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 85: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.561147016 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.561147016 UTC
+    Epoch Arrival Time: 31.561147016
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 297.733 microseconds]
+    [Time delta from previous displayed frame: 297.733 microseconds]
+    [Time since reference or first frame: 4.193306550 seconds]
+    Frame Number: 85
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 86: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.561617916 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.561617916 UTC
+    Epoch Arrival Time: 31.561617916
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 470.900 microseconds]
+    [Time delta from previous displayed frame: 470.900 microseconds]
+    [Time since reference or first frame: 4.193777450 seconds]
+    Frame Number: 86
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 87: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.561711816 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.561711816 UTC
+    Epoch Arrival Time: 31.561711816
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 93.900 microseconds]
+    [Time delta from previous displayed frame: 93.900 microseconds]
+    [Time since reference or first frame: 4.193871350 seconds]
+    Frame Number: 87
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 88: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.561733966 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.561733966 UTC
+    Epoch Arrival Time: 31.561733966
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 22.150 microseconds]
+    [Time delta from previous displayed frame: 22.150 microseconds]
+    [Time since reference or first frame: 4.193893500 seconds]
+    Frame Number: 88
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 89: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.577913466 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.577913466 UTC
+    Epoch Arrival Time: 31.577913466
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 16.179500 milliseconds]
+    [Time delta from previous displayed frame: 16.179500 milliseconds]
+    [Time since reference or first frame: 4.210073000 seconds]
+    Frame Number: 89
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 90: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.578070533 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.578070533 UTC
+    Epoch Arrival Time: 31.578070533
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 157.067 microseconds]
+    [Time delta from previous displayed frame: 157.067 microseconds]
+    [Time since reference or first frame: 4.210230067 seconds]
+    Frame Number: 90
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 91: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.593516033 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.593516033 UTC
+    Epoch Arrival Time: 31.593516033
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 15.445500 milliseconds]
+    [Time delta from previous displayed frame: 15.445500 milliseconds]
+    [Time since reference or first frame: 4.225675567 seconds]
+    Frame Number: 91
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 92: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.594236516 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.594236516 UTC
+    Epoch Arrival Time: 31.594236516
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 720.483 microseconds]
+    [Time delta from previous displayed frame: 720.483 microseconds]
+    [Time since reference or first frame: 4.226396050 seconds]
+    Frame Number: 92
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 93: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.594318666 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.594318666 UTC
+    Epoch Arrival Time: 31.594318666
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 82.150 microseconds]
+    [Time delta from previous displayed frame: 82.150 microseconds]
+    [Time since reference or first frame: 4.226478200 seconds]
+    Frame Number: 93
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 94: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.594684566 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.594684566 UTC
+    Epoch Arrival Time: 31.594684566
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 365.900 microseconds]
+    [Time delta from previous displayed frame: 365.900 microseconds]
+    [Time since reference or first frame: 4.226844100 seconds]
+    Frame Number: 94
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 95: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.610017316 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.610017316 UTC
+    Epoch Arrival Time: 31.610017316
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 15.332750 milliseconds]
+    [Time delta from previous displayed frame: 15.332750 milliseconds]
+    [Time since reference or first frame: 4.242176850 seconds]
+    Frame Number: 95
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 96: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.610040800 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.610040800 UTC
+    Epoch Arrival Time: 31.610040800
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 23.484 microseconds]
+    [Time delta from previous displayed frame: 23.484 microseconds]
+    [Time since reference or first frame: 4.242200334 seconds]
+    Frame Number: 96
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 97: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.610297200 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.610297200 UTC
+    Epoch Arrival Time: 31.610297200
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 256.400 microseconds]
+    [Time delta from previous displayed frame: 256.400 microseconds]
+    [Time since reference or first frame: 4.242456734 seconds]
+    Frame Number: 97
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 98: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.610359350 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.610359350 UTC
+    Epoch Arrival Time: 31.610359350
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 62.150 microseconds]
+    [Time delta from previous displayed frame: 62.150 microseconds]
+    [Time since reference or first frame: 4.242518884 seconds]
+    Frame Number: 98
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 99: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.610507583 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.610507583 UTC
+    Epoch Arrival Time: 31.610507583
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 148.233 microseconds]
+    [Time delta from previous displayed frame: 148.233 microseconds]
+    [Time since reference or first frame: 4.242667117 seconds]
+    Frame Number: 99
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 100: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.627006150 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.627006150 UTC
+    Epoch Arrival Time: 31.627006150
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 16.498567 milliseconds]
+    [Time delta from previous displayed frame: 16.498567 milliseconds]
+    [Time since reference or first frame: 4.259165684 seconds]
+    Frame Number: 100
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 101: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.627241383 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.627241383 UTC
+    Epoch Arrival Time: 31.627241383
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 235.233 microseconds]
+    [Time delta from previous displayed frame: 235.233 microseconds]
+    [Time since reference or first frame: 4.259400917 seconds]
+    Frame Number: 101
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 102: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.627305616 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.627305616 UTC
+    Epoch Arrival Time: 31.627305616
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 64.233 microseconds]
+    [Time delta from previous displayed frame: 64.233 microseconds]
+    [Time since reference or first frame: 4.259465150 seconds]
+    Frame Number: 102
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 103: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.627351016 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.627351016 UTC
+    Epoch Arrival Time: 31.627351016
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 45.400 microseconds]
+    [Time delta from previous displayed frame: 45.400 microseconds]
+    [Time since reference or first frame: 4.259510550 seconds]
+    Frame Number: 103
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 104: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.627425666 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.627425666 UTC
+    Epoch Arrival Time: 31.627425666
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 74.650 microseconds]
+    [Time delta from previous displayed frame: 74.650 microseconds]
+    [Time since reference or first frame: 4.259585200 seconds]
+    Frame Number: 104
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 105: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.627636066 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.627636066 UTC
+    Epoch Arrival Time: 31.627636066
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 210.400 microseconds]
+    [Time delta from previous displayed frame: 210.400 microseconds]
+    [Time since reference or first frame: 4.259795600 seconds]
+    Frame Number: 105
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 106: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.627669050 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.627669050 UTC
+    Epoch Arrival Time: 31.627669050
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 32.984 microseconds]
+    [Time delta from previous displayed frame: 32.984 microseconds]
+    [Time since reference or first frame: 4.259828584 seconds]
+    Frame Number: 106
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 107: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.643686133 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.643686133 UTC
+    Epoch Arrival Time: 31.643686133
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 16.017083 milliseconds]
+    [Time delta from previous displayed frame: 16.017083 milliseconds]
+    [Time since reference or first frame: 4.275845667 seconds]
+    Frame Number: 107
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 108: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.643806033 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.643806033 UTC
+    Epoch Arrival Time: 31.643806033
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 119.900 microseconds]
+    [Time delta from previous displayed frame: 119.900 microseconds]
+    [Time since reference or first frame: 4.275965567 seconds]
+    Frame Number: 108
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 109: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.644021516 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.644021516 UTC
+    Epoch Arrival Time: 31.644021516
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 215.483 microseconds]
+    [Time delta from previous displayed frame: 215.483 microseconds]
+    [Time since reference or first frame: 4.276181050 seconds]
+    Frame Number: 109
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 110: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.644394416 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.644394416 UTC
+    Epoch Arrival Time: 31.644394416
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 372.900 microseconds]
+    [Time delta from previous displayed frame: 372.900 microseconds]
+    [Time since reference or first frame: 4.276553950 seconds]
+    Frame Number: 110
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xfa)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 111: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.644445316 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.644445316 UTC
+    Epoch Arrival Time: 31.644445316
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 50.900 microseconds]
+    [Time delta from previous displayed frame: 50.900 microseconds]
+    [Time since reference or first frame: 4.276604850 seconds]
+    Frame Number: 111
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 112: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.660309566 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.660309566 UTC
+    Epoch Arrival Time: 31.660309566
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 15.864250 milliseconds]
+    [Time delta from previous displayed frame: 15.864250 milliseconds]
+    [Time since reference or first frame: 4.292469100 seconds]
+    Frame Number: 112
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 113: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.660327466 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.660327466 UTC
+    Epoch Arrival Time: 31.660327466
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 17.900 microseconds]
+    [Time delta from previous displayed frame: 17.900 microseconds]
+    [Time since reference or first frame: 4.292487000 seconds]
+    Frame Number: 113
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 114: Packet, 2 bytes on wire (16 bits), 2 bytes captured (16 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.660333700 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.660333700 UTC
+    Epoch Arrival Time: 31.660333700
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 6.234 microseconds]
+    [Time delta from previous displayed frame: 6.234 microseconds]
+    [Time since reference or first frame: 4.292493234 seconds]
+    Frame Number: 114
+    Frame Length: 2 bytes (16 bits)
+    Capture Length: 2 bytes (16 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xf9)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+    Not dissected yet (report to wireshark.org)
+        [Expert Info (Warning/Undecoded): Not dissected yet (report to wireshark.org)]
+            [Not dissected yet (report to wireshark.org)]
+            [Severity level: Warning]
+            [Group: Undecoded]
+
+Frame 115: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.661015016 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.661015016 UTC
+    Epoch Arrival Time: 31.661015016
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 681.316 microseconds]
+    [Time delta from previous displayed frame: 681.316 microseconds]
+    [Time since reference or first frame: 4.293174550 seconds]
+    Frame Number: 115
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 116: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.661017583 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.661017583 UTC
+    Epoch Arrival Time: 31.661017583
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 2.567 microseconds]
+    [Time delta from previous displayed frame: 2.567 microseconds]
+    [Time since reference or first frame: 4.293177117 seconds]
+    Frame Number: 116
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 117: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.661019816 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.661019816 UTC
+    Epoch Arrival Time: 31.661019816
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 2.233 microseconds]
+    [Time delta from previous displayed frame: 2.233 microseconds]
+    [Time since reference or first frame: 4.293179350 seconds]
+    Frame Number: 117
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 118: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.673296866 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.673296866 UTC
+    Epoch Arrival Time: 31.673296866
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 12.277050 milliseconds]
+    [Time delta from previous displayed frame: 12.277050 milliseconds]
+    [Time since reference or first frame: 4.305456400 seconds]
+    Frame Number: 118
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 119: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.673298683 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.673298683 UTC
+    Epoch Arrival Time: 31.673298683
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.817 microseconds]
+    [Time delta from previous displayed frame: 1.817 microseconds]
+    [Time since reference or first frame: 4.305458217 seconds]
+    Frame Number: 119
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 120: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.675355400 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.675355400 UTC
+    Epoch Arrival Time: 31.675355400
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 2.056717 milliseconds]
+    [Time delta from previous displayed frame: 2.056717 milliseconds]
+    [Time since reference or first frame: 4.307514934 seconds]
+    Frame Number: 120
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 121: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.675501300 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.675501300 UTC
+    Epoch Arrival Time: 31.675501300
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 145.900 microseconds]
+    [Time delta from previous displayed frame: 145.900 microseconds]
+    [Time since reference or first frame: 4.307660834 seconds]
+    Frame Number: 121
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 122: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.675547450 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.675547450 UTC
+    Epoch Arrival Time: 31.675547450
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 46.150 microseconds]
+    [Time delta from previous displayed frame: 46.150 microseconds]
+    [Time since reference or first frame: 4.307706984 seconds]
+    Frame Number: 122
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 123: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.675610016 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.675610016 UTC
+    Epoch Arrival Time: 31.675610016
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 62.566 microseconds]
+    [Time delta from previous displayed frame: 62.566 microseconds]
+    [Time since reference or first frame: 4.307769550 seconds]
+    Frame Number: 123
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 124: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.675648250 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.675648250 UTC
+    Epoch Arrival Time: 31.675648250
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 38.234 microseconds]
+    [Time delta from previous displayed frame: 38.234 microseconds]
+    [Time since reference or first frame: 4.307807784 seconds]
+    Frame Number: 124
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 125: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.675665650 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.675665650 UTC
+    Epoch Arrival Time: 31.675665650
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 17.400 microseconds]
+    [Time delta from previous displayed frame: 17.400 microseconds]
+    [Time since reference or first frame: 4.307825184 seconds]
+    Frame Number: 125
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 126: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.675697716 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.675697716 UTC
+    Epoch Arrival Time: 31.675697716
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 32.066 microseconds]
+    [Time delta from previous displayed frame: 32.066 microseconds]
+    [Time since reference or first frame: 4.307857250 seconds]
+    Frame Number: 126
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 127: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.677065850 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.677065850 UTC
+    Epoch Arrival Time: 31.677065850
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 1.368134 milliseconds]
+    [Time delta from previous displayed frame: 1.368134 milliseconds]
+    [Time since reference or first frame: 4.309225384 seconds]
+    Frame Number: 127
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 128: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.677071916 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.677071916 UTC
+    Epoch Arrival Time: 31.677071916
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 6.066 microseconds]
+    [Time delta from previous displayed frame: 6.066 microseconds]
+    [Time since reference or first frame: 4.309231450 seconds]
+    Frame Number: 128
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 129: Packet, 1 byte on wire (8 bits), 1 byte captured (8 bits) on interface Cynthion USB Analyzer, id 0
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Encapsulation type: USB 2.0/1.1/1.0 packets (208)
+    Arrival Time: Dec 31, 1969 16:00:31.677108150 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.677108150 UTC
+    Epoch Arrival Time: 31.677108150
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 36.234 microseconds]
+    [Time delta from previous displayed frame: 36.234 microseconds]
+    [Time since reference or first frame: 4.309267684 seconds]
+    Frame Number: 129
+    Frame Length: 1 byte (8 bits)
+    Capture Length: 1 byte (8 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    [Protocols in frame: usbll]
+    Character encoding: ASCII (0)
+USB Link Layer
+    PID: Unknown (0xff)
+    [Expert Info (Error/Malformed): Invalid USB Packet ID]
+        [Invalid USB Packet ID]
+        [Severity level: Error]
+        [Group: Malformed]
+
+Frame 130: PCAPNG Custom Block, 16 bytes, copying not allowed
+    Section number: 1
+    Interface id: 0 (Cynthion USB Analyzer)
+        Interface name: Cynthion USB Analyzer
+        Interface description: Cynthion USB Analyzer
+    Arrival Time: Dec 31, 1969 16:00:31.677108150 PST
+    UTC Arrival Time: Jan  1, 1970 00:00:31.677108150 UTC
+    Epoch Arrival Time: 31.677108150
+    [Time shift for this packet: 0.000000000 seconds]
+    [Time delta from previous captured frame: 0.000000000 seconds]
+    [Time delta from previous displayed frame: 0.000000000 seconds]
+    [Time since reference or first frame: 4.309267684 seconds]
+    Frame Number: 130
+    Frame Length: 16 bytes (128 bits)
+    Capture Length: 16 bytes (128 bits)
+    [Frame is marked: False]
+    [Frame is ignored: False]
+    Private Enterprise Number: Great Scott Gadgets (62392)
+    Copying: Not Allowed
+    [Protocols in frame: data]
+    Character encoding: ASCII (0)
+Data (16 bytes)
+
+0000  33 43 00 01 00 00 00 00 00 00 00 0a ba dd 8a 3f   3C.............?
+    Data: 33430001000000000000000abadd8a3f
+    [Length: 16]
+

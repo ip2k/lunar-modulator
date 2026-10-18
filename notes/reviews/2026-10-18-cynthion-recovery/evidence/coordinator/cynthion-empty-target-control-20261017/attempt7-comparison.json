@@ -1,0 +1,167 @@
+{
+  "fm1_attempt7": {
+    "failure_reason": 2,
+    "high_drive_event_line_counts": {
+      "2": 8,
+      "3": 4
+    },
+    "high_drive_events": [
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 16,
+        "time_us": 417409362
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 18,
+        "time_us": 417409382
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 20,
+        "time_us": 417409402
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 22,
+        "time_us": 417409422
+      },
+      {
+        "gpio": 63,
+        "line": 2,
+        "slot": 26,
+        "time_us": 417409662
+      },
+      {
+        "gpio": 63,
+        "line": 2,
+        "slot": 28,
+        "time_us": 417409702
+      },
+      {
+        "gpio": 63,
+        "line": 2,
+        "slot": 30,
+        "time_us": 417409762
+      },
+      {
+        "gpio": 63,
+        "line": 2,
+        "slot": 0,
+        "time_us": 417409842
+      },
+      {
+        "gpio": 63,
+        "line": 2,
+        "slot": 4,
+        "time_us": 417410142
+      },
+      {
+        "gpio": 63,
+        "line": 2,
+        "slot": 6,
+        "time_us": 417410182
+      },
+      {
+        "gpio": 63,
+        "line": 2,
+        "slot": 8,
+        "time_us": 417410242
+      },
+      {
+        "gpio": 63,
+        "line": 2,
+        "slot": 10,
+        "time_us": 417410322
+      }
+    ],
+    "origin_state": 5,
+    "packets": 832,
+    "raw_capture_sha256": "a7840f19f447966955ce763b8faa558842446fd567dc2ea7599455650d64021d",
+    "scope": "last frozen ring only; event-on-change records, not regular samples",
+    "sof_us": 0,
+    "terminal_receipt": 2133,
+    "terminal_state": 8,
+    "wait_dp_us": 500000
+  },
+  "unloaded_control": {
+    "failure_reason": 1,
+    "high_drive_event_line_counts": {
+      "3": 10
+    },
+    "high_drive_events": [
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 20,
+        "time_us": 62576498
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 24,
+        "time_us": 62576538
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 26,
+        "time_us": 62576558
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 30,
+        "time_us": 62576598
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 0,
+        "time_us": 62576618
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 2,
+        "time_us": 62576638
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 6,
+        "time_us": 62576678
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 8,
+        "time_us": 62576698
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 10,
+        "time_us": 62576718
+      },
+      {
+        "gpio": 63,
+        "line": 3,
+        "slot": 12,
+        "time_us": 62576738
+      }
+    ],
+    "origin_state": 4,
+    "packets": 30000,
+    "raw_capture_sha256": "5cebe5db1f60c4725706c64c7b009f7cbdd8f6a0f6ffe4047d51d7439926626d",
+    "scope": "last frozen ring only; event-on-change records, not regular samples",
+    "sof_us": 0,
+    "terminal_receipt": 2115,
+    "terminal_state": 8,
+    "wait_dp_us": 0
+  }
+}

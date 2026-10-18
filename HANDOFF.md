@@ -1,3 +1,17 @@
+## Astra independent review packet prepared — owner request
+
+Review entrypoint: notes/reviews/2026-10-18-cynthion-recovery/README.md.
+397 scratch originals accounted for,394 exported incl11rawcaptures and16 own
+experimentalbitstreams; sanitized text preserves originals+export hashes.
+Two fullrepo archives and one copiedvendor document omitted explicitly; input
+pins/sourcecommits retained. Current gateware source is already tracked; six
+repeat inputpins match routed build. Fresh119tests pass/177warnings/20.65s.
+All394exporthashes verified,JSONparse,11PCAPblockframing checks; only successful
+mouse capture decodes device descriptor. Reviewbase e0713b3d. No new device
+operation/build. Owner will arrange Astrareview; no agent dispatched for it.
+Hardware remains directFM1RIGHT/ON/noUSBidentity, CynthionDONE/OEs0. Scope
+model+breakout questionpending. GoalACTIVE; Aeononly; preserveuv.lock.
+
 ## No USB attach after direct plug flip; scope model/breakout pending
 
 Fresh08:58:25UTC afterFM1-end180flip: noUSBattach, roots+KA6only. DirectFM1

@@ -1,0 +1,26 @@
+Cynthion version: 0.2.5
+Apollo version: 1.1.1
+Python version: 3.12.14 (main, Sep  1 2026, 14:09:38) [Clang 22.1.3 ]
+
+Found Apollo stub interface!
+	Bitstream: USB Analyzer (Cynthion Project)
+	Vendor ID: 1d50
+	Product ID: 615b
+	bcdDevice: 0104
+[REDACTED device identifier]
+
+Forcing offline.
+
+Found Cynthion device!
+	Hardware: Cynthion r1.4
+	Manufacturer: Great Scott Gadgets
+	Product: Cynthion Apollo Debugger
+[REDACTED device identifier]
+	Vendor ID: 1d50
+	Product ID: 615c
+	bcdDevice: 0104
+	ADC reading: 3213
+	Firmware version: v1.1.1
+	USB API version: 1.2
+[REDACTED device identifier]
+

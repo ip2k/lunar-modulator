@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "purpose": "temporary standard-descriptor TARGET-C cable diagnostic",
+  "hardware_programmed_by_worker": false,
+  "source_commit": "7a1529f34440dab6366d29df68e2862f5a7042a1",
+  "source_branch": "codex/2026-10-15@cynthion-target-usb-device",
+  "platform": "Cynthion r1.4",
+  "usb_bus": "target_phy",
+  "usb_device_stack": "LUNA USBDevice with StandardControlEndpoint only",
+  "speed": "full-speed-only",
+  "descriptor_vid_pid": "1209:cc01 (temporary development identity)",
+  "raw_target_gpio": "target_usb_dp/dm not requested; left high-impedance",
+  "ulpi_extra_registers": {
+    "0x39": "0x06 (inherited Cynthion r1.4 profile)"
+  },
+  "vbus_controls_active_high": {
+    "target_c_vbus_en": 0,
+    "control_vbus_en": 0,
+    "aux_vbus_en": 0,
+    "target_a_discharge": 0
+  },
+  "bitstream": {
+    "path": "/home/REDACTED/cynthion-usb-key-build-20261015/target-usb-descriptor/cynthion_target_usb_probe.bit",
+    "size_bytes": 119595,
+    "sha256": "c72a4e4e201809c0680948c43f88c9572e31cb0da037bf7031ee16f1346aecfe"
+  },
+  "routed_timing": {
+    "usb_max_frequency_mhz": 103.28,
+    "usb_required_mhz": 60.0,
+    "usb_result": "PASS",
+    "sync_max_frequency_mhz": 209.86,
+    "sync_required_mhz": 120.0,
+    "sync_result": "PASS",
+    "tim_report": "/home/REDACTED/cynthion-usb-key-build-20261015/target-usb-descriptor/cynthion_target_usb_probe.tim",
+    "tim_sha256": "4e064c34a10201aca54219ab5974bd724013c9feb2a46b3b07d823f549a41adc",
+    "rpt": "/home/REDACTED/cynthion-usb-key-build-20261015/target-usb-descriptor/cynthion_target_usb_probe.rpt",
+    "rpt_sha256": "fc505b0d58b229c54dfd5694d4fd907bba3891ea594f8c693e93d2427aa0d5ec"
+  },
+  "implementation_files": {
+    "cynthion_target_usb_probe.config": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/target-usb-descriptor/cynthion_target_usb_probe.config",
+      "sha256": "fbc45ef1d8b0c0fe845a5643984c305e94726f02ff0c39cbfd97eebdad0b8ecf"
+    },
+    "cynthion_target_usb_probe.json": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/target-usb-descriptor/cynthion_target_usb_probe.json",
+      "sha256": "9723e8061a935268ca6628de4faa8baaadc3b5fc4f02f8da6481e905294f6bfb"
+    },
+    "cynthion_target_usb_probe.lpf": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/target-usb-descriptor/cynthion_target_usb_probe.lpf",
+      "sha256": "8d5e2ab347919b4fceafa2a7e7c6ddeadab64dee3b3fe1b0e95a0d7f0da8ad59"
+    }
+  },
+  "physical_observation_by_root_coordinator": "With FM-1 detached, the bench host enumerated Bus 003 Device 043, 1209:cc01 at 12 Mbps. Product and full device/config/string descriptors plus status were retrieved twice. Worker did not program or operate hardware.",
+  "limits": [
+    "This is a temporary diagnostic, not a released product identity.",
+    "Enumeration evidence applies only to the coordinator-observed setup.",
+    "Worker did not program hardware or perform USB host observation."
+  ]
+}

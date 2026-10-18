@@ -1,0 +1,41 @@
+{
+  "bitstream_sha256": "30a3ca6c46a2f0594957758a4d1ba90196b6918869d13445be040c1f8569ef3c",
+  "command": "python -m tools.cynthion_usb_key.build --mode operation --target-power-from-control --build-dir /out/build",
+  "mode": "operation",
+  "routed_max_frequency_mhz": {
+    "$glbnet$car._clk_120MHz": 230.15,
+    "$glbnet$car.clk_usb": 164.15
+  },
+  "source_commit": "d65bd636fd3f3c0086bab7ea46e09df469286aee",
+  "switch_outputs": {
+    "aux_vbus": {
+      "output_value": 0,
+      "tristate": 0
+    },
+    "control_vbus": {
+      "output_value": 1,
+      "tristate": 0
+    },
+    "target_a_discharge": {
+      "output_value": 0,
+      "tristate": 0
+    },
+    "target_c_vbus": {
+      "output_value": 0,
+      "tristate": 0
+    }
+  },
+  "target_pin_constraints": {
+    "D+": {
+      "io_type": "LVCMOS33",
+      "pull_mode": "NONE",
+      "site": "N4"
+    },
+    "D-": {
+      "io_type": "LVCMOS33",
+      "pull_mode": "NONE",
+      "site": "P3"
+    }
+  },
+  "target_power_from_control": true
+}

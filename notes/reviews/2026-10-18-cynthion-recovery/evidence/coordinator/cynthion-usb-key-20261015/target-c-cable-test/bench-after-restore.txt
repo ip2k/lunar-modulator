@@ -1,0 +1,15 @@
+Fri Oct 16 03:11:01 UTC 2026
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 051: ID 17cc:1001 Native Instruments Komplete Audio 6
+Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+Bus 003 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 004 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+/:  Bus 001.Port 001: Dev 001, Class=root_hub, Driver=xhci-hcd/2p, 480M
+    |__ Port 002: Dev 051, If 0, Class=Audio, Driver=snd-usb-audio, 480M
+    |__ Port 002: Dev 051, If 1, Class=Audio, Driver=snd-usb-audio, 480M
+    |__ Port 002: Dev 051, If 2, Class=Audio, Driver=snd-usb-audio, 480M
+    |__ Port 002: Dev 051, If 3, Class=Audio, Driver=snd-usb-audio, 480M
+    |__ Port 002: Dev 051, If 4, Class=Application Specific Interface, Driver=[none], 480M
+/:  Bus 002.Port 001: Dev 001, Class=root_hub, Driver=xhci-hcd/1p, 5000M
+/:  Bus 003.Port 001: Dev 001, Class=root_hub, Driver=xhci-hcd/2p, 480M
+/:  Bus 004.Port 001: Dev 001, Class=root_hub, Driver=xhci-hcd/1p, 5000M

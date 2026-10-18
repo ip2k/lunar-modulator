@@ -1,0 +1,30 @@
+{
+  "source_commit": "fef11263c88f4b79193ceff9b590094110124491",
+  "profile": "pico-repeat",
+  "layout": 8,
+  "tests": "117 combined passed; final source and test hashes matched",
+  "resource_controls_verified": true,
+  "container": "8e4a0af06aae0aee10b119768545008c9acb59d5df01445dc0da8bbb44be54a6",
+  "exit": 0,
+  "oom": false,
+  "power_constants": {
+    "control_vbus_en": "1",
+    "target_c_vbus_en": "0",
+    "aux_vbus_en": "0",
+    "target_a_discharge": "0"
+  },
+  "routed_timing": [
+    "Info: Max frequency for clock     '$glbnet$car.clk_usb': 67.29 MHz (PASS at 60.00 MHz)",
+    "Info: Max frequency for clock '$glbnet$car._clk_120MHz': 194.93 MHz (PASS at 120.00 MHz)"
+  ],
+  "artifact_hashes": {
+    "cynthion_usb_key.bit": "8fcc78e502dc692cd6d0f8daeab01030c2ae815326e624879f95bb24b65cd28f",
+    "cynthion_usb_key.json": "beb2cda709af2f7ed3f18d54f90c908973d165bfbc9f7600f9b209209b8b2ba4",
+    "cynthion_usb_key.tim": "bbac001cedbeb097f30e0ad0d5d5c68fa282d76488663979ab21cb76d4aa11ef",
+    "cynthion_usb_key.lpf": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+  },
+  "limits": [
+    "Offline source/simulation/routing only",
+    "No electrical equivalence, recovery or firmware acceptance"
+  ]
+}

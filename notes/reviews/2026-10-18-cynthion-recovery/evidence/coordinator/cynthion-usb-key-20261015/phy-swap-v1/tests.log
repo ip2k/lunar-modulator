@@ -1,0 +1,115 @@
+..................                                                       [100%]
+=============================== warnings summary ===============================
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:11
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:11: DeprecationWarning: instead of `amaranth.hdl.ast.ValueCastable`, use `amaranth.hdl.ValueCastable`
+    from amaranth.hdl.ast import ValueCastable
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/spi.py:10: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:117
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:117: DeprecationWarning: `ValueCastable.lowermethod` is no longer required and will be removed in Amaranth 0.6
+    @ValueCastable.lowermethod
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:121
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/jtag.py:121: DeprecationWarning: `ValueCastable.lowermethod` is no longer required and will be removed in Amaranth 0.6
+    @ValueCastable.lowermethod
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.Record`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/interface/ulpi.py:12: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_NONE`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import Record, DIR_FANIN, DIR_FANOUT, DIR_NONE
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/utils/io.py:11
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/utils/io.py:11: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANIN`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+../work/pyenv/lib/python3.12/site-packages/luna/gateware/utils/io.py:11
+  /work/pyenv/lib/python3.12/site-packages/luna/gateware/utils/io.py:11: DeprecationWarning: instead of `amaranth.hdl.rec.DIR_FANOUT`, use the `amaranth.lib.data` and `amaranth.lib.wiring` libraries as appropriate for the application; `amaranth.hdl.rec` will be removed in Amaranth 0.6
+    from amaranth.hdl.rec import DIR_FANIN, DIR_FANOUT
+
+tests/test_cynthion_usb_key_gateware.py::test_target_gpio_resources_expose_input_output_and_output_enable
+tests/test_cynthion_usb_key_gateware.py::test_target_gpio_resources_expose_input_output_and_output_enable
+  /work/pyenv/lib/python3.12/site-packages/amaranth/build/res.py:266: DeprecationWarning: Using platform.request without `dir="-"` is deprecated; use `amaranth.lib.io.*Buffer` components instead
+    value = resolve(resource,
+
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_terminates_without_entering_key_state
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_selftest_latches_first_failed_line_and_gpio_evidence
+tests/test_cynthion_usb_key_gateware.py::test_operation_image_stays_disarmed_without_debounced_button
+tests/test_cynthion_usb_key_gateware.py::test_missing_interlock_keeps_all_key_outputs_high_z
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_line_echo_cannot_falsely_ack_a_data_bit
+tests/test_cynthion_usb_key_gateware.py::test_sof_output_has_exact_period_and_pulse_after_fresh_entry
+tests/test_cynthion_usb_key_gateware.py::test_disconnected_walk_collects_all_four_states_after_swapped_rxcmd_mismatch
+  /work/pyenv/lib/python3.12/site-packages/amaranth/hdl/_ast.py:1975: DeprecationWarning: `reset=` is deprecated, use `init=` instead
+    signal = super().__call__(shape, **kwargs, src_loc_at=src_loc_at + 1)
+
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_cynthion_r14_target_phy_resource_bridges_real_transactions
+  /work/pyenv/lib/python3.12/site-packages/amaranth/build/res.py:205: DeprecationWarning: Using platform.request without `dir="-"` is deprecated; use `amaranth.lib.io.*Buffer` components instead
+    member = resolve(sub, dir[sub.name], xdr[sub.name],
+
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_function_control_readback_mismatch_latches_fault
+  /work/pyenv/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x7f2079865790> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_function_control_readback_mismatch_latches_fault
+  /work/pyenv/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x7f2078131550> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_function_control_readback_mismatch_latches_fault
+  /work/pyenv/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x7f207907d340> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_function_control_readback_mismatch_latches_fault
+  /work/pyenv/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x7f20782ea360> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_function_control_readback_mismatch_latches_fault
+  /work/pyenv/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x7f20782e97f0> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_ulpi_safe_phy.py::ULPISafePHYTests::test_function_control_readback_mismatch_latches_fault
+  /work/pyenv/lib/python3.12/site-packages/amaranth/build/res.py:258: UnusedElaboratable: <amaranth.build.res.PinBuffer object at 0x7f20782eb470> created but never used
+    buffer = PinBuffer(pin, port)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html

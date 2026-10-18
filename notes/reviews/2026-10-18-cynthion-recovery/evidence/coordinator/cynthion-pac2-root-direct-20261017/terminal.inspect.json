@@ -1,0 +1,287 @@
+[
+    {
+        "Id": "0753049c1b97594868c023c75196cf496a5d23ab1197209c9446e7f2ea539133",
+        "Created": "2026-10-17T07:14:20.654428298Z",
+        "Path": "/venv/bin/python",
+        "Args": [
+            "/run-root/root-build.py"
+        ],
+        "State": {
+            "Status": "exited",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-10-17T07:14:20.704319618Z",
+            "FinishedAt": "2026-10-17T07:14:25.126919795Z"
+        },
+        "Image": "sha256:d065eaf170070135564c88bd4273f30784278b35c9355d36a0a96bd6ba20cc8c",
+        "ResolvConfPath": "/var/lib/docker/containers/0753049c1b97594868c023c75196cf496a5d23ab1197209c9446e7f2ea539133/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/0753049c1b97594868c023c75196cf496a5d23ab1197209c9446e7f2ea539133/hostname",
+        "HostsPath": "/var/lib/docker/containers/0753049c1b97594868c023c75196cf496a5d23ab1197209c9446e7f2ea539133/hosts",
+        "LogPath": "/var/lib/docker/containers/0753049c1b97594868c023c75196cf496a5d23ab1197209c9446e7f2ea539133/0753049c1b97594868c023c75196cf496a5d23ab1197209c9446e7f2ea539133-json.log",
+        "Name": "/lunar-pac2-root-direct-20261017",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {
+                    "labels-regex": "^(com\\.docker\\.compose\\.(project|service)|lan\\..+)$",
+                    "max-file": "3",
+                    "max-size": "100m",
+                    "tag": "{{.ImageName}}|{{.Name}}"
+                }
+            },
+            "NetworkMode": "none",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": [
+                "ALL"
+            ],
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": true,
+            "SecurityOpt": [
+                "no-new-privileges"
+            ],
+            "Tmpfs": {
+                "/tmp": "rw,noexec,nosuid,nodev,size=256m"
+            },
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 8589934592,
+            "NanoCpus": 4000000000,
+            "CgroupParent": "docker-batch.slice",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 8589934592,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": 512,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "Mounts": [
+                {
+                    "Type": "bind",
+                    "Source": "/home/REDACTED/mvave-fm1/pac1954-bipolar-source-a9b907b0",
+                    "Target": "/workspace",
+                    "ReadOnly": true
+                },
+                {
+                    "Type": "bind",
+                    "Source": "/home/REDACTED/.local/share/codex-builds/lunar/cynthion-power-monitor-20261016/venv",
+                    "Target": "/venv",
+                    "ReadOnly": true
+                },
+                {
+                    "Type": "bind",
+                    "Source": "/home/REDACTED/.local/share/codex-builds/lunar/cynthion-power-monitor-20261016/toolchain/oss-cad-suite",
+                    "Target": "/opt/oss-cad-suite",
+                    "ReadOnly": true
+                },
+                {
+                    "Type": "bind",
+                    "Source": "/home/REDACTED/.local/share/codex-builds/lunar/cynthion-bipolar-root-direct-20261017",
+                    "Target": "/run-root",
+                    "ReadOnly": true
+                },
+                {
+                    "Type": "bind",
+                    "Source": "/home/REDACTED/.local/share/codex-builds/lunar/cynthion-bipolar-root-direct-20261017/output",
+                    "Target": "/output"
+                }
+            ],
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/home/REDACTED/.local/share/codex-builds/lunar/cynthion-bipolar-root-direct-20261017/output",
+                "Destination": "/output",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/home/REDACTED/.local/share/codex-builds/lunar/cynthion-bipolar-root-direct-20261017",
+                "Destination": "/run-root",
+                "Mode": "",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/home/REDACTED/.local/share/codex-builds/lunar/cynthion-power-monitor-20261016/venv",
+                "Destination": "/venv",
+                "Mode": "",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/home/REDACTED/mvave-fm1/pac1954-bipolar-source-a9b907b0",
+                "Destination": "/workspace",
+                "Mode": "",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/home/REDACTED/.local/share/codex-builds/lunar/cynthion-power-monitor-20261016/toolchain/oss-cad-suite",
+                "Destination": "/opt/oss-cad-suite",
+                "Mode": "",
+                "RW": false,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "0753049c1b97",
+            "Domainname": "",
+            "User": "1003:1003",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "SOURCE_COMMIT=a9b907b09f5b21698bc0d67672b5587741125e1e",
+                "HOME=/tmp",
+                "TMPDIR=/tmp",
+                "PYTHONDONTWRITEBYTECODE=1",
+                "PYTHONUNBUFFERED=1",
+                "PATH=/opt/oss-cad-suite/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "Cmd": [
+                "/run-root/root-build.py"
+            ],
+            "Image": "sha256:d065eaf170070135564c88bd4273f30784278b35c9355d36a0a96bd6ba20cc8c",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": [
+                "/venv/bin/python"
+            ],
+            "Labels": {
+                "lan.project": "lunar-modulator",
+                "lan.session": "pac2-root-direct-20261017",
+                "org.opencontainers.image.version": "24.04"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "",
+            "SandboxKey": "",
+            "Ports": {},
+            "Networks": {
+                "none": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "e99a0d24a0c1772eda6acc4a329f2cdd98bc1ce9070b3f606f2b608e6ad27714",
+                    "EndpointID": "",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:d065eaf170070135564c88bd4273f30784278b35c9355d36a0a96bd6ba20cc8c",
+            "size": 1191,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

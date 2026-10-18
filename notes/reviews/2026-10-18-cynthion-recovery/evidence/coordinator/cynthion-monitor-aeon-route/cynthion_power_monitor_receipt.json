@@ -1,0 +1,40 @@
+{
+  "purpose": "read-only Cynthion r1.4 TARGET-A VBUS/current diagnosis",
+  "hardware_programmed": false,
+  "source_commit": "b9ff8de7376a7a5c541e4ebbd7161e2911cf2783",
+  "platform": "Cynthion r1.4",
+  "i2c_driver": "LUNA I2CRegisterInterface, PAC1954 address 0x10",
+  "channel": 1,
+  "target_gpio": "not requested; outputs absent/high impedance",
+  "phy_profile": {
+    "identity": "USB3343 0424:0009",
+    "function_control": "0x49 non-driving",
+    "r1_4_io_power_management": "0x06 (DP/DM swap)",
+    "must_readback_before_ready": true
+  },
+  "pac1954": {
+    "manufacturer_id": "0x54",
+    "range_register": "0x22",
+    "required_active_range": "0x0000 unipolar defaults",
+    "refresh_command": "REFRESH_V 0x1f Send Byte",
+    "vbus_register": "0x07",
+    "vsense_register": "0x0b",
+    "vbus_scale": "raw * 32,000,000 uV / 65536",
+    "vsense_scale": "raw * 100,000 uV / 65536",
+    "shunt": "20,000 uOhm nominal, Cynthion r1.4 R2 ERJ-3BWFR020V",
+    "current_scale": "raw * 5,000,000 / 65536 uA; unsigned unipolar",
+    "jtag_measurements": "raw VBUS1 and VSENSE1; host applies scales"
+  },
+  "vbus_controls_active_high": {
+    "CONTROL": 1,
+    "TARGET_C": 0,
+    "AUX": 0,
+    "TARGET_A_discharge": 0
+  },
+  "bitstream": "/out/build/cynthion_power_monitor.bit",
+  "bitstream_sha256": "635b7b1376db0d97656932df57ff3fc331379876f21c2509f9803928b122e378",
+  "timing_reports": [
+    "cynthion_power_monitor.rpt",
+    "cynthion_power_monitor.tim"
+  ]
+}

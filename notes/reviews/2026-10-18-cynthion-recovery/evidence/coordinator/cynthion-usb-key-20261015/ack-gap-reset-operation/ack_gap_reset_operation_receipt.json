@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "purpose": "offline Cynthion r1.4 USB_KEY operation image build",
+  "source": {
+    "commit": "4ee635ee8dbb33ef543e50eab2e79297edd7b80d",
+    "hera_exchange_ref": "codex/2026-10-15@ack-gap-reset-operation",
+    "worktree": "/home/REDACTED/codex-worktrees/ack-gap-reset-operation-20261015",
+    "clean": true
+  },
+  "build": {
+    "command": "python -B -m tools.cynthion_usb_key.build --build-dir /output --mode operation --target-power-from-control",
+    "mode": "operation",
+    "target_power_from_control": true,
+    "telemetry_layout": 4,
+    "hardware_programmed_by_worker": false,
+    "network": "none",
+    "container_image_id": "sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1",
+    "limits": {
+      "cpu": 4,
+      "memory": "8g",
+      "memory_swap": "8g",
+      "cgroup_parent": "docker-batch.slice"
+    },
+    "toolchain": {
+      "python": "3.12.15",
+      "amaranth": "0.5.10",
+      "cynthion": "0.2.5",
+      "luna-usb": "0.2.3",
+      "apollo-fpga": "1.1.1",
+      "pytest": "9.1.1",
+      "yosys": "0.70+16 (git sha1 3bb533450)",
+      "nextpnr_ecp5": "0.11.1-63-g44a6c739",
+      "ecppack": "1.4-86-ga31ff70"
+    }
+  },
+  "artifact": {
+    "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.bit",
+    "size_bytes": 122726,
+    "sha256": "42e805e0cc91becab26c72b9cc2dd3f34c3772d00f3f0b2b224152e6b3662767"
+  },
+  "artifacts": {
+    "cynthion_usb_key.bit": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.bit",
+      "size_bytes": 122726,
+      "sha256": "42e805e0cc91becab26c72b9cc2dd3f34c3772d00f3f0b2b224152e6b3662767"
+    },
+    "cynthion_usb_key.config": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.config",
+      "size_bytes": 658066,
+      "sha256": "4f99ce451e3e3a912910a6f725ab53bdcd69aedb33a3f2fe9e101ba8fc60f30b"
+    },
+    "cynthion_usb_key.json": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.json",
+      "size_bytes": 3567250,
+      "sha256": "0a7b97f486d9e27073b9dc70e3b92785d26a60cb856254c04d44e0f14e3660c4"
+    },
+    "cynthion_usb_key.lpf": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.lpf",
+      "size_bytes": 8097,
+      "sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    "cynthion_usb_key.tim": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.tim",
+      "size_bytes": 50984,
+      "sha256": "d9cdfd9041dd5e381edc3db79940b9d11a4777e4ec3488c6b28c55c618215c8c"
+    },
+    "cynthion_usb_key.rpt": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.rpt",
+      "size_bytes": 283989,
+      "sha256": "0f0c5fe1430af4b508c450efce9c8586173cd57510a1232fb82bf4903aeb1764"
+    },
+    "cynthion_usb_key.svf": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.svf",
+      "size_bytes": 260450,
+      "sha256": "91c9dbdd1548c789f31ad6df0780a23d703576c6f0a9b9967c976a29c4d9f38b"
+    },
+    "cynthion_usb_key.ys": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.ys",
+      "size_bytes": 229,
+      "sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    "build_cynthion_usb_key.json": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/build_cynthion_usb_key.json",
+      "size_bytes": 534,
+      "sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8"
+    }
+  },
+  "routed_timing": {
+    "usb_clock_mhz": 164.26,
+    "usb_required_mhz": 60.0,
+    "usb_result": "PASS",
+    "sync_120_clock_mhz": 205.13,
+    "sync_required_mhz": 120.0,
+    "sync_result": "PASS",
+    "timing_report": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.tim",
+      "size_bytes": 50984,
+      "sha256": "d9cdfd9041dd5e381edc3db79940b9d11a4777e4ec3488c6b28c55c618215c8c"
+    }
+  },
+  "synthesized_vbus_controls": {
+    "netlist": {
+      "path": "/home/REDACTED/cynthion-usb-key-build-20261015/ack-gap-reset-operation/cynthion_usb_key.json",
+      "size_bytes": 3567250,
+      "sha256": "0a7b97f486d9e27073b9dc70e3b92785d26a60cb856254c04d44e0f14e3660c4"
+    },
+    "driver_values": {
+      "target_c_vbus_en": {
+        "constant": 0,
+        "tri_state": 0,
+        "mapped_cell": "pin_target_c_vbus_en_0.buf.buf.buf0"
+      },
+      "control_vbus_en": {
+        "constant": 1,
+        "tri_state": 0,
+        "mapped_cell": "pin_control_vbus_en_0.buf.buf.buf0"
+      },
+      "aux_vbus_en": {
+        "constant": 0,
+        "tri_state": 0,
+        "mapped_cell": "pin_aux_vbus_en_0.buf.buf.buf0"
+      },
+      "target_a_discharge": {
+        "constant": 0,
+        "tri_state": 0,
+        "mapped_cell": "pin_target_a_discharge_0.buf.buf.buf0"
+      }
+    },
+    "interpretation": "TRELLIS_IO I inputs traced to constants and T=0; these are compiled pin outputs, not physical voltage measurements."
+  },
+  "phy_profile": {
+    "platform": "Cynthion r1.4",
+    "usb3343_register_0x39": "0x06",
+    "implementation": "ULPISafePHY writes and verifies the explicit r1.4 D+/D- swap profile before ready/drive_allowed.",
+    "source_files": [
+      "tools/cynthion_usb_key/top.py",
+      "gateware/ulpi_safe_phy.py"
+    ]
+  },
+  "tests": {
+    "command": "python -B -m pytest -q -p no:cacheprovider -o addopts='' --disable-warnings tests/test_ulpi_safe_phy.py tests/test_cynthion_usb_key_gateware.py tests/test_cynthion_usb_key_protocol_review.py",
+    "result": "24 passed, 0 skipped; 45 warnings",
+    "scope": "focused ULPI safety, Cynthion gateware and protocol simulations"
+  },
+  "limits": [
+    "Offline build and tests only; no USB, JTAG, power, flash, or device operation by worker.",
+    "CONTROL-to-TARGET-A compiled enable is intentional; TARGET-C VBUS, AUX VBUS and discharge compile low.",
+    "Netlist constants do not establish physical switch behavior or electrical acceptance.",
+    "This is a prototype operation image, not accepted ROM recovery, installation, or release evidence."
+  ]
+}

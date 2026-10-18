@@ -1,0 +1,3595 @@
+{
+  "schema": "cynthion-review-evidence-v1",
+  "redactions": "Device serial/UID, private home paths, LAN IPs and unrelated FAT logs. Original hashes retained; exported hashes describe published copies. PCAP and project-generated bitstreams preserved byte-identically.",
+  "files": [
+    {
+      "origin": "coordinator/cynthion-ack-gap-review-20261015/HANDOFF.md",
+      "original_size": 5135,
+      "original_sha256": "39e411f66d88d175e8ddc91adb705dc6b3caca64ccdfd1647e0a717874aeebdc",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-ack-gap-review-20261015/HANDOFF.md",
+      "export_size": 5137,
+      "export_sha256": "8b5dcd8d9703d404833e97637427126de20b6b3f1402be9facb75506baf8af8a"
+    },
+    {
+      "origin": "coordinator/cynthion-ack-release-research-20261015/HANDOFF.md",
+      "original_size": 7076,
+      "original_sha256": "76ffdeebf875a64833f7dde95242cefb3eb7bcb84b8674608bfbd6992ec6cb7d",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-ack-release-research-20261015/HANDOFF.md",
+      "export_size": 7078,
+      "export_sha256": "9b15a6f6db7a0bddc67244c5bf2757fa9de511dc5b8f5501a0e6fe8f0c3b7a6c"
+    },
+    {
+      "origin": "coordinator/cynthion-direct-fpga-usb-key-protocol-review-20261015.md",
+      "original_size": 5881,
+      "original_sha256": "105df966c4575e9aa06426de75bd0f6411ea86c2ad89c16d23863289248ad4a9",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-direct-fpga-usb-key-protocol-review-20261015.md",
+      "export_size": 5883,
+      "export_sha256": "b2e0b1a3122f0ce4d8c4276ad419421cd8ff123397c90cbf98c09d39dde6f650"
+    },
+    {
+      "origin": "coordinator/cynthion-empty-target-comparison-review-20261018.md",
+      "original_size": 5063,
+      "original_sha256": "eeb14dee1baffe373acbb214f94616faff66c2f7c64d8562f971a2b3cdb8f753",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-empty-target-comparison-review-20261018.md",
+      "export_size": 5063,
+      "export_sha256": "eeb14dee1baffe373acbb214f94616faff66c2f7c64d8562f971a2b3cdb8f753"
+    },
+    {
+      "origin": "coordinator/cynthion-empty-target-control-20261017/attempt7-comparison.json",
+      "original_size": 3229,
+      "original_sha256": "4c6f9c207888354e5510abb15e1012d798af5e7be9a70e71eccd2fad91db1a6a",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-empty-target-control-20261017/attempt7-comparison.json",
+      "export_size": 3229,
+      "export_sha256": "4c6f9c207888354e5510abb15e1012d798af5e7be9a70e71eccd2fad91db1a6a"
+    },
+    {
+      "origin": "coordinator/cynthion-empty-target-control-20261017/disarmed-status.json",
+      "original_size": 1702,
+      "original_sha256": "44411b8b0bf45265ab861165e364c5c07beb11dcb748dd99d2e8dfef881131f9",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-empty-target-control-20261017/disarmed-status.json",
+      "export_size": 1702,
+      "export_sha256": "44411b8b0bf45265ab861165e364c5c07beb11dcb748dd99d2e8dfef881131f9"
+    },
+    {
+      "origin": "coordinator/cynthion-empty-target-control-20261017/post-user-status.json",
+      "original_size": 2087,
+      "original_sha256": "5cebe5db1f60c4725706c64c7b009f7cbdd8f6a0f6ffe4047d51d7439926626d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-empty-target-control-20261017/post-user-status.json",
+      "export_size": 2087,
+      "export_sha256": "5cebe5db1f60c4725706c64c7b009f7cbdd8f6a0f6ffe4047d51d7439926626d"
+    },
+    {
+      "origin": "coordinator/cynthion-empty-target-control-20261017/read_status.py",
+      "original_size": 1452,
+      "original_sha256": "9cf9a39c59c22a3beb305beef0e533c2765bb56e08c1582a6951602e22d1961c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-empty-target-control-20261017/read_status.py",
+      "export_size": 1452,
+      "export_sha256": "9cf9a39c59c22a3beb305beef0e533c2765bb56e08c1582a6951602e22d1961c"
+    },
+    {
+      "origin": "coordinator/cynthion-empty-target-control-20261017/volatile-load.log",
+      "original_size": 76,
+      "original_sha256": "b95987addf724fdbbdc623fe3b896eb535dda49a7d1b6d930dc02614440cb5ff",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-empty-target-control-20261017/volatile-load.log",
+      "export_size": 76,
+      "export_sha256": "b95987addf724fdbbdc623fe3b896eb535dda49a7d1b6d930dc02614440cb5ff"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/analyzer-load.log",
+      "original_size": 76,
+      "original_sha256": "65f043a538d1c58a6f9bd5011a14258f0becfdb38ea8f7be0807d116dcb9f47d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/analyzer-load.log",
+      "export_size": 76,
+      "export_sha256": "65f043a538d1c58a6f9bd5011a14258f0becfdb38ea8f7be0807d116dcb9f47d"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/analyzer-restore-after-offline.txt",
+      "original_size": 76,
+      "original_sha256": "65f043a538d1c58a6f9bd5011a14258f0becfdb38ea8f7be0807d116dcb9f47d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/analyzer-restore-after-offline.txt",
+      "export_size": 76,
+      "export_sha256": "65f043a538d1c58a6f9bd5011a14258f0becfdb38ea8f7be0807d116dcb9f47d"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/attempt01-auto.pcapng",
+      "original_size": 404,
+      "original_sha256": "9aa83955c9a6690fbe9c126d5d6e0e739cbe415e78a78070af89fbd1847eeae3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt01-auto.pcapng",
+      "export_size": 404,
+      "export_sha256": "9aa83955c9a6690fbe9c126d5d6e0e739cbe415e78a78070af89fbd1847eeae3"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/attempt01-review.json",
+      "original_size": 496,
+      "original_sha256": "02adcf7b0c3b2393b59b95568c1f9b4d5aac001b21a32b868981881057df835c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt01-review.json",
+      "export_size": 496,
+      "export_sha256": "02adcf7b0c3b2393b59b95568c1f9b4d5aac001b21a32b868981881057df835c"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/attempt01-tshark.txt",
+      "original_size": 2695,
+      "original_sha256": "91b26b79739a71d4e66eab1d217df30183479d843e096147d17db6817b28f020",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt01-tshark.txt",
+      "export_size": 2695,
+      "export_sha256": "91b26b79739a71d4e66eab1d217df30183479d843e096147d17db6817b28f020"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/attempt02-full.pcapng",
+      "original_size": 4920,
+      "original_sha256": "422a508f3879faa8cf4e4dd139ec5553be29f7a60458c5b5ca2cad905ef9db8d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt02-full.pcapng",
+      "export_size": 4920,
+      "export_sha256": "422a508f3879faa8cf4e4dd139ec5553be29f7a60458c5b5ca2cad905ef9db8d"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/attempt02-review.json",
+      "original_size": 674,
+      "original_sha256": "321b0215b54ab5bcfe790b605eb0296805f9fc4ad1af773eb6fed35931672f67",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt02-review.json",
+      "export_size": 674,
+      "export_sha256": "321b0215b54ab5bcfe790b605eb0296805f9fc4ad1af773eb6fed35931672f67"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/attempt02-tshark.txt",
+      "original_size": 157191,
+      "original_sha256": "6ab4b004b837611a1759105b0d2b3bda3311b72893b285044301bd9159b1ded6",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt02-tshark.txt",
+      "export_size": 157191,
+      "export_sha256": "6ab4b004b837611a1759105b0d2b3bda3311b72893b285044301bd9159b1ded6"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/attempt03-full-after-mouse-pass.pcapng",
+      "original_size": 224,
+      "original_sha256": "80f7cf58920962d5d4277e6d5d499e526af0c2964d1e336a67fad0bbc568a6ca",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt03-full-after-mouse-pass.pcapng",
+      "export_size": 224,
+      "export_sha256": "80f7cf58920962d5d4277e6d5d499e526af0c2964d1e336a67fad0bbc568a6ca"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/attempt03-tshark.txt",
+      "original_size": 70,
+      "original_sha256": "2a35eccb61a6ebdcbff2cf5f629f36f535084a04ad3c0b7df5e78d61e08eaa81",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt03-tshark.txt",
+      "export_size": 70,
+      "export_sha256": "2a35eccb61a6ebdcbff2cf5f629f36f535084a04ad3c0b7df5e78d61e08eaa81"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/attempt04-full-software-power.pcapng",
+      "original_size": 320,
+      "original_sha256": "051fe585642ea5d69d117dbced05af70b118b37fa214e981f3593104610235e7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt04-full-software-power.pcapng",
+      "export_size": 320,
+      "export_sha256": "051fe585642ea5d69d117dbced05af70b118b37fa214e981f3593104610235e7"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/attempt05-full-physical-cycle.pcapng",
+      "original_size": 320,
+      "original_sha256": "e3988c02ddbdf879313969ce63fd37a67933912fc0452a4ec343b96f5ea360a3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/attempt05-full-physical-cycle.pcapng",
+      "export_size": 320,
+      "export_sha256": "e3988c02ddbdf879313969ce63fd37a67933912fc0452a4ec343b96f5ea360a3"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/control01-reset-interrupted.pcapng",
+      "original_size": 276,
+      "original_sha256": "a98f0935dec5014fedf76ba967a456a484641772f4101083f4323de2a543071d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/control01-reset-interrupted.pcapng",
+      "export_size": 276,
+      "export_sha256": "a98f0935dec5014fedf76ba967a456a484641772f4101083f4323de2a543071d"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/control02-mouse-auto.pcapng",
+      "original_size": 109868,
+      "original_sha256": "0be23643253bfe1dca8c52883c330f328d9b6170aea106c41beb7a265d7b12ed",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/control02-mouse-auto.pcapng",
+      "export_size": 109868,
+      "export_sha256": "0be23643253bfe1dca8c52883c330f328d9b6170aea106c41beb7a265d7b12ed"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/control02-review.json",
+      "original_size": 1041,
+      "original_sha256": "c4286daa9f9707a47aff2c933549351170be149513b6cbf15ca784690c3898a6",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/control02-review.json",
+      "export_size": 1041,
+      "export_sha256": "c4286daa9f9707a47aff2c933549351170be149513b6cbf15ca784690c3898a6"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/control02-tshark.txt",
+      "original_size": 208333,
+      "original_sha256": "5aa643e75365ace0a934463a660ceef75320d48b4694394e330773b44e5afbdf",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/control02-tshark.txt",
+      "export_size": 208333,
+      "export_sha256": "5aa643e75365ace0a934463a660ceef75320d48b4694394e330773b44e5afbdf"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/control03-mouse-replacement.pcapng",
+      "original_size": 70308,
+      "original_sha256": "dcb74ad2b1248e723799ef074f8a565b87540ea5f70221d6f0fb45578af3920b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/control03-mouse-replacement.pcapng",
+      "export_size": 70308,
+      "export_sha256": "dcb74ad2b1248e723799ef074f8a565b87540ea5f70221d6f0fb45578af3920b"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/control04-cold-auto-review.json",
+      "original_size": 206,
+      "original_sha256": "aa8e1ebaa974c436afd3836624b38648cc96b49784410218aa551cc87b3dbbbf",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/control04-cold-auto-review.json",
+      "export_size": 206,
+      "export_sha256": "aa8e1ebaa974c436afd3836624b38648cc96b49784410218aa551cc87b3dbbbf"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/control04-cold-auto.pcapng",
+      "original_size": 67804,
+      "original_sha256": "e24627cd6f09663f8ce8ba11e3b11588590967383906a77b32031917ac28c1a6",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/control04-cold-auto.pcapng",
+      "export_size": 67804,
+      "export_sha256": "e24627cd6f09663f8ce8ba11e3b11588590967383906a77b32031917ac28c1a6"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/control05-low-flipped-review.json",
+      "original_size": 207,
+      "original_sha256": "749ed890a2a99b2d4240b10d50c8cf2a3425fe757aa4d4c85ccd6ec86e5b6a33",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/control05-low-flipped-review.json",
+      "export_size": 207,
+      "export_sha256": "749ed890a2a99b2d4240b10d50c8cf2a3425fe757aa4d4c85ccd6ec86e5b6a33"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/control05-low-flipped.pcapng",
+      "original_size": 68696,
+      "original_sha256": "8a8b6ab914ff9a8f77be34b5adbd784d4c760e70437cc72f4e0a0b8091b9c975",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/control05-low-flipped.pcapng",
+      "export_size": 68696,
+      "export_sha256": "8a8b6ab914ff9a8f77be34b5adbd784d4c760e70437cc72f4e0a0b8091b9c975"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/control06-low-software-power-pass.pcapng",
+      "original_size": 806876,
+      "original_sha256": "cc46944b45675ab9a104a7e9c788a26fb9a6583f7b82a1962f742e6aa67c1013",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/control06-low-software-power-pass.pcapng",
+      "export_size": 806876,
+      "export_sha256": "cc46944b45675ab9a104a7e9c788a26fb9a6583f7b82a1962f742e6aa67c1013"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-after-connect.txt",
+      "original_size": 1550,
+      "original_sha256": "062475e1102e98115d19a8e7c78165dd9a6f4fbfe5c857250fd9a011900158d6",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-after-connect.txt",
+      "export_size": 910,
+      "export_sha256": "93d94cf7ef3dc51885a3a11694ce888c8f5ccb7d225f9c12323966874ff3246a"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-after-reconnect.txt",
+      "original_size": 1250,
+      "original_sha256": "6f751362304dc7dcfcd988453ceb0d8f5940d443e7a320fe1809fe23f33492e0",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-after-reconnect.txt",
+      "export_size": 770,
+      "export_sha256": "028f987d0abd6124b4bfc26b3162e7d20edff6f865cc6dc13b3885e461e9cdf8"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-fm1-after-control-pass.txt",
+      "original_size": 1323,
+      "original_sha256": "f792387df693760600a2797d1efc188385945b3311b52bf68904e1229a18de21",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-fm1-after-control-pass.txt",
+      "export_size": 843,
+      "export_sha256": "637e610416cc95561712ecf735e2578415ecd66ecac52207f9ee9f89e5ae6433"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-fm1-physical-cycle.txt",
+      "original_size": 950,
+      "original_sha256": "beba5c8353684f86b1f0e0dea1f4e279adc6a0051d6a92ca4da4b78088ce3a8a",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-fm1-physical-cycle.txt",
+      "export_size": 630,
+      "export_sha256": "e2821230cc9e5a0e804ce8855ef9c723a9085a12581f13da3b098ede17535c7a"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-fm1-software-power.txt",
+      "original_size": 650,
+      "original_sha256": "583b35efb9207f59b208a1fda9c28a3ed3478800b40b54ac3d8c0f046bb671ae",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-fm1-software-power.txt",
+      "export_size": 490,
+      "export_sha256": "f60c8f7d43bfe69fbca5b46435e4e46e4c4763c8c229d8a30693a3f619101df9"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-mouse-cold.txt",
+      "original_size": 2571,
+      "original_sha256": "716a0cbb561fdb1f794c305b88ed9f522fb26d59c9106619667fd3021a99e044",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-mouse-cold.txt",
+      "export_size": 2091,
+      "export_sha256": "ed07e0729136df1948ad9ef29c78ba554aabb856553bac088d9db8e95c513727"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-mouse-control.txt",
+      "original_size": 3256,
+      "original_sha256": "908d06a2e17b8254465b1d32c397693db0182cc413332b28e3716ef0deebf159",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-mouse-control.txt",
+      "export_size": 2456,
+      "export_sha256": "e80b2f425da1fd06ec2e651be7b0538ad4e8677cedb4db6966428055318e7049"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-mouse-direct.txt",
+      "original_size": 3498,
+      "original_sha256": "bf4dbaab4db7d5cef3b82e4db5da33262338ecbb27c49dd5671120068a49aad0",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-mouse-direct.txt",
+      "export_size": 3018,
+      "export_sha256": "cfabe117cdb188d4179ab7ee64a6b119f49e155d45850e053df71cff57eae735"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-mouse-flipped.txt",
+      "original_size": 3592,
+      "original_sha256": "7f4dd8941035d6d4f3d79b9456a2bf4d9e6013420b1a65708bf8e6056cb22c14",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-mouse-flipped.txt",
+      "export_size": 3272,
+      "export_sha256": "61f7bb913a32837bf5863b1a4c4eee82aa7e9bc72ef187362790180622ec459c"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-mouse-fpga-offline.txt",
+      "original_size": 2571,
+      "original_sha256": "9fe7f6d473f855b78866b62383c4f3e3184772fe13769030dee517acc26d18e2",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-mouse-fpga-offline.txt",
+      "export_size": 2091,
+      "export_sha256": "d8ca7841490ae766037c61b67bc097c485fa4ab526890392055a3c8b0187bead"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-mouse-replacement.txt",
+      "original_size": 4837,
+      "original_sha256": "2ce93bcfad3edc43ad0faa0e8608138911254d07fffa9792e5155622414adfd3",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-mouse-replacement.txt",
+      "export_size": 4357,
+      "export_sha256": "036bbaf1be22e12fb7cfd64418117c452d7c28147153c9213abfb533fb481704"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/host-mouse-software-power.txt",
+      "original_size": 2954,
+      "original_sha256": "f44aa3cadba72c69bd7b5d0587e5ce904d243ef9fd3990f1e9b3b3a1034c37c5",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/host-mouse-software-power.txt",
+      "export_size": 2714,
+      "export_sha256": "9bf8a2ba3da605466fc568dc1db4a1f562119d502fa0e5cf3cd7ab6b4a27db67"
+    },
+    {
+      "origin": "coordinator/cynthion-enumeration-capture-20261018/offline-control.txt",
+      "original_size": 614,
+      "original_sha256": "ae2d2dd4ffcf55c3c78106115a9d22f281aa0ba614436d30c85518f330253cc5",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-enumeration-capture-20261018/offline-control.txt",
+      "export_size": 586,
+      "export_sha256": "9b426449c461fa39c6c5700e7239e10e7ae85562bde0b59ea6b7e260222c0013"
+    },
+    {
+      "origin": "coordinator/cynthion-facedancer-deep-review-20261018.md",
+      "original_size": 8667,
+      "original_sha256": "62e688fb9d9ad0b4e562b56c16594379f637c8bf328507e53a42f2a36ce311c4",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-facedancer-deep-review-20261018.md",
+      "export_size": 8667,
+      "export_sha256": "62e688fb9d9ad0b4e562b56c16594379f637c8bf328507e53a42f2a36ce311c4"
+    },
+    {
+      "origin": "coordinator/cynthion-left-to-right-recovery-20261018/connected-left-disarmed-status.json",
+      "original_size": 1832,
+      "original_sha256": "2efb3594482ad37eac189994ab147cc345b6099b3dda7fd8123cc16b39405084",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-left-to-right-recovery-20261018/connected-left-disarmed-status.json",
+      "export_size": 1832,
+      "export_sha256": "2efb3594482ad37eac189994ab147cc345b6099b3dda7fd8123cc16b39405084"
+    },
+    {
+      "origin": "coordinator/cynthion-left-to-right-recovery-20261018/disarmed-status.json",
+      "original_size": 1702,
+      "original_sha256": "d2c541ec8c4fbedb3529c42449ef6b33ea492d4c3b937cb715af16935dd083a2",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-left-to-right-recovery-20261018/disarmed-status.json",
+      "export_size": 1702,
+      "export_sha256": "d2c541ec8c4fbedb3529c42449ef6b33ea492d4c3b937cb715af16935dd083a2"
+    },
+    {
+      "origin": "coordinator/cynthion-left-to-right-recovery-20261018/post-power-on-status.json",
+      "original_size": 1875,
+      "original_sha256": "69db2e45358579c41cdb5784943d2846b07561af530a94ab49cb5c1a4587f2b9",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-left-to-right-recovery-20261018/post-power-on-status.json",
+      "export_size": 1875,
+      "export_sha256": "69db2e45358579c41cdb5784943d2846b07561af530a94ab49cb5c1a4587f2b9"
+    },
+    {
+      "origin": "coordinator/cynthion-left-to-right-recovery-20261018/post-power-on-target-c-enumeration.txt",
+      "original_size": 321,
+      "original_sha256": "746cfe791616e485909fd569b42b5731b4f6ea1b7bd0bebe911a60cee439621b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-left-to-right-recovery-20261018/post-power-on-target-c-enumeration.txt",
+      "export_size": 321,
+      "export_sha256": "746cfe791616e485909fd569b42b5731b4f6ea1b7bd0bebe911a60cee439621b"
+    },
+    {
+      "origin": "coordinator/cynthion-left-to-right-recovery-20261018/staged-integrated-tests.log",
+      "original_size": 17275,
+      "original_sha256": "be30750e8e17f75897cc5858648296ef23a4c0dcd8801a96bf48368e8eb28d0b",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-left-to-right-recovery-20261018/staged-integrated-tests.log",
+      "export_size": 17341,
+      "export_sha256": "bb1cd4b54e6389948a28c6229bc3d69100c510b2533f58cec12c5d76146a1fbe"
+    },
+    {
+      "origin": "coordinator/cynthion-left-to-right-recovery-20261018/volatile-load.log",
+      "original_size": 76,
+      "original_sha256": "b95987addf724fdbbdc623fe3b896eb535dda49a7d1b6d930dc02614440cb5ff",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-left-to-right-recovery-20261018/volatile-load.log",
+      "export_size": 76,
+      "export_sha256": "b95987addf724fdbbdc623fe3b896eb535dda49a7d1b6d930dc02614440cb5ff"
+    },
+    {
+      "origin": "coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor.bit",
+      "original_size": 119280,
+      "original_sha256": "635b7b1376db0d97656932df57ff3fc331379876f21c2509f9803928b122e378",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor.bit",
+      "export_size": 119280,
+      "export_sha256": "635b7b1376db0d97656932df57ff3fc331379876f21c2509f9803928b122e378"
+    },
+    {
+      "origin": "coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor.config",
+      "original_size": 589273,
+      "original_sha256": "992e3c8266ddf8c18632ecfd46b91cff72ff0525a742cc92ec444f6f840d0016",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor.config.gz",
+      "export_size": 52600,
+      "export_sha256": "cf58ae0fa6c1064ff8e56e52825c11d312c5309c497610170d8abc987039848c"
+    },
+    {
+      "origin": "coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor.json",
+      "original_size": 3397441,
+      "original_sha256": "db1093889b0d278a163aa38279939ecf57e575dfed4436fe9abc93d5ecafbcff",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor.json.gz",
+      "export_size": 126184,
+      "export_sha256": "726ab95507cbdbac72925020d13ad830c92cf148bef521623c46e65d355b20bc"
+    },
+    {
+      "origin": "coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor.lpf",
+      "original_size": 7910,
+      "original_sha256": "6b306df417f5bf130807b876ec126da719015133313e44f049636f24892bd2c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor.lpf",
+      "export_size": 7910,
+      "export_sha256": "6b306df417f5bf130807b876ec126da719015133313e44f049636f24892bd2c3"
+    },
+    {
+      "origin": "coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor.tim",
+      "original_size": 42452,
+      "original_sha256": "fd73948d6f6e4bb76283381b096bd5fa14ede22b16cd251fa1d3ac98f536ac55",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor.tim",
+      "export_size": 42452,
+      "export_sha256": "fd73948d6f6e4bb76283381b096bd5fa14ede22b16cd251fa1d3ac98f536ac55"
+    },
+    {
+      "origin": "coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor_receipt.json",
+      "original_size": 1457,
+      "original_sha256": "011e2b1aac8fce29d10768a988290628b0cb8a45756ca939378c087f131d607c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-monitor-aeon-route/cynthion_power_monitor_receipt.json",
+      "export_size": 1457,
+      "export_sha256": "011e2b1aac8fce29d10768a988290628b0cb8a45756ca939378c087f131d607c"
+    },
+    {
+      "origin": "coordinator/cynthion-monitor-aeon-route/host-reader-baseline.jsonl",
+      "original_size": 1014,
+      "original_sha256": "0b89905a0c1ea57f3a3ec3d95c0cd5fbd0d43403f645345d2b3b62c1235a274e",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-monitor-aeon-route/host-reader-baseline.jsonl",
+      "export_size": 1014,
+      "export_sha256": "0b89905a0c1ea57f3a3ec3d95c0cd5fbd0d43403f645345d2b3b62c1235a274e"
+    },
+    {
+      "origin": "coordinator/cynthion-monitor-aeon-route/no-target-readings.json",
+      "original_size": 689,
+      "original_sha256": "0435524aff2ab9138568077c49e607362ae496244450eb545cf17466a53022a5",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-monitor-aeon-route/no-target-readings.json",
+      "export_size": 689,
+      "export_sha256": "0435524aff2ab9138568077c49e607362ae496244450eb545cf17466a53022a5"
+    },
+    {
+      "origin": "coordinator/cynthion-monitor-aeon-route/route-evidence.json",
+      "original_size": 7735,
+      "original_sha256": "2045bb19a85a65db3ca1a2e70587238f6560ff20baef2122ba5ba25a432d1c20",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-monitor-aeon-route/route-evidence.json",
+      "export_size": 7735,
+      "export_sha256": "2045bb19a85a65db3ca1a2e70587238f6560ff20baef2122ba5ba25a432d1c20"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/argv.json",
+      "original_size": 1644,
+      "original_sha256": "399498e4a72b7fc73a4ac4e491afe4c18aaac570584047c5d57a38055f268428",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/argv.json",
+      "export_size": 1654,
+      "export_sha256": "c743b1fdbc995b900d7c954a59855e1402a0a00514bc2c76276f39c4625c44bf"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/created.inspect.json",
+      "original_size": 9860,
+      "original_sha256": "dd0f7407c8b8fbceeb5ecda4d78d20ba0c8da41f1958955b1a7019f796d2dfb8",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/created.inspect.json",
+      "export_size": 9880,
+      "export_sha256": "8c7319f20f435aa9fa73586ce9932b5656f326952edc74fad2e97d5b6a74b0a8"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.bit",
+      "original_size": 119815,
+      "original_sha256": "f4e963ada21c07a6de853abb63b664cfd0129f0945f10bc6e32776d564a89e23",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.bit",
+      "export_size": 119815,
+      "export_sha256": "f4e963ada21c07a6de853abb63b664cfd0129f0945f10bc6e32776d564a89e23"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.config",
+      "original_size": 602725,
+      "original_sha256": "156d3af581492269f112c820596b1a1319f10ab832bae7bb050db2daae9df05d",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.config.gz",
+      "export_size": 54176,
+      "export_sha256": "72f84d9e97d1140bb6f87e5790a6a34a097d3246c26df5686f8a84e78e33a51a"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.il",
+      "original_size": 370570,
+      "original_sha256": "384708e53af050652fcff271d1f69fe92e4ded278c687aea8e597d34f4f2dd86",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.il",
+      "export_size": 370570,
+      "export_sha256": "384708e53af050652fcff271d1f69fe92e4ded278c687aea8e597d34f4f2dd86"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.json",
+      "original_size": 3353307,
+      "original_sha256": "a9fd77455738491c14ef104c3ee983065f31a17141c079b817e20a0abbfd2339",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.json.gz",
+      "export_size": 126019,
+      "export_sha256": "b27ed57b7129a52d52853226268c492753438b2e80ef3415dbb8bfc7ad2d0502"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.lpf",
+      "original_size": 7910,
+      "original_sha256": "6b306df417f5bf130807b876ec126da719015133313e44f049636f24892bd2c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.lpf",
+      "export_size": 7910,
+      "export_sha256": "6b306df417f5bf130807b876ec126da719015133313e44f049636f24892bd2c3"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.rpt",
+      "original_size": 255005,
+      "original_sha256": "8a0356397ca646b877429f653c605677e66af7a915dc53f26640da441a1f6faf",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.rpt",
+      "export_size": 255005,
+      "export_sha256": "8a0356397ca646b877429f653c605677e66af7a915dc53f26640da441a1f6faf"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.svf",
+      "original_size": 254294,
+      "original_sha256": "b26770e849d6dce70dbec76d97c9c284b13d073f3b174d6be2aeea998e87cb9c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.svf",
+      "export_size": 254294,
+      "export_sha256": "b26770e849d6dce70dbec76d97c9c284b13d073f3b174d6be2aeea998e87cb9c"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.tim",
+      "original_size": 43303,
+      "original_sha256": "f77a57ac44612c8ebb03079dd6e53f8c977ce524feeaeb996e0888b082ca179a",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.tim",
+      "export_size": 43303,
+      "export_sha256": "f77a57ac44612c8ebb03079dd6e53f8c977ce524feeaeb996e0888b082ca179a"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.ys",
+      "original_size": 247,
+      "original_sha256": "f7be96ae3408df9a5bef4f599ee468fbda7c6b7e4cd13a99315aa64397c79a7a",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor.ys",
+      "export_size": 247,
+      "export_sha256": "f7be96ae3408df9a5bef4f599ee468fbda7c6b7e4cd13a99315aa64397c79a7a"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor_receipt.json",
+      "original_size": 1702,
+      "original_sha256": "0d1da41ffe80bbff68d3641e07bf1a68062ca85080490a5e84f36a526842bc7f",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/cynthion_power_monitor_receipt.json",
+      "export_size": 1702,
+      "export_sha256": "0d1da41ffe80bbff68d3641e07bf1a68062ca85080490a5e84f36a526842bc7f"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/exit.json",
+      "original_size": 109,
+      "original_sha256": "bfad0c3846bf9a08b3aba7bf9f713669916ec0cb80aa9b9424537bcfa827801d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/exit.json",
+      "export_size": 109,
+      "export_sha256": "bfad0c3846bf9a08b3aba7bf9f713669916ec0cb80aa9b9424537bcfa827801d"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/fm1-switch-left-target-c-enumeration.txt",
+      "original_size": 321,
+      "original_sha256": "746cfe791616e485909fd569b42b5731b4f6ea1b7bd0bebe911a60cee439621b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/fm1-switch-left-target-c-enumeration.txt",
+      "export_size": 321,
+      "export_sha256": "746cfe791616e485909fd569b42b5731b4f6ea1b7bd0bebe911a60cee439621b"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/fm1-target-a-switch-left-monitor.jsonl",
+      "original_size": 3165,
+      "original_sha256": "585c00b557012ddd265d4fb0dbebb39104c0b747f831678eab33ad9191363ada",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/fm1-target-a-switch-left-monitor.jsonl",
+      "export_size": 3165,
+      "export_sha256": "585c00b557012ddd265d4fb0dbebb39104c0b747f831678eab33ad9191363ada"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/fm1-target-a-switch-left-monitor.stderr",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/fm1-target-a-switch-left-monitor.stderr",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/fm1-target-a-switch-right-monitor.jsonl",
+      "original_size": 3163,
+      "original_sha256": "218f5aba40dcf73d19876b36c3db26124edc72acdee66e4af0087da416408788",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/fm1-target-a-switch-right-monitor.jsonl",
+      "export_size": 3163,
+      "export_sha256": "218f5aba40dcf73d19876b36c3db26124edc72acdee66e4af0087da416408788"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/fm1-target-a-switch-right-monitor.stderr",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/fm1-target-a-switch-right-monitor.stderr",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/pending-connection-monitor-check.jsonl",
+      "original_size": 1844,
+      "original_sha256": "df006a27fad1baf8bbc99a27a61cf507680f450adccd3ccc6e109f96f53bc02e",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/pending-connection-monitor-check.jsonl",
+      "export_size": 1844,
+      "export_sha256": "df006a27fad1baf8bbc99a27a61cf507680f450adccd3ccc6e109f96f53bc02e"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/pending-connection-monitor-check.stderr",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/pending-connection-monitor-check.stderr",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/post-lamp-disconnect-monitor-check.jsonl",
+      "original_size": 1867,
+      "original_sha256": "c2442958e2d7ea09e248eae47f9b69bd4ec06e6e60af1e5f6a4760b4570fba79",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/post-lamp-disconnect-monitor-check.jsonl",
+      "export_size": 1867,
+      "export_sha256": "c2442958e2d7ea09e248eae47f9b69bd4ec06e6e60af1e5f6a4760b4570fba79"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/post-lamp-disconnect-monitor-check.stderr",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/post-lamp-disconnect-monitor-check.stderr",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/root-review.json",
+      "original_size": 901,
+      "original_sha256": "208fc70eea6912fbacb3c9c05f24c44a0786c88e8844a05255de372dde3c22a3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/root-review.json",
+      "export_size": 901,
+      "export_sha256": "208fc70eea6912fbacb3c9c05f24c44a0786c88e8844a05255de372dde3c22a3"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/stderr.log",
+      "original_size": 136,
+      "original_sha256": "435e5bbfaed2b4030a1c6902fb8a849501e8d493e1e2976feeb433d410fb0787",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/stderr.log",
+      "export_size": 136,
+      "export_sha256": "435e5bbfaed2b4030a1c6902fb8a849501e8d493e1e2976feeb433d410fb0787"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/stdout.log",
+      "original_size": 1807,
+      "original_sha256": "f3fa2a03220afd77dbe7a528e8c38cd2dad3f609d7adef8c6258d57afbfdc2b4",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/stdout.log",
+      "export_size": 1807,
+      "export_sha256": "f3fa2a03220afd77dbe7a528e8c38cd2dad3f609d7adef8c6258d57afbfdc2b4"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/terminal.inspect.json",
+      "original_size": 10421,
+      "original_sha256": "f2369290684c6e8012886e7768d9c589bfb31566ae749860a3241bfcd0209334",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/terminal.inspect.json",
+      "export_size": 10441,
+      "export_sha256": "38f40deba00a70cf8b5a95d7fe6f89ceb10486a174fa6d83cc1265951531066a"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/unloaded-baseline.jsonl",
+      "original_size": 1825,
+      "original_sha256": "fa4765b032a92692fb27ac5a29b9bfaa4c348cdfb1d734a206ed0d27e8e0b49b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/unloaded-baseline.jsonl",
+      "export_size": 1825,
+      "export_sha256": "fa4765b032a92692fb27ac5a29b9bfaa4c348cdfb1d734a206ed0d27e8e0b49b"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/unloaded-baseline.stderr",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/unloaded-baseline.stderr",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-pac2-root-direct-20261017/volatile-load.log",
+      "original_size": 76,
+      "original_sha256": "28c4413a5d6636f61c8aaf6d13dc325adb55f706bb41743057dc826a5bc75da3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pac2-root-direct-20261017/volatile-load.log",
+      "export_size": 76,
+      "export_sha256": "28c4413a5d6636f61c8aaf6d13dc325adb55f706bb41743057dc826a5bc75da3"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/argv.json",
+      "original_size": 1592,
+      "original_sha256": "2c49dcc5358ebad81e26d4bd79ca89647344d2e6e5c261ae083e02aa8253d2ec",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/argv.json",
+      "export_size": 1602,
+      "export_sha256": "3ee79778ecb3127ab9835b69aaaa09abfc7eb7e696f4da8a779cf1b6a31f3b5f"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/build-handoff.md",
+      "original_size": 956,
+      "original_sha256": "dd2cf126521c9541be0f32085c5f0df75d283fee21f0eb412c7d86084ad9e8d4",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/build-handoff.md",
+      "export_size": 956,
+      "export_sha256": "dd2cf126521c9541be0f32085c5f0df75d283fee21f0eb412c7d86084ad9e8d4"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/connected-left-ready-status.json",
+      "original_size": 1932,
+      "original_sha256": "b90ee37e150db0088dc7852c498435eb23a33c66593f667ea27fda2edcb8ee2f",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/connected-left-ready-status.json",
+      "export_size": 1932,
+      "export_sha256": "b90ee37e150db0088dc7852c498435eb23a33c66593f667ea27fda2edcb8ee2f"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/created.inspect.json",
+      "original_size": 9812,
+      "original_sha256": "bfdd6a46cea4da5351c17326e04ed57f6ab29eed4750a75f03461ebabf3b989c",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/created.inspect.json",
+      "export_size": 9832,
+      "export_sha256": "a663d9cbcc51ebd7e5e909f7bfdb2b4a88a6023824760be771d2a25ee4013bd9"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/cynthion_usb_key.bit",
+      "original_size": 170402,
+      "original_sha256": "8fcc78e502dc692cd6d0f8daeab01030c2ae815326e624879f95bb24b65cd28f",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/cynthion_usb_key.bit",
+      "export_size": 170402,
+      "export_sha256": "8fcc78e502dc692cd6d0f8daeab01030c2ae815326e624879f95bb24b65cd28f"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/cynthion_usb_key.json",
+      "original_size": 9335519,
+      "original_sha256": "beb2cda709af2f7ed3f18d54f90c908973d165bfbc9f7600f9b209209b8b2ba4",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/cynthion_usb_key.json.gz",
+      "export_size": 272132,
+      "export_sha256": "9eff30d937fddd59ae7e601b6d13bc344dadb53d80069581e41b0d62c0f8efae"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/cynthion_usb_key.tim",
+      "original_size": 53694,
+      "original_sha256": "bbac001cedbeb097f30e0ad0d5d5c68fa282d76488663979ab21cb76d4aa11ef",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/cynthion_usb_key.tim",
+      "export_size": 53694,
+      "export_sha256": "bbac001cedbeb097f30e0ad0d5d5c68fa282d76488663979ab21cb76d4aa11ef"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/direct-host-enumeration.txt",
+      "original_size": 2767,
+      "original_sha256": "166dbd920bc940bcbcfe723a5d5fa268762826508865514c18f297980c86313e",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/direct-host-enumeration.txt",
+      "export_size": 2287,
+      "export_sha256": "47b6483b51edf3625e4a624d3b5a20bc9a26f7306ea3d008de3e17a393931cd2"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/disarmed-status.json",
+      "original_size": 1752,
+      "original_sha256": "b599f9236b08975581ae5d039b4e538a53ccfb1927b6c8e14b162ac85dc2cde4",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/disarmed-status.json",
+      "export_size": 1752,
+      "export_sha256": "b599f9236b08975581ae5d039b4e538a53ccfb1927b6c8e14b162ac85dc2cde4"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/exit.json",
+      "original_size": 12,
+      "original_sha256": "5bc232b82de377a5655a39a2af9d7ae0fc868de5b9df957e18905cb914606c88",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/exit.json",
+      "export_size": 12,
+      "export_sha256": "5bc232b82de377a5655a39a2af9d7ae0fc868de5b9df957e18905cb914606c88"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/host-enumeration-after-connect.txt",
+      "original_size": 4267,
+      "original_sha256": "34f4268bc18fd513e38e5b0c408f3b7187bde4f83065ee63d467d05ffa7a5309",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/host-enumeration-after-connect.txt",
+      "export_size": 2987,
+      "export_sha256": "065fc732026733fc22f79579756d65d557c46ba5c03b8956d195737d649dea9f"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/input-pins.json",
+      "original_size": 877,
+      "original_sha256": "c62789f374301326b352c58ea202504aafff1c51988dc33191e063686bb87b7d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/input-pins.json",
+      "export_size": 877,
+      "export_sha256": "c62789f374301326b352c58ea202504aafff1c51988dc33191e063686bb87b7d"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/live-kernel-log.txt",
+      "original_size": 2417,
+      "original_sha256": "ed9e2a1146326a58b8335e055189d9f554535bf13c4a14a1f03caa733b13dd09",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/live-kernel-log.txt",
+      "export_size": 1937,
+      "export_sha256": "9b536fb65f6a181a382f8273775b38f09b96d53319864ef7f4579540150f1a00"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/preflight-ready-status.json",
+      "original_size": 1825,
+      "original_sha256": "3c250758de7158aa15d8f547c01f41ecd0679aa0e40488875464ce81889f3e34",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/preflight-ready-status.json",
+      "export_size": 1825,
+      "export_sha256": "3c250758de7158aa15d8f547c01f41ecd0679aa0e40488875464ce81889f3e34"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/read_status.py",
+      "original_size": 1611,
+      "original_sha256": "1ce5ea6d78deffc6fa195638e9a178276e3b4511af2bf60bc0c24eaed92727dc",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/read_status.py",
+      "export_size": 1611,
+      "export_sha256": "1ce5ea6d78deffc6fa195638e9a178276e3b4511af2bf60bc0c24eaed92727dc"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/remote-build-receipt-script.py",
+      "original_size": 2376,
+      "original_sha256": "d9fcc625595d35b620c10c488f1348100a16c17a3e8c386b517073cc23454d36",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/remote-build-receipt-script.py",
+      "export_size": 2388,
+      "export_sha256": "0da413f9ceded554e758c053983d665bde25ec7ed358c88b1941e57950aef52a"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/retry-after-control-connected.json",
+      "original_size": 1899,
+      "original_sha256": "a52986920d5156d6c13162b5724d00a3aeab627835aa5f6203dbba3e15736f56",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/retry-after-control-connected.json",
+      "export_size": 1899,
+      "export_sha256": "a52986920d5156d6c13162b5724d00a3aeab627835aa5f6203dbba3e15736f56"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/retry-after-control-direct-flipped.txt",
+      "original_size": 950,
+      "original_sha256": "391f721de5896527e193f10d8fa8a59daf35f926e2bc1b901439a4a5ba5f8a8b",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/retry-after-control-direct-flipped.txt",
+      "export_size": 630,
+      "export_sha256": "6d7b4179c16833442e25f9ec78b00d48d90347adbd5f6c097f6365032e0e6a9f"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/retry-after-control-direct.txt",
+      "original_size": 950,
+      "original_sha256": "5fc15ded88ad03d2d0a756c697aaca9e7f973eb62bdaa353dd0091a5e56ec9ac",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/retry-after-control-direct.txt",
+      "export_size": 630,
+      "export_sha256": "28bfaf832bc9e1cfdd139bc631122519d17b79fae1f1a943c9eeefd5458251c0"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/retry-after-control-host-connected.txt",
+      "original_size": 1250,
+      "original_sha256": "71c6f087fc2e64406642bbca4ae3a7d685732605bb6848094cdd8750affc9bfc",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/retry-after-control-host-connected.txt",
+      "export_size": 770,
+      "export_sha256": "3bd00c3d4b0c6344ebd4da13b40ec547af59f762dd36fbed3fbc62c14c1fddad"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/retry-after-control-live-kernel.txt",
+      "original_size": 750,
+      "original_sha256": "dfbf471aed50941b11f3e3197921575d7a2398ea3812eafcdedb95273488397b",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/retry-after-control-live-kernel.txt",
+      "export_size": 350,
+      "export_sha256": "bd2e5fb10a8d0f94f1338d64c7b21768c232e8864df44de5071e5d60f5c55ced"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/retry-after-control-load.log",
+      "original_size": 76,
+      "original_sha256": "0bd547e88d9ac85043fd44fa744d0a71ff86d46f934d086b9941cd9e1c504074",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/retry-after-control-load.log",
+      "export_size": 76,
+      "export_sha256": "0bd547e88d9ac85043fd44fa744d0a71ff86d46f934d086b9941cd9e1c504074"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/retry-after-control-observation.json",
+      "original_size": 2162,
+      "original_sha256": "3ee9121a4a50b8c5017bfcdf3763b75f1cdcc686845af79f00035aabb3fcd773",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/retry-after-control-observation.json",
+      "export_size": 2162,
+      "export_sha256": "3ee9121a4a50b8c5017bfcdf3763b75f1cdcc686845af79f00035aabb3fcd773"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/retry-after-control-preflight.json",
+      "original_size": 1825,
+      "original_sha256": "0996123abf4b3a2ba59af90010daf07ffff82befd7b62e32d98b0f217de3c988",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/retry-after-control-preflight.json",
+      "export_size": 1825,
+      "export_sha256": "0996123abf4b3a2ba59af90010daf07ffff82befd7b62e32d98b0f217de3c988"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/retry-after-control-safe.json",
+      "original_size": 1752,
+      "original_sha256": "1e056cdb021e9f8ef93c0891ad45aef25caa4caebf2d8ca46c7c14c85b1a85ee",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/retry-after-control-safe.json",
+      "export_size": 1752,
+      "export_sha256": "1e056cdb021e9f8ef93c0891ad45aef25caa4caebf2d8ca46c7c14c85b1a85ee"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/retry-after-control-terminal.json",
+      "original_size": 2176,
+      "original_sha256": "28ced2801a308cdd7d5e85d3f983a9c67ff0a76fa49fc63b0a24d9b5f2a5bb13",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/retry-after-control-terminal.json",
+      "export_size": 2176,
+      "export_sha256": "28ced2801a308cdd7d5e85d3f983a9c67ff0a76fa49fc63b0a24d9b5f2a5bb13"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/root-build.py",
+      "original_size": 1596,
+      "original_sha256": "53c3b51a3ccb1829ccba3e6da180836d0b81f8c33684243f045cdc54ba76b869",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/root-build.py",
+      "export_size": 1596,
+      "export_sha256": "53c3b51a3ccb1829ccba3e6da180836d0b81f8c33684243f045cdc54ba76b869"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/root-review.json",
+      "original_size": 1227,
+      "original_sha256": "c6b08f2cf4d2fa3054b3f3c72778b114683ab03ae948e3a9276417cdcd24adf8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/root-review.json",
+      "export_size": 1227,
+      "export_sha256": "c6b08f2cf4d2fa3054b3f3c72778b114683ab03ae948e3a9276417cdcd24adf8"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/root-tests-inputs.json",
+      "original_size": 597,
+      "original_sha256": "f73a299fb1e5586ae2429109e4f3f0bc366bc4057f2518db47ab671fcf517513",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/root-tests-inputs.json",
+      "export_size": 597,
+      "export_sha256": "f73a299fb1e5586ae2429109e4f3f0bc366bc4057f2518db47ab671fcf517513"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/run-observation-status.json",
+      "original_size": 2163,
+      "original_sha256": "2916f960487152c893bab28960dbb38db35227650297ca2d5d7c43bc214c9fc5",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/run-observation-status.json",
+      "export_size": 2163,
+      "export_sha256": "2916f960487152c893bab28960dbb38db35227650297ca2d5d7c43bc214c9fc5"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/source.tar",
+      "original_size": 49541120,
+      "original_sha256": "c876fec15374ca3f760e33fcbe010c4df44e8381344426305c3bd6e64832354d",
+      "omission": "Whole-repository source archive; source pins and committed source retained, duplicate archive not published."
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/stderr.log",
+      "original_size": 732,
+      "original_sha256": "1be69d1c0a7f4c32c220ffaa851cf549f25e82092172f748a987e435c75fa7a9",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/stderr.log",
+      "export_size": 732,
+      "export_sha256": "1be69d1c0a7f4c32c220ffaa851cf549f25e82092172f748a987e435c75fa7a9"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/stdout.log",
+      "original_size": 111,
+      "original_sha256": "a567fd0721ebf5690824af01a77bb07ef9fca6789cb78a2235e9c43bb5903cd0",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/stdout.log",
+      "export_size": 111,
+      "export_sha256": "a567fd0721ebf5690824af01a77bb07ef9fca6789cb78a2235e9c43bb5903cd0"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/terminal-status.json",
+      "original_size": 2176,
+      "original_sha256": "5cb62063fb6ca9a6dc68f5eaa79b967e555d97eea9b6982c21fbbe75e2d76c16",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/terminal-status.json",
+      "export_size": 2176,
+      "export_sha256": "5cb62063fb6ca9a6dc68f5eaa79b967e555d97eea9b6982c21fbbe75e2d76c16"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/terminal.inspect.json",
+      "original_size": 10373,
+      "original_sha256": "388bb78767c80331e709186debf81836f53ae7bc721859dc6c000d8a2b1df13a",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/terminal.inspect.json",
+      "export_size": 10393,
+      "export_sha256": "5c19cbcaab9ae490f72ed8b3455a2dc3e1323c96a2a478c129afbf162e3c5877"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/upstream-pin.json",
+      "original_size": 519,
+      "original_sha256": "9dfe4e34bfbeab926bc6ecc2792a5eb1edd7ff9fa1805da116c83b5e74bde5e4",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/upstream-pin.json",
+      "export_size": 519,
+      "export_sha256": "9dfe4e34bfbeab926bc6ecc2792a5eb1edd7ff9fa1805da116c83b5e74bde5e4"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/upstream-uboot.md",
+      "original_size": 1788,
+      "original_sha256": "d2e8b0413e58c9eaedb72f115448c4e74ff13a6b2d424a0d428f34c857f9c8ed",
+      "omission": "Third-party full document; see upstream-pin.json and linked primary source in review."
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/volatile-load-exit.json",
+      "original_size": 144,
+      "original_sha256": "d49cb1d06c91b81fcfe271ed544509ed2b77571905f0e02ea1c299a10a613f06",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/volatile-load-exit.json",
+      "export_size": 144,
+      "export_sha256": "d49cb1d06c91b81fcfe271ed544509ed2b77571905f0e02ea1c299a10a613f06"
+    },
+    {
+      "origin": "coordinator/cynthion-pico-repeat-20261018/volatile-load.log",
+      "original_size": 76,
+      "original_sha256": "0bd547e88d9ac85043fd44fa744d0a71ff86d46f934d086b9941cd9e1c504074",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-pico-repeat-20261018/volatile-load.log",
+      "export_size": 76,
+      "export_sha256": "0bd547e88d9ac85043fd44fa744d0a71ff86d46f934d086b9941cd9e1c504074"
+    },
+    {
+      "origin": "coordinator/cynthion-recovery-independent-review-20261015/HANDOFF.md",
+      "original_size": 8457,
+      "original_sha256": "d19f2227dbe55e90b533118079d50913518a3c654a4594b0ee77a1ea5c5133bf",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-recovery-independent-review-20261015/HANDOFF.md",
+      "export_size": 8457,
+      "export_sha256": "d19f2227dbe55e90b533118079d50913518a3c654a4594b0ee77a1ea5c5133bf"
+    },
+    {
+      "origin": "coordinator/cynthion-review-current-tests-20261018.log",
+      "original_size": 40732,
+      "original_sha256": "d1679e35e5191768d960e0f513b19b51abc0ace1f749f5e19454bf0525f51f79",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-review-current-tests-20261018.log",
+      "export_size": 40902,
+      "export_sha256": "7de2b8a4a490001545a0e4577433dad27bc299439d5cd9cc7fce00bafd189248"
+    },
+    {
+      "origin": "coordinator/cynthion-sof-drive-path-review-20261018.md",
+      "original_size": 6106,
+      "original_sha256": "cfcdc3637136cf3d4939a2d524fc90ea7af7738c8bba46b9209edc566c01bda7",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-sof-drive-path-review-20261018.md",
+      "export_size": 6108,
+      "export_sha256": "554b2dd1c4c9bd94e6414cdeadb4ca3a3da2b5d602abdb825eeb239e1e411e3d"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/connected-left-ready-status.json",
+      "original_size": 1889,
+      "original_sha256": "7239477cdf2e3a5d51e066074133b5527eb8a3df4a0c0f8b8c785880adf0c5af",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/connected-left-ready-status.json",
+      "export_size": 1889,
+      "export_sha256": "7239477cdf2e3a5d51e066074133b5527eb8a3df4a0c0f8b8c785880adf0c5af"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/direct-cold-boot.txt",
+      "original_size": 950,
+      "original_sha256": "eab022ea7fdd23424cb4590d84aa0ff58288393f09ded6fb387c8c9855cf4adc",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/direct-cold-boot.txt",
+      "export_size": 630,
+      "export_sha256": "98c64b1d8d86a426d81c4ba80819561e231ea648388fe263a7032b8da64d1063"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/direct-enumeration.txt",
+      "original_size": 321,
+      "original_sha256": "746cfe791616e485909fd569b42b5731b4f6ea1b7bd0bebe911a60cee439621b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/direct-enumeration.txt",
+      "export_size": 321,
+      "export_sha256": "746cfe791616e485909fd569b42b5731b4f6ea1b7bd0bebe911a60cee439621b"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/direct-followup.txt",
+      "original_size": 1302,
+      "original_sha256": "04036213e0edd81b6b30a056c4582dd65d711ecef6dc7430e9295533c49b3995",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/direct-followup.txt",
+      "export_size": 982,
+      "export_sha256": "03a63f047262eb1e0eccc61c02aa67f19de8bb94b2161813f4bf327e6f2cb25c"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/direct-kernel-log.txt",
+      "original_size": 3017,
+      "original_sha256": "e318986d409620f7bbc2b47d454df23c4ed99873923e3d14929ebc7e9c992d6c",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/direct-kernel-log.txt",
+      "export_size": 2217,
+      "export_sha256": "e379e5a33864590c4b7137f6cd795b59f106040fcb83a955b56948aec367b34d"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/disarmed-status.json",
+      "original_size": 1711,
+      "original_sha256": "57d54e7921eda9fcf990f96e30e3e86aa190eb64e7258b3f95bdca8b7b404c3c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/disarmed-status.json",
+      "export_size": 1711,
+      "export_sha256": "57d54e7921eda9fcf990f96e30e3e86aa190eb64e7258b3f95bdca8b7b404c3c"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/post-power-on-kernel-log.txt",
+      "original_size": 4517,
+      "original_sha256": "adce03e9008c293ea1e3625bca4d181c45e8404d07ad1d83273d1f65739c9679",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/post-power-on-kernel-log.txt",
+      "export_size": 2917,
+      "export_sha256": "c969faa0f83690caf7fd537ae54f0a543ea3bd60a915a5aad8b473ce52ccb582"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/post-power-on-status.json",
+      "original_size": 2166,
+      "original_sha256": "3a8908c07b9a60b79078e16dcf7d0302a016bd06748c14a2bddf0c5219b17e71",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/post-power-on-status.json",
+      "export_size": 2166,
+      "export_sha256": "3a8908c07b9a60b79078e16dcf7d0302a016bd06748c14a2bddf0c5219b17e71"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/post-power-on-target-c-enumeration.txt",
+      "original_size": 321,
+      "original_sha256": "746cfe791616e485909fd569b42b5731b4f6ea1b7bd0bebe911a60cee439621b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/post-power-on-target-c-enumeration.txt",
+      "export_size": 321,
+      "export_sha256": "746cfe791616e485909fd569b42b5731b4f6ea1b7bd0bebe911a60cee439621b"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/post-target-c-status.json",
+      "original_size": 2166,
+      "original_sha256": "983f165e387ae5ed3c2ebee0653c2f78e583fa46f8f39c20c0aac5adf1d6de49",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/post-target-c-status.json",
+      "export_size": 2166,
+      "export_sha256": "983f165e387ae5ed3c2ebee0653c2f78e583fa46f8f39c20c0aac5adf1d6de49"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/preflight-ready-status.json",
+      "original_size": 1792,
+      "original_sha256": "575ba8cdc0182321da153e62faaa10a6184086a5aaee8d5aa78ea57b96a9f415",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/preflight-ready-status.json",
+      "export_size": 1792,
+      "export_sha256": "575ba8cdc0182321da153e62faaa10a6184086a5aaee8d5aa78ea57b96a9f415"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/read_status.py",
+      "original_size": 1594,
+      "original_sha256": "aff10638d3bf3a00f0c33d5f5847863eb5ab417d899aa8ae5bbc6c5ededc9b64",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/read_status.py",
+      "export_size": 1594,
+      "export_sha256": "aff10638d3bf3a00f0c33d5f5847863eb5ab417d899aa8ae5bbc6c5ededc9b64"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry01/connected-left-ready-status.json",
+      "original_size": 1889,
+      "original_sha256": "5dab9155e9876d49896193f2c369522f6ce532de4704894ce01b72d2cfdd83c5",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry01/connected-left-ready-status.json",
+      "export_size": 1889,
+      "export_sha256": "5dab9155e9876d49896193f2c369522f6ce532de4704894ce01b72d2cfdd83c5"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry01/disarmed-status.json",
+      "original_size": 1576,
+      "original_sha256": "487297a665d05d21b92be6336f7b928bdd74cd6401beab69c99c716ddd198bd2",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry01/disarmed-status.json",
+      "export_size": 1576,
+      "export_sha256": "487297a665d05d21b92be6336f7b928bdd74cd6401beab69c99c716ddd198bd2"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry01/host-enumeration.txt",
+      "original_size": 2467,
+      "original_sha256": "0090028e958a5c0e2cd44697d3daebc43b0e6ae74ef282374b6c3d6932542489",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry01/host-enumeration.txt",
+      "export_size": 2147,
+      "export_sha256": "2d2e019bcbf872b89e0a7223ad795e4f31e7cedd4ce326108fccad614e4be406"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry01/post-power-on-status.json",
+      "original_size": 2167,
+      "original_sha256": "9b74805d31e784e342c4b1047c467a2282d33bb13003279beeace65bfea37fd8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry01/post-power-on-status.json",
+      "export_size": 2167,
+      "export_sha256": "9b74805d31e784e342c4b1047c467a2282d33bb13003279beeace65bfea37fd8"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry01/preflight-ready-status.json",
+      "original_size": 1678,
+      "original_sha256": "3fd4cbed4190ed909a84a8503f163559d228909c0eba5aff4a672a8cf11c966d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry01/preflight-ready-status.json",
+      "export_size": 1678,
+      "export_sha256": "3fd4cbed4190ed909a84a8503f163559d228909c0eba5aff4a672a8cf11c966d"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry01/volatile-load.log",
+      "original_size": 76,
+      "original_sha256": "40cdcfae7b2441683c757b4894746ca2c314c69d7b0dac69ed93822d5fa06e0f",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry01/volatile-load.log",
+      "export_size": 76,
+      "export_sha256": "40cdcfae7b2441683c757b4894746ca2c314c69d7b0dac69ed93822d5fa06e0f"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry02/connected-left-ready-status.json",
+      "original_size": 1864,
+      "original_sha256": "dc551816e3d7ca70d941c13e7d8c900cc886f6e5e3d86380663491bdba55c847",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry02/connected-left-ready-status.json",
+      "export_size": 1864,
+      "export_sha256": "dc551816e3d7ca70d941c13e7d8c900cc886f6e5e3d86380663491bdba55c847"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry02/disarmed-status.json",
+      "original_size": 1709,
+      "original_sha256": "cc5f61f24cb570994349dc2ed830dc759e449a969ade74b5e1fb7081a15875fa",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry02/disarmed-status.json",
+      "export_size": 1709,
+      "export_sha256": "cc5f61f24cb570994349dc2ed830dc759e449a969ade74b5e1fb7081a15875fa"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry02/host-enumeration.txt",
+      "original_size": 2956,
+      "original_sha256": "c1b373c2de4fd6eaab9b6153fc0ddbc52f79040d2cc7a75c21f5169a0febaf4b",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry02/host-enumeration.txt",
+      "export_size": 2476,
+      "export_sha256": "46af64edd357269a9d2265e4278297bdeb8b0316390713f89af54bc7b76bbbcf"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry02/live-kernel-log.txt",
+      "original_size": 2606,
+      "original_sha256": "bbb00f1b31420e844736858ab38c72546af7d1c1fd352529c78da6294e081a6c",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry02/live-kernel-log.txt",
+      "export_size": 2126,
+      "export_sha256": "3290471ffa001164d648db582adee3ce3154fe858e9c8e22abe99e835ef5ce79"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry02/post-handoff-status.json",
+      "original_size": 2167,
+      "original_sha256": "3cdad06d7ad248433e69067a67727e77826634a8724ea5d2fca871ab50e52c75",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry02/post-handoff-status.json",
+      "export_size": 2167,
+      "export_sha256": "3cdad06d7ad248433e69067a67727e77826634a8724ea5d2fca871ab50e52c75"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry02/preflight-ready-status.json",
+      "original_size": 1782,
+      "original_sha256": "f80239da6092ca04aa4521591f526e776a102e289bb56acc4940ffe9248f9a73",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry02/preflight-ready-status.json",
+      "export_size": 1782,
+      "export_sha256": "f80239da6092ca04aa4521591f526e776a102e289bb56acc4940ffe9248f9a73"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry02/volatile-load.log",
+      "original_size": 76,
+      "original_sha256": "40cdcfae7b2441683c757b4894746ca2c314c69d7b0dac69ed93822d5fa06e0f",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry02/volatile-load.log",
+      "export_size": 76,
+      "export_sha256": "40cdcfae7b2441683c757b4894746ca2c314c69d7b0dac69ed93822d5fa06e0f"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry03/connected-left-ready-status.json",
+      "original_size": 1856,
+      "original_sha256": "42ad10b11eb19828f4f89f8b18ef744e17bdb6c0ca35fa21340862d11d94f39c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry03/connected-left-ready-status.json",
+      "export_size": 1856,
+      "export_sha256": "42ad10b11eb19828f4f89f8b18ef744e17bdb6c0ca35fa21340862d11d94f39c"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry03/disarmed-status.json",
+      "original_size": 1710,
+      "original_sha256": "5aaab02237a7327491ade23b2436a9f3d82242ee69bf81f27d7c2e85ca8dc06f",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry03/disarmed-status.json",
+      "export_size": 1710,
+      "export_sha256": "5aaab02237a7327491ade23b2436a9f3d82242ee69bf81f27d7c2e85ca8dc06f"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry03/host-enumeration.txt",
+      "original_size": 1250,
+      "original_sha256": "c14650f43848bf6ed59e3711efbc5f5ded214a3fc8163dee24b19f27d12368e1",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry03/host-enumeration.txt",
+      "export_size": 770,
+      "export_sha256": "2a962df759d5e269d0e92bd952e7954cde4a79de3fc0b72146c142b43d64a3d7"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry03/live-kernel-log.txt",
+      "original_size": 900,
+      "original_sha256": "481eafa4f00e09895d15b240b01e21c5fa26eae0f2357daa206a581c86b10676",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry03/live-kernel-log.txt",
+      "export_size": 420,
+      "export_sha256": "f7905e6a67ae7477019e6bf88619576629e922574bdf129b8c6c00d62052f36d"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry03/preflight-ready-status.json",
+      "original_size": 1782,
+      "original_sha256": "d751bea2e24d8e21c35b68c19e4032d88bcb52ae6afc7dbf1c0e8bc5e2bd5080",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry03/preflight-ready-status.json",
+      "export_size": 1782,
+      "export_sha256": "d751bea2e24d8e21c35b68c19e4032d88bcb52ae6afc7dbf1c0e8bc5e2bd5080"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry03/sequence-variation-status.json",
+      "original_size": 2166,
+      "original_sha256": "892e3fe5f176745dbcd0c726617a1bc0c147d0a79c17596bfb1bb42ac09de286",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry03/sequence-variation-status.json",
+      "export_size": 2166,
+      "export_sha256": "892e3fe5f176745dbcd0c726617a1bc0c147d0a79c17596bfb1bb42ac09de286"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/retry03/volatile-load.log",
+      "original_size": 76,
+      "original_sha256": "40cdcfae7b2441683c757b4894746ca2c314c69d7b0dac69ed93822d5fa06e0f",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/retry03/volatile-load.log",
+      "export_size": 76,
+      "export_sha256": "40cdcfae7b2441683c757b4894746ca2c314c69d7b0dac69ed93822d5fa06e0f"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-20261018/volatile-load.log",
+      "original_size": 76,
+      "original_sha256": "40cdcfae7b2441683c757b4894746ca2c314c69d7b0dac69ed93822d5fa06e0f",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-20261018/volatile-load.log",
+      "export_size": 76,
+      "export_sha256": "40cdcfae7b2441683c757b4894746ca2c314c69d7b0dac69ed93822d5fa06e0f"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/argv.json",
+      "original_size": 1632,
+      "original_sha256": "f2e96cf48275ed87067b122ca11876f7b7d8901b2e7cde22ee201b004e5219a3",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/argv.json",
+      "export_size": 1642,
+      "export_sha256": "8a6547c1a01cd31362488529104650e198f8597d4e51a8163a5ad89c056ed616"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/created.inspect.json",
+      "original_size": 9876,
+      "original_sha256": "f75334bb230829fb68f3ed3b6d665dcfe9a0f968297d534c2b6c95cec6a0ec85",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/created.inspect.json",
+      "export_size": 9896,
+      "export_sha256": "6d63e658df7da64cce0520d6281aa811a748603efedd8a673f40b2acf156ab03"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/cynthion_usb_key.bit",
+      "original_size": 175113,
+      "original_sha256": "bf0f00293a24ea7dc909737f23dd23ed58acc2fddf451e1a3cd744af5ae94826",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/cynthion_usb_key.bit",
+      "export_size": 175113,
+      "export_sha256": "bf0f00293a24ea7dc909737f23dd23ed58acc2fddf451e1a3cd744af5ae94826"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/cynthion_usb_key.json",
+      "original_size": 9653886,
+      "original_sha256": "503ac8c0ed2198bc39596e9fff575649740340eb5a115f595966efc52c840572",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/cynthion_usb_key.json.gz",
+      "export_size": 278462,
+      "export_sha256": "b91d2aadc72efc7ce1fab6afb997ee585067eb9056b2b0055d4ed7175fe8a476"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/cynthion_usb_key.tim",
+      "original_size": 57442,
+      "original_sha256": "a257e639cb0154cdab4de495db76d9dd3106a5cc3a501df9ed7a7db7888cefd0",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/cynthion_usb_key.tim",
+      "export_size": 57442,
+      "export_sha256": "a257e639cb0154cdab4de495db76d9dd3106a5cc3a501df9ed7a7db7888cefd0"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/exit.json",
+      "original_size": 25,
+      "original_sha256": "57f558e164486694afda69fbf81a41f57c46af4a3349a094a6015b497a839bbd",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/exit.json",
+      "export_size": 25,
+      "export_sha256": "57f558e164486694afda69fbf81a41f57c46af4a3349a094a6015b497a839bbd"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/input-pins.json",
+      "original_size": 906,
+      "original_sha256": "33f80c8700cbd874d64362f4545381b02fc6bcb7fc9dcd6fc5a88ebeb1a6dc5c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/input-pins.json",
+      "export_size": 906,
+      "export_sha256": "33f80c8700cbd874d64362f4545381b02fc6bcb7fc9dcd6fc5a88ebeb1a6dc5c"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/root-build-invalid-local.py",
+      "original_size": 1586,
+      "original_sha256": "6128bb5564fb3f102aef732a65a00cc6b1a8be8d685fb1c53555965a80e54840",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/root-build-invalid-local.py",
+      "export_size": 1586,
+      "export_sha256": "6128bb5564fb3f102aef732a65a00cc6b1a8be8d685fb1c53555965a80e54840"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/root-build.py",
+      "original_size": 1600,
+      "original_sha256": "e2cfe0ffbb5c3f917e41401b962337a683f2202c5c989c13eeae965eac65591c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/root-build.py",
+      "export_size": 1600,
+      "export_sha256": "e2cfe0ffbb5c3f917e41401b962337a683f2202c5c989c13eeae965eac65591c"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/root-review.json",
+      "original_size": 1988,
+      "original_sha256": "2558a2fa43a2bfd2d0ab0263d1bd614868f5522445b0160d3a7c9241294fefd2",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/root-review.json",
+      "export_size": 1988,
+      "export_sha256": "2558a2fa43a2bfd2d0ab0263d1bd614868f5522445b0160d3a7c9241294fefd2"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/source.tar",
+      "original_size": 49479680,
+      "original_sha256": "e62496cd06aabcbd76897a259788030ec64c2e6747b16bde2eb54fb85cfe840a",
+      "omission": "Whole-repository source archive; source pins and committed source retained, duplicate archive not published."
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/stderr.log",
+      "original_size": 732,
+      "original_sha256": "1be69d1c0a7f4c32c220ffaa851cf549f25e82092172f748a987e435c75fa7a9",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/stderr.log",
+      "export_size": 732,
+      "export_sha256": "1be69d1c0a7f4c32c220ffaa851cf549f25e82092172f748a987e435c75fa7a9"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/stdout.log",
+      "original_size": 110,
+      "original_sha256": "86ec802ca855bfe2cae034eb4a96354a04075d8fd92443b81d0217819027d6c7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/stdout.log",
+      "export_size": 110,
+      "export_sha256": "86ec802ca855bfe2cae034eb4a96354a04075d8fd92443b81d0217819027d6c7"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-key-build-20261018/terminal.inspect.json",
+      "original_size": 10437,
+      "original_sha256": "855dc3d128b197d66dc8aa27861c4b375ac2ef7a0b465d56444b206b24cc1771",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-staged-key-build-20261018/terminal.inspect.json",
+      "export_size": 10457,
+      "export_sha256": "a38572439961c67b11a2dafa0fd125e43f745561664423511bffa29a22b19d81"
+    },
+    {
+      "origin": "coordinator/cynthion-staged-sof-timing-review-20261018.md",
+      "original_size": 7665,
+      "original_sha256": "029052cc15d3832d11718b42d6ecb77b79ae0d8272ff8cf36eee2f6227c072d3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-staged-sof-timing-review-20261018.md",
+      "export_size": 7665,
+      "export_sha256": "029052cc15d3832d11718b42d6ecb77b79ae0d8272ff8cf36eee2f6227c072d3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/ack_gap_reset_operation_receipt.json",
+      "original_size": 6312,
+      "original_sha256": "9b888de830571766e1c5a73db309cdb032b178081ddd9a38dd0188f7cdab1bbc",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/ack_gap_reset_operation_receipt.json",
+      "export_size": 6338,
+      "export_sha256": "25c7d483072a373fb925db09b779a45e0c557fd9c20d18cee5c90a1a3bdd71ba"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.bit",
+      "original_size": 122726,
+      "original_sha256": "42e805e0cc91becab26c72b9cc2dd3f34c3772d00f3f0b2b224152e6b3662767",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.bit",
+      "export_size": 122726,
+      "export_sha256": "42e805e0cc91becab26c72b9cc2dd3f34c3772d00f3f0b2b224152e6b3662767"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.config",
+      "original_size": 658066,
+      "original_sha256": "4f99ce451e3e3a912910a6f725ab53bdcd69aedb33a3f2fe9e101ba8fc60f30b",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.config.gz",
+      "export_size": 59150,
+      "export_sha256": "5c5ceb51b99787b3f6e0d9c58e798a42aad97f4e67a81bd7f31dc45f039e0a60"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.il",
+      "original_size": 365103,
+      "original_sha256": "840f8e64b78f4154e0be6df7a6572dcbfc0381811f9f02b1e0ac9433e5793b34",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.il",
+      "export_size": 365103,
+      "export_sha256": "840f8e64b78f4154e0be6df7a6572dcbfc0381811f9f02b1e0ac9433e5793b34"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.json",
+      "original_size": 3567250,
+      "original_sha256": "0a7b97f486d9e27073b9dc70e3b92785d26a60cb856254c04d44e0f14e3660c4",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.json.gz",
+      "export_size": 131904,
+      "export_sha256": "6d932973555cf4ce5fde7d004451a8b40007f8a23a84d030a995ea461f668ff5"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.rpt",
+      "original_size": 283989,
+      "original_sha256": "0f0c5fe1430af4b508c450efce9c8586173cd57510a1232fb82bf4903aeb1764",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.rpt",
+      "export_size": 283989,
+      "export_sha256": "0f0c5fe1430af4b508c450efce9c8586173cd57510a1232fb82bf4903aeb1764"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.svf",
+      "original_size": 260450,
+      "original_sha256": "91c9dbdd1548c789f31ad6df0780a23d703576c6f0a9b9967c976a29c4d9f38b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.svf",
+      "export_size": 260450,
+      "export_sha256": "91c9dbdd1548c789f31ad6df0780a23d703576c6f0a9b9967c976a29c4d9f38b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.tim",
+      "original_size": 50984,
+      "original_sha256": "d9cdfd9041dd5e381edc3db79940b9d11a4777e4ec3488c6b28c55c618215c8c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.tim",
+      "export_size": 50984,
+      "export_sha256": "d9cdfd9041dd5e381edc3db79940b9d11a4777e4ec3488c6b28c55c618215c8c"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.ys",
+      "original_size": 229,
+      "original_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/cynthion_usb_key.ys",
+      "export_size": 229,
+      "export_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/disarmed-status.json",
+      "original_size": 293,
+      "original_sha256": "c66f18901fec323761b21ea8b82b72d15a8fa8b38f69d3326479a37f907ab633",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/disarmed-status.json",
+      "export_size": 293,
+      "export_sha256": "c66f18901fec323761b21ea8b82b72d15a8fa8b38f69d3326479a37f907ab633"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/owner-attempt-4-enumeration.txt",
+      "original_size": 2103,
+      "original_sha256": "6b88fca15ee72c825a1bc9302f85b3b6d280a546d7e93c327779506c3de016eb",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/owner-attempt-4-enumeration.txt",
+      "export_size": 1653,
+      "export_sha256": "c2bcb79d8204a067b92012342cd090e7ed84dbb1dde3a874585f95e1e6aaf460"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/owner-attempt-4-status.json",
+      "original_size": 323,
+      "original_sha256": "57c2ca6cabfc973d5a554f24fc490982d3ba2453897ed16b23ddf9795ccb0a07",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/owner-attempt-4-status.json",
+      "export_size": 323,
+      "export_sha256": "57c2ca6cabfc973d5a554f24fc490982d3ba2453897ed16b23ddf9795ccb0a07"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/upload.log",
+      "original_size": 76,
+      "original_sha256": "65c63b4e4a4e6e959e9ee5cd0830a58b71c862c6344ab0db8bfa5664549ee17c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/ack-gap-reset-operation/upload.log",
+      "export_size": 76,
+      "export_sha256": "65c63b4e4a4e6e959e9ee5cd0830a58b71c862c6344ab0db8bfa5664549ee17c"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/build.log",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/build.log",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/build_cynthion_usb_key.bat",
+      "original_size": 806,
+      "original_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/build_cynthion_usb_key.bat",
+      "export_size": 806,
+      "export_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/build_cynthion_usb_key.json",
+      "original_size": 534,
+      "original_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/build_cynthion_usb_key.json",
+      "export_size": 534,
+      "export_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/build_cynthion_usb_key.sh",
+      "original_size": 560,
+      "original_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/build_cynthion_usb_key.sh",
+      "export_size": 560,
+      "export_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.bit",
+      "original_size": 115663,
+      "original_sha256": "fd01efd4660d630387d71d7f11e3b11bbdbbcf721d19a21e6192e614ad686ef3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.bit",
+      "export_size": 115663,
+      "export_sha256": "fd01efd4660d630387d71d7f11e3b11bbdbbcf721d19a21e6192e614ad686ef3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.config",
+      "original_size": 457319,
+      "original_sha256": "b26a4cb0d6d0b3ec517efebe8c25e0baeaaf037b58ed2bd653c01315506370ed",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.config",
+      "export_size": 457319,
+      "export_sha256": "b26a4cb0d6d0b3ec517efebe8c25e0baeaaf037b58ed2bd653c01315506370ed"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.il",
+      "original_size": 280548,
+      "original_sha256": "c5990e3502daba3e7a4a322708d1bb9bc1da049faeb2ba2166b889bc623e70fc",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.il",
+      "export_size": 280548,
+      "export_sha256": "c5990e3502daba3e7a4a322708d1bb9bc1da049faeb2ba2166b889bc623e70fc"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.json",
+      "original_size": 2826492,
+      "original_sha256": "d0f0692c52503be6db1dbd800cd0f3c87714c0545dfba99b7ff02806200beb9d",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.json.gz",
+      "export_size": 102719,
+      "export_sha256": "49fa875d5e5090a5ee72d4b6f3724ff678822f956fade137e50ccfe02b497339"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.rpt",
+      "original_size": 221699,
+      "original_sha256": "2bf7cc48bbaec3c8dcd212846d90d265f3281d3f4f57d15cd22dec6f63cb6fff",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.rpt",
+      "export_size": 221699,
+      "export_sha256": "2bf7cc48bbaec3c8dcd212846d90d265f3281d3f4f57d15cd22dec6f63cb6fff"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.svf",
+      "original_size": 245518,
+      "original_sha256": "946aa760ca3831f3f5f3422955c7536904a62c159ae4d71ba4eb934266ab8e68",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.svf",
+      "export_size": 245518,
+      "export_sha256": "946aa760ca3831f3f5f3422955c7536904a62c159ae4d71ba4eb934266ab8e68"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.tim",
+      "original_size": 187907,
+      "original_sha256": "e816f61ccebbbb6554e3443dddcb69bf8c292a73383f60e5cf69f5b4adac354f",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.tim",
+      "export_size": 187907,
+      "export_sha256": "e816f61ccebbbb6554e3443dddcb69bf8c292a73383f60e5cf69f5b4adac354f"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.ys",
+      "original_size": 229,
+      "original_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-final/cynthion_usb_key.ys",
+      "export_size": 229,
+      "export_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/build_cynthion_usb_key.bat",
+      "original_size": 806,
+      "original_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/build_cynthion_usb_key.bat",
+      "export_size": 806,
+      "export_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/build_cynthion_usb_key.json",
+      "original_size": 534,
+      "original_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/build_cynthion_usb_key.json",
+      "export_size": 534,
+      "export_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/build_cynthion_usb_key.sh",
+      "original_size": 560,
+      "original_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/build_cynthion_usb_key.sh",
+      "export_size": 560,
+      "export_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.bit",
+      "original_size": 118121,
+      "original_sha256": "30a3ca6c46a2f0594957758a4d1ba90196b6918869d13445be040c1f8569ef3c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.bit",
+      "export_size": 118121,
+      "export_sha256": "30a3ca6c46a2f0594957758a4d1ba90196b6918869d13445be040c1f8569ef3c"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.config",
+      "original_size": 528098,
+      "original_sha256": "6564105cc9231bb7b5529bbac3b996cb736c73ed928eaf74f851c7da925b222a",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.config.gz",
+      "export_size": 47351,
+      "export_sha256": "d069835e0f4a442e07d56ad742370f072ddd8966f11938db1b273c669c1d7a89"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.il",
+      "original_size": 340463,
+      "original_sha256": "4249d2f9e531c062716e46df7793ffb7ed642d483970d9ec985c5bb0b856cdde",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.il",
+      "export_size": 340463,
+      "export_sha256": "4249d2f9e531c062716e46df7793ffb7ed642d483970d9ec985c5bb0b856cdde"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.json",
+      "original_size": 3039529,
+      "original_sha256": "c39a75f3af5cbfa2990415c4327b44045eae51261f55db9a560992282a1ba81c",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.json.gz",
+      "export_size": 116974,
+      "export_sha256": "9221748c50ef615d90e2d98b87004df1ee26024183b8dd1c5ff14138491fd128"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.rpt",
+      "original_size": 239453,
+      "original_sha256": "0177a073e1473bb9dcedee0f7ba9b0d7d09b14e66d9e0347f8b291cabe55230a",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.rpt",
+      "export_size": 239453,
+      "export_sha256": "0177a073e1473bb9dcedee0f7ba9b0d7d09b14e66d9e0347f8b291cabe55230a"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.svf",
+      "original_size": 250723,
+      "original_sha256": "86f82fc67e76910eba2fdb88a3dd28188861f29f16c185aac5d025799bce6a30",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.svf",
+      "export_size": 250723,
+      "export_sha256": "86f82fc67e76910eba2fdb88a3dd28188861f29f16c185aac5d025799bce6a30"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.tim",
+      "original_size": 48865,
+      "original_sha256": "1a54e493175ca283d64b11845a24ae5756da79ec41128f6a2246b4ac2ef57d27",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.tim",
+      "export_size": 48865,
+      "export_sha256": "1a54e493175ca283d64b11845a24ae5756da79ec41128f6a2246b4ac2ef57d27"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.ys",
+      "original_size": 229,
+      "original_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key.ys",
+      "export_size": 229,
+      "export_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key_power_controls.json",
+      "original_size": 996,
+      "original_sha256": "5bab44a32b72696b70938c1bbed01fc41df3ee95a0645217d210f1e962ad4428",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/build/cynthion_usb_key_power_controls.json",
+      "export_size": 996,
+      "export_sha256": "5bab44a32b72696b70938c1bbed01fc41df3ee95a0645217d210f1e962ad4428"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/disarmed-status.json",
+      "original_size": 413,
+      "original_sha256": "44e042f5c102a8e40588bc5e94d16b94a8968ba79b9352b162e09804cf249b54",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/disarmed-status.json",
+      "export_size": 413,
+      "export_sha256": "44e042f5c102a8e40588bc5e94d16b94a8968ba79b9352b162e09804cf249b54"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/latest-status.json",
+      "original_size": 413,
+      "original_sha256": "cebda3f1aa91cb2948460ed8784f1d0d1b384bc6ef3d4db059808585a84e72aa",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/latest-status.json",
+      "export_size": 413,
+      "export_sha256": "cebda3f1aa91cb2948460ed8784f1d0d1b384bc6ef3d4db059808585a84e72aa"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/owner-attempt-1-status.json",
+      "original_size": 499,
+      "original_sha256": "23f84e967ceb5f420920ab04db8da58bd7776054502dae11a71d50d5866b4a2b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/owner-attempt-1-status.json",
+      "export_size": 499,
+      "export_sha256": "23f84e967ceb5f420920ab04db8da58bd7776054502dae11a71d50d5866b4a2b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/switch-right-status.json",
+      "original_size": 442,
+      "original_sha256": "f0c5d7807fff210f6c7ca19dca0e7856cb48830c7e7c44cbc2fe2bdc100ce561",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/switch-right-status.json",
+      "export_size": 442,
+      "export_sha256": "f0c5d7807fff210f6c7ca19dca0e7856cb48830c7e7c44cbc2fe2bdc100ce561"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/control-power-operation/upload.log",
+      "original_size": 76,
+      "original_sha256": "423cd6970761afb2b5133986332f3febcadacce165c682bd385e687364261d4d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/control-power-operation/upload.log",
+      "export_size": 76,
+      "export_sha256": "423cd6970761afb2b5133986332f3febcadacce165c682bd385e687364261d4d"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/build_cynthion_usb_key.bat",
+      "original_size": 806,
+      "original_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/build_cynthion_usb_key.bat",
+      "export_size": 806,
+      "export_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/build_cynthion_usb_key.json",
+      "original_size": 534,
+      "original_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/build_cynthion_usb_key.json",
+      "export_size": 534,
+      "export_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/build_cynthion_usb_key.sh",
+      "original_size": 560,
+      "original_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/build_cynthion_usb_key.sh",
+      "export_size": 560,
+      "export_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.bit",
+      "original_size": 116522,
+      "original_sha256": "62e4112c6b3da0d7adfaf293bac6c125706166fd86d23c49f303d6b1f2a10668",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.bit",
+      "export_size": 116522,
+      "export_sha256": "62e4112c6b3da0d7adfaf293bac6c125706166fd86d23c49f303d6b1f2a10668"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.config",
+      "original_size": 482713,
+      "original_sha256": "17d802ab713e9902674af3ee9f1ab9316262db5d249a1c499a5f83671fcec960",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.config",
+      "export_size": 482713,
+      "export_sha256": "17d802ab713e9902674af3ee9f1ab9316262db5d249a1c499a5f83671fcec960"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.il",
+      "original_size": 320503,
+      "original_sha256": "f75bdc503010f6f6972934750cdcf97d6a66111d8f8cdf81c023d2c7dd82ccc8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.il",
+      "export_size": 320503,
+      "export_sha256": "f75bdc503010f6f6972934750cdcf97d6a66111d8f8cdf81c023d2c7dd82ccc8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.json",
+      "original_size": 2816601,
+      "original_sha256": "58604a4c7c357beb7dcf063b4d1f2df4f6927a40232a8c6f224e33c26e067304",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.json.gz",
+      "export_size": 109565,
+      "export_sha256": "d4f8a87002261cdc55ba2bb3c4212efc8a2cb109f4995068fc6958676a661a50"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.rpt",
+      "original_size": 226500,
+      "original_sha256": "c3eae3eff0582255f8ca30b03a5dc7c0aab18f5fac6f9b0c0a2bcc59719c13bc",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.rpt",
+      "export_size": 226500,
+      "export_sha256": "c3eae3eff0582255f8ca30b03a5dc7c0aab18f5fac6f9b0c0a2bcc59719c13bc"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.svf",
+      "original_size": 247338,
+      "original_sha256": "b1ad9784ec4c7f3c86aca598401fbeab0598a18fde071c7d23fcad5f83e4f0ef",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.svf",
+      "export_size": 247338,
+      "export_sha256": "b1ad9784ec4c7f3c86aca598401fbeab0598a18fde071c7d23fcad5f83e4f0ef"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.tim",
+      "original_size": 41020,
+      "original_sha256": "dff77c10c1e535d6572bb148db0b4f15ce05280662d2449cebb917a2cf7916e9",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.tim",
+      "export_size": 41020,
+      "export_sha256": "dff77c10c1e535d6572bb148db0b4f15ce05280662d2449cebb917a2cf7916e9"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.ys",
+      "original_size": 229,
+      "original_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build/cynthion_usb_key.ys",
+      "export_size": 229,
+      "export_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build.log",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/build.log",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/home/.config/yosyshq/fonts.conf",
+      "original_size": 894,
+      "original_sha256": "17b61081b102d26bcbaf6ffd18a3a76c9af5477f2aec13c072baeb393c632144",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/home/.config/yosyshq/fonts.conf",
+      "export_size": 894,
+      "export_sha256": "17b61081b102d26bcbaf6ffd18a3a76c9af5477f2aec13c072baeb393c632144"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/home/.local/state/yosys/history",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3/home/.local/state/yosys/history",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3-status.json",
+      "original_size": 386,
+      "original_sha256": "70de17de64e9211b3c4711e17b088a4262db456eb5aefb4b792479172ca982fc",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3-status.json",
+      "export_size": 386,
+      "export_sha256": "70de17de64e9211b3c4711e17b088a4262db456eb5aefb4b792479172ca982fc"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3-upload.log",
+      "original_size": 76,
+      "original_sha256": "a5fc0ef7d0c0ec29820cc0893e0039f25f24900754facd4529a013d600f46980",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v3-upload.log",
+      "export_size": 76,
+      "export_sha256": "a5fc0ef7d0c0ec29820cc0893e0039f25f24900754facd4529a013d600f46980"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/build_cynthion_usb_key.bat",
+      "original_size": 806,
+      "original_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/build_cynthion_usb_key.bat",
+      "export_size": 806,
+      "export_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/build_cynthion_usb_key.json",
+      "original_size": 534,
+      "original_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/build_cynthion_usb_key.json",
+      "export_size": 534,
+      "export_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/build_cynthion_usb_key.sh",
+      "original_size": 560,
+      "original_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/build_cynthion_usb_key.sh",
+      "export_size": 560,
+      "export_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.bit",
+      "original_size": 116263,
+      "original_sha256": "c5e46d1cbebaf7213c8337945b8c1066941826779a9fd836e12b90d91dd7accb",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.bit",
+      "export_size": 116263,
+      "export_sha256": "c5e46d1cbebaf7213c8337945b8c1066941826779a9fd836e12b90d91dd7accb"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.config",
+      "original_size": 481893,
+      "original_sha256": "c7d0cc7ad65141654e48d46c5fd60fbd41358f89d827f575e4460538fc74c63c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.config",
+      "export_size": 481893,
+      "export_sha256": "c7d0cc7ad65141654e48d46c5fd60fbd41358f89d827f575e4460538fc74c63c"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.il",
+      "original_size": 322744,
+      "original_sha256": "7c2f1e9ec4b053a85ccdf4e0bedc42e87f09c163cb57cde0817f0a54d9ffe90b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.il",
+      "export_size": 322744,
+      "export_sha256": "7c2f1e9ec4b053a85ccdf4e0bedc42e87f09c163cb57cde0817f0a54d9ffe90b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.json",
+      "original_size": 2789237,
+      "original_sha256": "8b11464f56425535fc40f1d56f66425170214796f0821d025b611e46c6e4299e",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.json.gz",
+      "export_size": 108670,
+      "export_sha256": "e4f9962686c3f13f1f510823743e9f3320f62045b21643ace11b0931b329c45f"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.rpt",
+      "original_size": 223937,
+      "original_sha256": "8461943964d5b5023936df78fd1c5689eb4c60d5f53b35086e2c3c2245c9a2aa",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.rpt",
+      "export_size": 223937,
+      "export_sha256": "8461943964d5b5023936df78fd1c5689eb4c60d5f53b35086e2c3c2245c9a2aa"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.svf",
+      "original_size": 246792,
+      "original_sha256": "6e0033b4f904168584c43be0d16970ebae1aceca27cb1bf900bfc3d5c9f95f1c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.svf",
+      "export_size": 246792,
+      "export_sha256": "6e0033b4f904168584c43be0d16970ebae1aceca27cb1bf900bfc3d5c9f95f1c"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.tim",
+      "original_size": 47681,
+      "original_sha256": "f8adfa089c043f8a440a9b11f87c5a0303f60c58a2fefff0fa898d2f3c1bfb8b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.tim",
+      "export_size": 47681,
+      "export_sha256": "f8adfa089c043f8a440a9b11f87c5a0303f60c58a2fefff0fa898d2f3c1bfb8b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.ys",
+      "original_size": 229,
+      "original_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build/cynthion_usb_key.ys",
+      "export_size": 229,
+      "export_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build.log",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/build.log",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/home/.config/yosyshq/fonts.conf",
+      "original_size": 894,
+      "original_sha256": "17b61081b102d26bcbaf6ffd18a3a76c9af5477f2aec13c072baeb393c632144",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/home/.config/yosyshq/fonts.conf",
+      "export_size": 894,
+      "export_sha256": "17b61081b102d26bcbaf6ffd18a3a76c9af5477f2aec13c072baeb393c632144"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/home/.local/state/yosys/history",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4/home/.local/state/yosys/history",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4-status.json",
+      "original_size": 499,
+      "original_sha256": "68412f3ebdf0450533acfefed5827ec17d56a79c16e9b51148a3bc64d2c34008",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4-status.json",
+      "export_size": 499,
+      "export_sha256": "68412f3ebdf0450533acfefed5827ec17d56a79c16e9b51148a3bc64d2c34008"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4-upload.log",
+      "original_size": 76,
+      "original_sha256": "39033f1886b2c3f54e75c0daf028de3da456374921dc8c39aee8f66297bb840b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-diagnostics-v4-upload.log",
+      "export_size": 76,
+      "export_sha256": "39033f1886b2c3f54e75c0daf028de3da456374921dc8c39aee8f66297bb840b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/build.log",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/build.log",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/build_cynthion_usb_key.bat",
+      "original_size": 806,
+      "original_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/build_cynthion_usb_key.bat",
+      "export_size": 806,
+      "export_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/build_cynthion_usb_key.json",
+      "original_size": 534,
+      "original_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/build_cynthion_usb_key.json",
+      "export_size": 534,
+      "export_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/build_cynthion_usb_key.sh",
+      "original_size": 560,
+      "original_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/build_cynthion_usb_key.sh",
+      "export_size": 560,
+      "export_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.bit",
+      "original_size": 115790,
+      "original_sha256": "676c84d4d7ed519282d8c9e073a79889b774d2ac88780cdf8d7a44fad8f22152",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.bit",
+      "export_size": 115790,
+      "export_sha256": "676c84d4d7ed519282d8c9e073a79889b774d2ac88780cdf8d7a44fad8f22152"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.config",
+      "original_size": 456172,
+      "original_sha256": "bc1c1c70c504e4ee9abbf989402bb5503acde278a0d6a966bce50f9c8ae6d28b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.config",
+      "export_size": 456172,
+      "export_sha256": "bc1c1c70c504e4ee9abbf989402bb5503acde278a0d6a966bce50f9c8ae6d28b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.il",
+      "original_size": 280548,
+      "original_sha256": "5ba6ee855a698f736be5f60264801ba3532671bc6544378d30e123482011c022",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.il",
+      "export_size": 280548,
+      "export_sha256": "5ba6ee855a698f736be5f60264801ba3532671bc6544378d30e123482011c022"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.json",
+      "original_size": 2814019,
+      "original_sha256": "a4f105ac2c46876618e13714db6250c3da81af6a0b23c8b5fa35c55829978ad1",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.json.gz",
+      "export_size": 102696,
+      "export_sha256": "f4d56a8b8ad76e77d0bfaefc4924d0d3d1e9ec731ed0e30770dc659878d706f4"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.rpt",
+      "original_size": 218006,
+      "original_sha256": "b6fc50bf735ce2331dad11b7a5bc1b65d251cdad8f4360e68e36944cb36decfb",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.rpt",
+      "export_size": 218006,
+      "export_sha256": "b6fc50bf735ce2331dad11b7a5bc1b65d251cdad8f4360e68e36944cb36decfb"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.svf",
+      "original_size": 245784,
+      "original_sha256": "b0ebd07a5c6d49f94b9c5ef5b8cb3227474cbe7276c56815a199046b665e39da",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.svf",
+      "export_size": 245784,
+      "export_sha256": "b0ebd07a5c6d49f94b9c5ef5b8cb3227474cbe7276c56815a199046b665e39da"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.tim",
+      "original_size": 175819,
+      "original_sha256": "20d748e693b06907e1e350124e06d55e24aadf5182fddf9e015387064df859c2",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.tim",
+      "export_size": 175819,
+      "export_sha256": "20d748e693b06907e1e350124e06d55e24aadf5182fddf9e015387064df859c2"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.ys",
+      "original_size": 229,
+      "original_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-final/cynthion_usb_key.ys",
+      "export_size": 229,
+      "export_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-status.json",
+      "original_size": 279,
+      "original_sha256": "3d68d74265ae05469c3f582ef6d9598b16266bb549499f4bf078e2ac3ffb57a5",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-status.json",
+      "export_size": 279,
+      "export_sha256": "3d68d74265ae05469c3f582ef6d9598b16266bb549499f4bf078e2ac3ffb57a5"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/disconnected-upload.log",
+      "original_size": 76,
+      "original_sha256": "59dce8374583b66bd6341d2198c214e35ead23dc37d00c73f07120731052fb37",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/disconnected-upload.log",
+      "export_size": 76,
+      "export_sha256": "59dce8374583b66bd6341d2198c214e35ead23dc37d00c73f07120731052fb37"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/attempt-3-disarmed-status.json",
+      "original_size": 623,
+      "original_sha256": "db6b96072502a6cbe46761bfb325f39cad0143487d4288816c868f2243429437",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/attempt-3-disarmed-status.json",
+      "export_size": 623,
+      "export_sha256": "db6b96072502a6cbe46761bfb325f39cad0143487d4288816c868f2243429437"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/attempt-3-state-watch.jsonl",
+      "original_size": 339,
+      "original_sha256": "e9bd640b6583ab80971fac0400e27b52697f244278d99c59b643ce5d77e0200b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/attempt-3-state-watch.jsonl",
+      "export_size": 339,
+      "export_sha256": "e9bd640b6583ab80971fac0400e27b52697f244278d99c59b643ce5d77e0200b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/attempt-3-upload.log",
+      "original_size": 76,
+      "original_sha256": "34330d589c4797bab815aec85fb0a1078488121765b035d61843c12fdc617695",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/attempt-3-upload.log",
+      "export_size": 76,
+      "export_sha256": "34330d589c4797bab815aec85fb0a1078488121765b035d61843c12fdc617695"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/build_cynthion_usb_key.bat",
+      "original_size": 806,
+      "original_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/build_cynthion_usb_key.bat",
+      "export_size": 806,
+      "export_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/build_cynthion_usb_key.json",
+      "original_size": 534,
+      "original_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/build_cynthion_usb_key.json",
+      "export_size": 534,
+      "export_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/build_cynthion_usb_key.sh",
+      "original_size": 560,
+      "original_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/build_cynthion_usb_key.sh",
+      "export_size": 560,
+      "export_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.bit",
+      "original_size": 121798,
+      "original_sha256": "de036dfc80e2e0f2b0c0e4801e3f09ba8e7c100c9a8f630c5fb564d6867587d7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.bit",
+      "export_size": 121798,
+      "export_sha256": "de036dfc80e2e0f2b0c0e4801e3f09ba8e7c100c9a8f630c5fb564d6867587d7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.config",
+      "original_size": 648460,
+      "original_sha256": "55372305c83aace113071b8134854872fb1731c77498f9176726b31b3e5eb989",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.config.gz",
+      "export_size": 59333,
+      "export_sha256": "16b5de365653da3f8136222a34c2ef40f09a74b95125e3e8a9543c216743c9b5"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.il",
+      "original_size": 364724,
+      "original_sha256": "ba5792f25180e54dc22f226c6194d978129be5afc76088a7c154efa86629daef",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.il",
+      "export_size": 364724,
+      "export_sha256": "ba5792f25180e54dc22f226c6194d978129be5afc76088a7c154efa86629daef"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.json",
+      "original_size": 3487620,
+      "original_sha256": "03b8074dfad775f8c470d8c2e7a1f84f1568beedf659a707ea4bba081728c487",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.json.gz",
+      "export_size": 129610,
+      "export_sha256": "45731d995f17d070e476e23b92720f73428026df9db787555ed4155508634962"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.rpt",
+      "original_size": 282004,
+      "original_sha256": "7932be17957af0fd1862f151320b8eacedcfb69151b4176d9530897aab799f40",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.rpt",
+      "export_size": 282004,
+      "export_sha256": "7932be17957af0fd1862f151320b8eacedcfb69151b4176d9530897aab799f40"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.svf",
+      "original_size": 258484,
+      "original_sha256": "e7f01858ff2614158db76c3c99334b406a442f8c4005986a7d9fd951724e4927",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.svf",
+      "export_size": 258484,
+      "export_sha256": "e7f01858ff2614158db76c3c99334b406a442f8c4005986a7d9fd951724e4927"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.tim",
+      "original_size": 45153,
+      "original_sha256": "d5519d1806d3b4094943bccd4df5d4a6858cb4021668484ff88ed6665fbc56b1",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.tim",
+      "export_size": 45153,
+      "export_sha256": "d5519d1806d3b4094943bccd4df5d4a6858cb4021668484ff88ed6665fbc56b1"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.ys",
+      "original_size": 229,
+      "original_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/build/cynthion_usb_key.ys",
+      "export_size": 229,
+      "export_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/disarmed-status.json",
+      "original_size": 623,
+      "original_sha256": "9f08a6846bc2fda3b5c9e5847e29ae2ae648c42757688ea5e390325fc06babe6",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/disarmed-status.json",
+      "export_size": 623,
+      "export_sha256": "9f08a6846bc2fda3b5c9e5847e29ae2ae648c42757688ea5e390325fc06babe6"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/owner-attempt-2-status.json",
+      "original_size": 1007,
+      "original_sha256": "b60eaa12d3dcda1233247ea6daec1fcd7b120b3ecda50bd63749b9d2f371ede0",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/owner-attempt-2-status.json",
+      "export_size": 1007,
+      "export_sha256": "b60eaa12d3dcda1233247ea6daec1fcd7b120b3ecda50bd63749b9d2f371ede0"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/owner-attempt-3-status.json",
+      "original_size": 1037,
+      "original_sha256": "63fbab44924bae77ce8e9188f1826592b78969b9c3b353cc639310a8ac4153f9",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/owner-attempt-3-status.json",
+      "export_size": 1037,
+      "export_sha256": "63fbab44924bae77ce8e9188f1826592b78969b9c3b353cc639310a8ac4153f9"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/upload.log",
+      "original_size": 76,
+      "original_sha256": "34330d589c4797bab815aec85fb0a1078488121765b035d61843c12fdc617695",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/fault-telemetry-operation/upload.log",
+      "export_size": 76,
+      "export_sha256": "34330d589c4797bab815aec85fb0a1078488121765b035d61843c12fdc617695"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/build_cynthion_usb_key.bat",
+      "original_size": 806,
+      "original_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/build_cynthion_usb_key.bat",
+      "export_size": 806,
+      "export_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/build_cynthion_usb_key.json",
+      "original_size": 534,
+      "original_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/build_cynthion_usb_key.json",
+      "export_size": 534,
+      "export_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/build_cynthion_usb_key.sh",
+      "original_size": 560,
+      "original_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/build_cynthion_usb_key.sh",
+      "export_size": 560,
+      "export_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.bit",
+      "original_size": 117878,
+      "original_sha256": "f5b95db86df7a7b7b6821182bef033c3c54a300aa749ad38cbe154ffa5831463",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.bit",
+      "export_size": 117878,
+      "export_sha256": "f5b95db86df7a7b7b6821182bef033c3c54a300aa749ad38cbe154ffa5831463"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.config",
+      "original_size": 519899,
+      "original_sha256": "84bc337c52a0f2a9e72813716ccc615b195d3b334c331b0ac7aadf454bca4450",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.config",
+      "export_size": 519899,
+      "export_sha256": "84bc337c52a0f2a9e72813716ccc615b195d3b334c331b0ac7aadf454bca4450"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.il",
+      "original_size": 340463,
+      "original_sha256": "0adab119fec2784e17c9b25997c3eb4187515687a19bb36fc85a490b6df5bd45",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.il",
+      "export_size": 340463,
+      "export_sha256": "0adab119fec2784e17c9b25997c3eb4187515687a19bb36fc85a490b6df5bd45"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.json",
+      "original_size": 2993958,
+      "original_sha256": "de947c8488e1ddc09e21fc34554614b1c662e086e86ee368598631f7717ae249",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.json.gz",
+      "export_size": 115165,
+      "export_sha256": "7bc1fe9c584eafbad5d72a5faa157ed0ffd9780952e96b8a4fee81d55e665fcb"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.rpt",
+      "original_size": 238587,
+      "original_sha256": "47d3c30c8338f8d341b3c255f9f47bdcb84631bab5bfe873066f0eb3b33a8078",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.rpt",
+      "export_size": 238587,
+      "export_sha256": "47d3c30c8338f8d341b3c255f9f47bdcb84631bab5bfe873066f0eb3b33a8078"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.svf",
+      "original_size": 250196,
+      "original_sha256": "772b37b831063e713a92aa0534548a02073405663fe2bdd1aa6f8af224ef43c8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.svf",
+      "export_size": 250196,
+      "export_sha256": "772b37b831063e713a92aa0534548a02073405663fe2bdd1aa6f8af224ef43c8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.tim",
+      "original_size": 40810,
+      "original_sha256": "7a07f6047ee60f7894668f34e513dea9e8f46a0e9afe97de51c1f0472323d6d2",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.tim",
+      "export_size": 40810,
+      "export_sha256": "7a07f6047ee60f7894668f34e513dea9e8f46a0e9afe97de51c1f0472323d6d2"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.ys",
+      "original_size": 229,
+      "original_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build/cynthion_usb_key.ys",
+      "export_size": 229,
+      "export_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build.log",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/build.log",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/home/.config/yosyshq/fonts.conf",
+      "original_size": 894,
+      "original_sha256": "17b61081b102d26bcbaf6ffd18a3a76c9af5477f2aec13c072baeb393c632144",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/home/.config/yosyshq/fonts.conf",
+      "export_size": 894,
+      "export_sha256": "17b61081b102d26bcbaf6ffd18a3a76c9af5477f2aec13c072baeb393c632144"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/home/.local/state/yosys/history",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected/home/.local/state/yosys/history",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected-status.json",
+      "original_size": 537,
+      "original_sha256": "d2828f164747d30dfbc01d976a6f46b381553e53e32991e99e252b9b9b443441",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected-status.json",
+      "export_size": 537,
+      "export_sha256": "d2828f164747d30dfbc01d976a6f46b381553e53e32991e99e252b9b9b443441"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected-upload.log",
+      "original_size": 76,
+      "original_sha256": "fad2f2a6a87e1ea3efa535cf66408277557263e4e37c9f5cc3d7b951a1e5c5f2",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/disconnected-upload.log",
+      "export_size": 76,
+      "export_sha256": "fad2f2a6a87e1ea3efa535cf66408277557263e4e37c9f5cc3d7b951a1e5c5f2"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/build_cynthion_usb_key.bat",
+      "original_size": 806,
+      "original_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/build_cynthion_usb_key.bat",
+      "export_size": 806,
+      "export_sha256": "6c4f8ee2c667c82c78c0222ee9d58be9d3c9d12546be9d38df9362b5fb123cf7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/build_cynthion_usb_key.json",
+      "original_size": 534,
+      "original_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/build_cynthion_usb_key.json",
+      "export_size": 534,
+      "export_sha256": "5f4c1ea3a4265a76ff9c8ac993affe193ee340240a3d00b43f8d82beb68d2bc8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/build_cynthion_usb_key.sh",
+      "original_size": 560,
+      "original_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/build_cynthion_usb_key.sh",
+      "export_size": 560,
+      "export_sha256": "cc7af7eb7084c8af495583e36fda8094ef794b0e29a2049259dba40f244ec720"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.bit",
+      "original_size": 117132,
+      "original_sha256": "9506dce51f6fd9de96dd2e6dfb7fd5cee47a2c32f63168db3a206313b248495e",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.bit",
+      "export_size": 117132,
+      "export_sha256": "9506dce51f6fd9de96dd2e6dfb7fd5cee47a2c32f63168db3a206313b248495e"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.config",
+      "original_size": 514148,
+      "original_sha256": "971ae6b1ec50ea0774b5ef8dbd06a8924e77cabfec08a6dcca07f532b50484cf",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.config",
+      "export_size": 514148,
+      "export_sha256": "971ae6b1ec50ea0774b5ef8dbd06a8924e77cabfec08a6dcca07f532b50484cf"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.il",
+      "original_size": 340463,
+      "original_sha256": "9aecfe9ab95095d04405e993da20b4ad8b4ebcda95c424276e8e42b9e8011e5c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.il",
+      "export_size": 340463,
+      "export_sha256": "9aecfe9ab95095d04405e993da20b4ad8b4ebcda95c424276e8e42b9e8011e5c"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.json",
+      "original_size": 2910206,
+      "original_sha256": "f7f59928536909d534e1c88ca764a140ae64d413bc5c5eb2d82db09ec605099c",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.json.gz",
+      "export_size": 111878,
+      "export_sha256": "c38787c4bdcaf12d4900869c4273e7788efce5538e15c7cf5d264bda76a5c3a7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.rpt",
+      "original_size": 229382,
+      "original_sha256": "8e09d12d004f46590acf2276265f8edaacd1f8c08b5822f7b6d28423fff31e10",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.rpt",
+      "export_size": 229382,
+      "export_sha256": "8e09d12d004f46590acf2276265f8edaacd1f8c08b5822f7b6d28423fff31e10"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.svf",
+      "original_size": 248632,
+      "original_sha256": "11f57c9bdbcabef5d15279d8c29ec38c61872576026ac18435df19ba176deeb6",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.svf",
+      "export_size": 248632,
+      "export_sha256": "11f57c9bdbcabef5d15279d8c29ec38c61872576026ac18435df19ba176deeb6"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.tim",
+      "original_size": 50202,
+      "original_sha256": "768b9cceed2a74b861a6a33676aada94146281f4d9f8f436c6436049d460396c",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.tim",
+      "export_size": 50202,
+      "export_sha256": "768b9cceed2a74b861a6a33676aada94146281f4d9f8f436c6436049d460396c"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.ys",
+      "original_size": 229,
+      "original_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build/cynthion_usb_key.ys",
+      "export_size": 229,
+      "export_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build.log",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/build.log",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/home/.config/yosyshq/fonts.conf",
+      "original_size": 894,
+      "original_sha256": "17b61081b102d26bcbaf6ffd18a3a76c9af5477f2aec13c072baeb393c632144",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/home/.config/yosyshq/fonts.conf",
+      "export_size": 894,
+      "export_sha256": "17b61081b102d26bcbaf6ffd18a3a76c9af5477f2aec13c072baeb393c632144"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/home/.local/state/yosys/history",
+      "original_size": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/operation/home/.local/state/yosys/history",
+      "export_size": 0,
+      "export_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/recheck-after-attempt-2-status.json",
+      "original_size": 442,
+      "original_sha256": "4f8fe734a4d34bd477c6cec572402b53303a221ad0289b35c18b818ddd9f4219",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/recheck-after-attempt-2-status.json",
+      "export_size": 442,
+      "export_sha256": "4f8fe734a4d34bd477c6cec572402b53303a221ad0289b35c18b818ddd9f4219"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/recheck-after-attempt-2-upload.log",
+      "original_size": 76,
+      "original_sha256": "fad2f2a6a87e1ea3efa535cf66408277557263e4e37c9f5cc3d7b951a1e5c5f2",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/recheck-after-attempt-2-upload.log",
+      "export_size": 76,
+      "export_sha256": "fad2f2a6a87e1ea3efa535cf66408277557263e4e37c9f5cc3d7b951a1e5c5f2"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/phy-swap-v1/tests.log",
+      "original_size": 10583,
+      "original_sha256": "e262482eb60578fd77d6f91d1a3aa628a2dc85897e5c1ad3fc1d4daa7bcd27dc",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/phy-swap-v1/tests.log",
+      "export_size": 10583,
+      "export_sha256": "e262482eb60578fd77d6f91d1a3aa628a2dc85897e5c1ad3fc1d4daa7bcd27dc"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/before-status.json",
+      "original_size": 324,
+      "original_sha256": "a8ca78c9c77a0b8a4dabce7bba0e892e45497f2d13e3709fd35cdd4d0dc1ed70",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/before-status.json",
+      "export_size": 324,
+      "export_sha256": "a8ca78c9c77a0b8a4dabce7bba0e892e45497f2d13e3709fd35cdd4d0dc1ed70"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/bench-after-restore.txt",
+      "original_size": 1023,
+      "original_sha256": "8f9f1f4e014233125898215f24d0d4496209a77e639b94d609ec6a7e41e45f34",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/bench-after-restore.txt",
+      "export_size": 1023,
+      "export_sha256": "8f9f1f4e014233125898215f24d0d4496209a77e639b94d609ec6a7e41e45f34"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/bench-after.txt",
+      "original_size": 2519,
+      "original_sha256": "4131fc650a83ed57b949898d8dfbd4cd7720d97d3d186a78926c422d0a96481f",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/bench-after.txt",
+      "export_size": 2519,
+      "export_sha256": "4131fc650a83ed57b949898d8dfbd4cd7720d97d3d186a78926c422d0a96481f"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/bench-before.txt",
+      "original_size": 1023,
+      "original_sha256": "2de9abaff7b21a9a6b1b66dafe1c00e70df5530193c419042bd66c5554997433",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/bench-before.txt",
+      "export_size": 1023,
+      "export_sha256": "2de9abaff7b21a9a6b1b66dafe1c00e70df5530193c419042bd66c5554997433"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/bench-repeat.txt",
+      "original_size": 2377,
+      "original_sha256": "01d5d73d342baef21e5f473d69e3c1e4d6d52055fb0752a6adaef8fe3b585735",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/bench-repeat.txt",
+      "export_size": 2127,
+      "export_sha256": "568caf9948ca575439208412d42c417521ed626f700b9de7a587a97045e532c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.bit",
+      "original_size": 119595,
+      "original_sha256": "c72a4e4e201809c0680948c43f88c9572e31cb0da037bf7031ee16f1346aecfe",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.bit",
+      "export_size": 119595,
+      "export_sha256": "c72a4e4e201809c0680948c43f88c9572e31cb0da037bf7031ee16f1346aecfe"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.config",
+      "original_size": 603682,
+      "original_sha256": "fbc45ef1d8b0c0fe845a5643984c305e94726f02ff0c39cbfd97eebdad0b8ecf",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.config.gz",
+      "export_size": 54359,
+      "export_sha256": "33f5b1ca072ee822c3ccedd24a6a12bdfa8bd65454a22a4fc189d57c9eaf3c55"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.il",
+      "original_size": 619200,
+      "original_sha256": "b20b9a2a7edc7a01eb0e461fe7c21e933b87153dffb2cd2de6b467adc942efa1",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.il.gz",
+      "export_size": 43060,
+      "export_sha256": "b05169c47af3d8f34cba7fb9a8aed4ad811c8a5c544b7a6ec3cd8f36331f182a"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.json",
+      "original_size": 3324177,
+      "original_sha256": "9723e8061a935268ca6628de4faa8baaadc3b5fc4f02f8da6481e905294f6bfb",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.json.gz",
+      "export_size": 124437,
+      "export_sha256": "1df9ee9848cbda794afb1a6e4189661639e0a1f68c5c7757566fb68b3122f966"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.lpf",
+      "original_size": 7308,
+      "original_sha256": "8d5e2ab347919b4fceafa2a7e7c6ddeadab64dee3b3fe1b0e95a0d7f0da8ad59",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.lpf",
+      "export_size": 7308,
+      "export_sha256": "8d5e2ab347919b4fceafa2a7e7c6ddeadab64dee3b3fe1b0e95a0d7f0da8ad59"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.rpt",
+      "original_size": 484689,
+      "original_sha256": "fc505b0d58b229c54dfd5694d4fd907bba3891ea594f8c693e93d2427aa0d5ec",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.rpt",
+      "export_size": 484689,
+      "export_sha256": "fc505b0d58b229c54dfd5694d4fd907bba3891ea594f8c693e93d2427aa0d5ec"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.svf",
+      "original_size": 253830,
+      "original_sha256": "f07940b36d8dad40d06efdcb3106ca085c0ab81526cdbfc5034bfd73b9e4ada5",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.svf",
+      "export_size": 253830,
+      "export_sha256": "f07940b36d8dad40d06efdcb3106ca085c0ab81526cdbfc5034bfd73b9e4ada5"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.tim",
+      "original_size": 69314,
+      "original_sha256": "4e064c34a10201aca54219ab5974bd724013c9feb2a46b3b07d823f549a41adc",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.tim",
+      "export_size": 69314,
+      "export_sha256": "4e064c34a10201aca54219ab5974bd724013c9feb2a46b3b07d823f549a41adc"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.ys",
+      "original_size": 256,
+      "original_sha256": "fb3d7bfba238eed9353c93a096b8a5b9fbf08c5c30fcd21b8bd7ca37c31b0e51",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe.ys",
+      "export_size": 256,
+      "export_sha256": "fb3d7bfba238eed9353c93a096b8a5b9fbf08c5c30fcd21b8bd7ca37c31b0e51"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe_receipt.json",
+      "original_size": 2925,
+      "original_sha256": "79d8affeebe57d3914b66a35a79a3e45ae63143a78430e812f7e6eec67181c6e",
+      "redacted": true,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/cynthion_target_usb_probe_receipt.json",
+      "export_size": 2937,
+      "export_sha256": "5a47694f251cf4dc4d84972d7458eaaaddd70ee5cd69a373b976ce4d275db7cc"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/restore-analyzer.log",
+      "original_size": 76,
+      "original_sha256": "65f043a538d1c58a6f9bd5011a14258f0becfdb38ea8f7be0807d116dcb9f47d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/restore-analyzer.log",
+      "export_size": 76,
+      "export_sha256": "65f043a538d1c58a6f9bd5011a14258f0becfdb38ea8f7be0807d116dcb9f47d"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/root-netlist-review.json",
+      "original_size": 419,
+      "original_sha256": "1a6e815b6a12381cd0d99863f72af6091ff5e14437b7932ff5961f97495a410a",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/root-netlist-review.json",
+      "export_size": 419,
+      "export_sha256": "1a6e815b6a12381cd0d99863f72af6091ff5e14437b7932ff5961f97495a410a"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261015/target-c-cable-test/upload.log",
+      "original_size": 76,
+      "original_sha256": "b5a8d92b8a89a38eb78dd87842b59cafb756ad62d351791fd077b5f4ee570811",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261015/target-c-cable-test/upload.log",
+      "export_size": 76,
+      "export_sha256": "b5a8d92b8a89a38eb78dd87842b59cafb756ad62d351791fd077b5f4ee570811"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/attempt7-waveform-review/HANDOFF.md",
+      "original_size": 7382,
+      "original_sha256": "70a430e60abc664bd82e06eef0272ff6c379ea31b030a3320cddd6f3e3b361ed",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/attempt7-waveform-review/HANDOFF.md",
+      "export_size": 7382,
+      "export_sha256": "70a430e60abc664bd82e06eef0272ff6c379ea31b030a3320cddd6f3e3b361ed"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/attempt-7-connected-status.json",
+      "original_size": 296,
+      "original_sha256": "851e53012b6894ccc735435ada2a2fd732e4b4fb53b258a7ad11bc895f83d24b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/attempt-7-connected-status.json",
+      "export_size": 296,
+      "export_sha256": "851e53012b6894ccc735435ada2a2fd732e4b4fb53b258a7ad11bc895f83d24b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/attempt-7-disarmed-status.json",
+      "original_size": 292,
+      "original_sha256": "01e6b83999353a17f8b54bc3e5b9233a30f02326a2dc7e99ac90e096546d92eb",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/attempt-7-disarmed-status.json",
+      "export_size": 292,
+      "export_sha256": "01e6b83999353a17f8b54bc3e5b9233a30f02326a2dc7e99ac90e096546d92eb"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/attempt-7-upload.log",
+      "original_size": 76,
+      "original_sha256": "b95987addf724fdbbdc623fe3b896eb535dda49a7d1b6d930dc02614440cb5ff",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/attempt-7-upload.log",
+      "export_size": 76,
+      "export_sha256": "b95987addf724fdbbdc623fe3b896eb535dda49a7d1b6d930dc02614440cb5ff"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/build-receipt.json",
+      "original_size": 1452,
+      "original_sha256": "2428eea737e17cd5f4c0c90ffba493d70bc4b108ee27cae1bb7f3eb47e858d52",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/build-receipt.json",
+      "export_size": 1452,
+      "export_sha256": "2428eea737e17cd5f4c0c90ffba493d70bc4b108ee27cae1bb7f3eb47e858d52"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/cynthion_usb_key.bit",
+      "original_size": 174763,
+      "original_sha256": "b3b2037bf2e7e743c0d8ade268a22c5e8f9ef3859426bf7f10e3951c56c56a2e",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/cynthion_usb_key.bit",
+      "export_size": 174763,
+      "export_sha256": "b3b2037bf2e7e743c0d8ade268a22c5e8f9ef3859426bf7f10e3951c56c56a2e"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/cynthion_usb_key.json",
+      "original_size": 9652555,
+      "original_sha256": "c804c8419b4f46f25f812f1da4abd5f5a4e11fd7e1a88938aba623a852071378",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/cynthion_usb_key.json.gz",
+      "export_size": 277536,
+      "export_sha256": "2f65e27c5e47109508351175bcae5e49c05ff6d82e7e7fca5948b67a980a7f95"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/cynthion_usb_key.tim",
+      "original_size": 53578,
+      "original_sha256": "25a2c1b57d5a7749d5af5b22d9956e3723b2ce69e5fa03fb061a2834df6a5179",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/cynthion_usb_key.tim",
+      "export_size": 53578,
+      "export_sha256": "25a2c1b57d5a7749d5af5b22d9956e3723b2ce69e5fa03fb061a2834df6a5179"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/owner-attempt-7-enumeration.txt",
+      "original_size": 1023,
+      "original_sha256": "53a2aa3157cd06f2e751e5aac6105a6d03ce46359fea859e3b45b798e8f4779d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/owner-attempt-7-enumeration.txt",
+      "export_size": 1023,
+      "export_sha256": "53a2aa3157cd06f2e751e5aac6105a6d03ce46359fea859e3b45b798e8f4779d"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/owner-attempt-7-status.json",
+      "original_size": 10795,
+      "original_sha256": "a7840f19f447966955ce763b8faa558842446fd567dc2ea7599455650d64021d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/owner-attempt-7-status.json",
+      "export_size": 10795,
+      "export_sha256": "a7840f19f447966955ce763b8faa558842446fd567dc2ea7599455650d64021d"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/pre-cable-swap-status.json",
+      "original_size": 81,
+      "original_sha256": "9f52c29eb3100dc856df108d44912e0eeda96a5eb13114db76c29fce0b56200b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/pre-cable-swap-status.json",
+      "export_size": 81,
+      "export_sha256": "9f52c29eb3100dc856df108d44912e0eeda96a5eb13114db76c29fce0b56200b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/debug-readback-control-power/verified-cable-enumeration.txt",
+      "original_size": 1023,
+      "original_sha256": "af35999a23e6a54e819cb1730b186245f42d0ea07aa9b32f172e59941cccabb3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/debug-readback-control-power/verified-cable-enumeration.txt",
+      "export_size": 1023,
+      "export_sha256": "af35999a23e6a54e819cb1730b186245f42d0ea07aa9b32f172e59941cccabb3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/attempt-6-connected-status.json",
+      "original_size": 329,
+      "original_sha256": "5339ac09cea83209cb4a617816908ce222b723ca05e7b13cb269564e97226621",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/attempt-6-connected-status.json",
+      "export_size": 329,
+      "export_sha256": "5339ac09cea83209cb4a617816908ce222b723ca05e7b13cb269564e97226621"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/attempt-6-disarmed-status.json",
+      "original_size": 326,
+      "original_sha256": "17bf842837179745627249d3dc40400caeaa3ab1893d51de8e97f75691625713",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/attempt-6-disarmed-status.json",
+      "export_size": 326,
+      "export_sha256": "17bf842837179745627249d3dc40400caeaa3ab1893d51de8e97f75691625713"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/attempt-6-upload.log",
+      "original_size": 76,
+      "original_sha256": "b01ce6780108be9b499d1ad5411e4f2e74738d7d1645f279b14869a0587684d7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/attempt-6-upload.log",
+      "export_size": 76,
+      "export_sha256": "b01ce6780108be9b499d1ad5411e4f2e74738d7d1645f279b14869a0587684d7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/attempt5-trace-review.md",
+      "original_size": 4268,
+      "original_sha256": "9d0baf6820849fbf47fa9777fe663e5f0ea46d20034dc0942c9ccdd4c4e8e5e1",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/attempt5-trace-review.md",
+      "export_size": 4268,
+      "export_sha256": "9d0baf6820849fbf47fa9777fe663e5f0ea46d20034dc0942c9ccdd4c4e8e5e1"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/attempt6-source-review.md",
+      "original_size": 6668,
+      "original_sha256": "a3d49d85ce6588e35ff12e81b54c3525c77251c35a2f94bbdfa2c1b9abebd147",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/attempt6-source-review.md",
+      "export_size": 6668,
+      "export_sha256": "a3d49d85ce6588e35ff12e81b54c3525c77251c35a2f94bbdfa2c1b9abebd147"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.bit",
+      "original_size": 170790,
+      "original_sha256": "776843f932f060a96d1f32052726269c5de1a81c3983d6f15d3b7d24c1bc3e0b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.bit",
+      "export_size": 170790,
+      "export_sha256": "776843f932f060a96d1f32052726269c5de1a81c3983d6f15d3b7d24c1bc3e0b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.config",
+      "original_size": 2289852,
+      "original_sha256": "42e326dc79c62f1666639bbd61ee35acebfcd5eb76e42d0b28aeaa3be2da2993",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.config.gz",
+      "export_size": 192401,
+      "export_sha256": "fda8b40676b1b8c06944b9cc6247d3f52c143b637349112207e633cd2803024f"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.debug.v",
+      "original_size": 107,
+      "original_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.debug.v",
+      "export_size": 107,
+      "export_sha256": "0e1b9a2e0bcae33563fe2fbbc25c93eb0db268ede7dbda6aae70cbaa7ab68842"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.il",
+      "original_size": 535272,
+      "original_sha256": "f11698abdcc1a6a8d97bfe867fb6c30d10e6e39fa126e856633005e6a92d85da",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.il.gz",
+      "export_size": 32804,
+      "export_sha256": "b53ce45d346312b065bb5b6b64cbf7d05a0889772017c6f605c54a2ef6bc074b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.json",
+      "original_size": 9224200,
+      "original_sha256": "0c184d4f7cb66af303b9b4b9e8457f744060f50f8dc7a78a932da8f8764a1cc8",
+      "redacted": false,
+      "encoding": "gzip",
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.json.gz",
+      "export_size": 263939,
+      "export_sha256": "673a6bb9edabf9ffc7fb5bc58f84e5c325b9731313ea78bd00163996610a37b7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.lpf",
+      "original_size": 8097,
+      "original_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.lpf",
+      "export_size": 8097,
+      "export_sha256": "7779409006f61ba755ff3ebf07e16ec64d75c2abe2674da2c23a077821d4e0c3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.rpt",
+      "original_size": 432858,
+      "original_sha256": "130f39f064033872edcca685b9076de82584c3fb244c775376aa79850e15a5e8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.rpt",
+      "export_size": 432858,
+      "export_sha256": "130f39f064033872edcca685b9076de82584c3fb244c775376aa79850e15a5e8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.svf",
+      "original_size": 362054,
+      "original_sha256": "d490cbb725310bcf0c565060da12870eab39641544cb277296e87267f2ed8ea8",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.svf",
+      "export_size": 362054,
+      "export_sha256": "d490cbb725310bcf0c565060da12870eab39641544cb277296e87267f2ed8ea8"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.tim",
+      "original_size": 54086,
+      "original_sha256": "c11c715b04db40d36e88eff27f64535bcb7769c061c266ad92e1c1c089b0155d",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.tim",
+      "export_size": 54086,
+      "export_sha256": "c11c715b04db40d36e88eff27f64535bcb7769c061c266ad92e1c1c089b0155d"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.ys",
+      "original_size": 229,
+      "original_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/cynthion_usb_key.ys",
+      "export_size": 229,
+      "export_sha256": "823bd42b8c67c03f3130361c57fdbcbbef0fb1acf096df7040da578a4e5fd36b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/disarmed-status.json",
+      "original_size": 328,
+      "original_sha256": "0707b5287125e56c5ad83121fcc5fabd940829d82374e1f3083e3e922eaaa694",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/disarmed-status.json",
+      "export_size": 328,
+      "export_sha256": "0707b5287125e56c5ad83121fcc5fabd940829d82374e1f3083e3e922eaaa694"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/owner-attempt-5-enumeration.txt",
+      "original_size": 1023,
+      "original_sha256": "49424aa098f7d2576862c4b5e75bdbe6ff3e860e111390cf738da82338813ce3",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/owner-attempt-5-enumeration.txt",
+      "export_size": 1023,
+      "export_sha256": "49424aa098f7d2576862c4b5e75bdbe6ff3e860e111390cf738da82338813ce3"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/owner-attempt-5-status.json",
+      "original_size": 9789,
+      "original_sha256": "fe50666aa114e24f1eab7a7ff0ecb53ece04c600724cd144df93cfcffb10df34",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/owner-attempt-5-status.json",
+      "export_size": 9789,
+      "export_sha256": "fe50666aa114e24f1eab7a7ff0ecb53ece04c600724cd144df93cfcffb10df34"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/owner-attempt-6-enumeration.txt",
+      "original_size": 1023,
+      "original_sha256": "b0035a24a27b2455c7aafa72b4139483a3a2020983e6d79775efd83e96bf4e7b",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/owner-attempt-6-enumeration.txt",
+      "export_size": 1023,
+      "export_sha256": "b0035a24a27b2455c7aafa72b4139483a3a2020983e6d79775efd83e96bf4e7b"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/owner-attempt-6-status.json",
+      "original_size": 9787,
+      "original_sha256": "95a9f6caa1d51cb9b5591663c8b2d498a6d4c807642ca51920f41d2c7a87a5c5",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/owner-attempt-6-status.json",
+      "export_size": 9787,
+      "export_sha256": "95a9f6caa1d51cb9b5591663c8b2d498a6d4c807642ca51920f41d2c7a87a5c5"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/root-netlist-review.json",
+      "original_size": 443,
+      "original_sha256": "a62a50fe5706fd45342787d321ba5b46c402fa3d4a47f4899b03397d267f114e",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/root-netlist-review.json",
+      "export_size": 443,
+      "export_sha256": "a62a50fe5706fd45342787d321ba5b46c402fa3d4a47f4899b03397d267f114e"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/event-history/upload.log",
+      "original_size": 76,
+      "original_sha256": "b01ce6780108be9b499d1ad5411e4f2e74738d7d1645f279b14869a0587684d7",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/event-history/upload.log",
+      "export_size": 76,
+      "export_sha256": "b01ce6780108be9b499d1ad5411e4f2e74738d7d1645f279b14869a0587684d7"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-20261016/power-monitor-research/HANDOFF.md",
+      "original_size": 6614,
+      "original_sha256": "8ee8202942800a9a888b2a8209b9f094942466e1cccde405bc4c3a7078d14ef0",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-20261016/power-monitor-research/HANDOFF.md",
+      "export_size": 6614,
+      "export_sha256": "8ee8202942800a9a888b2a8209b9f094942466e1cccde405bc4c3a7078d14ef0"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-feasibility-20261015.md",
+      "original_size": 10113,
+      "original_sha256": "270205b4ca4492c110c64fc31b10c6aab27f4989a70fec84c854348f0a1d5e2a",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-feasibility-20261015.md",
+      "export_size": 10113,
+      "export_sha256": "270205b4ca4492c110c64fc31b10c6aab27f4989a70fec84c854348f0a1d5e2a"
+    },
+    {
+      "origin": "coordinator/cynthion-usb-key-protocol-review-20261015/HANDOFF.md",
+      "original_size": 5671,
+      "original_sha256": "421a5930d5cf74d61c739dab4b97db0d896f35ab7bcff5e3330784253ea65fe1",
+      "redacted": false,
+      "export": "evidence/coordinator/cynthion-usb-key-protocol-review-20261015/HANDOFF.md",
+      "export_size": 5671,
+      "export_sha256": "421a5930d5cf74d61c739dab4b97db0d896f35ab7bcff5e3330784253ea65fe1"
+    },
+    {
+      "origin": "primary/cynthion-line-state-review-20261015/swap-register-followup.md",
+      "original_size": 4723,
+      "original_sha256": "7d58e9addb46d438f6347bb784c9258d5fd1ed7c5255fe9a25eab09219f69ca8",
+      "redacted": true,
+      "export": "evidence/primary/cynthion-line-state-review-20261015/swap-register-followup.md",
+      "export_size": 4729,
+      "export_sha256": "6063c2d5849d9689e05d82bde376883f9d8098b3ff50f02005ca107f55b12382"
+    }
+  ]
+}

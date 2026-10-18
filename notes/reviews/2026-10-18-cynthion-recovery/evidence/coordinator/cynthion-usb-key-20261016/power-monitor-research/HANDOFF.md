@@ -1,0 +1,33 @@
+# Cynthion r1.4 power-monitor feasibility
+
+Date: 2026-10-16
+Scope: read-only source and schematic audit. No source/bitstream edits and no hardware access.
+
+## Finding
+
+Cynthion r1.4 does have an onboard four-channel PAC1954 power monitor, and channel 1 is wired to the TARGET-A VBUS shunt/sense path. The currently loaded USB-key operation image does not request `power_monitor`, talk to the PAC1954, or expose its readings. A small future monitor-only gateware revision can read the existing sensor through the maintained LUNA I2C register interface, following Great Scott Gadgets' own Cynthion factory self-test. It need not change any VBUS switch, discharge control, target USB data GPIO, PHY, or power direction. This is feasible source-wise, but would require a reviewed FPGA reload and host-side register decoding; it is not available from the current image.
+
+## Source evidence
+
+- Installed Cynthion r1.4 platform `cynthion/gateware/platform/cynthion_r1_4.py:162-170` declares `power_monitor`: SCL=D7 output, SDA=C7 bidirectional, `pwrdn`=D5 active-low, `slow`=C6, GPIO=D6, LVCMOS33. The existing platform has the physical pins but does not imply that a design has initialized the monitor. The official platform source is [cynthion_r1_4.py](https://github.com/greatscottgadgets/cynthion/blob/main/cynthion/python/src/gateware/platform/cynthion_r1_4.py).
+- The r1.4 schematic/PCB set used for the prior board review is official hardware revision commit `13aa71c2fb0be3837cd2ec580ee5d2c25fc1c678` (`/tmp/cynthion-power-13aa71c2.kicad_sch`, `/tmp/cynthion-pcb-13aa71c2.kicad_pcb`). U1 is `PAC1954T-E/4MX`. PCB pin/net assignments tie U1 `SENSE1+` to `TARGET_A_SENSE+` and `SENSE1-` to `TARGET_A_SENSE-`; the sense path is between `TARGET_A_VBUS_IN` and `TARGET_A_VBUS`. U1 channels 2-4 map to Target C, AUX and CONTROL respectively. This makes channel 1 the relevant VBUS/current channel for TARGET A, not an FPGA ADC channel.
+- Microchip describes PAC1954 as a four-channel, 16-bit, 32-V I2C power monitor; its SENSE+ input measures bus voltage and the differential sense pins measure shunt drop. See [Microchip PAC1954 product page and datasheet](https://www.microchip.com/en-us/product/pac1954). Current can be computed from channel-1 shunt drop only with the fitted shunt value and datasheet scaling; this audit did not extract/calibrate that value.
+- Maintained upstream precedent exists: [Great Scott Gadgets Cynthion self-test](https://github.com/greatscottgadgets/cynthion-test/blob/main/selftest.py) requests `power_monitor`, instantiates LUNA's `I2CRegisterInterface` via its I2C helper, selects PAC195x address `0b0010000`, sets `slow` high and active-low `pwrdn` low, then reads register `0xFE` and checks manufacturer ID `0x54` (source lines 645-660, 793-803 in the current page). That test proves bus/device access, not voltage/current conversion or live load accuracy. The underlying reusable driver is LUNA's maintained `luna.gateware.interface.i2c.I2CRegisterInterface`.
+- The current operation image at source HEAD `d168869b5aa77385ccbecaaf32dbaa2379d65887` has no `power_monitor` reference under `tools/cynthion_usb_key/`; its JTAG map reports protocol/PHY/line diagnostics only. It does not expose VBUS/current, so no reading can be recovered from its current registers.
+- Apollo's installed host `ApolloDebugger.get_adc_reading()` in `apollo_fpga/__init__.py:429-433` is just vendor USB request `0xa4` returning an unlabelled raw 16-bit ADC value. Its API has no channel/target argument, and neither this function nor the current bit connects the PAC1954 to it. Treating that reading as TARGET-A voltage/current is unsupported. Apollo is the board's debugger MCU and FPGA programmer, distinct from this FPGA I2C monitor path; see [Apollo project overview](https://github.com/greatscottgadgets/apollo). No verified mapping from that generic Apollo ADC value to TARGET A was found in this review.
+
+## What it would and would not answer
+
+A future read-only PAC1954 snapshot could establish whether voltage is present on the monitored TARGET-A VBUS segment and whether current through its channel-1 shunt changes between two switch positions. The owner's report that the charge indicator is green in both switch positions is evidence that some charging circuitry/indicator is powered; it does not establish CPU power, switch direction, correct USB data routing, enumeration or processor boot.
+
+Channel 1 measures the whole load on that VBUS path, not the FM-1 CPU rail. A current change can be caused by charging state or other board load; it cannot identify a powered/running CPU. The PAC1954 does not report the FM-1 battery or internal CPU rail. “0 A” also needs interpretation against the actual shunt, measurement configuration, update cadence and resolution.
+
+The present cable evidence has a separate gap: TARGET-C cable/data was verified earlier with the Cynthion descriptor probe, but the FM-1-to-TARGET-A cable/data path has not been independently verified. A known-good USB-A data device or a passive electrical/continuity test of the TARGET-A cable path would discriminate cable/data path from FM-1 boot state more directly than adding VBUS telemetry. Do not hot-swap or operate hardware as part of this handoff; the coordinator owns connected hardware.
+
+## Minimal future option
+
+If VBUS/current evidence is still useful after the cable path is independently checked, add only a monitor-only variant: request the existing `power_monitor` resource, use the upstream LUNA I2C interface with bounded read transactions, read PAC1954 manufacturer ID/configuration and channel-1 bus/sense registers, and copy a stable result plus status into read-only JTAG registers. Keep all power-control outputs explicitly at the already-reviewed constants; leave USB key GPIO/PHY paths unchanged. Validate register scaling and channel shunt resistance from the board design before interpreting amperes. Build/load only after separate source review and owner authorization; this note does not authorize a bitstream reload.
+
+## Limits and next dependency
+
+This is schematic/source feasibility, not a measurement, test, hardware safety review, or proof of FM-1 power/boot. No firmware/bitstream was built. Serena and Rarefaction were not used for source navigation because their selected roots were other checkouts; changing shared semantic-tool selection was avoided. Next useful discriminator is an independently verified TARGET-A cable/data path, then decide whether the PAC1954's VBUS/current trend answers a remaining question. Do not equate a charging LED, VBUS presence, and CPU operation.

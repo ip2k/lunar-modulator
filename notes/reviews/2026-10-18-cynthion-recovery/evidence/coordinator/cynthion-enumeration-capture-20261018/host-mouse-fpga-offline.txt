@@ -1,0 +1,34 @@
+Sun Oct 18 08:44:33 UTC 2026
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 051: ID 17cc:1001 Native Instruments Komplete Audio 6
+Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+Bus 003 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 004 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+Oct 18 01:41:59 bench01 kernel: usb 1-1: new low-speed USB device number 122 using xhci-hcd
+Oct 18 01:41:59 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:41:59 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:41:59 bench01 kernel: usb 1-1: new low-speed USB device number 123 using xhci-hcd
+Oct 18 01:41:59 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:41:59 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:42:00 bench01 kernel: usb usb1-port1: attempt power cycle
+Oct 18 01:42:00 bench01 kernel: usb 1-1: new low-speed USB device number 124 using xhci-hcd
+Oct 18 01:42:00 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:42:00 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:42:00 bench01 kernel: usb 1-1: device not accepting address 124, error -71
+Oct 18 01:42:00 bench01 kernel: usb 1-1: new low-speed USB device number 125 using xhci-hcd
+Oct 18 01:42:00 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:42:01 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:42:01 bench01 kernel: usb 1-1: device not accepting address 125, error -71
+Oct 18 01:42:01 bench01 kernel: usb usb1-port1: unable to enumerate USB device
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]

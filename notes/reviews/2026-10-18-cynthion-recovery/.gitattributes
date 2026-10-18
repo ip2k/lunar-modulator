@@ -1,0 +1,5 @@
+# Archive machine-generated evidence without normalizing its original whitespace.
+evidence/** linguist-generated=true -whitespace
+*.gz -diff
+*.bit -diff
+*.pcapng -diff

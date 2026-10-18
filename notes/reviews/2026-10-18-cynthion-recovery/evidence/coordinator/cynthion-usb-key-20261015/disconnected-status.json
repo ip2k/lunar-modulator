@@ -1,0 +1,16 @@
+{
+  "observed_at": 1792105409.3265522,
+  "registers": {
+    "1": 1280659026,
+    "2": 1,
+    "3": 9240
+  },
+  "state": 8,
+  "phy_ready": true,
+  "phy_fault": false,
+  "selftest_mask": 0,
+  "line_valid": true,
+  "line_state": 0,
+  "selftest_mode": true,
+  "control_power": false
+}

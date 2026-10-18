@@ -1,0 +1,59 @@
+Sun Oct 18 08:37:29 UTC 2026
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 051: ID 17cc:1001 Native Instruments Komplete Audio 6
+Bus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+Bus 003 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 004 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
+Oct 18 01:34:31 bench01 kernel: usb 3-2: new low-speed USB device number 64 using xhci-hcd
+Oct 18 01:34:33 bench01 kernel: usb 3-2: new low-speed USB device number 65 using xhci-hcd
+Oct 18 01:34:33 bench01 kernel: usb 3-2: device descriptor read/64, error -71
+Oct 18 01:34:33 bench01 kernel: usb 3-2: device descriptor read/64, error -71
+Oct 18 01:34:33 bench01 kernel: usb 3-2: new low-speed USB device number 66 using xhci-hcd
+Oct 18 01:34:33 bench01 kernel: usb 3-2: device descriptor read/64, error -71
+Oct 18 01:34:34 bench01 kernel: usb 3-2: device descriptor read/64, error -71
+Oct 18 01:34:34 bench01 kernel: usb usb3-port2: attempt power cycle
+Oct 18 01:34:34 bench01 kernel: usb 3-2: new low-speed USB device number 67 using xhci-hcd
+Oct 18 01:34:34 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 01:34:34 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 01:34:35 bench01 kernel: usb 3-2: device not accepting address 67, error -71
+Oct 18 01:34:35 bench01 kernel: usb 3-2: new low-speed USB device number 68 using xhci-hcd
+Oct 18 01:34:35 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 01:34:35 bench01 kernel: usb 3-2: Device not responding to setup address.
+Oct 18 01:34:35 bench01 kernel: usb 3-2: device not accepting address 68, error -71
+Oct 18 01:34:35 bench01 kernel: usb usb3-port2: unable to enumerate USB device
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+Oct 18 01:35:17 bench01 kernel: usb 3-1: new low-speed USB device number 69 using xhci-hcd
+Oct 18 01:35:17 bench01 kernel: usb 3-1: New USB device found, idVendor=17ef, idProduct=6019, bcdDevice= 1.00
+Oct 18 01:35:17 bench01 kernel: usb 3-1: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+Oct 18 01:35:17 bench01 kernel: usb 3-1: Product: Lenovo USB Optical Mouse
+Oct 18 01:35:17 bench01 kernel: usb 3-1: Manufacturer: PixArt
+Oct 18 01:35:17 bench01 kernel: input: PixArt Lenovo USB Optical Mouse as /devices/platform/axi/1000120000.pcie/1f00300000.usb/xhci-hcd.1/usb3/3-1/3-1:1.0/0003:17EF:6019.000A/input/input14
+Oct 18 01:35:17 bench01 kernel: hid-generic 0003:17EF:6019.000A: input,hidraw0: USB HID v1.11 Mouse [PixArt Lenovo USB Optical Mouse] on usb-xhci-hcd.1-1/input0
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+Oct 18 01:37:06 bench01 kernel: usb 3-1: USB disconnect, device number 69
+[OMITTED unrelated filesystem log]
+[OMITTED unrelated filesystem log]
+Oct 18 01:37:11 bench01 kernel: usb 1-1: new low-speed USB device number 114 using xhci-hcd
+Oct 18 01:37:11 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:37:11 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:37:12 bench01 kernel: usb 1-1: new low-speed USB device number 115 using xhci-hcd
+Oct 18 01:37:12 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:37:12 bench01 kernel: usb 1-1: device descriptor read/64, error -71
+Oct 18 01:37:12 bench01 kernel: usb usb1-port1: attempt power cycle
+Oct 18 01:37:12 bench01 kernel: usb 1-1: new low-speed USB device number 116 using xhci-hcd
+Oct 18 01:37:12 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:37:13 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:37:13 bench01 kernel: usb 1-1: device not accepting address 116, error -71
+Oct 18 01:37:13 bench01 kernel: usb 1-1: new low-speed USB device number 117 using xhci-hcd
+Oct 18 01:37:13 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:37:13 bench01 kernel: usb 1-1: Device not responding to setup address.
+Oct 18 01:37:13 bench01 kernel: usb 1-1: device not accepting address 117, error -71
+Oct 18 01:37:13 bench01 kernel: usb usb1-port1: unable to enumerate USB device

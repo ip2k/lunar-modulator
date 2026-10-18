@@ -1,0 +1,44 @@
+Yosys 0.70+145 (git sha1 a31d95ea0, Release, Clang /usr/bin/clang++ 21.1.8)
+ROOT DIRECT PREFLIGHT PASSED
+{
+  "purpose": "Cynthion r1.4 TARGET-A VBUS/current diagnosis; bounded PAC1954 configuration only",
+  "hardware_programmed": false,
+  "source_commit": "a9b907b09f5b21698bc0d67672b5587741125e1e",
+  "platform": "Cynthion r1.4",
+  "i2c_driver": "LUNA I2CRegisterInterface, PAC1954 address 0x10",
+  "channel": 1,
+  "target_gpio": "not requested; outputs absent/high impedance",
+  "phy_profile": {
+    "identity": "USB3343 0424:0009",
+    "function_control": "0x49 non-driving",
+    "r1_4_io_power_management": "0x06 (DP/DM swap)",
+    "must_readback_before_ready": true
+  },
+  "pac1954": {
+    "manufacturer_id": "0x54",
+    "config_register": "0x1d",
+    "config_write_word": "0x4000 (channel-1 VSENSE bipolar \u00b1100 mV; other ranges unipolar)",
+    "active_range_register": "0x22",
+    "required_active_range": "0x4000",
+    "refresh_command": "REFRESH_V 0x1f Send Byte (activates configuration; no accumulator reset)",
+    "vbus_register": "0x07",
+    "vsense_register": "0x0b",
+    "vbus_scale": "raw * 32,000,000 uV / 65536",
+    "vsense_scale": "signed int16 * 100,000 uV / 32768",
+    "shunt": "20,000 uOhm nominal, Cynthion r1.4 R2 ERJ-3BWFR020V",
+    "current_scale": "signed int16 * 5,000,000 / 32768 uA; positive means TARGET_A_to_CONTROL",
+    "jtag_measurements": "raw VBUS1 and signed-bipolar VSENSE1; host applies scales"
+  },
+  "vbus_controls_active_high": {
+    "CONTROL": 1,
+    "TARGET_C": 0,
+    "AUX": 0,
+    "TARGET_A_discharge": 0
+  },
+  "bitstream": "/output/build/cynthion_power_monitor.bit",
+  "bitstream_sha256": "f4e963ada21c07a6de853abb63b664cfd0129f0945f10bc6e32776d564a89e23",
+  "timing_reports": [
+    "cynthion_power_monitor.rpt",
+    "cynthion_power_monitor.tim"
+  ]
+}
