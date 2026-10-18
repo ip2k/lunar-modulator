@@ -227,3 +227,12 @@ receipt0x701,2109packets,WAIT1626us,SOF1503000us,lowcounter2999,
 frozen32events(reg19=3073),safety/terminal/ringstable. SameSOFduration as
 initial staged attempt; still not calibration or ROM identity proof.
 RequestedC→bench01 withRIGHT/ON,noUSER/powerchange; pendingreply.
+
+### Retry1 host result / retry2 requested
+
+[verified] OwnerC→bench01,RIGHT/ON. `retry01/host-enumeration.txt`
+at07:52:48UTC shows noFM1identity. Fresh00:52:21–23Pacific usb3-2 fullspeed
+attach with descriptorread/64 -71 and addresssetup failures, hostautomatic
+portpowercycle, unableenumerate. Same result as initialstagedattempt.
+No coordinatorreset, loader orflashcommand. Requested bothTARGETsempty,
+CONTROL→Mac,FM1LEFT/OFF,noUSER toprepare retry2; pendingreply.

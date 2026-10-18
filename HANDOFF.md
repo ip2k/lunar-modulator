@@ -1,3 +1,16 @@
+## Retry1 USB attach/-71 repeated; retry2 empty confirmation pending — 07:52 UTC
+
+[verified] OwnerC→bench01,RIGHT/ON. retry01/host-enumeration.txt at07:52:48UTC
+shows noFM1identity. Freshkernel00:52:21–23Pacific usb3-2 fullspeedattach,
+descriptorread/64 -71,addresssetupfailures,hostautomaticportpowercycle,
+unableenumerate. Same outcome as initialstagedattempt; noROMproof.
+Asked BOTHtargetsempty,CONTROL→Mac,FM1LEFT/OFF,noUSER forretry2.
+Pendingreply; doNOTloaduntilconfirmed. Same reviewedbit, finitebound unchanged.
+retry02 directoryreserved. NeedSAFEread→firstUSERdisconnected→READYread→
+FM1OFFconnect→READYread→secondUSER+ON→terminal/OEread→hostenumeration.
+Userauthorizedupto3retries; noflash/loader. GoalACTIVE;Aeononly;uv.lockpreserved.
+Previous1a059087pushed, verifyremote. No newhardwareactionyet forretry2.
+
 ## Retry1 DONE/OEs0 verified; host connection pending — 07:52 UTC
 
 Owner secondUSER thenLEFT→RIGHT/ON; observedLED2green→4orange→5red.
