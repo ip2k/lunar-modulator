@@ -57,3 +57,13 @@ or temporary KA6, for samepath control capture before scope conclusion.
 No further reconfiguration or probing requested. Raw private evidence lives
 under scratch/cynthion-enumeration-capture-20261018/, including load log,
 bothpcapng,tsharkdecodes,JSONreviews and freshhostlogs. Not committed binaries.
+
+## Control capture interrupted by RESET; fresh capture pending [verified]
+
+Owner reported pressing Cynthion RESET while unplugging FM1. Packetry's USB
+write request failed (0xe00002ed); dismissed via computer use. Fresh Cynthion
+info reported official USB Analyzer. Saved 276-byte interrupted capture as
+control01-reset-interrupted.pcapng; it contains only the capture-start event.
+Started fresh Auto capture, verified active in Packetry. Asked owner to connect
+a working keyboard/mouse to TARGET A, keeping TARGET C→bench01 and CONTROL→Mac,
+without RESET/USER. Connection remains pending; no control-device acceptance.

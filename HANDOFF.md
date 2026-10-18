@@ -1,14 +1,16 @@
-## Known-device auto capture ACTIVE; TARGET A swap pending
+## Fresh control capture ACTIVE after Cynthion RESET; device connection pending
 
-Owner has working keyboard/mouse available. Packetry Auto selected via
-Home/Return and verified, fresh capture started via record; screenshot
-verified stopbuttonenabled/emptynewcapture. Asked detach FM1fromA only,
-plug keyboard/mouseintoA, keepCbench/CONTROLMac, report device(no typing).
-Pending reply. Next inspect Packetry+benchUSB, stop/save unique
-scratch/cynthion-enumeration-capture-20261018/control01-auto.pcapng,
-compare valid enumeration before any FM1/scope inference. Current analyzer
-is official, not recoverykey. Previous result notes committed73128412
-and backed up; no FM1writes. GoalACTIVE, Aeononly.
+Owner pressed Cynthion RESET while unplugging FM1 during the first control
+capture. Packetry reported USB write error 0xe00002ed; dismissed through CUA.
+Fresh cynthion info confirmed official USB Analyzer, not recovery-key gateware.
+Saved interrupted control as scratch/cynthion-enumeration-capture-20261018/
+control01-reset-interrupted.pcapng (276 bytes, only capture-start event).
+Started fresh Auto capture through CUA; verified stop enabled and empty capture.
+Asked connect working keyboard/mouse to TARGET A, keep C→bench01 and
+CONTROL→Mac; no RESET/USER or typing. Device connection not yet confirmed.
+Next inspect Packetry and fresh bench USB/kernel, stop/save control02-auto.pcapng,
+then compare valid enumeration before drawing FM1 hardware conclusions.
+No FM1 writes. Overall goal ACTIVE; heavy work Aeon only; preserve uv.lock.
 
 ## Passive captures complete; known-device control pending — 08:28 UTC
 
