@@ -229,3 +229,18 @@ scratch/cynthion-pico-repeat-20261018/retry-after-control-{load.log,safe.json}.
 Requested USER once with BOTH TARGET ports still empty, noFM1 yet. Await reply
 then read preflight before permitting connection. One bounded retry is intended
 after restored low-speed control; electrical compatibility remains unproven.
+
+## Bounded repeat after control pass completed; host connection pending
+
+Owner confirmed FM1 connected LEFT/OFF with Cempty. Read-only08:55:04UTC
+showed READY9/all4tests/PHYready/noFAULT/OEs0. Status/GPIO/terminal stable;
+event-ring metadata changed over non-atomic sweep. Requested USER2, LEFT→RIGHT,
+55sec wait, Cconnection only LED5steady. Read-only08:55:26–34 observed active
+PWM6/cycles5. Terminal08:56:14–23 verifies DONE7/cycles16/words3000,
+terminal0x701, PHYready/noFAULT/OEs0 and stable final sweep. This is emitted
+schedule receipt, not ROM acceptance. No loader or flash commands sent.
+Private retry-after-control-connected/observation/terminal.json and live-kernel
+receipt under scratch/cynthion-pico-repeat-20261018. At08:56:31 bench roots+KA6
+only; owner has not confirmed terminalLED/Cconnection yet. Kernel follower
+exec4538 is bounded150sec, not permanent monitoring. Next confirm Cconnected
+then fresh lsusb/kernel. Do not powercycle or restart sequence in meantime.

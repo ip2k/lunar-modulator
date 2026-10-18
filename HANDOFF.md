@@ -1,3 +1,24 @@
+## Recovery retry DONE/OEs0; owner terminalLED/Cconnection pending
+
+Terminal08:56:23UTC confirms16cycles/3000words,DONE7,receipt0x701,noPHYfault,
+OEs0/stable sweep. Emitted schedule only, no ROM acceptance. Requested owner
+C→bench only afterLED5steady; await reply. Bench08:56:31roots+KA6only.
+Kernel follower4538 bounded150sec; poll/retain; no continuous background claim.
+Next freshUSB/kernel after Cconfirmation. KeepFM1RIGHT/ON, noUSER/noreset.
+Private retry-after-control-terminal.json and related receipts; note updated.
+No loader/flash commands. GoalACTIVE/Aeononly/preserveuv.lock.
+
+## Bounded repeating recovery retry RUNNING after owner connection
+
+Connected receipt08:55:04UTC: READY9, PHYready/noFAULT,OEs0,tests15.
+Safety fields3/4/12 stable over sweep; event ring19 changed (not atomic).
+Asked USER2 then LEFT/OFF→RIGHT/ON, wait55sec, connectC ONLY LED5steady;
+allLED/flicker means leaveCempty. Read-only08:55:26–34 saw activePWMstate6,
+so owner began run. Do not reload/drive externally. Await terminal read/OEs0
+and owner Cconnection, then freshbench. Kernel follower exec4538 runs150sec
+and writes retry-after-control-live-kernel.txt; poll/retain receipt.
+Private retry-after-control-connected.json/observation.json. No flash writes.
+
 ## Repeat preflight READY; FM1 connection pending
 
 Read-only08:54:21UTC: stateREADY9, four selftests passed(mask15/events01010101),
