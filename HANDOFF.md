@@ -1,3 +1,16 @@
+## Retry2 quickhandoff DONE/-71; retry3 empty confirmation pending — 07:56 UTC
+
+OwnerfollowedUSER→LEFT/RIGHT→steadyLED5-alone→Cconnected. [verified]
+retry02/post-handoff-status.json: DONE7,0xCFD7,OEs0,receipt0x701,no fault,
+1556packets,WAIT1624us,SOF1503000us,low2999,frozen32(reg19=3078),stablemarkers.
+retry02/host-enumeration.txt07:56:38UTC: noFM1identity; fresh00:56:10–13Pacific
+fullspeedattach/address/descriptor-71,hostautomaticportcycle,unableenumerate.
+Quickerphysicalhandoff stillfailed; no precisecableconnect-vsDONEtime measured.
+AskedbothTARGETsempty,CONTROL→Mac,FM1LEFT/OFF,noUSER forretry3(finalof3).
+Pendingreply; doNOTloaduntilconfirmed. retry03reserved. Samebit/no waveformchange.
+Follower56892 read-only180scapturemaystillrun; save/closeafterelapsed.
+GoalACTIVE;Aeononly; noflash/loader; uv.lockpreserved. Latest0d0dde23pushedverified.
+
 ## Retry2 connected READY; immediate DONE-only hosthandoff requested — 07:55 UTC
 
 [verified] retry02/connected-left-ready-status.json READY9/status0xC7D9,Fmask,

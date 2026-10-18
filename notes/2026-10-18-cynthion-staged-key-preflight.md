@@ -259,3 +259,15 @@ terminal0,packets0; safetyvaluesstable (live ringchanged). Startedread-only
 Provided owner revisedsequence: USER→LEFT/OFFtoRIGHT/ON→connectCimmediately
 ONLYaftersteadyLED5-alone. LeaveCunplugged onallLEDs/flicker/noDONE-only.
 No additionalUSER/powercycle. Replypending; waveform/interlocksunchanged.
+
+### Retry2 immediate DONE-gated handoff result
+
+Owner followed revisedsequence and connectedC withonlyLED5redlit.
+[verified] `retry02/post-handoff-status.json`: status0xCFD7/DONE7,OEs0,
+receipt0x701,no fault,1556packets,WAIT1624us,SOF1503000us,low2999,
+frozen32(reg19=3078),stablemarkers. At07:56:38UTC `retry02/host-enumeration.txt`
+shows noFM1identity. Fresh00:56:10–13Pacific fullspeedattach/address and
+descriptor-71 failures,hostautomaticportcycle,unableenumerate. Quickerhandoff
+stillfailed; preciseconnecttime relativetoDONE wasnotmeasured.
+RequestedbothTARGETsempty,CONTROL→Mac,FM1LEFT/OFF,noUSER forretry3of3.
+No furtherwaveformchanges or firmwarewrite.
