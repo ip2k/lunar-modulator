@@ -251,3 +251,11 @@ READYmask010010. This could permit immediate physicalhosthandoff atDONE,
 then postconnectionterminalreadback, avoiding priorreadback/humanwait.
 No newwaveform orautomaticretry. Must firstprovide explicitowner sequence;
 no quickhandoff instruction issuedyet. LED timinggate is notROMproof.
+
+[verified] Retry2 connectedOFF READYverified07:55UTC:
+`retry02/connected-left-ready-status.json` status0xC7D9/Fmask/OEs0/no fault,
+terminal0,packets0; safetyvaluesstable (live ringchanged). Startedread-only
+180s `journalctl -k -f` capture in `retry02/live-kernel-log.txt`.
+Provided owner revisedsequence: USER→LEFT/OFFtoRIGHT/ON→connectCimmediately
+ONLYaftersteadyLED5-alone. LeaveCunplugged onallLEDs/flicker/noDONE-only.
+No additionalUSER/powercycle. Replypending; waveform/interlocksunchanged.

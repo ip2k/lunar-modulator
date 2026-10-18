@@ -1,3 +1,16 @@
+## Retry2 connected READY; immediate DONE-only hosthandoff requested — 07:55 UTC
+
+[verified] retry02/connected-left-ready-status.json READY9/status0xC7D9,Fmask,
+PHYready/no fault,OEs0,terminal0,packets0; safetyvaluesstable,onlyliveringchanged.
+Started read-only180s kernel follower session56892, writesretry02/live-kernel-log.txt.
+OwnerinstructionNOW: secondUSER,immediateLEFT→RIGHT/ON,thenconnectC→bench01
+ONLYaftersteadyLED5-alone(red). AllLEDs/flicker/absence => leaveCunplugged.
+No furtherUSER/powercycle. Pendingreply. This source-reviewedabsorbingDONE/
+OEs0 physicalgate removes priorreadbackdelay, notROMsuccess. Next readterminal
+andlsusb/kernelimmediately; preservecapture. No waveform/interlockchanges.
+Up3scopedretries,noflash/loader. GoalACTIVE;Aeononly;uv.lockpreserved.
+Latest892897abpushed;verifyremote. Followerread-onlytimeoutnotdevicepowerreset.
+
 ## Retry2 disconnected READY; OFF connection pending — 07:54 UTC
 
 Owner bothTARGETsempty,CONTROL→Mac,FM1LEFT/OFF. Same175113B/bf0f0029 reloadexit0.
