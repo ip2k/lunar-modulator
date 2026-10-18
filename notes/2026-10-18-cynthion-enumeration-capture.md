@@ -176,4 +176,3 @@ Fresh fixed Full12Mbps capture is now running, TARGET power on. Asked owner
 remove mouse only, connect FM1 atA LEFT/OFF then switch RIGHT/ON; keep
 CONTROL Mac and C bench01, noUSER/RESET. Await confirmation, then inspect
 Packetry and fresh bench logs, stop/save unique FM1 capture. No firmware writes.
-
