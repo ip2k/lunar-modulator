@@ -1,3 +1,13 @@
+## Cold reset complete; fresh mouse capture ACTIVE, reconnect pending
+
+Owner confirmed all Cynthion cables removed5sec then CONTROL only. Fresh
+cynthion info verifies USB Analyzer, 1d50:615b/bcd0104. Started fresh Auto
+capture through CUA; verified stop enabled and empty capture. Asked C→bench01
+replacement cable, mouse→A, FM1 detached/noUSERnoRESET. Await confirmation.
+Next inspect Packetry+fresh bench lsusb/kernel; stop/save control04-cold-auto
+pcapng before any configuration change. Retained PHY state remains hypothesis.
+No FM1 writes. Goal ACTIVE; Aeon only; preserve uv.lock.
+
 ## Cynthion cold power reset pending; mouse control still failing
 
 Replacement C cable attempt also failed mouse enumeration (-71), usb1-1;

@@ -110,3 +110,10 @@ Official analyzer source uses UTMITranslator and non-driving op_mode01; no code
 changed or custom gateware loaded in this step. Private host receipt:
 host-mouse-replacement.txt. Next check analyzer identity after cold start,
 then arrange fresh known-device control before returning to FM1 recovery.
+
+## Cold reset completed, next control pending [verified]
+
+Owner confirmed CONTROL only after complete cable removal. Fresh cynthion info
+reports USB Analyzer 1d50:615b bcd0104. Fresh Auto capture started via CUA,
+active/empty verified. Asked reconnect replacement C cable→bench01 then mouse→A,
+FM1 detached/noUSERnoRESET. Await connection; no cold-reset control result yet.
