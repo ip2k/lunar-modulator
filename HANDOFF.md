@@ -1,3 +1,17 @@
+## Staged diagnostic loaded SAFE; disconnected USER preflight pending — 2026-10-18 07:37 UTC
+
+[verified] Owner confirmed BOTH TARGET ports empty, CONTROL → Mac, no USER.
+Volatile load completed successfully with reviewed 175113-byte staged bitstream
+SHA bf0f00293a24ea7dc909737f23dd23ed58acc2fddf451e1a3cd744af5ae94826.
+Layout7 read-only capture: status 0xC410, SAFE0, PHY ready, no fault,
+GPIO/OEs0, terminal receipt0, safety markers unchanged across sweep.
+Raw scratch/cynthion-staged-key-20261018/disarmed-status.json; load log adjacent.
+Asked owner FIRST USER press/release with BOTH TARGET ports STILL EMPTY.
+Next read fresh preflight-ready-status.json; require READY9/selftestF/PHYready/
+no fault/OE0/terminal0 before asking FM1 connection. Then connect FM1 LEFT/OFF,
+C empty, no USER; verify READY persists. Only then second fresh USER and
+LEFT/OFF → RIGHT/ON. No flash/loader authorization. Goal ACTIVE; Aeon only.
+
 ## Staged profile routed and reviewed; empty-port confirmation pending
 
 [verified] Source1998c49055da5f8a130dcac81752f65eb6072604 pushed/remoteverified;

@@ -74,3 +74,16 @@ interpretingregisters; SHAaff10638d3bf3a00f0c33d5f5847863eb5ab417d899aa8ae5bbc6c
 
 No stagedbitstreamload yet. AwaitownerBOTHtargetsemptyconfirmation; existing
 oldlayout6 operationimage remainsFAULT/high-Z. No FM1write/flash/loader.
+
+## Volatile load and disconnected SAFE verification
+
+[verified] At 2026-10-18 07:37 UTC, after owner confirmed both TARGET ports
+empty with CONTROL connected and no USER press, coordinator loaded the reviewed
+175113-byte bitstream successfully. No FM1 was attached during the load.
+The layout7 reader captured `scratch/cynthion-staged-key-20261018/disarmed-status.json`:
+status `0xC410`, SAFE0, PHY ready, no fault, GPIO/output enables0, terminal
+receipt0; safety markers unchanged across the non-atomic sweep. Volatile loader
+exit0 and log `volatile-load.log` retained alongside the capture.
+Owner asked to press/release USER once while both TARGET ports remain empty.
+This is only the disconnected preflight; connection and second USER press remain
+separate later steps after READY9/selftestF/high-Z verification.
