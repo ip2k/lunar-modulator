@@ -33,7 +33,7 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | Address | Meaning |
 | --- | --- |
 | `0x01` | Magic `0x4c554e52` (`LUNR`) |
-| `0x02` | Register layout version `7` |
+| `0x02` | Register layout version `9` (all current profiles) |
 | `0x03` | Status snapshot |
 | `0x04` | Live GPIO: DP input, DM input, DP output, DM output, DP OE, DM OE (bits 0–5) |
 | `0x05` | Self-test failure: reason (bits 0–1), step (2–3), expected state (4–5), last observed state (6–7) |
@@ -45,11 +45,11 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | `0x0b` | Per-step GPIO input/output/OE snapshots, six bits per step (same layout as `0x04`) |
 | `0x0c` | Terminal protocol receipt: snapshot-valid bit 0, failure reason bits 1–3, last active state bits 4–7, terminal state bits 8–11 |
 | `0x0d` | Latched packet count at terminal state |
-| `0x0e` | Latched ACK progress: receiver-live bit 0, ACK-confirm bit 1, ACK ticks bits 2–17 |
+| `0x0e` | Latched ACK progress: receiver-live bit 0, transient tick-qualified predicate bit 1, ACK ticks bits 2–17 |
 | `0x0f` | Latched WAIT_DP elapsed microseconds |
 | `0x10` | Latched SOF elapsed microseconds |
 | `0x11` | Latched SOF continuous-SE0 elapsed microseconds |
-| `0x12` | Latched KEY position: bit index bits 0–7, bit phase bits 8–23 |
+| `0x12` | Latched KEY position: bit index bits 0–7, microsecond phase index bits 8–23 |
 | `0x13` | Event ring metadata: next-write slot bits 0–4, saturated count bits 5–10, frozen bit 11 |
 | `0x14` | Event ring timestamp clock in microseconds (32-bit, wraps after about 71 minutes) |
 | `0x20`–`0x5f` | 32 event-ring entries, two read-only words per physical slot |
@@ -57,6 +57,7 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | `0x61` | Raw USB3343 Debug register `0x15`, zero if the read failed |
 | `0x62` | Cached RXCMD snapshot: valid bit 0, line-state bits 1–2 |
 | `0x63` | Age of cached RXCMD in 60 MHz USB clock cycles at diagnostic completion; saturates at `0xffffffff` |
+| `0x67` | Terminal candidate receipt (layout9): valid bit 0, persistent local ACK-candidate bit 1; remaining bits zero |
 | `0x64` | GPIO input/output/OE snapshot when the diagnostic read completes (same layout as `0x04`) |
 
 Status register `0x03` packs state in bits 0–3, PHY ready/fault in bits 4–5,
@@ -117,7 +118,7 @@ at `0x20 + 2*slot`: word 0 is timestamp in microseconds; word 1 contains the
 32-bit payload. Payload bits are state 0–3, RXCMD-update event flag 4 (zero
 means state transition), line-state-valid 5, line state 6–7, GPIO
 input/output/OE snapshot 8–13 (same layout as register `0x04`), key bit index
-14–17, key phase in USB clock cycles 18–28, receiver-live flag 29, latched
+14–17, key phase in microseconds 18–28, receiver-live flag 29, latched
 candidate-ACK-confirm flag 30, and nonzero-ACK-progress flag 31. The timestamp
 counts USB-domain microseconds from startup and wraps at 32 bits. Register
 `0x13` gives next-write slot and saturated count; the oldest retained slot is
@@ -185,7 +186,7 @@ physical evidence: `notes/2026-10-16-cynthion-power-monitor.md`.
 ## Explicit two-stage recovery preparation
 
 `--mode staged-operation --target-power-from-control` selects the new profile
-(status bit 15 = 1, layout 7); CONTROL-to-TARGET-A is on, TARGET-C/AUX/discharge
+(status bit 15 = 1, layout 9); CONTROL-to-TARGET-A is on, TARGET-C/AUX/discharge
 are off. The default remains the original operation profile. This is source
 preparation, not authorization to load or run a device attempt.
 
@@ -242,11 +243,31 @@ CONTROL powers TARGET-A only when explicitly selected; TARGET-C/AUX/discharge
 remain off. All isolation, PHY no-fault, Bank6 and ACK-sense interlocks remain
 required continuously even though line-state reports do not control progress.
 
-Pico-repeat alone identifies as layout8 with both staged bit15 and repeat bit16
-set in status register3. Existing profiles retain layout7 and previous mappings.
+Pico-repeat sets both staged bit15 and repeat bit16 in status register3.
+All current profiles identify as layout9; repeat registers remain profile-specific.
 Read-only register `0x65`: profile ID1 bits0–7, cycle bound16 bits8–15, words per
 cycle3000 bits16–31 (`0x0bb81001`). Read-only register `0x66`: completed cycles
 bits0–7, words completed in current cycle bits8–23. A word count advances after
 its released gap; the count resets at the next KEY cycle and remains3000 at
 DONE, with completed cycles16. These are counters, not ROM acknowledgement.
 No JTAG/USB register can arm or restart the sequence.
+
+## Terminal telemetry compatibility and evidence limits
+
+Layout9 preserves the exact meanings of existing registers, including the
+transient `0x0e` bit1. It adds `0x67` for the persistent local candidate captured
+on the same first DONE/FAULT edge. Reset clears both valid and candidate bits.
+Layouts7/8 have no `0x67`; an old receipt means candidate status is **unknown**,
+not false. Historical readers pinned to layout8 must reject layout9 rather than
+silently reuse their map. `telemetry.decode_terminal` decodes retained register
+maps offline, rejects unknown layouts and keeps these meanings separate.
+The Pico-repeat profile bypasses candidate-based progression and never sets the
+candidate latch; zero there does not mean the target rejected the waveform.
+History bit30 remains the local candidate latch in every supported layout.
+See [external decode erratum](../../notes/2026-10-18-cynthion-telemetry-erratum.md).
+
+PHY ready reports startup configuration/readback, not continuous health checks.
+Bank6 confirmation is a design constant, not a measured voltage. Disconnected
+loopback does not verify loaded levels. TARGET-C VBUS disable is not data
+isolation: its host cable must remain physically absent during GPIO driving.
+DONE records schedule completion, not target acceptance or proven recovery.

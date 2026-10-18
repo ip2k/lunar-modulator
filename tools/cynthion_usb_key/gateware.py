@@ -168,6 +168,7 @@ class CynthionUsbKey(Elaboratable):
         self.debug_receiver_live = Signal()
         self.debug_ack_ticks = Signal(32)
         self.debug_ack_confirm = Signal()
+        self.debug_ack_candidate = Signal()  # persistent local candidate, not ROM ACK
         self.debug_wait_ticks = Signal(32)
         self.debug_sof_ticks = Signal(32)
         self.debug_dp_low_ticks = Signal(32)
@@ -266,6 +267,7 @@ class CynthionUsbKey(Elaboratable):
             self.debug_receiver_live.eq(receiver_live),
             self.debug_ack_ticks.eq(ack_ticks),
             self.debug_ack_confirm.eq(ack_confirm),
+            self.debug_ack_candidate.eq(ack_confirmed_latched),
             # The threshold cycle faults before the free-running counter's
             # nonterminal increment. Report the configured elapsed threshold
             # on that terminal path so the read-only receipt reflects the

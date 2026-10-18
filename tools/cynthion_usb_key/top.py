@@ -37,6 +37,60 @@ class CynthionUsbKeyPlatform(CynthionPlatformRev1D4):
     ]
 
 
+class UsbKeyTerminalSnapshot(Elaboratable):
+    """One-shot USB-domain receipt; register 0x0e retains its legacy meaning.
+
+    Layout 9 adds 0x67: bit 0 valid, bit 1 persistent local candidate. Neither
+    field establishes a physical target ACK. Domain reset clears every receipt.
+    """
+
+    def __init__(self, core):
+        self.core = core
+        self.valid = Signal()
+        self.ack_candidate = Signal(32)
+        self.protocol_failure = Signal(32)
+        self.packet_count = Signal(32)
+        self.ack_progress = Signal(32)
+        self.wait_progress = Signal(32)
+        self.sof_progress = Signal(32)
+        self.sof_low_progress = Signal(32)
+        self.key_progress = Signal(32)
+
+    def elaborate(self, platform):
+        m = Module()
+        core = self.core
+        terminal_snapshot_valid = self.valid
+        protocol_failure_snapshot = self.protocol_failure
+        packet_count_snapshot = self.packet_count
+        ack_progress_snapshot = self.ack_progress
+        wait_progress_snapshot = self.wait_progress
+        sof_progress_snapshot = self.sof_progress
+        sof_low_progress_snapshot = self.sof_low_progress
+        key_progress_snapshot = self.key_progress
+        with m.If(~terminal_snapshot_valid &
+                  ((core.state == core.DONE) | (core.state == core.FAULT))):
+            m.d.usb += [
+                terminal_snapshot_valid.eq(1),
+                self.ack_candidate.eq(Cat(Const(1), core.debug_ack_candidate)),
+                protocol_failure_snapshot.eq(Cat(
+                    Const(1),
+                    core.protocol_failure_reason,
+                    core.protocol_failure_origin_state,
+                    core.state)),
+                packet_count_snapshot.eq(core.debug_packets),
+                ack_progress_snapshot.eq(Cat(
+                    core.debug_receiver_live,
+                    core.debug_ack_confirm,
+                    core.debug_ack_ticks[:16])),
+                wait_progress_snapshot.eq(core.debug_wait_ticks),
+                sof_progress_snapshot.eq(core.debug_sof_ticks),
+                sof_low_progress_snapshot.eq(core.debug_dp_low_ticks),
+                key_progress_snapshot.eq(Cat(
+                    core.debug_key_bit, core.debug_key_phase)),
+            ]
+        return m
+
+
 class CynthionUsbKeyTop(Elaboratable):
     """Core integration with explicit, default-off VBUS selection."""
 
@@ -142,7 +196,7 @@ class CynthionUsbKeyTop(Elaboratable):
             JTAGRegisterInterface(default_read_value=0xBAD0C0DE))
         m.submodules.debug_registers = debug
         debug.add_read_only_register(1, read=0x4C554E52)  # "LUNR"
-        debug.add_read_only_register(2, read=8 if pico_repeat else 7)
+        debug.add_read_only_register(2, read=9)
         status_snapshot = Signal(32)
         status_bits = Cat(core.state, safe_phy.ready, safe_phy.fault,
                           core.selftest_mask, safe_phy.line_state_valid,
@@ -180,41 +234,16 @@ class CynthionUsbKeyTop(Elaboratable):
         # outputs to high impedance. These snapshots are diagnostic-only and
         # are captured once when DONE/FAULT is first observed in the USB
         # domain; they do not feed the protocol state machine.
-        terminal_snapshot_valid = Signal()
-        protocol_failure_snapshot = Signal(32)
-        packet_count_snapshot = Signal(32)
-        ack_progress_snapshot = Signal(32)
-        wait_progress_snapshot = Signal(32)
-        sof_progress_snapshot = Signal(32)
-        sof_low_progress_snapshot = Signal(32)
-        key_progress_snapshot = Signal(32)
-        with m.If(~terminal_snapshot_valid &
-                  ((core.state == core.DONE) | (core.state == core.FAULT))):
-            m.d.usb += [
-                terminal_snapshot_valid.eq(1),
-                protocol_failure_snapshot.eq(Cat(
-                    Const(1),
-                    core.protocol_failure_reason,
-                    core.protocol_failure_origin_state,
-                    core.state)),
-                packet_count_snapshot.eq(core.debug_packets),
-                ack_progress_snapshot.eq(Cat(
-                    core.debug_receiver_live,
-                    core.debug_ack_confirm,
-                    core.debug_ack_ticks[:16])),
-                wait_progress_snapshot.eq(core.debug_wait_ticks),
-                sof_progress_snapshot.eq(core.debug_sof_ticks),
-                sof_low_progress_snapshot.eq(core.debug_dp_low_ticks),
-                key_progress_snapshot.eq(Cat(
-                    core.debug_key_bit, core.debug_key_phase)),
-            ]
-        debug.add_read_only_register(12, read=protocol_failure_snapshot)
-        debug.add_read_only_register(13, read=packet_count_snapshot)
-        debug.add_read_only_register(14, read=ack_progress_snapshot)
-        debug.add_read_only_register(15, read=wait_progress_snapshot)
-        debug.add_read_only_register(16, read=sof_progress_snapshot)
-        debug.add_read_only_register(17, read=sof_low_progress_snapshot)
-        debug.add_read_only_register(18, read=key_progress_snapshot)
+        terminal = UsbKeyTerminalSnapshot(core)
+        m.submodules.terminal = terminal
+        debug.add_read_only_register(12, read=terminal.protocol_failure)
+        debug.add_read_only_register(13, read=terminal.packet_count)
+        debug.add_read_only_register(14, read=terminal.ack_progress)
+        debug.add_read_only_register(15, read=terminal.wait_progress)
+        debug.add_read_only_register(16, read=terminal.sof_progress)
+        debug.add_read_only_register(17, read=terminal.sof_low_progress)
+        debug.add_read_only_register(18, read=terminal.key_progress)
+        debug.add_read_only_register(0x67, read=terminal.ack_candidate)
 
         # Layout v5 adds a read-only 32-entry event ring. Each entry is two
         # consecutive 32-bit words at 0x20 + 2*slot: timestamp_us and packed
@@ -258,7 +287,7 @@ class CynthionUsbKeyTop(Elaboratable):
         debug.add_read_only_register(0x64, read=diagnostic_gpio_snapshot)
 
         if pico_repeat:
-            # Extension is read-only; layout7 images retain their exact map.
+            # Repeat extension remains read-only and profile-specific.
             debug.add_read_only_register(0x65, read=Cat(
                 Const(1, 8), Const(16, 8), Const(3000, 16)))
             debug.add_read_only_register(0x66, read=Cat(
