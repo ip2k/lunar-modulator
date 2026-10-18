@@ -1,3 +1,20 @@
+## Auto capture saved; full-speed host reconnect pending — 08:27 UTC
+
+Owner connected C→bench01 and FM1→A RIGHT/ON. Auto capture stopped/saved
+through CUA at scratch/cynthion-enumeration-capture-20261018/attempt01-auto.pcapng
+(404bytes). tshark confirms5custom analyzer events, zero USB packet blocks:
+VBUS valid46.145221850s, LSidle56.827273400s, SE0at56.827273550s, stop84.0160805s.
+No attach/reset/setup/reply; bench kernel also no newattach. Earlier-71 not
+reproduced in this connection. Not proof of silent endpoint after validSETUP.
+Extra ~7.9second auto idle capture was started/stopped during speed-selection
+verification, no ownerreconnectthen and not saved; no accepted physicaltest.
+Then keyboard Home/Down/Down/Return selected Full12Mbps and screenshotverified.
+Fullspeed capture ACTIVE in Packetry; asked unplug only C hostend2sec/replug,
+keep FM1 A/RIGHTON/noUSERnoRESET. Pending reply. Next inspect screen+kernel,
+stop andsave attempt02-full.pcapng with unique name,decodeUSBLL. UI popup
+coordinate clicks highlighted but didnot select; verify actualsetting eachtime.
+No key loaded/currently official analyzer. No FM1firmwarewrites. GoalACTIVE.
+
 ## Passive enumeration capture started; owner reconnection pending — 08:25 UTC
 
 Owner requested Cynthion capture before scope. Both TARGETs confirmed empty;
