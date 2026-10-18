@@ -1,3 +1,14 @@
+## Direct USB failed; connector measurement pending — 08:21 UTC
+
+Owner direct connected FM1→bench01, RIGHT/ON retained per procedure. Host
+port3-1 full-speed attach08:20:52UTC, descriptor/setup-71, no enumeration.
+Same outcome bypassing Cynthion; recovery still unproven. Fresh lsusb roots+KA6.
+Evidence scratch/cynthion-pico-repeat-20261018/direct-host-enumeration.txt.
+Asked scope model+USB breakout/access availability, no probing yet. Next step
+prepare model-specific connector measurement to distinguish voltage/timing
+from rejected key/clock failure; no new identical attempts. Cynthion OEs0.
+FM1 direct bench01 RIGHT/ON; keep state. GoalACTIVE, Aeon only/no Hera.
+
 ## Repeat run finished, direct USB check pending — 08:20 UTC
 
 Pico-repeat physical schedule completed16cycles/3000lastwords/2sPWM, DONE7

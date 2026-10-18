@@ -142,3 +142,20 @@ live-kernel-log.txt. Requested direct FM1→bench01 with verified cable,
 RIGHT/ON unchanged and no power cycle, to separate Cynthion's passthrough
 path from device response while retaining any current ROM state. Pending owner.
 Recovery remains unproven; do not repeat identical attempts automatically.
+
+## Direct USB comparison also failed — 08:21 UTC
+
+[reported: owner] Direct connected with switch RIGHT/ON after instruction to
+preserve power. [verified: bench] New full-speed attach on direct port3-1 at
+08:20:52–54UTC; descriptor read/64 and address setup failed-71, ending unable
+to enumerate. Fresh08:21:11UTC lsusb roots+KA6 only, no FM1 identity.
+Evidence: scratch/cynthion-pico-repeat-20261018/direct-host-enumeration.txt.
+This rules out Cynthion passthrough as the sole cause of this failed host
+connection; it does not distinguish a rejected key, clock problem, electrical
+level issue or damaged firmware/hardware. No ROM acceptance is established.
+
+Asked owner for scope model and availability of USB breakout/access to D+/D−,
+without probing yet. Actual connector voltage/timing is the next dependency:
+internal GPIO/selftest receipts cannot validate voltage after series resistors
+at FM1. No further identical trigger attempt, loader/flash command or physical
+rewiring/probing requested. FM1 currently direct bench01, RIGHT/ON.
