@@ -1,3 +1,14 @@
+## Cynthion cold power reset pending; mouse control still failing
+
+Replacement C cable attempt also failed mouse enumeration (-71), usb1-1;
+direct success was usb3-1, so identical-host-port comparison unconfirmed.
+Saved control03-mouse-replacement.pcapng (70308B) and host log in private
+scratch/cynthion-enumeration-capture-20261018/. Packetry STOPPED/Auto.
+Requested all Cynthion cables unplugged, wait5sec, CONTROL→Mac only;
+FM1 and mouse detached, noUSER. Await owner confirmation. Next fresh analyzer
+identity, then repeat known-device control. Retained PHY state only hypothesis.
+No FM1 writes; no recovery proof. Goal ACTIVE; Aeon only; preserve uv.lock.
+
 ## Direct mouse PASS; replacement cable/host-port capture ACTIVE
 
 Mouse directly on bench01 enumerated 17ef:6019 at usb3-1, HID driver bound

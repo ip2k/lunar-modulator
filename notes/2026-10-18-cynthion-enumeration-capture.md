@@ -94,3 +94,19 @@ Asked replace C→bench cable with known data cable and use the successful direc
 mouse port, then reconnect mouse→A, keeping FM1 detached/CONTROL→Mac.
 Fresh Auto capture started and active verified through CUA before confirmation.
 Next inspect fresh USB/kernel and Packetry, save unique control03 capture.
+
+## Replacement-cable mouse test also fails [verified]
+
+Owner confirmed replacement C→bench cable and mouse→A. Fresh host log shows
+usb1-1 devices114–117, low-speed descriptor/setup errors -71, no mouse identity.
+Direct success was usb3-1, so the requested identical-host-port comparison is
+not established by kernel paths. Packetry shows incomplete setting-address
+requests. Stopped/saved control03-mouse-replacement.pcapng, 70308 bytes, SHA256
+dcb74ad2b1248e723799ef074f8a565b87540ea5f70221d6f0fb45578af3920b.
+Requested complete Cynthion power removal: both TARGET cables and CONTROL off,
+wait5sec, reconnect CONTROL only, keep FM1/mouse detached. Await confirmation.
+This tests retained PHY state as a hypothesis; no confirmed cause or damage.
+Official analyzer source uses UTMITranslator and non-driving op_mode01; no code
+changed or custom gateware loaded in this step. Private host receipt:
+host-mouse-replacement.txt. Next check analyzer identity after cold start,
+then arrange fresh known-device control before returning to FM1 recovery.
