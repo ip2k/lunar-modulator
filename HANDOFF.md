@@ -1,3 +1,25 @@
+## Fresh direct cold-boot observation requested — pending owner
+
+Asked owner keep FM1 direct→bench01; LEFT/OFF5seconds then RIGHT/ON,
+report screen/power light. No key/loader/flash commands. Pending reply:
+do not assume cycle completed. Next fresh lsusb/kernel observations. This
+removes the elapsed-state ambiguity of the prior cable move, without testing
+Cynthion waveform or establishing flash recovery. Preserve all prior receipts.
+
+## Direct connection observed: no fresh USB attach — 07:44 UTC
+
+[verified] Owner confirmed FM1 direct→bench01 using verified cable, switch
+RIGHT/ON unchanged. direct-enumeration.txt shows KA6+root hubs only.
+At07:44:18UTC direct-followup.txt confirms lsusb topology and no new USB
+kernel event in preceding2min. Prior -71 events00:40:51–53Pacific belong to
+Cynthion path only, not direct connection. Do not misattribute them.
+Direct absence does not isolate cable/tap vs device because time/state changed
+between tests; no identity or recovery established. Last known FM1 DIRECT,
+RIGHT/ON; Cynthion disconnected from FM1, CONTROL still Mac, outputslastDONE/OE0.
+No reset/power-cycle/loader/flash issued. bringup_review read-only timing audit
+running; notified of direct result. Next select evidence-based bounded test.
+Goal ACTIVE, Aeon only; source/CI/release/hardware acceptance unfinished.
+
 ## Direct USB comparison requested; no further key attempt — 07:44 UTC
 
 Owner asked leave FM1 RIGHT/ON and connect directly to bench01 using verified

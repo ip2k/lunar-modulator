@@ -142,3 +142,18 @@ DONE-on-low is ambiguous; it is not evidence of successful calibration.
 Next comparison requested: owner leave RIGHT/ON and connect directly to bench01
 with verified cable, bypassing Cynthion, no USER or switch cycle. No new key
 attempt or reset command is planned; only host identity/kernel observations.
+
+## Direct cable comparison
+
+[verified] Owner confirmed direct FM1→bench01 with verified cable and
+RIGHT/ON unchanged. `direct-enumeration.txt` shows no FM1. At07:44:18UTC,
+`direct-followup.txt` includes `lsusb -t` and the preceding2min kernel log:
+no new USB attachment. The -71 errors retained in `direct-kernel-log.txt`
+are older Cynthion-path events00:40:51–53Pacific, not direct-path errors.
+This delayed comparison is state/time-confounded and cannot prove or exclude
+a Cynthion electrical-path problem. No reset, switch cycle or device command
+was issued. Last known FM1 is direct to bench01, RIGHT/ON.
+
+Next owner action requested (pending): directUSB connected, LEFT/OFF5seconds
+then RIGHT/ON, report screen/power light. A fresh direct cold boot removes
+the delayed-state ambiguity; no key, loader or firmware write is involved.
