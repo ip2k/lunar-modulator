@@ -64,7 +64,7 @@ class CynthionUsbKey(Elaboratable):
     does not establish continuous 100 us sampling or prove ROM behavior.
     """
 
-    SAFE, ARMED, SELFTEST, KEY, GAP, WAIT_DP, SOF, DONE, FAULT = range(9)
+    SAFE, ARMED, SELFTEST, KEY, GAP, WAIT_DP, SOF, DONE, FAULT, READY = range(10)
     PROTOCOL_FAULT_NONE = 0
     PROTOCOL_FAULT_PACKET_LIMIT = 1
     PROTOCOL_FAULT_WAIT_DP_TIMEOUT = 2
@@ -76,7 +76,7 @@ class CynthionUsbKey(Elaboratable):
                  selftest_state_us=1_000, ack_duration_us=100,
                  dp_high_timeout_ms=None, sof_done_low_ms=None, sof_timeout_ms=None,
                  sof_period_us=None, sof_pulse_us=None,
-                 auto_selftest=False, selftest_only=False):
+                 auto_selftest=False, selftest_only=False, staged_operation=False):
         if clock_hz <= 0 or clock_hz % 1_000_000:
             raise ValueError("clock_hz must be a positive integer MHz")
         self.domain = domain
@@ -87,6 +87,9 @@ class CynthionUsbKey(Elaboratable):
         p = PARAMS
         self.ack_duration_us = ack_duration_us
         self.auto_selftest = auto_selftest
+        if staged_operation and (auto_selftest or selftest_only):
+            raise ValueError("staged operation requires physical USER preflight")
+        self.staged_operation = staged_operation
         self.selftest_only = selftest_only
         self.key_word = p["USB_KEY_WORD"]
         self.key_bits = p["KEY_BITS"]
@@ -163,6 +166,8 @@ class CynthionUsbKey(Elaboratable):
         m = Module()
         d = m.d[self.domain]
         permitted = self.phy_isolated & self.bank6_3v3_confirmed & self.ack_sense_valid
+        if self.staged_operation:
+            permitted = permitted & ~self.phy_fault
         button = Signal()
         m.submodules.button_sync = FFSynchronizer(self.user_button, button, o_domain=self.domain)
 
@@ -256,7 +261,8 @@ class CynthionUsbKey(Elaboratable):
                 Mux((self.state == self.KEY) | (self.state == self.GAP), 0b000100,
                 Mux(self.state == self.WAIT_DP, 0b001000,
                 Mux(self.state == self.SOF, 0b010000,
-                Mux(self.state == self.DONE, 0b100000, 0b111111))))))),
+                Mux(self.state == self.DONE, 0b100000,
+                    Mux(self.state == self.READY, 0b010010, 0b111111)))))))),
         ]
 
         # USER is synchronized and must be released steadily after startup,
@@ -385,7 +391,12 @@ class CynthionUsbKey(Elaboratable):
                                 d += self.state.eq(self.FAULT)
                             with m.Else():
                                 d += self.state.eq(self.DONE)
-                        with m.Elif(~selftest_seen):
+                        with m.Elif(self.staged_operation & selftest_seen &
+                                    (self.selftest_mask == 0b1111) &
+                                    (self.selftest_failure_reason == 0)):
+                            d += [self.state.eq(self.READY), button_released.eq(0),
+                                  button_ticks.eq(0), arm_event.eq(0)]
+                        with m.Elif(self.staged_operation | ~selftest_seen):
                             d += self.state.eq(self.FAULT)
                         with m.Else():
                             d += [self.state.eq(self.KEY), tx_bit.eq(0), phase.eq(0),
@@ -397,6 +408,15 @@ class CynthionUsbKey(Elaboratable):
                         d += self.state.eq(self.FAULT)
                 with m.Elif(us_tick):
                     d += selftest_ticks.eq(selftest_ticks + 1)
+            with m.Case(self.READY):
+                with m.If(~permitted):
+                    d += [self.state.eq(self.FAULT),
+                          self.protocol_failure_reason.eq(
+                              self.PROTOCOL_FAULT_INTERLOCK_LOST),
+                          self.protocol_failure_origin_state.eq(self.READY)]
+                with m.Elif(arm_event):
+                    d += [self.state.eq(self.KEY), tx_bit.eq(0), phase.eq(0),
+                          packets.eq(0), receiver_live.eq(0), ack_ticks.eq(0)]
             with m.Case(self.KEY):
                 with m.If(~permitted):
                     d += [self.state.eq(self.FAULT),

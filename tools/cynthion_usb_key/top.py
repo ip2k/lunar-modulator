@@ -41,10 +41,10 @@ class CynthionUsbKeyTop(Elaboratable):
     """Core integration with explicit, default-off VBUS selection."""
 
     def __init__(self, *, mode="operation", target_power_from_control=False):
-        if mode not in {"operation", "disconnected-selftest"}:
+        if mode not in {"operation", "disconnected-selftest", "staged-operation"}:
             raise ValueError(f"unsupported mode: {mode}")
-        if target_power_from_control and mode != "operation":
-            raise ValueError("CONTROL power is available only in operation mode")
+        if target_power_from_control and mode not in {"operation", "staged-operation"}:
+            raise ValueError("CONTROL power is available only in operation modes")
         self.mode = mode
         self.target_power_from_control = bool(target_power_from_control)
 
@@ -102,7 +102,8 @@ class CynthionUsbKeyTop(Elaboratable):
         selftest_only = self.mode == "disconnected-selftest"
         core = CynthionUsbKey(domain="usb", clock_hz=60_000_000,
                               auto_selftest=selftest_only,
-                              selftest_only=selftest_only)
+                              selftest_only=selftest_only,
+                              staged_operation=self.mode == "staged-operation")
         m.submodules.protocol = core
         button = platform.request("button_user")
         dp = platform.request("target_usb_dp")
@@ -136,13 +137,14 @@ class CynthionUsbKeyTop(Elaboratable):
             JTAGRegisterInterface(default_read_value=0xBAD0C0DE))
         m.submodules.debug_registers = debug
         debug.add_read_only_register(1, read=0x4C554E52)  # "LUNR"
-        debug.add_read_only_register(2, read=6)           # register layout v6
+        debug.add_read_only_register(2, read=7)           # register layout v7
         status_snapshot = Signal(32)
         status_bits = Cat(core.state, safe_phy.ready, safe_phy.fault,
                           core.selftest_mask, safe_phy.line_state_valid,
                           safe_phy.line_state_value,
                           Const(self.mode == "disconnected-selftest"),
-                          Const(self.target_power_from_control))
+                          Const(self.target_power_from_control),
+                          Const(self.mode == "staged-operation"))
         m.d.usb += status_snapshot.eq(status_bits)
         debug.add_read_only_register(3, read=status_snapshot)
         gpio_snapshot = Signal(32)

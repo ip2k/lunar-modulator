@@ -505,3 +505,105 @@ def test_disconnected_walk_collects_all_four_states_after_swapped_rxcmd_mismatch
 
     sim.add_testbench(bench)
     sim.run()
+
+
+@pytest.mark.parametrize('lost_gate', [None, 'phy_isolated', 'bank6_3v3_confirmed',
+                                       'ack_sense_valid', 'phy_fault', 'reset'])
+def test_staged_operation_requires_fresh_second_press_and_ready_interlocks(lost_gate):
+    dut = CynthionUsbKey(clock_hz=1_000_000, debounce_us=2,
+                         selftest_state_us=4, staged_operation=True)
+    from amaranth import ResetInserter, Signal
+    reset = Signal()
+    sim = Simulator(ResetInserter({"usb": reset})(dut))
+    sim.add_clock(1e-6, domain='usb')
+
+    async def bench(ctx):
+        async def ticks(n):
+            for _ in range(n):
+                await ctx.tick(domain='usb')
+        for gate in (dut.phy_isolated, dut.bank6_3v3_confirmed, dut.ack_sense_valid):
+            ctx.set(gate, 1)
+        await ticks(8)
+        assert ctx.get(dut.state) == dut.SAFE
+        ctx.set(dut.user_button, 1)
+        while ctx.get(dut.state) != dut.SELFTEST:
+            await ticks(1)
+        for index, value in enumerate((2, 1, 0, 3)):
+            ctx.set(dut.line_state_valid, 1)
+            ctx.set(dut.line_state_update, 1)
+            ctx.set(dut.line_state_value, value)
+            await ticks(1)
+            ctx.set(dut.line_state_update, 0)
+            while ctx.get(dut.state) == dut.SELFTEST and (
+                ctx.get(dut.dp_o), ctx.get(dut.dm_o)
+            ) == (value & 1, value >> 1):
+                await ticks(1)
+        assert ctx.get(dut.state) == dut.READY
+        assert ctx.get(dut.selftest_mask) == 15
+        await ticks(15)  # Holding the first press cannot key.
+        assert ctx.get(dut.state) == dut.READY
+        assert not ctx.get(dut.done) and not ctx.get(dut.fault)
+        assert not ctx.get(dut.history_frozen)
+        assert not ctx.get(dut.dp_oe) and not ctx.get(dut.dm_oe)
+        assert ctx.get(dut.debug_packets) == 0
+        if lost_gate == "reset":
+            ctx.set(reset, 1)
+            await ticks(1)
+            assert ctx.get(dut.state) == dut.SAFE
+            assert ctx.get(dut.selftest_mask) == 0
+            assert not ctx.get(dut.dp_oe) and not ctx.get(dut.dm_oe)
+            ctx.set(reset, 0)
+            await ticks(8)
+            assert ctx.get(dut.state) == dut.SAFE
+            return
+        if lost_gate:
+            ctx.set(getattr(dut, lost_gate), int(lost_gate == 'phy_fault'))
+            await ticks(1)
+            assert ctx.get(dut.state) == dut.FAULT
+            assert ctx.get(dut.protocol_failure_origin_state) == dut.READY
+            ctx.set(getattr(dut, lost_gate), int(lost_gate != 'phy_fault'))
+        ctx.set(dut.user_button, 0)
+        await ticks(10)
+        assert not ctx.get(dut.dp_oe) and not ctx.get(dut.dm_oe)
+        ctx.set(dut.user_button, 1)
+        await ticks(8)
+        assert ctx.get(dut.state) == (dut.FAULT if lost_gate else dut.KEY)
+        if lost_gate:
+            assert not ctx.get(dut.dp_oe) and not ctx.get(dut.dm_oe)
+            assert ctx.get(dut.debug_packets) == 0
+
+    sim.add_testbench(bench)
+    sim.run()
+
+
+def test_staged_selftest_failure_never_reaches_ready_or_key():
+    dut = CynthionUsbKey(clock_hz=1_000_000, debounce_us=2,
+                         selftest_state_us=4, staged_operation=True)
+    sim = Simulator(dut)
+    sim.add_clock(1e-6, domain='usb')
+
+    async def bench(ctx):
+        for gate in (dut.phy_isolated, dut.bank6_3v3_confirmed, dut.ack_sense_valid):
+            ctx.set(gate, 1)
+        for _ in range(8):
+            await ctx.tick(domain='usb')
+        ctx.set(dut.user_button, 1)
+        for _ in range(40):
+            await ctx.tick(domain='usb')
+            assert ctx.get(dut.state) not in (dut.READY, dut.KEY)
+        assert ctx.get(dut.state) == dut.FAULT
+        assert ctx.get(dut.selftest_failure_reason) == 1
+        assert ctx.get(dut.debug_packets) == 0
+        assert not ctx.get(dut.dp_oe) and not ctx.get(dut.dm_oe)
+
+    sim.add_testbench(bench)
+    sim.run()
+
+
+def test_staged_configuration_rejects_automatic_preflight():
+    with pytest.raises(ValueError, match='physical USER'):
+        CynthionUsbKey(staged_operation=True, auto_selftest=True)
+    with pytest.raises(ValueError, match='physical USER'):
+        CynthionUsbKey(staged_operation=True, selftest_only=True)
+    assert CynthionUsbKeyTop(mode='staged-operation',
+                              target_power_from_control=True).mode == 'staged-operation'

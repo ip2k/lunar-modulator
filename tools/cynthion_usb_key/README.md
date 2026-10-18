@@ -6,7 +6,7 @@ a board from its build script. Build with `python -m tools.cynthion_usb_key.buil
 target GPIOs high impedance and requires the physical USER button to be stably
 released and then pressed before its finite attempt can begin.
 
-Every USB_KEY image leaves VBUS controls off by default. An operation image may be
+Every USB_KEY image leaves VBUS controls off by default. An operation or staged-operation image may be
 built with `--target-power-from-control`; this enables only the r1.4
 CONTROL-to-TARGET-A VBUS switch. TARGET-C passthrough, AUX VBUS, and discharge
 remain off. This is an explicit build-time choice, not a runtime control. It
@@ -33,7 +33,7 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 | Address | Meaning |
 | --- | --- |
 | `0x01` | Magic `0x4c554e52` (`LUNR`) |
-| `0x02` | Register layout version `6` |
+| `0x02` | Register layout version `7` |
 | `0x03` | Status snapshot |
 | `0x04` | Live GPIO: DP input, DM input, DP output, DM output, DP OE, DM OE (bits 0–5) |
 | `0x05` | Self-test failure: reason (bits 0–1), step (2–3), expected state (4–5), last observed state (6–7) |
@@ -62,7 +62,8 @@ The ECP5 exposes read-only JTAG registers using LUNA's `JTAGRegisterInterface`:
 Status register `0x03` packs state in bits 0–3, PHY ready/fault in bits 4–5,
 the four-step self-test mask in bits 6–9, line-state-valid in bit 10, the
 USB3343 line-state value in bits 11–12, disconnected-selftest mode in bit 13,
-and CONTROL-to-TARGET-A power selection in bit 14. This is diagnostic telemetry
+CONTROL-to-TARGET-A power selection in bit 14, and staged-operation profile
+in bit 15. State 9 is READY; existing state IDs 0–8 are unchanged. This is diagnostic telemetry
 and is not a safety interlock or hardware acceptance result. All registers are
 read-only. Status and live GPIO snapshots are captured in the USB clock domain.
 Failure registers preserve the first self-test fault evidence after the pads
@@ -179,3 +180,32 @@ Monitor layout2:1 magic,2 layout,3 PHY/PAC ready/fault plus PAC error and sample
 presence,4 manufacturer plus active range,5 VBUS raw,6 signed-bipolar VSENSE
 raw,7 sequence,8 age in60MHz cycles,9 refresh count,10 power controls. Details and unloaded
 physical evidence: `notes/2026-10-16-cynthion-power-monitor.md`.
+
+
+## Explicit two-stage recovery preparation
+
+`--mode staged-operation --target-power-from-control` selects the new profile
+(status bit 15 = 1, layout 7); CONTROL-to-TARGET-A is on, TARGET-C/AUX/discharge
+are off. The default remains the original operation profile. This is source
+preparation, not authorization to load or run a device attempt.
+
+For an owner-authorized recovery test with the existing 1 kΩ series resistors:
+
+1. Keep both target ports empty and the FM-1 LEFT/OFF. Release USER steadily,
+   then press it to run the disconnected K/J/SE0/SE1 preflight. This first press
+   cannot start KEY. A mismatch stops immediately with FAULT and zero packets.
+2. Confirm staged profile bit 15, state 9 READY, mask 15, PHY ready/no fault,
+   and both GPIO OEs zero. READY shows LEDs `010010`; it is neither DONE nor
+   FAULT, and terminal receipts/history remain unfrozen.
+3. Release USER steadily after READY. Attach the still LEFT/OFF FM-1 to TARGET-A;
+   keep TARGET-C empty. A second deliberate USER press starts the unchanged
+   bounded KEY attempt; only then move the FM-1 RIGHT/ON for the named test.
+4. Observe the existing bounded KEY/WAIT_DP/SOF result and terminal high-Z.
+   Do not retry automatically or issue USB/JTAG control writes. A fault requires
+   reset/reconfiguration and a fresh disconnected preflight; reset loses READY.
+
+PHY isolation/readiness, no PHY fault, Bank 6 3.3 V confirmation and ACK-sense
+validity must remain true throughout preflight and READY. Any loss latches FAULT;
+restoring a gate or pressing USER cannot reuse the preflight. A held first press
+cannot advance READY. No waveform, ACK criterion, packet/time limit, PHY
+non-driving configuration or terminal high-impedance behavior is relaxed.
