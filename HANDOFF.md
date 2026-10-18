@@ -1,3 +1,28 @@
+## Independent recovery audit saved; offline fixes handed to Sol — 2026-10-18
+
+Owner requested that the independent review findings and next steps be saved in
+the repo, with a prompt for the next turn in the existing Sol session. Read
+[the audit](notes/2026-10-18-cynthion-independent-audit.md) and
+[the fix handoff / paste-ready prompt](notes/2026-10-18-cynthion-recovery-fix-handoff.md).
+Reviewed commit: `67f8c3665be0f3ea524bf9c8115605af5fd9b3a5` on
+`feature/2026-10-11@installable-firmware`. The original checksum-covered packet
+is unchanged; all audit source links remain pinned to that commit.
+
+[verified: offline audit] Hashes/pins matched and 119 tests passed independently.
+Concrete fixes: persistent terminal ACK-candidate telemetry plus production-clock
+regression, correct `0x18d` decode in an external erratum, and microsecond phase
+units. No implementation fixes or hardware operations were performed by this
+documentation follow-up. Preserve unrelated `uv.lock`.
+
+[inferred] Loaded electrical margin through the 1 kΩ path and reset/protocol
+alignment remain plausible causes, not established faults. Next physical step
+is preparation of ONE instrumented loaded-connector capture; scope model and
+breakout details were already requested. No probing, repeat, load, USB/MIDI/JTAG,
+power-cycle or infrastructure action is authorized by this handoff. No fresh
+device state was read. Recovery remains unproven. The next Sol milestone is
+offline diagnostic fixes, tests/review, commit/push and a concrete measurement
+plan for separate approval; current Aeon-only routing remains in force.
+
 ## Astra independent review packet prepared — owner request
 
 Review entrypoint: notes/reviews/2026-10-18-cynthion-recovery/README.md.
