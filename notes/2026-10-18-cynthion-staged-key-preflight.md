@@ -196,3 +196,11 @@ https://facedancer.readthedocs.io/en/stable/api_docs/facedancer.backends.moondan
 [verified: existing dongle source/docs] Pico recovery uses GPIO pins wired
 onto USB D+/D−; its standard USB socket alone does not provide those GPIO
 connections. No unsupported socket-only Pico recovery substituted.
+
+### Retry1 disconnected load
+
+Owner confirmed bothTARGETsempty, CONTROL→Mac, FM1LEFT/OFF detached.
+[verified] Same reviewed175113B bitstream loadedexit0. At07:48UTC,
+`retry01/disarmed-status.json` shows layout7/SAFE0, PHYready/no fault,
+GPIO/OEs0, terminal0, safety markers stable. Requested firstUSER disconnected;
+no retry1key sentyet. All files unique under `retry01/`.

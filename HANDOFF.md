@@ -1,3 +1,14 @@
+## Retry1 reloaded SAFE; disconnected first USER pending — 07:48 UTC
+
+Owner confirmed BOTH TARGET ports empty, CONTROL→Mac, FM1LEFT/OFF detached.
+[verified] Same reviewed175113B/bf0f0029 volatileloadexit0; retry01 loadlog saved.
+retry01/disarmed-status.json: layout7, SAFE0, PHYready/no fault, GPIO/OEs0,
+terminal0; safety markers stable. Asked owner firstUSER with BOTHportsempty.
+Next retry01/preflight-ready-status.json require READY9/selftestF/OE0/nofault,
+then connectFM1OFF withCempty/noUSER and verifyREADY, then secondUSER+powerON.
+No key sent forretry1yet. Userauthorized up to3 finite reviewedretries, notflash.
+GoalACTIVE; Aeononly; originalbitno newbuild. Mainpushed8c5c53f6 verifyremote.
+
 ## Owner authorized bounded Cynthion recovery retries; empty confirmation pending
 
 Owner reports no screen/backlight/power-button light on direct cold boot.
