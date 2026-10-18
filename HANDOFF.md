@@ -1,3 +1,29 @@
+## Owner requested Pico-style repeating recovery variant — 2026-10-18
+
+Owner confirms RIGHT/ON and several intervening power cycles; earlier ROM state
+is unknown. Owner then explicitly requested review of czietz's Pico gist and a
+repeating Cynthion test, plus deeper Facedancer research. Both TARGET ports now
+confirmed empty, CONTROL remains connected, FM1 requested LEFT/OFF; no USER press.
+Do not load until the exact new source, simulations, routed build and power/pin
+checks pass. No new hardware action has occurred for this variant.
+
+[verified] Gist content fetched through GitHub API: 3000 SPI words at 50 kHz,
+then two seconds of 1 kHz 50% PWM, inside an infinite loop. Pinned source and
+read-only layout-8 reader are retained under scratch/cynthion-pico-repeat-20261018/.
+No license identified; protocol facts are independently implemented, no copied
+gist implementation enters tracked source. Worker staged_key_preflight owns
+bounded three-cycle explicit pico-repeat mode in its isolated branch; existing
+profiles remain unchanged. bringup_review researches actual Facedancer backend,
+firmware/RPC and PHY controls source-only. No Hera access; builds stay on Aeon.
+
+[verified] Electrical-path review confirms FPGA monitor GPIOs reach TARGET A
+through 1 kOhm resistors. The predicted divider against a reported ROM pull-up
+is an unresolved explanation, not a measured FM1 fault. Repeat timing does not
+prove suitable bus voltages or recovery. See ignored
+scratch/cynthion-sof-drive-path-review-20261018.md (cfcdc3637136cf3d4939a2d524fc90ea7af7738c8bba46b9209edc566c01bda7).
+Goal remains ACTIVE; firmware release/SAVE and physical acceptance remain gated.
+Prior checkpoint 0db2b5d9875eff1bcdc5da1142546ca83a0734c6 remote SHA verified.
+
 ## Three-retry set complete; no FM1 identity — 08:02 UTC
 
 Ownerreplied"c"; interpretedasCconnectedonly, finalswitchpositionNOTconfirmed.
