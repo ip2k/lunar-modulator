@@ -1,3 +1,16 @@
+## Passive captures complete; known-device control pending — 08:28 UTC
+
+Packetry capturesSTOPPED/saved. Auto404B:5events/noUSBpackets. Full4920B:
+126one/twobyte invalidPIDrecords FF88/FA17/F920/F3one, only around C host
+unplug/replug; VBUSinvalid/valid but no valid hostSETUP/deviceACK/descriptor.
+Fresh bench no newattach/noFM1identity. Earlier-71 not reproduced as valid
+USBexchange; cannot attribute malformedrecords toFM1. No recovery proof.
+See notes/2026-10-18-cynthion-enumeration-capture.md and scratchfolder same
+slug for pcapng/hashes/decodes/hostlogs. Officialanalyzerloaded; no key.
+Asked whether keyboard/mouse or temporaryKA6 available for samepathcontrol
+capture before scope conclusion. Pendingowner. FM1A RIGHTON,Cbench,CONTROLMac.
+Packetry Full12Mbps/powerON displayed, stopped. No FM1writes. GoalACTIVE.
+
 ## Auto capture saved; full-speed host reconnect pending — 08:27 UTC
 
 Owner connected C→bench01 and FM1→A RIGHT/ON. Auto capture stopped/saved
