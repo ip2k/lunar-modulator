@@ -1,3 +1,18 @@
+## Failure-onset bootloader audit rechecked — 2026-10-18
+
+Read [forensic report](notes/2026-10-18-fm1-interrupted-write-forensics.md) and
+its sanitized JSON receipt. Fresh offline replay matches15923successful command
+pairs and prior expected hash;144erases from0x5000..0x94000,2294programs through
+0x94500, next0x94600not submitted. Zero logged mutations below0x5000. Prewrite
+paired dump and target boot prefixes0..0x4000 equal original092; boot-directory
+0x4000 not reached. Evidence supports incomplete app, no logged SPL overwrite;
+maskROM cannot be NOR-overwritten. Current chip bytes remain unread after loss.
+Single-bank directory-last update did not preserve a bootable old application;
+independent physical power-on recovery had not been proved. RAM-loader loss
+and absent USB do not prove permanent brick. Next: Pico connection tomorrow,
+then circuit/selftest, forced entry, fresh paired reads and stock restore plan.
+No hardware action in this forensic recheck; no device work running tonight.
+
 ## Recovery priority: official adapter research and Pico trial — 2026-10-18
 
 Owner prioritizes recovering the physical FM1/stock restoration and asks for

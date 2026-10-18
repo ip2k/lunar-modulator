@@ -1,0 +1,46 @@
+{
+  "kind": "offline-failure-forensics",
+  "actual_post_failure_readback": false,
+  "archive_sha256": "c56f4f2944a643f5bf50faa77596decdab1b25f86e318c3dd41caa2c1a2ae67a",
+  "replay_source_sha256": "d75759161e982476328d2aae02c6b637a1f7c3c3e9e4a609855f4d50546f89cd",
+  "matched_commands": 15923,
+  "mutations": {
+    "fb01": {
+      "count": 144,
+      "min_address": "0x5000",
+      "max_address": "0x94000"
+    },
+    "fb04": {
+      "count": 2294,
+      "min_address": "0x5000",
+      "max_address": "0x94500"
+    }
+  },
+  "mutation_submits_below_0x5000": 0,
+  "journal_next_intent": {
+    "operation": "program",
+    "address": "0x94600"
+  },
+  "prewrite_backup_pair_identical": true,
+  "baseline_boot_prefix_equals_original092": true,
+  "target_boot_prefix_equals_original092": true,
+  "target_protected_tail_equals_baseline": true,
+  "expected": {
+    "kind": "offline-expected-prefix-only",
+    "actual_device_read": false,
+    "evidence_archive_sha256": "c56f4f2944a643f5bf50faa77596decdab1b25f86e318c3dd41caa2c1a2ae67a",
+    "expected_prefix_sha256": "3fdaaebd73159132f7338db0f7c544935533d914fc59411cc27fe2326bbbb270",
+    "baseline_sha256": "28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f",
+    "target_sha256": "18132474c60584d1ff1559076501e3647255cabe6b98957454bd6504ebb9fcd1",
+    "commands": 15923,
+    "command_counts": {
+      "fc0a": 2493,
+      "fd05": 10992,
+      "fb01": 144,
+      "fb04": 2294
+    },
+    "commit_sector_unchanged": true,
+    "protected_prefix_unchanged": true,
+    "protected_tail_unchanged": true
+  }
+}
