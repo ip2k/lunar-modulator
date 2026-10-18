@@ -157,3 +157,17 @@ was issued. Last known FM1 is direct to bench01, RIGHT/ON.
 Next owner action requested (pending): directUSB connected, LEFT/OFF5seconds
 then RIGHT/ON, report screen/power light. A fresh direct cold boot removes
 the delayed-state ambiguity; no key, loader or firmware write is involved.
+
+## Fresh direct cold boot
+
+[verified] Owner confirmed LEFT/OFF5seconds→RIGHT/ON while directly connected
+to bench01. At07:45:19UTC `direct-cold-boot.txt` shows onlyKA6+root hubs,
+and no USB attachment/event in the preceding2minutes. No FM1 identity.
+Screen/light observation and measurement-instrument availability requested;
+no probing/rewiring or further recovery-key attempt requested.
+
+Independent source review agrees DONE0x701 only proves this core's local
+sustained-low termination; it does not verify four good calibration periods.
+The final32event ring omits earlySOF pulses. A source-only design review for
+retaining those first pulses is pending in the isolated staged-key worker;
+no new waveform/build/load/device action is authorized by that subtask.

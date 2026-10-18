@@ -1,3 +1,18 @@
+## Fresh direct cold boot: no USB attach; measurement details pending — 07:45 UTC
+
+[verified] Owner confirmed LEFT/OFF5s→RIGHT/ON, FM1 direct→bench01. At
+07:45:19UTC direct-cold-boot.txt shows onlyKA6+roots and no USB kernel event
+in preceding2min. No ROM/native/OTA identity. Screen/light observation pending;
+owner asked scope/logic analyser availability, explicitly no probing/rewiringyet.
+No further activekey requested. LastknownFM1 directUSB,RIGHT/ON.
+bringup_review confirms DONE0x701 onlylocal sustained-low termination, notfour
+verifiedcalibrationperiods. Last32ring loses earlySOF;1.503s compatible with
+reportedtimeout but notdiagnostic. Awaitauditartifact.
+staged_key_preflight assigned source-only design of initialSOF diagnostics in
+isolatedworker, no sourceedits/build/device actionyet. Root retains hardware.
+GoalACTIVE; Aeononly; noflash/loader authorization. Previouscheckpointf8fe86da
+pushed; remoteverificationpending. uv.lock unchanged/untracked.
+
 ## Fresh direct cold-boot observation requested — pending owner
 
 Asked owner keep FM1 direct→bench01; LEFT/OFF5seconds then RIGHT/ON,
