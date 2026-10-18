@@ -244,3 +244,12 @@ receipt under scratch/cynthion-pico-repeat-20261018. At08:56:31 bench roots+KA6
 only; owner has not confirmed terminalLED/Cconnection yet. Kernel follower
 exec4538 is bounded150sec, not permanent monitoring. Next confirm Cconnected
 then fresh lsusb/kernel. Do not powercycle or restart sequence in meantime.
+
+## Red LED and TARGET C connected; no attach [verified/reported]
+
+Owner confirms redLED and Cconnection after this bounded retry. Fresh bench
+08:57:02UTC sees roots+KA6 only, with no new USB attach over3minute interval.
+Private retry-after-control-host-connected.txt under repeat scratch. Requested
+keepFM1RIGHT/ON, verified data cable directly tobench01 withoutpowercycle to
+retain any ROMstate and separate current custom-gateware path. Await direct
+confirmation, then freshhost. No loader/flash/MIDI commands issued.

@@ -1,3 +1,11 @@
+## Repeat redLED/Cconnected confirmed; no host attach; direct comparison pending
+
+Owner confirms redLED and TARGETCconnected. Fresh08:57:02UTC bench roots+KA6
+only, no USB attach in3min window. Asked keepFM1RIGHT/ON, verified cable direct
+tobench01 withoutpowercycle, replyDirectconnected; inspect freshhost next.
+Read-onlyterminalpreviouslyDONE7/16cycles/noFAULT/OEs0. No flashcommands.
+Private retry-after-control-host-connected.txt. Kernel follower4538 bounded.
+
 ## Recovery retry DONE/OEs0; owner terminalLED/Cconnection pending
 
 Terminal08:56:23UTC confirms16cycles/3000words,DONE7,receipt0x701,noPHYfault,
