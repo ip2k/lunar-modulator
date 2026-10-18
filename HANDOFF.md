@@ -1,3 +1,14 @@
+## Fixed-low mouse capture ACTIVE; TARGET C plug flip pending
+
+Cold reset did not restore mouse: bench usb1-1 descriptor/setup -71. Packetry
+Auto capture only3events, closed-channel error on stop; dismissed, saved
+control04-cold-auto.pcapng, treat incomplete. No proven retained PHY cause.
+Selected fixed Low1.5Mbps, verified and started fresh capture via CUA.
+Asked flip ONLY TARGET C plug180degrees/reconnect, verify TARGET C not AUX;
+mouseA/CONTROLMac unchanged, FM1detached/noUSERnoRESET. Await confirmation.
+Next fresh Packetry+bench, save unique control05 file and compare.
+No FM1 writes or recovery acceptance. GoalACTIVE; Aeononly; preserve uv.lock.
+
 ## Cold reset complete; fresh mouse capture ACTIVE, reconnect pending
 
 Owner confirmed all Cynthion cables removed5sec then CONTROL only. Fresh

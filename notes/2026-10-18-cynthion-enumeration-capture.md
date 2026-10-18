@@ -117,3 +117,17 @@ Owner confirmed CONTROL only after complete cable removal. Fresh cynthion info
 reports USB Analyzer 1d50:615b bcd0104. Fresh Auto capture started via CUA,
 active/empty verified. Asked reconnect replacement C cable→bench01 then mouse→A,
 FM1 detached/noUSERnoRESET. Await connection; no cold-reset control result yet.
+
+## Cold-reset mouse still fails; fixed-low comparison active [verified]
+
+Fresh bench08:40:38UTC shows usb1-1 devices118–121 descriptor/setup -71,
+no mouse identity. Auto capture displayed only start/VBUSvalid21.748578316s/
+LSidle31.730483450s. On stop/save Packetry reported "sending on a closed
+channel"; dismissed via CUA. Saved control04-cold-auto.pcapng (size/hash below).
+Treat recording as incomplete, not proof of absent host traffic. Cold reset
+did not restore mouse enumeration; retained PHY-state cause not established.
+Selected fixed Low1.5Mbps via keyboard, verified label, started fresh capture.
+Asked owner flip only TARGET C USB-C plug180degrees/reconnect same socket,
+confirm TARGET C label (not AUX), keep mouseA/CONTROLMac/FM1detached unchanged.
+Await reply; next inspect capture+bench and save control05 unique file.
+control04: 67804 bytes, SHA256 e24627cd6f09663f8ce8ba11e3b11588590967383906a77b32031917ac28c1a6.
