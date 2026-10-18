@@ -76,7 +76,9 @@ class CynthionUsbKey(Elaboratable):
                  selftest_state_us=1_000, ack_duration_us=100,
                  dp_high_timeout_ms=None, sof_done_low_ms=None, sof_timeout_ms=None,
                  sof_period_us=None, sof_pulse_us=None,
-                 auto_selftest=False, selftest_only=False, staged_operation=False):
+                 auto_selftest=False, selftest_only=False, staged_operation=False,
+                 pico_repeat=False, repeat_cycles=16, repeat_words=3000,
+                 repeat_sof_us=2_000_000):
         if clock_hz <= 0 or clock_hz % 1_000_000:
             raise ValueError("clock_hz must be a positive integer MHz")
         self.domain = domain
@@ -87,20 +89,36 @@ class CynthionUsbKey(Elaboratable):
         p = PARAMS
         self.ack_duration_us = ack_duration_us
         self.auto_selftest = auto_selftest
-        if staged_operation and (auto_selftest or selftest_only):
+        if (staged_operation or pico_repeat) and (auto_selftest or selftest_only):
             raise ValueError("staged operation requires physical USER preflight")
-        self.staged_operation = staged_operation
+        self.staged_operation = staged_operation or pico_repeat
+        self.pico_repeat = pico_repeat
+        for name, value, maximum in (("repeat_cycles", repeat_cycles, 16),
+                                     ("repeat_words", repeat_words, 65535),
+                                     ("repeat_sof_us", repeat_sof_us, 0xFFFFFFFF)):
+            if type(value) is not int or not 1 <= value <= maximum:
+                raise ValueError(f"{name} must be an integer in 1..{maximum}")
+        self.repeat_cycles = repeat_cycles
+        self.repeat_words = repeat_words
+        self.repeat_sof_us = repeat_sof_us
         self.selftest_only = selftest_only
-        self.key_word = p["USB_KEY_WORD"]
-        self.key_bits = p["KEY_BITS"]
-        self.bit_cycles = p["KEY_BIT_CYCLES"]
+        self.key_word = 0x16EF if pico_repeat else p["USB_KEY_WORD"]
+        self.key_bits = 16 if pico_repeat else p["KEY_BITS"]
+        self.bit_cycles = 20 if pico_repeat else p["KEY_BIT_CYCLES"]
+        self.key_low_us = 10 if pico_repeat else 8
         self.gap_cycles = p["KEY_GAP_US"]
-        self.sof_period = (p["SOF_PERIOD_CYCLES"] if sof_period_us is None
+        self.sof_period = ((1000 if pico_repeat else p["SOF_PERIOD_CYCLES"]) if sof_period_us is None
                            else sof_period_us)
-        self.sof_pulse = (p["SOF_PULSE_CYCLES"] if sof_pulse_us is None
+        self.sof_pulse = ((500 if pico_repeat else p["SOF_PULSE_CYCLES"]) if sof_pulse_us is None
                           else sof_pulse_us)
         if not 0 < self.sof_pulse < self.sof_period:
             raise ValueError("SOF pulse must be shorter than its positive period")
+        if pico_repeat and any(type(value) is not int or not 1 <= value <= 65535
+                               for value in (self.sof_period, self.sof_pulse)):
+            raise ValueError("pico-repeat SOF period/width must be positive integer us")
+        if pico_repeat and (self.sof_pulse * 2 != self.sof_period or
+                            repeat_sof_us % self.sof_period):
+            raise ValueError("pico-repeat needs 50% duty and whole SOF periods")
         self.dp_high_timeout = (dp_high_timeout_ms if dp_high_timeout_ms is not None
                                 else p["SOF_DP_HIGH_TIMEOUT_MS"]) * 1000
         self.sof_done_low = (sof_done_low_ms if sof_done_low_ms is not None
@@ -145,6 +163,7 @@ class CynthionUsbKey(Elaboratable):
         # after a terminal state; they do not feed the protocol decisions.
         self.protocol_failure_reason = Signal(3)
         self.protocol_failure_origin_state = Signal(4)
+        self.debug_repeat_cycles = Signal(8)  # completed finite repeat cycles
         self.debug_packets = Signal(32)
         self.debug_receiver_live = Signal()
         self.debug_ack_ticks = Signal(32)
@@ -187,13 +206,17 @@ class CynthionUsbKey(Elaboratable):
         selftest_value = Signal(2)
         phase = Signal(range(self.bit_cycles))
         gap = Signal(range(self.gap_cycles))
-        packets = Signal(range(self.packet_limit + 1))
+        packets = Signal(range((self.repeat_words if self.pico_repeat
+                                else self.packet_limit) + 1))
+        repeat_completed = self.debug_repeat_cycles
+        repeat_ticks = Signal(range(self.repeat_sof_us + 1))
         receiver_live = Signal()
         ack_ticks = Signal(range(self.ack_duration_us + 1))
         ack_confirm = Signal()
         ack_confirmed_latched = Signal()
         wait_ticks = Signal(range(self.dp_high_timeout + 1))
-        sof_ticks = Signal(range(self.sof_timeout + 1))
+        sof_ticks = Signal(range((self.repeat_sof_us if self.pico_repeat
+                                  else self.sof_timeout) + 1))
         sof_phase = Signal(range(self.sof_period))
         dp_low_ticks = Signal(range(self.sof_done_low + 1))
         key_bit = Signal()
@@ -318,13 +341,17 @@ class CynthionUsbKey(Elaboratable):
                                  self.dp_oe.eq(1), self.dm_oe.eq(1)]
                 with m.Case(self.KEY):
                     m.d.comb += [self.dp_oe.eq(1), self.dm_oe.eq(1)]
-                    with m.If(phase < 8):
+                    with m.If(phase < self.key_low_us):
                         m.d.comb += [self.dp_o.eq(0), self.dm_o.eq(key_bit)]
                     with m.Else():
                         m.d.comb += [self.dp_o.eq(1), self.dm_o.eq(key_bit)]
                 with m.Case(self.SOF):
-                    m.d.comb += [self.dp_oe.eq(sof_phase < self.sof_pulse),
-                                 self.dp_o.eq(0)]
+                    if self.pico_repeat:
+                        m.d.comb += [self.dp_oe.eq(1),
+                                     self.dp_o.eq(sof_phase >= self.sof_pulse)]
+                    else:
+                        m.d.comb += [self.dp_oe.eq(sof_phase < self.sof_pulse),
+                                     self.dp_o.eq(0)]
 
         with m.Switch(self.state):
             with m.Case(self.SAFE):
@@ -415,6 +442,9 @@ class CynthionUsbKey(Elaboratable):
                               self.PROTOCOL_FAULT_INTERLOCK_LOST),
                           self.protocol_failure_origin_state.eq(self.READY)]
                 with m.Elif(arm_event):
+                    if self.pico_repeat:
+                        # Start the first bit on a complete microsecond divider interval.
+                        d += div.eq(0)
                     d += [self.state.eq(self.KEY), tx_bit.eq(0), phase.eq(0),
                           packets.eq(0), receiver_live.eq(0), ack_ticks.eq(0)]
             with m.Case(self.KEY):
@@ -424,36 +454,48 @@ class CynthionUsbKey(Elaboratable):
                               self.PROTOCOL_FAULT_INTERLOCK_LOST),
                           self.protocol_failure_origin_state.eq(self.KEY)]
                 with m.Else():
-                    # Keep the key waveform advancing while measuring the
-                    # receiver's continuous SE0 report. Otherwise a normal
-                    # data-bit SE0 would freeze us low and self-confirm ACK.
-                    with m.If(self.line_state_update & (self.line_state_value != 0)):
-                        d += ack_ticks.eq(0)
-                    with m.If(us_tick):
-                        with m.If(receiver_live & self.line_state_valid &
-                                  (self.line_state_value == 0)):
-                            with m.If(~ack_confirm):
-                                d += ack_ticks.eq(ack_ticks + 1)
-                        with m.Else():
-                            d += ack_ticks.eq(0)
-                        with m.If(phase == self.bit_cycles - 1):
-                            d += phase.eq(0)
-                            with m.If(tx_bit == self.key_bits - 1):
-                                with m.If(~ack_confirm):
-                                    # Candidate duration belongs to one
-                                    # actively driven key packet. Do not add
-                                    # cached SE0 time from either side of the
-                                    # released inter-packet interval.
-                                    d += [self.state.eq(self.GAP), gap.eq(0),
-                                          ack_ticks.eq(0)]
+                    if self.pico_repeat:
+                        # Fixed SPI-like words; RXCMD/ACK cannot end or extend them.
+                        with m.If(us_tick):
+                            with m.If(phase == self.bit_cycles - 1):
+                                d += phase.eq(0)
+                                with m.If(tx_bit == self.key_bits - 1):
+                                    d += [self.state.eq(self.GAP), gap.eq(0)]
+                                with m.Else():
+                                    d += tx_bit.eq(tx_bit + 1)
                             with m.Else():
-                                d += tx_bit.eq(tx_bit + 1)
-                        with m.Else():
-                            d += phase.eq(phase + 1)
-                        with m.If(ack_confirm):
-                            d += [self.state.eq(self.WAIT_DP), wait_ticks.eq(0),
-                                  sof_ticks.eq(0), sof_phase.eq(0),
-                              dp_low_ticks.eq(0), ack_confirmed_latched.eq(1)]
+                                d += phase.eq(phase + 1)
+                    else:
+                        # Keep the key waveform advancing while measuring the
+                        # receiver's continuous SE0 report. Otherwise a normal
+                        # data-bit SE0 would freeze us low and self-confirm ACK.
+                        with m.If(self.line_state_update & (self.line_state_value != 0)):
+                            d += ack_ticks.eq(0)
+                        with m.If(us_tick):
+                            with m.If(receiver_live & self.line_state_valid &
+                                      (self.line_state_value == 0)):
+                                with m.If(~ack_confirm):
+                                    d += ack_ticks.eq(ack_ticks + 1)
+                            with m.Else():
+                                d += ack_ticks.eq(0)
+                            with m.If(phase == self.bit_cycles - 1):
+                                d += phase.eq(0)
+                                with m.If(tx_bit == self.key_bits - 1):
+                                    with m.If(~ack_confirm):
+                                        # Candidate duration belongs to one
+                                        # actively driven key packet. Do not add
+                                        # cached SE0 time from either side of the
+                                        # released inter-packet interval.
+                                        d += [self.state.eq(self.GAP), gap.eq(0),
+                                              ack_ticks.eq(0)]
+                                with m.Else():
+                                    d += tx_bit.eq(tx_bit + 1)
+                            with m.Else():
+                                d += phase.eq(phase + 1)
+                            with m.If(ack_confirm):
+                                d += [self.state.eq(self.WAIT_DP), wait_ticks.eq(0),
+                                      sof_ticks.eq(0), sof_phase.eq(0),
+                                  dp_low_ticks.eq(0), ack_confirmed_latched.eq(1)]
             with m.Case(self.GAP):
                 with m.If(~permitted):
                     d += [self.state.eq(self.FAULT),
@@ -463,13 +505,20 @@ class CynthionUsbKey(Elaboratable):
                 with m.Elif(us_tick):
                     with m.If(gap == self.gap_cycles - 1):
                         d += [gap.eq(0), packets.eq(packets + 1)]
-                        with m.If(packets + 1 >= self.packet_limit):
-                            d += [self.state.eq(self.FAULT),
-                                  self.protocol_failure_reason.eq(
-                                      self.PROTOCOL_FAULT_PACKET_LIMIT),
-                                  self.protocol_failure_origin_state.eq(self.GAP)]
-                        with m.Else():
-                            d += [self.state.eq(self.KEY), tx_bit.eq(0), phase.eq(0)]
+                        if self.pico_repeat:
+                            with m.If(packets + 1 == self.repeat_words):
+                                d += [self.state.eq(self.SOF), repeat_ticks.eq(0),
+                                      sof_ticks.eq(0), sof_phase.eq(0)]
+                            with m.Else():
+                                d += [self.state.eq(self.KEY), tx_bit.eq(0), phase.eq(0)]
+                        else:
+                            with m.If(packets + 1 >= self.packet_limit):
+                                d += [self.state.eq(self.FAULT),
+                                      self.protocol_failure_reason.eq(
+                                          self.PROTOCOL_FAULT_PACKET_LIMIT),
+                                      self.protocol_failure_origin_state.eq(self.GAP)]
+                            with m.Else():
+                                d += [self.state.eq(self.KEY), tx_bit.eq(0), phase.eq(0)]
                     with m.Else():
                         d += gap.eq(gap + 1)
             with m.Case(self.WAIT_DP):
@@ -495,24 +544,40 @@ class CynthionUsbKey(Elaboratable):
                           self.protocol_failure_reason.eq(
                               self.PROTOCOL_FAULT_INTERLOCK_LOST),
                           self.protocol_failure_origin_state.eq(self.SOF)]
-                with m.Elif(us_tick & (sof_ticks == self.sof_timeout - 1)):
-                    d += [self.state.eq(self.FAULT),
-                          self.protocol_failure_reason.eq(
-                              self.PROTOCOL_FAULT_SOF_TIMEOUT),
-                          self.protocol_failure_origin_state.eq(self.SOF)]
-                with m.Elif(us_tick):
-                    d += sof_ticks.eq(sof_ticks + 1)
-                    with m.If(sof_phase == self.sof_period - 1):
-                        d += sof_phase.eq(0)
-                    with m.Else():
-                        d += sof_phase.eq(sof_phase + 1)
-                    with m.If(self.line_state_valid & (self.line_state_value == 0)):
-                        with m.If(dp_low_ticks == self.sof_done_low - 1):
-                            d += self.state.eq(self.DONE)
+                if self.pico_repeat:
+                    with m.Elif(us_tick):
+                        d += [repeat_ticks.eq(repeat_ticks + 1),
+                              sof_ticks.eq(sof_ticks + 1)]
+                        with m.If(sof_phase == self.sof_period - 1):
+                            d += sof_phase.eq(0)
                         with m.Else():
-                            d += dp_low_ticks.eq(dp_low_ticks + 1)
-                    with m.Elif(self.line_state_valid):
-                        d += dp_low_ticks.eq(0)
+                            d += sof_phase.eq(sof_phase + 1)
+                        with m.If(repeat_ticks == self.repeat_sof_us - 1):
+                            d += repeat_completed.eq(repeat_completed + 1)
+                            with m.If(repeat_completed + 1 == self.repeat_cycles):
+                                d += self.state.eq(self.DONE)
+                            with m.Else():
+                                d += [self.state.eq(self.KEY), tx_bit.eq(0), phase.eq(0),
+                                      packets.eq(0)]
+                else:
+                    with m.Elif(us_tick & (sof_ticks == self.sof_timeout - 1)):
+                        d += [self.state.eq(self.FAULT),
+                              self.protocol_failure_reason.eq(
+                                  self.PROTOCOL_FAULT_SOF_TIMEOUT),
+                              self.protocol_failure_origin_state.eq(self.SOF)]
+                    with m.Elif(us_tick):
+                        d += sof_ticks.eq(sof_ticks + 1)
+                        with m.If(sof_phase == self.sof_period - 1):
+                            d += sof_phase.eq(0)
+                        with m.Else():
+                            d += sof_phase.eq(sof_phase + 1)
+                        with m.If(self.line_state_valid & (self.line_state_value == 0)):
+                            with m.If(dp_low_ticks == self.sof_done_low - 1):
+                                d += self.state.eq(self.DONE)
+                            with m.Else():
+                                d += dp_low_ticks.eq(dp_low_ticks + 1)
+                        with m.Elif(self.line_state_valid):
+                            d += dp_low_ticks.eq(0)
             with m.Case(self.DONE, self.FAULT):
                 pass
 

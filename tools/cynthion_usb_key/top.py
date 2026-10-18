@@ -41,9 +41,9 @@ class CynthionUsbKeyTop(Elaboratable):
     """Core integration with explicit, default-off VBUS selection."""
 
     def __init__(self, *, mode="operation", target_power_from_control=False):
-        if mode not in {"operation", "disconnected-selftest", "staged-operation"}:
+        if mode not in {"operation", "disconnected-selftest", "staged-operation", "pico-repeat"}:
             raise ValueError(f"unsupported mode: {mode}")
-        if target_power_from_control and mode not in {"operation", "staged-operation"}:
+        if target_power_from_control and mode not in {"operation", "staged-operation", "pico-repeat"}:
             raise ValueError("CONTROL power is available only in operation modes")
         self.mode = mode
         self.target_power_from_control = bool(target_power_from_control)
@@ -100,10 +100,15 @@ class CynthionUsbKeyTop(Elaboratable):
         # loopback after verified PHY isolation. It cannot enter KEY. The
         # operation image remains disarmed until a debounced USER press.
         selftest_only = self.mode == "disconnected-selftest"
+        pico_repeat = self.mode == "pico-repeat"
+        repeat_parameters = (dict(pico_repeat=True, repeat_cycles=16, repeat_words=3000,
+                                  repeat_sof_us=2_000_000, sof_period_us=1000,
+                                  sof_pulse_us=500) if pico_repeat else {})
         core = CynthionUsbKey(domain="usb", clock_hz=60_000_000,
                               auto_selftest=selftest_only,
                               selftest_only=selftest_only,
-                              staged_operation=self.mode == "staged-operation")
+                              staged_operation=self.mode in {"staged-operation", "pico-repeat"},
+                              **repeat_parameters)
         m.submodules.protocol = core
         button = platform.request("button_user")
         dp = platform.request("target_usb_dp")
@@ -137,14 +142,15 @@ class CynthionUsbKeyTop(Elaboratable):
             JTAGRegisterInterface(default_read_value=0xBAD0C0DE))
         m.submodules.debug_registers = debug
         debug.add_read_only_register(1, read=0x4C554E52)  # "LUNR"
-        debug.add_read_only_register(2, read=7)           # register layout v7
+        debug.add_read_only_register(2, read=8 if pico_repeat else 7)
         status_snapshot = Signal(32)
         status_bits = Cat(core.state, safe_phy.ready, safe_phy.fault,
                           core.selftest_mask, safe_phy.line_state_valid,
                           safe_phy.line_state_value,
                           Const(self.mode == "disconnected-selftest"),
                           Const(self.target_power_from_control),
-                          Const(self.mode == "staged-operation"))
+                          Const(self.mode in {"staged-operation", "pico-repeat"}),
+                          Const(pico_repeat))
         m.d.usb += status_snapshot.eq(status_bits)
         debug.add_read_only_register(3, read=status_snapshot)
         gpio_snapshot = Signal(32)
@@ -250,6 +256,13 @@ class CynthionUsbKeyTop(Elaboratable):
         debug.add_read_only_register(0x62, read=diagnostic_line_snapshot)
         debug.add_read_only_register(0x63, read=diagnostic_age_snapshot)
         debug.add_read_only_register(0x64, read=diagnostic_gpio_snapshot)
+
+        if pico_repeat:
+            # Extension is read-only; layout7 images retain their exact map.
+            debug.add_read_only_register(0x65, read=Cat(
+                Const(1, 8), Const(16, 8), Const(3000, 16)))
+            debug.add_read_only_register(0x66, read=Cat(
+                core.debug_repeat_cycles, core.debug_packets[:16]))
 
         for bit in range(6):
             m.d.comb += platform.request("led", bit).o.eq(core.leds[bit])

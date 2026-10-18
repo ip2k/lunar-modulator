@@ -209,3 +209,44 @@ validity must remain true throughout preflight and READY. Any loss latches FAULT
 restoring a gate or pressing USER cannot reuse the preflight. A held first press
 cannot advance READY. No waveform, ACK criterion, packet/time limit, PHY
 non-driving configuration or terminal high-impedance behavior is relaxed.
+
+## Finite Pico-style repeat profile
+
+`--mode pico-repeat --target-power-from-control` builds an explicitly different
+profile based on [czietz's Pico example](https://gist.github.com/czietz/9a94cf3c3e68f2ceb45fab682e1cbbd5).
+It keeps the disconnected four-state preflight, READY, fresh USER release and
+second press described above. Both target ports must be empty for preflight.
+After READY, the authorized operator can attach the LEFT/OFF FM-1 to TARGET-A,
+press USER a second time, then move RIGHT/ON during the bounded run. Keep
+TARGET-C unplugged throughout all driving phases.
+
+After USER2, sixteen finite cycles each emit exactly 3,000 words `0x16ef`,
+MSB first, with D+ clock low 10 µs/high 10 µs (50 kHz) and D− data held for each
+bit. Every word is followed by a released 160 µs gap, including the final word.
+Each cycle then emits exactly two seconds of 1 kHz, 50% duty **push-pull D+**,
+starting low; D− is released throughout this PWM phase. There is no WAIT_DP,
+ACK stop, cached-SE0 early completion or retry after FAULT. Sixteen cycles take
+55.04 seconds after USER2, apart from the button debounce/start latency. DONE
+then releases both OEs and leaves LED5 alone (`100000`). DONE/FAULT are absorbing;
+holding USER or pressing it again cannot restart. Reset requires new preflight.
+
+This differs from czietz's infinite MicroPython loop: it has a finite window,
+a specified 160 µs gap in place of interpreter/SPI setup overhead, and specified
+released D−/push-pull D+ behavior. In the inspected MicroPython v1.19.1 RP2 source, SPI has no deinit callback and
+the generic deinit calls only a non-null callback; it therefore does not prove
+release of either pin. Exact Pico idle D− level and board waveform remain
+unmeasured. Neither electrical equivalence nor
+recovery success is claimed. The existing 1 kΩ GPIO series-resistor electrical
+limitation remains unresolved; this profile changes no pin or electrical gate.
+CONTROL powers TARGET-A only when explicitly selected; TARGET-C/AUX/discharge
+remain off. All isolation, PHY no-fault, Bank6 and ACK-sense interlocks remain
+required continuously even though line-state reports do not control progress.
+
+Pico-repeat alone identifies as layout8 with both staged bit15 and repeat bit16
+set in status register3. Existing profiles retain layout7 and previous mappings.
+Read-only register `0x65`: profile ID1 bits0–7, cycle bound16 bits8–15, words per
+cycle3000 bits16–31 (`0x0bb81001`). Read-only register `0x66`: completed cycles
+bits0–7, words completed in current cycle bits8–23. A word count advances after
+its released gap; the count resets at the next KEY cycle and remains3000 at
+DONE, with completed cycles16. These are counters, not ROM acknowledgement.
+No JTAG/USB register can arm or restart the sequence.
