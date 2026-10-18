@@ -1,3 +1,28 @@
+## Recovery priority: official adapter research and Pico trial — 2026-10-18
+
+Owner prioritizes recovering the physical FM1/stock restoration and asks for
+Pico recovery entry ahead of elaborate scope setup. Read
+[research and minimal trial](notes/2026-10-18-jieli-official-pico-recovery-research.md).
+Official V4 documentation confirms continuous USB_KEY mode (low switch3);
+reset plus key remains required. Owner supplied seller description: ordered V4.1 forced downloader, broad
+full-range claim but no explicit AC791N listing. Official AC79 links V4 manual;
+V4.1-specific compatibility remains unconfirmed. Existing Pico2W
+UF2/source retained;17offline tests pass. Prior SELFTEST/FAULT happened before
+keying, with missing pull-up wiring suspected. No need to invent another flasher.
+Fresh bench01 inventory: roots+KA6 only, noPico/FM1 or serial-by-id. No device
+command/programming occurred; only SSH host inventory and offline checks.
+Owner will connect Pico tomorrow; no bench work is running.
+Pending: owner connect Pico USB alone with allGPIO detached; resistor availability
+(2x2.2kΩ+2x100Ω), verified cable/supply wiring, adapter hardware/firmware on arrival. Keep FM1
+isolated until circuit/selftest passes. Existing docs/10 E1 open-drain rule stays;
+no resistorless gist substitution assumed. Scope is fallback, not an extra gate
+for a verified minimal Pico circuit. Stock writing requires fresh paired reads
+and a newly bound concrete restore, never stale campaign adapters.
+
+Branch feature/2026-10-11@installable-firmware; preceding remote-verified SHA
+0447c414efbe579786ce08e74e43264c2e58d8a2; this note's commit is the next backup.
+Preserve untrackeduv.lock; no original checksum packet edits. Recovery unproven.
+
 ## Offline Cynthion telemetry repair completed — 2026-10-18
 
 Branch: `feature/2026-10-11@installable-firmware`. Source/build commit
