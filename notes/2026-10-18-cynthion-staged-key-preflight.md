@@ -117,3 +117,20 @@ Ring frozen at32 events (reg19=3072); status/GPIO/terminal/ring markers
 unchanged across the non-atomic read. Controller completion does not establish
 mask-ROM entry; passive USB identity remains required. Asked owner connect
 TARGET C→bench01 while leaving RIGHT/ON and not pressing USER.
+
+## TARGET C host enumeration
+
+[verified] Owner connected TARGET C→bench01 leaving RIGHT/ON. `lsusb`
+showed only KA6 and root hubs. Kernel journal00:40:51–53 Pacific shows
+usb3-2 new full-speed attachment, descriptor read/64 error-71, setup-address
+failures and unable-to-enumerate. The host automatically attempted a port
+power cycle; coordinator issued only read commands (`lsusb`, `journalctl`),
+no reset/control/loader/flash command. Raw `post-power-on-target-c-enumeration.txt`
+and `post-power-on-kernel-log.txt` retained. `post-target-c-status.json` still
+shows DONE7/OEs0 with stable terminal/ring. Thus USB attachment was observed,
+but neither the ROM nor application identity was established.
+
+The frozen final32 events show SOF low pulses with J roughly4us later every
+1ms, then final low lasting3000us before DONE. This is digital line-history
+evidence, not analogue waveform quality or proof of the source of the response.
+Owner told leave cabling/power unchanged pending timing review.

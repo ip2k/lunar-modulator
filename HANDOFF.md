@@ -1,3 +1,19 @@
+## Host detects full-speed attachment but enumeration fails — 07:41 UTC
+
+[verified] Owner connected TARGET C→bench01, FM1 RIGHT/ON unchanged.
+lsusb shows only KA6 and root hubs; no native/OTA/ROM identity. Kernel log
+00:40:51–53 Pacific records usb3-2 full-speed attachment, repeated descriptor
+read/64 error -71, setup-address failures, then unable-to-enumerate. Host
+itself attempted port power cycle during enumeration; coordinator issued only
+lsusb/journal read commands, no reset/control/loader/flash command.
+Post-target-c-status.json confirms staged DONE7/OEs0 and stable terminal/ring.
+Raw files under scratch/cynthion-staged-key-20261018/.
+Frozen last32 events show SOF low pulses followed by J about4us later every1ms;
+final low persists to DONE after3000us. Controller DONE is not ROM identity.
+Owner told keep cabling/power unchanged while root reviews handshake timing.
+Next inspect source/reference timing and distinguish USB electrical/response
+failure from valid ROM entry; no blind retries or flashing. Goal ACTIVE.
+
 ## Staged LEFT→RIGHT attempt reached DONE; TARGET C connection pending — 07:40 UTC
 
 [verified] Owner second USER then LEFT/OFF→RIGHT/ON. Layout7 capture
