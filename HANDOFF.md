@@ -1,3 +1,21 @@
+## Owner authorized bounded Cynthion recovery retries; empty confirmation pending
+
+Owner reports no screen/backlight/power-button light on direct cold boot.
+Latest explicit request: try recovery signal a few times using Cynthion (or
+unmodifiedPico if feasible), researchFacedancer; scope deferred unless needed.
+Root scopes this to up to3 reviewed finite key attempts, noflash/loader/write
+exception. Latest specific recovery instruction controls over older generic
+traffic gate for these named retries only. No unlimited/autoretry/waveform
+changes. Same reviewedbit175113B/bf0f0029 rehashed before reuse.
+Asked owner: bothTARGETsempty,CONTROL→Mac,FM1detachedbench andLEFT/OFF,noUSER.
+Pending confirmation; do notloaduntilreply. Next volatileloadsamebit→SAFEverify,
+disconnectedUSER→READYverify,connectOFF→READYverify,secondUSER+LEFT→RIGHT,
+terminal/OEverify,thenC→bench01 identity. Preserve unique retry01 captures.
+Facedancer docs verified USBdeviceemulation/controltransfer tools, userPMOD;
+no documented rawkey generator identified. PicoGPIO wiring required byexisting
+recoveryimplementation; standardUSBsocket alone is not that wiring.
+GoalACTIVE;Aeononly; noFPGAnewbuild needed for sameimage. uv.lockpreserved.
+
 ## Fresh direct cold boot: no USB attach; measurement details pending — 07:45 UTC
 
 [verified] Owner confirmed LEFT/OFF5s→RIGHT/ON, FM1 direct→bench01. At

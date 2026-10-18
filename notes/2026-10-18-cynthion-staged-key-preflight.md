@@ -171,3 +171,28 @@ sustained-low termination; it does not verify four good calibration periods.
 The final32event ring omits earlySOF pulses. A source-only design review for
 retaining those first pulses is pending in the isolated staged-key worker;
 no new waveform/build/load/device action is authorized by that subtask.
+
+## Owner-requested bounded retries and Facedancer assessment
+
+Owner reports no screen/backlight/power-button light. Explicitly requested a
+few Cynthion recovery-signal retries before getting a scope, plus Facedancer
+research. Coordinator bounds this to up to3 finite attempts using the exact
+reviewed staged image; no automatic retry, waveform change, loader or flash
+write. This named recovery instruction authorizes the scoped active signal
+retries, not general device writes. Same bitstream size/hash reverified.
+Asked bothTARGET ports empty, CONTROL→Mac, FM1 detached from bench01 and
+LEFT/OFF, no USER, before reloading. Retry1 directory reserved under
+`scratch/cynthion-staged-key-20261018/retry01/`; no load yet.
+
+[verified: official docs read2026-10-18] Facedancer provides Python-controlled
+USB device emulation on Cynthion, USB control-transfer handling, USER button/LED
+and PMOD GPIO. No raw USB_KEY waveform generator identified in those documented
+APIs. It can help validate a normal emulated USB device on the host path; that
+would not validate an FM1 ROM key or calibration. Sources:
+https://cynthion.readthedocs.io/en/latest/getting_started_facedancer.html
+https://cynthion.readthedocs.io/en/latest/getting_started_facedancer_user_io.html
+https://facedancer.readthedocs.io/en/stable/api_docs/facedancer.backends.moondancer.html
+
+[verified: existing dongle source/docs] Pico recovery uses GPIO pins wired
+onto USB D+/D−; its standard USB socket alone does not provide those GPIO
+connections. No unsupported socket-only Pico recovery substituted.
