@@ -217,3 +217,13 @@ connectedREADY. No key sentyet.
 PHYready/no fault,GPIO/OEs0,terminal0,packets0. Safetyvaluesstable; live
 ringchangednormally. SourceREADYLEDmask0b010010 confirmsLED1+4 pattern.
 Requested secondUSER then immediateLEFT/OFF→RIGHT/ON,Cempty; pendingreply.
+
+### Retry1 terminal result
+
+Owner secondUSER thenLEFT→RIGHT/ON; observedLED2green,4orange,5red,
+consistent with sourceKEY→SOF→DONE mapping. [verified] At07:52UTC,
+`retry01/post-power-on-status.json`: status0xCFD7,DONE7,no fault,GPIO1/OEs0,
+receipt0x701,2109packets,WAIT1626us,SOF1503000us,lowcounter2999,
+frozen32events(reg19=3073),safety/terminal/ringstable. SameSOFduration as
+initial staged attempt; still not calibration or ROM identity proof.
+RequestedC→bench01 withRIGHT/ON,noUSER/powerchange; pendingreply.

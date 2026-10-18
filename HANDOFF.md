@@ -1,3 +1,14 @@
+## Retry1 DONE/OEs0 verified; host connection pending — 07:52 UTC
+
+Owner secondUSER thenLEFT→RIGHT/ON; observedLED2green→4orange→5red.
+[verified] retry01/post-power-on-status.json: status0xCFD7,DONE7,no fault,
+GPIO1/OEs0,receipt0x701(reason0,DONE),2109packets,WAIT1626us,SOF1503000us,
+lowcounter2999,frozen32events(reg19=3073),safety/terminal/ringstable.
+Same1.503s SOF as prior run; localDONE is NOTcalibration/ROMproof.
+Asked ownerC→bench01,leaveRIGHT,noUSER/powerchange. Pendingreply. Next passive
+lsusb/journal identity. Retry1ofup to3 scopedretries; noflash/loaderwrites.
+Latest84a295d1pushedremoteverified. GoalACTIVE;Aeononly;uv.lockpreserved.
+
 ## Retry1 connected OFF READY verified; second USER+ON pending — 07:50 UTC
 
 Owner connectedFM1→A,LEFT/OFF,Cempty,noUSER. [verified] retry01/
