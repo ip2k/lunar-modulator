@@ -1,3 +1,16 @@
+## FPGA OFFLINE; mouse passthrough replug pending
+
+FixedLow+TARGETCflip mouse also failed (-71), saved control05-low-flipped
+68696B, private scratch/cynthion-enumeration-capture-20261018 plus hostlog.
+After saved/stopped, supported cynthion info --force-offline succeeded;
+confirmed ApolloDebugger1d50:615c/r1.4, FPGAoff. No persistent flash write.
+Asked unplug/replug ONLY mouse at TARGETA, keep C/CONTROL, FM1detached.
+Await reply then fresh bench lsusb/kernel. No analyzer running now; restore
+only after this control result (targets empty if required for config).
+Important correction: control04 file contains96USBblocks/1992events despite
+GUI only3events; GUI was incomplete, savedfile not zero packets.
+GoalACTIVE; no FM1writes/recoveryproof. Aeononly; preserve uv.lock.
+
 ## Fixed-low mouse capture ACTIVE; TARGET C plug flip pending
 
 Cold reset did not restore mouse: bench usb1-1 descriptor/setup -71. Packetry

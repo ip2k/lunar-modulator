@@ -131,3 +131,21 @@ Asked owner flip only TARGET C USB-C plug180degrees/reconnect same socket,
 confirm TARGET C label (not AUX), keep mouseA/CONTROLMac/FM1detached unchanged.
 Await reply; next inspect capture+bench and save control05 unique file.
 control04: 67804 bytes, SHA256 e24627cd6f09663f8ce8ba11e3b11588590967383906a77b32031917ac28c1a6.
+
+## Fixed low + TARGET C orientation still fails; FPGA-offline control pending
+
+Owner flipped TARGET C plug. Fresh bench host-mouse-flipped.txt shows usb1-1
+122–125 descriptor/setup errors -71, no identity. Stopped/saved through CUA:
+control05-low-flipped.pcapng 68696B SHA256
+8a8b6ab914ff9a8f77be34b5adbd784d4c760e70437cc72f4e0a0b8091b9c975.
+Independent blocks:2003custom/110USB. control04 saved file has1992custom/96USB,
+despite GUI showing only3events; the earlier display description was not a
+complete file analysis. Retain closed-channel caveat, not zero-packet claim.
+
+Reviewed installed Apollo source: info --force-offline requests debugger
+handoff then calls force_fpga_offline. Executed supported command after capture
+stopped/saved; confirmed Cynthion r1.4 Apollo Debugger 1d50:615c (not analyzer).
+No persistent flash write. This removes running analyzer gateware from next
+comparison. Asked mouse unplug/replug at A, keep C/CONTROL, FM1 detached.
+Await reply; then fresh bench enumeration. Private offline-control.txt receipt.
+Official button/port reference: https://cynthion.readthedocs.io/en/latest/hardware/device_overview.html
