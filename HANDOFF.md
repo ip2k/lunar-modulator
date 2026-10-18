@@ -1,3 +1,25 @@
+## Pico-repeat image loaded SAFE; disconnected USER pending — 08:14 UTC
+
+Owner's repeat request implemented as finite16 cycles/55.04sec, refining initial3.
+Worker d88787e9 integrated fef11263c88f4b79193ceff9b590094110124491, pushed and
+remote SHA verified; independent117 combined tests passed on matching source.
+Aeon routed build exit0/noOOM; USB67.29MHz PASS60/120domain194.93MHz PASS120;
+power/pins/resources checked. Bitstream170402B/SHA8fcc78e502dc692cd6d0f8daeab01030c2ae815326e624879f95bb24b65cd28f.
+Build receipts/handoff retained; own claim released and container removed.
+
+Both TARGET ports owner-confirmed empty; CONTROL remains Mac. Volatile load0;
+layout8 read08:13:49UTC SAFE/PHYready/no fault/OEs0/profile0x0bb81001,
+packets0/cycles0/terminal0; safety fields stable. Asked first USER while BOTH
+TARGETs empty. Pending reply. Next read fresh selftest receipt: require
+READY9/maskF/OEs0, then connect FM1 OFF toA/Cempty without USER, recheck READY,
+then instruct bounded repeat run and host handoff only after steadyLED5-alone
+and verified released OEs. No FM1 flash/loader traffic, recovery or release proof.
+Reader scratch/cynthion-pico-repeat-20261018/read_status.py requires layout8,
+staged+repeat+CONTROL bits; 0x65 profile and 0x66 completedcycles/currentwords.
+Root artifacts and tracked notes/2026-10-18-cynthion-pico-repeat.md contain details.
+Facedancer deep source review done; no raw recovery API identified, no device use.
+Goal ACTIVE. Aeon only; preserve uv.lock. Do not contact Hera.
+
 ## Owner requested Pico-style repeating recovery variant — 2026-10-18
 
 Owner confirms RIGHT/ON and several intervening power cycles; earlier ROM state

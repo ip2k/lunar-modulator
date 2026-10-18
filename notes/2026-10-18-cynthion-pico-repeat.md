@@ -82,3 +82,39 @@ Next dependency: coordinator source review and exact branch integration; reader
 must explicitly recognize layout8 and these counter fields. Separately authorized
 build/physical procedure remain coordinator work. Source simulation cannot prove
 FM-1 voltage compatibility, clock calibration, USB identity, recovery or restore.
+
+## Coordinator integration, routed build and SAFE load
+
+[verified] Integrated as `fef11263c88f4b79193ceff9b590094110124491`, pushed
+and remote SHA compared. Independent combined ULPI/key/power suites: 117 passed.
+Final source/test hashes match the independent test inputs. No main merge or
+full-CI success is claimed.
+
+[verified] Aeon build root:
+`/home/claude/.local/share/codex-builds/lunar/cynthion-pico-repeat-20261018`.
+Pinned prior image/venv/OSSCAD, source archive and six source pins checked by
+runner. Container `8e4a0af06aae0aee10b119768545008c9acb59d5df01445dc0da8bbb44be54a6`
+exited zero without OOM. Root checked 4 CPU, 8 GiB RAM/swap, 512 PID,
+docker-batch.slice, network none, read-only root/inputs, no capabilities/devices,
+no-new-privileges and uid1003. Final routed clocks: 67.29 MHz PASS60 and
+194.93 MHz PASS120. Netlist/LPF confirms CONTROL power1, C/AUX/discharge0,
+N4/P3 bidirectional LVCMOS33/PULLNONE. Container removed only after retained
+logs/created/terminal/artifact receipts; shared handoff saved and own claim released.
+
+Bitstream 170402 bytes, SHA-256
+`8fcc78e502dc692cd6d0f8daeab01030c2ae815326e624879f95bb24b65cd28f`.
+Local root evidence: `scratch/cynthion-pico-repeat-20261018/`, including
+root-review.json, input-pins.json, source.tar, runner, logs and read-only reader.
+
+[verified] After owner confirmed both TARGET ports empty, volatile load exited
+zero. At 08:13:49 UTC, read-only layout8 capture verified SAFE, PHY ready/no
+fault, both outputs disabled, profile0x0bb81001, cycle count0, packets0 and no
+terminal receipt; safety fields stable over sweep. Requested one USER press
+with both ports still empty for disconnected self-test. No connected repeating
+attempt has happened yet, and no FM1 loader/flash command was issued.
+
+Owner also requested deeper Facedancer research. Source review is retained in
+`scratch/cynthion-facedancer-deep-review-20261018.md`: maintained Moondancer
+exposes USB-device/endpoint/connect controls; no raw recovery-line or host
+controller API was identified. An inert emulator could validate ordinary USB
+on an empty target path; a PHY-driven recovery sequencer is separate design work.
