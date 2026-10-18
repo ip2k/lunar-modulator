@@ -1,3 +1,16 @@
+## FM1 connected OFF; READY verified; power-on key attempt requested — 07:39 UTC
+
+[verified] Owner connected FM1→TARGET A, LEFT/OFF, verified data cable,
+TARGET C empty, no USER. Layout7 connected-left-ready-status.json shows
+status0xC7D9/READY9, selftestF, PHYready/no fault, GPIO/OEs0, terminal0.
+Status/GPIO/terminal unchanged across read; event-ring head changed normally
+while live (1030→1035), so helper whole-ring-stability flag false is not a
+safety-state transition. No key sent at this capture.
+Asked owner SECOND fresh USER press/release then immediately LEFT/OFF→RIGHT/ON,
+leave RIGHT and TARGET C empty. Next capture terminal status/history; verify
+both data outputs released BEFORE requesting C→bench01 passive enumeration.
+No flash/loader authorization. Goal ACTIVE; Aeon only; uv.lock preserved.
+
 ## Disconnected staged self-test passed; FM1 OFF connection requested — 07:38 UTC
 
 [verified] Owner pressed USER with BOTH TARGET ports empty. Layout7 capture

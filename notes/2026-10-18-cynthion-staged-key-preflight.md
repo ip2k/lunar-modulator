@@ -94,3 +94,14 @@ four self-tests passed (maskF), PHY ready/no fault, GPIO/OEs0, terminal0,
 packets0. Safety markers unchanged across sweep. Asked owner connect FM1 on
 TARGET A with LEFT/OFF, TARGET C empty and no USER; connection verification
 remains pending before the second fresh USER recovery attempt.
+
+## Connected OFF readiness verification
+
+[verified] Owner connected FM1→TARGET A, LEFT/OFF, TARGET C empty, no USER.
+At 07:39 UTC, `connected-left-ready-status.json` reports status0xC7D9/READY9,
+selftestF, PHYready/no fault, GPIO/OEs0, terminal0. Those safety values were
+unchanged across the non-atomic read. The live ring head changed1030→1035;
+therefore the helper's combined ring-stability flag is false, without a
+safety-state transition. No key had been sent. Owner asked for the second
+fresh USER press/release followed immediately by LEFT/OFF→RIGHT/ON, keeping
+TARGET C empty until terminal output-release verification.
