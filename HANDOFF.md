@@ -1,3 +1,15 @@
+## Known-device auto capture ACTIVE; TARGET A swap pending
+
+Owner has working keyboard/mouse available. Packetry Auto selected via
+Home/Return and verified, fresh capture started via record; screenshot
+verified stopbuttonenabled/emptynewcapture. Asked detach FM1fromA only,
+plug keyboard/mouseintoA, keepCbench/CONTROLMac, report device(no typing).
+Pending reply. Next inspect Packetry+benchUSB, stop/save unique
+scratch/cynthion-enumeration-capture-20261018/control01-auto.pcapng,
+compare valid enumeration before any FM1/scope inference. Current analyzer
+is official, not recoverykey. Previous result notes committed73128412
+and backed up; no FM1writes. GoalACTIVE, Aeononly.
+
 ## Passive captures complete; known-device control pending — 08:28 UTC
 
 Packetry capturesSTOPPED/saved. Auto404B:5events/noUSBpackets. Full4920B:
