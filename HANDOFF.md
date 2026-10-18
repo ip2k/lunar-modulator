@@ -1,3 +1,17 @@
+## Three-retry set complete; no FM1 identity — 08:02 UTC
+
+Ownerreplied"c"; interpretedasCconnectedonly, finalswitchpositionNOTconfirmed.
+[verified] retry03/host-enumeration.txt at08:02:26UTC shows onlyKA6+roots,
+noUSBattach/event in preceding3min. Retry3orderchanged(ONbeforeUSER) yielded
+WAIT_DPtimeout/SOF0/FAULT8/OEs0. Retry1and2 yieldedDONE/SOF1.503s,thenUSB-71,
+noidentity. No fourthkeyattemptrequested; scope deferredpendingofflinepathreview.
+LastknownFM1onA,Cbench01,CONTROLMac; switchunconfirmed, no furtherchangesasked.
+Follower64974completed124(expected180stimeout),logpreserved; noneleft running.
+bringup_review sourceonly investigating1kGPIOvsROMpullupandPHYalternatives;
+no newhardwarevariantauthorized. Sourceinstrumentationdesignsavedbutunimplemented.
+GoalACTIVE/installablefirmwarereleaseunfulfilled;no flash/loaderwritesissuedhere.
+Aeononly;uv.lockpreserved. Latest1aa52970pushedremoteverified.
+
 ## Retry3 owner varied order; WAIT_DP timeout/FAULT/OEs0 — 08:00 UTC
 
 OwnerreportsFM1ONbeforeUSERexperiment,allLEDsrainbow. Actualswitchpositionand

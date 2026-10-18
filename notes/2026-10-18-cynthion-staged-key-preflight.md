@@ -302,3 +302,17 @@ This attempt neverenteredSOF and is a separate timingvariation, not an exact
 repetitionofpriorsequence. NoROMidentity/failurecauseestablished.
 Requestednoswitchchange/USER; connectCifnotalready andreportC/switchstate.
 No fourthattempt,newwaveform,loader orflash plannedfromthisresult.
+
+### Retry3 host check and bounded-set outcome
+
+Ownerreplied"c", interpretedasCconnected; finalswitchpositionnotconfirmed.
+[verified] At08:02:26UTC `retry03/host-enumeration.txt` shows onlyKA6+roots,
+no freshUSBattach/event in preceding3minutes. Kernel followerfinished124
+(expected180stimeout); allread-onlylogsretained.
+
+Bounded3retrysetcomplete: retry1and2 localDONE/SOF1.503s followedbyUSB-71,
+noidentity; retry3ON-before-USERvariation WAIT_DPtimeout/SOF0 withnofreshhost
+attach. No newloader/flashcommand, waveformchange orfourthkeyattempt.
+Owner toldleave setupunchanged; scope deferredwhileofflineGPIOdrive/PHY
+alternativereviewcontinues. NoROMentry,calibration,restorationorhardware
+acceptanceclaim follows.
