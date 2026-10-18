@@ -1,3 +1,14 @@
+## Retry3 connected READY; USER+ON/DONE-only handoff pending — 07:59 UTC
+
+OwnerconnectedOFF,Cempty,noUSER. [verified] retry03/connected-left-ready-status.json
+READY9/Fmask/PHYready/nofault/OEs0/terminal0/packets0; safetyvaluesstable,
+liveringonlychanged. AskedUSER→LEFTtoRIGHT/ON→CimmediatelyONLYonsteadyLED5alone;
+otherpatternsleaveCunplugged. Pendingreply. Next terminalread+hostenumeration.
+Read-only180s journalfollower64974 live→retry03/live-kernel-log.txt; deadline
+~08:02UTC. Priorretry02follower56892 finished124(expectedtimeout),logpreserved.
+Finalof3 ownerrequestedretries,no waveformchange/loader/flash. GoalACTIVE.
+Latest5086bf53pushedremoteverified;Aeononly;uv.lockpreserved.
+
 ## Retry3 disconnected READY; OFF connection pending — 07:58 UTC
 
 OwnerfirstUSERdisconnected. [verified] retry03/preflight-ready-status.json

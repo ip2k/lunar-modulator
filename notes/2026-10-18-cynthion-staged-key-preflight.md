@@ -283,3 +283,10 @@ No retry3key sentyet.
 `retry03/preflight-ready-status.json` READY9/status0xC7D9,Fmask,
 PHYready/no fault,OEs0,terminal0,packets0,safetyvaluesstable.
 RequestedFM1→A LEFT/OFF,Cempty,noUSER/move; pendingreply.
+
+[verified] Retry3 connectedOFF READYverified07:59UTC,
+`retry03/connected-left-ready-status.json` READY9/Fmask/no fault/OEs0,
+terminal0,packets0;safetyvaluesstable,live ringonlychanged.
+RequestedUSER→LEFTtoRIGHT/ON→CimmediateONLYonsteadyLED5alone; pendingreply.
+Read-only180s kernel followerwriting `retry03/live-kernel-log.txt`; previous
+retry02followerfinished124(expectedtimeout), logretained.
