@@ -1,3 +1,14 @@
+## Connected OFF and SAFE; corrected power-on requested — 2026-10-18 07:22 UTC
+
+[verified] FM1→TARGETA,switchLEFT/OFF,Cempty,noUSER perowner. Read-onlycapture
+connected-left-disarmed-status.json under scratch/cynthion-left-to-right-recovery-20261018/
+showsstatus0x4410/SAFE,PHYready/nofault,GPIO0/OEs0,terminal0 beforeandafter.
+Ringlivechangedduringcapture; controlsafetyvaluesstable, whole sweepnon-atomic.
+Askedownerpress/releaseUSERonce then immediatelyLEFT→RIGHT(ON),leaveRIGHT,
+replyDone. C MUSTremainempty. Awaitreplythenreadterminal/eventring/PHYsnapshot
+andverifyOEsreleasedbeforeaskingC→bench01. No flash/loader/vendor command.
+GoalACTIVE;preserveuv.lock;Aeononly.
+
 ## Corrected LEFT/OFF to RIGHT/ON test ready — 2026-10-18 07:21 UTC
 
 [reported: owner videos] RIGHT=ON,LEFT=OFF. Owner explicitlyrequested another

@@ -50,3 +50,14 @@ bootloader evidence; successful recovery requires actual identity/enumeration.
 LUNR/layout6 status `0x4410`, SAFE0, PHY ready/no fault, both OEs0,
 terminal0; state/GPIO/terminal/ring unchanged across sweep. Ready for the
 connection-only step with FM1 LEFT/OFF and TARGET C empty; USER not yet.
+
+## FM1 connected while OFF; SAFE verified
+
+[verified: owner] FM1 connected to TARGET A, switchLEFT/OFF, TARGET C empty,
+noUSERpress. At07:22:21–28UTC, LUNR/layout6 status0x4410/SAFE before and
+after read-only sweep; PHYready/no fault, GPIO0/OEs0, terminalreceipt0.
+Event ring changed during the sweep (expected live capture); do not call the
+whole sweep atomic/stable. Safety status, GPIO and terminal markers matched.
+Raw `scratch/cynthion-left-to-right-recovery-20261018/connected-left-disarmed-status.json`.
+Owner now requested USER once then immediateLEFT/OFF→RIGHT/ON, leaveRIGHT;
+TARGET C remains empty until terminal outputs are confirmed released.
