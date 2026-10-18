@@ -1,3 +1,24 @@
+## Passive enumeration capture started; owner reconnection pending — 08:25 UTC
+
+Owner requested Cynthion capture before scope. Both TARGETs confirmed empty;
+CONTROL Mac. Restored official volatile analyzer238282B SHA
+5afd1741247da483876bbc7b0d87606ef34503558f31f638162409cb2f0ea5da, exit0.
+Custom repeat image no longer loaded. cynthcap binary exists but Packetry6555
+claims analyzer exclusively. CUA successfully inspected actual Packetry window:
+old cynthion-v8-repeat-display-pass.pcapng loaded, deviceNone before load.
+After load analyzer detected, targetpowerON shown, capture stopped. CUA superQ
+did not quit; no workaround claimed. Clicked record at229,112; fresh window
+verified capture started with automatic speed selection,0devices and1event.
+Asked connect TARGETC→bench01 then move still-powered FM1 direct→TARGETA,
+RIGHT/ON unchanged,no USER/RESET. Pending reply. Capture is ACTIVE in Packetry.
+Next after reply: inspect live screenshot+fresh benchUSB, allow enumeration
+retries, stop via square314,112, save new unique pcapng under
+scratch/cynthion-enumeration-capture-20261018/ and decode with tshark USBLL.
+Do not confuse prior loaded filename/status with newcapture persistence; no
+new file saved yet. Analyzer load log in same scratchfolder. No FM1writes.
+Cynthcap tool itself wasn't changed; no captures through it. Scope question
+superseded for now by this passivecapture request. GoalACTIVE, Aeononly.
+
 ## Direct USB failed; connector measurement pending — 08:21 UTC
 
 Owner direct connected FM1→bench01, RIGHT/ON retained per procedure. Host
