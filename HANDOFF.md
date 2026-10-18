@@ -1,3 +1,17 @@
+## Retry2 disconnected READY; OFF connection pending — 07:54 UTC
+
+Owner bothTARGETsempty,CONTROL→Mac,FM1LEFT/OFF. Same175113B/bf0f0029 reloadexit0.
+retry02/disarmed-status.json SAFEverified; ownerfirstUSERdisconnected.
+[verified] retry02/preflight-ready-status.json status0xC7D9/READY9,selftestF,
+PHYready/no fault,GPIO/OEs0,terminal0,packets0,safetyvaluesstable.
+Asked FM1→A LEFT/OFF,Cempty,noUSER/move. Pendingreply; verifyconnectedREADY.
+Source-only independentreview conditionally approves quicker hosthandoff ONLY
+on steadyLED5-alone pattern100000 (DONEabsorbing/OEs0), then terminalreadback.
+Do notconnectonallLEDs/flicker/otherpatterns. Notyetinownerinstructions.
+Potentialretry2 timingvariation removes8sread/humanwait, waveformunchanged.
+Scopeup3 reviewedretries remains; noflash/loader. GoalACTIVE;Aeononly.
+Latestd9a19506pushed verifyremote; uv.lockpreserved.
+
 ## Retry1 USB attach/-71 repeated; retry2 empty confirmation pending — 07:52 UTC
 
 [verified] OwnerC→bench01,RIGHT/ON. retry01/host-enumeration.txt at07:52:48UTC

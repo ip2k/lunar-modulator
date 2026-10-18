@@ -236,3 +236,18 @@ attach with descriptorread/64 -71 and addresssetup failures, hostautomatic
 portpowercycle, unableenumerate. Same result as initialstagedattempt.
 No coordinatorreset, loader orflashcommand. Requested bothTARGETsempty,
 CONTROL→Mac,FM1LEFT/OFF,noUSER toprepare retry2; pendingreply.
+
+### Retry2 disconnected readiness
+
+OwnerbothTARGETsempty; reviewedbitreloadexit0, `retry02/disarmed-status.json`
+SAFE/OEs0 verified. OwnerfirstUSERdisconnected. At07:54UTC
+`retry02/preflight-ready-status.json` READY9/status0xC7D9,selftestF,
+PHYready/no fault,GPIO/OEs0,terminal0,packets0; safetyvaluesstable.
+RequestedFM1→A LEFT/OFF,Cempty,noUSER, pendingreply.
+
+[verified: source review] Independent review confirms steadyLED5-alone
+mask100000 maps to absorbingDONE with output enables zero; allLEDs isFAULT,
+READYmask010010. This could permit immediate physicalhosthandoff atDONE,
+then postconnectionterminalreadback, avoiding priorreadback/humanwait.
+No newwaveform orautomaticretry. Must firstprovide explicitowner sequence;
+no quickhandoff instruction issuedyet. LED timinggate is notROMproof.
