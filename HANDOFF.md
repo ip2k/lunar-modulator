@@ -1,3 +1,22 @@
+## Retry3 disconnected READY; OFF connection pending — 07:58 UTC
+
+OwnerfirstUSERdisconnected. [verified] retry03/preflight-ready-status.json
+READY9/status0xC7D9,Fmask,PHYready/no fault,OEs0,terminal0,packets0,
+safetyvaluesstable. AskedFM1→A LEFT/OFF,Cempty,noUSER/move; pendingreply.
+Next connectedREADYverify,thenUSER+ON andimmediateC onlyonsteadyLED5-alone.
+Finalof3 scopedretries; waveformunchanged/no firmwarewrite. GoalACTIVE.
+
+## Retry3 loaded SAFE; disconnected USER pending — 07:57 UTC
+
+OwnerbothTARGETsempty,CONTROL→Mac,FM1LEFT/OFF. [verified] Same175113B/bf0f0029
+volatileloadexit0; retry03/disarmed-status.json SAFE0/PHYready/no fault,
+GPIO/OEs0,terminal0,safetyvaluesstable. Asked firstUSER whilebothportsempty.
+Next retry03/preflight-ready-status.json verifyREADY/F/OE0 thenconnectOFF,
+connectedREADYcheck,secondUSER+ON andDONE-onlyLED5 hosthandoff asretry2.
+Finalof3 scopedretries; noflash/loader/waveformchanges. retry02kernel follower
+56892stillrunningread-only180sdeadline07:58:30UTC, logfilepreserved.
+Latest9423d876pushed,remoteverifyneeded. GoalACTIVE;Aeononly;uv.lockpreserved.
+
 ## Retry2 quickhandoff DONE/-71; retry3 empty confirmation pending — 07:56 UTC
 
 OwnerfollowedUSER→LEFT/RIGHT→steadyLED5-alone→Cconnected. [verified]

@@ -271,3 +271,15 @@ descriptor-71 failures,hostautomaticportcycle,unableenumerate. Quickerhandoff
 stillfailed; preciseconnecttime relativetoDONE wasnotmeasured.
 RequestedbothTARGETsempty,CONTROL→Mac,FM1LEFT/OFF,noUSER forretry3of3.
 No furtherwaveformchanges or firmwarewrite.
+
+### Retry3 disconnected load
+
+OwnerbothTARGETsempty,CONTROL→Mac,FM1LEFT/OFF. [verified] Samebitvolatile
+loadexit0, `retry03/disarmed-status.json` at07:57UTC SAFE0/PHYready/no fault,
+GPIO/OEs0,terminal0,safetyvaluesstable. Asked firstUSERdisconnected.
+No retry3key sentyet.
+
+[verified] Retry3 firstUSERdisconnected; at07:58UTC
+`retry03/preflight-ready-status.json` READY9/status0xC7D9,Fmask,
+PHYready/no fault,OEs0,terminal0,packets0,safetyvaluesstable.
+RequestedFM1→A LEFT/OFF,Cempty,noUSER/move; pendingreply.
