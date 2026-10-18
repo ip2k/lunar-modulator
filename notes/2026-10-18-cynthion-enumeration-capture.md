@@ -262,3 +262,14 @@ This has no valid transport for flashing. Requested one FM1-end USB-C180degree
 flip/reseat, hostend/switchRIGHTunchanged, before electrical measurements.
 Await reply thenfreshhost. Boundedkernel follower4538 endedtimeout124 as
 expected; no monitor remains running. No repeatkey/loader/flash command.
+
+## FM1-end plug flip still no attach; electrical setup information pending
+
+Owner flipped only FM1USB-C plug180degrees, directbench path/RIGHTON retained.
+Fresh08:58:25UTC roots+KA6 only and no new USBattach. Receipt retry-after-control-
+direct-flipped.txt. Stated the limit: failed connection is before descriptor
+exchange; internal sequencer status cannot establish connector voltage/CPUrail.
+No additional identical key attempt. Asked scope model and USBbreakout/testcable
+availability for D+/D-/GND, explicitly no probing/opening yet. Need exact setup
+before measurement instructions. Cynthion stays terminalDONE/OEs0, FM1directON.
+All delegated agents currently completed; no worker/build remains running.

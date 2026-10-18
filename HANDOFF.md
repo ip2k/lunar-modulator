@@ -1,3 +1,15 @@
+## No USB attach after direct plug flip; scope model/breakout pending
+
+Fresh08:58:25UTC afterFM1-end180flip: noUSBattach, roots+KA6only. DirectFM1
+RIGHT/ON. RepeatingCynthion terminalDONE/OEs0; noflashcommands/noROMidentity.
+Asked scope model and USBbreakout/testcable access toD+/D-/GND; explicitly no
+probing or opening yet. Next give specific measurement setup after details.
+Do not repeat identical keys without new evidence. Internal OEs/tests do not
+prove waveform voltage atFM1. Full-speed known-device control unverified;
+low-speedmouse did pass. Receipts/capturelimits in today's enumeration note.
+Allagentscompleted; noactiveworkers/builds/kernelmonitor. GoalACTIVE; physical
+recovery requires new evidence. Aeononly; preserveuv.lock.
+
 ## Direct FM1 also no attach; FM1 USB-C orientation check pending
 
 Owner directconnected preservingRIGHT/ON. Fresh08:57:47UTC roots+KA6 only,
