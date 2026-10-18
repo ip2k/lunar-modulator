@@ -1,3 +1,14 @@
+## Direct mouse PASS; replacement cable/host-port capture ACTIVE
+
+Mouse directly on bench01 enumerated 17ef:6019 at usb3-1, HID driver bound
+08:35:17UTC. Cynthion-path attempt failed at usb3-2: port remains confounder.
+Asked known data C→bench cable using successful mouse host port, mouse→A,
+FM1 detached and CONTROL→Mac unchanged. Confirmation pending. Started fresh
+Auto capture through CUA, verified active. Next inspect Packetry+bench, stop/
+save control03 unique pcapng, compare. Do not diagnose FM1 from failed control.
+Private direct receipt host-mouse-direct.txt; detailed enumeration note updated.
+No FM1 writes. Goal ACTIVE; Aeon only. Preserve uv.lock.
+
 ## Mouse control failed through Cynthion; direct comparison pending
 
 Owner connected mouse. Packetry captured low-speed attach/resets; bench01

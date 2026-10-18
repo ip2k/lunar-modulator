@@ -84,3 +84,13 @@ FM1 failure specifically to its firmware/hardware. Asked same mouse directly
 on bench01, bypassing Cynthion; FM1 remains detached. Direct result pending.
 Private receipts: host-mouse-control.txt, control02-tshark.txt,
 control02-review.json. Packetry stopped, official analyzer, Auto speed.
+
+## Direct mouse passes; replacement-cable comparison pending [verified]
+
+Fresh bench 08:35:41UTC: same mouse enumerated directly at usb3-1 as 17ef:6019,
+Lenovo USB Optical Mouse, HID driver bound. Prior Cynthion path used usb3-2;
+port difference is a confounder, not a proven cable or Cynthion hardware fault.
+Asked replace C→bench cable with known data cable and use the successful direct
+mouse port, then reconnect mouse→A, keeping FM1 detached/CONTROL→Mac.
+Fresh Auto capture started and active verified through CUA before confirmation.
+Next inspect fresh USB/kernel and Packetry, save unique control03 capture.
