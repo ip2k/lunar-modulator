@@ -118,3 +118,27 @@ Owner also requested deeper Facedancer research. Source review is retained in
 exposes USB-device/endpoint/connect controls; no raw recovery-line or host
 controller API was identified. An inert emulator could validate ordinary USB
 on an empty target path; a PHY-driven recovery sequencer is separate design work.
+
+## Connected repeat completed; USB enumeration failed — 08:20 UTC
+
+[verified: physical JTAG schedule receipt] During the run, read-only observation
+saw eleven completed cycles. Terminal capture at 08:17:54–08:18:02 UTC records
+DONE7, terminal receipt0x701, no PHY fault, both output enables0, sixteen
+completed cycles and3000 words in the last cycle (reg0x66=0x000bb810),
+last PWM duration2000000us. State/GPIO/terminal/history fields were unchanged
+over the final sweep. These are sequencer receipts, not FM1 acknowledgements.
+
+[reported: owner] TARGET C connected after the requested repeating procedure;
+owner did not separately state the final LED pattern. [verified: bench kernel]
+At08:17:41–43UTC, port3-2 detected full-speed attach, descriptor read/64
+failed-71, setup-address attempts failed, and USB enumeration failed. Fresh
+08:20:19UTC lsusb shows roots and KA6 only; no FM1 application, OTA or ROM
+identity. The180-second kernel follower ended with expected timeout124.
+No loader, flash, MIDI, firmware-write or additional trigger command was sent.
+
+Evidence under scratch/cynthion-pico-repeat-20261018/: terminal-status.json,
+run-observation-status.json, host-enumeration-after-connect.txt and
+live-kernel-log.txt. Requested direct FM1→bench01 with verified cable,
+RIGHT/ON unchanged and no power cycle, to separate Cynthion's passthrough
+path from device response while retaining any current ROM state. Pending owner.
+Recovery remains unproven; do not repeat identical attempts automatically.

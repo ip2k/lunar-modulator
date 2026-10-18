@@ -1,3 +1,17 @@
+## Repeat run finished, direct USB check pending — 08:20 UTC
+
+Pico-repeat physical schedule completed16cycles/3000lastwords/2sPWM, DONE7
+receipt0x701, no fault, OEs0 and stable terminal sweep. Owner says C connected.
+Bench port3-2 attached full-speed08:17:41UTC but descriptor/setup failed-71;
+fresh08:20:19UTC lsusb has roots+KA6 only, no FM1 identity. No recovery proof.
+Evidence scratch/cynthion-pico-repeat-20261018/{terminal-status.json,
+host-enumeration-after-connect.txt,live-kernel-log.txt}; follower87334 ended124,
+reader92529 ended0. No live tool sessions remain from this run.
+Asked owner direct FM1→bench01, switch RIGHT/ON unchanged/no power cycle.
+Next: on reply capture freshUSB/kernel only; no loader/flash/new trigger.
+Both Cynthion output enables confirmed0. Aeon only; no Hera. Goal ACTIVE.
+See notes/2026-10-18-cynthion-pico-repeat.md for source/test/build receipts.
+
 ## Pico-repeat connected READY; owner repeat run pending — 08:16 UTC
 
 Owner connected FM1 OFF→TARGET A, C empty. Read-only connected-left-ready-status.json
