@@ -67,3 +67,32 @@ No existing graph was found; no graph was built. No new agents were started.
 
 Branch: `feature/2026-10-22@devkit-performance`, based on `659c3aa9`.
 Raw USB evidence: ignored `scratch/devkit-20261022/` in this worktree.
+
+## First captured reset
+
+[verified] Owner moved the initial TDI connection to the separate UART RX
+header, confirmed VTGT/GND/PB3 wiring, and pressed Reset once after capture
+was armed. Capture opened exclusively at 1,000,000 baud, 8N1, no flow control,
+DTR/RTS deasserted, with no serial writes. Raw capture is private on bench01:
+`/home/claude/fm1-devkit-captures/uart-20261022T165500Z.bin`.
+
+[verified] Readable factory boot output reports:
+
+- `WL82(AC791N) CHIP_ID: 0x6f01`, setup build July 26, 2024.
+- CPU 320 MHz; SDRAM 192 MHz; HSB 160 MHz; LSB 53,333,333 Hz;
+  SFC 80 MHz. These are firmware-reported settings, not measured frequencies.
+- SDRAM 8,388,608 bytes; heap 6,987,712 bytes; internal RAM accounting
+  523,596 bytes with 421,452 remaining at startup.
+- SDK banner `AC79NN SDK on branch [master]`, with July 2024 component builds;
+  do not identify this as our pinned V1.2.13 without matching its provenance.
+- SDFILE logical disk capacity 8192 KB; physical flash capacity/JEDEC ID
+  is not independently established by that message.
+- Display `dc->width : 320, dc->lines : 480`.
+- DAC analog initialization succeeds. Demo later reports
+  `1open_audio_dec_err!!!`; application UI and network activity continue.
+- Reset reason `LOW POWER` is the literal firmware label; no conclusion
+  about a brownout or wiring fault follows without further evidence.
+
+UART bring-up is demonstrated. Lunar DSP performance is still unmeasured on
+this dev kit. Next: preserve factory/recovery provenance and prepare a minimal
+board-specific timing image without assuming FM-1 peripheral compatibility.
