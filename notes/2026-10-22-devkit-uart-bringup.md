@@ -246,3 +246,36 @@ Semantic-tool limit: Rarefaction rejects this worktree via an outside-root
 `project` path, so it was not used as proof of the new Python adapter's callers.
 Serena remains on the primary checkout; no sibling session was switched.
 Focused source inspection and actual compiler/tests supply the checks above.
+
+### Payload validation and offline candidate
+
+[verified] Factory app-area payload, app.bin and cfg_tool.bin CRCs all pass.
+Decoded SPL bank header, payload and enclosing record CRCs also pass.
+One SPL bank loads 14,520 bytes at `0x01c02000`, file offset 16; decoded
+SPL SHA-256 `4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4`.
+A private analysis-only ELF wraps that exact bank at its recorded address;
+vendor pi32v2 objdump produced the private listing. REA's exposed native
+architecture choices do not include pi32v2; no REA decompilation is claimed.
+Vendor instruction decoding remains the source of truth for this CPU.
+
+[verified] Diagnostic app flattened in the SDK's documented section order
+`.text + .data + .dynamic_data + .ram0_data + .cache_ram_data`: 161,776 bytes,
+SHA-256 `a8be4d4d7b1feeb7c2a4c468b503b965249e386344759c39937e6720acd8753c`.
+Independent vendor objcopy exports concatenate to that same hash on Aeon.
+
+Private **offline, not hardware-admitted** candidate:
+`scratch/devkit-20261022/factory/candidate-v5-OFFLINE-NOT-ADMITTED.bin`,
+SHA-256 `912e0b8d07afcc702c0e85e06d484c1b1c213304ebefdfa01780ce4629742db8`.
+App length/CRC and directory/area CRCs are updated in the existing allocation;
+old tail and other components remain. It changes 40 4-KiB sectors from 0x4000
+through 0x2b000; all raw bytes before 0x4000 and from 0x2b920 onward match the
+factory dump exactly. The private candidate plan lists pending gates:
+fixed-loader backup cross-check, factory SPL's 92-byte boot-info ABI review,
+SDK startup flash side-effect review, and independent candidate/bounded-writer
+validation. Existing FM-1-specific 1-MiB writer policies are not applicable to
+this 8-MiB dev kit and must not be bypassed by pretending it is an FM-1.
+
+Current source checkpoint before this note: `8351f7348c5d36b1260a4a0cf08022dab1fbee5c`,
+verified pushed. Current USB observation is still device 91, active original
+loader; fresh owner Update/Reset confirmation remains pending. No new target
+command was sent after the first backup completed. No diagnostic has booted.
