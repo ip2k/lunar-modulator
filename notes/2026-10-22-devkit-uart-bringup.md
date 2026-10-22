@@ -165,3 +165,23 @@ factory reads, preserve private recovery data, review the candidate's boot and
 partition layout, and only then proceed with an authorized target experiment.
 Do not run vendor blanket erase/key/program commands. No audio output is
 required for the first timing diagnostic.
+
+### Follow-up build verified
+
+[verified] v5 links successfully; ELF SHA-256
+`bc8566d9d73e41951050e4ecc7a3a71c5355e3212a1375b65901b5f59ab97337`.
+Benchmark state addresses remain in internal SRAM as above. Link audit again
+has 0 failures; `sdk_meky_check` vendor disassembly is identical to manually
+reviewed v4, signing off the scheduling item for v5 as well. Focused checks:
+`tests/test_devkit_diagnostics.py tests/test_uboot_read.py` all pass (18 tests),
+including ASan/UBSan execution of the real resampler workload. No target run,
+installation package approval, CI run or merge is claimed by these checks.
+
+Backup client, base transport and hash-pinned loader are privately staged on
+bench01 at `/home/claude/fm1-devkit-tools-20261022/` with mode 0600. Loader
+hash was independently rechecked there. Staging copied files only; it did not
+open the USB target. At the latest check the board remains CDC device 85.
+Owner action is still pending. Work is on
+`feature/2026-10-22@devkit-performance`; implementation/config checkpoint
+`0b30074679a0d7818bdded7974b58a0e83103fe6` is verified pushed. This final
+note update is committed on the same branch; recover the exact tip from Git.
