@@ -358,3 +358,31 @@ install/readback/restore/full-factory comparison before diagnostic boot.
 GitHub DNS resolution failed for `f871ce61`; it is saved locally and pushed
 to the existing Aeon exchange remote, but is not yet verified backed up on
 GitHub. Retry GitHub push and verify SHA; do not call that backup complete.
+
+### Physical v6 rehearsal in progress
+
+[verified] Fixed-loader session dev92: v6 install transaction passed all
+forty sector readbacks and the full 8,388,608-byte comparison, target SHA
+`e77ee8af309fc57d1a8eddaac95dec253dda031f269021382c9cb1e977baa103`.
+No reset/boot sent. Bench evidence `fm1-devkit-backups/v6-install-rehearsal`.
+Explicit exact-factory restoration is now running into
+`fm1-devkit-backups/v6-restore-rehearsal`; do not infer restore success before
+its receipt and full factory comparison. Main exec session65040; live UART
+session53925 (ten-minute bounded capture). Firmware launch remains pending.
+
+GitHub backup recovered using a per-command HTTPS DNS override from bench01's
+actual resolution (TLS checks retained; no DNS service changed). Remote branch
+verified `9272c5c7f09895f3fd3b50bd34c0bb254f897af5`.
+
+[verified] Physical exact-factory restoration completed successfully. Full
+8-MiB SHA returned to
+`127b2ebbef9da3469f0bf7ea3841a5515d01721ebac9bbdc7fc739032d7b5ec1`;
+remote `cmp` independently confirms identical bytes to the original backup.
+This demonstrates restoration of the forty rewritten application sectors
+with complete-image comparison, not an erase/rewrite of all 8 MiB or a
+factory boot-acceptance result. Private receipts copied to ignored
+`scratch/devkit-20261022/rehearsal-receipts/`.
+
+A second v6 installation for boot is running into bench
+`fm1-devkit-backups/v6-install-for-boot` (exec session61005). Wait for full
+readback success before owner Reset. No diagnostic has booted yet.
