@@ -49,6 +49,11 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path):
     app = sdk/'apps/demo/demo_hello'
     (app/'include').mkdir(parents=True)
     (app/'board/wl82').mkdir(parents=True)
+    system_ld = sdk/'include_lib/driver/cpu/wl82/system.ld'
+    system_ld.parent.mkdir(parents=True)
+    system_ld.write_text('    PROVIDE(syscfg_ops_begin = .);\n'
+                         '       *(.syscfg.2.ops)\n       *(.syscfg.1.ops)\n       *(.syscfg.0.ops)\n'
+                         '    _syscfg_ops_end = .;\n    PROVIDE(syscfg_ops_end = .);\n')
     (app/'include/app_config.h').write_text('#define __FLASH_SIZE__    (4 * 1024 * 1024)\n#define __SDRAM_SIZE__    (2 * 1024 * 1024)\n#define CONFIG_CXX_SUPPORT\n')
     (app/'app_main.c').write_text('void app_main() {os_task_create(hello_demo_task, NULL, 10, 1000, 0, "hello_demo_task");}')
     (app/'board/wl82/Makefile').write_text('c_SRC_FILES := \\\n\toriginal.c\nall: pre_build $(OUT_ELF)\n\t$(QUITE) $(RUN_POST_SCRIPT) sdk\n')
@@ -60,6 +65,12 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path):
     assert '-fno-data-sections' in result
     assert '#define __SDRAM_SIZE__    (8 * 1024 * 1024)' in (out/'apps/demo/demo_hello/include/app_config.h').read_text()
     assert 'benchmark.c' in result and 'sdk_worker.c' in result
+    linked = (out/'include_lib/driver/cpu/wl82/system.ld').read_text()
+    start = linked.index('PROVIDE(syscfg_ops_begin')
+    end = linked.index('PROVIDE(syscfg_ops_end')
+    assert '.syscfg.' not in linked[start:end]
+    assert linked.count('*(.syscfg.') == 3
+    assert linked.index('*(.syscfg.') > end
     with pytest.raises(ValueError):
         module.prepare(sdk, ROOT, out)
 

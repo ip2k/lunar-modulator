@@ -25,6 +25,17 @@ def prepare(sdk, source, out):
                         '#define __SDRAM_SIZE__    (8 * 1024 * 1024)', 1)
     text = text.replace('#define CONFIG_CXX_SUPPORT', '// #define CONFIG_CXX_SUPPORT')
     config.write_text(text)
+    # This diagnostic needs no settings backend. Keep vendor records linked
+    # outside the registered range rather than patching their implementations.
+    # system.ld is the source used by sdk_ld.c's pre-build preprocessing.
+    system_ld = out/'include_lib/driver/cpu/wl82/system.ld'
+    text = system_ld.read_text()
+    entries = '       *(.syscfg.2.ops)\n       *(.syscfg.1.ops)\n       *(.syscfg.0.ops)\n'
+    end = '    PROVIDE(syscfg_ops_end = .);'
+    if text.count(entries) != 1 or text.count(end) != 1:
+        raise ValueError('Unexpected SDK settings-table layout; review before building')
+    text = text.replace(entries, '', 1).replace(end, end+'\n'+entries, 1)
+    system_ld.write_text(text)
     main = app/'app_main.c'
     text = main.read_text()
     text = text.replace('void app_main()', 'extern void lunar_devkit_worker(void *);\nvoid app_main()')
@@ -50,6 +61,7 @@ def prepare(sdk, source, out):
                 'placement': 'XIP code/constants; internal SRAM state; SDK CONFIG_NO_SDRAM_ENABLE',
                 'measurement': 'resampler-only, IRQ enabled, raw oscillator timer ticks',
                 'download_disabled': True,
+                'settings_backends': 'empty registered range; records retained outside it',
                 'inputs': {str(p.relative_to(source)): hashlib.sha256(p.read_bytes()).hexdigest()
                            for p in [source/'firmware/devkit/benchmark.c',
                                      source/'firmware/devkit/benchmark.h',

@@ -297,3 +297,38 @@ behavior, alongside the boot-info ABI and fresh fixed-loader backup gates.
 pushed and matched the remote branch. A subsequent live USB inventory still
 shows device 91 on `3-1.2`; no new ROM session or fixed-loader execution is
 claimed. The requested owner Update/Reset sequence remains outstanding.
+
+## Fresh fixed-loader backup and v6 startup restriction
+
+[verified] Owner repeated hardware entry; USB changed from device 91 to 92
+on `3-1.2`, with the expected sg0 ancestry. Fixed-loader hash was rechecked
+before execution. Two new complete 8-MiB dumps match the original factory
+SHA `127b2ebbef9da3469f0bf7ea3841a5515d01721ebac9bbdc7fc739032d7b5ec1`.
+Remote `cmp` confirms both fixed reads equal the original read byte for byte.
+Private receipts: bench `fm1-devkit-backups/factory-20261022-fixed-crosscheck`,
+Mac ignored `scratch/devkit-20261022/fixed-crosscheck/receipt.json`. No host
+erase/program command sent; restore still not demonstrated. Receive-only
+UART capture armed before upload at
+`/home/claude/fm1-devkit-captures/uart-fixed-crosscheck-20261022.bin` (ten-minute
+bounded capture).
+
+The preparer now moves settings-backend records outside their linker
+registration range, preserving the vendor implementations and records.
+[verified: actual v6 target ELF] `syscfg_ops_begin == syscfg_ops_end ==
+0x02024bcc`, with `cfg_vm` retained at `0x02024be8`. This prevents that table
+walker from initializing persistent settings; it is not a blanket proof that
+all vendor startup code is free of flash side effects. Twenty focused tests
+pass. v6 ELF SHA `3e313f06be8b12880085a4a43e83820c333767d184c447d4c896cc0d66bc33f1`;
+flat app 161,776 bytes, SHA
+`75731dfffb67c6c0ab8afcf5ef3ed92ad16d2eea223ba9c1bdf33ef1632fce3a`.
+`audit_link.py`: zero failures, scheduling manual item pending in its output;
+byte comparison confirms the vendor scheduling function is identical to the
+previously reviewed v5. No diagnostic boot or candidate flash yet.
+
+Boot-handoff investigation: [verified: decoded factory SPL vendor listing]
+`0x01c0531c` passes `r14+136` to the application; six words are copied there
+at `0x01c0526e`, followed by a header pointer and 32-byte header. The listing
+also has conditional writes at `r14+216` (argument +80). Do not infer the
+remaining extended ABI is initialized solely from the SPL date/version;
+this review remains open. v5 offline candidate is superseded for startup
+behavior; do not install it.
