@@ -279,3 +279,21 @@ Current source checkpoint before this note: `8351f7348c5d36b1260a4a0cf08022dab1f
 verified pushed. Current USB observation is still device 91, active original
 loader; fresh owner Update/Reset confirmation remains pending. No new target
 command was sent after the first backup completed. No diagnostic has booted.
+
+### SDK settings initialization reachability
+
+[verified: v5 vendor objdump and linked init-table bytes] `app_task_handler`
+walks the platform init table before creating `lunar_devkit_worker`. Its entry
+at `0x02024bc4` points to `syscfg_tools_init` (`0x02008234`), which walks the
+28-byte settings-operation records and calls each non-null initialization
+callback. The VM record at `0x02024be8` starts with `syscfg_vm_init`
+(`0x02009b70`). That initializer contains conditional calls to `vm_reset`,
+`_vm_area_erase` and defragmentation/recovery routines. This proves startup
+reachability, not that any particular erase branch would execute against this
+factory VM. Candidate boot remains pending a bounded decision on this startup
+behavior, alongside the boot-info ABI and fresh fixed-loader backup gates.
+
+[verified] Source/docs tip `2c8f661966b83374fe92c9048fcd4605b3a85edd` was
+pushed and matched the remote branch. A subsequent live USB inventory still
+shows device 91 on `3-1.2`; no new ROM session or fixed-loader execution is
+claimed. The requested owner Update/Reset sequence remains outstanding.
