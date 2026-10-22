@@ -386,3 +386,26 @@ factory boot-acceptance result. Private receipts copied to ignored
 A second v6 installation for boot is running into bench
 `fm1-devkit-backups/v6-install-for-boot` (exec session61005). Wait for full
 readback success before owner Reset. No diagnostic has booted yet.
+
+### Diagnostic installed, awaiting owner first Reset
+
+[verified] Second installation completed with full 8-MiB readback SHA
+`e77ee8af309fc57d1a8eddaac95dec253dda031f269021382c9cb1e977baa103`.
+Private evidence `fm1-devkit-backups/v6-install-for-boot`; receipt copied
+to ignored `scratch/devkit-20261022/rehearsal-receipts/install-for-boot.json`.
+No software reset sent. Owner directly prompted to press/release Reset once,
+without Update. Diagnostic is UART-only, no display/audio output. No target
+timing or successful diagnostic boot is claimed before capture evidence.
+
+Earlier ten-minute rehearsal capture was deliberately stopped (own PID
+verified against its output-file descriptor) before rearming receive-only
+UART for thirty minutes. Active exec session40982; bench path
+`/home/claude/fm1-devkit-captures/uart-v6-first-boot-20261022.bin`; companion
+JSON records actual UTC start and duration. Inspect that file after owner
+Reset. UART PB3 at 1 Mbaud is verified against this candidate's board config.
+SDK FreeRTOS headers specify 100 ticks/second: ten OS ticks are nominally
+100 ms, so an OSC24M timer calibration near 2,400,000 ticks is expected;
+validate observed calibration before converting benchmark ticks to time.
+
+Latest prior checkpoint `4f3de8a0bcd6cb75898d528319895c04ec29e853` is
+verified pushed to GitHub. No PR/merge yet: actual first boot is pending.
