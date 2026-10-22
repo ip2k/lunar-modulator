@@ -332,3 +332,29 @@ also has conditional writes at `r14+216` (argument +80). Do not infer the
 remaining extended ABI is initialized solely from the SPL date/version;
 this review remains open. v5 offline candidate is superseded for startup
 behavior; do not install it.
+
+### Exact v6 transaction prepared; bench rehearsal not yet executed
+
+[verified] Independent reference `jltech.cipher` decoding of the v6 candidate
+validates directory, application-area and application CRCs, exact v6 payload,
+unchanged cfg-tool payload and protected raw regions. Candidate SHA
+`e77ee8af309fc57d1a8eddaac95dec253dda031f269021382c9cb1e977baa103`;
+private ignored generator/validator scripts and candidate are under
+`scratch/devkit-20261022/`. Factory application entry at `0x02000228`
+consumes the same boot fields (+80/+88) as this SDK. This is ABI-consumer
+compatibility evidence, not proof of all SPL producer branches.
+
+`tools/devkit_flash_transaction.py` admits only the exact factory/v6 image
+hashes and their forty changed sectors, ending directory sector 0x4000 last.
+It has no loader upload/reset/chip-erase/eFuse command, verifies each sector
+and complete flash, and supports explicit exact-factory restoration after a
+partial transaction. The initial USB path/devnum and exact JEDEC must match.
+35 focused tests pass, including exhaustive rejection of unrelated opcodes.
+A private actual-image NOR model passes installation, restoration, and injected
+partial-page failure then restoration. These are offline checks; no physical
+erase/program or restore rehearsal has occurred. Remaining bench gate is
+install/readback/restore/full-factory comparison before diagnostic boot.
+
+GitHub DNS resolution failed for `f871ce61`; it is saved locally and pushed
+to the existing Aeon exchange remote, but is not yet verified backed up on
+GitHub. Retry GitHub push and verify SHA; do not call that backup complete.

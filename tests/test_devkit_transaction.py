@@ -1,0 +1,63 @@
+"""Public tests contain no private factory or diagnostic firmware bytes."""
+import binascii
+from pathlib import Path
+import sys
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'tools'))
+import devkit_flash_transaction as tx
+
+
+def test_unpinned_images_rejected():
+    with pytest.raises(ValueError, match='Exact private'):
+        tx.validate_images(bytes(tx.backup.FLASH_SIZE), bytes(tx.backup.FLASH_SIZE))
+
+
+def test_all_other_opcodes_denied():
+    desired = bytes(tx.backup.FLASH_SIZE)
+    for op in range(65536):
+        if op in (0xFB01, 0xFB04, 0xFD05, 0xFC0A, 0xFC14):
+            continue
+        with pytest.raises(ValueError, match='forbidden'):
+            tx.mutation_request(op, 0x4000, b'', desired)
+
+
+@pytest.mark.parametrize('address', [0, 0x3000, 0x4001, 0x2c000, 0x7ff000, 0x800000])
+def test_erase_outside_exact_sectors_denied(address):
+    with pytest.raises(ValueError):
+        tx.mutation_request(0xFB01, address, b'', bytes(tx.backup.FLASH_SIZE))
+
+
+def test_erase_and_program_framing():
+    desired = bytes(range(256))*32768
+    for a in (0x4000, 0x2b000):
+        cdb, payload, count = tx.mutation_request(0xFB01, a, b'', desired)
+        assert cdb == (b'\xfb\x01'+a.to_bytes(4, 'big')).ljust(16, b'\xff')
+        assert payload == b'' and count == 16
+    a = 0x2bf00
+    page = desired[a:a+256]
+    cdb, payload, count = tx.mutation_request(0xFB04, a, page, desired)
+    assert cdb[:9] == b'\xfb\x04\x00\x02\xbf\x00\x01\x00\x00'
+    assert cdb[9:11] == binascii.crc_hqx(page, 0).to_bytes(2, 'little')
+    assert payload == page and count == 0
+
+
+@pytest.mark.parametrize('address,size', [(0x4001,256),(0x3f00,256),(0x2c000,256),(0x4000,255)])
+def test_bad_program_ranges_denied(address, size):
+    with pytest.raises(ValueError):
+        tx.mutation_request(0xFB04, address, bytes(size), bytes(tx.backup.FLASH_SIZE))
+
+
+def test_wrong_program_bytes_denied():
+    with pytest.raises(ValueError):
+        tx.mutation_request(0xFB04, 0x4000, b'\xff'*256, bytes(tx.backup.FLASH_SIZE))
+
+
+def test_protected_bytes_include_entire_tail_and_boot():
+    original = bytes(tx.backup.FLASH_SIZE)
+    for address, allowed in ((0,False),(0x3fff,False),(0x4000,True),
+                             (0x2bfff,True),(0x2c000,False),(0x7fffff,False)):
+        changed = bytearray(original)
+        changed[address] = 1
+        assert tx.protected_equal(changed, original) == allowed
