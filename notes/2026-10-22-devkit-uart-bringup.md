@@ -96,3 +96,72 @@ DTR/RTS deasserted, with no serial writes. Raw capture is private on bench01:
 UART bring-up is demonstrated. Lunar DSP performance is still unmeasured on
 this dev kit. Next: preserve factory/recovery provenance and prepare a minimal
 board-specific timing image without assuming FM-1 peripheral compatibility.
+
+## Diagnostic preparation and current dependency
+
+[verified] Carrier and Tigard are behind the owner's BLACKBOX ICI202A powered
+hub. Its documented maximum is 12 Mbps, matching the observed USB tree;
+that speed alone is not evidence of the DSP slowdown. Earlier descriptor and
+overcurrent messages remain observations, not a diagnosed cause.
+[Manufacturer specification](https://www.blackbox.com/en-ca/store/product/detail/industrial-usb-20-hub-with-isolation---4-port/ici202a).
+
+[verified] Factory audio failure follows an unsuccessful open of
+`/audlogo/poweron.mp3`; this is evidence of a missing startup asset, not a
+failed DAC test. The completed receive-only capture was copied to ignored
+`scratch/devkit-20261022/uart-20261022T165500Z.bin`, SHA-256
+`03fb70ab41d9bb4de74f2326d3f850e17f3442fbf845805fc121732871456268`.
+Do not publish that raw log: factory networking identifiers are present.
+The original ten-minute capture has ended; arm a new capture before a watched
+experimental boot.
+
+New source, backed up at `6b2ee8edfbce6e603e0cf0d444997fe1b76c032d`:
+
+- `firmware/devkit/benchmark.c`, `.h`, `sdk_worker.c`: allocation-free
+  resampler-only benchmark; 44,118 / 47,872.34 / 96,000 Hz inputs, silence,
+  active signal and decay to silence; IRQ enabled. Checksum and UART output
+  are outside the timed block. The producer-size field controls fixture
+  bookkeeping only; it is not a complete instrument producer benchmark.
+- `tools/jieli/prepare-devkit.py`: prepares an isolated private SDK hello
+  tree, disables its automatic downloader, and compiles benchmark state into
+  internal SRAM. SDK source is a private git archive of pinned `e30b1ee`;
+  the preparer records the required revision but does not authenticate an
+  arbitrary input tree. It must not be used with an unverified SDK archive.
+- `tools/devkit_flash_backup.py`: pinned RAM loader and two bounded 8 MiB
+  reads, denying flash program/erase/eFuse commands. Requires independently
+  observed USB path/device number and matching 8 MiB JEDEC capacity.
+
+[verified] Aeon isolated build v4 successfully linked the real pi32v2 ELF.
+ELF SHA-256: `3f4e744ce601c2c13a891d0ec58f56218445da99d3348c7cf4a24aeba00b418b`.
+Vendor objdump places `signal_table` at `0x01c02c50`, `state` at
+`0x01c03050`, and `outputs` at `0x01c03558`, all `.ram0_bss`.
+`audit_link.py --elf ... --sources firmware/devkit` reports 0 failures and
+one manual scheduling item: vendor disassembly confirms `sdk_meky_check`
+registers IRQ 123 twice (CPU arguments 0 and 1), and schedules `_mkey_check`
+through `__sys_timer_add` with interval 8000. This signs off that item's
+scheduling only; no vendor protection code was changed.
+
+Build v4 is **not an admitted installation package**: its generated demo
+configuration retained the SDK's 2 MiB SDRAM default. Follow-up preparation
+sets 8 MiB to match the factory-reported capacity, hashes all diagnostic
+inputs, and rebuilds as v5. Flash 8 MiB is still a hypothesis pending JEDEC
+query. The benchmark uses the public main resampler header, not the separate
+installable-firmware branch's latest optimization. No target Lunar timings
+have been measured.
+
+Remote private build root:
+`claude@192.168.1.25:/home/claude/mvave-fm1/devkit-performance-20261022/`.
+`build-sdk-v4/` holds ELF/sections/symbols/disassembly, `build-sdk-v5/` the
+follow-up build. Containers have no network/USB and use docker-batch.slice,
+4 CPUs and 4 GiB RAM/swap limits. Mac copies are ignored under
+`scratch/devkit-20261022/build-v4/`.
+
+[verified] After the owner's first Update/Reset attempt, USB still enumerates
+as normal CDC `3654:5155`, device 85, not WL82 UBOOT. A direct owner prompt
+asks to move USB from the carrier to the core board's USB-C beside
+Update/Reset and repeat hardware download entry. Await that confirmation;
+do not guess that it happened. No loader upload or flash write has occurred.
+Once UBOOT is observed: identify the exact USB path/devnum, obtain two matching
+factory reads, preserve private recovery data, review the candidate's boot and
+partition layout, and only then proceed with an authorized target experiment.
+Do not run vendor blanket erase/key/program commands. No audio output is
+required for the first timing diagnostic.

@@ -20,6 +20,9 @@ def prepare(sdk, source, out):
     text = config.read_text()
     assert '#define __FLASH_SIZE__    (4 * 1024 * 1024)' in text
     text = text.replace('(4 * 1024 * 1024)', '(8 * 1024 * 1024)', 1)
+    assert '#define __SDRAM_SIZE__    (2 * 1024 * 1024)' in text
+    text = text.replace('#define __SDRAM_SIZE__    (2 * 1024 * 1024)',
+                        '#define __SDRAM_SIZE__    (8 * 1024 * 1024)', 1)
     text = text.replace('#define CONFIG_CXX_SUPPORT', '// #define CONFIG_CXX_SUPPORT')
     config.write_text(text)
     main = app/'app_main.c'
@@ -49,7 +52,9 @@ def prepare(sdk, source, out):
                 'download_disabled': True,
                 'inputs': {str(p.relative_to(source)): hashlib.sha256(p.read_bytes()).hexdigest()
                            for p in [source/'firmware/devkit/benchmark.c',
+                                     source/'firmware/devkit/benchmark.h',
                                      source/'firmware/devkit/sdk_worker.c',
+                                     source/'tools/jieli/prepare-devkit.py',
                                      source/'engines/include/fm1_resampler.h']}}
     (out/'lunar-devkit-input.json').write_text(json.dumps(receipts, indent=2)+'\n')
 

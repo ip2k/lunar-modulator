@@ -37,15 +37,16 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path):
     app = sdk/'apps/demo/demo_hello'
     (app/'include').mkdir(parents=True)
     (app/'board/wl82').mkdir(parents=True)
-    (app/'include/app_config.h').write_text('#define __FLASH_SIZE__    (4 * 1024 * 1024)\n#define CONFIG_CXX_SUPPORT\n')
+    (app/'include/app_config.h').write_text('#define __FLASH_SIZE__    (4 * 1024 * 1024)\n#define __SDRAM_SIZE__    (2 * 1024 * 1024)\n#define CONFIG_CXX_SUPPORT\n')
     (app/'app_main.c').write_text('void app_main() {os_task_create(hello_demo_task, NULL, 10, 1000, 0, "hello_demo_task");}')
-    (app/'board/wl82/Makefile').write_text('c_SRC_FILES := \\\n+\toriginal.c\nall: pre_build $(OUT_ELF)\n\t$(QUITE) $(RUN_POST_SCRIPT) sdk\n')
+    (app/'board/wl82/Makefile').write_text('c_SRC_FILES := \\\n\toriginal.c\nall: pre_build $(OUT_ELF)\n\t$(QUITE) $(RUN_POST_SCRIPT) sdk\n')
     out = tmp_path/'prepared'
     module.prepare(sdk, ROOT, out)
     result = (out/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
     assert '\\ \\' not in result
     assert '$(RUN_POST_SCRIPT) sdk' not in result
     assert '-fno-data-sections' in result
+    assert '#define __SDRAM_SIZE__    (8 * 1024 * 1024)' in (out/'apps/demo/demo_hello/include/app_config.h').read_text()
     assert 'benchmark.c' in result and 'sdk_worker.c' in result
     with pytest.raises(ValueError):
         module.prepare(sdk, ROOT, out)
