@@ -29,6 +29,18 @@ def test_last_flash_read():
     assert data == b'' and size == 256
 
 
+def test_loader_rejected_before_any_device_command():
+    reader = backup.DevkitReader.__new__(backup.DevkitReader)
+    reader.cmd = lambda *a, **k: pytest.fail('must reject before device commands')
+    with pytest.raises(ValueError, match='fixed-configuration'):
+        reader.load(bytes(backup.base.LOADER_SIZE))
+
+
+def test_devkit_loader_pin_differs_from_historical_original():
+    assert backup.LOADER_SHA != backup.base.LOADER_SHA
+    assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
+
+
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path):
     spec = importlib.util.spec_from_file_location('prepare_devkit', ROOT/'tools/jieli/prepare-devkit.py')
     module = importlib.util.module_from_spec(spec)

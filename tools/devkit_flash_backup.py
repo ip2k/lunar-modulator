@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only-flash AC79 dev-kit backup using the existing pinned RAM loader.
+"""AC79 dev-kit flash-data backup using the reviewed fixed RAM loader.
 
 No flash erase, program, eFuse, reset or arbitrary command is implemented.
 The loader does execute in RAM. Require the exact observed USB path/devnum;
@@ -15,6 +15,12 @@ import time
 import fm1_uboot_read as base
 
 FLASH_SIZE = 8 * 1024 * 1024
+LOADER_SHA = 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
+
+
+def validate_loader(loader):
+    if len(loader) != base.LOADER_SIZE or hashlib.sha256(loader).hexdigest() != LOADER_SHA:
+        raise ValueError('Only the reviewed fixed-configuration loader is permitted; no USB access')
 
 
 def request(op, phase, *, address=0, payload=b''):
@@ -27,6 +33,27 @@ def request(op, phase, *, address=0, payload=b''):
 
 
 class DevkitReader(base.Reader):
+    def load(self, loader):
+        # Preserve the original Reader's historical pin. This adapter admits
+        # only the separately reviewed fixed configuration, never the original.
+        validate_loader(loader)
+        inquiry = self.cmd(0x12)
+        vendor, product = inquiry[8:16].decode('ascii').strip(), inquiry[16:32].decode('ascii').strip()
+        self.log('inquiry', vendor=vendor, product=product)
+        if vendor != 'WL82' or product != 'UBOOT1.00':
+            raise ValueError('Unexpected chip/boot mode; no RAM upload')
+        self.log('loader_upload', sha256=LOADER_SHA, bytes=len(loader), base=base.RAM)
+        for offset in range(0, len(loader), 512):
+            self.cmd(0xFB06, address=base.RAM+offset, payload=loader[offset:offset+512])
+        self.cmd(0xFB08, address=base.RAM)
+        self.phase = 'loader'
+        buff = self.cmd(0xFC14)
+        size = int.from_bytes(buff[2:6], 'big')
+        if not base.CHUNK <= size <= 65535:
+            raise ValueError(f'Unexpected loader buffer size {size}')
+        self.log('loader_buffer', size=size)
+        self.online()
+
     def build_request(self, op, address, payload):
         return request(op, self.phase, address=address, payload=payload)
 
@@ -69,8 +96,7 @@ def main():
     ap.add_argument('--out', type=Path, required=True)
     a = ap.parse_args()
     loader = a.loader.read_bytes()
-    if len(loader) != base.LOADER_SIZE or hashlib.sha256(loader).hexdigest() != base.LOADER_SHA:
-        raise SystemExit('Pinned loader hash/size mismatch; no USB access')
+    validate_loader(loader)
     a.out.mkdir(mode=0o700, parents=True, exist_ok=False)
     with (a.out/'commands.jsonl').open('x') as log_file:
         def log(event, **fields):
@@ -85,8 +111,9 @@ def main():
             second = reader.dump(a.out/'factory-B.bin')
             if first['sha256'] != second['sha256']:
                 raise ValueError('Factory reads differ; do not write flash')
-            result = {'reads': [first, second], 'matched': True,
-                      'flash_written': False, 'restore_demonstrated': False}
+            result = {'reads': [first, second], 'matched': True, 'loader_sha256': LOADER_SHA,
+                      'flash_erase_program_commands_sent': False,
+                      'nor_status_unchanged': None, 'restore_demonstrated': False}
             (a.out/'receipt.json').write_text(json.dumps(result, indent=2)+'\n')
             print(json.dumps(result), flush=True)
         finally:

@@ -185,3 +185,64 @@ Owner action is still pending. Work is on
 `feature/2026-10-22@devkit-performance`; implementation/config checkpoint
 `0b30074679a0d7818bdded7974b58a0e83103fe6` is verified pushed. This final
 note update is committed on the same branch; recover the exact tip from Git.
+
+## Core USB download entry and first factory backup
+
+[verified] Owner connected both carrier and core USB, repeated hardware
+Update/Reset entry, and bench01 enumerated `4c4a:8057` on `3-1.2`, device 91,
+`/dev/sg0`. USB descriptors say WL80UBOOT1.00; SCSI INQUIRY independently
+returns vendor `WL82`, product `UBOOT1.00`. No model inference from the USB
+product string is needed.
+
+[verified] The original pinned loader `d41da612...` executed in RAM, reported
+SPI NOR JEDEC `5e4017` (8 MiB), and returned two complete matching 8,388,608-byte
+reads. SHA-256 of both:
+`127b2ebbef9da3469f0bf7ea3841a5515d01721ebac9bbdc7fc739032d7b5ec1`.
+Private bench directory: `/home/claude/fm1-devkit-backups/factory-20261022-first`.
+Mac copies: ignored `scratch/devkit-20261022/factory/`; re-compared byte for byte.
+Receive-only UART was armed before upload, ten-minute capture at
+`/home/claude/fm1-devkit-captures/uart-download-20261022T181200Z.bin`.
+The filename is a label, not an authoritative timestamp.
+
+**Correction/limit:** no flash erase/program command was sent, but the original
+loader is not a sufficient basis for asserting that NOR status registers were
+untouched. The later October 11 native review identifies possible status writes
+in its initialization. This caveat was reported directly to the owner. The
+original receipt's `flash_written:false` must be interpreted only as no
+host-issued erase/program, not an audit of every loader side effect.
+
+The dev-kit adapter now admits only the separately reviewed fixed loader
+`fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c`,
+which bypasses the identified quad-status programming branch. The historical
+base Reader and its original pin are unchanged. Private blob copied from the
+existing reviewed bench campaign to `fm1-devkit-tools-20261022/loader.fixed.bin`;
+actual SHA checked. Twenty focused tests pass; a private real-blob fake-transport
+check verifies exact 47 upload blocks, inquiry/jump/buffer ordering, and rejects
+the actual original blob before device access. No fixed-loader upload to this
+dev board has occurred yet. Owner has been directly asked to repeat Update/Reset
+for a fresh ROM session before the cross-check; do not reuse current loader
+state as if it were ROM.
+
+## Owner RE authorization and offline layout
+
+Owner explicitly approved private analysis/unpacking/decoding/decompilation and
+reverse engineering of **this dev board and the SDK**, using REA or other tools,
+for Lunar firmware and/or recovery of the physical FM-1 (2026-10-22). This covers
+the protected-target analysis question just raised; do not re-ask for the same
+scope. It does not authorize publication of vendor material or arbitrary eFuse,
+blanket erase or other destructive commands.
+
+[verified: decoded factory bytes] Top header and four directory records validate
+their CRCs. Bootloader at offset 160, 14,536 bytes; isd_config at offset 14,696,
+765 bytes; application directory at `0x4000`; key/MAC reserved at `0x7ff000`.
+Configuration payload and embedded key-blob CRC validate. Derived SFC decoding
+produces valid application directory records: app_area_head size 2,411,235;
+app.bin offset `0x120` within that area, 2,410,564 bytes; cfg_tool.bin 383 bytes;
+VM/PRCT/BTIF descriptors separately retained. Full payload CRC validation and
+candidate construction/review are still pending. Decoded bytes and expanded
+layout remain private; this note contains no vendor code or key material.
+
+Semantic-tool limit: Rarefaction rejects this worktree via an outside-root
+`project` path, so it was not used as proof of the new Python adapter's callers.
+Serena remains on the primary checkout; no sibling session was switched.
+Focused source inspection and actual compiler/tests supply the checks above.
