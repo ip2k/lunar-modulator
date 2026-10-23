@@ -275,7 +275,10 @@ jobs:
 
   dongle-firmware:
     name: dongle firmware (RP2040 UF2)
-    runs-on: ubuntu-latest
+    # pico-sdk 2.1.1's pioasm relies on transitive <cstdint> includes that GCC
+    # 15 removed (raspberrypi/pico-sdk#2448). Keep its tested host toolchain
+    # until the SDK/toolchain upgrade is validated separately.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install ARM toolchain
