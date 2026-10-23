@@ -29,7 +29,11 @@ The audited recovery loader ran in RAM. Full-image restore remains untested.
 - A virtual FM-1 runs the engines and effects in a browser (`sim/web/`).
 - The research phase and one read-only bench session are done
   (`notes/2026-09-06-bench.md`).
-- An AC79 dev kit and JieLi's USB updater are on order (docs/14).
+- The AC79 dev kit has arrived. Its UART resampler diagnostic completed all
+  eighteen cases on 2026-10-23, after an application-sector install/restore
+  rehearsal with an exact full-flash comparison [verified:
+  `notes/2026-10-22-devkit-uart-bringup.md`]. Complete instrument and FM-1
+  validation remain pending; do not conflate this with audio-output testing.
 
 The owner's unit ran stock `FM-1_015` until
 the owner installed Baud Girl's FM-1+VA; it identifies as **`FM-1_092`** since

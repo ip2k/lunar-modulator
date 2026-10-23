@@ -46,6 +46,11 @@ cmake -S dongle/firmware -B dongle/firmware/build && cmake --build dongle/firmwa
 # hold BOOTSEL, plug the Pico in, copy dongle/firmware/build/usb_key_dongle.uf2 to RPI-RP2
 ```
 
+CI uses Ubuntu 24.04 with this SDK pin. Pico SDK 2.1.1's host `pioasm` has a
+[reported GCC 15 compatibility issue](https://github.com/raspberrypi/pico-sdk/issues/2448)
+in its fixed-width integer headers; upgrading the host compiler and SDK needs
+separate validation.
+
 ## Use
 
 1. Wire it as in docs/10 §3 (2.2 kΩ pull-ups from GP16 to D+ and from GP19

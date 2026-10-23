@@ -12,13 +12,16 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Native DSP parity was validated on 24.04. ubuntu-latest moved to 26.04
+  # and changed numerical output/block-split consistency; qualify that compiler
+  # separately rather than silently changing the reference platform.
   python-tests:
     name: tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-24.04, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -41,7 +44,7 @@ jobs:
     # both and checks that the switch-off build compiles, links and lists
     # nothing GPL.
     name: engines (MIT/BSD build, GPL switch off)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       FM1_GPL_MODS: "0"
     steps:
@@ -69,7 +72,7 @@ jobs:
     # incomplete fails to link here. tests/test_module_list.py checks the
     # catalogue against the objects' symbols and a smaller list end to end.
     name: engines (module list ${{ matrix.modules }}, GPL switch ${{ matrix.gpl }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -98,7 +101,7 @@ jobs:
     # pi32v2 has 4-byte pointers; build the engines 32-bit and run their tests
     # against that binary to catch pointer-size assumptions (docs/11, engines/).
     name: engines (32-bit build and tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -142,7 +145,7 @@ jobs:
     # upstream quirks are exempted one by one in engines/sanitizers/; our own
     # code gets no exemptions. The ignorelist is a clang flag, so clang builds.
     name: engines (ASan + UBSan)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -275,7 +278,10 @@ jobs:
 
   dongle-firmware:
     name: dongle firmware (RP2040 UF2)
-    runs-on: ubuntu-latest
+    # pico-sdk 2.1.1's pioasm relies on transitive <cstdint> includes that GCC
+    # 15 removed (raspberrypi/pico-sdk#2448). Keep its tested host toolchain
+    # until the SDK/toolchain upgrade is validated separately.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install ARM toolchain

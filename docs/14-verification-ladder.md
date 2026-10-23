@@ -1,16 +1,27 @@
 # 14 — The verification ladder: desktop, browser, dev board, FM-1
 
-The owner's goal (2026-10-01): when the hardware on order arrives, show 1:1
+The original goal (2026-10-01): when the hardware arrives, show 1:1
 behaviour between Lunar Modulator's emulators and a real JieLi board, and
-between that board and the FM-1. On order: the **JL-AC79-DevKit V1.0**
+between that board and the FM-1. The original order specified the **JL-AC79-DevKit V1.0**
 (core board JL-AC79-WIFI V1.0 with an **AC7916**, docs/07 §3) and JieLi's
 **USB updater dongle** (the "forced download tool", docs/07 §2.1).
 
 This plan builds on docs/07, 10, 11 §8 (stage B) and 13 §7 and §9, on the
-notes in `engines/`, and on the virtual FM-1 (`sim/web/`). Nothing in it has run on a JieLi
-chip. The 2026-10-02 compile check (§5.2) verified what compiling alone can
+notes in `engines/`, and on the virtual FM-1 (`sim/web/`). The original plan
+predates chip execution. The 2026-10-02 compile check (§5.2) verified what compiling alone can
 show: code generation, sizes and symbols. Every claim about how pi32v2 code
 behaves when run stays [inferred] until §5's probes replace it.
+
+**Measured update, 2026-10-23:** the received carrier is
+JL_AC79_DevKitBoard V1.2, with factory firmware reporting WL82/AC791N.
+An SDK diagnostic completed all eighteen resampler cases on it over UART.
+At the reported 320 MHz CPU clock, nominal timer-derived mean costs per
+64-frame block were 28–29 µs at equal rates, 395–401 µs at
+47.872→44.118 kHz, and 513–514 µs at 96→44.118 kHz. This is resampler-only
+timing, not the complete instrument, live audio, a measured FM-1 result,
+or completed rung-2 equivalence. The application-sector install/restore
+rehearsal returned an exact 8-MiB factory image comparison [verified:
+[bench record](../notes/2026-10-22-devkit-uart-bringup.md)].
 
 **Owner update, 2026-10-07:** direct FM-1 soft-key/recovery exploration is
 authorized on bench01 without waiting for this dev kit or proving a full
@@ -37,7 +48,7 @@ writes; hardware equivalence remains unverified until measured.
 | --- | --- | --- | --- |
 | R0 desktop | `fm1-render`, `fm1-seq`, `fm1-sim-render`: 64-bit, `-m32`, ASan + UBSan | clang and GCC, CI | [verified] in CI |
 | R1 browser | `fm1.wasm`: the virtual FM-1's app layer and every engine | Emscripten 6.0.10 on aeon | [verified] 12/12 against musl R0 |
-| R2 dev board | the same C sources on the AC7916, in two modes: *offline* (a render loop) and *live* (driven by the DAC interrupt) | JieLi Clang/LLVM 4.0.1 with newlib 2.2.0's libc and libm [verified: §5.2] | stage B: compile-only done (§5.2); nothing run |
+| R2 dev board | the same C sources on the AC79 board, in two modes: *offline* (a render loop) and *live* (driven by the DAC interrupt) | JieLi Clang/LLVM 4.0.1 with newlib 2.2.0's libc and libm [verified: §5.2] | resampler-only timing measured 2026-10-23; complete offline/live equivalence and stage B remain pending |
 | R3 FM-1, ours | R2's portable code with the FM-1's board-support layer; RAM-only first, flash later | the same | staged bench work authorized; not yet run |
 | Rs FM-1, installed | `FM-1_092` (Baud Girl's FM-1+VA) today; stock V15 if the owner rolls back | — | black box only |
 
