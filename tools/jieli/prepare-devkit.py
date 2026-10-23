@@ -11,7 +11,7 @@ from pathlib import Path
 import shutil
 
 
-def prepare(sdk, source, out):
+def prepare(sdk, source, out, audio_probe=False):
     if out.exists():
         raise ValueError('Output must not exist; preserve prior build evidence')
     shutil.copytree(sdk, out)
@@ -43,7 +43,10 @@ def prepare(sdk, source, out):
     text = text.replace('os_task_create(hello_demo_task, NULL, 10, 1000, 0, "hello_demo_task");',
                         'os_task_create(lunar_devkit_worker, NULL, 10, 2048, 0, "lunar_devkit");')
     main.write_text(text)
-    for name in ('benchmark.c', 'benchmark.h', 'sdk_worker.c'):
+    names = ['benchmark.c', 'benchmark.h', 'sdk_worker.c']
+    if audio_probe:
+        names += ['audio_probe.c', 'audio_probe.h']
+    for name in names:
         shutil.copyfile(source/'firmware/devkit'/name, app/name)
     shutil.copyfile(source/'engines/include/fm1_resampler.h', app/'fm1_resampler.h')
     makefile = app/'board/wl82/Makefile'
@@ -56,16 +59,20 @@ def prepare(sdk, source, out):
     # SDK's C-only script collects .bss, but .bss.* only when CXX is enabled.
     # Keep this non-LTO object's state out of orphan sections in SDRAM.
     text += '\nobjs/apps/demo/demo_hello/benchmark.c.o: CFLAGS := $(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fno-data-sections\n'
+    if audio_probe:
+        text = text.replace('c_SRC_FILES := ' + chr(92),
+                            'c_SRC_FILES := \\\n\t../../../../../apps/demo/demo_hello/audio_probe.c \\', 1)
+        text += '\nCFLAGS += -DLUNAR_DEVKIT_AUDIO_PROBE=1\n'
+        text += 'objs/apps/demo/demo_hello/audio_probe.c.o: CFLAGS := $(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fno-data-sections\n'
     makefile.write_text(text)
     receipts = {'sdk_commit_required': 'e30b1ee375d1f2993fc23bf92c8b99006a6e5f9d',
                 'placement': 'XIP code/constants; internal SRAM state; SDK CONFIG_NO_SDRAM_ENABLE',
-                'measurement': 'resampler-only, IRQ enabled, raw oscillator timer ticks',
+                'measurement': ('internal-DAC reference tone; no instrument workload' if audio_probe
+                                else 'resampler-only, IRQ enabled, raw oscillator timer ticks'),
                 'download_disabled': True,
                 'settings_backends': 'empty registered range; records retained outside it',
                 'inputs': {str(p.relative_to(source)): hashlib.sha256(p.read_bytes()).hexdigest()
-                           for p in [source/'firmware/devkit/benchmark.c',
-                                     source/'firmware/devkit/benchmark.h',
-                                     source/'firmware/devkit/sdk_worker.c',
+                           for p in [*(source/'firmware/devkit'/name for name in names),
                                      source/'tools/jieli/prepare-devkit.py',
                                      source/'engines/include/fm1_resampler.h']}}
     (out/'lunar-devkit-input.json').write_text(json.dumps(receipts, indent=2)+'\n')
@@ -76,5 +83,7 @@ if __name__ == '__main__':
     ap.add_argument('--sdk', type=Path, required=True)
     ap.add_argument('--source', type=Path, required=True)
     ap.add_argument('--out', type=Path, required=True)
+    ap.add_argument('--audio-probe', action='store_true',
+                    help='Build low-level internal-DAC reference tone instead of resampler timings')
     a = ap.parse_args()
-    prepare(a.sdk, a.source, a.out)
+    prepare(a.sdk, a.source, a.out, audio_probe=a.audio_probe)

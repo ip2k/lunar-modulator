@@ -41,7 +41,8 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path):
+@pytest.mark.parametrize('audio_probe', [False, True])
+def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, audio_probe):
     spec = importlib.util.spec_from_file_location('prepare_devkit', ROOT/'tools/jieli/prepare-devkit.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -58,13 +59,15 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path):
     (app/'app_main.c').write_text('void app_main() {os_task_create(hello_demo_task, NULL, 10, 1000, 0, "hello_demo_task");}')
     (app/'board/wl82/Makefile').write_text('c_SRC_FILES := \\\n\toriginal.c\nall: pre_build $(OUT_ELF)\n\t$(QUITE) $(RUN_POST_SCRIPT) sdk\n')
     out = tmp_path/'prepared'
-    module.prepare(sdk, ROOT, out)
+    module.prepare(sdk, ROOT, out, audio_probe=audio_probe)
     result = (out/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
     assert '\\ \\' not in result
     assert '$(RUN_POST_SCRIPT) sdk' not in result
     assert '-fno-data-sections' in result
     assert '#define __SDRAM_SIZE__    (8 * 1024 * 1024)' in (out/'apps/demo/demo_hello/include/app_config.h').read_text()
     assert 'benchmark.c' in result and 'sdk_worker.c' in result
+    assert ('-DLUNAR_DEVKIT_AUDIO_PROBE=1' in result) == audio_probe
+    assert (out/'apps/demo/demo_hello/audio_probe.c').exists() == audio_probe
     linked = (out/'include_lib/driver/cpu/wl82/system.ld').read_text()
     start = linked.index('PROVIDE(syscfg_ops_begin')
     end = linked.index('PROVIDE(syscfg_ops_end')
