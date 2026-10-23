@@ -409,3 +409,22 @@ validate observed calibration before converting benchmark ticks to time.
 
 Latest prior checkpoint `4f3de8a0bcd6cb75898d528319895c04ec29e853` is
 verified pushed to GitHub. No PR/merge yet: actual first boot is pending.
+
+### Owner first Reset reported; UART retrieval blocked by bench reachability
+
+Owner reports pressing Reset once without Update. [verified] Log retrieval
+could not connect: bench01.local resolution stalls, documented IPv4 .181
+SSH times out, and documented IPv6 link-local fails via Mac en12/en0 and
+Aeon bond0. Aeon resolves bench01.localdomain to .181; its ARP/NDP entries
+for those addresses are FAILED/INCOMPLETE. No changed DHCP address is
+confirmed. This is a host/network access failure, not diagnostic boot or
+firmware-fault evidence. No new target command or reset sent.
+
+Owner directly asked to check bench01 power/Ethernet lights and leave dev
+board/Tigard unchanged, avoiding a bench reboot until capture preservation
+is assessed. First-boot capture was armed on the previous turn, but its
+current process state and bytes cannot be verified while bench is unreachable;
+old exec40982 is no longer recognized by the local tool. Do not claim the
+benchmark ran, failed, or produced timing data. Next: restore bench access,
+copy/private-hash the UART capture, then inspect actual startup and benchmark
+lines. Re-arm before requesting any repeat Reset if necessary.
