@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "scope": "static source/archive data inspection; no vendor execution, linking or hardware",
+  "vendor_commit": "b178ac43c25f010c60a878056fb5331fe693fd62",
+  "kit_sha256": "2a3b2ede16ac49c867831315714ef9d8c532c70ce28ce1dcf3fc76f0a9f68f57",
+  "native_reference": "1f12ad5b8d6a865268af94179a3442183a680602",
+  "implementation_base": "0b3f377c1175df729591c221fa39de435ff5a8ce",
+  "archive_sha256": "6a22c111978c8f36827ca83b5f71828313bcb5a3464109b44754266d9bf55e09",
+  "archive_members": [
+    {
+      "name": "/",
+      "bytes": 4180
+    },
+    {
+      "name": "//",
+      "bytes": 20
+    },
+    {
+      "name": "engine_startup.S.o",
+      "bytes": 1379076
+    }
+  ],
+  "elf_sections": 4810,
+  "elf_symbols": 27559,
+  "undefined_entries_including_null": 116,
+  "named_undefined_entries": 115,
+  "global_or_weak_defined": 182,
+  "allocated_initialized_section_bytes": 410042,
+  "allocated_nobits_bytes": 80911,
+  "selected_symbols": [
+    {
+      "name": "fm1_io_start",
+      "value": 0,
+      "size": 858,
+      "binding": 0,
+      "section": 3817
+    },
+    {
+      "name": "main",
+      "value": 0,
+      "size": 632,
+      "binding": 0,
+      "section": 3725
+    },
+    {
+      "name": "fm1_midi_post",
+      "value": 0,
+      "size": 10,
+      "binding": 1,
+      "section": 3836
+    },
+    {
+      "name": "fm1_midi_send",
+      "value": 0,
+      "size": 10,
+      "binding": 1,
+      "section": 3834
+    },
+    {
+      "name": "groove_screen_init",
+      "value": 0,
+      "size": 0,
+      "binding": 1,
+      "section": 0
+    },
+    {
+      "name": "fm1_app_sysex",
+      "value": 0,
+      "size": 2,
+      "binding": 2,
+      "section": 452
+    },
+    {
+      "name": "groove_project_init",
+      "value": 0,
+      "size": 0,
+      "binding": 1,
+      "section": 0
+    },
+    {
+      "name": "fm1_usb_audio_read",
+      "value": 16316,
+      "size": 236,
+      "binding": 1,
+      "section": 3
+    },
+    {
+      "name": "fm1_audio_start",
+      "value": 0,
+      "size": 0,
+      "binding": 1,
+      "section": 0
+    },
+    {
+      "name": "fm1_engine_pause",
+      "value": 0,
+      "size": 10,
+      "binding": 1,
+      "section": 4481
+    },
+    {
+      "name": "fm1_engine_render",
+      "value": 16282,
+      "size": 24,
+      "binding": 1,
+      "section": 3
+    },
+    {
+      "name": "fm1_engine_resume",
+      "value": 0,
+      "size": 10,
+      "binding": 1,
+      "section": 4483
+    },
+    {
+      "name": "fm1_ble_scan",
+      "value": 0,
+      "size": 88,
+      "binding": 1,
+      "section": 3873
+    }
+  ],
+  "vendor_constraints": {
+    "native_block_frames": 128,
+    "hardware_rate_hz": 44118,
+    "nominal_rate_hz": 44100,
+    "minimum_heap_bytes": 49152,
+    "ram0_bytes": 523596,
+    "cache_ram_bytes": 28672,
+    "raw_app_limit_bytes": 453921,
+    "user_reservation_bytes": 536576
+  },
+  "lunar_constraints": {
+    "producer_frames": 64,
+    "dma_half_frames": 256,
+    "queue_blocks": 8,
+    "application_rate_hz": 44118
+  },
+  "gate_a_vendor_rebase": "fail: no documented supported engine-free platform seam",
+  "w7_proposal": "candidate only: bounded asynchronous LCD pending detection with latched fault and retained DMA buffer ownership; abort/restart not justified; no firmware edits"
+}
