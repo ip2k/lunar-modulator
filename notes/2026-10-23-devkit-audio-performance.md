@@ -71,3 +71,36 @@ pi32v2 relative-call operand is now pending manual vendor-objdump review,
 never silently accepted as proof of no eFuse access. Unresolved patterns,
 ordinary immediate loads, relocatable objects and real extra references fail.
 The SDK build is private and has not been installed at this checkpoint.
+
+## Exact offline audio-probe image, v2
+
+[verified] Pinned SDK build on Aeon succeeds. ELF SHA-256
+`2e6e208d1099882a32118074cca5ee2dae5819c27cec27f237ad2c694aa2aa88`;
+app 170,512 bytes, SHA
+`f82de9b59419e7b21be36088893d9dbd04a88fa081b1d0343e429d49a4d240ab`.
+Vendor objcopy section exports match independently extracted ELF sections in
+the SDK's documented concatenation order. Private full-image SHA
+`5cba22f0b0b19bda0847a303eee033f7a2b31a7bef5255ef1d98ca27f796c7b2`.
+Exactly 42 application sectors change (0x4000 through 0x2d000); raw bytes
+before 0x4000 and from application end 0x2db30 remain identical to factory.
+Independent reference-cipher decoding validates all directory/application CRCs,
+exact app and unchanged cfg-tool payload. Private scripts/evidence live in
+`scratch/devkit-20261023/`; never publish vendor blobs or listings.
+
+[verified: vendor objdump for that ELF] Manual audit sign-off: the sole raw
+eFuse-address pattern is the relative operand of `uartx_read`'s call at
+0x020066b8 to `strcmp` at 0x02019dd2, not an SFR access. The preserved
+`sdk_meky_check` at 0x02025ff4 registers IRQ 123 on the two cores with
+`isr_check_key`, clears the same IRQ-enable bits, and schedules `_mkey_check`
+with 8000 through `__sys_timer_add`, as previously reviewed. No extra calls
+or key registration are introduced. Automated report: zero failures, these
+two manual items marked pending by design. Listing SHA
+`9f54eb8cf62f61d220aa143111a61909359d6a4f78cd981958e820ab31cd54f6`.
+Probe state is in SRAM, code in XIP; the emitted handler has an interrupt
+prologue/epilogue and calls the pinned SDK DAC handler.
+
+[verified: offline NOR model] Actual private images pass install, exact
+factory restore, and an interrupted page followed by restore. Metadata is
+written last. The transaction tool admits this hash with its own fixed
+42-sector plan; the older v6 hash retains its 40-sector plan. 74 focused
+host tests pass. No physical installation or audio-output result yet.

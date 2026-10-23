@@ -61,3 +61,22 @@ def test_protected_bytes_include_entire_tail_and_boot():
         changed = bytearray(original)
         changed[address] = 1
         assert tx.protected_equal(changed, original) == allowed
+
+
+def test_reviewed_audio_plan_has_its_own_fixed_bounds():
+    assert tx.IMAGE_PLANS[tx.TARGET_SHA] == tx.ALLOWED
+    assert tx.IMAGE_PLANS[tx.AUDIO_TARGET_SHA] == tx.AUDIO_ALLOWED
+    desired = bytes(tx.backup.FLASH_SIZE)
+    # The newer image's two additional sectors are not opened for v6.
+    for address in (0x2c000, 0x2d000):
+        with pytest.raises(ValueError):
+            tx.mutation_request(0xFB01, address, b'', desired)
+        tx.mutation_request(0xFB01, address, b'', desired, tx.AUDIO_ALLOWED)
+    for address in (0x3000, 0x2e000, 0x7ff000):
+        with pytest.raises(ValueError):
+            tx.mutation_request(0xFB01, address, b'', desired, tx.AUDIO_ALLOWED)
+    changed = bytearray(desired)
+    changed[0x2dfff] = 1
+    assert tx.protected_equal(changed, desired, tx.AUDIO_ALLOWED)
+    changed[0x2e000] = 1
+    assert not tx.protected_equal(changed, desired, tx.AUDIO_ALLOWED)

@@ -20,6 +20,10 @@ BASELINE_SHA = '127b2ebbef9da3469f0bf7ea3841a5515d01721ebac9bbdc7fc739032d7b5ec1
 TARGET_SHA = 'e77ee8af309fc57d1a8eddaac95dec253dda031f269021382c9cb1e977baa103'
 SECTOR = 4096
 ALLOWED = tuple(range(0x4000, 0x2c000, SECTOR))
+# Reviewed private internal-DAC reference probe; no arbitrary target/range CLI.
+AUDIO_TARGET_SHA = '5cba22f0b0b19bda0847a303eee033f7a2b31a7bef5255ef1d98ca27f796c7b2'
+AUDIO_ALLOWED = tuple(range(0x4000, 0x2e000, SECTOR))
+IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED}
 
 
 def digest(data):
@@ -27,22 +31,24 @@ def digest(data):
 
 
 def validate_images(factory, target):
+    allowed = IMAGE_PLANS.get(digest(target))
     if (len(factory) != backup.FLASH_SIZE or len(target) != backup.FLASH_SIZE
-            or digest(factory) != BASELINE_SHA or digest(target) != TARGET_SHA):
+            or digest(factory) != BASELINE_SHA or allowed is None):
         raise ValueError('Exact private factory and reviewed diagnostic images required')
     dirty = tuple(a for a in range(0, len(factory), SECTOR)
                   if factory[a:a+SECTOR] != target[a:a+SECTOR])
-    if dirty != ALLOWED:
+    if dirty != allowed:
         raise ValueError('Diagnostic mutation range changed')
+    return allowed
 
 
-def mutation_request(op, address, payload, desired):
+def mutation_request(op, address, payload, desired, allowed=ALLOWED):
     if op == 0xFB01:
-        if address not in ALLOWED or payload:
+        if address not in allowed or payload:
             raise ValueError('Only exact application-sector erases permitted')
         return (b'\xfb\x01'+address.to_bytes(4, 'big')).ljust(16, b'\xff'), b'', 16
     if op == 0xFB04:
-        if (address % backup.base.CHUNK or address // SECTOR * SECTOR not in ALLOWED
+        if (address % backup.base.CHUNK or address // SECTOR * SECTOR not in allowed
                 or len(payload) != backup.base.CHUNK
                 or payload != desired[address:address+backup.base.CHUNK]):
             raise ValueError('Only exact desired application pages permitted')
@@ -57,26 +63,28 @@ def mutation_request(op, address, payload, desired):
 
 
 class Writer(backup.DevkitReader):
+    allowed = ALLOWED
     def build_request(self, op, address, payload):
-        return mutation_request(op, address, payload, self.desired)
+        return mutation_request(op, address, payload, self.desired, self.allowed)
 
 
-def protected_equal(current, factory):
+def protected_equal(current, factory, allowed=ALLOWED):
     return (len(current) == len(factory) == backup.FLASH_SIZE
             and current[:0x4000] == factory[:0x4000]
-            and current[0x2c000:] == factory[0x2c000:])
+            and current[allowed[-1]+SECTOR:] == factory[allowed[-1]+SECTOR:])
 
 
 def transact(reader, current, factory, target, mode):
-    validate_images(factory, target)
+    allowed = validate_images(factory, target)
     if mode not in ('install', 'restore'):
         raise ValueError('Unknown transaction mode')
-    if not protected_equal(current, factory):
+    if not protected_equal(current, factory, allowed):
         raise ValueError('Protected factory sectors differ; no write')
     if mode == 'install' and current != factory:
         raise ValueError('Install requires complete exact factory preimage')
+    reader.allowed = allowed
     reader.desired = target if mode == 'install' else factory
-    dirty = [a for a in ALLOWED if current[a:a+SECTOR] != reader.desired[a:a+SECTOR]]
+    dirty = [a for a in allowed if current[a:a+SECTOR] != reader.desired[a:a+SECTOR]]
     order = [a for a in dirty if a != 0x4000] + ([0x4000] if 0x4000 in dirty else [])
     for address in order:
         reader.online()
