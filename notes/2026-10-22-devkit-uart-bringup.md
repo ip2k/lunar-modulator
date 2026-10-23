@@ -428,3 +428,27 @@ old exec40982 is no longer recognized by the local tool. Do not claim the
 benchmark ran, failed, or produced timing data. Next: restore bench access,
 copy/private-hash the UART capture, then inspect actual startup and benchmark
 lines. Re-arm before requesting any repeat Reset if necessary.
+
+## 2026-10-23: bench access recovered; empty capture and repeat armed
+
+[verified] bench01 is reachable again at DHCP .181 and the documented IPv6
+link-local address, with strict existing host-key verification. Usual .local
+lookup still stalled in the initial attempt. Uptime approximately 29 days;
+no bench reboot inferred or performed. Saved first-boot file is zero bytes.
+Its metadata records start `2026-10-22T21:29:13Z` and duration 1800 seconds;
+this does not establish when the owner Reset occurred relative to listening.
+No diagnostic boot/failure/timing claim can be made from the empty capture.
+Dev board absent from current USB inventory; Tigard and KA6 still present.
+USB absence is compatible with this UART-only diagnostic, not boot proof.
+
+Added receive-only `tools/devkit_uart_capture.py`: exclusive Tigard RX at
+1 Mbaud, DTR/RTS low, no serial writes, durable raw-byte flushes and lifecycle
+JSON. Compiles with py_compile; actual remote open/read verifies armed state.
+Launched under nohup independently of SSH, PID3550891, duration3600 seconds,
+start `2026-10-23T15:33:01Z` (08:33 Pacific). File
+`/home/claude/fm1-devkit-captures/uart-v6-repeat-20261023.bin`; companion JSON
+reports armed and two bytes initially, no readable startup log yet.
+Owner directly prompted for Reset once without Update. No reflashing or
+target protocol command sent. Next inspect repeat capture after owner action;
+if it has no boot text, investigate UART/boot evidence without inventing a
+firmware outcome. Prior exact-image restore/install receipts remain valid.
