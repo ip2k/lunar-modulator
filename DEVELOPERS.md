@@ -1169,8 +1169,10 @@ which lands with the plan PR; its stages S0–S7 are named below.
 
 **Installing on a real FM-1** · *In preparation*
 - **Depends on:**
-  - the dev kit and JieLi's dongle (on order);
-  - the kit's own dump and restore;
+  - the dev kit has arrived; JieLi's dongle remains a separate item;
+  - the kit's application-sector install/restore rehearsal passed with an
+    exact full-flash comparison, and a UART resampler benchmark ran all
+    eighteen cases [verified: [bench results](notes/2026-10-22-devkit-uart-bringup.md)];
   - the gate on the owner's unit ([docs/07](docs/07-recovery-and-risk.md)
     §4 rule 1);
   - Lunar running on the board;
@@ -2174,8 +2176,10 @@ The project in brief, the order of work, and where every document lives.
    - Get the chip into its mask-ROM USB boot mode through the USB-C port with
      the `USB_KEY` signal.
    - Dump the flash, restore it, and repeat.
-   - Rehearse on the AC79 dev kit first, which is on order
-     ([docs/14](docs/14-verification-ladder.md)).
+   - AC79 dev-kit application-sector install/restore rehearsal is complete,
+     with a byte-identical full-flash comparison [verified:
+     [bench results](notes/2026-10-22-devkit-uart-bringup.md)]. This does not
+     demonstrate a whole-chip rewrite or FM-1 recovery.
    - Everything else on the FM-1 waits on this.
    - The dongles for it are JieLi's updater (on order) and ours
      ([docs/10](docs/10-usb-key-dongle.md) / [`dongle/`](dongle/)). Other

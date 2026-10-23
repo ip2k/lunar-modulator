@@ -452,3 +452,17 @@ Owner directly prompted for Reset once without Update. No reflashing or
 target protocol command sent. Next inspect repeat capture after owner action;
 if it has no boot text, investigate UART/boot evidence without inventing a
 firmware outcome. Prior exact-image restore/install receipts remain valid.
+
+## Verified first benchmark boot, 2026-10-23
+
+Owner repeated Reset without Update while the durable capture was armed.
+[verified] Capture contains all eighteen unique benchmark cases followed by
+`LUNAR_DEVKIT complete=1` at SDK uptime 2.060 seconds. No assertion or
+exception was captured between the cases. Raw capture snapshot 5,637 bytes,
+SHA `80010643450d410aa89dc7718be16b314e76ac7d92b9239efc6c8a376cfd832f`.
+Private Mac copy and parsed JSON are under `scratch/devkit-20261023/`.
+See [measured results and limits](2026-10-23-devkit-resampler-results.md):
+nominal conversion cost is about 27–28% or 35% of a 64-frame block at the
+reported 320 MHz, versus about 2% at equal rates. These are resampler-only
+measurements, not a complete instrument, real producer batching or live
+audio/dropout test. No physical FM-1 command was sent.
