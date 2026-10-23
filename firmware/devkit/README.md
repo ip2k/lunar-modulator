@@ -35,6 +35,26 @@ The transaction adapter accepts only separately reviewed exact image hashes
 and sector plans, with complete pre/post readbacks. No arbitrary image, SPL,
 loader replacement, chip erase or eFuse operation is provided.
 
+## Real FM6 timing benchmark
+
+Use `--fm6-benchmark` instead of `--audio-probe` to link the real FM6 engine
+and its Apache-2.0 msfa dependencies. These options are mutually exclusive;
+this benchmark produces no DAC output. It runs TINE EP, WARM PAD and SAW
+LEAD at 1, 4, 8 and 12 voices, with 256 stereo 64-frame renders per case at
+44.1 kHz. Notes release after block 192. The first cold block is included;
+note-on and note-off batch costs are measured separately. Output checksums,
+finite/nonzero sample checks and UART logging are outside timed regions.
+Creation/table setup is not timed. The worker yields between cases.
+
+The preparer hashes the engine inputs, preserves msfa's licence, builds its
+translation units separately with integer wrap semantics, and keeps the new
+objects' state in internal SRAM. FM6 uses a fixed 64 KiB diagnostic arena;
+its actual instance requirement is reported independently. The complete
+stereo mixer, effects, sequencer, control traffic and live DMA deadline costs
+remain separate tests. Desktop fixture hashes are comparison references,
+not target checksum results. No FM6 image is admitted by the flash adapter
+merely because it links successfully.
+
 ## Analog capture
 
 On Bench01, the connected KA6 hardware requires six-channel S32_LE capture;

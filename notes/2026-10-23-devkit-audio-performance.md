@@ -124,3 +124,33 @@ RMS is -68.00/-64.91 dBFS on inputs 1/2; this differs from the full-capture
 RMS reported above and must not be confused with a calibrated noise floor.
 Exact probe/tools are staged privately on Bench01. Owner download-entry
 confirmation remains pending; no new device protocol command has been sent.
+
+## Real-engine offline checkpoint
+
+[verified: pinned vendor compiler] The opt-in `--fm6-benchmark` preparation
+links the actual FM6 engine and its eight Apache-2.0 msfa translation units,
+without enabling SDK C++ startup support or the DAC. The diagnostic records
+12 cases (TINE EP, WARM PAD, SAW LEAD at 1/4/8/12 voices), first/cold renders,
+release at block 192, render minima/maxima/totals, separate note-on/off batch
+costs, finite/nonzero sample checks and PCM-bit checksums. Logs/checksums are
+outside timing; creation/table initialization is excluded. It deliberately
+uses no mixer, effects or sequencer and cannot establish audio continuity.
+
+[verified: desktop and source tests] All 12 real-engine fixture hashes match
+an independently built private host driver. A wrapping synthetic timer checks
+the measurement boundaries, and AddressSanitizer checks the host workload.
+The 44.1 kHz instance requires 20,288 bytes on this desktop; the diagnostic
+reserves a separate fixed 65,536-byte capacity. All 86 focused tests pass.
+
+[verified: private ELF] The reproducible SDK FM6 build succeeds, ELF SHA-256
+`cae24a7d553581b00199031599a7a6fb737e37ba0f31ec48a007a11c559ed610`.
+Its diagnostic arena/output are in `.ram0_bss` at 0x01c04950/0x01c14950;
+code/constants are in XIP. Automated link audit has zero failures and one
+manual item. Vendor disassembly confirms `sdk_meky_check` at 0x0202ee1a
+retains its two IRQ-123 registrations and 8000-tick `_mkey_check` scheduling,
+with no new key registration; this signs off that exact pending item.
+Private listing SHA-256
+`c648bf99a5d63530ba06dd18b397e34cf7882b80ec7598f10e2764f5b99ccb9c`.
+No FM6 flash image has been packaged/admitted or installed, and no target
+FM6 timing/checksum or analog result exists yet. The earlier quiet audio-v2
+image remains the separately reviewed next hardware baseline.

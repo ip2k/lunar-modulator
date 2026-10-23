@@ -11,7 +11,16 @@ from pathlib import Path
 import shutil
 
 
-def prepare(sdk, source, out, audio_probe=False):
+FM6_SOURCES = ['msfa_dx7.cc', 'dx7_voice.cc', 'dx7_loop.cc', 'msfa_tables.cc', 'msfa_rom.cc']
+FM6_HEADERS = ['dx7_voice.h', 'dx7_loop.h', 'dx7_bank.h', 'msfa.h', 'msfa_prelude.h',
+               'glide.h', 'note_offsets.h']
+FM6_API_HEADERS = ['fm1_engine.h', 'fm1_math.h', 'fm1_midi_ev.h', 'fm1_dx7.h', 'fm1_smooth.h']
+MSFA_UNITS = ['dx7note', 'env', 'fm_core', 'fm_op_kernel', 'freqlut', 'lfo', 'patch', 'pitchenv']
+
+
+def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False):
+    if audio_probe and fm6_benchmark:
+        raise ValueError('Choose one diagnostic; FM6 timing does not enable DAC output')
     if out.exists():
         raise ValueError('Output must not exist; preserve prior build evidence')
     shutil.copytree(sdk, out)
@@ -46,6 +55,8 @@ def prepare(sdk, source, out, audio_probe=False):
     names = ['benchmark.c', 'benchmark.h', 'sdk_worker.c']
     if audio_probe:
         names += ['audio_probe.c', 'audio_probe.h']
+    if fm6_benchmark:
+        names += ['fm6_benchmark.cc', 'fm6_benchmark.h']
     for name in names:
         shutil.copyfile(source/'firmware/devkit'/name, app/name)
     shutil.copyfile(source/'engines/include/fm1_resampler.h', app/'fm1_resampler.h')
@@ -64,17 +75,50 @@ def prepare(sdk, source, out, audio_probe=False):
                             'c_SRC_FILES := \\\n\t../../../../../apps/demo/demo_hello/audio_probe.c \\', 1)
         text += '\nCFLAGS += -DLUNAR_DEVKIT_AUDIO_PROBE=1\n'
         text += 'objs/apps/demo/demo_hello/audio_probe.c.o: CFLAGS := $(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fno-data-sections\n'
+    engine_inputs = []
+    if fm6_benchmark:
+        for subdir, files in [('src', FM6_SOURCES + FM6_HEADERS), ('include', FM6_API_HEADERS)]:
+            dest = app/'lunar_engines'/subdir
+            dest.mkdir(parents=True)
+            for name in files:
+                p = source/'engines'/subdir/name
+                shutil.copyfile(p, dest/name)
+                engine_inputs.append(p)
+        # Preserve the upstream code and licence. Generated wrappers keep each
+        # translation unit separate, exactly as engines/mk/msfa.mk does.
+        msfa = source/'engines/third_party/msfa'
+        shutil.copytree(msfa, app/'lunar_engines/third_party/msfa')
+        engine_inputs += sorted(p for p in msfa.rglob('*') if p.is_file())
+        prefix = '../../../../../apps/demo/demo_hello/'
+        files = ['fm6_benchmark.cc'] + ['lunar_engines/src/'+s for s in FM6_SOURCES]
+        for unit in MSFA_UNITS:
+            name = 'fm6_unit_'+unit+'.cc'
+            (app/name).write_text('#define FM1_MSFA_UNIT "'+unit+'.cc"\n#include "msfa_unit.cc"\n')
+            files.append(name)
+        shutil.copyfile(source/'engines/src/msfa_unit.cc', app/'lunar_engines/src/msfa_unit.cc')
+        engine_inputs.append(source/'engines/src/msfa_unit.cc')
+        if text.count('cc_SRC_FILES :=\n') != 1:
+            raise ValueError('Unexpected SDK C++ source list; review before building')
+        text = text.replace('cc_SRC_FILES :=\n', 'cc_SRC_FILES := '+' '.join(prefix+f for f in files)+'\n')
+        text += '\nCFLAGS += -DLUNAR_DEVKIT_FM6_BENCHMARK=1\n'
+        text += ('INCLUDES += -I'+prefix+'lunar_engines/include -I'+prefix+
+                 'lunar_engines/src -isystem '+prefix+'lunar_engines/third_party/msfa\n')
+        for name in files:
+            obj = 'objs/apps/demo/demo_hello/'+name+'.o'
+            text += obj+': CFLAGS := $(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fwrapv -fno-data-sections\n'
+            text += obj+': CXXFLAGS := -std=c++11 -fno-exceptions -fno-rtti\n'
     makefile.write_text(text)
     receipts = {'sdk_commit_required': 'e30b1ee375d1f2993fc23bf92c8b99006a6e5f9d',
                 'placement': 'XIP code/constants; internal SRAM state; SDK CONFIG_NO_SDRAM_ENABLE',
                 'measurement': ('internal-DAC reference tone; no instrument workload' if audio_probe
+                                else 'real FM6, no DAC/mixer/effects, raw oscillator timer ticks' if fm6_benchmark
                                 else 'resampler-only, IRQ enabled, raw oscillator timer ticks'),
                 'download_disabled': True,
                 'settings_backends': 'empty registered range; records retained outside it',
                 'inputs': {str(p.relative_to(source)): hashlib.sha256(p.read_bytes()).hexdigest()
                            for p in [*(source/'firmware/devkit'/name for name in names),
                                      source/'tools/jieli/prepare-devkit.py',
-                                     source/'engines/include/fm1_resampler.h']}}
+                                     source/'engines/include/fm1_resampler.h', *engine_inputs]}}
     (out/'lunar-devkit-input.json').write_text(json.dumps(receipts, indent=2)+'\n')
 
 
@@ -83,7 +127,10 @@ if __name__ == '__main__':
     ap.add_argument('--sdk', type=Path, required=True)
     ap.add_argument('--source', type=Path, required=True)
     ap.add_argument('--out', type=Path, required=True)
-    ap.add_argument('--audio-probe', action='store_true',
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument('--audio-probe', action='store_true',
                     help='Build low-level internal-DAC reference tone instead of resampler timings')
+    mode.add_argument('--fm6-benchmark', action='store_true',
+                      help='Time real FM6 instrument rendering without DAC output')
     a = ap.parse_args()
-    prepare(a.sdk, a.source, a.out, audio_probe=a.audio_probe)
+    prepare(a.sdk, a.source, a.out, audio_probe=a.audio_probe, fm6_benchmark=a.fm6_benchmark)
