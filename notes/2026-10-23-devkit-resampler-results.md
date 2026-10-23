@@ -50,6 +50,12 @@ fields 12 and 16. Silence, active input and tail have similar conversion
 costs. All eighteen tuples are present and unique; the completion marker
 follows them, with no captured assertion/exception between them.
 
+[verified] A separate desktop build of the same benchmark at `-O2
+-ffp-contract=off` matches all eighteen target output checksums and input-frame
+counts. The existing sanitized workload test now checks the recorded target
+hashes as regression fixtures. Folded hashes are not a full sample-stream
+comparison and do not complete the ladder's DSP equivalence requirement.
+
 [inferred] Rate conversion is a substantial contributor to CPU cost. Several
 such paths could consume the block budget before instruments/effects are
 included. This does not prove it is the sole cause of the FM-1 slowdown or

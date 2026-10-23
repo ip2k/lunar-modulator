@@ -83,6 +83,16 @@ def test_real_resampler_workload(tmp_path):
 static unsigned clock_value, count, active_hash;
 static unsigned now(void) { clock_value += 17; return clock_value; }
 static void emit(const struct lunar_devkit_result *r) {
+    /* Captured on the dev board and independently matched on the host:
+     * notes/2026-10-23-devkit-resampler-results.md. These are fixture output
+     * hashes, not timing expectations or a complete sample-stream oracle. */
+    static const unsigned expected[3][3] = {
+        {0xbcc31dc5u, 0x80cf1dc5u, 0x4d7705c5u},
+        {0xbcc31dc5u, 0x0c28d304u, 0x18efc0bfu},
+        {0xbcc31dc5u, 0x8d5cd591u, 0x0a82150fu}
+    };
+    unsigned rate_index = r->rate == 44118 ? 0 : r->rate == 47872 ? 1 : 2;
+    assert(r->signal < 3 && r->checksum == expected[rate_index][r->signal]);
     assert(r->min_ticks == 17 && r->max_ticks == 17);
     assert(r->ticks == r->blocks * 17);
     assert(r->input_frames >= r->blocks * 64);
@@ -100,7 +110,7 @@ int main(void) {
 }
 ''')
     binary = tmp_path/'benchmark'
-    subprocess.run(['cc', '-std=c99', '-O2', '-Wall', '-Wextra', '-Werror',
+    subprocess.run(['cc', '-std=c99', '-O2', '-ffp-contract=off', '-Wall', '-Wextra', '-Werror',
                     '-fsanitize=undefined,address',
                     '-I'+str(ROOT/'firmware/devkit'),
                     '-I'+str(ROOT/'engines/include'), str(harness),
