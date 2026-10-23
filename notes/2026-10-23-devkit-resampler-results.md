@@ -69,3 +69,17 @@ production plus resampling at the FM-1's intended clock. Keep separate
 results for isolated resampling, complete renderer cost and live underruns.
 The full verification ladder, audio-out validation and complete instrument
 bring-up remain open; this run closes the first UART benchmark milestone.
+
+## Integration host qualification
+
+[verified: GitHub Actions logs] Main run `39061969073` passed its Linux
+Python suite on `ubuntu-24.04`. PR run `39981860538` resolved `ubuntu-latest`
+to `ubuntu-26.04`; both native Linux suites failed the same forty DSP
+reference/block-split assertions, while macOS passed. This stream changes
+no engine implementation. Native CI hosts are pinned to the previously
+validated Ubuntu 24.04 image, including the existing Pico SDK compatibility
+pin. Numerical assertions remain unchanged; qualifying the newer compiler
+is separate work. Browser jobs retain their pinned Playwright container.
+The same run's WebKit compact-toolbar test timed out waiting for the Stop
+button's state; its other browser checks and Chromium/Firefox passed.
+Recheck that failure on the new exact head before integration.
