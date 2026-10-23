@@ -104,3 +104,23 @@ factory restore, and an interrupted page followed by restore. Metadata is
 written last. The transaction tool admits this hash with its own fixed
 42-sector plan; the older v6 hash retains its 40-sector plan. 74 focused
 host tests pass. No physical installation or audio-output result yet.
+
+## Capture screening prepared
+
+`tools/devkit_tone_analysis.py` reads PCM16/PCM32 using Python's standard
+WAV reader in bounded chunks, including the KA6's six-channel PCM32 format.
+It checks channels independently, skips a stated startup interval, and reports
+cycle irregularity, missing cycles, signal level and clipping. The default
+997 Hz period tolerance is two capture samples with a 2% overall frequency
+bound. This is reference-tone screening, not a general click/distortion or
+music-quality certificate; combine it with device timing and listening.
+
+[verified] Ten synthetic tests accept slight clock drift/noise and reject
+silence, held blocks, skipped samples, repeated blocks, clipping, noise-only,
+missing channel and short capture. All 84 focused tests pass. No extra Python
+packages are required on Bench01. The existing connected no-tone baseline
+is rejected, as expected. After excluding its first two seconds, measured
+RMS is -68.00/-64.91 dBFS on inputs 1/2; this differs from the full-capture
+RMS reported above and must not be confused with a calibrated noise floor.
+Exact probe/tools are staged privately on Bench01. Owner download-entry
+confirmation remains pending; no new device protocol command has been sent.
