@@ -604,3 +604,42 @@ host tests pass. No RAM target timing or live-audio acceptance yet.
 Owner instruction recorded: all routine future dev-board tests must use the
 verified UART entry and loader software-return cycle without physical buttons.
 Keep the command receiver in future images; fresh boot evidence is mandatory.
+
+### SRAM target result — unattended cycle
+
+[verified: 2026-10-24 07:55 UTC] UART entry acknowledged; fresh ROM connection
+was `3-1.2`, device 97. Two complete baseline reads matched `79e0cc9b…`.
+Factory restore matched `127b2ebb…`; RAM installation and independent pre-reset
+read both matched `80c455ed…`. One software reset interrupted its USB reply
+(host 7, residue 16); fresh UART application boot, command receiver readiness,
+all twelve results and `complete=1` independently confirm success. No physical
+buttons were used. Private receipts: `current-fm6-xip-before-ram-20261024`,
+`restore-fm6-xip-before-ram-20261024`, `install-fm6-ram-control-v1-20261024`,
+`reset-fm6-ram-control-v1-20261024` in the Bench backup directory. Capture:
+`fm6-ram-control-v1-firstboot-20261024-uart.bin`; parsed comparison is private.
+
+Every PCM hash still matches the desktop and XIP references; nonfinite counts
+are zero. Same 320 MHz CPU, 80 MHz flash clock and 24 MHz measurement timer;
+timer check 2372225 ticks / ten OS ticks. These remain isolated renders.
+
+| Patch | Voices | SRAM mean µs | SRAM max µs | Mean speedup vs XIP |
+| --- | ---: | ---: | ---: | ---: |
+| Tine EP | 1 | 69.9 | 88.0 | 1.56× |
+| Tine EP | 4 | 246.7 | 283.0 | 1.64× |
+| Tine EP | 8 | 481.3 | 551.7 | 1.80× |
+| Tine EP | 12 | 715.1 | 822.4 | 2.30× |
+| Warm pad | 1 | 75.4 | 76.8 | 1.65× |
+| Warm pad | 4 | 273.9 | 286.5 | 1.90× |
+| Warm pad | 8 | 537.0 | 558.5 | 2.40× |
+| Warm pad | 12 | 800.0 | 823.9 | 3.01× |
+| Saw lead | 1 | 76.2 | 89.0 | 1.28× |
+| Saw lead | 4 | 272.6 | 285.4 | 1.41× |
+| Saw lead | 8 | 534.7 | 557.1 | 1.65× |
+| Saw lead | 12 | 796.6 | 820.4 | 2.17× |
+
+All measured maxima now fit the 1451.25 µs block budget; worst is 56.8%.
+The controlled placement change demonstrates a substantial flash-execution
+cost for this workload. It does not isolate individual cache behavior or prove
+sufficient headroom for four instruments, effects, the mixer and controls.
+Next: live FM6 DAC service with note events and explicit buffer/deadline
+telemetry, followed by representative full-workload soaks and analog checks.
