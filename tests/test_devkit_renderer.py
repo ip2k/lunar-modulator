@@ -107,3 +107,95 @@ int main(void) {
                     "-I" + str(ROOT / "firmware/devkit"), str(harness),
                     str(ROOT / "firmware/devkit/renderer_timing.c"), "-o", str(exe)], check=True)
     subprocess.run([str(exe)], check=True)
+
+
+def test_worker_recovery_window_precedes_crashing_initialization(tmp_path):
+    # Run the actual worker and parser with only SDK hardware/scheduling mocked.
+    # First simulate an init crash, then a fresh boot receiving an acknowledged
+    # three-command handshake during its recovery window. No physical I/O.
+    for name in ('app_config.h', 'system/includes.h', 'os/os_api.h', 'asm/includes.h'):
+        header = tmp_path / name
+        header.parent.mkdir(parents=True, exist_ok=True)
+        header.write_text('')
+    (tmp_path / 'app_config.h').write_text(r'''
+#include <stdint.h>
+#include <stdio.h>
+struct mock_timer { uint32_t CON, CNT, PRD; };
+extern struct mock_timer timer;
+#define JL_TIMER4 (&timer)
+int clk_get(const char *);
+void os_time_dly(unsigned);
+unsigned uxTaskGetStackHighWaterMark(void *);
+''')
+    harness = tmp_path / 'worker.c'
+    harness.write_text(r'''
+#include "app_config.h"
+#include "renderer_timing.h"
+#include "boot_command.h"
+#include <assert.h>
+#include <setjmp.h>
+#include <string.h>
+struct mock_timer timer;
+static jmp_buf exit_worker;
+static unsigned recovering, ready, ticks, init_calls, acknowledgments;
+static struct lunar_boot_command parser;
+void lunar_devkit_worker(void *);
+int clk_get(const char *name) { assert(!strcmp(name, "sys")); return 320000000; }
+unsigned uxTaskGetStackHighWaterMark(void *p) { (void)p; return 256; }
+void lunar_devkit_boot_control_start(void) { assert(!ready); ready = 1; }
+static void command(const char *s, enum lunar_boot_action expected) {
+    enum lunar_boot_action action = LUNAR_BOOT_NONE;
+    while (*s) action = lunar_boot_command_feed(&parser, *s++, ticks * 10u);
+    assert(action == expected);
+    ++acknowledgments;
+}
+void os_time_dly(unsigned n) {
+    if (ready) {
+        /* Before the fix this worker reached initialization without yielding
+         * at all after starting UART. Each host round trip gets time here. */
+        assert(n >= 30);
+        if (recovering) {
+            ticks += 10; command("LUNAR PING\n", LUNAR_BOOT_PONG);
+            ticks += 10; command("LUNAR ARM UBOOT\n", LUNAR_BOOT_ARMED);
+            ticks += 10; command("LUNAR ENTER UBOOT\n", LUNAR_BOOT_ENTER);
+            longjmp(exit_worker, 2);
+        }
+    }
+    ticks += n; timer.CNT += n * 240000u;
+}
+int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
+    void (*emit)(const struct lunar_renderer_timing *)) {
+    assert(now && yield && emit && ready && ticks >= 310);
+    ++init_calls;
+    longjmp(exit_worker, 1); /* workload initialization faults */
+}
+int main(void) {
+    switch (setjmp(exit_worker)) {
+    case 0: lunar_devkit_worker(0); assert(0); break;
+    case 1: assert(init_calls == 1); break;
+    default: assert(0);
+    }
+    recovering = 1; ready = ticks = init_calls = 0;
+    memset(&timer, 0, sizeof timer); memset(&parser, 0, sizeof parser);
+    switch (setjmp(exit_worker)) {
+    case 0: lunar_devkit_worker(0); assert(0); break;
+    case 2: assert(acknowledgments == 3); break;
+    default: assert(0);
+    }
+    assert(!init_calls); /* Recovery completes before the faulty workload runs. */
+    return 0;
+}
+''')
+    # Keep the compiler barrier, replacing only the pi32v2 hardware opcode.
+    worker = tmp_path / 'sdk_worker.c'
+    source = (ROOT / 'firmware/devkit/sdk_worker.c').read_text()
+    barrier = '__asm__ volatile("csync;" ::: "memory");'
+    assert source.count(barrier) == 1
+    worker.write_text(source.replace(barrier, '__asm__ volatile("" ::: "memory");'))
+    exe = tmp_path / 'worker'
+    subprocess.run([os.environ.get('FM1_SIM_CC', 'cc'), '-std=c99', '-O2',
+                    '-DLUNAR_DEVKIT_RENDERER_TIMING=1', '-DLUNAR_DEVKIT_BOOT_CONTROL=1',
+                    '-I' + str(tmp_path), '-I' + str(ROOT / 'firmware/devkit'),
+                    str(harness), str(worker),
+                    str(ROOT / 'firmware/devkit/boot_command.c'), '-o', str(exe)], check=True)
+    subprocess.run([str(exe)], check=True, capture_output=True)

@@ -1064,3 +1064,12 @@ calls `os_time_dly(200)` at 0x020207a4, then enters renderer timing. These are
 source/link checks, not proof that the new recovery window works on hardware.
 No further hardware command was issued; the board still runs the crashing
 timing-v2 image.
+
+[verified] A worker scheduling regression now executes the actual worker and
+boot-command parser with SDK hardware and time mocked. It simulates an
+initialization crash, then a fresh boot receiving PING/ARM/ENTER during the
+recovery window before initialization can run again. It passes on macOS and
+Linux; all 29 focused renderer/DAC/preparation tests pass on Linux with
+`-fno-trapping-math`. Together with the earlier 176 modulation tests this is
+205 focused tests. The test replaces only the target `csync` instruction with
+a compiler barrier; it does not verify real UART latency or scheduler behavior.
