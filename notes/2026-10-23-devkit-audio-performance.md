@@ -154,3 +154,26 @@ Private listing SHA-256
 No FM6 flash image has been packaged/admitted or installed, and no target
 FM6 timing/checksum or analog result exists yet. The earlier quiet audio-v2
 image remains the separately reviewed next hardware baseline.
+
+## Physical audio-probe installation
+
+[verified: dev board, owner-confirmed hardware download entry] The reviewed
+fixed loader identified WL82/UBOOT1.00. Two fresh 8 MiB reads both matched
+the expected v6 image, SHA-256
+`e77ee8af309fc57d1a8eddaac95dec253dda031f269021382c9cb1e977baa103`.
+The bounded v6 restore then passed complete-flash verification against the
+original factory SHA-256
+`127b2ebbef9da3469f0bf7ea3841a5515d01721ebac9bbdc7fc739032d7b5ec1`.
+The subsequent audio-v2 installation passed every sector check and the full
+8 MiB readback matched its pinned `5cba22f0…` image. Neither transaction sent
+a reset. Private receipts are on bench01 under
+`/home/claude/fm1-devkit-backups/`, in
+`current-v6-before-audio-20261023-2042`,
+`restore-v6-before-audio-20261023-2045` and
+`install-audio-v2-20261023-2050`.
+
+[verified] Receive-only UART capture and a bounded ten-minute KA6 six-channel
+48 kHz PCM32 capture are running before the first boot. The owner has been
+prompted for one normal Reset without Update. Installation verification is
+not boot acceptance or an audio result; no instrument or dropout-free
+playback claim follows from these readbacks.
