@@ -329,3 +329,84 @@ Next: finish v3 normal-boot/tone acceptance, verify the extra UART wire and
 candidate pin electrically, then install the reviewed control-enabled
 diagnostic and validate PING before any entry command. A hung application
 still needs physical Update/Reset or separately reviewed isolated control.
+
+## v3 normal boot: refill fixed; analog acceptance fails
+
+[verified: owner Reset confirmation and fresh running captures, Oct 23 Pacific /
+Oct 24 UTC] The owner reset v3 normally. Earlier armed recordings had expired;
+no additional reset was requested. Fresh receive-only UART and a 30-second KA6
+recording captured the running board. UART reports 512-byte refills, PNS 64,
+ring 192, zero invalid buffers and zero callback/full-IRQ deadline overruns.
+At uptime 6:45: 277803 callbacks, max fill 399 and IRQ 540 oscillator ticks
+(16.625 and 22.5 microseconds at the verified 24 MHz timer). These are not
+an underrun counter or acceptance of real instrument workloads.
+
+Private Bench evidence is `audio-v3-running-20261024-0650-uart.bin`,
+`audio-v3-running-20261024-0650.wav` and `...-analysis-final.json` under
+`/home/claude/fm1-devkit-captures/`. KA6 completed with exit 0 and no ALSA
+errors. After skipping 2 seconds, channels 1/2 RMS are -60.66/-60.37 dBFS.
+Tone screening fails for weak signal and irregular zero crossings. Spectral
+correlation finds the intended tone near 997.4 Hz on both channels; the
+zero-crossing estimates near 1186 Hz reflect extra noise crossings, not
+proof of a wrong oscillator frequency. Channels 3/4 contain only low noise;
+5/6 are zero. Analog dropout acceptance remains **failed/inconclusive**.
+
+[verified: pinned V1.2.13 `cpu.a` private LLVM IR versus SDK `asm/dac.h`]
+The header documents `dac_set_gain` and `dac_direct_set_gain` in raw 0..31
+units, and `dac_set_volume` in 0..16384 units. All three implementations
+actually use a percentage lookup. With the default table, index is
+`min(floor(argument * 32 / 100), 32)`. Thus gain 8 selected index 2, analog
+code 1. Gain 54 selects index 17, analog code 8. Volume 100 selects digital
+15920. The old volume 16384 saturated to that same digital value. Even the
+"direct" gain API performs the lookup. `dac_on` does not replace these gains.
+The weak recording is consistent with the unintended low analog gain;
+causation and corrected signal quality require another physical capture.
+
+Corrected the probe to gain 54 percent and digital volume 100 percent;
+retained -30 dBFS PCM and startup ramp. New startup telemetry reports actual
+DAA_CON1 and DAC_VL0/VL1 so linked behavior can be checked on hardware. The
+actual-C host regression checks the percentage-to-index contract rather than
+repeating the stale raw arguments. These checks do not replace a target run.
+This SDK documentation discrepancy is an upstream contribution candidate;
+no third-party report or private vendor IR has been published.
+
+Semantic-tool check: Serena selected this absolute worktree and found
+`lunar_devkit_audio_probe` at its actual source location. Rarefaction is
+rooted at the primary checkout, has no root compilation database, and refuses
+the outside-root worktree scope query. File inspection, actual host C tests
+and the vendor target build remain authoritative here; no claim of complete
+worktree caller indexing or pi32v2 ABI validation by clangd.
+
+### Corrected control-v2 offline build
+
+[verified: actual vendor toolchain build, independent ELF export and listing]
+Built `build-sdk-audio-control-v2` on Aeon. ELF SHA256
+`2a73385ae8c87608be852dc03bccec59b3345d2eb4016ab6dbd6890a7a539300`;
+listing `c7c62a8dfd12ea6bf0469c780c786e0dfeb0f21448d0255251b1426de79612d4`.
+Independent `.text`/`.data`/`.dynamic_data`/`.ram0_data`/`.cache_ram_data`
+concatenation matches vendor objcopy: 171568 bytes, SHA256
+`fa73e02ac3cb8e3800c66cc6cc7af1463d5b6b2fb1c7ea7b16ae24a89031f736`.
+Linked calls pass volume 100 and gain 54; register telemetry reads match the
+pinned WL82 register layout. Audit has zero failures; its one manual item is
+signed off in the listing: `sdk_meky_check` at `0x020263EE` registers IRQ123
+on both cores, clears enable bits, schedules `_mkey_check` at 8000 as before.
+`enter_rom` remains RAM `0x01C01096`, directly calls the nonempty library
+`nvram_set_boot_state` at `0x02002014`, whose 16-byte RAM marker copy and
+P33 reset at `0x01C0106E` are unchanged. 90 focused host tests pass.
+
+Requested the owner add Tigard UART TX to carrier PA5 with USB disconnected,
+VTGT reference selected and existing RX/PB3, VTGT/3.3 V, ground retained;
+then reconnect and enter hardware download mode. Official Tigard wiring and
+voltage behavior checked against
+<https://github.com/tigard-tools/tigard#hardware-hookup>. Current v3 has no
+command receiver: this first installation still requires physical entry.
+Do not transmit until the new wiring and new image are confirmed. No claim
+of physically validated PA5 reception or automatic ROM entry yet.
+
+Control-v2 private full-image SHA256
+`1bbaf5ae4ddf6a6fc6289c095f0f4b4361913b436b616f6c1f9e43d7da4cad25`.
+Independent decoding, directory/app CRCs and unchanged factory cfg pass.
+42 sectors remain `0x4000..0x2D000`, app end `0x2DF50`. The exact hash is
+admitted with unchanged bounds. Install, exact factory restore and injected
+seventh-page interruption/restore models pass, metadata last; all 16 transaction
+tests pass after admission. This is a model result, not a physical install.

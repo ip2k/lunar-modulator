@@ -28,11 +28,14 @@ struct dac_platform_data {
     unsigned pa_mute_port, hw_channel, ch_num, sr_points, vcm_init_delay_ms;
 };
 struct timer_regs { uint32_t CNT; };
-struct audio_regs { uint32_t DAC_CON, DAC_HRP, DAC_SWP, DAC_PNS, DAC_LEN; };
+struct audio_regs { uint32_t DAC_CON, DAC_HRP, DAC_SWP, DAC_PNS, DAC_LEN, DAC_VL0, DAC_VL1; };
+struct analog_regs { uint32_t DAA_CON1; };
 static struct timer_regs timer_regs;
 static struct audio_regs audio_regs;
+static struct analog_regs analog_regs;
 #define JL_TIMER4 (&timer_regs)
 #define JL_AUDIO (&audio_regs)
+#define JL_ANA (&analog_regs)
 void dac_irq_handler(void);
 void dac_early_init(unsigned, unsigned, unsigned);
 int dac_open(const struct dac_platform_data *);
@@ -70,8 +73,17 @@ void dac_close(void) { assert(0); }
 void request_irq(unsigned irq, unsigned priority, void (*f)(void), unsigned core) {
     assert(irq == 13 && priority == 5 && f && core == 0);
 }
-void dac_set_volume(unsigned volume) { assert(volume == 16384); }
-void dac_set_gain(unsigned gain, unsigned fade) { assert(gain == 8 && fade == 0); }
+void dac_set_volume(unsigned volume) {
+    /* Verified library contract, not the stale header's PCM-scale units. */
+    assert(volume <= 100 && volume * 32 / 100 == 32);
+    audio_regs.DAC_VL0 = audio_regs.DAC_VL1 = 15920;
+}
+void dac_set_gain(unsigned gain, unsigned fade) {
+    /* Default table entry 17 is analog gain 8; passing 8 selects entry 2
+     * (analog gain 1). Assert the mapped result to catch that regression. */
+    assert(gain <= 100 && gain * 32 / 100 == 17 && fade == 0);
+    analog_regs.DAA_CON1 = (8u << 15) | (8u << 10) | (8u << 5) | 8u;
+}
 int dac_get_sample_rate(void) { return (int)sample_rate; }
 int dac_on(void) {
     /* Pinned SDK dac_on() writes DAC_PNS = sr_points / 3;

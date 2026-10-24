@@ -98,12 +98,19 @@ void lunar_devkit_audio_probe(void)
         return;
     }
     request_irq(13, 5, audio_irq, 0); /* IRQ_AUDIO_IDX, proven above. */
-    dac_set_volume(16384);
-    dac_set_gain(8, FADE_DISABLE);
+    /* Pinned V1.2.13 cpu.a uses percentages, contrary to dac.h's units.
+     * Default table index floor(54 * 32 / 100) = 17 selects analog gain 8;
+     * digital 100 selects 15920. dac_direct_set_gain uses the same table.
+     * Keep the independent PCM peak at -30 dBFS and ramp it at startup. */
+    dac_set_volume(100);
+    dac_set_gain(54, FADE_DISABLE);
     status = dac_on();
     printf("LUNAR_AUDIO on=%d actual_rate=%d source=internal-dac-reference-only\n",
            status, dac_get_sample_rate());
     if (status) return;
+    printf("LUNAR_AUDIO gain_percent=54 volume_percent=100 analog=%08x vl0=%08x vl1=%08x\n",
+           (unsigned)JL_ANA->DAA_CON1, (unsigned)JL_AUDIO->DAC_VL0,
+           (unsigned)JL_AUDIO->DAC_VL1);
     for (;;) {
         uint32_t flags, count, over, bad, peak, gap, irq_peak, irq_over;
         int buffer_bytes;
