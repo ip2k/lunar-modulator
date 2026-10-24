@@ -1030,6 +1030,11 @@ unchanged. All 28 focused tests pass with Linux replay divide-by-zero traps
 enabled, including a build permitting speculative floating-point operations.
 Target validation of the correction remains pending.
 
+[inferred] Source call paths place `fm1_mod_tick` in sequenced rendering, so
+the fault may be in the first render batch rather than initialization itself.
+The capture establishes a startup/early-workload fault before a completed
+case; it does not identify the exact initialization/render boundary.
+
 [verified] The crashing image prints UART receiver readiness, but ordinary and
 startup-timed acknowledged PING attempts received no acknowledgement; no ARM
 or ENTER was sent by those failed handshakes. Temporarily reducing the Tigard
@@ -1051,9 +1056,8 @@ scheduling item was checked in actual vendor disassembly: `sdk_meky_check` at
 Independent cipher/CRC checks pass for private candidate SHA-256
 `7478c40947fa308a6ffacba32ab1f109632446b0370dafc2183c091421a93b16`,
 134 application sectors `[0x4000,0x8a000)`, application end 0x89f10; factory
-boot/configuration/tail preservation passes. This image is **not admitted or
-installed**. Transaction modeling and final exact-image recovery review remain
-required. Current hardware recovery cannot use the receiver while it crashes
+boot/configuration/tail preservation passes. At this checkpoint the image was
+not yet admitted or installed. Current hardware recovery cannot use the receiver while it crashes
 before acknowledging PING; an owner recovery exception has been requested.
 
 [verified] The corrected candidate's offline NOR model also passes exact
@@ -1073,3 +1077,12 @@ Linux; all 29 focused renderer/DAC/preparation tests pass on Linux with
 `-fno-trapping-math`. Together with the earlier 176 modulation tests this is
 205 focused tests. The test replaces only the target `csync` instruction with
 a compiler barrier; it does not verify real UART latency or scheduler behavior.
+
+[verified] The exact corrected candidate is now admitted in the transaction
+tool with the same 134-sector boundary. Both old and corrected renderer plans
+pass protected boot/tail and older-image boundary tests; all 26 transaction
+and loader-reset tests pass locally. This is offline admission only: the image
+has not been staged to Bench01 or installed. The pending recovery exception
+and hardware startup-window acceptance remain required. Rarefaction's current
+project index could not resolve `validate_images`; Serena resolved its actual
+worktree definition, supplemented by direct caller/test inspection.

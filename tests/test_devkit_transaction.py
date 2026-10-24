@@ -112,8 +112,12 @@ def test_fm6_plan_cannot_expand_other_images():
     assert not tx.protected_equal(changed, desired, tx.FM6_ALLOWED)
 
 
-def test_renderer_plan_preserves_boot_tail_and_older_bounds():
-    allowed = tx.IMAGE_PLANS[tx.RENDERER_TIMING_TARGET_SHA]
+@pytest.mark.parametrize('target_sha', [
+    tx.RENDERER_TIMING_TARGET_SHA,
+    tx.RENDERER_TIMING_V3_TARGET_SHA,
+])
+def test_renderer_plan_preserves_boot_tail_and_older_bounds(target_sha):
+    allowed = tx.IMAGE_PLANS[target_sha]
     assert allowed == tuple(range(0x4000, 0x8a000, 4096))
     desired = bytes(tx.backup.FLASH_SIZE)
     tx.mutation_request(0xFB01, 0x89000, b'', desired, allowed)
