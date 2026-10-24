@@ -60,7 +60,10 @@ different runtime tradeoff, not our measurement or a like-for-like comparison:
 its output window is four times our current 64 frames, the patches/scheduler
 differ, and overload protection can reduce sounding voices. The core's integer
 representation is a candidate for later profiling, not grounds to replace our
-engine without semantic and listening comparisons.
+engine without semantic and listening comparisons. Lunar already sums FM6
+voices in an integer buffer and converts the final mix to float once per
+sample (`msfa_dx7.cc`, `Instance::RenderBlock`); a wholesale integer-port swap
+is not a demonstrated optimization of our present hot path.
 
 [verified: `LICENSING.md`] The integer port is Apache-2.0 AND GPL-3.0-only;
 it is not an Apache-only replacement for Lunar's MIT/BSD firmware path. No code

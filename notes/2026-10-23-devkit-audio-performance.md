@@ -49,9 +49,11 @@ channel routing with a low-level diagnostic tone before judging instruments.
 
 [verified] Rarefaction is rooted at the primary checkout and rejects this
 external worktree as outside its root. Its name fallback misses the devkit
-worker. Serena is also on the primary checkout; no other session's shared
-activation was changed. Use bounded primary-source queries where identical,
-and inspect this worktree and SDK/build artifacts directly for new code.
+worker. The current Serena connection selects the absolute performance worktree and
+finds its actual `fm1_app_render` body at lines 3565 onward [verified,
+2026-10-24]. Rarefaction name queries can return the older primary checkout
+body; do not use that position as a worktree edit target. Inspect this worktree
+and actual SDK/build artifacts for new code and target behavior.
 Neither clangd nor host tests verify pi32v2 code generation or DAC behavior.
 
 ## Reference-tone checkpoint
@@ -806,3 +808,75 @@ Two-cycle desktop replay produces identical PCM with and without fingerprinting
 8467968 frames). Its 24 completed-case fingerprints are retained privately for
 comparison with fresh target records. This proves host instrumentation preserves
 output; it is not yet evidence of long-stream target identity.
+
+
+### Completed-case evidence comparison
+
+[verified: host checks] `tools/devkit_pcm_compare.py` is a read-only comparison
+of private independent host replay logs and target UART logs. It requires at
+least two complete 12-case cycles, rejects missing/corrupt/reordered/conflicting
+records, tolerates repeated worker snapshots, and records both input hashes.
+Sixteen synthetic fault/CLI checks pass. These checks validate evidence handling,
+not actual target PCM identity, analog continuity or the full workload.
+
+[verified: 64-bit host layout experiment] The current simulator `fm1_app_t` is
+4,953,360 bytes; its sound/effect arenas alone occupy 4,718,592 bytes. The TFT
+state is 116,368 bytes. These are host layout measurements, not pi32v2 ABI sizes.
+The header already documents the fixed arenas as a simulator convenience. A
+real full-renderer target must provide per-chain storage within actual linked
+SRAM limits; calling a separate miniature mixer would not validate the same
+sequencer/modulation/effect render path. Preserve this acceptance distinction.
+
+
+### Live v2 sustained timing and capture checkpoint
+
+[verified, 2026-10-24] The unattended v2 capture ran from 08:33:40.569 to
+09:03:40.481 UTC. KA6 ALSA exited 0 with no error in its capture log. The WAV
+contains exactly 86,400,000 six-channel PCM32 frames at 48 kHz (1800 seconds).
+Private recording SHA-256
+`bbe57313b53a2b128916359caef9e897165cf75cc76a8ff6f8ec865a53b6b09d`
+matches on bench01, the Mac private scratch copy and Aeon analysis storage.
+
+The UART capture spans boot through the entire soak: 2,086 cumulative audio
+records, all twelve cases repeated, 1,437,960 callbacks at the final snapshot.
+Maximum refill 23,639 ticks and complete IRQ 23,654 ticks remain below the
+34,829-tick deadline; maximum callback-start interval was 35,265 ticks.
+Over-budget callback/IRQ, invalid buffers, gaps over 1.5 blocks, nonfinite
+output and clipping counters stayed zero throughout. These are timing and
+service observations, not a hardware underrun counter or analog acceptance.
+The SDK DAC handler exposes no explicit underrun count on this path.
+
+Analog continuity analysis remains open, particularly the quiet cases near
+the capture noise floor. This single FM6 workload does not replace the required
+representative instrument/effect/mixer/control campaign. After the recording
+finished, UART entry was acknowledged and fresh ROM enumeration observed;
+two complete current-flash reads both matched the installed v2 image exactly.
+The next reviewed v3 fingerprint image is being installed through the same
+factory-restore/full-readback cycle, without physical buttons.
+
+
+### Live v3 target long-stream comparison
+
+[verified, 2026-10-24] The complete v2-to-factory restore, v3 install and
+pre-reset read each passed their full 8 MiB checks. One reviewed software reset
+returned to a fresh SOFT UART boot with the new image's RAM layout, without
+physical buttons. The target's first 24 completed case fingerprints match the
+independent desktop replay exactly: two full cycles, no missing, conflicting,
+reordered or mismatched records. Six later completed cases were present in that
+snapshot and explicitly outside the 24-case comparison.
+
+The compared private UART snapshot SHA-256 is
+`c011a81b0dc2a4adcf316acf6daa94e465b6213152267f4fd1cdb3ac49d523a4`;
+reference log SHA-256
+`c528a9da0241955a0f063687ebaf2445f804e39d05525b418bdb1b64d6b0fd1b`.
+FNV hashes provide a diagnostic consistency check, not cryptographic proof.
+The measured maximum complete IRQ, including fingerprinting, is 23,747 ticks
+(989.5 us), still below 34,829 ticks. Reported deadline, invalid-buffer, long-gap,
+nonfinite and clipping counts remain zero.
+
+The six-minute v3 KA6 capture completed with exit 0/no ALSA error and exactly
+17,280,000 six-channel PCM32 frames at 48 kHz. Its private SHA-256
+`a10e762428f4949e1d83dbcfe22b0c9e6dd0fe7fc4df87275ba0c16a8d57011a`
+matches bench01, Mac and Aeon copies. These results establish generated-stream
+consistency for this schedule; DAC/analog continuity, representative full
+renderer/effect/control workloads and FM-1 transfer remain unaccepted.
