@@ -1135,3 +1135,32 @@ and `full-renderer-fault-sensitivity.json` (SHA-256
 `71a4b49c6ce0ce6dbf625b648dad59dba26d415f1e65f3da58377f6f872d7b91`).
 Both declare that they do not certify dropout-free output. No board command,
 physical reset, UART transmission or new KA6 capture occurred in this experiment.
+
+## Workload liveness and shared browser rebuild (2026-10-24)
+
+[verified] A separate instrumented desktop build confirms that the four
+sequencer tracks stay active during the full replay; nonzero PCM was not used
+as a substitute for this check. All 63 approximately one-second samples show
+transport playing, ticks advancing from 192 to 12,112, and each track playing
+clip index 0 with loop cycles advancing from 1 to 32. All 252 route snapshots
+match track-to-corresponding-sound routing. Assertions also verify 16-step
+clips containing 4/4/4/2 notes, zero sequencer refusal/event-drop/gate-eviction
+counters and zero app sequencer drops at each sample. All eight PCM hashes
+remain unchanged. Sampling does not prove behavior between samples, IRQ
+headroom or analog continuity. This private probe uses its own build directory
+and adds no logging or behavior to the admitted device image. Private log
+`renderer-seq-observe-assertions.log` SHA-256:
+`6d43b0f0573aa98ffe99bc950229cde727a281e45042a47904c365b1fce1ff7a`.
+
+[verified] CI run 40088632637's MIT/BSD and macOS jobs failed solely because
+the committed browser module predated the modulation divide guard. Their
+actual logs show 4,493 and 5,398 passing tests respectively. The modulation
+runtime is included in the browser's strict source hash. The module was
+rebuilt with the existing build/parity pipeline on Aeon, bounded to four CPUs
+and 8 GiB; its record was not manually edited. All 108 parity scenarios, DX7,
+metadata and edit checks pass. The 30-second edit storm reports 10,341 quanta,
+82,728 edits and zero late quanta. The refreshed WASM is 1,585,788 bytes,
+SHA-256 `857eb29fa1b72cee61d9706eda9b0aef55b6eb83ec6bfc03d28ea00251b9f329`.
+The strict build-record test passes locally with `CI=true`, including current
+source hashes and the committed module hash. Complete new-head CI remains
+required. No device traffic or new physical audio acceptance occurred here.
