@@ -978,3 +978,28 @@ behavior, then complete link/image audits and exact-image admission. Target
 PCM comparison, analog fault-validation and full-workload 30-minute soaks remain
 required. The previously measured FM6-only image is still installed. No new
 hardware performance or dropout-free claim follows from this successful link.
+
+### Worker-context preflight and stack review, 2026-10-24
+
+[verified] The vendor disassembly of the shared SDK/DAC link reserves 6,224
+local stack bytes in `fm1_mod_ui_commit` and 4,284 in `fm1_mod_script_apply`,
+before saved registers and callees. These are separate frames, not an assertion
+that they are nested. The linked CPU0 interrupt stack is 4 KiB. A successful
+link therefore does not establish that the app's UI/setup/render call chains
+are safe in that interrupt context. No full-renderer image has been installed.
+
+The preparer now provides a 20 KiB worker stack (the SDK documents four-byte
+stack units). Its `--timing-only` mode starts the UART receiver, runs the same
+full four-case schedule in the worker, yields every 16 blocks, and reports
+render/conversion/control/fingerprint timings with stack high-water words.
+This preflight does not enable the DAC and cannot prove output continuity.
+The host timing-controller test injects timer wrap and late renders and checks
+all case counts, totals, scheduling yields and invalid-callback refusal.
+
+[verified] All 28 focused renderer/DAC/SDK-preparation tests pass on Aeon.
+The actual pinned SDK links the worker timing build with stack reporting:
+private ELF SHA-256
+`3da7e539f19c0c94d97cabc924b231c1b092232e230fc2dfc91777fcdd3c8ccc`,
+XIP `.text` 0x830a0, `.ram0_data` 0x2cf0 and `.ram0_bss` 0x62ad4, zero SDRAM
+`.data`/`.bss`. Task stacks consume the remaining heap at runtime. Target stack
+measurements and timing results remain pending exact-image review/admission.

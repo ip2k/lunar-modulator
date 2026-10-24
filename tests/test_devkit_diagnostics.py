@@ -41,9 +41,10 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
-    renderer = mode == 'renderer'
+    renderer = mode in ('renderer', 'renderer-timing')
+    timing = mode == 'renderer-timing'
     live = mode == 'fm6-audio'
     audio_probe, fm6 = mode in ('audio', 'renderer'), mode in ('fm6', 'fm6-ram')
     spec = importlib.util.spec_from_file_location('prepare_devkit', ROOT/'tools/jieli/prepare-devkit.py')
@@ -72,7 +73,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         renderer_spec = importlib.util.spec_from_file_location('prepare_renderer', ROOT/'tools/jieli/prepare-renderer-devkit.py')
         renderer_module = importlib.util.module_from_spec(renderer_spec)
         renderer_spec.loader.exec_module(renderer_module)
-        renderer_module.prepare_renderer(sdk, ROOT, out)
+        renderer_module.prepare_renderer(sdk, ROOT, out, timing_only=timing)
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -86,6 +87,12 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     assert ('-DLUNAR_DEVKIT_AUDIO_PROBE=1' in result) == (audio_probe or live)
     assert (out/'apps/demo/demo_hello/audio_probe.c').exists() == (audio_probe or live)
     assert ('-DLUNAR_DEVKIT_FM6_AUDIO=1' in result) == live
+    if renderer:
+        assert '10, 5120, 0, "lunar_devkit"' in (out/'apps/demo/demo_hello/app_main.c').read_text()
+    if timing:
+        assert '-DLUNAR_DEVKIT_RENDERER_TIMING=1' in result
+        assert (out/'apps/demo/demo_hello/renderer_timing.h').exists()
+        assert not (out/'apps/demo/demo_hello/audio_probe.c').exists()
     if audio_probe or live:
         # Exercise Make's immediate target-variable expansion, not merely the
         # presence of a later global define in the generated text.

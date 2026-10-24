@@ -3,7 +3,7 @@
 # desktop sequencer script reader is needed by the target workload.
 DEVKIT ?= $(abspath $(SIM)/../../firmware/devkit)
 DEVKIT_RENDERER_OBJ = $(SIM_APP_OBJ) $(SIM_ENGINE_OBJ) $(SIM_META_OBJ) \
-  $(BUILD)/devkit/renderer_live.o
+  $(BUILD)/devkit/renderer_live.o $(BUILD)/devkit/renderer_timing.o
 
 $(BUILD)/devkit/%.o: $(DEVKIT)/%.c
 	@mkdir -p $(dir $@)

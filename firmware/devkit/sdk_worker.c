@@ -4,6 +4,20 @@
 #include "os/os_api.h"
 #include "asm/includes.h"
 #include "benchmark.h"
+#ifdef LUNAR_DEVKIT_RENDERER_TIMING
+#include "renderer_timing.h"
+static void renderer_yield(void) { os_time_dly(1); }
+static void emit_renderer(const struct lunar_renderer_timing *r)
+{
+    printf("\nLUNAR_RENDERER_TIMING case=%u blocks=%u min=%u max=%u mean=%u over=%u controls=%u arena=%u invalid=%u clipped=%u hash=%08x\n",
+           r->test_case, r->blocks, r->min_ticks, r->max_ticks,
+           (unsigned)(r->ticks / r->blocks), r->over_budget, r->state.controls,
+           r->state.arena_bytes, r->state.invalid, r->state.clipped,
+           r->state.completed_hash);
+    printf("LUNAR_RENDERER_STACK unused_words=%u word_bytes=4\n",
+           (unsigned)uxTaskGetStackHighWaterMark(NULL));
+}
+#endif
 #ifdef LUNAR_DEVKIT_BOOT_CONTROL
 #include "boot_command.h"
 #endif
@@ -42,7 +56,9 @@ void lunar_devkit_worker(void *unused)
     uint32_t before;
     (void)unused;
     os_time_dly(100);
-#ifdef LUNAR_DEVKIT_AUDIO_PROBE
+#ifdef LUNAR_DEVKIT_RENDERER_TIMING
+    printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=shared-renderer-no-dac\n", clk_get("sys"));
+#elif defined(LUNAR_DEVKIT_AUDIO_PROBE)
 #ifdef LUNAR_DEVKIT_RENDERER_AUDIO
     printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=shared-renderer-internal-dac\n", clk_get("sys"));
 #elif defined(LUNAR_DEVKIT_FM6_AUDIO)
@@ -72,7 +88,9 @@ void lunar_devkit_worker(void *unused)
 #ifdef LUNAR_DEVKIT_BOOT_CONTROL
     lunar_devkit_boot_control_start();
 #endif
-#ifdef LUNAR_DEVKIT_AUDIO_PROBE
+#ifdef LUNAR_DEVKIT_RENDERER_TIMING
+    printf("LUNAR_DEVKIT complete=%d\n", lunar_devkit_renderer_timing(now, renderer_yield, emit_renderer));
+#elif defined(LUNAR_DEVKIT_AUDIO_PROBE)
     lunar_devkit_audio_probe();
 #elif defined(LUNAR_DEVKIT_FM6_BENCHMARK)
     printf("LUNAR_DEVKIT complete=%d\n", lunar_devkit_fm6_benchmark(now, emit_fm6));

@@ -173,3 +173,13 @@ The DAC callback reports `LUNAR_RENDERER` and completed-case
 The private receipt hashes its source snapshot and records hardware acceptance
 as false. Linking is an offline check: review stack, interrupt liveness, hot
 code placement and the exact image before admitting any device test.
+
+Use `--timing-only` for the initial worker-context preflight. It runs one
+complete four-case schedule without enabling the DAC, measures render plus
+scheduled note/control/conversion/fingerprint work, and yields to the OS every
+16 blocks. Case reports include worst/mean ticks and counts at or beyond the
+64-frame budget. The worker reports FreeRTOS stack high-water words after each
+case. The preparer gives the shared-renderer worker 20 KiB of task stack;
+this is dynamically allocated and must be counted separately from static BSS.
+Neither this mode nor a larger task stack establishes interrupt-stack safety
+or audio continuity. Keep UART control running throughout the preflight.

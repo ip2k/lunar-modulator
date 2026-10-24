@@ -58,3 +58,49 @@ def test_missing_effect_refuses_whole_workload():
     assert result.returncode == 1
     assert "initialization refused: stage 1" in result.stderr
     assert "LUNAR_RENDERER completed=" not in result.stdout
+
+
+def test_worker_timing_wrap_and_yields(tmp_path):
+    # Test the timing controller independently of DSP cost: the injected clock
+    # wraps and makes every render late. UART scheduling yields and reporting
+    # must stay outside each measured region and cover every density case.
+    harness = tmp_path / "timing.c"
+    harness.write_text(r'''
+#include "renderer_timing.h"
+#include <assert.h>
+#include <string.h>
+static unsigned clock_calls, rendered, yielded, emitted, init_ok = 1;
+static uint32_t tick = UINT32_MAX - 40000u;
+int lunar_devkit_renderer_init(void) { return init_ok; }
+void lunar_devkit_renderer_render(int16_t *p) { ++rendered; memset(p, 0, 512); }
+void lunar_devkit_renderer_status(struct lunar_renderer_status *p) {
+    memset(p, 0, sizeof *p); p->blocks = rendered;
+}
+static uint32_t now(void) { ++clock_calls; tick += 35000u; return tick; }
+static void yield(void) { assert(!(clock_calls & 1u)); ++yielded; }
+static void emit(const struct lunar_renderer_timing *r) {
+    assert(!(clock_calls & 1u)); assert(r->test_case == emitted++);
+    assert(r->blocks == 5513 && r->over_budget == 5513);
+    assert(r->min_ticks == 35000 && r->max_ticks == 35000);
+    assert(r->ticks == 5513ull * 35000u);
+    assert(r->state.blocks == emitted * 5513u);
+}
+int main(void) {
+    assert(!lunar_devkit_renderer_timing(0, yield, emit));
+    assert(!lunar_devkit_renderer_timing(now, 0, emit));
+    assert(!lunar_devkit_renderer_timing(now, yield, 0));
+    init_ok = 0;
+    assert(!lunar_devkit_renderer_timing(now, yield, emit));
+    assert(!clock_calls && !rendered && !yielded && !emitted);
+    init_ok = 1;
+    assert(lunar_devkit_renderer_timing(now, yield, emit));
+    assert(rendered == 4u * 5513u && clock_calls == 2u * rendered);
+    assert(yielded == 4u * (345u + 1u) && emitted == 4);
+    return 0;
+}
+''')
+    exe = tmp_path / "timing"
+    subprocess.run([os.environ.get("FM1_SIM_CC", "cc"), "-std=c99", "-Wall", "-Wextra", "-Werror",
+                    "-I" + str(ROOT / "firmware/devkit"), str(harness),
+                    str(ROOT / "firmware/devkit/renderer_timing.c"), "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True)
