@@ -94,3 +94,17 @@ fresh UART application boot and diagnostic completion. Both directions were
 verified on the dev kit on 2026-10-24. Do not request routine Update/Reset presses.
 An unresponsive application's recovery is a separate case; UART control cannot
 be assumed available after a crash. This workflow does not authorize FM-1 tests.
+
+## Live FM6 DAC workload
+
+Prepare with `--fm6-audio --fm6-ram --boot-control`. All three flags are required
+for live FM6: preserve the measured SRAM placement and unattended test cycle.
+The same internal-DAC transport now renders real FM6 in its measured callback,
+with note events, bounded float-to-PCM conversion, quiet gain and startup ramp.
+It cycles three patches at 1/4/8/12 held notes, six seconds held and two seconds
+released per case. Release tails may overlap. `LUNAR_LIVE` reports requested
+chord size, schedule progress, nonfinite and clipping counts. Callback gap
+counts indicate delayed service; they are not hardware underrun counts.
+
+The reference-tone and isolated benchmark modes remain separate comparisons.
+Live FM6 alone is still short of the full mixer/effects/control acceptance gate.

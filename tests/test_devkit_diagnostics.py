@@ -41,8 +41,9 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'control'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
+    live = mode == 'fm6-audio'
     audio_probe, fm6 = mode == 'audio', mode in ('fm6', 'fm6-ram')
     spec = importlib.util.spec_from_file_location('prepare_devkit', ROOT/'tools/jieli/prepare-devkit.py')
     module = importlib.util.module_from_spec(spec)
@@ -67,37 +68,42 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
                                           '        *(.volatile_ram_code)\n')
     out = tmp_path/'prepared'
     module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
-                   boot_control=mode == 'control', fm6_ram=mode == 'fm6-ram')
+                   boot_control=mode == 'control' or live,
+                   fm6_ram=mode == 'fm6-ram' or live, fm6_audio=live)
     result = (out/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
     assert '\\ \\' not in result
     assert '$(RUN_POST_SCRIPT) sdk' not in result
     assert '-fno-data-sections' in result
     assert '#define __SDRAM_SIZE__    (8 * 1024 * 1024)' in (out/'apps/demo/demo_hello/include/app_config.h').read_text()
     assert 'benchmark.c' in result and 'sdk_worker.c' in result
-    assert ('-DLUNAR_DEVKIT_AUDIO_PROBE=1' in result) == audio_probe
-    assert (out/'apps/demo/demo_hello/audio_probe.c').exists() == audio_probe
+    assert ('-DLUNAR_DEVKIT_AUDIO_PROBE=1' in result) == (audio_probe or live)
+    assert (out/'apps/demo/demo_hello/audio_probe.c').exists() == (audio_probe or live)
+    assert ('-DLUNAR_DEVKIT_FM6_AUDIO=1' in result) == live
     assert ('-DLUNAR_DEVKIT_FM6_BENCHMARK=1' in result) == fm6
-    assert ('-DLUNAR_DEVKIT_BOOT_CONTROL=1' in result) == (mode == 'control')
+    assert ('-DLUNAR_DEVKIT_BOOT_CONTROL=1' in result) == (mode == 'control' or live)
     if mode == 'control':
         board = (out/'apps/demo/demo_hello/board/wl82/board.c').read_text()
         assert '.rx_pin = IO_PORTA_05' in board and '.tx_pin = -1' in board
         assert '.rx_pin = -1' in board  # Logging UART stays transmit-only.
         assert 'boot_control.c' in result and 'boot_command.c' in result
-    if fm6:
+    if fm6 or live:
         import json
         receipt = json.loads((out/'lunar-devkit-input.json').read_text())
         assert 'engines/src/msfa_dx7.cc' in receipt['inputs']
         assert 'engines/third_party/msfa/LICENSE' in receipt['inputs']
-        assert 'no DAC/mixer/effects' in receipt['measurement']
+        assert ('live FM6 through internal DAC' if live else 'no DAC/mixer/effects') in receipt['measurement']
         assert '-fwrapv' in result and '-std=c++11' in result
         assert (out/'apps/demo/demo_hello/fm6_unit_env.cc').read_text().startswith('#define FM1_MSFA_UNIT "env.cc"')
         script = (out/'cpu/wl82/sdk_ld_sfc.c').read_text()
-        assert ('EXCLUDE_FILE' in script) == (mode == 'fm6-ram')
-        if mode == 'fm6-ram':
+        assert ('EXCLUDE_FILE' in script) == (mode == 'fm6-ram' or live)
+        if mode == 'fm6-ram' or live:
             assert '*msfa_dx7.cc.o(.text* .rodata*)' in script
             assert '*fm6_unit_fm_op_kernel.cc.o(.text* .rodata*)' in script
             assert '*fm6_benchmark.cc.o' not in script
             assert 'startup-copied ram0_data' in receipt['placement']
+        if live:
+            assert '*fm6_live.cc.o(.text* .rodata*)' in script
+            assert 'fm6_benchmark.cc' not in result
     linked = (out/'include_lib/driver/cpu/wl82/system.ld').read_text()
     start = linked.index('PROVIDE(syscfg_ops_begin')
     end = linked.index('PROVIDE(syscfg_ops_end')
@@ -112,6 +118,9 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     with pytest.raises(ValueError, match='requires the FM6'):
         module.prepare(sdk, ROOT, tmp_path/'invalid-ram', fm6_ram=True)
     assert not (tmp_path/'invalid-ram').exists()
+    with pytest.raises(ValueError, match='requires SRAM'):
+        module.prepare(sdk, ROOT, tmp_path/'invalid-live', fm6_audio=True)
+    assert not (tmp_path/'invalid-live').exists()
 
 
 def test_real_resampler_workload(tmp_path):

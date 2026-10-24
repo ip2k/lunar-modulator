@@ -43,7 +43,11 @@ void lunar_devkit_worker(void *unused)
     (void)unused;
     os_time_dly(100);
 #ifdef LUNAR_DEVKIT_AUDIO_PROBE
+#ifdef LUNAR_DEVKIT_FM6_AUDIO
+    printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=fm6-internal-dac\n", clk_get("sys"));
+#else
     printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=internal-dac-probe\n", clk_get("sys"));
+#endif
 #elif defined(LUNAR_DEVKIT_FM6_BENCHMARK)
     printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=fm6-no-dac\n", clk_get("sys"));
 #else

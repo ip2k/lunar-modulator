@@ -643,3 +643,28 @@ cost for this workload. It does not isolate individual cache behavior or prove
 sufficient headroom for four instruments, effects, the mixer and controls.
 Next: live FM6 DAC service with note events and explicit buffer/deadline
 telemetry, followed by representative full-workload soaks and analog checks.
+
+### Live FM6 playback mode (source/build checkpoint)
+
+Added opt-in `--fm6-audio --fm6-ram --boot-control`. Preparation refuses a
+live image without proven SRAM placement or unattended control. It shares the
+verified three-window/64-frame internal-DAC transport with the reference tone,
+but renders actual FM6 and duplicates stereo onto the four DAC channels. A
+quiet fixed -18 dB conversion gain and startup ramp bound the physical output;
+nonfinite values become silence and clipping is counted before conversion.
+Initialization stays outside the audio IRQ; note/render/conversion work is
+inside its measured callback. No callback logging, allocation or sleeping.
+
+The schedule cycles Tine EP, warm pad and saw lead, each at 1/4/8/12 held notes:
+six seconds held and two seconds released per case (block-rounded). Release
+tails can overlap the next case; the voices field is the requested held chord,
+not an engine active-voice measurement. Callback gaps over 1.5 blocks are
+counted explicitly as delayed service, not claimed as hardware underruns.
+
+103 focused host tests pass. Real FM6 PCM matches an independent instance
+through the DAC bridge, and a bounded mock exercises every schedule transition,
+NaN/infinity/clipping guards, initial silence, buffer sentinels and lifecycle.
+Both reference and live callback variants pass ASan/UBSan contract tests,
+including malformed buffers and injected long gaps. The pinned SDK live build
+also passes offline. ELF/pack review and target installation are still pending;
+no live FM6 output, effects, or soak acceptance is claimed.

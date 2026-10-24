@@ -1,11 +1,13 @@
 """Exercise the actual probe with the pinned SDK's three-window DAC contract."""
 from pathlib import Path
 import subprocess
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_dac_start_refill_contract(tmp_path):
+@pytest.mark.parametrize('live', [False, True])
+def test_dac_start_refill_contract(tmp_path, live):
     headers = ['app_config.h', 'system/includes.h', 'os/os_api.h',
                'asm/includes.h', 'asm/dac.h']
     for name in headers:
@@ -57,6 +59,19 @@ void os_time_dly(unsigned);
 #include <setjmp.h>
 #include <math.h>
 #include "audio_probe.c"
+#ifdef LUNAR_DEVKIT_FM6_AUDIO
+static unsigned live_fills, live_initialized;
+int lunar_devkit_fm6_live_init(void) { ++live_initialized; return 1; }
+void lunar_devkit_fm6_live_render(int16_t *out) {
+    unsigned i;
+    assert(live_initialized == 1);
+    ++live_fills;
+    for (i=0; i<256; ++i) out[i] = 42;
+}
+void lunar_devkit_fm6_live_status(struct lunar_fm6_live_status *out) {
+    memset(out, 0, sizeof(*out));
+}
+#endif
 static struct dac_platform_data config;
 static void (*handler)(void *, u8 *, int);
 static unsigned sample_rate;
@@ -99,10 +114,18 @@ int dac_on(void) {
                 (int)(frames * config.ch_num * sizeof(int16_t)));
     }
     assert(callbacks == 3 && invalid_buffers == 0);
+#ifdef LUNAR_DEVKIT_FM6_AUDIO
+    assert(live_fills == 3);
+#else
     assert(ramp_frames == 192 && phase != 0);
+#endif
     for (i = 0; i < 192; ++i) {
         int16_t sample = guarded[1 + i * 4];
+#ifdef LUNAR_DEVKIT_FM6_AUDIO
+        double expected = 42;
+#else
         double expected = 1024 * sin(6.28318530718 * 997 * i / sample_rate) * (i + 1) / 2205;
+#endif
         assert(fabs(sample - expected) < 3);
         nonzero += sample != 0;
         for (ch = 1; ch < 4; ++ch) assert(guarded[1 + i * 4 + ch] == sample);
@@ -118,19 +141,34 @@ int main(void) {
     /* A genuinely malformed window is silent and cannot advance DDS phase. */
     {
         int16_t bad[10];
-        uint32_t old_phase = phase;
         unsigned i;
+#ifndef LUNAR_DEVKIT_FM6_AUDIO
+        uint32_t old_phase = phase;
+#endif
         for (i = 0; i < 10; ++i) bad[i] = 12345;
         handler(NULL, (u8 *)(bad + 1), 16);
-        assert(invalid_buffers == 1 && phase == old_phase && callbacks == 3);
+        assert(invalid_buffers == 1 && callbacks == 3);
+#ifdef LUNAR_DEVKIT_FM6_AUDIO
+        assert(live_fills == 3);
+#else
+        assert(phase == old_phase);
+#endif
         assert(bad[0] == 12345 && bad[9] == 12345);
         for (i = 1; i < 9; ++i) assert(bad[i] == 0);
+    }
+    {
+        int16_t valid[256];
+        assert(long_gaps == 0);
+        timer_regs.CNT += PROBE_TICKS * 2;
+        handler(NULL, (u8 *)valid, sizeof(valid));
+        assert(long_gaps == 1 && callbacks == 4 && invalid_buffers == 1);
     }
     return 0;
 }
 ''')
     binary = tmp_path/'probe'
     subprocess.run(['cc', '-std=c99', '-O1', '-Wall', '-Wextra', '-Werror',
+                    *(['-DLUNAR_DEVKIT_FM6_AUDIO=1'] if live else []),
                     '-fsanitize=address,undefined', '-fno-omit-frame-pointer',
                     '-I'+str(tmp_path), '-I'+str(ROOT/'firmware/devkit'),
                     str(harness), '-lm', '-o', str(binary)], check=True)

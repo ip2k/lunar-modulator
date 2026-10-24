@@ -19,11 +19,13 @@ MSFA_UNITS = ['dx7note', 'env', 'fm_core', 'fm_op_kernel', 'freqlut', 'lfo', 'pa
 
 
 def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False, boot_control=False,
-            fm6_ram=False):
-    if audio_probe and fm6_benchmark:
+            fm6_ram=False, fm6_audio=False):
+    if sum((audio_probe, fm6_benchmark, fm6_audio)) > 1:
         raise ValueError('Choose one diagnostic; FM6 timing does not enable DAC output')
-    if fm6_ram and not fm6_benchmark:
-        raise ValueError('FM6 SRAM placement requires the FM6 benchmark')
+    if fm6_ram and not (fm6_benchmark or fm6_audio):
+        raise ValueError('FM6 SRAM placement requires the FM6 benchmark or audio mode')
+    if fm6_audio and not (fm6_ram and boot_control):
+        raise ValueError('Live FM6 requires SRAM placement and unattended UART control')
     if out.exists():
         raise ValueError('Output must not exist; preserve prior build evidence')
     shutil.copytree(sdk, out)
@@ -56,10 +58,12 @@ def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False, boot_contr
                         'os_task_create(lunar_devkit_worker, NULL, 10, 2048, 0, "lunar_devkit");')
     main.write_text(text)
     names = ['benchmark.c', 'benchmark.h', 'sdk_worker.c']
-    if audio_probe:
+    if audio_probe or fm6_audio:
         names += ['audio_probe.c', 'audio_probe.h']
     if fm6_benchmark:
         names += ['fm6_benchmark.cc', 'fm6_benchmark.h']
+    if fm6_audio:
+        names += ['fm6_live.cc', 'fm6_live.h']
     if boot_control:
         names += ['boot_command.c', 'boot_command.h', 'boot_control.c']
     for name in names:
@@ -103,13 +107,15 @@ UART1_PLATFORM_DATA_END();
 '''
         board.write_text(board_text.replace(anchor, receiver + anchor, 1).replace(
             registration, registration+'\n\t{"uart1", &uart_dev_ops, (void *)&lunar_control_uart },', 1))
-    if audio_probe:
+    if audio_probe or fm6_audio:
         text = text.replace('c_SRC_FILES := ' + chr(92),
                             'c_SRC_FILES := \\\n\t../../../../../apps/demo/demo_hello/audio_probe.c \\', 1)
         text += '\nCFLAGS += -DLUNAR_DEVKIT_AUDIO_PROBE=1\n'
         text += 'objs/apps/demo/demo_hello/audio_probe.c.o: CFLAGS := $(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fno-data-sections\n'
+        if fm6_audio:
+            text += '\nCFLAGS += -DLUNAR_DEVKIT_FM6_AUDIO=1\n'
     engine_inputs = []
-    if fm6_benchmark:
+    if fm6_benchmark or fm6_audio:
         for subdir, files in [('src', FM6_SOURCES + FM6_HEADERS), ('include', FM6_API_HEADERS)]:
             dest = app/'lunar_engines'/subdir
             dest.mkdir(parents=True)
@@ -123,7 +129,7 @@ UART1_PLATFORM_DATA_END();
         shutil.copytree(msfa, app/'lunar_engines/third_party/msfa')
         engine_inputs += sorted(p for p in msfa.rglob('*') if p.is_file())
         prefix = '../../../../../apps/demo/demo_hello/'
-        files = ['fm6_benchmark.cc'] + ['lunar_engines/src/'+s for s in FM6_SOURCES]
+        files = ['fm6_live.cc' if fm6_audio else 'fm6_benchmark.cc'] + ['lunar_engines/src/'+s for s in FM6_SOURCES]
         for unit in MSFA_UNITS:
             name = 'fm6_unit_'+unit+'.cc'
             (app/name).write_text('#define FM1_MSFA_UNIT "'+unit+'.cc"\n#include "msfa_unit.cc"\n')
@@ -133,7 +139,8 @@ UART1_PLATFORM_DATA_END();
         if text.count('cc_SRC_FILES :=\n') != 1:
             raise ValueError('Unexpected SDK C++ source list; review before building')
         text = text.replace('cc_SRC_FILES :=\n', 'cc_SRC_FILES := '+' '.join(prefix+f for f in files)+'\n')
-        text += '\nCFLAGS += -DLUNAR_DEVKIT_FM6_BENCHMARK=1\n'
+        if fm6_benchmark:
+            text += '\nCFLAGS += -DLUNAR_DEVKIT_FM6_BENCHMARK=1\n'
         text += ('INCLUDES += -I'+prefix+'lunar_engines/include -I'+prefix+
                  'lunar_engines/src -isystem '+prefix+'lunar_engines/third_party/msfa\n')
         for name in files:
@@ -165,7 +172,8 @@ UART1_PLATFORM_DATA_END();
     receipts = {'sdk_commit_required': 'e30b1ee375d1f2993fc23bf92c8b99006a6e5f9d',
                 'placement': ('FM6 object code/constants in startup-copied ram0_data; external callees may remain XIP'
                               if fm6_ram else 'XIP code/constants; internal SRAM state; SDK CONFIG_NO_SDRAM_ENABLE'),
-                'measurement': ('internal-DAC reference tone; no instrument workload' if audio_probe
+                'measurement': ('live FM6 through internal DAC; no mixer/effects; includes note events' if fm6_audio
+                                else 'internal-DAC reference tone; no instrument workload' if audio_probe
                                 else 'real FM6, no DAC/mixer/effects, raw oscillator timer ticks' if fm6_benchmark
                                 else 'resampler-only, IRQ enabled, raw oscillator timer ticks'),
                 'download_disabled': True,
@@ -188,10 +196,12 @@ if __name__ == '__main__':
                     help='Build low-level internal-DAC reference tone instead of resampler timings')
     mode.add_argument('--fm6-benchmark', action='store_true',
                       help='Time real FM6 instrument rendering without DAC output')
+    mode.add_argument('--fm6-audio', action='store_true',
+                      help='Play real FM6 through DAC; requires --fm6-ram --boot-control')
     ap.add_argument('--boot-control', action='store_true',
                     help='Opt in to dev-kit-only UART1 command input on PA5 (requires extra TX wire)')
     ap.add_argument('--fm6-ram', action='store_true',
-                    help='Compare FM6 object code/constants in SRAM; requires --fm6-benchmark')
+                    help='Place FM6 object code/constants in SRAM; requires an FM6 mode')
     a = ap.parse_args()
     prepare(a.sdk, a.source, a.out, audio_probe=a.audio_probe, fm6_benchmark=a.fm6_benchmark,
-            boot_control=a.boot_control, fm6_ram=a.fm6_ram)
+            boot_control=a.boot_control, fm6_ram=a.fm6_ram, fm6_audio=a.fm6_audio)
