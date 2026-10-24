@@ -86,3 +86,23 @@ def test_reviewed_audio_plan_has_its_own_fixed_bounds():
     assert tx.protected_equal(changed, desired, tx.AUDIO_ALLOWED)
     changed[0x2e000] = 1
     assert not tx.protected_equal(changed, desired, tx.AUDIO_ALLOWED)
+
+
+def test_fm6_plan_cannot_expand_other_images():
+    assert tx.FM6_CONTROL_TARGET_SHA == '79e0cc9bb394415f544f2e9a33ea8e6cfab2ae70120ca9590b1eb32c1d629789'
+    assert tx.IMAGE_PLANS[tx.FM6_CONTROL_TARGET_SHA] == tx.FM6_ALLOWED
+    assert len(tx.FM6_ALLOWED) == 51
+    desired = bytes(tx.backup.FLASH_SIZE)
+    for address in (0x2e000, 0x36000):
+        for allowed in (tx.ALLOWED, tx.AUDIO_ALLOWED):
+            with pytest.raises(ValueError):
+                tx.mutation_request(0xFB01, address, b'', desired, allowed)
+        tx.mutation_request(0xFB01, address, b'', desired, tx.FM6_ALLOWED)
+    for address in (0x3000, 0x37000, 0x7ff000):
+        with pytest.raises(ValueError):
+            tx.mutation_request(0xFB01, address, b'', desired, tx.FM6_ALLOWED)
+    changed = bytearray(desired)
+    changed[0x36fff] = 1
+    assert tx.protected_equal(changed, desired, tx.FM6_ALLOWED)
+    changed[0x37000] = 1
+    assert not tx.protected_equal(changed, desired, tx.FM6_ALLOWED)

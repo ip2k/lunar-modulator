@@ -410,3 +410,50 @@ Independent decoding, directory/app CRCs and unchanged factory cfg pass.
 admitted with unchanged bounds. Install, exact factory restore and injected
 seventh-page interruption/restore models pass, metadata last; all 16 transaction
 tests pass after admission. This is a model result, not a physical install.
+
+## Control-v2 physically installed, awaiting normal boot
+
+[verified: bench receipts, 2026-10-24 UTC] Owner confirmed Tigard TX to PA5,
+VTGT mode and hardware download entry. Fresh enumeration: `3-1.2`, devnum 95,
+`4c4a:8057`, `/dev/sg0`. Exact fixed-loader and candidate hashes were checked.
+Two fresh 8 MiB reads match installed v3 SHA `cfa6afbe...`. Factory restoration
+then verified the entire flash SHA `127b2ebb...`. Control-v2 installation
+verified the entire 8 MiB SHA
+`1bbaf5ae4ddf6a6fc6289c095f0f4b4361913b436b616f6c1f9e43d7da4cad25`.
+Private receipts under `/home/claude/fm1-devkit-backups/`:
+`current-audio-v3-before-control-v2-20261024`,
+`restore-audio-v3-before-control-v2-20261024`, and
+`install-audio-control-v2-20261024`. No software reset or UART TX sent yet.
+
+Fresh UART capture PID 3801273 reports armed, and KA6 wrapper 3801274 is
+recording six-channel S32LE/48 kHz for ten minutes. Evidence prefix:
+`/home/claude/fm1-devkit-captures/audio-control-v2-firstboot-20261024`.
+Previous running-v3 UART capture was intentionally terminated before opening
+the new exclusive capture. Owner prompted for normal Reset without Update;
+verify actual readiness before PING and audio capture after this boot.
+
+## FM6 timing with UART control, offline preparation
+
+[verified: actual pinned SDK build and independent export] Built a separate
+`--fm6-benchmark --boot-control` image. It times three patches at 1/4/8/12
+voices; it does not enable DAC playback. ELF SHA256
+`2516235d00805034a5fd9add1c82dd137d434fc75a3bad92474d7968c208bfac`;
+listing `2fa0992024bf3e1754e2f1067ab752dc7c8a454c209f5d8d74004ef9afb2fcba`.
+Independent app export matches vendor objcopy: 207824 bytes, SHA256
+`a6a7255775cd871fe8508091c4d4eb5d8ced57d1e4ce50e8a3d3c17372f516ed`.
+Link audit: zero failures; manual scheduling item signed off at
+`sdk_meky_check 0x0202F18E` (IRQ123 both cores, clear enables, 8000 timer).
+RAM entry remains `0x01C01096`, real marker/reset function `0x02001D36`,
+P33 reset `0x01C0106E`. No extra hardware or clock/supply change.
+
+Independent cipher/CRC/factory-cfg checks pass for private full-image SHA256
+`79e0cc9bb394415f544f2e9a33ea8e6cfab2ae70120ca9590b1eb32c1d629789`.
+App end `0x36CF0`; exactly 51 sectors `0x4000..0x36000` change. A separate
+FM6 plan admits that hash/range; older plans retain their smaller limits.
+Actual-image install/exact factory restore models pass; interrupted-page
+recovery passes both at page 7 and page 663 (inside the additional range),
+with metadata untouched until last. This image is not installed. First validate
+current control-v2 boot, PING, analog level and automatic ROM entry.
+
+91 focused host tests pass after the separate FM6 admission, including the
+new boundary-isolation test. These remain offline checks, not FM6 target data.
