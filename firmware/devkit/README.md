@@ -110,6 +110,13 @@ and exact pinned target. It independently re-reads flash before its one reset
 attempt. USB disconnection during reset is not a boot confirmation: require a
 fresh UART application boot and diagnostic completion. Both directions were
 verified on the dev kit on 2026-10-24. Do not request routine Update/Reset presses.
+New diagnostic workers reserve 200 OS ticks after starting UART control and
+before initializing the workload. Verify acknowledged ROM entry during this
+startup window as part of admitting a new diagnostic; a receiver task's startup
+message alone does not establish that it can run before an initialization fault.
+The delay is outside measured rendering. Actual timing-v3 startup-window
+acceptance remains pending.
+
 An unresponsive application's recovery is a separate case; UART control cannot
 be assumed available after a crash. This workflow does not authorize FM-1 tests.
 

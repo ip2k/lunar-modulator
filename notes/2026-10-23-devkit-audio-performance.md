@@ -1055,3 +1055,12 @@ boot/configuration/tail preservation passes. This image is **not admitted or
 installed**. Transaction modeling and final exact-image recovery review remain
 required. Current hardware recovery cannot use the receiver while it crashes
 before acknowledging PING; an owner recovery exception has been requested.
+
+[verified] The corrected candidate's offline NOR model also passes exact
+install/restore and interrupted pages 7, 1079 and 2119 with factory restoration.
+Final vendor disassembly retains `enter_rom` at 0x01c01096 calling the strong
+RAM-marker/P33-reset implementation at 0x02001d5a. It creates UART control,
+calls `os_time_dly(200)` at 0x020207a4, then enters renderer timing. These are
+source/link checks, not proof that the new recovery window works on hardware.
+No further hardware command was issued; the board still runs the crashing
+timing-v2 image.
