@@ -759,3 +759,20 @@ A clean timing counter does not rule out analog/capture faults. The initial
 240-second capture, subsequent long soak, expected-signal comparison and
 representative effect/mixer/control workloads remain to be evaluated. Private
 receipts/captures are recorded in the durable campaign handoff.
+
+### Long-stream identity instrumentation (not installed)
+
+The initial exploratory analog template comparison is inconclusive. Stronger
+single-note segments correlate well, but quieter cases approach the capture
+noise floor, and short-fixture identity does not prove a long evolving stream
+is identical. Independent capture and DAC clocks also require alignment.
+No analog acceptance is inferred from these preliminary correlations.
+
+The next diagnostic latches a FNV-1a fingerprint after each complete case,
+over the converted stereo PCM16 stream with explicit little-endian byte order.
+Worker telemetry reads only completed hashes; hashing executes inside the
+measured callback. The independent real-engine host test now covers the full
+first case including release and verifies its exact PCM and fingerprint.
+All 103 focused host checks and the pinned SDK build pass. This source change
+has not replaced the v2 image or interrupted its active 30-minute soak; exact
+ELF/pack review, image admission and new target evidence remain required.

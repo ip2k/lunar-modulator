@@ -8,6 +8,7 @@ static unsigned char memory[65536] __attribute__((aligned(16)));
 static float output[128];
 static void *instance;
 static uint32_t case_frame, total_frames;
+static uint32_t pcm_hash;
 static struct lunar_fm6_live_status state;
 static const unsigned patches[] = {0, 19, 25};
 static const unsigned voices[] = {1, 4, 8, 12};
@@ -19,6 +20,7 @@ extern "C" int lunar_devkit_fm6_live_init(void) {
     if (instance) e->destroy(instance);
     instance = e->create(memory, &host);
     case_frame = total_frames = 0;
+    pcm_hash = 2166136261u;
     memset(&state, 0, sizeof(state));
     return instance != 0;
 }
@@ -53,11 +55,21 @@ extern "C" void lunar_devkit_fm6_live_render(int16_t *out) {
         if (x > 32767.f) { ++state.clipped; x = 32767.f; }
         if (x < -32768.f) { ++state.clipped; x = -32768.f; }
         out[4*i+ch] = out[4*i+ch+2] = static_cast<int16_t>(x);
+        /* Fingerprint the exact converted stereo stream, not float samples.
+         * Explicit byte order makes host and target comparisons independent
+         * of the host's native endianness. No UART work in the audio IRQ. */
+        const uint16_t word = static_cast<uint16_t>(out[4*i+ch]);
+        pcm_hash = (pcm_hash ^ (word & 255u)) * 16777619u;
+        pcm_hash = (pcm_hash ^ (word >> 8)) * 16777619u;
     }
     /* Saturate startup counter; long soaks must never restart the ramp. */
     if (total_frames < 2205u) total_frames += 64;
     case_frame += 64;
     if (case_frame >= 8 * 44100u) {
+        state.completed_case = state.test_case;
+        state.completed_hash = pcm_hash;
+        ++state.completed_cases;
+        pcm_hash = 2166136261u;
         case_frame = 0;
         if (++state.test_case == 12) { state.test_case = 0; ++state.cycles; }
     }

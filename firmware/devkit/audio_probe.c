@@ -165,6 +165,8 @@ void lunar_devkit_audio_probe(void)
         printf("LUNAR_LIVE case=%u patch=%u voices=%u cycles=%u note_batches=%u invalid=%u clipped=%u\n",
                live.test_case, live.patch, live.voices, live.cycles,
                live.note_batches, live.invalid, live.clipped);
+        printf("LUNAR_PCM completed=%u case=%u fnv1a=%08x\n",
+               live.completed_cases, live.completed_case, live.completed_hash);
 #endif
     }
 }

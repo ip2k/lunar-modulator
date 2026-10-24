@@ -27,7 +27,9 @@ int main() {
     void *s = e->create(arena, &host); assert(s);
     e->set_param(s, 0, 0); e->note_on(s, 36, 100);
     unsigned nonzero = 0;
-    for (unsigned b=0; b<1024; ++b) {
+    uint32_t expected_hash = 2166136261u;
+    for (unsigned b=0; b<5513; ++b) {
+        if (b*64 < 6*44100u && (b+1)*64 >= 6*44100u) e->note_off(s, 36);
         e->render(s, expected, 64);
         lunar_devkit_fm6_live_render(guarded+1);
         assert(guarded[0] == 12345 && guarded[257] == 12345);
@@ -36,13 +38,18 @@ int main() {
             if (b*64+i<2205) x*=float(b*64+i+1)/2205.f;
             assert(std::isfinite(x) && x>=-32768 && x<=32767);
             assert(guarded[1+4*i+ch] == int16_t(x));
+            const uint16_t word = uint16_t(int16_t(x));
+            expected_hash = (expected_hash ^ (word & 255u)) * 16777619u;
+            expected_hash = (expected_hash ^ (word >> 8)) * 16777619u;
             assert(guarded[1+4*i+ch+2] == guarded[1+4*i+ch]);
             nonzero += guarded[1+4*i+ch] != 0;
         }
     }
     struct lunar_fm6_live_status status; lunar_devkit_fm6_live_status(&status);
     assert(nonzero && status.patch==0 && status.voices==1);
-    assert(status.note_batches==1 && !status.invalid && !status.clipped);
+    assert(status.test_case==1 && status.note_batches==2 && !status.invalid && !status.clipped);
+    assert(status.completed_cases==1 && status.completed_case==0);
+    assert(status.completed_hash==expected_hash);
     e->destroy(s);
     assert(lunar_devkit_fm6_live_init());
 }
@@ -100,6 +107,7 @@ int main() {
     }
     lunar_devkit_fm6_live_status(&s);
     assert(s.cycles==1 && s.test_case==0 && s.note_batches==24);
+    assert(s.completed_cases==12 && s.completed_case==11 && s.completed_hash!=0);
     assert(ons==75 && offs==75 && creates==1 && !destroys);
     assert(s.invalid==2*5513*12 && s.clipped>0);
     assert(out[0]==0 && out[1]==0 && out[2]==0 && out[3]==0);

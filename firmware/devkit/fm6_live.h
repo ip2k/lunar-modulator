@@ -7,6 +7,9 @@ extern "C" {
 #endif
 struct lunar_fm6_live_status {
     uint32_t test_case, patch, voices, cycles, note_batches, invalid, clipped;
+    /* Latched at the end of each complete case; PCM16 stereo, little endian.
+     * A snapshot during a case must never report a partial fingerprint. */
+    uint32_t completed_cases, completed_case, completed_hash;
 };
 /* Init on the worker before DAC start. Render/status have one audio owner;
  * the worker reads status only while the audio IRQ is excluded. */

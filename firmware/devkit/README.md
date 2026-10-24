@@ -108,3 +108,10 @@ counts indicate delayed service; they are not hardware underrun counts.
 
 The reference-tone and isolated benchmark modes remain separate comparisons.
 Live FM6 alone is still short of the full mixer/effects/control acceptance gate.
+
+The next live diagnostic also latches a PCM fingerprint at each completed
+8-second case (`LUNAR_PCM`): FNV-1a over converted stereo PCM16 bytes in
+little-endian order. Partial cases are never reported as completed hashes.
+Compare the entire schedule with desktop replay before interpreting an analog
+template mismatch as a DAC fault. This is diagnostic integrity evidence, not an
+audio-quality score; include fingerprinting in the measured callback budget.
