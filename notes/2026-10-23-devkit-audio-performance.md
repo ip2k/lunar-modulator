@@ -776,3 +776,33 @@ first case including release and verifies its exact PCM and fingerprint.
 All 103 focused host checks and the pinned SDK build pass. This source change
 has not replaced the v2 image or interrupted its active 30-minute soak; exact
 ELF/pack review, image admission and new target evidence remain required.
+
+
+The fingerprint-enabled v3 SDK image has completed offline review. ELF SHA-256
+`53372df8e8bc907b64aac873e1540d1ad42ef8d9868316fa89ddadd44e53e0db`,
+vendor listing `88cdac3eb89a56c7d89af63f1dabd0949a9b9f23b46a3d2859340c6bb7b12d4b`,
+app 213584 bytes, SHA-256
+`438ca8ad0174fff301439b1cc303f8687ac175c5c8fb60dbb31a8008915be92a`.
+Independent ELF section extraction equals vendor exports. The 84 functions
+at/after the live bridge's SRAM entry are the same named set as v2, all inside
+startup-copied `.ram0_data` (55600 bytes); `.ram0_bss` is 86116 bytes. The earlier
+72-function count was a narrower identified subset, not the entire region.
+
+Link audit has zero failures; the sole scheduling item is signed off in the
+actual vendor listing: `sdk_meky_check=0x02025b3e`, two IRQ123 registrations,
+enable-bit clears and timer8000 for `_mkey_check` only. UART entry still calls
+strong `nvram_set_boot_state=0x02001fe6` from `enter_rom=0x01c01096`, copying
+the 16-byte RAM marker then calling the reviewed P33 reset path.
+
+Private image SHA-256
+`f7863aad94f993742140161350edd28c0555a348574c9c01f3bdf253a4204ced`,
+53 sectors `0x4000..0x38000`, app end `0x38370`. Independent cipher/CRC and
+factory boot/config/tail preservation checks pass; exact NOR install/restore
+and interrupted-page7/663/823 recovery models pass; 24 transaction/reset tests
+pass after admission. Not installed while the v2 soak runs.
+
+Two-cycle desktop replay produces identical PCM with and without fingerprinting
+(raw stereo SHA-256 `47b358780463411148681227f8a9505704abb860356cabe942ffca2a4e599a61`,
+8467968 frames). Its 24 completed-case fingerprints are retained privately for
+comparison with fresh target records. This proves host instrumentation preserves
+output; it is not yet evidence of long-stream target identity.
