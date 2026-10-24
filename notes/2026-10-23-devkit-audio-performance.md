@@ -232,3 +232,37 @@ restore and interrupted-page recovery model. Its hash is separately admitted
 by the transaction tool; v2 remains admitted for restoring the installed image.
 The owner has been prompted for hardware download entry. No v3 installation
 or successful tone result is claimed yet.
+
+[verified: subsequent physical transaction] After the owner entered hardware
+download mode again, two fresh complete reads matched installed v2 (`5cba22f0…`).
+The bounded factory restore passed its full-image comparison (`127b2ebb…`),
+and the v3 install passed every sector and full 8 MiB readback (`cfa6afbe…`).
+Private receipt directories on bench01 are
+`current-audio-v2-before-v3-20261024`,
+`restore-audio-v2-before-v3-20261024` and `install-audio-v3-20261024`, under
+`/home/claude/fm1-devkit-backups/`. UART capture remains active and a fresh
+ten-minute KA6 capture is armed. The owner has been prompted for normal Reset;
+v3 boot and audio acceptance remain pending at this checkpoint.
+
+## Reducing physical button intervention
+
+Owner asks whether download entry can be automated. [verified: pinned SDK
+source] `apps/common/usb/device/msd_upgrade.c` provides
+`go_mask_usb_updata()`: run from `.volatile_ram_code`, disable interrupts,
+close RAM protection/MMU, call `nvram_set_boot_state(2)`, then request a
+core reset using clock `PWR_CON` bit 4. The existing recovery note identifies
+fm1-nes using this path through a CDC command [reported: docs/07 §2.3].
+This establishes a candidate mechanism, not proof that a new diagnostic link
+has the right helper implementations or RAM placement. The source contains
+weak empty helper definitions: verify strong resolved implementations before
+relying on them. No ROM-entry command has been sent in this campaign.
+
+[verified: current SDK board configuration] Debug UART2 transmits on PB3
+but has `rx_pin = -1`. Tigard is wired receive-only. A diagnostic command
+channel needs an enabled, verified free board RX pin, one additional Tigard TX
+wire, a bounded parser and a reviewed transition routine; that is the next
+candidate to avoid repeated manual download entry. It does not recover a
+hung application. Isolated control of physical Update/Reset could provide
+that fallback but needs a separately verified electrical interface. Neither
+change is part of the installed v3 image; no wiring modification is requested
+until the pin/driver and electrical checks are complete.
