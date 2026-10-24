@@ -1,5 +1,6 @@
 """Compact storage must run the same mixer/effect/control path as the simulator."""
 import json
+import hashlib
 import os
 import shutil
 import subprocess
@@ -14,14 +15,18 @@ def test_external_arenas_match_builtin_renderer():
     if not shutil.which("make") or not shutil.which("c++"):
         pytest.skip("native compiler unavailable")
     results = []
+    extra = os.environ.get("FM1_SIM_EXTRA", "")
+    cc, cxx = os.environ.get("FM1_SIM_CC", "cc"), os.environ.get("FM1_SIM_CXX", "c++")
+    tag = "-" + hashlib.sha256((extra + cc + cxx).encode()).hexdigest()[:8]
     for compact in (0, 1):
-        build = ROOT / "sim/web/build" / f"arenas-{compact}"
+        build = ROOT / "sim/web/build" / f"arenas-{compact}{tag}"
         target = build / "fm1-arena-check"
         subprocess.run([
             "make", "-C", str(ROOT / "engines"), "-f", "Makefile", "-f",
             str(ROOT / "sim/web/mk/sim.mk"), f"SIM={ROOT / 'sim/web'}",
             f"BUILD={build}", "FM1_GPL_MODS=0", "FM1_MODULES=all", "-j4",
-            f"EXTRA={os.environ.get('FM1_SIM_EXTRA', '')} -DFM1_APP_EXTERNAL_ARENAS={compact}",
+            f"CC={cc}", f"CXX={cxx}",
+            f"EXTRA={extra} -DFM1_APP_EXTERNAL_ARENAS={compact}",
             str(target),
         ], check=True, stdout=subprocess.DEVNULL)
         results.append(json.loads(subprocess.check_output([str(target)], text=True)))

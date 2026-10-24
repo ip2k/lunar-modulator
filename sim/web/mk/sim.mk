@@ -103,4 +103,4 @@ $(BUILD)/fm1-render.js: $(RENDER_PRODUCT_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -sNODERAWFS=1 -sALLOW_MEMORY_GROWTH=1 -sEXIT_RUNTIME=1 -o $@ $^
 
 -include $(SIM_APP_OBJ:.o=.d) $(BUILD)/sim/src/fm1_web.d $(BUILD)/sim/test/fm1_sim_render.d \
-  $(BUILD)/sim/test/fm1_edit_check.d
+  $(BUILD)/sim/test/fm1_edit_check.d $(BUILD)/sim/test/fm1_arena_check.d

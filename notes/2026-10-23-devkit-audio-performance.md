@@ -908,7 +908,16 @@ with note, mixer-level and effect-parameter changes. Storage validation and
 guard bytes pass; a project save/load preserves host-owned arenas.
 
 Aeon Ubuntu 24.04 native regression: 214 tests pass (`test_sim_arenas.py` and
-`test_sim_web.py`). The existing browser module is stale after these source
-changes and must be rebuilt before integration. This is a source checkpoint,
-not a full-renderer hardware result; vendor compilation, link audit, bounded
-target installation and representative analog soaks remain required.
+`test_sim_web.py`). Both arena layouts also pass Clang AddressSanitizer and
+UndefinedBehaviorSanitizer. The browser module was rebuilt: all 108 parity
+scenarios pass, identical to the JavaScript/Wasm reference and musl native
+reference. The 30-second editor storm reports zero late quanta; build-record
+source/hash validation passes. These are host/browser results.
+
+The actual vendor pi32v2 compiler also compiles the external-arena shared app
+at `-O2 -ffp-contract=off` against the pinned SDK headers. A compile-only
+constant probe in its ELF32-pi32v2 object reports: app 232,704 bytes, TFT
+116,368 bytes, unit 160 bytes and pointers 4 bytes. This confirms target
+layout and compilation, not linked SRAM fit, execution timing or an ABI-safe
+device image. Full link/audit, bounded target installation and representative
+analog soaks remain required.
