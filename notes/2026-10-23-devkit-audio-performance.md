@@ -921,3 +921,31 @@ constant probe in its ELF32-pi32v2 object reports: app 232,704 bytes, TFT
 layout and compilation, not linked SRAM fit, execution timing or an ABI-safe
 device image. Full link/audit, bounded target installation and representative
 analog soaks remain required.
+
+### Shared-renderer workload integration, 2026-10-24
+
+[verified] `firmware/devkit/renderer_live.c` now drives the actual `fm1_app_render`
+path with four sound slots (FM6 electric piano, Macro VA, Drums, FM6 pad), four
+running sequencer tracks, default modulation plus LFO/ENV parameter cables,
+Filter/Drive inserts, Echo/Compressor master slots, mixer edits and filter edits.
+All initialization and script parsing happen before rendering. A fixed
+148 KiB caller-owned pool binds the engines by their actual instance sizes;
+missing modules or insufficient capacity refuse the entire workload.
+
+[verified] On the Aeon Ubuntu 24.04 native replay the chain uses 147,808 bytes
+of that pool at 44,100 Hz. Two complete four-case cycles (1/4/8/12 additional
+FM6 held notes, six seconds held/two released per case, block rounded) completed
+44,104 render blocks and 1,492 note/control operations with no nonfinite samples
+or PCM clipping. This is a deterministic integrity/reference workload, not a
+musical demo or hardware acceptance result. Release tails and sequencer notes
+remain active between cases. The sound slots and effects are not replaced by
+test oscillators or gain stubs.
+
+[verified] All 87 objects selected by `tools/jieli/renderer.mk` compiled with
+the actual pi32v2 compiler and pinned SDK headers. This includes the modulation
+script reader used during setup. Rarefaction still resolves the old primary
+checkout, so its stale `fm1_app_render` result was not treated as worktree
+coverage; Serena found the current renderer at line 3603. Full SDK linkage,
+SRAM/stack/hot-code placement, device timing, analog comparisons and sustained
+full-renderer soaks are still pending. No device commands were sent for these
+checks; the previous FM6-only diagnostic remains installed.

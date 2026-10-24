@@ -140,3 +140,20 @@ The reference must include at least two complete cycles. Repeated worker
 snapshots are allowed; missing, malformed, reordered or conflicting records
 fail. The JSON records both input hashes and the exact comparison scope.
 Passing this check does not certify the DAC, analog path or full mixer workload.
+
+## Shared-renderer reference workload (integration in progress)
+
+`renderer_live.c` hosts the actual shared app with a 148 KiB caller-owned engine
+pool. Its four sound slots, four sequencer tracks, modulation, inserts, master
+slots and control edits run through `fm1_app_render`; no substitute mixer is
+used. `renderer_reference.c` replays two four-case density cycles and optionally
+writes private stereo PCM16 little-endian audio. Run
+`python -m pytest tests/test_devkit_renderer.py` for deterministic replay,
+buffer guards and refusal when a required effect is unavailable.
+
+`tools/jieli/renderer.mk`, read after the engine and simulator makefiles, exports
+`print-devkit-renderer-objs` and builds `fm1-devkit-renderer-ref`. Define
+`FM1_APP_EXTERNAL_ARENAS=1` consistently for every object. The selected module
+list is `dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance`, with the GPL
+switch off. This is not yet an admitted SDK/DAC image or hardware performance
+result; see the dated performance note for current evidence and remaining gates.
