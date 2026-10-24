@@ -311,8 +311,21 @@ noise, malformed commands, overflow, timeout, timer wrap and one-shot entry;
 host handshake/default-no-reset tests; preparation and existing probe,
 transaction, link-audit, boot and tone-analysis tests. The offline vendor build
 also succeeds with the downloader disabled and no USB passed to its container.
-This is not a packaged/admitted flash image or proof of bootloader entry.
+The independently exported app matches vendor objcopy byte-for-byte:
+171472 bytes, SHA256
+`d855803d41cda5bd88b670883f89104a034837505b9d93524329e72245aae772`.
+Static internal data/BSS grow by 168 bytes; the extra task also allocates its
+1024 SDK stack units at runtime, outside this static count. The private
+full-image candidate SHA256 is
+`ba8b03938e0b2a90461a728646a31f7de72975df282e9c1931750400cadaaaa6`.
+Independent decoding, directory/app CRCs and unchanged factory configuration
+checks pass. Exactly the same 42 application sectors change, through
+`0x2D000`, with app end `0x2DEF0`. The exact hash is admitted in the
+transaction tool without expanding its bounds. Actual-image NOR install,
+factory restore and injected interrupted-page restore models all pass, with
+metadata written last. It is not installed or proof of bootloader entry.
+
 Next: finish v3 normal-boot/tone acceptance, verify the extra UART wire and
-candidate pin electrically, then package/review/admit the control-enabled
+candidate pin electrically, then install the reviewed control-enabled
 diagnostic and validate PING before any entry command. A hung application
 still needs physical Update/Reset or separately reviewed isolated control.

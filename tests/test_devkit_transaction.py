@@ -67,6 +67,8 @@ def test_reviewed_audio_plan_has_its_own_fixed_bounds():
     assert tx.IMAGE_PLANS[tx.TARGET_SHA] == tx.ALLOWED
     assert tx.IMAGE_PLANS[tx.AUDIO_TARGET_SHA] == tx.AUDIO_ALLOWED
     assert tx.IMAGE_PLANS[tx.AUDIO_V3_TARGET_SHA] == tx.AUDIO_ALLOWED
+    assert tx.IMAGE_PLANS[tx.AUDIO_CONTROL_TARGET_SHA] == tx.AUDIO_ALLOWED
+    assert tx.AUDIO_CONTROL_TARGET_SHA == 'ba8b03938e0b2a90461a728646a31f7de72975df282e9c1931750400cadaaaa6'
     assert tx.AUDIO_V3_TARGET_SHA != tx.AUDIO_TARGET_SHA
     desired = bytes(tx.backup.FLASH_SIZE)
     # The newer image's two additional sectors are not opened for v6.

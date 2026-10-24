@@ -25,8 +25,11 @@ AUDIO_TARGET_SHA = '5cba22f0b0b19bda0847a303eee033f7a2b31a7bef5255ef1d98ca27f796
 AUDIO_ALLOWED = tuple(range(0x4000, 0x2e000, SECTOR))
 # Three-window DAC correction, separately reviewed; retain v2 for recovery.
 AUDIO_V3_TARGET_SHA = 'cfa6afbe0b3ff60f11760dff72c2b2b25221a7af555007eca8c188bb9349dd32'
+# Opt-in UART1 control image; same DAC probe and fixed application boundary.
+AUDIO_CONTROL_TARGET_SHA = 'ba8b03938e0b2a90461a728646a31f7de72975df282e9c1931750400cadaaaa6'
 IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED,
-               AUDIO_V3_TARGET_SHA: AUDIO_ALLOWED}
+               AUDIO_V3_TARGET_SHA: AUDIO_ALLOWED,
+               AUDIO_CONTROL_TARGET_SHA: AUDIO_ALLOWED}
 
 
 def digest(data):
