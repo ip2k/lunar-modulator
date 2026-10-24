@@ -1086,3 +1086,52 @@ has not been staged to Bench01 or installed. The pending recovery exception
 and hardware startup-window acceptance remain required. Rarefaction's current
 project index could not resolve `validate_images`; Serena resolved its actual
 worktree definition, supplemented by direct caller/test inspection.
+
+## Full-renderer analog detector sensitivity experiment (2026-10-24)
+
+[verified] A fresh desktop replay of the actual shared renderer reproduced all
+8 previously recorded fingerprints, 44,104 blocks and 1,492 control changes,
+with no invalid/clipped conversions. Its stereo S16LE PCM has 2,822,656 frames,
+SHA-256 `c676e9b496a63e3817428ade9c067d75a2fd81bd786da7c0ad06ee6255c4f81b`.
+This is a reference for subsequent analog comparison, not target execution.
+
+[verified] The private sensitivity experiment uses maintained SciPy routines
+(`resample_poly`, `butter`, `sosfilt`), not a new resampler/filter implementation:
+https://docs.scipy.org/doc/scipy/reference/signal.html . NumPy 2.2.6 and SciPy
+1.15.3 were installed only into this task's analysis directory in a bounded
+Aeon container. No project runtime dependency or host Python was changed.
+The experiment converts a stated synthetic DAC rate of 44,118 to 48,000 Hz,
+applies a 12 kHz second-order low-pass, gain 0.7, DC 0.01 and seeded -75 dBFS
+noise. The comparator applies a 200–4000 Hz band-pass to both signals and fits
+one gain per channel across the complete timeline. Alignment is known; it
+never independently retimes short windows. This is a hypothetical transfer,
+not a measured model of the board or KA6.
+
+[verified] This **fails as an acceptance detector**. Across 240 injections
+(zero/held/repeated/skipped output and right-channel loss; 64/128/256 source
+frames at 16 positions), 73 were rejected, 57 were missed in active affected
+regions, and 110 were inconclusive because the affected region/channel was
+below the stated -55 dBFS activity floor. Residual windows were 96 capture
+samples (2 ms), with a 50 ms post-fault inspection interval. The threshold
+was the largest clean active-window residual plus 6 dB: -7.0589 dB relative
+error. Right-channel loss counts activity only on that channel. The earlier
+any-channel exploratory count was corrected before this record. A skipped
+segment may affect later playback beyond this local inspection interval;
+these counts do not establish its full eventual detectability.
+
+[inferred] A loose global residual threshold tolerating unknown analog phase
+and filtering can hide actual block defects. Before using matched music as a
+gate, independently calibrate the analog transfer/latency/clock and validate
+per-channel coverage and held-out injected faults. Quiet/unobservable regions
+must remain inconclusive; they cannot support a clean bill of health. Do not
+relax a detector until this experiment passes and call it hardware acceptance.
+Timing/true underrun evidence and actual KA6 soaks remain separate requirements.
+
+Private task storage on Mac `scratch/devkit-20261023/` and Aeon
+`/home/claude/mvave-fm1/devkit-performance-20261022/` contains
+`full-renderer-fault-sensitivity.py` (SHA-256
+`76a9f0f467bf825aacc646ead6b0a8f711e517adac4e82c17afeea7f7a4cebb8`)
+and `full-renderer-fault-sensitivity.json` (SHA-256
+`71a4b49c6ce0ce6dbf625b648dad59dba26d415f1e65f3da58377f6f872d7b91`).
+Both declare that they do not certify dropout-free output. No board command,
+physical reset, UART transmission or new KA6 capture occurred in this experiment.
