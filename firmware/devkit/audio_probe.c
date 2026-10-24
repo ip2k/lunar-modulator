@@ -6,7 +6,12 @@
 #include "asm/dac.h"
 #include "audio_probe.h"
 #include <math.h>
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#if defined(LUNAR_DEVKIT_FM6_AUDIO) && defined(LUNAR_DEVKIT_RENDERER_AUDIO)
+#error Choose one instrument workload
+#endif
+#ifdef LUNAR_DEVKIT_RENDERER_AUDIO
+#include "renderer_live.h"
+#elif defined(LUNAR_DEVKIT_FM6_AUDIO)
 #include "fm6_live.h"
 #endif
 
@@ -18,7 +23,7 @@
 #error Review the pinned WL82 audio IRQ before building
 #endif
 
-#ifndef LUNAR_DEVKIT_FM6_AUDIO
+#if !defined(LUNAR_DEVKIT_FM6_AUDIO) && !defined(LUNAR_DEVKIT_RENDERER_AUDIO)
 static int16_t sine_table[257];
 static uint32_t phase, ramp_frames;
 #endif
@@ -51,7 +56,9 @@ static void fill(void *unused, u8 *data, int len)
         if (len > 0) memset(data, 0, len);
         return;
     }
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#ifdef LUNAR_DEVKIT_RENDERER_AUDIO
+    lunar_devkit_renderer_render(out);
+#elif defined(LUNAR_DEVKIT_FM6_AUDIO)
     lunar_devkit_fm6_live_render(out);
 #else
     uint32_t i;
@@ -92,7 +99,14 @@ void lunar_devkit_audio_probe(void)
         .vcm_init_delay_ms = 1000,
     };
     int status;
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#ifdef LUNAR_DEVKIT_RENDERER_AUDIO
+    if (!lunar_devkit_renderer_init()) {
+        struct lunar_renderer_status failed;
+        lunar_devkit_renderer_status(&failed);
+        printf("LUNAR_AUDIO ERROR renderer_init stage=%u\n", failed.init_error);
+        return;
+    }
+#elif defined(LUNAR_DEVKIT_FM6_AUDIO)
     if (!lunar_devkit_fm6_live_init()) {
         puts("LUNAR_AUDIO ERROR fm6_init\n");
         return;
@@ -106,7 +120,9 @@ void lunar_devkit_audio_probe(void)
      * Calibration is temporary; settings backends remain unregistered. */
     dac_early_init(1, config.hw_channel, 1000);
     status = dac_open(&config);
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#ifdef LUNAR_DEVKIT_RENDERER_AUDIO
+    printf("LUNAR_AUDIO open=%d rate=%u frames=%u channels=%u source=shared-renderer gain_db=-18 cases=4\n",
+#elif defined(LUNAR_DEVKIT_FM6_AUDIO)
     printf("LUNAR_AUDIO open=%d rate=%u frames=%u channels=%u source=fm6 gain_db=-18 cases=12\n",
 #else
     printf("LUNAR_AUDIO open=%d rate=%u frames=%u channels=%u tone_hz=997 peak_pcm=1024\n",
@@ -128,7 +144,9 @@ void lunar_devkit_audio_probe(void)
     dac_set_volume(100);
     dac_set_gain(54, FADE_DISABLE);
     status = dac_on();
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#ifdef LUNAR_DEVKIT_RENDERER_AUDIO
+    printf("LUNAR_AUDIO on=%d actual_rate=%d source=internal-dac-shared-renderer\n",
+#elif defined(LUNAR_DEVKIT_FM6_AUDIO)
     printf("LUNAR_AUDIO on=%d actual_rate=%d source=internal-dac-fm6\n",
 #else
     printf("LUNAR_AUDIO on=%d actual_rate=%d source=internal-dac-reference-only\n",
@@ -140,7 +158,9 @@ void lunar_devkit_audio_probe(void)
            (unsigned)JL_AUDIO->DAC_VL1);
     for (;;) {
         uint32_t flags, count, over, bad, peak, gap, irq_peak, irq_over, late;
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#ifdef LUNAR_DEVKIT_RENDERER_AUDIO
+        struct lunar_renderer_status renderer;
+#elif defined(LUNAR_DEVKIT_FM6_AUDIO)
         struct lunar_fm6_live_status live;
 #endif
         int buffer_bytes;
@@ -151,7 +171,9 @@ void lunar_devkit_audio_probe(void)
         peak = max_ticks; gap = max_gap;
         irq_peak = max_irq_ticks; irq_over = irq_over_budget;
         late = long_gaps;
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#ifdef LUNAR_DEVKIT_RENDERER_AUDIO
+        lunar_devkit_renderer_status(&renderer);
+#elif defined(LUNAR_DEVKIT_FM6_AUDIO)
         lunar_devkit_fm6_live_status(&live);
 #endif
         buffer_bytes = last_buffer_bytes;
@@ -161,7 +183,13 @@ void lunar_devkit_audio_probe(void)
                (unsigned)JL_AUDIO->DAC_HRP, (unsigned)JL_AUDIO->DAC_SWP,
                buffer_bytes, (unsigned)JL_AUDIO->DAC_PNS, (unsigned)JL_AUDIO->DAC_LEN);
         printf("LUNAR_AUDIO gaps_over_1p5_blocks=%u\n", late);
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#ifdef LUNAR_DEVKIT_RENDERER_AUDIO
+        printf("LUNAR_RENDERER case=%u cycles=%u blocks=%u controls=%u arena=%u invalid=%u clipped=%u\n",
+               renderer.test_case, renderer.cycles, renderer.blocks, renderer.controls,
+               renderer.arena_bytes, renderer.invalid, renderer.clipped);
+        printf("LUNAR_RENDERER_PCM completed=%u case=%u fnv1a=%08x\n",
+               renderer.completed_cases, renderer.completed_case, renderer.completed_hash);
+#elif defined(LUNAR_DEVKIT_FM6_AUDIO)
         printf("LUNAR_LIVE case=%u patch=%u voices=%u cycles=%u note_batches=%u invalid=%u clipped=%u\n",
                live.test_case, live.patch, live.voices, live.cycles,
                live.note_batches, live.invalid, live.clipped);

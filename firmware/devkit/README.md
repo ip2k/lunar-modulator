@@ -157,3 +157,19 @@ buffer guards and refusal when a required effect is unavailable.
 list is `dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance`, with the GPL
 switch off. This is not yet an admitted SDK/DAC image or hardware performance
 result; see the dated performance note for current evidence and remaining gates.
+
+Prepare the private SDK integration with:
+
+```sh
+python3 tools/jieli/prepare-renderer-devkit.py --sdk /private/pinned-sdk \
+  --source /absolute/lunar-checkout --out /private/new-renderer-build
+```
+
+This preparer always enables UART boot control and disables the downloader.
+It reuses the engine/app object lists through a nested build, retaining SDK
+LTO so unreachable desktop persistence buffers do not consume target SRAM.
+The DAC callback reports `LUNAR_RENDERER` and completed-case
+`LUNAR_RENDERER_PCM` telemetry separately from the isolated FM6 diagnostic.
+The private receipt hashes its source snapshot and records hardware acceptance
+as false. Linking is an offline check: review stack, interrupt liveness, hot
+code placement and the exact image before admitting any device test.

@@ -949,3 +949,32 @@ coverage; Serena found the current renderer at line 3603. Full SDK linkage,
 SRAM/stack/hot-code placement, device timing, analog comparisons and sustained
 full-renderer soaks are still pending. No device commands were sent for these
 checks; the previous FM6-only diagnostic remains installed.
+
+### Shared renderer SDK/DAC link, 2026-10-24
+
+[verified] The shared-renderer replay also passes Clang ASan/UBSan (two tests).
+The DAC transport harness now tests tone, FM6 and shared-renderer modes. Together
+with the SDK-preparation tests, 24 tests pass, including Make evaluation of the
+callback's effective mode flags and mandatory UART boot-control flag.
+
+[verified] The new offline-only `prepare-renderer-devkit.py` prepares the pinned
+private SDK with the shared renderer, actual internal-DAC callback and UART
+receiver. A clean prepared build links all 87 renderer objects with the actual
+pi32v2 compiler/SDK LTO. Its private ELF SHA-256 is
+`c8d9b9748fd5aaba6aabde8187b753a179d8b0dbc96045aa43a8579f00ca8c6c`.
+The map reports XIP `.text` 0x84820 bytes, internal `.ram0_data` 0x2cf0 and
+`.ram0_bss` 0x62b94; SDRAM `.data` and `.bss` are zero. Remaining linker-region
+capacity is not a proven runtime stack or hot-code budget.
+
+The first non-LTO experiment failed because otherwise unreachable desktop
+persistence buffers remained linked. SDK-compatible LTO removes these without
+changing the shared renderer. A nested-Make prerequisite omission was also
+fixed before the clean prepared build. Neither failure involved device traffic.
+
+Full-renderer execution is still pending. Before installation, establish a
+bounded timing/liveness test that preserves unattended UART recovery even if
+the XIP renderer exceeds the DAC deadline; review actual stack and interrupt
+behavior, then complete link/image audits and exact-image admission. Target
+PCM comparison, analog fault-validation and full-workload 30-minute soaks remain
+required. The previously measured FM6-only image is still installed. No new
+hardware performance or dropout-free claim follows from this successful link.

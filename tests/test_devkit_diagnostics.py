@@ -41,10 +41,11 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
+    renderer = mode == 'renderer'
     live = mode == 'fm6-audio'
-    audio_probe, fm6 = mode == 'audio', mode in ('fm6', 'fm6-ram')
+    audio_probe, fm6 = mode in ('audio', 'renderer'), mode in ('fm6', 'fm6-ram')
     spec = importlib.util.spec_from_file_location('prepare_devkit', ROOT/'tools/jieli/prepare-devkit.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -59,7 +60,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
                          '    _syscfg_ops_end = .;\n    PROVIDE(syscfg_ops_end = .);\n')
     (app/'include/app_config.h').write_text('#define __FLASH_SIZE__    (4 * 1024 * 1024)\n#define __SDRAM_SIZE__    (2 * 1024 * 1024)\n#define CONFIG_CXX_SUPPORT\n')
     (app/'app_main.c').write_text('void app_main() {os_task_create(hello_demo_task, NULL, 10, 1000, 0, "hello_demo_task");}')
-    (app/'board/wl82/Makefile').write_text('c_SRC_FILES := \\\n\toriginal.c\ncc_SRC_FILES :=\nall: pre_build $(OUT_ELF)\n\t$(QUITE) $(RUN_POST_SCRIPT) sdk\n')
+    (app/'board/wl82/Makefile').write_text('OUT_ELF := sdk.elf\nifeq ($(LINK_AT), 1)\nendif\nc_SRC_FILES := \\\n\toriginal.c\ncc_SRC_FILES :=\nall: pre_build $(OUT_ELF)\n\t$(QUITE) $(RUN_POST_SCRIPT) sdk\n')
     (app/'board/wl82/board.c').write_text('UART2_PLATFORM_DATA_BEGIN(uart2_data)\n'
                                        '\t.rx_pin = -1,\nUART2_PLATFORM_DATA_END();\n'
                                        '\t{"uart2", &uart_dev_ops, (void *)&uart2_data },\n')
@@ -67,9 +68,15 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     (sdk/'cpu/wl82/sdk_ld_sfc.c').write_text('        *(.text*)\n        *(.rodata*)\n'
                                           '        *(.volatile_ram_code)\n')
     out = tmp_path/'prepared'
-    module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
-                   boot_control=mode == 'control' or live,
-                   fm6_ram=mode == 'fm6-ram' or live, fm6_audio=live)
+    if renderer:
+        renderer_spec = importlib.util.spec_from_file_location('prepare_renderer', ROOT/'tools/jieli/prepare-renderer-devkit.py')
+        renderer_module = importlib.util.module_from_spec(renderer_spec)
+        renderer_spec.loader.exec_module(renderer_module)
+        renderer_module.prepare_renderer(sdk, ROOT, out)
+    else:
+        module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
+                       boot_control=mode == 'control' or live,
+                       fm6_ram=mode == 'fm6-ram' or live, fm6_audio=live)
     result = (out/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
     assert '\\ \\' not in result
     assert '$(RUN_POST_SCRIPT) sdk' not in result
@@ -87,11 +94,22 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         with makefile.open('a') as fp:
             fp.write('\n'+target+':\n\t@echo $(CFLAGS)\n')
         flags = subprocess.run(['make', '-s', '-f', str(makefile), target],
-                               check=True, capture_output=True, text=True).stdout
+                               cwd=makefile.parent, check=True, capture_output=True, text=True).stdout
         assert '-DLUNAR_DEVKIT_AUDIO_PROBE=1' in flags
         assert ('-DLUNAR_DEVKIT_FM6_AUDIO=1' in flags) == live
+        assert ('-DLUNAR_DEVKIT_RENDERER_AUDIO=1' in flags) == renderer
+        if renderer:
+            # Both the non-LTO DAC callback and the normal SDK worker must
+            # retain UART control. Routine tests cannot require physical reset.
+            assert '-DLUNAR_DEVKIT_BOOT_CONTROL=1' in flags
+            assert (out/'apps/demo/demo_hello/boot_control.c').exists()
+            import json
+            receipt = json.loads((out/'lunar-devkit-input.json').read_text())
+            assert receipt['download_disabled'] is True
+            assert receipt['boot_control']
+            assert receipt['hardware_acceptance'] is False
     assert ('-DLUNAR_DEVKIT_FM6_BENCHMARK=1' in result) == fm6
-    assert ('-DLUNAR_DEVKIT_BOOT_CONTROL=1' in result) == (mode == 'control' or live)
+    assert ('-DLUNAR_DEVKIT_BOOT_CONTROL=1' in result) == (mode == 'control' or live or renderer)
     if mode == 'control':
         board = (out/'apps/demo/demo_hello/board/wl82/board.c').read_text()
         assert '.rx_pin = IO_PORTA_05' in board and '.tx_pin = -1' in board

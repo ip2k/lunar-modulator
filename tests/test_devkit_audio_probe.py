@@ -6,8 +6,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.parametrize('live', [False, True])
-def test_dac_start_refill_contract(tmp_path, live):
+@pytest.mark.parametrize('mode', ['tone', 'fm6', 'renderer'])
+def test_dac_start_refill_contract(tmp_path, mode):
     headers = ['app_config.h', 'system/includes.h', 'os/os_api.h',
                'asm/includes.h', 'asm/dac.h']
     for name in headers:
@@ -59,7 +59,14 @@ void os_time_dly(unsigned);
 #include <setjmp.h>
 #include <math.h>
 #include "audio_probe.c"
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+/* Share the transport stub contract across the two real workload selectors. */
+#ifdef LUNAR_DEVKIT_RENDERER_AUDIO
+#define lunar_devkit_fm6_live_init lunar_devkit_renderer_init
+#define lunar_devkit_fm6_live_render lunar_devkit_renderer_render
+#define lunar_devkit_fm6_live_status lunar_devkit_renderer_status
+#define lunar_fm6_live_status lunar_renderer_status
+#endif
+#if defined(LUNAR_DEVKIT_FM6_AUDIO) || defined(LUNAR_DEVKIT_RENDERER_AUDIO)
 static unsigned live_fills, live_initialized;
 int lunar_devkit_fm6_live_init(void) { ++live_initialized; return 1; }
 void lunar_devkit_fm6_live_render(int16_t *out) {
@@ -114,14 +121,14 @@ int dac_on(void) {
                 (int)(frames * config.ch_num * sizeof(int16_t)));
     }
     assert(callbacks == 3 && invalid_buffers == 0);
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#if defined(LUNAR_DEVKIT_FM6_AUDIO) || defined(LUNAR_DEVKIT_RENDERER_AUDIO)
     assert(live_fills == 3);
 #else
     assert(ramp_frames == 192 && phase != 0);
 #endif
     for (i = 0; i < 192; ++i) {
         int16_t sample = guarded[1 + i * 4];
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#if defined(LUNAR_DEVKIT_FM6_AUDIO) || defined(LUNAR_DEVKIT_RENDERER_AUDIO)
         double expected = 42;
 #else
         double expected = 1024 * sin(6.28318530718 * 997 * i / sample_rate) * (i + 1) / 2205;
@@ -142,13 +149,13 @@ int main(void) {
     {
         int16_t bad[10];
         unsigned i;
-#ifndef LUNAR_DEVKIT_FM6_AUDIO
+#if !defined(LUNAR_DEVKIT_FM6_AUDIO) && !defined(LUNAR_DEVKIT_RENDERER_AUDIO)
         uint32_t old_phase = phase;
 #endif
         for (i = 0; i < 10; ++i) bad[i] = 12345;
         handler(NULL, (u8 *)(bad + 1), 16);
         assert(invalid_buffers == 1 && callbacks == 3);
-#ifdef LUNAR_DEVKIT_FM6_AUDIO
+#if defined(LUNAR_DEVKIT_FM6_AUDIO) || defined(LUNAR_DEVKIT_RENDERER_AUDIO)
         assert(live_fills == 3);
 #else
         assert(phase == old_phase);
@@ -168,7 +175,8 @@ int main(void) {
 ''')
     binary = tmp_path/'probe'
     subprocess.run(['cc', '-std=c99', '-O1', '-Wall', '-Wextra', '-Werror',
-                    *(['-DLUNAR_DEVKIT_FM6_AUDIO=1'] if live else []),
+                    *({'tone': [], 'fm6': ['-DLUNAR_DEVKIT_FM6_AUDIO=1'],
+                       'renderer': ['-DLUNAR_DEVKIT_RENDERER_AUDIO=1']}[mode]),
                     '-fsanitize=address,undefined', '-fno-omit-frame-pointer',
                     '-I'+str(tmp_path), '-I'+str(ROOT/'firmware/devkit'),
                     str(harness), '-lm', '-o', str(binary)], check=True)
