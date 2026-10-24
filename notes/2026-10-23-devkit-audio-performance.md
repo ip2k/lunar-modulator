@@ -1164,3 +1164,32 @@ SHA-256 `857eb29fa1b72cee61d9706eda9b0aef55b6eb83ec6bfc03d28ea00251b9f329`.
 The strict build-record test passes locally with `CI=true`, including current
 source hashes and the committed module hash. Complete new-head CI remains
 required. No device traffic or new physical audio acceptance occurred here.
+
+
+## Pinned transport pointer protection (2026-10-24)
+
+[verified] Exact-head CI run 40089502568 passed every job except WebKit,
+whose compact-toolbar test timed out waiting for Pause to become Resume
+at line 29. The earlier WASM build-record failures are resolved. The
+unmodified toolbar check and ten additional transport cycles passed on
+Aeon; these local passes do not erase the CI failure or establish its cause.
+
+[verified] A deterministic regression exposes a related defect: changing the
+workspace width while holding the external pinned transport replaces its
+button before click dispatch. Pointer tracking covered only the Song root,
+although the transport is mounted outside it. The shared workspace containment
+check now covers pointer release, and both surfaces track pointer presses;
+external listeners are removed on destruction. The regression fails before
+this fix and passes afterward, including exactly one transport callback and
+resumption of deferred grid resizing after the click.
+
+[verified] The complete viewport/follow suite passes in WebKit, Chromium and
+Firefox in bounded Aeon containers. WebKit's full compact-toolbar check and
+10 native MIDI transport checks pass; all 13 sequencer-host unit tests and the
+strict browser build-record check pass locally. No timeouts or assertions
+were weakened. Rarefaction is rooted in the primary checkout and cannot
+inspect this sibling worktree through an escaping project path; Serena resolves
+resizeGrids and updateTransport in the actual absolute worktree, with direct
+source inspection covering the pointer lifetime. Complete replacement-head CI
+is required. This browser repair provides no new dev-board audio acceptance;
+no device commands were sent.
