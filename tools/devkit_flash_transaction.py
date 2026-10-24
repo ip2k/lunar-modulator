@@ -20,6 +20,43 @@ BASELINE_SHA = '127b2ebbef9da3469f0bf7ea3841a5515d01721ebac9bbdc7fc739032d7b5ec1
 TARGET_SHA = 'e77ee8af309fc57d1a8eddaac95dec253dda031f269021382c9cb1e977baa103'
 SECTOR = 4096
 ALLOWED = tuple(range(0x4000, 0x2c000, SECTOR))
+# Reviewed private internal-DAC reference probe; no arbitrary target/range CLI.
+AUDIO_TARGET_SHA = '5cba22f0b0b19bda0847a303eee033f7a2b31a7bef5255ef1d98ca27f796c7b2'
+AUDIO_ALLOWED = tuple(range(0x4000, 0x2e000, SECTOR))
+# Three-window DAC correction, separately reviewed; retain v2 for recovery.
+AUDIO_V3_TARGET_SHA = 'cfa6afbe0b3ff60f11760dff72c2b2b25221a7af555007eca8c188bb9349dd32'
+# Opt-in UART1 control image; same DAC probe and fixed application boundary.
+AUDIO_CONTROL_TARGET_SHA = 'ba8b03938e0b2a90461a728646a31f7de72975df282e9c1931750400cadaaaa6'
+AUDIO_CONTROL_V2_TARGET_SHA = '1bbaf5ae4ddf6a6fc6289c095f0f4b4361913b436b616f6c1f9e43d7da4cad25'
+# Actual FM6 timing plus UART control; no DAC output. Separate reviewed bounds.
+FM6_CONTROL_TARGET_SHA = '79e0cc9bb394415f544f2e9a33ea8e6cfab2ae70120ca9590b1eb32c1d629789'
+FM6_RAM_CONTROL_TARGET_SHA = '80c455edeea61649e21f1c8c625240da3bfcd1d3682aa31914825ee77e72448f'
+FM6_ALLOWED = tuple(range(0x4000, 0x37000, SECTOR))
+# v1's DAC object compiled the reference branch; retain its exact restore plan.
+FM6_AUDIO_TARGET_SHA = 'f9def23ecbd6b5bdaa9861ac2093264cb1c51181f84ffb2ae54a410a4dc96993'
+FM6_AUDIO_ALLOWED = tuple(range(0x4000, 0x3a000, SECTOR))
+FM6_AUDIO_V2_TARGET_SHA = '80f7491493b45a5408214f792066f0da390bb282cdf9a103bbbc9920058a1422'
+FM6_AUDIO_V2_ALLOWED = tuple(range(0x4000, 0x39000, SECTOR))
+# Same bounded live workload with completed-case PCM fingerprints.
+FM6_AUDIO_V3_TARGET_SHA = 'f7863aad94f993742140161350edd28c0555a348574c9c01f3bdf253a4204ced'
+# Full shared-renderer worker preflight, no DAC; audited SDK link and private
+# independent cipher/CRC/objcopy checks. UART control and 20 KiB worker stack.
+RENDERER_TIMING_TARGET_SHA = 'b8305c69d6ce8ccfe7dabe52f08553369dcaced81b47e7d75d61860d5494bfa3'
+RENDERER_TIMING_ALLOWED = tuple(range(0x4000, 0x8a000, SECTOR))
+# Corrected division guard and startup UART recovery window; independently
+# reviewed packing and interrupted-transaction model, same fixed bounds.
+RENDERER_TIMING_V3_TARGET_SHA = '7478c40947fa308a6ffacba32ab1f109632446b0370dafc2183c091421a93b16'
+IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED,
+               AUDIO_V3_TARGET_SHA: AUDIO_ALLOWED,
+               AUDIO_CONTROL_TARGET_SHA: AUDIO_ALLOWED,
+               AUDIO_CONTROL_V2_TARGET_SHA: AUDIO_ALLOWED,
+               FM6_CONTROL_TARGET_SHA: FM6_ALLOWED,
+               FM6_RAM_CONTROL_TARGET_SHA: FM6_ALLOWED,
+               FM6_AUDIO_TARGET_SHA: FM6_AUDIO_ALLOWED,
+               FM6_AUDIO_V2_TARGET_SHA: FM6_AUDIO_V2_ALLOWED,
+               FM6_AUDIO_V3_TARGET_SHA: FM6_AUDIO_V2_ALLOWED,
+               RENDERER_TIMING_TARGET_SHA: RENDERER_TIMING_ALLOWED,
+               RENDERER_TIMING_V3_TARGET_SHA: RENDERER_TIMING_ALLOWED}
 
 
 def digest(data):
@@ -27,22 +64,24 @@ def digest(data):
 
 
 def validate_images(factory, target):
+    allowed = IMAGE_PLANS.get(digest(target))
     if (len(factory) != backup.FLASH_SIZE or len(target) != backup.FLASH_SIZE
-            or digest(factory) != BASELINE_SHA or digest(target) != TARGET_SHA):
+            or digest(factory) != BASELINE_SHA or allowed is None):
         raise ValueError('Exact private factory and reviewed diagnostic images required')
     dirty = tuple(a for a in range(0, len(factory), SECTOR)
                   if factory[a:a+SECTOR] != target[a:a+SECTOR])
-    if dirty != ALLOWED:
+    if dirty != allowed:
         raise ValueError('Diagnostic mutation range changed')
+    return allowed
 
 
-def mutation_request(op, address, payload, desired):
+def mutation_request(op, address, payload, desired, allowed=ALLOWED):
     if op == 0xFB01:
-        if address not in ALLOWED or payload:
+        if address not in allowed or payload:
             raise ValueError('Only exact application-sector erases permitted')
         return (b'\xfb\x01'+address.to_bytes(4, 'big')).ljust(16, b'\xff'), b'', 16
     if op == 0xFB04:
-        if (address % backup.base.CHUNK or address // SECTOR * SECTOR not in ALLOWED
+        if (address % backup.base.CHUNK or address // SECTOR * SECTOR not in allowed
                 or len(payload) != backup.base.CHUNK
                 or payload != desired[address:address+backup.base.CHUNK]):
             raise ValueError('Only exact desired application pages permitted')
@@ -57,26 +96,28 @@ def mutation_request(op, address, payload, desired):
 
 
 class Writer(backup.DevkitReader):
+    allowed = ALLOWED
     def build_request(self, op, address, payload):
-        return mutation_request(op, address, payload, self.desired)
+        return mutation_request(op, address, payload, self.desired, self.allowed)
 
 
-def protected_equal(current, factory):
+def protected_equal(current, factory, allowed=ALLOWED):
     return (len(current) == len(factory) == backup.FLASH_SIZE
             and current[:0x4000] == factory[:0x4000]
-            and current[0x2c000:] == factory[0x2c000:])
+            and current[allowed[-1]+SECTOR:] == factory[allowed[-1]+SECTOR:])
 
 
 def transact(reader, current, factory, target, mode):
-    validate_images(factory, target)
+    allowed = validate_images(factory, target)
     if mode not in ('install', 'restore'):
         raise ValueError('Unknown transaction mode')
-    if not protected_equal(current, factory):
+    if not protected_equal(current, factory, allowed):
         raise ValueError('Protected factory sectors differ; no write')
     if mode == 'install' and current != factory:
         raise ValueError('Install requires complete exact factory preimage')
+    reader.allowed = allowed
     reader.desired = target if mode == 'install' else factory
-    dirty = [a for a in ALLOWED if current[a:a+SECTOR] != reader.desired[a:a+SECTOR]]
+    dirty = [a for a in allowed if current[a:a+SECTOR] != reader.desired[a:a+SECTOR]]
     order = [a for a in dirty if a != 0x4000] + ([0x4000] if 0x4000 in dirty else [])
     for address in order:
         reader.online()

@@ -204,6 +204,11 @@ extern "C" {
  * every chain the simulator plays inside that budget. */
 #define FM1_APP_SOUND_BYTES (512u * 1024u)
 #define FM1_APP_FX_BYTES (256u * 1024u)
+/* Set consistently in every translation unit to omit simulator-only reserves.
+ * Engine storage is then supplied by fm1_app_init_arenas, without a heap. */
+#ifndef FM1_APP_EXTERNAL_ARENAS
+#define FM1_APP_EXTERNAL_ARENAS 0
+#endif
 
 /* RAM the stock layout leaves free (docs/11 §2, engines/README.md; part of
  * it is stock's heap, so this is an upper bound [inferred]). The meter
@@ -394,6 +399,7 @@ typedef struct fm1_app {
   fm1_host_t host;
   fm1_host_t ram_host;           /* host at FM1_APP_RAM_RATE: the RAM rule's sizes */
   fm1_app_unit_t unit[FM1_APP_UNITS];   /* by id: see FM1_APP_UNITS */
+  uint8_t external_arenas;       /* project loads preserve host-owned storage */
   fm1_mix_limiter_t limiter;
   float master;                  /* MASTER position, 0..1 */
   float gain;                    /* master * master */
@@ -539,8 +545,10 @@ typedef struct fm1_app {
   int store_ready;               /* a host store answers SAVE (fm1_app_saved) */
 
   fm1_tft_t tft;
+#if !FM1_APP_EXTERNAL_ARENAS
   unsigned char sound_mem[FM1_APP_SOUNDS][FM1_APP_SOUND_BYTES] FM1_APP_ALIGN16;
   unsigned char fx_mem[FM1_APP_EFFECTS][FM1_APP_FX_BYTES] FM1_APP_ALIGN16;
+#endif
   unsigned char seq_mem[FM1_APP_SEQ_BYTES] FM1_APP_ALIGN16;
   fm1_seq_ev_t seq_ev[FM1_APP_SEQ_EVENTS];
   unsigned char mod_mem[FM1_APP_MOD_BYTES] FM1_APP_ALIGN16;
@@ -555,6 +563,23 @@ typedef struct fm1_app {
  * FM1_APP_MOD_SEED and the default rack: LFO1, LFO2, ENV3, ENV4 and CHN5,
  * with RTRG cabled into both envelopes' GATE. */
 void fm1_app_init(fm1_app_t *a, float sample_rate);
+
+typedef struct {
+  unsigned char *mem;
+  size_t bytes;
+} fm1_app_arena_t;
+
+/* Initialize with one caller-owned arena per unit (unit ids, not sound ids).
+ * Storage must remain alive, be 16-byte aligned, and not overlap another arena,
+ * the descriptor array, or the app. {NULL, 0} disables an unused unit. Returns
+ * 0 on success, -1 on invalid storage/rate, leaving the app untouched on error.
+ * Call only on a fresh app; it does not destroy existing engine instances.
+ * Ordinary fm1_app_init keeps built-in arenas in the default build; with
+ * FM1_APP_EXTERNAL_ARENAS=1 it initializes every unit with zero capacity.
+ * Project loads preserve these arenas. Sequencer/modulation/UI storage and
+ * the render path are unchanged. */
+int fm1_app_init_arenas(fm1_app_t *a, float sample_rate,
+                        const fm1_app_arena_t arenas[FM1_APP_UNITS]);
 
 /* The registry index of an engine id, or -1. */
 int fm1_app_find(const char *id);

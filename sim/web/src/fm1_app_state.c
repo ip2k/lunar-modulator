@@ -1413,6 +1413,12 @@ static int plan_finish(plan_t *p) {
 /* A project starts from fm1_app_init; the settings, MASTER, the host's
  * hooks, the clock and the store are the device's, not the project's. */
 static void project_reset(fm1_app_t *a) {
+  const int external = a->external_arenas;
+  fm1_app_arena_t arenas[FM1_APP_UNITS];
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    arenas[u].mem = a->unit[u].mem;
+    arenas[u].bytes = a->unit[u].cap;
+  }
   const float rate = a->host.sample_rate, master = a->master;
   const fm1_app_settings_t settings = a->settings;
   const int metro = metronome_on(a), full_vel = a->ui.full_vel, store = a->store_ready;
@@ -1424,7 +1430,8 @@ static void project_reset(fm1_app_t *a) {
   void *cmd_ctx = a->on_cmd_ctx;
   struct fm1_edit *edit = a->edit;       /* the edit layer's ring goes on (fm1_edit.h) */
   fm1_app_all_notes_off(a);
-  fm1_app_init(a, rate);
+  if (external) fm1_app_init_arenas(a, rate, arenas);
+  else fm1_app_init(a, rate);
   a->edit = edit;
   a->master = master;
   a->gain = master * master;

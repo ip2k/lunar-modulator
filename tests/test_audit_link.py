@@ -433,6 +433,34 @@ def test_linked_efuse_access_fails_even_in_sdk_code(tmp_path):
     assert status(run_linked(elf, tmp_path), "no_efuse_controller_access") == "fail"
 
 
+def test_efuse_pattern_in_relative_call_requires_manual_review(tmp_path):
+    # A six-byte pi32v2 call whose displacement is 0x13714, pointing into
+    # a known function. Raw bytes alone never establish instruction boundaries.
+    displacement = 0x13714
+    body = b'\x80\xff' + le(displacement)
+    # Callee starts two bytes before the target (ELF builder aligns to four).
+    pad = b'\0' * (displacement + 4 - 8)
+    elf, _ = build_linked([('caller', body), ('padding', pad), ('callee', NOP)])
+    result = run_linked(elf, tmp_path)
+    assert status(result, 'no_efuse_controller_access') == 'pending'
+    # Vendor assembly may provide an exact STT_FUNC entry with size zero.
+    elf, _ = build_linked([('caller', b'\0\0' + body),
+                           ('padding', b'\0' * displacement), ('callee', b'')])
+    assert status(run_linked(elf, tmp_path), 'no_efuse_controller_access') == 'pending'
+    # Without a resolvable destination, the same bytes still fail.
+    elf, _ = build_linked([('caller', body)])
+    assert status(run_linked(elf, tmp_path), 'no_efuse_controller_access') == 'fail'
+    elf, _ = build_linked([('caller', body), ('padding', pad),
+                           ('callee', NOP + le(0x13700))])
+    assert status(run_linked(elf, tmp_path), 'no_efuse_controller_access') == 'fail'
+    # Objects, ordinary immediate loads, and extra real references still fail.
+    assert status(run(build_object(section_bytes=body), tmp_path),
+                  'no_efuse_controller_access') == 'fail'
+    elf, _ = build_linked([('caller', b'\xc0\xff' + le(displacement)),
+                           ('padding', pad), ('callee', NOP)])
+    assert status(run_linked(elf, tmp_path), 'no_efuse_controller_access') == 'fail'
+
+
 def test_late_initcall_group_with_an_extra_entry_fails(tmp_path):
     elf, _ = build_linked(DORMANT + [("fm1_late", NOP)], init_ptrs=["sdk_meky_check", "fm1_late"])
     assert status(run_linked(elf, tmp_path), "late_initcall_group") == "fail"

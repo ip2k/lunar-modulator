@@ -11,6 +11,18 @@ bypassing checks. This authorization applies to this owned repository, not
 upstream contributions or hardware writes. Start the four demo songs once
 their prerequisite work is integrated; keep unfinished work recorded in notes.
 
+## Unattended dev-board tests — owner, 2026-10-24
+
+Routine future dev-board tests must require no physical button presses. Keep
+UART boot control enabled in diagnostic images: acknowledged UART ARM/ENTER
+enters ROM, and the reviewed fixed-loader reset adapter returns to the app after
+an exact full-flash check. Both directions are verified on this dev kit. Require
+fresh UART boot/results after reset; USB disconnection alone proves nothing.
+See `firmware/devkit/README.md` and
+`notes/2026-10-23-devkit-audio-performance.md` for the verified cycle. An
+unresponsive app is a separate recovery case, not grounds for routine button
+requests. This does not expand authorization for the physical FM-1.
+
 ## What this is
 
 **Lunar Modulator** (tagline **INTERGALACTIC MODULATION STATION**) is open

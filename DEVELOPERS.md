@@ -1173,6 +1173,10 @@ which lands with the plan PR; its stages S0–S7 are named below.
   - the kit's application-sector install/restore rehearsal passed with an
     exact full-flash comparison, and a UART resampler benchmark ran all
     eighteen cases [verified: [bench results](notes/2026-10-22-devkit-uart-bringup.md)];
+  - an opt-in [dev-kit internal-DAC probe](firmware/devkit/README.md) is
+    built with capture screening; installation, real instrument/effect audio
+    and sustained dropout acceptance are still pending
+    ([active campaign](notes/2026-10-23-devkit-audio-performance.md));
   - the gate on the owner's unit ([docs/07](docs/07-recovery-and-risk.md)
     §4 rule 1);
   - Lunar running on the board;
