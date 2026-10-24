@@ -526,3 +526,53 @@ USB connection. No loader upload, arbitrary command, flash mutation or eFuse
 operation is available. 26 focused reset/control/transaction tests pass,
 including all-opcode rejection, mismatched live flash/identity, disconnection
 and invalid acknowledgment. Physical loader-exit behavior is still pending.
+
+### Software return and FM6 results
+
+[verified: 2026-10-24 07:39 UTC] Complete pre-reset flash readback matched
+FM6-control-v1. The one FC0C request interrupted its own USB transfer
+(`host=7`, residue 16); the adapter correctly recorded ambiguous transport
+completion without retry. Independent UART then captured a fresh `SOFT`
+boot, receiver readiness, all twelve cases and `complete=1`. USB download
+enumeration disappeared. Thus software application return is demonstrated
+on this dev kit despite the interrupted command response. Raw evidence:
+`fm6-control-v1-firstboot-20261024-uart.bin` in the private bench captures;
+reset evidence: `reset-fm6-control-v1-20261024` in the private backups.
+Routine test cycles now use application UART entry and reviewed USB loader
+return; no further physical button operation is required for this path.
+Recovery from an unresponsive app remains a separate limitation.
+
+All twelve hashes match the real desktop FM6 fixture, with zero nonfinite
+samples. Each case uses 256 blocks; instance size is 20288 bytes. At the
+measured 24 MHz timer, the 64-frame/44.1 kHz budget is 1451.25 microseconds.
+
+| Patch | Voices | Mean render µs | Maximum render µs |
+| --- | ---: | ---: | ---: |
+| Tine EP | 1 | 108.9 | 309.5 |
+| Tine EP | 4 | 405.0 | 849.6 |
+| Tine EP | 8 | 866.6 | 1660.1 |
+| Tine EP | 12 | 1642.7 | 2909.8 |
+| Warm pad | 1 | 124.2 | 158.2 |
+| Warm pad | 4 | 520.2 | 651.2 |
+| Warm pad | 8 | 1287.7 | 1527.8 |
+| Warm pad | 12 | 2409.0 | 2731.5 |
+| Saw lead | 1 | 97.8 | 206.8 |
+| Saw lead | 4 | 383.0 | 604.0 |
+| Saw lead | 8 | 880.2 | 1369.1 |
+| Saw lead | 12 | 1725.6 | 2509.8 |
+
+These are isolated, IRQ-enabled XIP renders without DAC, effects or mixer.
+Every twelve-voice case already exceeds the budget on average. Tine EP and
+warm-pad eight-voice maxima exceed it too. Whole-case note-on costs range
+1167–4871 ticks and note-off 274–1173 ticks; rendering dominates here.
+The largest rendering samples include cold calls and interrupt time; this
+does not attribute every spike to cache misses. 98 focused tests pass.
+
+Next controlled comparison: optional `--fm6-ram` places only the same FM6
+translation units' code/constants in the existing startup-copied
+`.ram0_data`. Source, flags, clock, workload, state and other diagnostics stay
+unchanged. External SDK/libc callees can remain XIP. Default placement remains
+XIP. Actual ELF placement/copy ranges, link audit, matching hashes and private
+image admission are required before treating this as a target optimization.
+No RAM-comparison image is installed yet. Rarefaction still rejects the
+outside-root worktree query; Serena verifies the correct worktree symbols.

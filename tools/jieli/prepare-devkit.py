@@ -18,9 +18,12 @@ FM6_API_HEADERS = ['fm1_engine.h', 'fm1_math.h', 'fm1_midi_ev.h', 'fm1_dx7.h', '
 MSFA_UNITS = ['dx7note', 'env', 'fm_core', 'fm_op_kernel', 'freqlut', 'lfo', 'patch', 'pitchenv']
 
 
-def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False, boot_control=False):
+def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False, boot_control=False,
+            fm6_ram=False):
     if audio_probe and fm6_benchmark:
         raise ValueError('Choose one diagnostic; FM6 timing does not enable DAC output')
+    if fm6_ram and not fm6_benchmark:
+        raise ValueError('FM6 SRAM placement requires the FM6 benchmark')
     if out.exists():
         raise ValueError('Output must not exist; preserve prior build evidence')
     shutil.copytree(sdk, out)
@@ -137,9 +140,31 @@ UART1_PLATFORM_DATA_END();
             obj = 'objs/apps/demo/demo_hello/'+name+'.o'
             text += obj+': CFLAGS := $(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fwrapv -fno-data-sections\n'
             text += obj+': CXXFLAGS := -std=c++11 -fno-exceptions -fno-rtti\n'
+        if fm6_ram:
+            # Change object placement only, preserving per-function GC and all
+            # engine source/flags. The pinned startup already copies ram0_data.
+            # External SDK/libc callees can still be in XIP; inspect the ELF.
+            linker = out/'cpu/wl82/sdk_ld_sfc.c'
+            script = linker.read_text()
+            objects = ['*'+Path(name).name+'.o' for name in files
+                       if name != 'fm6_benchmark.cc']
+            exclusions = ' '.join(objects)
+            for section in ('.text*', '.rodata*'):
+                anchor = '        *('+section+')'
+                if script.count(anchor) != 1:
+                    raise ValueError('Unexpected SDK XIP collection; review FM6 placement')
+                script = script.replace(anchor, '        *(EXCLUDE_FILE ('+
+                                        exclusions+') '+section+')', 1)
+            anchor = '        *(.volatile_ram_code)'
+            if script.count(anchor) != 1:
+                raise ValueError('Unexpected SDK SRAM collection; review startup copy')
+            script = script.replace(anchor, anchor+'\n'+''.join(
+                '        '+obj+'(.text* .rodata*)\n' for obj in objects), 1)
+            linker.write_text(script)
     makefile.write_text(text)
     receipts = {'sdk_commit_required': 'e30b1ee375d1f2993fc23bf92c8b99006a6e5f9d',
-                'placement': 'XIP code/constants; internal SRAM state; SDK CONFIG_NO_SDRAM_ENABLE',
+                'placement': ('FM6 object code/constants in startup-copied ram0_data; external callees may remain XIP'
+                              if fm6_ram else 'XIP code/constants; internal SRAM state; SDK CONFIG_NO_SDRAM_ENABLE'),
                 'measurement': ('internal-DAC reference tone; no instrument workload' if audio_probe
                                 else 'real FM6, no DAC/mixer/effects, raw oscillator timer ticks' if fm6_benchmark
                                 else 'resampler-only, IRQ enabled, raw oscillator timer ticks'),
@@ -165,6 +190,8 @@ if __name__ == '__main__':
                       help='Time real FM6 instrument rendering without DAC output')
     ap.add_argument('--boot-control', action='store_true',
                     help='Opt in to dev-kit-only UART1 command input on PA5 (requires extra TX wire)')
+    ap.add_argument('--fm6-ram', action='store_true',
+                    help='Compare FM6 object code/constants in SRAM; requires --fm6-benchmark')
     a = ap.parse_args()
     prepare(a.sdk, a.source, a.out, audio_probe=a.audio_probe, fm6_benchmark=a.fm6_benchmark,
-            boot_control=a.boot_control)
+            boot_control=a.boot_control, fm6_ram=a.fm6_ram)

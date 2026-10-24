@@ -41,9 +41,9 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'control'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'control'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
-    audio_probe, fm6 = mode == 'audio', mode == 'fm6'
+    audio_probe, fm6 = mode == 'audio', mode in ('fm6', 'fm6-ram')
     spec = importlib.util.spec_from_file_location('prepare_devkit', ROOT/'tools/jieli/prepare-devkit.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -62,9 +62,12 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     (app/'board/wl82/board.c').write_text('UART2_PLATFORM_DATA_BEGIN(uart2_data)\n'
                                        '\t.rx_pin = -1,\nUART2_PLATFORM_DATA_END();\n'
                                        '\t{"uart2", &uart_dev_ops, (void *)&uart2_data },\n')
+    (sdk/'cpu/wl82').mkdir(parents=True)
+    (sdk/'cpu/wl82/sdk_ld_sfc.c').write_text('        *(.text*)\n        *(.rodata*)\n'
+                                          '        *(.volatile_ram_code)\n')
     out = tmp_path/'prepared'
     module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
-                   boot_control=mode == 'control')
+                   boot_control=mode == 'control', fm6_ram=mode == 'fm6-ram')
     result = (out/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
     assert '\\ \\' not in result
     assert '$(RUN_POST_SCRIPT) sdk' not in result
@@ -88,6 +91,13 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert 'no DAC/mixer/effects' in receipt['measurement']
         assert '-fwrapv' in result and '-std=c++11' in result
         assert (out/'apps/demo/demo_hello/fm6_unit_env.cc').read_text().startswith('#define FM1_MSFA_UNIT "env.cc"')
+        script = (out/'cpu/wl82/sdk_ld_sfc.c').read_text()
+        assert ('EXCLUDE_FILE' in script) == (mode == 'fm6-ram')
+        if mode == 'fm6-ram':
+            assert '*msfa_dx7.cc.o(.text* .rodata*)' in script
+            assert '*fm6_unit_fm_op_kernel.cc.o(.text* .rodata*)' in script
+            assert '*fm6_benchmark.cc.o' not in script
+            assert 'startup-copied ram0_data' in receipt['placement']
     linked = (out/'include_lib/driver/cpu/wl82/system.ld').read_text()
     start = linked.index('PROVIDE(syscfg_ops_begin')
     end = linked.index('PROVIDE(syscfg_ops_end')
@@ -99,6 +109,9 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     with pytest.raises(ValueError, match='Choose one'):
         module.prepare(sdk, ROOT, tmp_path/'ambiguous', audio_probe=True, fm6_benchmark=True)
     assert not (tmp_path/'ambiguous').exists()
+    with pytest.raises(ValueError, match='requires the FM6'):
+        module.prepare(sdk, ROOT, tmp_path/'invalid-ram', fm6_ram=True)
+    assert not (tmp_path/'invalid-ram').exists()
 
 
 def test_real_resampler_workload(tmp_path):
