@@ -34,7 +34,10 @@ def build_reference(modules):
 def test_shared_renderer_schedule_and_pcm(tmp_path):
     target = build_reference(MODULES)
     pcm = tmp_path / "reference.pcm"
-    result = subprocess.run([str(target), str(pcm)], capture_output=True, text=True, check=True)
+    # glibc replay enables the same divide-by-zero trap that exposed a
+    # speculative logarithmic division on the chip's linear modulation path.
+    env = dict(os.environ, LUNAR_TRAP_DIVZERO="1")
+    result = subprocess.run([str(target), str(pcm)], capture_output=True, text=True, check=True, env=env)
     rows = [dict(re.findall(r"(\w+)=(\w+)", line)) for line in result.stdout.splitlines()]
     assert len(rows) == 8
     for i, row in enumerate(rows):

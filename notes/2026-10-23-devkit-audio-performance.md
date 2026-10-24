@@ -1016,3 +1016,42 @@ and the 8000 timer, and the linked UART ROM-entry path retains the reviewed RAM
 marker/reset sequence. All 25 transaction/reset tests pass. This admission is
 for the no-DAC worker image alone; it does not admit the direct-IRQ renderer or
 establish target timing/stack acceptance.
+
+## Full-renderer preflight startup fault and unattended recovery (2026-10-24)
+
+[verified] The timing-v2 worker image installed with an exact full 8 MiB
+readback and booted through the reviewed loader reset without a button press.
+It then raised CPU0 `div0_err` in `sum_slots`, called by `fm1_mod_tick`, before
+completing a timing case. Actual vendor LLVM IR moves `max / min` ahead of the
+logarithmic branch. A linear range starting at zero consequently divides by
+zero even though the source only requests that division for log parameters.
+The correction neutralizes a zero denominator; valid log ranges remain
+unchanged. All 28 focused tests pass with Linux replay divide-by-zero traps
+enabled, including a build permitting speculative floating-point operations.
+Target validation of the correction remains pending.
+
+[verified] The crashing image prints UART receiver readiness, but ordinary and
+startup-timed acknowledged PING attempts received no acknowledgement; no ARM
+or ENTER was sent by those failed handshakes. Temporarily reducing the Tigard
+receive latency from 16 to 1 ms did not help, and it was restored to 16 ms.
+No loader reset was retried. New diagnostics now reserve 200 OS ticks before
+workload initialization for an acknowledged UART recovery handshake. This
+window is outside measured rendering. Its actual boot/recovery acceptance is
+pending; merely creating the receiver first proved insufficient. Current
+crash recovery remains unresolved, separately from future routine tests.
+
+[verified] Another 176 modulation tests pass. Corrected timing-v3 links with
+ELF SHA-256 `f5df56721ebc452474a1b58da6c6f6fc850ef4d18683d372ec3ef29f4e7bd961`.
+Independent vendor section exports exactly match the 548,336-byte application
+SHA-256 `e1cfcd5b7cccce8c21ba5fd0725980e28b4ac5bf91958dd40fc5f8e82482ff21`.
+The compiled modulation IR retains a zero comparison and a safe selected
+denominator before division. Link audit has zero failures; its pending
+scheduling item was checked in actual vendor disassembly: `sdk_meky_check` at
+0x02082330 contains only two IRQ123 registrations and the 8000 timer.
+Independent cipher/CRC checks pass for private candidate SHA-256
+`7478c40947fa308a6ffacba32ab1f109632446b0370dafc2183c091421a93b16`,
+134 application sectors `[0x4000,0x8a000)`, application end 0x89f10; factory
+boot/configuration/tail preservation passes. This image is **not admitted or
+installed**. Transaction modeling and final exact-image recovery review remain
+required. Current hardware recovery cannot use the receiver while it crashes
+before acknowledging PING; an owner recovery exception has been requested.

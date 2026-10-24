@@ -3,9 +3,18 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#if defined(__GLIBC__)
+#include <fenv.h>
+extern int feenableexcept(int);
+#endif
 
 int main(int argc, char **argv) {
     FILE *pcm = NULL;
+#if defined(__GLIBC__)
+    /* Match the chip's divide-by-zero trap in offline regression runs. */
+    if (getenv("LUNAR_TRAP_DIVZERO")) feenableexcept(FE_DIVBYZERO);
+#endif
     if (argc > 2) return 2;
     if (argc == 2 && !(pcm = fopen(argv[1], "wb"))) return 2;
     if (!lunar_devkit_renderer_init()) {

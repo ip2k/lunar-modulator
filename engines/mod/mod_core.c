@@ -1032,7 +1032,10 @@ static float contribution(fm1_mod_t *m, unsigned i, float min, float max, uint16
     c = a * c;
   } else if (log) {
     c = a * x;
-    c = c * fm1_log2f(max / min);
+    /* Optimizers may hoist this divide above the log branch. On pi32v2
+     * that traps for linear ranges starting at zero. Neutralize the unused
+     * denominator before division, preserving every logarithmic result. */
+    c = c * fm1_log2f(max / (min == 0.0f ? 1.0f : min));
   } else {
     c = a * x * (max - min);
   }

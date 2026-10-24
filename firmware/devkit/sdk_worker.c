@@ -87,6 +87,11 @@ void lunar_devkit_worker(void *unused)
     printf("LUNAR_DEVKIT timer_check_ticks=%u delay_os_ticks=10\n", now()-before);
 #ifdef LUNAR_DEVKIT_BOOT_CONTROL
     lunar_devkit_boot_control_start();
+    /* Allow a complete acknowledged PING/ARM/ENTER recovery handshake even
+     * when the next workload crashes during initialization. SDK ticks are
+     * 10 ms here; no rendering or benchmark timing occurs in this window. */
+    puts("LUNAR_CONTROL recovery_window_ticks=200\n");
+    os_time_dly(200);
 #endif
 #ifdef LUNAR_DEVKIT_RENDERER_TIMING
     printf("LUNAR_DEVKIT complete=%d\n", lunar_devkit_renderer_timing(now, renderer_yield, emit_renderer));
