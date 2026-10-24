@@ -486,3 +486,43 @@ Private entry log: `audio-control-v2-automatic-entry-20261024.log` in the
 same captures directory. This proves application-assisted ROM entry while
 the command task runs; it is not recovery from an unresponsive application
 or proof of an automatic return from the RAM loader to application execution.
+
+## FM6 install and automatic test-cycle requirement
+
+[verified: bench receipts] Factory restore after automatic entry verified
+SHA `127b2ebb...`; FM6-control-v1 installation verified the complete 8 MiB
+SHA `79e0cc9bb394415f544f2e9a33ea8e6cfab2ae70120ca9590b1eb32c1d629789`.
+Receipts: `restore-control-v2-before-fm6-control-v1-20261024` and
+`install-fm6-control-v1-20261024` under the private bench backup directory.
+Receive-only capture `fm6-control-v1-firstboot-20261024-uart.bin` armed at
+07:34:07 UTC. After the owner reported Reset, capture was still empty and
+USB device 96 remained present; no FM6 boot/timing result is claimed.
+
+Owner instruction, 2026-10-24: future dev-board test cycles must not require
+physical button presses. Application UART entry is proven; automate and
+verify the loader-to-application transition too. Do not ask for repeated
+buttons as the routine test procedure. This applies to the dev board, not
+the physical FM-1.
+
+[verified: actual fixed binary] Independently decoded the exact fixed loader
+`fe6d1bd3...` and verified decoded SHA
+`a228c6fa2dd733802723099dab8216edbfbdfcef1dc155ffcd8ac2b96fd480af`.
+Its dispatch `0x01C042C6..0x01C042CE`, FC0C handler
+`0x01C0477C..0x01C047EA`, call `0x01C04B6E..0x01C04B72` and reset routine
+`0x01C0292C..0x01C02936` have byte-identical span hashes to the private
+2026-10-11 fixed-loader native review. The default FC0C argument-1 path
+requests core reset via bit 4 at `0x10000`; it does not establish application
+boot, nor clear the P33 download marker on its traced direct path.
+Private comparison: `scratch/devkit-20261023/loader-fixed-reset-span-check.json`.
+
+Added a separate dev-kit adapter, `tools/devkit_loader_reset.py`, without
+expanding backup or flash transaction command allowlists. It accepts a pinned
+diagnostic plus matching complete installation receipt/readback, re-reads the
+entire live 8 MiB flash, then permits only literal
+`FC0C00000001FFFFFFFFFFFFFFFFFFFF`. One attempt is consumed per installation;
+disconnect or bad response is recorded without retry or a boot-success claim.
+The coordinator must continue its known fixed-loader session on the observed
+USB connection. No loader upload, arbitrary command, flash mutation or eFuse
+operation is available. 26 focused reset/control/transaction tests pass,
+including all-opcode rejection, mismatched live flash/identity, disconnection
+and invalid acknowledgment. Physical loader-exit behavior is still pending.
