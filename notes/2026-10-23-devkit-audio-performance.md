@@ -851,8 +851,8 @@ the capture noise floor. This single FM6 workload does not replace the required
 representative instrument/effect/mixer/control campaign. After the recording
 finished, UART entry was acknowledged and fresh ROM enumeration observed;
 two complete current-flash reads both matched the installed v2 image exactly.
-The next reviewed v3 fingerprint image is being installed through the same
-factory-restore/full-readback cycle, without physical buttons.
+The reviewed v3 fingerprint image subsequently passed the same
+factory-restore/full-readback cycle, without physical buttons (below).
 
 
 ### Live v3 target long-stream comparison
@@ -880,3 +880,19 @@ The six-minute v3 KA6 capture completed with exit 0/no ALSA error and exactly
 matches bench01, Mac and Aeon copies. These results establish generated-stream
 consistency for this schedule; DAC/analog continuity, representative full
 renderer/effect/control workloads and FM-1 transfer remain unaccepted.
+
+### Analog alignment correction
+
+[verified, 2026-10-24] A wider private capture/reference search found a strong
+two-second match at reference time 40 seconds and capture time 91.334 seconds
+near a DAC rate of 44,118 Hz (absolute correlation 0.930). The inferred start
+offset is 51.350 seconds. Earlier searches centered on a guessed 53-second
+offset excluded this match; their low correlations must not be interpreted as
+DAC faults. Independent DAC and capture clocks require rate correction too.
+
+An exploratory SciPy polyphase comparison using the corrected alignment finds
+strong matches in louder passages across both reference cycles (absolute
+short-window correlations roughly 0.79–0.99). Quiet decays remain near the
+recording noise floor and inconclusive. Periodic signals can produce ambiguous
+local offsets; these exploratory measurements have not been validated against
+injected faults and do not certify analog continuity or dropout-free playback.
