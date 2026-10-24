@@ -457,3 +457,32 @@ current control-v2 boot, PING, analog level and automatic ROM entry.
 
 91 focused host tests pass after the separate FM6 admission, including the
 new boundary-isolation test. These remain offline checks, not FM6 target data.
+
+## Control-v2 boot and autonomous ROM entry
+
+[verified: 2026-10-24 07:26–07:30 UTC, live UART/USB and private KA6 capture]
+Owner pressed normal Reset. UART reports the command receiver ready on PA5
+at 1 Mbaud. DAC registers read `DAA_CON1=00042108` and both digital volume
+registers `00003E30`, confirming the intended analog gain 8 and digital 15920.
+At 103403 callbacks, invalid buffers, fill overruns and IRQ overruns remain
+zero; maximum fill 401 ticks and full IRQ 513 ticks of the 24 MHz timer.
+These are reference-tone measurements, not instrument acceptance.
+
+A fresh 30-second KA6 capture has channels 1/2 RMS −52.34/−52.15 dBFS,
+about 8 dB above v3, with no clipping. The 28-second post-startup screening
+still flags 779/786 irregular periods. This does not establish whether the
+cause is DAC/routing distortion, capture noise or actual discontinuities;
+the analog reference path is not accepted. Private evidence prefix:
+`/home/claude/fm1-devkit-captures/audio-control-v2-running-20261024`.
+
+The exclusive receive-only UART capture was deliberately stopped before TX.
+Default host-tool PING was acknowledged. The separately invoked ARM/ENTER
+handshake was acknowledged, followed by fresh `3-1.2` USB device 96,
+`4C4A:8057`; kernel SCSI inquiry identifies `WL82 UBOOT1.00`, `/dev/sg0`.
+One initial USB descriptor read returned −71 before successful enumeration.
+No owner button press was used for this entry. The acknowledgment alone was
+not treated as proof: actual USB enumeration was checked separately.
+Private entry log: `audio-control-v2-automatic-entry-20261024.log` in the
+same captures directory. This proves application-assisted ROM entry while
+the command task runs; it is not recovery from an unresponsive application
+or proof of an automatic return from the RAM loader to application execution.
