@@ -44,6 +44,28 @@ there must still be revalidated through the FM-1's external I2S codec.
 
 ## Priority and acceptance
 
+### Additional source check, 2026-10-24
+
+[verified: source inspection] [FM Lab by jsmith13](https://github.com/jsmith13/fm_lab/tree/cf35dc26709ede9c974654dfc2135f8c25a00082)
+uses Dinghy/SLOOP's ALNK platform and an integer C FM core derived through
+dxsloop from Dexed/msfa. Its `platform.c` services 256-frame halves and scales
+the produced Q23 samples after `app_audio`. In `fmlab.c`, `app_audio` times
+its own work and requests voice shedding after two blocks above 85% of its
+budget. That timer excludes the surrounding platform scaling/USB work; our
+full-IRQ deadline and voice-loss counters must remain separate.
+
+[reported: its `tests/cpu_baseline.txt`] Eight held BRASS voices were measured
+around 26% with a 33% peak on the author's FM-1. This is useful evidence of a
+different runtime tradeoff, not our measurement or a like-for-like comparison:
+its output window is four times our current 64 frames, the patches/scheduler
+differ, and overload protection can reduce sounding voices. The core's integer
+representation is a candidate for later profiling, not grounds to replace our
+engine without semantic and listening comparisons.
+
+[verified: `LICENSING.md`] The integer port is Apache-2.0 AND GPL-3.0-only;
+it is not an Apache-only replacement for Lunar's MIT/BSD firmware path. No code
+or assets were imported. The private reference clone remains under `scratch/`.
+
 1. Establish continuous low-level internal-DAC output, with callback/full-IRQ
    timing plus actual KA6 capture. Confirm routing and adequate signal level.
 2. Integrate a real Lunar engine, then representative mixed engine/effect

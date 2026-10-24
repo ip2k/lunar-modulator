@@ -115,3 +115,10 @@ little-endian order. Partial cases are never reported as completed hashes.
 Compare the entire schedule with desktop replay before interpreting an analog
 template mismatch as a DAC fault. This is diagnostic integrity evidence, not an
 audio-quality score; include fingerprinting in the measured callback budget.
+
+Compare a private independent host replay log with a completed target capture:
+`python tools/devkit_pcm_compare.py --reference HOST_LOG --uart TARGET_LOG`.
+The reference must include at least two complete cycles. Repeated worker
+snapshots are allowed; missing, malformed, reordered or conflicting records
+fail. The JSON records both input hashes and the exact comparison scope.
+Passing this check does not certify the DAC, analog path or full mixer workload.
