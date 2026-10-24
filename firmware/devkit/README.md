@@ -77,3 +77,20 @@ codec, so its output path needs separate validation.
 
 See the [active campaign](../../notes/2026-10-23-devkit-audio-performance.md)
 and [other FM1 runtime lessons](../../notes/2026-10-23-fm1-audio-runtime-comparison.md).
+
+### Unattended dev-board test cycle
+
+The owner requires routine future dev-board tests to run without physical
+button presses. Keep `--boot-control` in diagnostic images. A responsive image
+accepts the acknowledged `tools/devkit_boot_control.py --enter-uboot` UART
+handshake. Stop the exclusive receive-only UART capture before opening that
+control connection; inspect fresh USB enumeration before using the fixed loader.
+
+After a reviewed installation and complete flash readback, arm a fresh UART
+capture and use `tools/devkit_loader_reset.py` with that installation receipt
+and exact pinned target. It independently re-reads flash before its one reset
+attempt. USB disconnection during reset is not a boot confirmation: require a
+fresh UART application boot and diagnostic completion. Both directions were
+verified on the dev kit on 2026-10-24. Do not request routine Update/Reset presses.
+An unresponsive application's recovery is a separate case; UART control cannot
+be assumed available after a crash. This workflow does not authorize FM-1 tests.

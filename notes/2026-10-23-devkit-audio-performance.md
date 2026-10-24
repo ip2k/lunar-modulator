@@ -576,3 +576,31 @@ XIP. Actual ELF placement/copy ranges, link audit, matching hashes and private
 image admission are required before treating this as a target optimization.
 No RAM-comparison image is installed yet. Rarefaction still rejects the
 outside-root worktree query; Serena verifies the correct worktree symbols.
+
+### SRAM comparison image reviewed
+
+[verified] The comparison SDK build places all 69 identified FM6 functions
+in SRAM and the FM6 vtable at `0x01c04714`; `.ram0_data` is 54928 bytes,
+`.ram0_bss` 85868 bytes. Existing startup copy bounds cover the relocated code.
+Only the preparation script differs among recorded XIP/RAM source inputs.
+External SDK/libc callees may remain in flash. ELF SHA-256:
+`a1d78c19887513dfb7f48241caffa52c920e041555287a86a99ea538e3c493a3`.
+Vendor listing SHA-256:
+`12e2c9387f1e58d6e3a6f77d40110ee775c1ab30885a8f8b1b930ac52195092e`.
+Independent ELF concatenation matches vendor section exports byte-for-byte.
+App: 207856 bytes, SHA-256
+`edede98fa02ca54b431b30490cac2ed5ee21d308f7c7173aa50a003c6bee9fe7`.
+Link audit has zero failures; the scheduling item was reviewed in the actual
+vendor listing (`sdk_meky_check` at `0x02024782`, unchanged IRQ123 and timer).
+The RAM UART entry routine still calls the strong marker/reset implementation.
+
+Private full image SHA-256
+`80c455edeea61649e21f1c8c625240da3bfcd1d3682aa31914825ee77e72448f`
+is admitted with the existing 51-sector FM6 bounds, not broader write access.
+Independent package decoding, CRC/config checks and actual-image NOR install,
+restore and interruption-at-pages-7/663 restore models pass. All 99 focused
+host tests pass. No RAM target timing or live-audio acceptance yet.
+
+Owner instruction recorded: all routine future dev-board tests must use the
+verified UART entry and loader software-return cycle without physical buttons.
+Keep the command receiver in future images; fresh boot evidence is mandatory.
