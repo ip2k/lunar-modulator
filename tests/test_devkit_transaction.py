@@ -70,6 +70,7 @@ def test_reviewed_audio_plan_has_its_own_fixed_bounds():
     assert tx.IMAGE_PLANS[tx.AUDIO_CONTROL_TARGET_SHA] == tx.AUDIO_ALLOWED
     assert tx.IMAGE_PLANS[tx.FM6_RAM_CONTROL_TARGET_SHA] == tx.FM6_ALLOWED
     assert tx.IMAGE_PLANS[tx.FM6_AUDIO_TARGET_SHA] == tuple(range(0x4000, 0x3a000, 4096))
+    assert tx.IMAGE_PLANS[tx.FM6_AUDIO_V2_TARGET_SHA] == tuple(range(0x4000, 0x39000, 4096))
     assert tx.AUDIO_CONTROL_TARGET_SHA == 'ba8b03938e0b2a90461a728646a31f7de72975df282e9c1931750400cadaaaa6'
     assert tx.IMAGE_PLANS[tx.AUDIO_CONTROL_V2_TARGET_SHA] == tx.AUDIO_ALLOWED
     assert tx.AUDIO_CONTROL_V2_TARGET_SHA == '1bbaf5ae4ddf6a6fc6289c095f0f4b4361913b436b616f6c1f9e43d7da4cad25'

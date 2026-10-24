@@ -79,6 +79,17 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     assert ('-DLUNAR_DEVKIT_AUDIO_PROBE=1' in result) == (audio_probe or live)
     assert (out/'apps/demo/demo_hello/audio_probe.c').exists() == (audio_probe or live)
     assert ('-DLUNAR_DEVKIT_FM6_AUDIO=1' in result) == live
+    if audio_probe or live:
+        # Exercise Make's immediate target-variable expansion, not merely the
+        # presence of a later global define in the generated text.
+        makefile = out/'apps/demo/demo_hello/board/wl82/Makefile'
+        target = 'objs/apps/demo/demo_hello/audio_probe.c.o'
+        with makefile.open('a') as fp:
+            fp.write('\n'+target+':\n\t@echo $(CFLAGS)\n')
+        flags = subprocess.run(['make', '-s', '-f', str(makefile), target],
+                               check=True, capture_output=True, text=True).stdout
+        assert '-DLUNAR_DEVKIT_AUDIO_PROBE=1' in flags
+        assert ('-DLUNAR_DEVKIT_FM6_AUDIO=1' in flags) == live
     assert ('-DLUNAR_DEVKIT_FM6_BENCHMARK=1' in result) == fm6
     assert ('-DLUNAR_DEVKIT_BOOT_CONTROL=1' in result) == (mode == 'control' or live)
     if mode == 'control':

@@ -111,9 +111,11 @@ UART1_PLATFORM_DATA_END();
         text = text.replace('c_SRC_FILES := ' + chr(92),
                             'c_SRC_FILES := \\\n\t../../../../../apps/demo/demo_hello/audio_probe.c \\', 1)
         text += '\nCFLAGS += -DLUNAR_DEVKIT_AUDIO_PROBE=1\n'
-        text += 'objs/apps/demo/demo_hello/audio_probe.c.o: CFLAGS := $(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fno-data-sections\n'
         if fm6_audio:
             text += '\nCFLAGS += -DLUNAR_DEVKIT_FM6_AUDIO=1\n'
+        # := snapshots the global flags now, so every mode define must precede
+        # the target-specific override. A later += does not update this object.
+        text += 'objs/apps/demo/demo_hello/audio_probe.c.o: CFLAGS := $(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fno-data-sections\n'
     engine_inputs = []
     if fm6_benchmark or fm6_audio:
         for subdir, files in [('src', FM6_SOURCES + FM6_HEADERS), ('include', FM6_API_HEADERS)]:

@@ -697,6 +697,40 @@ Private full image SHA-256
 reference cipher decode, directory/app CRC and unchanged factory config/boot/
 tail checks pass. Exact hash uses its own 54-sector admission; other plans are
 unchanged. Actual-image NOR model install and factory restore pass, including
-interruptions at pages 7, 663 and 839 followed by exact restore. 23 focused
+interruptions at pages 7, 663 and 839 followed by exact restore. 24 focused
 transaction/reset tests pass after admission; 103 focused tests passed before
 this pin. Not installed yet; no live audio or sustained acceptance claimed.
+
+### Live v1 rejected; Make flag snapshot corrected
+
+[verified] v1 installed/read back exactly and returned to the app through
+software reset, but target UART showed reference-tone timing and no
+`LUNAR_LIVE` records. It is **not** a live FM6 result. The worker's mode label
+alone was insufficient: target-specific `CFLAGS :=` for `audio_probe.c` took
+its snapshot before the global live-mode definition. That object therefore
+compiled the reference branch. This supersedes the earlier v1 intent/placement
+claims as evidence of actual instrument execution; no soak acceptance is taken.
+The v1 exact plan stays available for its factory restore.
+
+Moved the definition before that immediate assignment. Regression tests now
+invoke Make on the actual target-specific variable, checking resolved flags,
+not merely the presence of a define somewhere in generated text. All 103
+focused tests pass after the fix; 24 transaction/reset tests pass after the new
+pin. Private v2 NOR install/restore/interruption-at-7/663/823 models pass.
+
+The v2 vendor listing confirms actual calls from `fill` to the RAM live render,
+and from DAC startup/status reporting to the live initializer/snapshot. ELF:
+`80984957f3ef26bfae6c25f9e4bd3e5f9f87153f4491fc3cb508fe2f972b6f5a`;
+listing: `28ddf6508ce12156e2e42a0435ef8dba3da7a58771baac1cc984a01abb243a3c`.
+All 72 FM6/bridge functions remain SRAM; data 55504 bytes, BSS 86100 bytes.
+App 213456 bytes, independent vendor exports match SHA-256
+`7c7cd00346f3f5227f7b10a1adcafbe2092facbae4859331fc41612cd4646a68`.
+Audit zero failures; manual scheduling sign-off at `sdk_meky_check=0x02025b1e`
+(two IRQ123 registrations and 8000 timer), same strong UART marker/P33 path
+(`enter_rom=0x01c01096`, `nvram_set_boot_state=0x02001fd4`).
+
+Private full v2 image SHA-256
+`80f7491493b45a5408214f792066f0da390bb282cdf9a103bbbc9920058a1422`;
+53 application sectors `0x4000..0x38000`, end `0x382f0`. Independent cipher,
+CRC, factory config, boot and tail preservation checks pass. Own exact plan
+uses 53 sectors; v1's 54-sector restore plan stays unchanged. Not installed yet.
