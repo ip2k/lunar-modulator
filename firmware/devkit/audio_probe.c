@@ -20,8 +20,10 @@ static uint32_t phase, ramp_frames;
 static volatile uint32_t callbacks, over_budget, invalid_buffers;
 static volatile uint32_t max_ticks, max_gap, previous_tick;
 static volatile uint32_t max_irq_ticks, irq_over_budget;
+static volatile int last_buffer_bytes;
 
-/* The SDK DAC ring has four 64-frame refill windows. The callback receives
+/* dac_on() divides sr_points by three to set DAC_PNS. Reserve three exact
+ * 64-frame refill windows. The callback receives
  * writable interleaved signed-16 data and its size in bytes. Never log,
  * allocate or sleep in this path. This probe fills all four digital channels
  * equally so routing can be established without assuming headphone wiring. */
@@ -36,6 +38,7 @@ static void fill(void *unused, u8 *data, int len)
         if (gap > max_gap) max_gap = gap;
     }
     previous_tick = start;
+    last_buffer_bytes = len;
     if (len != (int)(PROBE_FRAMES * PROBE_CHANNELS * sizeof(*out))) {
         ++invalid_buffers;
         if (len > 0) memset(data, 0, len);
@@ -73,7 +76,7 @@ void lunar_devkit_audio_probe(void)
         .pa_mute_port = 0xff, /* No unreviewed GPIO change to an external PA. */
         .hw_channel = 0x05,  /* Pinned SDK DevKitBoard single-ended outputs. */
         .ch_num = PROBE_CHANNELS,
-        .sr_points = PROBE_FRAMES * 4u,
+        .sr_points = PROBE_FRAMES * 3u,
         .vcm_init_delay_ms = 1000,
     };
     uint32_t i;
@@ -103,15 +106,18 @@ void lunar_devkit_audio_probe(void)
     if (status) return;
     for (;;) {
         uint32_t flags, count, over, bad, peak, gap, irq_peak, irq_over;
+        int buffer_bytes;
         os_time_dly(100);
         /* Read a coherent snapshot; UART work stays outside the audio IRQ. */
         local_irq_save(flags);
         count = callbacks; over = over_budget; bad = invalid_buffers;
         peak = max_ticks; gap = max_gap;
         irq_peak = max_irq_ticks; irq_over = irq_over_budget;
+        buffer_bytes = last_buffer_bytes;
         local_irq_restore(flags);
-        printf("LUNAR_AUDIO callbacks=%u over_budget=%u invalid=%u max_ticks=%u max_gap=%u irq_max=%u irq_over=%u con=%08x hrp=%u swp=%u\n",
+        printf("LUNAR_AUDIO callbacks=%u over_budget=%u invalid=%u max_ticks=%u max_gap=%u irq_max=%u irq_over=%u con=%08x hrp=%u swp=%u bytes=%d pns=%u ring=%u\n",
                count, over, bad, peak, gap, irq_peak, irq_over, JL_AUDIO->DAC_CON,
-               (unsigned)JL_AUDIO->DAC_HRP, (unsigned)JL_AUDIO->DAC_SWP);
+               (unsigned)JL_AUDIO->DAC_HRP, (unsigned)JL_AUDIO->DAC_SWP,
+               buffer_bytes, (unsigned)JL_AUDIO->DAC_PNS, (unsigned)JL_AUDIO->DAC_LEN);
     }
 }

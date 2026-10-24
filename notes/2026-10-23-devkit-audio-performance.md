@@ -56,9 +56,11 @@ Neither clangd nor host tests verify pi32v2 code generation or DAC behavior.
 
 ## Reference-tone checkpoint
 
-[verified: private pinned-SDK IR] The DAC handler supplies a writable ring
-window, in bytes. `sr_points=256`, four channels and `DAC_PNS=sr_points/4`
-yield 64-frame refill windows. The new opt-in probe supplies a ramped 997 Hz
+[verified: private pinned-SDK IR, corrected after first boot below] The DAC
+handler supplies a writable ring window, in bytes. `dac_on()` sets
+`DAC_PNS=sr_points/3`; the initial probe incorrectly assumed division by four.
+The corrected configuration uses 192 ring frames for 64-frame refill windows.
+The new opt-in probe supplies a ramped 997 Hz
 reference with a digital peak of 1024/32768, logs callback/full-IRQ timing
 outside the IRQ, and leaves unknown PA-mute GPIOs untouched. It uses temporary
 DAC calibration (`trim_en=1`), which skips the SDK's trim-setting flash write.
@@ -177,3 +179,32 @@ a reset. Private receipts are on bench01 under
 prompted for one normal Reset without Update. Installation verification is
 not boot acceptance or an audio result; no instrument or dropout-free
 playback claim follows from these readbacks.
+
+## First boot: refill-contract failure and correction
+
+[verified: receive-only UART after owner Reset] The probe boots and services
+the DAC IRQ, but v2 reports zero valid callbacks and approximately 519 invalid
+buffers per second. The KA6 30-second post-reset capture completes without
+an ALSA error; inputs 1/2 measure approximately -70.95/-70.74 dBFS after
+the first two seconds and fail the reference-tone screening. This is a
+failed tone baseline, not evidence of successful audio or instrument timing.
+The original pre-boot captures had expired before the owner's reply; a fresh
+UART capture receives the running probe's counters. Initial boot messages
+were not captured. Private artifacts are
+`/home/claude/fm1-devkit-captures/audio-v2-postreset-20261024*` on bench01.
+
+[verified: pinned SDK IR] `dac_on()` reinitializes `DAC_PNS` to
+`sr_points / 3`, and `dac_irq_handler()` passes `DAC_PNS * ch_num * 2` bytes
+to the callback. V2's 256-frame ring therefore supplies 85-frame windows,
+which its strict 64-frame check correctly refuses. The earlier division-by-four
+claim above was wrong. The correction reserves 192 frames, giving three
+complete 64-frame windows, and logs callback bytes plus the actual PNS/ring
+registers outside the IRQ. No vendor implementation is copied into source.
+
+[verified: host regression] A mock of that SDK callback contract exercises
+the actual probe's initialization and all three refill windows, checks DDS
+continuity across them, equal interleaved channels, ramped amplitude and
+buffer guards, and confirms malformed windows remain silent. ASan/UBSan
+passes. Reintroducing the old four-window configuration makes the test fail.
+All 87 focused tests pass. Corrected v3 is being built offline; it has not
+been installed or validated on hardware at this checkpoint.
