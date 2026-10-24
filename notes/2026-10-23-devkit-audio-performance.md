@@ -734,3 +734,28 @@ Private full v2 image SHA-256
 53 application sectors `0x4000..0x38000`, end `0x382f0`. Independent cipher,
 CRC, factory config, boot and tail preservation checks pass. Own exact plan
 uses 53 sectors; v1's 54-sector restore plan stays unchanged. Not installed yet.
+
+
+### Corrected live v2 first physical cycle
+
+[verified] The full automatic sequence completed without physical buttons:
+acknowledged UART entry, fresh ROM enumeration, two matching 8 MiB current
+reads, byte-identical factory restore, exact v2 installation/readback, another
+full pre-reset match, one reviewed software reset, and fresh application UART
+boot with actual `LUNAR_LIVE` records. The v2 target is the hash above.
+
+All twelve patch/chord cases completed and the schedule entered its second
+cycle. At 118 seconds from boot, 79,963 callbacks had executed: maximum refill
+23,639 timer ticks (985.0 us), maximum complete audio IRQ 23,654 ticks
+(985.6 us), versus 34,829 ticks / approximately 1451.2 us per block. Callback
+and IRQ deadline misses, malformed buffers, gaps above 1.5 blocks, nonfinite
+samples and PCM clipping were all zero. This is a bounded first-cycle result,
+not sustained or full-project acceptance.
+
+The KA6 receives the changing instrument signal on inputs 1/2. Spot-checked
+one-second RMS levels range roughly -64 to -46 dBFS under the deliberately
+quiet conversion gain; the quietest cases are close to the capture noise floor.
+A clean timing counter does not rule out analog/capture faults. The initial
+240-second capture, subsequent long soak, expected-signal comparison and
+representative effect/mixer/control workloads remain to be evaluated. Private
+receipts/captures are recorded in the durable campaign handoff.
