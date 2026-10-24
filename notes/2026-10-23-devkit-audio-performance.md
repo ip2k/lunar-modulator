@@ -266,3 +266,53 @@ hung application. Isolated control of physical Update/Reset could provide
 that fallback but needs a separately verified electrical interface. Neither
 change is part of the installed v3 image; no wiring modification is requested
 until the pin/driver and electrical checks are complete.
+
+### Opt-in UART command implementation, offline checkpoint
+
+[verified: source, host tests and actual vendor link] Added an optional
+`--boot-control` preparation mode. It registers UART1 RX on exposed carrier
+PA5, with TX disabled, leaving UART2/PB3 logging unchanged. The current minimal
+hello board source registers no other PA5 owner. Physical wiring and reception
+are not yet validated. The installed v3 image does not contain this feature.
+
+The receiver runs in its own task with a fixed 128-byte DMA ring and a bounded
+32-byte parser. `LUNAR PING` queries it. `LUNAR ARM UBOOT` followed by
+`LUNAR ENTER UBOOT` within five seconds requests entry once. Invalid/overlong
+input, receive errors and expiry disarm it. This physical diagnostic protocol
+is not authentication and exposes no memory, flash or eFuse commands. The host
+tool `tools/devkit_boot_control.py` defaults to PING, requires each response
+before the next command, opens only the named Tigard UART exclusively and
+keeps DTR/RTS low. No host command has been sent to the board.
+
+[verified: pinned V1.2.13 private library IR and new linked vendor disassembly]
+The strong `nvram_set_boot_state` implementation itself copies the 16-byte
+USB-download marker to RAM `0x01C7FD80`, calls P33 reset and spins. Its `state`
+argument is optimized away in this library. Thus the later clock-register
+reset in the USB demo wrapper is unreachable with this implementation. The
+new code calls this real library implementation directly, without importing
+the demo's empty weak helper definitions. It requests no flash write.
+
+Private offline build: `build-sdk-audio-control-v1` on Aeon; local evidence
+under ignored `scratch/devkit-20261023/build-audio-control-v1/`.
+ELF SHA256 `4735de904f67025c974e42421c06331aeea3ec540085ec498d7ccf180a430b32`;
+vendor listing SHA256
+`cce0ea6c7afd3c1c6bc30d1aaddb3a2b12079809dac7934cd01bae52de553246`.
+`enter_rom` is in copied `.ram0_data` at `0x01C01096`, disables interrupts and
+enters the critical section, then calls the nonempty library function at
+`0x02001FFC`. Its actual 34-byte body copies the marker and calls RAM
+`P33_CON_SET` at `0x01C0106E` with `(0xA0,4,1,1)`, then spins. No weak fallback
+survives this path. Automated link audit: zero failures, one scheduling item
+requiring manual review. [verified: new vendor listing] That item is signed
+off: `sdk_meky_check` at `0x0202638E` registers IRQ123 on both cores, clears
+the enable bits and schedules `_mkey_check` at 8000 as in the prior image.
+
+90 focused local tests pass, including actual C parser ASan/UBSan checks for
+noise, malformed commands, overflow, timeout, timer wrap and one-shot entry;
+host handshake/default-no-reset tests; preparation and existing probe,
+transaction, link-audit, boot and tone-analysis tests. The offline vendor build
+also succeeds with the downloader disabled and no USB passed to its container.
+This is not a packaged/admitted flash image or proof of bootloader entry.
+Next: finish v3 normal-boot/tone acceptance, verify the extra UART wire and
+candidate pin electrically, then package/review/admit the control-enabled
+diagnostic and validate PING before any entry command. A hung application
+still needs physical Update/Reset or separately reviewed isolated control.

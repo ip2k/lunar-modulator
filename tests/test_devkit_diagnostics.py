@@ -41,7 +41,7 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'control'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     audio_probe, fm6 = mode == 'audio', mode == 'fm6'
     spec = importlib.util.spec_from_file_location('prepare_devkit', ROOT/'tools/jieli/prepare-devkit.py')
@@ -59,8 +59,12 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     (app/'include/app_config.h').write_text('#define __FLASH_SIZE__    (4 * 1024 * 1024)\n#define __SDRAM_SIZE__    (2 * 1024 * 1024)\n#define CONFIG_CXX_SUPPORT\n')
     (app/'app_main.c').write_text('void app_main() {os_task_create(hello_demo_task, NULL, 10, 1000, 0, "hello_demo_task");}')
     (app/'board/wl82/Makefile').write_text('c_SRC_FILES := \\\n\toriginal.c\ncc_SRC_FILES :=\nall: pre_build $(OUT_ELF)\n\t$(QUITE) $(RUN_POST_SCRIPT) sdk\n')
+    (app/'board/wl82/board.c').write_text('UART2_PLATFORM_DATA_BEGIN(uart2_data)\n'
+                                       '\t.rx_pin = -1,\nUART2_PLATFORM_DATA_END();\n'
+                                       '\t{"uart2", &uart_dev_ops, (void *)&uart2_data },\n')
     out = tmp_path/'prepared'
-    module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6)
+    module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
+                   boot_control=mode == 'control')
     result = (out/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
     assert '\\ \\' not in result
     assert '$(RUN_POST_SCRIPT) sdk' not in result
@@ -70,6 +74,12 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     assert ('-DLUNAR_DEVKIT_AUDIO_PROBE=1' in result) == audio_probe
     assert (out/'apps/demo/demo_hello/audio_probe.c').exists() == audio_probe
     assert ('-DLUNAR_DEVKIT_FM6_BENCHMARK=1' in result) == fm6
+    assert ('-DLUNAR_DEVKIT_BOOT_CONTROL=1' in result) == (mode == 'control')
+    if mode == 'control':
+        board = (out/'apps/demo/demo_hello/board/wl82/board.c').read_text()
+        assert '.rx_pin = IO_PORTA_05' in board and '.tx_pin = -1' in board
+        assert '.rx_pin = -1' in board  # Logging UART stays transmit-only.
+        assert 'boot_control.c' in result and 'boot_command.c' in result
     if fm6:
         import json
         receipt = json.loads((out/'lunar-devkit-input.json').read_text())

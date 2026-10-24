@@ -18,7 +18,7 @@ FM6_API_HEADERS = ['fm1_engine.h', 'fm1_math.h', 'fm1_midi_ev.h', 'fm1_dx7.h', '
 MSFA_UNITS = ['dx7note', 'env', 'fm_core', 'fm_op_kernel', 'freqlut', 'lfo', 'patch', 'pitchenv']
 
 
-def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False):
+def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False, boot_control=False):
     if audio_probe and fm6_benchmark:
         raise ValueError('Choose one diagnostic; FM6 timing does not enable DAC output')
     if out.exists():
@@ -57,6 +57,8 @@ def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False):
         names += ['audio_probe.c', 'audio_probe.h']
     if fm6_benchmark:
         names += ['fm6_benchmark.cc', 'fm6_benchmark.h']
+    if boot_control:
+        names += ['boot_command.c', 'boot_command.h', 'boot_control.c']
     for name in names:
         shutil.copyfile(source/'firmware/devkit'/name, app/name)
     shutil.copyfile(source/'engines/include/fm1_resampler.h', app/'fm1_resampler.h')
@@ -70,6 +72,34 @@ def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False):
     # SDK's C-only script collects .bss, but .bss.* only when CXX is enabled.
     # Keep this non-LTO object's state out of orphan sections in SDRAM.
     text += '\nobjs/apps/demo/demo_hello/benchmark.c.o: CFLAGS := $(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fno-data-sections\n'
+    if boot_control:
+        text = text.replace('c_SRC_FILES := ' + chr(92),
+                            'c_SRC_FILES := \\\n\t../../../../../apps/demo/demo_hello/boot_command.c \\\n\t../../../../../apps/demo/demo_hello/boot_control.c \\', 1)
+        text += '\nCFLAGS += -DLUNAR_DEVKIT_BOOT_CONTROL=1\n'
+        board = app/'board/wl82/board.c'
+        board_text = board.read_text()
+        anchor = 'UART2_PLATFORM_DATA_BEGIN(uart2_data)'
+        registration = '\t{"uart2", &uart_dev_ops, (void *)&uart2_data },'
+        if board_text.count(anchor) != 1 or board_text.count(registration) != 1:
+            raise ValueError('Unexpected debug UART layout; review command RX pin ownership')
+        # Dedicated RX peripheral: do not reopen or repurpose the logging UART.
+        # PA5 is exposed on this carrier's UART header. This opt-in build requires
+        # a separate, owner-wired Tigard TX connection, not present in v3.
+        receiver = '''UART1_PLATFORM_DATA_BEGIN(lunar_control_uart)
+    .baudrate = 1000000,
+    .port = PORT_REMAP,
+    .input_channel = INPUT_CHANNEL0,
+    .tx_pin = -1,
+    .rx_pin = IO_PORTA_05,
+    .max_continue_recv_cnt = 32,
+    .idle_sys_clk_cnt = 500000,
+    .clk_src = PLL_48M,
+    .flags = UART_RX_USE_DMA,
+UART1_PLATFORM_DATA_END();
+
+'''
+        board.write_text(board_text.replace(anchor, receiver + anchor, 1).replace(
+            registration, registration+'\n\t{"uart1", &uart_dev_ops, (void *)&lunar_control_uart },', 1))
     if audio_probe:
         text = text.replace('c_SRC_FILES := ' + chr(92),
                             'c_SRC_FILES := \\\n\t../../../../../apps/demo/demo_hello/audio_probe.c \\', 1)
@@ -115,6 +145,7 @@ def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False):
                                 else 'resampler-only, IRQ enabled, raw oscillator timer ticks'),
                 'download_disabled': True,
                 'settings_backends': 'empty registered range; records retained outside it',
+                'boot_control': 'UART1 RX PA5, 1Mbaud, explicit ARM/ENTER, linked ROM path requires review' if boot_control else False,
                 'inputs': {str(p.relative_to(source)): hashlib.sha256(p.read_bytes()).hexdigest()
                            for p in [*(source/'firmware/devkit'/name for name in names),
                                      source/'tools/jieli/prepare-devkit.py',
@@ -132,5 +163,8 @@ if __name__ == '__main__':
                     help='Build low-level internal-DAC reference tone instead of resampler timings')
     mode.add_argument('--fm6-benchmark', action='store_true',
                       help='Time real FM6 instrument rendering without DAC output')
+    ap.add_argument('--boot-control', action='store_true',
+                    help='Opt in to dev-kit-only UART1 command input on PA5 (requires extra TX wire)')
     a = ap.parse_args()
-    prepare(a.sdk, a.source, a.out, audio_probe=a.audio_probe, fm6_benchmark=a.fm6_benchmark)
+    prepare(a.sdk, a.source, a.out, audio_probe=a.audio_probe, fm6_benchmark=a.fm6_benchmark,
+            boot_control=a.boot_control)

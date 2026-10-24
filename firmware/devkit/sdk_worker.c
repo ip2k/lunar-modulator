@@ -4,6 +4,9 @@
 #include "os/os_api.h"
 #include "asm/includes.h"
 #include "benchmark.h"
+#ifdef LUNAR_DEVKIT_BOOT_CONTROL
+#include "boot_command.h"
+#endif
 #ifdef LUNAR_DEVKIT_FM6_BENCHMARK
 #include "fm6_benchmark.h"
 #endif
@@ -60,6 +63,9 @@ void lunar_devkit_worker(void *unused)
     before = now();
     os_time_dly(10);
     printf("LUNAR_DEVKIT timer_check_ticks=%u delay_os_ticks=10\n", now()-before);
+#ifdef LUNAR_DEVKIT_BOOT_CONTROL
+    lunar_devkit_boot_control_start();
+#endif
 #ifdef LUNAR_DEVKIT_AUDIO_PROBE
     lunar_devkit_audio_probe();
 #elif defined(LUNAR_DEVKIT_FM6_BENCHMARK)
