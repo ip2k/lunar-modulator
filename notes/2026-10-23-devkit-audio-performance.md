@@ -896,3 +896,19 @@ short-window correlations roughly 0.79–0.99). Quiet decays remain near the
 recording noise floor and inconclusive. Periodic signals can produce ambiguous
 local offsets; these exploratory measurements have not been validated against
 injected faults and do not certify analog continuity or dropout-free playback.
+
+### Compact shared-app storage preparation
+
+[verified, 2026-10-24] The optional external-arena app layout removes exactly
+4,718,592 bytes of simulator reserves. Native 64-bit app sizes are 4,953,360
+bytes with reserves and 234,768 without them. These are not pi32v2 ABI sizes.
+The actual shared renderer matches samples across both layouts while playing
+two sound instances, a sequencer pattern, one insert and both master effects,
+with note, mixer-level and effect-parameter changes. Storage validation and
+guard bytes pass; a project save/load preserves host-owned arenas.
+
+Aeon Ubuntu 24.04 native regression: 214 tests pass (`test_sim_arenas.py` and
+`test_sim_web.py`). The existing browser module is stale after these source
+changes and must be rebuilt before integration. This is a source checkpoint,
+not a full-renderer hardware result; vendor compilation, link audit, bounded
+target installation and representative analog soaks remain required.

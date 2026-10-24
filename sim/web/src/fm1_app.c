@@ -683,8 +683,9 @@ static void dx7_give(const fm1_app_t *a, const fm1_app_unit_t *u) {
 
 /* Everything fm1_app_init sets up but modulation, which needs the sinks
  * and the runtime's code below. */
-static void app_init(fm1_app_t *a, float sample_rate) {
+static void app_init(fm1_app_t *a, float sample_rate, const fm1_app_arena_t *arenas) {
   memset(a, 0, offsetof(fm1_app_t, tft));
+  a->external_arenas = arenas != NULL;
   a->host.api_version = FM1_ENGINE_API_VERSION;
   a->host.sample_rate = sample_rate;
   a->host.max_frames = FM1_APP_MAX_FRAMES;
@@ -692,19 +693,31 @@ static void app_init(fm1_app_t *a, float sample_rate) {
   a->ram_host.sample_rate = FM1_APP_RAM_RATE;
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
     a->unit[u].index = -1;
-    a->unit[u].cap = FM1_APP_FX_BYTES;
+    a->unit[u].cap = 0;
+  }
+#if !FM1_APP_EXTERNAL_ARENAS
+  if (!arenas) {
+    for (int u = 0; u < FM1_APP_UNITS; ++u) a->unit[u].cap = FM1_APP_FX_BYTES;
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+      a->unit[fm1_app_sound_unit(k)].mem = a->sound_mem[k];
+      a->unit[fm1_app_sound_unit(k)].cap = FM1_APP_SOUND_BYTES;
+      for (int j = 0; j < FM1_APP_INSERTS; ++j)
+        a->unit[fm1_app_insert_unit(k, j)].mem = a->fx_mem[FM1_APP_FX_SLOTS + FM1_APP_INSERTS * k + j];
+    }
+    for (int k = 0; k < FM1_APP_FX_SLOTS; ++k) a->unit[1 + k].mem = a->fx_mem[k];
+  }
+#endif
+  if (arenas) {
+    for (int u = 0; u < FM1_APP_UNITS; ++u) {
+      a->unit[u].mem = arenas[u].mem;
+      a->unit[u].cap = arenas[u].bytes;
+    }
   }
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {         /* each sound unit its own arena */
-    a->unit[fm1_app_sound_unit(k)].mem = a->sound_mem[k];
-    a->unit[fm1_app_sound_unit(k)].cap = FM1_APP_SOUND_BYTES;
     a->level[k] = a->seq_level[k] = FM1_APP_LEVEL_MAX;
     a->sink_ctx[k].a = a;
     a->sink_ctx[k].sound = k;
-    for (int j = 0; j < FM1_APP_INSERTS; ++j) {
-      a->unit[fm1_app_insert_unit(k, j)].mem = a->fx_mem[FM1_APP_FX_SLOTS + FM1_APP_INSERTS * k + j];
-    }
   }
-  for (int k = 0; k < FM1_APP_FX_SLOTS; ++k) a->unit[1 + k].mem = a->fx_mem[k];
   fm1_mix_limiter_init(&a->limiter, sample_rate);
   a->master = 1.0f;
   a->export_sound_mask = (1u << FM1_APP_SOUNDS) - 1u;
@@ -729,9 +742,34 @@ static void arp_poll(fm1_app_t *a);
 static int arp_latched(const fm1_app_t *a, int sound);
 
 void fm1_app_init(fm1_app_t *a, float sample_rate) {
-  app_init(a, sample_rate);
+  app_init(a, sample_rate, NULL);
   arp_init(a);                         /* a bypassed arpeggiator on every sound */
   mod_start(a, FM1_APP_MOD_SEED, 1);   /* modulation from the default rack (docs/16 MG3) */
+}
+
+int fm1_app_init_arenas(fm1_app_t *a, float sample_rate,
+                        const fm1_app_arena_t arenas[FM1_APP_UNITS]) {
+  uintptr_t app = (uintptr_t)a, desc = (uintptr_t)arenas;
+  if (!a || !arenas || !isfinite(sample_rate) || sample_rate <= 0 ||
+      app > UINTPTR_MAX - sizeof *a ||
+      desc > UINTPTR_MAX - sizeof(*arenas) * FM1_APP_UNITS ||
+      (app < desc + sizeof(*arenas) * FM1_APP_UNITS && desc < app + sizeof *a)) return -1;
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    uintptr_t p = (uintptr_t)arenas[u].mem;
+    size_t n = arenas[u].bytes;
+    if ((!p != !n) || (p & 15u) || n > UINTPTR_MAX - p) return -1;
+    if (!n) continue;
+    if ((p < app + sizeof *a && app < p + n) ||
+        (p < desc + sizeof(*arenas) * FM1_APP_UNITS && desc < p + n)) return -1;
+    for (int v = 0; v < u; ++v) {
+      uintptr_t q = (uintptr_t)arenas[v].mem;
+      if (arenas[v].bytes && p < q + arenas[v].bytes && q < p + n) return -1;
+    }
+  }
+  app_init(a, sample_rate, arenas);
+  arp_init(a);
+  mod_start(a, FM1_APP_MOD_SEED, 1);
+  return 0;
 }
 
 /* ---- modulation: the runtime on the bridge (docs/16 MG3) ------------------------ */
@@ -1160,7 +1198,7 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
     }
   }
   size_t bytes = e->instance_size(&a->host);
-  if (bytes > u->cap) return FM1_APP_SELECT_ARENA;
+  if (!u->mem || bytes > u->cap) return FM1_APP_SELECT_ARENA;
   {
     /* The RAM meter: refuse what would take the chain past the FM-1's
      * budget, unless it does not grow (a chain already past it, after a

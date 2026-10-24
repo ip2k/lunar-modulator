@@ -51,6 +51,7 @@ $(BUILD)/sim/src/fm1_app.o $(BUILD)/sim/src/fm1_mod_ui.o: SIM_CFLAGS += -Ihost
 $(BUILD)/sim/src/fm1_app.o: SIM_CFLAGS += -Istate
 $(BUILD)/sim/src/fm1_app_state.o $(BUILD)/sim/src/fm1_web.o $(BUILD)/sim/test/fm1_sim_render.o \
   $(BUILD)/sim/src/fm1_edit.o $(BUILD)/sim/test/fm1_edit_check.o: SIM_CFLAGS += -Istate -Ihost
+$(BUILD)/sim/test/fm1_arena_check.o: SIM_CFLAGS += -Istate -Ihost
 
 $(BUILD)/sim/%.o: $(SIM)/%.c
 	@mkdir -p $(dir $@)
@@ -59,6 +60,10 @@ $(BUILD)/sim/%.o: $(SIM)/%.c
 $(BUILD)/fm1-sim-render: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_sim_render.o $(BUILD)/sim/test/fm1_edit_check.o \
     $(SIM_ENGINE_OBJ) \
     $(SIM_META_OBJ) $(SEQ_HOST_OBJ)
+	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
+
+$(BUILD)/fm1-arena-check: $(SIM_APP_OBJ) $(BUILD)/sim/test/fm1_arena_check.o \
+    $(SIM_ENGINE_OBJ) $(SIM_META_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 # The WebAssembly module: standalone (no Emscripten JavaScript runtime), a

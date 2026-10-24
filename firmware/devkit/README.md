@@ -55,6 +55,24 @@ remain separate tests. Desktop fixture hashes are comparison references,
 not target checksum results. No FM6 image is admitted by the flash adapter
 merely because it links successfully.
 
+## Shared renderer storage
+
+The shared app (`sim/web/src/fm1_app.h`) can be compiled with
+`FM1_APP_EXTERNAL_ARENAS=1` consistently across all translation units. This
+omits the simulator's four 512 KiB sound reserves and ten 256 KiB effect
+reserves. Supply one `fm1_app_arena_t` per unit to `fm1_app_init_arenas`;
+unused units use `{NULL, 0}`. Storage remains caller-owned and must stay alive,
+16-byte aligned and disjoint from the app, descriptors and other arenas.
+Project loads preserve these capacities. Engine selection refuses a module
+that does not fit before replacing the previous instance.
+
+The sequencer, modulation, UI and actual render path remain present. Native
+tests compare both layouts sample-for-sample with sequencing, two sounds, an
+insert, both master slots and live controls, then load a project into the
+supplied storage. Run `python3 -m pytest tests/test_sim_arenas.py -q`.
+This storage option is preparation for full-renderer device diagnostics; it
+does not establish target ABI sizes, linked SRAM fit or hardware deadlines.
+
 ## Analog capture
 
 On Bench01, the connected KA6 hardware requires six-channel S32_LE capture;
