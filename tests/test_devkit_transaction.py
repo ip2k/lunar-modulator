@@ -110,3 +110,21 @@ def test_fm6_plan_cannot_expand_other_images():
     assert tx.protected_equal(changed, desired, tx.FM6_ALLOWED)
     changed[0x37000] = 1
     assert not tx.protected_equal(changed, desired, tx.FM6_ALLOWED)
+
+
+def test_renderer_plan_preserves_boot_tail_and_older_bounds():
+    allowed = tx.IMAGE_PLANS[tx.RENDERER_TIMING_TARGET_SHA]
+    assert allowed == tuple(range(0x4000, 0x8a000, 4096))
+    desired = bytes(tx.backup.FLASH_SIZE)
+    tx.mutation_request(0xFB01, 0x89000, b'', desired, allowed)
+    tx.mutation_request(0xFB04, 0x89f00, bytes(256), desired, allowed)
+    for address in (0x3000, 0x8a000, 0x7ff000):
+        with pytest.raises(ValueError):
+            tx.mutation_request(0xFB01, address, b'', desired, allowed)
+    for old in (tx.ALLOWED, tx.AUDIO_ALLOWED, tx.FM6_ALLOWED, tx.FM6_AUDIO_V2_ALLOWED):
+        with pytest.raises(ValueError):
+            tx.mutation_request(0xFB01, 0x89000, b'', desired, old)
+    for address, permitted in ((0x3fff, False), (0x89fff, True), (0x8a000, False)):
+        changed = bytearray(desired)
+        changed[address] = 1
+        assert tx.protected_equal(changed, desired, allowed) == permitted

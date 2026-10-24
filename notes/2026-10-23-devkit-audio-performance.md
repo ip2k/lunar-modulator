@@ -1003,3 +1003,16 @@ private ELF SHA-256
 XIP `.text` 0x830a0, `.ram0_data` 0x2cf0 and `.ram0_bss` 0x62ad4, zero SDRAM
 `.data`/`.bss`. Task stacks consume the remaining heap at runtime. Target stack
 measurements and timing results remain pending exact-image review/admission.
+
+[verified] The worker preflight candidate is now separately admitted by exact
+SHA-256 `b8305c69d6ce8ccfe7dabe52f08553369dcaced81b47e7d75d61860d5494bfa3`:
+134 application sectors `[0x4000,0x8a000)`, application end 0x89ed0. Independent
+reference-cipher decode and all directory/application CRCs match; boot bytes,
+configuration and the entire tail after the new app remain factory-identical.
+The exact-image NOR model passes install, restore and injected page interruptions
+7, 1079 and 2119 followed by exact factory restores; metadata is installed last.
+The vendor scheduling review confirms only the two dormant IRQ123 registrations
+and the 8000 timer, and the linked UART ROM-entry path retains the reviewed RAM
+marker/reset sequence. All 25 transaction/reset tests pass. This admission is
+for the no-DAC worker image alone; it does not admit the direct-IRQ renderer or
+establish target timing/stack acceptance.
