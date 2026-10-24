@@ -23,7 +23,10 @@ ALLOWED = tuple(range(0x4000, 0x2c000, SECTOR))
 # Reviewed private internal-DAC reference probe; no arbitrary target/range CLI.
 AUDIO_TARGET_SHA = '5cba22f0b0b19bda0847a303eee033f7a2b31a7bef5255ef1d98ca27f796c7b2'
 AUDIO_ALLOWED = tuple(range(0x4000, 0x2e000, SECTOR))
-IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED}
+# Three-window DAC correction, separately reviewed; retain v2 for recovery.
+AUDIO_V3_TARGET_SHA = 'cfa6afbe0b3ff60f11760dff72c2b2b25221a7af555007eca8c188bb9349dd32'
+IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED,
+               AUDIO_V3_TARGET_SHA: AUDIO_ALLOWED}
 
 
 def digest(data):

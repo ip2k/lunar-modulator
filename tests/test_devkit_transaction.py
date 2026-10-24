@@ -66,6 +66,8 @@ def test_protected_bytes_include_entire_tail_and_boot():
 def test_reviewed_audio_plan_has_its_own_fixed_bounds():
     assert tx.IMAGE_PLANS[tx.TARGET_SHA] == tx.ALLOWED
     assert tx.IMAGE_PLANS[tx.AUDIO_TARGET_SHA] == tx.AUDIO_ALLOWED
+    assert tx.IMAGE_PLANS[tx.AUDIO_V3_TARGET_SHA] == tx.AUDIO_ALLOWED
+    assert tx.AUDIO_V3_TARGET_SHA != tx.AUDIO_TARGET_SHA
     desired = bytes(tx.backup.FLASH_SIZE)
     # The newer image's two additional sectors are not opened for v6.
     for address in (0x2c000, 0x2d000):

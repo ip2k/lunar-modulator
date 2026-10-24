@@ -208,3 +208,27 @@ buffer guards, and confirms malformed windows remain silent. ASan/UBSan
 passes. Reintroducing the old four-window configuration makes the test fail.
 All 87 focused tests pass. Corrected v3 is being built offline; it has not
 been installed or validated on hardware at this checkpoint.
+
+[verified: corrected v3 private build] ELF SHA-256
+`e05323ab1b98743f6c1d51c50d6bea0b55231bf3dc9bcf6b3a6b6d7f38711c59`;
+app 170,544 bytes, SHA-256
+`32a47b00a2733d6671aa77d16817450d0e16a535ade625b00a40067a908d5788`.
+Independent ELF extraction matches vendor objcopy exports. Full-image SHA-256
+`cfa6afbe0b3ff60f11760dff72c2b2b25221a7af555007eca8c188bb9349dd32`.
+Independent cipher decoding validates directory/app CRCs and the unchanged
+cfg-tool payload. The same 42 application sectors change; bytes before
+0x4000 and after app end 0x2db50 remain identical to factory.
+
+[verified: exact vendor disassembly] Link audit has zero failures. Manual
+sign-off covers the two pending items: `uartx_read`'s call at 0x020066d2
+resolves to `strcmp` at 0x02019dec, rather than accessing the apparent SFR
+operand. `sdk_meky_check` at 0x02026014 retains its two IRQ-123 registrations
+with `isr_check_key`, unchanged enable-bit clearing and 8000-tick scheduling
+of `_mkey_check`, without extra key registration. Listing SHA-256
+`9b4de0365be44debc549c0b93ee896780adab6f8cdb0fb64c05025121afac7bd`.
+The emitted audio handler preserves its interrupt prologue/epilogue and calls
+the SDK handler. The exact new image passes the private NOR install, factory
+restore and interrupted-page recovery model. Its hash is separately admitted
+by the transaction tool; v2 remains admitted for restoring the installed image.
+The owner has been prompted for hardware download entry. No v3 installation
+or successful tone result is claimed yet.
