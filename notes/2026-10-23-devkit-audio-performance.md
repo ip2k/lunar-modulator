@@ -668,3 +668,35 @@ Both reference and live callback variants pass ASan/UBSan contract tests,
 including malformed buffers and injected long gaps. The pinned SDK live build
 also passes offline. ELF/pack review and target installation are still pending;
 no live FM6 output, effects, or soak acceptance is claimed.
+
+### Live FM6 image review/admission
+
+[verified] SDK ELF SHA-256
+`c448a338a3c1db83ea46e1501a1360c6181244dcc244b907a7f88074059b7030`;
+actual vendor listing SHA-256
+`aff7af2b34a62afb42f2b8b06c284be371a73cb893178ba4dddf919dc3659f5e`.
+All 72 identified FM6/bridge functions are in startup-copied SRAM.
+`.ram0_data` is 55504 bytes; `.ram0_bss` is 86644 bytes, with no orphan
+engine state in SDRAM. Actual app section exports independently match:
+216816 bytes, SHA-256
+`99cb8165452794586dd95d08743d58631817045c53ca0c72391fc1fd2581b74e`.
+
+Link audit: zero failures, one scheduling item manually reviewed in this
+exact vendor listing. `sdk_meky_check` at `0x0202684e` only registers IRQ123
+on both cores, clears their enable bits, and schedules `_mkey_check` after
+8000. `enter_rom` at `0x01c01096` calls the strong
+`nvram_set_boot_state` at `0x0200202e`: 16-byte RAM marker copy followed by
+P33 reset, unchanged from the reviewed path. Native DAC IRQ handler calls the
+registered refill callback before advancing its software pointer and clearing
+the pending interrupt; it exposes no explicit underrun counter on this path.
+Callback and full-IRQ timing plus gap/pointer telemetry remain necessary.
+
+Private full image SHA-256
+`f9def23ecbd6b5bdaa9861ac2093264cb1c51181f84ffb2ae54a410a4dc96993`:
+54 application sectors `0x4000..0x39000`, app end `0x39010`. Independent
+reference cipher decode, directory/app CRC and unchanged factory config/boot/
+tail checks pass. Exact hash uses its own 54-sector admission; other plans are
+unchanged. Actual-image NOR model install and factory restore pass, including
+interruptions at pages 7, 663 and 839 followed by exact restore. 23 focused
+transaction/reset tests pass after admission; 103 focused tests passed before
+this pin. Not installed yet; no live audio or sustained acceptance claimed.
