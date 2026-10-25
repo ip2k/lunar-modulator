@@ -307,12 +307,16 @@ coherence, task lifetime, heap/stack budget, IRQ behavior or audio continuity.
 `--prep-profile` requires `--timing-only --profile`. It retains the existing
 note/control calls and their order, adding counters around note-on/off batches,
 level/filter edits, and (in private prepared copies) engine note-on, modulation
-live-note, voice-start and modulation-plan rebuilding. Setup calls before the
+live-note, voice-start and modulation-plan rebuilding. Four additional private
+regions observe sequencer flush, advance, dispatch and post-dispatch inserts/
+mixing. Setup calls before the
 measured renderer are excluded. Counters reset after each case; last-block sums
 are copied with the exact worst total-block snapshot into `LUNAR_RENDERER_PREP`
 rows. Calls count invocations, not audio frames. A last-block sum may exceed the
 maximum individual call when several notes run in one block. Regions are nested;
-never sum all eight as independent costs. Observer clock and bookkeeping cost
+never sum all twelve as independent costs. `LUNAR_RENDERER_UNIT_WORST` also
+reports each unit's callback sum from that same worst block, accumulating split
+callbacks rather than substituting their independent per-call maxima. Observer clock and bookkeeping cost
 remains in the measured total. The option changes no production source behavior
 and is refused for DAC builds. Exact vendor code, stack/layout, image admission,
 startup recovery, target PCM and deadline checks remain separate requirements.

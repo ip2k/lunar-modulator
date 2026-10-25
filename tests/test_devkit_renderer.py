@@ -157,7 +157,17 @@ int main(void) {
     int16_t pcm[256];
     struct lunar_renderer_profile invalid_detail;
     for (unsigned c = 0; c < 4; ++c) {
-        for (unsigned b = 0; b < 5513; ++b) lunar_devkit_renderer_render(pcm);
+        uint64_t previous[8] = {0};
+        for (unsigned b = 0; b < 5513; ++b) {
+            lunar_devkit_renderer_render(pcm);
+            for (unsigned i = 0; i < 8; ++i) {
+                struct lunar_renderer_profile p;
+                lunar_devkit_renderer_profile_read(i, &p);
+                /* Includes every split callback, and resets each block. */
+                assert(lunar_devkit_renderer_unit_last(i) == p.ticks - previous[i]);
+                previous[i] = p.ticks;
+            }
+        }
         struct lunar_renderer_status state;
         lunar_devkit_renderer_status(&state);
         assert(state.completed_hash == hashes[c] && !state.invalid && !state.clipped);
@@ -166,7 +176,10 @@ int main(void) {
             lunar_devkit_renderer_profile_read(i, &p);
             assert(p.calls && p.frames == 5513u * 64u);
             assert(p.ticks == 17ull * p.calls && p.max_ticks == 17u);
+            assert(lunar_devkit_renderer_unit_last(i) >= 17u);
+            assert(lunar_devkit_renderer_unit_last(i) % 17u == 0);
         }
+        assert(!lunar_devkit_renderer_unit_last(8));
         assert(lunar_devkit_renderer_profile_stages() == 6);
         for (unsigned i = 0; i < 6; ++i) {
             struct lunar_renderer_profile p;
@@ -231,6 +244,7 @@ int main(void) {
             struct lunar_renderer_profile p;
             lunar_devkit_renderer_profile_read(i, &p);
             assert(!p.calls && !p.frames && !p.ticks && !p.max_ticks);
+            assert(!lunar_devkit_renderer_unit_last(i));
         }
     }
 }
@@ -330,6 +344,7 @@ static uint32_t now(void) {
 void lunar_devkit_renderer_profile_clock(uint32_t (*clock)(void)) { assert(clock == now); }
 void lunar_devkit_renderer_profile_reset(void) { }
 uint32_t lunar_devkit_renderer_stage_last(unsigned s) { return rendered * 10u + s; }
+uint32_t lunar_devkit_renderer_unit_last(unsigned u) { return rendered * 1000u + u; }
 uint32_t lunar_devkit_renderer_detail_last(unsigned s) { return rendered * 100u + s; }
 #endif
 static void yield(void) { assert(!(clock_calls & 1u)); ++yielded; }
@@ -341,6 +356,8 @@ static void emit(const struct lunar_renderer_timing *r) {
     assert(r->state.blocks == emitted * 5513u);
 #ifdef LUNAR_RENDERER_PROFILE
     assert(r->worst_block == 17u);
+    for (unsigned u = 0; u < 8; ++u)
+        assert(r->worst_units[u] == (r->test_case * 5513u + 18u) * 1000u + u);
     for (unsigned s = 0; s < LUNAR_RENDERER_PROFILE_STAGES; ++s)
         assert(r->worst_stages[s] == (r->test_case * 5513u + 18u) * 10u + s);
     for (unsigned d = 0; d < LUNAR_RENDERER_DETAIL_REGIONS; ++d)
@@ -644,9 +661,9 @@ def test_prep_profile_preserves_original_calls_and_refuses_drift(planner):
     assert observed.startswith("extern void lunar_devkit_prep_profile(unsigned, int);\n")
     normalized = observed.split("\n", 1)[1]
     # Drop only the newly inserted observer lines; normalize whitespace, not code.
-    normalized = re.sub(r"^ *lunar_devkit_prep_profile\(\d, [01]\);\n", "", normalized, flags=re.M)
+    normalized = re.sub(r"^ *lunar_devkit_prep_profile\(\d+, [01]\);\n", "", normalized, flags=re.M)
     assert re.sub(r"\s+", "", normalized) == re.sub(r"\s+", "", original)
-    regions = (7,) if planner else (4, 5, 6)
+    regions = (7,) if planner else (4, 5, 6, 8, 9, 10, 11)
     for region in regions:
         assert observed.count(f"lunar_devkit_prep_profile({region}, 1);") == 1
         assert observed.count(f"lunar_devkit_prep_profile({region}, 0);") == 1
@@ -655,6 +672,15 @@ def test_prep_profile_preserves_original_calls_and_refuses_drift(planner):
     if planner:
         with pytest.raises(ValueError, match="early return"):
             module.instrument_prep_profile(original.replace("void mod_plan_build(fm1_mod_t *m) {", "void mod_plan_build(fm1_mod_t *m) { return;", 1), True)
+    else:
+        for anchor in ("seq_flush(a);", "a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);",
+                       "fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS, &hook);",
+                       "float *b = a->mix[k];"):
+            with pytest.raises(ValueError):
+                module.instrument_prep_profile(original.replace(anchor, "changed();", 1))
+        with pytest.raises(ValueError, match="dispatch definition"):
+            module.instrument_prep_profile(original.replace("static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {",
+                                                            "static void render_sounds(fm1_app_t *a, uint32_t n, float *out) { return;", 1))
 
 
 def test_preparation_profile_cli_registered_before_parsing(tmp_path):

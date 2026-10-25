@@ -207,8 +207,30 @@ def instrument_prep_profile(text, planner=False):
             wrapped = (f"lunar_devkit_prep_profile({region}, 1);\n    " + call +
                        f"\n    lunar_devkit_prep_profile({region}, 0);")
             body = body.replace(call, wrapped, 1)
-    return ("extern void lunar_devkit_prep_profile(unsigned, int);\n" +
-            text.replace(original, body, 1))
+    text = text.replace(original, body, 1)
+    if not planner:
+        functions = re.findall(r"static void render_sounds\([^\n]+\{.*?\n\}", text, re.S)
+        if len(functions) != 1 or re.search(r"\breturn\b", functions[0]):
+            raise ValueError("Unexpected sound dispatch definition; review preparation profiling")
+        original = functions[0]
+        body = original
+        for region, call in (
+            (8, "seq_flush(a);"),
+            (9, "a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);"),
+            (10, "fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS, &hook);"),
+        ):
+            if body.count(call) != 1:
+                raise ValueError("Unexpected sound dispatch call; review preparation profiling")
+            body = body.replace(call,
+                f"lunar_devkit_prep_profile({region}, 1);\n    " + call +
+                f"\n    lunar_devkit_prep_profile({region}, 0);", 1)
+        anchor = "  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {\n    float *b = a->mix[k];"
+        if body.count(anchor) != 1:
+            raise ValueError("Unexpected sound mixing loop; review preparation profiling")
+        body = body.replace(anchor, "  lunar_devkit_prep_profile(11, 1);\n" + anchor, 1)
+        body = body[:-2] + "\n  lunar_devkit_prep_profile(11, 0);\n}"
+        text = text.replace(original, body, 1)
+    return "extern void lunar_devkit_prep_profile(unsigned, int);\n" + text
 
 
 def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False):

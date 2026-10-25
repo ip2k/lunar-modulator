@@ -36,6 +36,8 @@ int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
                 result.max_ticks = elapsed;
 #ifdef LUNAR_RENDERER_PROFILE
                 result.worst_block = b;
+                for (unsigned u = 0; u < 8; ++u)
+                    result.worst_units[u] = lunar_devkit_renderer_unit_last(u);
                 for (unsigned s = 0; s < LUNAR_RENDERER_PROFILE_STAGES; ++s)
                     result.worst_stages[s] = lunar_devkit_renderer_stage_last(s);
                 for (unsigned d = 0; d < LUNAR_RENDERER_DETAIL_REGIONS; ++d)

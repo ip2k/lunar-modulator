@@ -338,7 +338,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             normalized = prepared_control.replace(b'#pragma code_seg(".volatile_ram_code")\n', b'').replace(b'\n#pragma code_seg()', b'')
             if prep_profile and name.endswith('fm1_app.c'):
                 normalized = re.sub(rb'^extern void lunar_devkit_prep_profile\(unsigned, int\);\n', b'', normalized, flags=re.M)
-                normalized = re.sub(rb'^ *lunar_devkit_prep_profile\(\d, [01]\);\n', b'', normalized, flags=re.M)
+                normalized = re.sub(rb'^ *lunar_devkit_prep_profile\(\d+, [01]\);\n', b'', normalized, flags=re.M)
                 assert re.sub(rb'\s+', b'', normalized) == re.sub(rb'\s+', b'', original_control)
             else:
                 assert normalized == original_control

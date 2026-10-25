@@ -4199,3 +4199,25 @@ Sound-stage means remain645.500/785.708/861.833/959.458us and worst
 correlated sound stages1029.542/1169.583/1260.667/1343.875us. The remaining
 first-block cost needs causal investigation. Mixed, fault-validated DAC/KA6
 and representative30-minute analog acceptance remain outstanding.
+
+### Correlated dispatch/unit diagnostic (V16, offline only)
+
+[implemented] Profiling retains per-block unit callback sums, clearing them at
+entry and copying all eight into the same exact worst-total-block snapshot.
+Split callbacks accumulate; independent per-call maxima are not substituted.
+The existing private preparation instrumentation additionally observes sequencer
+flush, advance, dispatch, and the post-dispatch insert/mix loop (regions8–11).
+The twelve regions are nested and cannot all be added as independent costs.
+Prepared-source guards reject missing/duplicate anchors and early returns;
+removing observer lines reproduces the original source apart from whitespace.
+No production event order, DSP math, rate or time constant changes.
+
+[verified, offline]109 renderer/preparer tests pass; one32-bit target-pool
+replay skips because its compiler/runtime is unavailable. Two strengthened
+PCM/counter tests additionally verify each last-block unit sum against the
+change in its aggregate ticks for every block, plus reset/bounds behavior.
+A synthetic timing test pins unit snapshots to the exact worst block, including
+timer wrap. Vendor build succeeds. Exact SDK/kernel/layout/stack/UART-first,
+independent image/cipher/CRC and NOR review remain pending. V16 is not admitted
+or installed. The healthy V15 board is idle; deadlines and analog acceptance
+remain open.

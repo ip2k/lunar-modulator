@@ -42,14 +42,17 @@ unsigned lunar_devkit_renderer_profile_stages(void);
 void lunar_devkit_renderer_stage_read(unsigned stage, struct lunar_renderer_profile *out);
 /* Last completed block, using existing observer clock samples. */
 uint32_t lunar_devkit_renderer_stage_last(unsigned stage);
+/* Sum all split callbacks for this workload unit in the completed block. */
+uint32_t lunar_devkit_renderer_unit_last(unsigned workload_unit);
 void lunar_devkit_renderer_profile_reset(void);
 void lunar_devkit_renderer_detail_read(unsigned region, struct lunar_renderer_profile *out);
 uint32_t lunar_devkit_renderer_detail_last(unsigned region);
 #ifdef LUNAR_RENDERER_PREP_PROFILE
 /* Nested diagnostic regions: note-on batch, note-off batch, level, filter,
- * engine note-on, modulation live-note, voice start, modulation plan build.
+ * engine note-on, modulation live-note, voice start, modulation plan build,
+ * sequencer flush, advance, dispatch and post-dispatch inserts/mixing.
  * Counts are invocations, not rendered frames; nested totals must not be summed. */
-#define LUNAR_RENDERER_PREP_REGIONS 8u
+#define LUNAR_RENDERER_PREP_REGIONS 12u
 void lunar_devkit_prep_profile(unsigned region, int entering);
 void lunar_devkit_renderer_prep_read(unsigned region, struct lunar_renderer_profile *out);
 uint32_t lunar_devkit_renderer_prep_last(unsigned region);

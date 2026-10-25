@@ -41,6 +41,7 @@ static uint32_t (*profile_now)(void);
 typedef char lunar_stage_count_check[
     LUNAR_RENDERER_PROFILE_STAGES == FM1_APP_PROFILE_STAGES ? 1 : -1];
 static uint32_t last_stage[LUNAR_RENDERER_PROFILE_STAGES];
+static uint32_t last_unit[FM1_APP_UNITS];
 static struct lunar_renderer_profile detail[LUNAR_RENDERER_DETAIL_REGIONS];
 static uint32_t last_detail[LUNAR_RENDERER_DETAIL_REGIONS];
 void lunar_devkit_renderer_detail_read(unsigned region, struct lunar_renderer_profile *out) {
@@ -104,9 +105,13 @@ void lunar_devkit_renderer_profile_read(unsigned unit, struct lunar_renderer_pro
     if (unit < active_units) *out = profile[units[unit]];
     else memset(out, 0, sizeof *out);
 }
+uint32_t lunar_devkit_renderer_unit_last(unsigned unit) {
+    return unit < active_units ? last_unit[units[unit]] : 0;
+}
 void lunar_devkit_renderer_profile_reset(void) {
     memset(profile, 0, sizeof profile);
     memset(last_stage, 0, sizeof last_stage);
+    memset(last_unit, 0, sizeof last_unit);
     memset(detail, 0, sizeof detail);
     memset(last_detail, 0, sizeof last_detail);
 #ifdef LUNAR_RENDERER_PREP_PROFILE
@@ -133,6 +138,7 @@ void fm1_app_render_profile(unsigned unit, uint32_t frames, int entering) {
     else {
         uint32_t elapsed = tick - profile_start[unit];
         if (unit >= FM1_APP_UNITS) last_stage[unit - FM1_APP_UNITS] = elapsed;
+        else last_unit[unit] += elapsed;
         struct lunar_renderer_profile *p = &profile[unit];
         p->ticks += elapsed;
         ++p->calls; p->frames += frames;
@@ -231,6 +237,7 @@ void lunar_devkit_renderer_render(int16_t *out) {
 #ifdef LUNAR_RENDERER_PROFILE
     uint32_t boundary[4];
     boundary[0] = profile_now ? profile_now() : 0;
+    memset(last_unit, 0, sizeof last_unit);
 #endif
 #ifdef LUNAR_RENDERER_PREP_PROFILE
     memset(last_prep, 0, sizeof last_prep);

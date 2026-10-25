@@ -39,6 +39,9 @@ static void emit_renderer(const struct lunar_renderer_timing *r)
     printf("LUNAR_RENDERER_STACK unused_words=%u word_bytes=4\n",
            (unsigned)uxTaskGetStackHighWaterMark(NULL));
 #ifdef LUNAR_RENDERER_PROFILE
+    for (unsigned i = 0; i < 8; ++i)
+        printf("LUNAR_RENDERER_UNIT_WORST case=%u block=%u total=%u unit=%u ticks=%u\n",
+               r->test_case, r->worst_block, r->max_ticks, i, r->worst_units[i]);
     for (unsigned i = 0; i < LUNAR_RENDERER_PROFILE_STAGES; ++i)
         printf("LUNAR_RENDERER_WORST case=%u block=%u total=%u stage=%u ticks=%u\n",
                r->test_case, r->worst_block, r->max_ticks, i, r->worst_stages[i]);
