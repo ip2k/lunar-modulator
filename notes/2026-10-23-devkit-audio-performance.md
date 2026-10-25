@@ -1315,3 +1315,19 @@ Target linking, actual retained-function placement, SRAM headroom, complete
 PCM/timing replay and image/recovery review must pass before drawing any
 performance conclusion or admitting a new image. No SRAM optimization is yet
 installed or hardware accepted.
+
+[verified, offline] The SRAM comparison links and independent vendor section
+exports match the 549,264-byte assembled app. Actual vendor disassembly shows
+startup copying all 53,488 bytes of `.ram0_data` before app initialization.
+FM6, Macro, Drums, msfa compute and VA render functions reside in SRAM. The
+heap span is 65,516 bytes before task allocations; runtime headroom remains
+a hardware check. Thirty-one focused Linux tests pass with the original four
+PCM fingerprints, and 12 local preparation/rejection checks pass.
+
+The exact private candidate is
+`b4fc59a4eca97df13d8ac1fc324da69e3f89b7bf82a6fb8daa57aad664739181`.
+Independent cipher/CRC, factory boot/config/tail preservation, actual link and
+startup/recovery review pass. Its separate hash admission uses the same
+135-sector bounds as profile-v1. NOR modeling proves exact install/restore
+and recovery after interrupted pages 7, 1079, 2135 and 2151. It is admitted
+for the worker timing comparison only; not installed or hardware accepted.

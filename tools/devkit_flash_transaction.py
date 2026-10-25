@@ -48,9 +48,12 @@ RENDERER_TIMING_ALLOWED = tuple(range(0x4000, 0x8a000, SECTOR))
 RENDERER_TIMING_V3_TARGET_SHA = '7478c40947fa308a6ffacba32ab1f109632446b0370dafc2183c091421a93b16'
 # Call-site profiling of the same worker workload; independent vendor exports,
 # cipher/CRC, link/startup review and interrupted NOR restore model checked.
-# The extra application sector belongs only to this exact private image.
+# These profiling comparisons have independently reviewed exact-image bounds.
 RENDERER_PROFILE_TARGET_SHA = 'a6ce75351236f19c2d517841b7392e58e2ca94197c7255352b62a8f672810870'
 RENDERER_PROFILE_ALLOWED = tuple(range(0x4000, 0x8b000, SECTOR))
+# Same workload with selected DSP code in startup-copied SRAM; constants XIP.
+# Vendor placement/copy/link review and independent cipher/NOR checks pass.
+RENDERER_HOT_TARGET_SHA = 'b4fc59a4eca97df13d8ac1fc324da69e3f89b7bf82a6fb8daa57aad664739181'
 IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED,
                AUDIO_V3_TARGET_SHA: AUDIO_ALLOWED,
                AUDIO_CONTROL_TARGET_SHA: AUDIO_ALLOWED,
@@ -62,7 +65,8 @@ IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED,
                FM6_AUDIO_V3_TARGET_SHA: FM6_AUDIO_V2_ALLOWED,
                RENDERER_TIMING_TARGET_SHA: RENDERER_TIMING_ALLOWED,
                RENDERER_TIMING_V3_TARGET_SHA: RENDERER_TIMING_ALLOWED,
-               RENDERER_PROFILE_TARGET_SHA: RENDERER_PROFILE_ALLOWED}
+               RENDERER_PROFILE_TARGET_SHA: RENDERER_PROFILE_ALLOWED,
+               RENDERER_HOT_TARGET_SHA: RENDERER_PROFILE_ALLOWED}
 
 
 def digest(data):
