@@ -18,6 +18,13 @@ static void __attribute__((section(".volatile_ram_code"), noinline)) enter_rom(v
     for (;;) {}
 }
 
+/* The finite scheduling comparison keeps recovery above both render tasks. */
+#ifdef LUNAR_DEVKIT_SCHEDULING_PROBE
+#define CONTROL_PRIORITY 18
+#else
+#define CONTROL_PRIORITY 8
+#endif
+
 static void boot_control(void *unused)
 {
     struct lunar_boot_command parser = {0};
@@ -59,7 +66,7 @@ int lunar_devkit_boot_control_start(void)
         dev_close(uart);
         return -1;
     }
-    status = os_task_create(boot_control, uart, 8, 1024, 0, "lunar_control");
+    status = os_task_create(boot_control, uart, CONTROL_PRIORITY, 1024, 0, "lunar_control");
     if (status) {
         printf("LUNAR_CONTROL error=task_create status=%d\n", status);
         dev_close(uart);

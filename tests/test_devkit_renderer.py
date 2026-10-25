@@ -193,6 +193,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'scheduling_probe': True},
+    {'scheduling_probe': True, 'timing_only': True, 'profile': True, 'hot_ram': True},
     {'fm6_pair': True},
     {'fm6_pair': True, 'timing_only': True},
     {'fm6_pair': True, 'timing_only': True, 'hot_ram': True},
@@ -382,7 +384,8 @@ int main(void) {
     subprocess.run([str(exe)], check=True, capture_output=True)
 
 
-def test_recovery_is_reserved_before_workload_and_fails_closed(tmp_path):
+@pytest.mark.parametrize("priority", [8, 18])
+def test_recovery_is_reserved_before_workload_and_fails_closed(tmp_path, priority):
     # Execute actual receiver startup against allocation/UART fault injection.
     # The prepared app_main contract only allocates work on a zero result.
     for name in ('app_config.h', 'system/includes.h', 'device/includes.h',
@@ -428,7 +431,7 @@ int dev_close(void *p) { assert(p == &handle); ++closed; return 0; }
 int dev_read(void *p, void *b, unsigned n) { (void)p;(void)b;(void)n;return 0; }
 int os_task_create(void (*fn)(void *), void *arg, int priority, unsigned stack,
                    int queue, const char *name) {
-    assert(fn && arg == &handle && priority == 8 && stack == 1024 && !queue);
+    assert(fn && arg == &handle && priority == EXPECTED_CONTROL_PRIORITY && stack == 1024 && !queue);
     assert(!strcmp(name, "lunar_control") && io == 4 && !work);
     if (fault == 6) return -6;
     recovery = 1; return 0;
@@ -462,6 +465,8 @@ int main(void) {
         'section(".volatile_ram_code"), noinline', 'noinline'))
     exe = tmp_path / 'startup'
     subprocess.run([os.environ.get('FM1_SIM_CC', 'cc'), '-std=c99', '-O2',
+                    '-DEXPECTED_CONTROL_PRIORITY=' + str(priority),
+                    *(['-DLUNAR_DEVKIT_SCHEDULING_PROBE=1'] if priority == 18 else []),
                     '-I' + str(tmp_path), '-I' + str(ROOT / 'firmware/devkit'),
                     str(harness), str(control),
                     str(ROOT / 'firmware/devkit/boot_command.c'), '-o', str(exe)], check=True)

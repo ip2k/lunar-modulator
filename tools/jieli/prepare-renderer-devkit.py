@@ -179,7 +179,9 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False):
+    if scheduling_probe and not fm6_pair:
+        raise ValueError("Scheduling probe requires the finite timing-only FM6 pair experiment")
     if fm6_pair and not (timing_only and hot_ram and profile):
         raise ValueError("CPU1 FM6 requires timing-only profiled hot code; no DAC acceptance")
     if workload not in ("mixed", "keys"):
@@ -243,7 +245,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     if text.count(worker) != 1:
         raise ValueError("Unexpected worker creation; review renderer task stack")
     worker_stack_words = 2048 if filter_process_ram else 3072
-    replacement = worker.replace('10, 2048,', '10, ' + str(worker_stack_words) + ',')
+    parent_priority = 16 if scheduling_probe else 10
+    replacement = worker.replace('10, 2048,', f'{parent_priority}, {worker_stack_words},')
     if fm6_pair:
         replacement = replacement.replace('"lunar_devkit"', '"#C0lunar_parent"')
     main.write_text(text.replace(worker, replacement, 1))
@@ -461,6 +464,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     renderer_flags = ""
     if fm6_pair:
         renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_DEVKIT_FM6_SDK=1\n"
+    if scheduling_probe:
+        renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_SCHEDULING_PROBE=1\n"
     if workload == "keys":
         renderer_flags += "CFLAGS += -DLUNAR_RENDERER_WORKLOAD=1\n"
     if timing_only:
@@ -485,6 +490,10 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "timing_only": timing_only,
         "render_profile": profile,
         "fm6_pair": fm6_pair,
+        "scheduling_probe": scheduling_probe,
+        "parent_task_priority": parent_priority,
+        "fm6_worker_priority": (16 if scheduling_probe else 10) if fm6_pair else None,
+        "uart_task_priority": 18 if scheduling_probe else 8,
         "fm6_pair_budget_ticks": 24000000 * 64 // 44100 if fm6_pair else 0,
         "fm6_pair_lifetime_ms": 120000 if fm6_pair else 0,
         "hot_ram_sources": hot_inputs,
@@ -591,5 +600,7 @@ if __name__ == "__main__":
                         help="Compare sequencer event walk and slot dispatch in SRAM; requires timing-only resident mixer")
     parser.add_argument("--fm6-pair", action="store_true",
                         help="Finite CPU1 copied FM6 jobs; timing-only profiled hot code, no DAC")
+    parser.add_argument("--scheduling-probe", action="store_true",
+                        help="Timing-only FM6 pair scheduling comparison; render priority 16, UART 18")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe)

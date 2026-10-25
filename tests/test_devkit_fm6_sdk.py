@@ -4,12 +4,14 @@ The shared flags use host atomics in this test translation only. This does
 not verify pi32v2 fences, target ABI, scheduling, stack use or performance.
 """
 import subprocess
+import pytest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_sdk_worker_start_stop_and_faults(tmp_path):
+@pytest.mark.parametrize("priority", [10, 16])
+def test_sdk_worker_start_stop_and_faults(tmp_path, priority):
     for name in ('system/includes.h', 'os/os_api.h', 'asm/includes.h'):
         p = tmp_path / name
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -64,7 +66,7 @@ int os_task_create_static(void (*fn)(void *), void *arg, int pri, unsigned stack
     assert(memory && !((uintptr_t)memory % 4));
     for (unsigned i = 0; i < sizeof(StaticTask_t) + 1024u * 4u; ++i)
         assert(memory[i] == 0);
-    assert(!cpu && pri == 10 && stack == 1024 && !queue && !arg);
+    assert(!cpu && pri == EXPECTED_PRIORITY && stack == 1024 && !queue && !arg);
     assert(!strcmp(name, "#C1lunar_fm6") && !attached);
     ++created; entry = fn;
     if (mode == 2) return -7;
@@ -111,6 +113,8 @@ int main(int argc, char **argv) {
 ''')
     exe = tmp_path / 'lifecycle'
     subprocess.run(['cc', '-std=c11', '-O2', '-pthread', '-Wall', '-Wextra', '-Werror',
+                    '-DEXPECTED_PRIORITY=' + str(priority),
+                    *(['-DLUNAR_DEVKIT_SCHEDULING_PROBE=1'] if priority == 16 else []),
                     '-I' + str(tmp_path), '-I' + str(ROOT / 'firmware/devkit'),
                     '-I' + str(ROOT / 'engines/include'), str(harness),
                     str(tmp_path / 'sdk.c'), '-o', str(exe)], check=True)

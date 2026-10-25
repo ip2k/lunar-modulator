@@ -8,6 +8,12 @@
 #include "fm6_pair_bridge.h"
 #include "renderer_live.h"
 
+#ifdef LUNAR_DEVKIT_SCHEDULING_PROBE
+#define WORKER_PRIORITY 16
+#else
+#define WORKER_PRIORITY 10
+#endif
+
 #define LIFETIME_MS 120000u
 #define PAIR_BUDGET_TICKS (24000000u * 64u / 44100u)
 /* SDK static-task contract: TCB followed by 1024 four-byte stack words.
@@ -48,7 +54,7 @@ int lunar_fm6_sdk_start(uint32_t (*clock)(void)) {
     if (!lunar_fm6_pair_init(clock, PAIR_BUDGET_TICKS)) return 0;
     state.started_ms = timer_get_ms();
     fence();
-    int status = os_task_create_static(worker, NULL, 10, 1024, 0, "#C1lunar_fm6", worker_memory);
+    int status = os_task_create_static(worker, NULL, WORKER_PRIORITY, 1024, 0, "#C1lunar_fm6", worker_memory);
     if (status) {
         printf("LUNAR_FM6_PAIR error=create status=%d\n", status);
         return 0;
@@ -63,8 +69,8 @@ int lunar_fm6_sdk_start(uint32_t (*clock)(void)) {
         fence();
         return 0;
     }
-    printf("LUNAR_FM6_PAIR ready=1 budget_ticks=%u lifetime_ms=%u stack_words=1024\n",
-           PAIR_BUDGET_TICKS, LIFETIME_MS);
+    printf("LUNAR_FM6_PAIR ready=1 budget_ticks=%u lifetime_ms=%u stack_words=1024 priority=%u\n",
+           PAIR_BUDGET_TICKS, LIFETIME_MS, WORKER_PRIORITY);
     return 1;
 }
 void lunar_fm6_sdk_parent_block(void) {

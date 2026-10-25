@@ -3654,3 +3654,28 @@ Board healthy idle; all reset receipts consumed. Private raw SHA-256
 that reads jiffies and multiplies by ten, with no lock. It does not establish
 a locking explanation for the CPU0 delay. Next investigate documented CPU/task
 timing facilities before changing scheduling or DSP behavior.
+
+### Scheduling comparison prepared after coarse SDK statistics review
+
+[verified, offline] Pinned system.a IR and linked task initializer/scheduler show
+unmodified task priorities feeding ready-list selection, highest ready priority
+first. Runtime-statistics declarations alone are unsuitable for per-block
+measurement: ulGetRunTimeCounterValue uses timer_get_ms, while vTaskGetInfo
+reads a 16-bit task counter and resets it to one. Private vendor IR stays ignored.
+Several unrelated v7 stages have maxima about 48000 ticks above ordinary work;
+this suggests a shared interruption/stall but does not establish its cause.
+
+[implemented, not admitted] An explicit --scheduling-probe requires the finite
+profiled hot timing-only FM6 experiment. Parent/CPU1 priorities become 16,
+above SDK app_core 15 and systimer 14; UART becomes 18, above both render tasks.
+System-event priority 29, IRQ behavior, 200-tick startup window, cooperative
+parent yields, DSP/PCM order, deadline, lifetime and refusal behavior are retained.
+Default priorities remain parent/worker 10 and UART 8. This is a causal comparison,
+not an accepted audio implementation or permission to weaken the deadline.
+
+[verified, host] 47 focused preparation rejection, startup/failure and worker
+lifecycle tests pass, including both default/probe priority configurations and
+all six worker fault modes. Vendor v8 build is running; exact image/SDK/kernel,
+independent export/cipher/CRC and NOR reviews remain before hardware admission.
+Rarefaction cannot resolve this external worktree symbol; Serena locates the
+actual preparer and real-source checks supplement the SDK/ABI review.
