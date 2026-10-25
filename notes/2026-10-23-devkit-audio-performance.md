@@ -1212,3 +1212,64 @@ This proves the startup recovery path on this image before workload execution;
 it does not establish rendering performance, stack margin or audio continuity.
 Private UART and transaction captures remain outside Git. Routine subsequent
 tests retain the owner's no-button requirement.
+
+
+## Full shared-renderer XIP timing baseline (2026-10-24)
+
+[verified] After the startup-window check, an entirely automatic restore,
+install/full-readback and single software-reset cycle ran timing-v3 through
+all four cases. All four target PCM hashes match the desktop first cycle:
+`6bcab227`, `46c02687`, `1e2f305d`, `5b7dbc03`. Each case rendered 5,513
+64-frame blocks. All samples were finite and unclipped; cumulative control
+counts were 176/358/548/746. Target engine arenas total 134,944 bytes.
+
+| Held FM6 notes, in addition to sequence | Mean block, microseconds | Maximum, microseconds | Blocks at/over deadline |
+| --- | ---: | ---: | ---: |
+| 1 | 5835.08 | 6924.46 | 5513/5513 |
+| 4 | 6540.08 | 7907.17 | 5513/5513 |
+| 8 | 6967.88 | 8383.88 | 5513/5513 |
+| 12 | 7676.29 | 9154.08 | 5513/5513 |
+
+[verified] Times divide measured oscillator ticks by 24 ticks/microsecond;
+the 64-frame 44.1 kHz budget is about 1451.25 microseconds. The SDK reports
+320 MHz CPU, and the timer sanity check reports 2,368,967 ticks over ten OS
+ticks. Every case reports 3,760 unused four-byte worker stack words: 15,040
+bytes unused, about 5,440 bytes high-water usage from the 20 KiB allocation.
+This does not measure the separate interrupt stack or establish its safety.
+The run ends `LUNAR_DEVKIT complete=1`; a subsequent ordinary UART PING is
+acknowledged. The owned receive-only capture was stopped afterward.
+
+[verified] This is a **failed deadline baseline**, with no DAC output and no
+analog acceptance. PCM agreement establishes workload integrity, not timely
+playback. Private raw UART SHA-256:
+`a30db617c363d77ba1da603738d49bb1d8ac487e858c2c0869fd199194a9c71e`.
+Next isolate per-instrument/effect cost and non-engine residual cost before
+selecting hot SRAM placement or other implementation changes.
+
+[inferred, rejected probe] Copying engine descriptors to wrap their callbacks
+changed PCM in a desktop regression, so that probe was discarded before any
+device build/install. Descriptor identity participates in host behavior.
+The replacement diagnostic observes existing call sites without replacing
+engine descriptors and must pass complete PCM and frame-coverage checks before
+any target use. Profile overhead and XIP cache changes preclude treating its
+measurements as final audio acceptance.
+
+
+[verified, offline] The call-site profiler passes 29 focused tests on Aeon,
+including the four known PCM hashes, all eight units' complete frame coverage,
+unsigned timer wrap and per-case counter resets. SDK preparation refuses
+profiling in the DAC build. An initial target link exposed missing profile
+flags in the nested make's immediate snapshot; flags now precede that include,
+and tests inspect the actual expanded nested flags. The corrected private
+profile-v5 SDK ELF links successfully, SHA-256
+`f4a347ce53920e3d205ef8d08eb1286bbcfdfcc689a0856b8db42223a668576a`.
+It is not yet admitted, installed or hardware accepted.
+
+[verified] The browser was rebuilt because shared source hashes changed.
+All 108 parity scenarios pass, as do DX7 and metadata checks. The diagnostic
+hooks compile out: the browser module remains byte-identical at SHA-256
+`857eb29fa1b72cee61d9706eda9b0aef55b6eb83ec6bfc03d28ea00251b9f329`.
+This rebuild's 30-second edit storm reports 10,341 quanta, 82,728 edits and
+two late quanta (maximum 3.176 ms); these are measured host scheduling results,
+not a new claim of zero-late playback. The build's assertions pass. Exact-head
+repository CI and all target/analog acceptance remain separate gates.

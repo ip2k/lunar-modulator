@@ -12,7 +12,9 @@ from pathlib import Path
 import shutil
 
 
-def prepare_renderer(sdk, source, out, timing_only=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False):
+    if profile and not timing_only:
+        raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -43,11 +45,16 @@ def prepare_renderer(sdk, source, out, timing_only=False):
     if text.count(anchor) != (0 if timing_only else 1) or text.count("ifeq ($(LINK_AT), 1)") != 1:
         raise ValueError("Unexpected SDK build structure; review renderer integration")
     # Defines must precede the immediate := snapshot for the DAC callback.
+    renderer_flags = ""
     if timing_only:
-        text += "\nCFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n"
+        renderer_flags = "CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n"
+        if profile:
+            renderer_flags += "CFLAGS += -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1\n"
     else:
         text = text.replace(anchor, "CFLAGS += -DLUNAR_DEVKIT_RENDERER_AUDIO=1\n" + anchor, 1)
-    text = text.replace("ifeq ($(LINK_AT), 1)", "include lunar-renderer.mk\n\nifeq ($(LINK_AT), 1)", 1)
+    # The nested make snapshots CFLAGS into LUNAR_EXTRA with :=. Define its
+    # profile flags before that include, not just before the worker compiles.
+    text = text.replace("ifeq ($(LINK_AT), 1)", renderer_flags + "include lunar-renderer.mk\n\nifeq ($(LINK_AT), 1)", 1)
     makefile.write_text(text)
     receipt = json.loads((out / "lunar-devkit-input.json").read_text())
     receipt.update({
@@ -55,6 +62,7 @@ def prepare_renderer(sdk, source, out, timing_only=False):
                         "actual shared renderer through internal DAC") +
                        "; four sounds/tracks, inserts, master effects, modulation and control edits",
         "timing_only": timing_only,
+        "render_profile": profile,
         "placement": "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured",
         "renderer_pool_bytes": 148 * 1024,
         "worker_stack_bytes": 20 * 1024,
@@ -80,5 +88,7 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--timing-only", action="store_true",
                         help="Worker-context full-renderer preflight with OS yields; no DAC output")
+    parser.add_argument("--profile", action="store_true",
+                        help="Time instrument/effect calls; requires --timing-only")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile)

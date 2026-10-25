@@ -15,6 +15,13 @@ struct lunar_renderer_status {
 int lunar_devkit_renderer_init(void);
 void lunar_devkit_renderer_render(int16_t *four_channel_64_frames);
 void lunar_devkit_renderer_status(struct lunar_renderer_status *out);
+#ifdef LUNAR_RENDERER_PROFILE
+struct lunar_renderer_profile { uint64_t ticks; uint32_t calls, frames, max_ticks; };
+/* Worker diagnostic only. Set clock before init; read/reset outside rendering. */
+void lunar_devkit_renderer_profile_clock(uint32_t (*now)(void));
+void lunar_devkit_renderer_profile_read(unsigned workload_unit, struct lunar_renderer_profile *out);
+void lunar_devkit_renderer_profile_reset(void);
+#endif
 #ifdef __cplusplus
 }
 #endif

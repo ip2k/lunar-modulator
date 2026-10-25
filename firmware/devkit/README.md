@@ -192,3 +192,20 @@ case. The preparer gives the shared-renderer worker 20 KiB of task stack;
 this is dynamically allocated and must be counted separately from static BSS.
 Neither this mode nor a larger task stack establishes interrupt-stack safety
 or audio continuity. Keep UART control running throughout the preflight.
+
+
+### Worker-only callback profiling
+
+`prepare-renderer-devkit.py --timing-only --profile` enables diagnostic
+observers at the shared app's existing sound-render and effect-render call
+sites. Descriptors, callbacks and their arguments remain intact. Workload unit
+order is sound 1/2/3/4, sound 1 filter, sound 2 drive, master echo, master
+compressor. Effects include their host control/segmentation work; sounds count
+the engine calls inside the sequencer dispatch. The remaining block time also
+includes sequence/modulation/mixer/UI/PCM work and instrumentation overhead.
+Counters use unsigned timer differences, sum in 64 bits and reset after each
+case report. UART printing stays outside timed blocks. Profiling is refused
+for the DAC build. A matching desktop replay and full per-unit frame coverage
+are necessary integrity checks; the instrumented image needs its own link,
+packing, recovery and installation review. It is not an admitted image merely
+because preparation or host tests pass.

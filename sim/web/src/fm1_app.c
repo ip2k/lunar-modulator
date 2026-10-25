@@ -21,6 +21,15 @@
 #include "fm1_state.h"     /* FM1_VIEW_*: the view verb (fm1_app_show) */
 #include "mod_script.h"
 
+/* Opt-in worker diagnostic, absent from ordinary render builds. The observer
+ * must not allocate, log, mutate the app, or recursively render. */
+#ifdef FM1_APP_RENDER_PROFILE
+extern void fm1_app_render_profile(unsigned unit, uint32_t frames, int entering);
+#define PROFILE_UNIT(unit, frames, entering) fm1_app_render_profile(unit, frames, entering)
+#else
+#define PROFILE_UNIT(unit, frames, entering) ((void)0)
+#endif
+
 /* Compile-time checks of the sequencer's fixed sizes (docs/15 §2.6; C99 has
  * no static_assert): the event buffer is 3,264 B, the pending record one
  * 240-byte command and the click voice 20 B, on 32- and 64-bit builds
@@ -3407,7 +3416,9 @@ static void seq_flush(fm1_app_t *a);
 static void sink_render(void *ctx, float *lr, uint32_t n) {
   const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
   const fm1_app_unit_t *u = sound_of(c->a, c->sound);
+  PROFILE_UNIT((unsigned)fm1_app_sound_unit(c->sound), n, 1);
   u->e->render(u->self, lr, n);
+  PROFILE_UNIT((unsigned)fm1_app_sound_unit(c->sound), n, 0);
 }
 
 static void sink_note_on(void *ctx, uint8_t note, uint8_t velocity) {
@@ -3458,6 +3469,7 @@ static void sink_set_param_note(void *ctx, uint8_t key, uint16_t index, float of
  * one with an idle path never idles under it. Active sequencer locks and
  * frame-tagged lock/base writes also keep the effect driven. */
 static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
+  PROFILE_UNIT((unsigned)unit, n, 1);
   fm1_app_unit_t *u = &a->unit[unit];
   const int code = fm1_app_mod_unit(unit);
   int driven = a->mod && code >= 0 ? fm1_mod_unit_routed(a->mod, (unsigned)code) : 0;
@@ -3492,6 +3504,7 @@ static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
     if (w->index < u->e->n_params) u->e->set_param(u->self, w->index, w->value);
   }
   if (cur < n) fm1_fx_render(u->e, u->self, out, cur, n, &b);
+  PROFILE_UNIT((unsigned)unit, n, 0);
 }
 
 /* Mixer gain is piecewise constant on the lock's sample frames. The

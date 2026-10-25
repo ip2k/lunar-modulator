@@ -9,7 +9,11 @@
 int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
     void (*emit)(const struct lunar_renderer_timing *)) {
     int16_t samples[64 * 4];
-    if (!now || !yield || !emit || !lunar_devkit_renderer_init()) return 0;
+    if (!now || !yield || !emit) return 0;
+#ifdef LUNAR_RENDERER_PROFILE
+    lunar_devkit_renderer_profile_clock(now);
+#endif
+    if (!lunar_devkit_renderer_init()) return 0;
     for (unsigned c = 0; c < 4; ++c) {
         struct lunar_renderer_timing result;
         memset(&result, 0, sizeof result);
@@ -29,6 +33,9 @@ int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
         }
         lunar_devkit_renderer_status(&result.state);
         emit(&result);
+#ifdef LUNAR_RENDERER_PROFILE
+        lunar_devkit_renderer_profile_reset();
+#endif
         yield();
     }
     return 1;

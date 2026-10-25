@@ -63,6 +63,61 @@ def test_missing_effect_refuses_whole_workload():
     assert "LUNAR_RENDERER completed=" not in result.stdout
 
 
+
+def test_profile_preserves_pcm_and_counts_all_unit_frames(tmp_path, monkeypatch):
+    monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
+                      " -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1")
+    target = build_reference(MODULES)
+    harness = tmp_path / "profile.cc"
+    harness.write_text(r'''
+#include "renderer_live.h"
+#include <assert.h>
+#include <stdint.h>
+static uint32_t tick = UINT32_MAX - 40u;
+static uint32_t now(void) { tick += 17u; return tick; }
+int main(void) {
+    const uint32_t hashes[] = {0x6bcab227u, 0x46c02687u, 0x1e2f305du, 0x5b7dbc03u};
+    lunar_devkit_renderer_profile_clock(now);
+    assert(lunar_devkit_renderer_init());
+    int16_t pcm[256];
+    for (unsigned c = 0; c < 4; ++c) {
+        for (unsigned b = 0; b < 5513; ++b) lunar_devkit_renderer_render(pcm);
+        struct lunar_renderer_status state;
+        lunar_devkit_renderer_status(&state);
+        assert(state.completed_hash == hashes[c] && !state.invalid && !state.clipped);
+        for (unsigned i = 0; i < 8; ++i) {
+            struct lunar_renderer_profile p;
+            lunar_devkit_renderer_profile_read(i, &p);
+            assert(p.calls && p.frames == 5513u * 64u);
+            assert(p.ticks == 17ull * p.calls && p.max_ticks == 17u);
+        }
+        lunar_devkit_renderer_profile_reset();
+        for (unsigned i = 0; i <= 8; ++i) {
+            struct lunar_renderer_profile p;
+            lunar_devkit_renderer_profile_read(i, &p);
+            assert(!p.calls && !p.frames && !p.ticks && !p.max_ticks);
+        }
+    }
+}
+''')
+    objects = sorted(str(p) for p in target.parent.rglob("*.o") if p.name != "renderer_reference.o")
+    exe = tmp_path / "profile"
+    subprocess.run([os.environ.get("FM1_SIM_CXX", "c++"), "-std=c++11", "-DLUNAR_RENDERER_PROFILE=1",
+                    "-I" + str(ROOT / "firmware/devkit"), str(harness), *objects,
+                    "-lm", "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True)
+
+
+def test_profile_rejects_dac_preparation_before_writing(tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("renderer_prepare", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    out = tmp_path / "out"
+    with pytest.raises(ValueError, match="worker-only"):
+        module.prepare_renderer(tmp_path / "absent-sdk", ROOT, out, profile=True)
+    assert not out.exists()
+
 def test_worker_timing_wrap_and_yields(tmp_path):
     # Test the timing controller independently of DSP cost: the injected clock
     # wraps and makes every render late. UART scheduling yields and reporting

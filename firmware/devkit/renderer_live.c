@@ -18,6 +18,34 @@ static struct lunar_renderer_status state;
 static uint32_t case_block, startup_frames, hash;
 static int ready;
 static const unsigned voices[] = {1, 4, 8, 12};
+static int units[8];
+
+#ifdef LUNAR_RENDERER_PROFILE
+#ifndef FM1_APP_RENDER_PROFILE
+#error Renderer profiling requires the shared app observer
+#endif
+static struct lunar_renderer_profile profile[FM1_APP_UNITS];
+static uint32_t profile_start[FM1_APP_UNITS];
+static uint32_t (*profile_now)(void);
+void lunar_devkit_renderer_profile_clock(uint32_t (*now)(void)) { profile_now = now; }
+void lunar_devkit_renderer_profile_read(unsigned unit, struct lunar_renderer_profile *out) {
+    if (unit < 8) *out = profile[units[unit]];
+    else memset(out, 0, sizeof *out);
+}
+void lunar_devkit_renderer_profile_reset(void) { memset(profile, 0, sizeof profile); }
+void fm1_app_render_profile(unsigned unit, uint32_t frames, int entering) {
+    if (unit >= FM1_APP_UNITS) { ++state.invalid; return; }
+    uint32_t tick = profile_now ? profile_now() : 0;
+    if (entering) profile_start[unit] = tick;
+    else {
+        uint32_t elapsed = tick - profile_start[unit];
+        struct lunar_renderer_profile *p = &profile[unit];
+        p->ticks += elapsed;
+        ++p->calls; p->frames += frames;
+        if (elapsed > p->max_ticks) p->max_ticks = elapsed;
+    }
+}
+#endif
 
 static int line(const char *ops) {
     size_t n = strlen(ops);
@@ -35,9 +63,10 @@ int lunar_devkit_renderer_init(void) {
     const fm1_host_t host = {FM1_ENGINE_API_VERSION, (float)RATE, BLOCK};
     fm1_app_arena_t arenas[FM1_APP_UNITS];
     const char *ids[] = {"dx7", "macro", "drums", "dx7", "filter", "drive", "echo", "comp"};
-    const int units[] = {fm1_app_sound_unit(0), fm1_app_sound_unit(1),
+    const int selected[] = {fm1_app_sound_unit(0), fm1_app_sound_unit(1),
         fm1_app_sound_unit(2), fm1_app_sound_unit(3),
         fm1_app_insert_unit(0, 0), fm1_app_insert_unit(1, 0), 1, 2};
+    memcpy(units, selected, sizeof units);
     size_t used = 0;
     memset(arenas, 0, sizeof arenas);
     memset(&state, 0, sizeof state);

@@ -16,6 +16,15 @@ static void emit_renderer(const struct lunar_renderer_timing *r)
            r->state.completed_hash);
     printf("LUNAR_RENDERER_STACK unused_words=%u word_bytes=4\n",
            (unsigned)uxTaskGetStackHighWaterMark(NULL));
+#ifdef LUNAR_RENDERER_PROFILE
+    for (unsigned i = 0; i < 8; ++i) {
+        struct lunar_renderer_profile p;
+        lunar_devkit_renderer_profile_read(i, &p);
+        printf("LUNAR_RENDERER_PROFILE case=%u unit=%u calls=%u frames=%u mean_call=%u max_call=%u mean_block=%u\n",
+               r->test_case, i, p.calls, p.frames, p.calls ? (unsigned)(p.ticks / p.calls) : 0u,
+               p.max_ticks, (unsigned)(p.ticks / r->blocks));
+    }
+#endif
 }
 #endif
 #ifdef LUNAR_DEVKIT_BOOT_CONTROL
