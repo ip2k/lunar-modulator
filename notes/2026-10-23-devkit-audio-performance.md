@@ -1806,3 +1806,22 @@ qualifier changes and the existing table-declaration transformation. All 27
 local preparation/rejection cases pass, as do 84 focused Linux checks. The
 vendor build completed with its downloader disabled. Exact generated-code and
 image review, target timing and admission remain pending.
+
+[verified, offline] The outlined image's five vendor exports match independent
+ELF reads; all four DSP tables match the resident-effects image. Startup copies
+66,928 bytes to ram0_data and 19,740 bytes to cache data RAM, with unchanged
+zero instruction/seven data cache ways. Heap before tasks is 51,916 bytes
+(expected runtime 5,876, not yet measured). Actual UART setup and successful
+1,024-word control-task allocation precede the 3,072-word renderer worker; the
+200-tick recovery delay remains before arithmetic. Strong ROM entry and P33
+arguments remain reviewed. The SDK dormant-check functions match the preceding
+reviewed link except for the relocated key-state pointer; its initializer and
+dormant return remain unchanged. Link audit has zero failures; its scheduling
+item is manually resolved from vendor disassembly.
+
+[verified, offline] Candidate `e988ec53133161065b051f524495c65cfcf7b0c4c0c70ec9bb295bfd4e3ce47b`
+contains a 550,316-byte app. Independent reference-cipher decoding and all
+directory/app CRCs pass, protected factory bytes are unchanged, and the NOR
+model passes exact install/restore plus four interrupted-page restores over
+the same 135 sectors. Exact-hash admission does not establish hardware
+acceptance; startup recovery must pass before the workload runs.
