@@ -4012,3 +4012,16 @@ against V11; no performance gain is claimed for the narrower hook snapshot.
 UI stage means89.792/90.333/91.250/91.958us remain a measured placement lead.
 Deadline, mixed, fault-validated DAC/KA6 and30-minute analog acceptance still
 fail or remain undone. Board healthy idle, no capture/build live after closure.
+
+### UI synchronization placement experiment
+
+[verified, source/host] Opt-in `--ui-ram` prepares private SRAM copies of
+`fm1_seq_ui_sync`, `fm1_seq_get_info`, `fm1_seq_get_track` and
+`fm1_seq_get_clip`, retaining every query/update and its order. It requires the
+timing-only resident-dispatch experiment; default builds are unchanged.
+Preparation tests normalize only section pragmas and require byte-identical
+original source, selected function markers and original hashes.76 focused
+SDK-preparation/refusal tests pass. Vendor layout/stack, exact image admission
+and target performance remain pending; this is not a hardware-accepted image.
+Rarefaction remains rooted at the primary checkout and cannot find this
+worktree-only preparation tool; Serena locates its current function here.

@@ -179,7 +179,9 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False):
+    if ui_ram and not (timing_only and dispatch_ram):
+        raise ValueError("UI SRAM requires the timing-only resident dispatch comparison")
     if scheduling_probe and not fm6_pair:
         raise ValueError("Scheduling probe requires the finite timing-only FM6 pair experiment")
     if fm6_pair and not (timing_only and hot_ram and profile):
@@ -425,6 +427,25 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
                 wrapped = b'#pragma code_seg(".volatile_ram_code")\n' + matches[0] + b'\n#pragma code_seg()'
                 text = text.replace(matches[0], wrapped, 1)
             p.write_bytes(text)
+    ui_inputs = {}
+    if ui_ram:
+        # Placement only, in private copies: keep every UI update and query.
+        for name, signatures in (
+            ("sim/web/src/fm1_seq_ui.c", (b"int fm1_seq_ui_sync",)),
+            ("engines/seq/seq_engine.c", (b"void fm1_seq_get_info",
+             b"int fm1_seq_get_track", b"int fm1_seq_get_clip")),
+        ):
+            p = staging / name
+            original = p.read_bytes()
+            ui_inputs[name] = hashlib.sha256(original).hexdigest()
+            text = original
+            for signature in signatures:
+                matches = re.findall(rb'^' + re.escape(signature) + rb'\([^;]*?\) \{.*?^\}', text, re.M | re.S)
+                if len(matches) != 1:
+                    raise ValueError("Unexpected UI definition; review placement: " + signature.decode())
+                wrapped = b'#pragma code_seg(".volatile_ram_code")\n' + matches[0] + b'\n#pragma code_seg()'
+                text = text.replace(matches[0], wrapped, 1)
+            p.write_bytes(text)
     unroll_input = None
     if resampler_unroll:
         p = staging / "engines/include/fm1_resampler.h"
@@ -525,11 +546,13 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "control_ram": control_ram,
         "mixer_ram": mixer_ram,
         "dispatch_ram": dispatch_ram,
+        "ui_ram": ui_ram,
+        "ui_ram_original_sha256": ui_inputs,
         "control_ram_original_sha256": control_inputs,
         "filter_process_original_sha256": filter_process_input,
         "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + ("; pre-scaled resampler kernel pairs" if resampler_slopes else "") + ("; sound mixer and effect dispatch code also SRAM" if mixer_ram else "") + ("; independent FIR scheduling groups" if resampler_schedule else "") + ("; sequencer event walk and slot dispatch also SRAM" if dispatch_ram else "") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + ("; pre-scaled resampler kernel pairs" if resampler_slopes else "") + ("; sound mixer and effect dispatch code also SRAM" if mixer_ram else "") + ("; independent FIR scheduling groups" if resampler_schedule else "") + ("; sequencer event walk and slot dispatch also SRAM" if dispatch_ram else "") + ("; UI synchronization and snapshot queries also SRAM" if ui_ram else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": renderer_pool_bytes,
         "worker_stack_bytes": worker_stack_words * 4,
@@ -602,5 +625,7 @@ if __name__ == "__main__":
                         help="Finite CPU1 copied FM6 jobs; timing-only profiled hot code, no DAC")
     parser.add_argument("--scheduling-probe", action="store_true",
                         help="Timing-only FM6 pair scheduling comparison; render priority 16, UART 18")
+    parser.add_argument("--ui-ram", action="store_true",
+                        help="Compare UI synchronization/query placement in SRAM; timing-only resident dispatch")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram)

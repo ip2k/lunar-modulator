@@ -41,13 +41,14 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['cpu1', 'cpu1-long', 'cpu1-ring', 'resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile', 'renderer-mixer-profile', 'renderer-schedule-profile', 'renderer-keys-profile', 'renderer-keys-live', 'renderer-dispatch-profile'])
+@pytest.mark.parametrize('mode', ['cpu1', 'cpu1-long', 'cpu1-ring', 'resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile', 'renderer-mixer-profile', 'renderer-schedule-profile', 'renderer-keys-profile', 'renderer-keys-live', 'renderer-dispatch-profile', 'renderer-ui-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     keys = mode in ('renderer-keys-profile', 'renderer-keys-live')
     if keys:
         mode = 'renderer-mixer-profile' if mode.endswith('profile') else 'renderer'
     engine_profile = mode == 'renderer-engine-profile'
-    dispatch = mode == 'renderer-dispatch-profile'
+    ui_ram = mode == 'renderer-ui-profile'
+    dispatch = mode == 'renderer-dispatch-profile' or ui_ram
     schedule = mode == 'renderer-schedule-profile'
     mixer_ram = mode == 'renderer-mixer-profile' or schedule or dispatch
     renderer_o3 = mode == 'renderer-o3-profile' or mixer_ram
@@ -98,7 +99,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll, renderer_o3=renderer_o3, mixer_ram=mixer_ram, resampler_schedule=schedule, workload="keys" if keys else "mixed", dispatch_ram=dispatch)
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll, renderer_o3=renderer_o3, mixer_ram=mixer_ram, resampler_schedule=schedule, workload="keys" if keys else "mixed", dispatch_ram=dispatch, ui_ram=ui_ram)
     elif mode in ('cpu1', 'cpu1-long', 'cpu1-ring'):
         cpu_spec = importlib.util.spec_from_file_location('prepare_cpu1', ROOT/'tools/jieli/prepare-cpu1-devkit.py')
         cpu_module = importlib.util.module_from_spec(cpu_spec)
@@ -288,6 +289,23 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             assert prepared_tables == expected_tables
         if not plaits_cache:
             assert receipt['plaits_table_original_sha256'] == {}
+        assert receipt['ui_ram'] == ui_ram
+        for name, signatures in (
+            ('sim/web/src/fm1_seq_ui.c', ('int fm1_seq_ui_sync(',)),
+            ('engines/seq/seq_engine.c', ('void fm1_seq_get_info(',
+             'int fm1_seq_get_track(', 'int fm1_seq_get_clip(')),
+        ):
+            original_ui = (ROOT/name).read_bytes()
+            prepared_ui = (out/'lunar-source'/name).read_bytes()
+            normalized_ui = prepared_ui.replace(b'#pragma code_seg(".volatile_ram_code")\n', b'').replace(b'\n#pragma code_seg()', b'')
+            assert normalized_ui == original_ui
+            assert (prepared_ui != original_ui) == ui_ram
+            for signature in signatures:
+                assert ('#pragma code_seg(".volatile_ram_code")\n' + signature in prepared_ui.decode()) == ui_ram
+            if ui_ram:
+                assert receipt['ui_ram_original_sha256'][name] == hashlib.sha256(original_ui).hexdigest()
+        if not ui_ram:
+            assert receipt['ui_ram_original_sha256'] == {}
         assert receipt['dispatch_ram'] == dispatch
         prepared_seq = (out/'lunar-source/engines/seq/seq_host.c').read_text()
         for signature in ('static int walk_next(', 'static void dispatched(', 'static void play_slots_hook('):
