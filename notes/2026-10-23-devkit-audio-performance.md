@@ -4378,3 +4378,33 @@ It extends through0x8e07c,124 bytes into an added sector. Only this SHA admits
 The currently installed V17 restore remains138 sectors. This admits the V18
 hardware experiment, not audio acceptance. V18 is not yet installed; V17 is
 healthy idle. All previous reset receipts remain consumed.
+
+### V18 target dispatch attribution (deadlines still fail)
+
+[verified] Exact `f68182d2…` completes the protected cycle: fresh acknowledged
+UART entry/actual ROM inquiry, double CURRENT V17 backups, CURRENT138-sector
+factory restore, WINDOW install/full8MiB readback, fresh startup PING/ARM/ENTER
+in78.5215ms, double NEW backups, NEW139-sector factory restore, SAME RUN install/
+full readback and finite four-case run. WINDOW66411/RUN26267 are consumed;
+neither may be retried. Strict PCM/arithmetic,32 unit/24 stage/24 correlated
+stage/12 detail/96 prep/32 correlated unit checks pass. All81308 paired jobs
+complete with zero error/refusal/wrong-core/disabled counters and finite exit.
+Heap35700 bytes stays stable; parent unused2444/8192 bytes, worker3260/4096.
+Sole RX252210 was twice argv-checked and terminated once; session14762 was
+terminal before ordinary PING ACK. Private raw SHA-256:
+`6e6fc563201499079f5f03195a2ecdb957930f97841c0fda69daaaf3d4697706`.
+
+|Keys case|Mean us|Max us|Late /5513|Mod tick mean us/block|Module loop mean us/block|Module loop worst-block us|
+|---|---:|---:|---:|---:|---:|---:|
+|0|986.833|1906.792|1|243.208|176.250|417.667|
+|1|1122.792|1879.792|3|237.750|171.583|414.375|
+|2|1198.875|2044.125|36|239.333|172.833|425.042|
+|3|1297.333|2171.542|284|239.750|173.333|381.667|
+
+[verified] All worst total blocks are0. The whole original module loop is the
+largest measured modulation subregion; system inputs average40.8–41.4us/block,
+sinks18.3–18.5us and voices2.7us. These nested costs must not be added to their
+parent. The diagnostic adds observer overhead, so these figures do not claim
+an optimization over V17. Source/vendor review finds module-processing helpers
+still in XIP; controlled placement is the next experiment. Actual mixed timing,
+fault-validated DAC/KA6 and representative30-minute analog soaks remain open.
