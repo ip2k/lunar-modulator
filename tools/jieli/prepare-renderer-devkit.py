@@ -283,6 +283,12 @@ HOOK_RAM_FUNCTIONS = {
 }
 
 
+MODULE_RAM_FUNCTIONS = {
+    "engines/mod/mod_core.c": (b"static void run_module", b"static void module_params",
+                               b"static void module_gates", b"static int module_outputs"),
+}
+
+
 def place_hook_ram(text, signatures):
     """Place exact existing definitions; refuse drift instead of changing bodies."""
     for signature in signatures:
@@ -294,7 +300,9 @@ def place_hook_ram(text, signatures):
     return text
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False):
+    if module_ram and not (timing_only and profile and hook_ram):
+        raise ValueError("Module placement requires timing-only profiled resident hooks")
     if hook_ram and not (timing_only and profile and dispatch_ram):
         raise ValueError("Hook placement requires timing-only profiled resident dispatch")
     if prep_profile and not (timing_only and profile):
@@ -553,6 +561,13 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             original = p.read_bytes()
             hook_inputs[name] = hashlib.sha256(original).hexdigest()
             p.write_bytes(place_hook_ram(original, signatures))
+    module_inputs = {}
+    if module_ram:
+        for name, signatures in MODULE_RAM_FUNCTIONS.items():
+            p = staging / name
+            original = p.read_bytes()
+            module_inputs[name] = hashlib.sha256(original).hexdigest()
+            p.write_bytes(place_hook_ram(original, signatures))
     ui_inputs = {}
     if ui_ram:
         # Placement only, in private copies: keep every UI update and query.
@@ -689,6 +704,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "control_ram": control_ram,
         "mixer_ram": mixer_ram,
         "dispatch_ram": dispatch_ram,
+        "module_ram": module_ram,
+        "module_ram_original_sha256": module_inputs,
         "hook_ram": hook_ram,
         "hook_ram_original_sha256": hook_inputs,
         "ui_ram": ui_ram,
@@ -697,7 +714,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "filter_process_original_sha256": filter_process_input,
         "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + ("; pre-scaled resampler kernel pairs" if resampler_slopes else "") + ("; sound mixer and effect dispatch code also SRAM" if mixer_ram else "") + ("; independent FIR scheduling groups" if resampler_schedule else "") + ("; sequencer event walk and slot dispatch also SRAM" if dispatch_ram else "") + ("; UI synchronization and snapshot queries also SRAM" if ui_ram else "") + ("; sequence/modulation hooks and voice dispatch also SRAM" if hook_ram else "") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + ("; pre-scaled resampler kernel pairs" if resampler_slopes else "") + ("; sound mixer and effect dispatch code also SRAM" if mixer_ram else "") + ("; independent FIR scheduling groups" if resampler_schedule else "") + ("; sequencer event walk and slot dispatch also SRAM" if dispatch_ram else "") + ("; UI synchronization and snapshot queries also SRAM" if ui_ram else "") + ("; sequence/modulation hooks and voice dispatch also SRAM" if hook_ram else "") + ("; modulation module runner/parameter/gate/output helpers also SRAM" if module_ram else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": renderer_pool_bytes,
         "worker_stack_bytes": worker_stack_words * 4,
@@ -776,5 +793,7 @@ if __name__ == "__main__":
                         help="Observe note/control and nested planner costs; timing-only profile")
     parser.add_argument("--hook-ram", action="store_true",
                         help="Compare remaining sequence/modulation hooks and voice dispatch in SRAM; timing-only profiled resident dispatch")
+    parser.add_argument("--module-ram", action="store_true",
+                        help="Compare module runner/parameter/gate/output helpers in SRAM; timing-only profiled resident hooks")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram)

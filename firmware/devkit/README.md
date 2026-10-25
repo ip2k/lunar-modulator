@@ -335,3 +335,10 @@ are observations in guarded private copies, preserving original calls and their
 order. Counts and sums are retained at the exact worst total block; nested
 regions must not be added as independent work. Observer overhead remains charged
 to total block time, and no timing or analog acceptance follows from profiling.
+
+The separate private `--module-ram` experiment places the unchanged module
+runner and parameter/gate/output helpers in startup-copied SRAM. It requires
+`--hook-ram` in the timing-only profiled experiment. Placement does not change
+the rack, module process functions, tick rate, gate edges, math or event order.
+Its per-image manifest records the original prepared source; exact linked
+placement, heap/stack and target PCM/timing remain admission/acceptance checks.

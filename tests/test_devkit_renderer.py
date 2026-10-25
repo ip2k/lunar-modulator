@@ -289,6 +289,9 @@ int main(void) {
     {'resampler_slopes': True, 'timing_only': True},
     {'plaits_cache': True},
     {'plaits_cache': True, 'timing_only': True},
+    {'module_ram': True},
+    {'module_ram': True, 'timing_only': True},
+    {'module_ram': True, 'timing_only': True, 'profile': True},
     {'hook_ram': True},
     {'hook_ram': True, 'timing_only': True},
     {'hook_ram': True, 'timing_only': True, 'profile': True},
@@ -723,12 +726,13 @@ def test_preparation_profile_cli_registered_before_parsing(tmp_path):
     assert not (tmp_path / "out").exists()
 
 
-def test_hook_ram_preserves_definitions_and_refuses_source_drift():
+@pytest.mark.parametrize("selection", ["HOOK_RAM_FUNCTIONS", "MODULE_RAM_FUNCTIONS"])
+def test_hook_ram_preserves_definitions_and_refuses_source_drift(selection):
     import importlib.util
     spec = importlib.util.spec_from_file_location("renderer_prepare", ROOT / "tools/jieli/prepare-renderer-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    for name, signatures in module.HOOK_RAM_FUNCTIONS.items():
+    for name, signatures in getattr(module, selection).items():
         original = (ROOT / name).read_bytes()
         placed = module.place_hook_ram(original, signatures)
         assert placed.count(b'#pragma code_seg(".volatile_ram_code")') == len(signatures)

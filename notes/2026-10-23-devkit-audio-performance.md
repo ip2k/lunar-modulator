@@ -4408,3 +4408,22 @@ parent. The diagnostic adds observer overhead, so these figures do not claim
 an optimization over V17. Source/vendor review finds module-processing helpers
 still in XIP; controlled placement is the next experiment. Actual mixed timing,
 fault-validated DAC/KA6 and representative30-minute analog soaks remain open.
+
+
+### Module helper SRAM experiment (V19, offline work)
+
+[implemented] V18 identifies the module loop as the largest measured modulation
+subregion. A separate `--module-ram` switch places only the unchanged runner,
+parameter, gate and output helper definitions (2904 compiled bytes in V18) in
+startup-copied SRAM. It requires timing-only profiled resident hooks. No rack,
+kind process function, tick/sample rate, arithmetic or event-order change.
+Original prepared source hashes are retained. V19 is not admitted or installed;
+V18 remains healthy idle. Vendor/layout/stack/PCM/timing validation is pending.
+
+[verified, offline]118 focused tests pass with one unavailable32-bit skip;
+a final two-case placement recheck passes. The first vendor preparation caught
+an incorrect `void` anchor for the `int` output helper before link; corrected
+signature and a fresh staging directory build successfully. No V19 hardware
+commands have been sent. Exact vendor/link/layout/recovery/PCM/cipher/NOR review
+still gates admission. Rarefaction's primary checkout lacks this worktree symbol;
+Serena selects the actual absolute worktree and finds the exact helper bodies.
