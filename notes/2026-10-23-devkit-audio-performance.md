@@ -2539,3 +2539,19 @@ the arrangement now uses the existing `env3` modulation unit. 79 focused Linux c
 profiled/unprofiled output, full active-unit frame accounting,
 zero unused rows, deterministic two-cycle PCM, and refusal when the required
 compressor is absent. Target timing, analog and soak acceptance remain pending.
+
+
+[verified, exact offline review] Eight original/prepared keys cases match in
+full PCM SHA-256 `b62e14e11377f683ffc5088e425f4c1c9825ac672ead222f0e4cfc07cc937732`.
+Fresh vendor ELF `d28fb051a47766f0ad9b0e7a52c55c508b95a79be745d2789f78e16bb3ba472e`
+exports app `242d17b1dc16c57de26f4443f32b9dc56d7d728e4a6b6cabfb62b78af33db6bc`
+(559,804 bytes). Five exact exports, unchanged tables and SDK functions
+with only verified symbol relocations pass. Vendor floating disassembly
+confirms UART-first guarded 1,024-word task, 2,048-word worker, 200-tick
+recovery window, strong ROM marker/P33 path and dormant SDK scheduling.
+Startup copies 80,048 SRAM and 27,180 cache bytes; pre-task heap is 51,084.
+Independent cipher/CRC and protected boot/config/tail checks pass. NOR model
+installs/restores exactly and recovers four interrupted pages, metadata last.
+Exact keys candidate `bee9d4bc83cc78e1c1a4a40448dc4211f2d8276cb6a8cad5878c9c5d7ee2aa36`
+is admitted only for the 137-sector unattended timing comparison. It has not
+yet been installed or hardware accepted. Mixed deadline failure remains.
