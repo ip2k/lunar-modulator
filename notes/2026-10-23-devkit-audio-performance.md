@@ -3176,3 +3176,29 @@ The pinned vendor build succeeds with the downloader disabled. Exact generated
 code, complete image/recovery/cipher/NOR review and hardware admission remain
 pending; no candidate has been packaged or installed. The board remains healthy
 idle on the short probe image 9d3d4f8c, with no capture live.
+
+[verified, offline admission] Long probe ELF SHA-256 is
+`025158eee554fd2c60aafb58701783b1cb9a08d6681ab1b54976acb9351ee581`;
+the independent five-section vendor objcopy matches app
+`da8f16aae877ccd6b7aec91128a1d3fc415ae907184799fc407bcb4db3be8db1`
+(164496 bytes). The exact factory-based candidate is
+`3bbfa865e5c3fd37c8babe9f01c9fe7e6d56f7d41e211488e26b57d71a8a5c23`.
+It changes 41 sectors (0x4000..0x2c000 inclusive), with app end 0x2c3b0;
+protected bytes, independent cipher derivation and all metadata/app CRCs pass.
+The NOR model passes exact install/restore and interrupted pages 7/327/631/647,
+with metadata committed last. All 135 focused transaction/reset/short/long
+receipt/preparation checks pass in a bounded Aeon container.
+
+[verified, generated code] Both tasks use aligned word accesses and actual
+core-ID reads. The first exchange loop has no `csync`; the second fences both
+publication and consumption. Generated loops contain the checked 23999999
+per-wait and 3839999999 total tick thresholds, plus bounded exit waits and
+periodic task yields. No atomic runtime helper or testset loop appears in the
+exchange. The final prepared UART-first main hash is identical to the accepted
+short image. SDK dormant-key scheduling and complete ROM/P33 helpers again
+match after checked relocations; the link audit has zero failures, with its
+scheduling item covered by that comparison. Pretask heap is 492300 bytes and
+the permanent mailbox is 64-byte aligned/64 bytes. These are offline findings;
+actual task stack, run duration and publication results remain unverified.
+The exact hash is admitted with the existing narrow CPU1 sector plan. It is
+not installed or hardware accepted; the board remains healthy on 9d3d4f8c.
