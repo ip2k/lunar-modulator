@@ -686,6 +686,32 @@ def test_prep_profile_preserves_original_calls_and_refuses_drift(planner):
                                                             "static void render_sounds(fm1_app_t *a, uint32_t n, float *out) { return;", 1))
 
 
+def test_dispatch_profile_preserves_calls_and_refuses_drift():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("dispatch_profile", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    regions = []
+    for path, functions in module.DISPATCH_PROFILE_CALLS.items():
+        original = (ROOT / path).read_text()
+        observed = module.instrument_dispatch_profile(original, functions)
+        normalized = observed.split("\n", 1)[1]
+        normalized = re.sub(r"^ *lunar_devkit_prep_profile\(\d+, [01]\);\n", "", normalized, flags=re.M)
+        assert re.sub(r"\s+", "", normalized) == re.sub(r"\s+", "", original)
+        for signature, calls in functions:
+            with pytest.raises(ValueError, match="dispatch definition"):
+                module.instrument_dispatch_profile(original.replace(signature, "changed", 1), functions)
+            with pytest.raises(ValueError, match="dispatch definition"):
+                module.instrument_dispatch_profile(original + "\n" + original, functions)
+            for region, call in calls:
+                regions.append(region)
+                assert observed.count(f"lunar_devkit_prep_profile({region}, 1);") == 1
+                assert observed.count(f"lunar_devkit_prep_profile({region}, 0);") == 1
+                with pytest.raises(ValueError, match="dispatch call"):
+                    module.instrument_dispatch_profile(original.replace(call, "changed();", 1), functions)
+    assert sorted(regions) == list(range(12, 24))
+
+
 def test_preparation_profile_cli_registered_before_parsing(tmp_path):
     result = subprocess.run([sys.executable, str(ROOT / "tools/jieli/prepare-renderer-devkit.py"),
                              "--sdk", str(tmp_path / "absent"), "--source", str(ROOT),

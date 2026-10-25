@@ -50,9 +50,12 @@ uint32_t lunar_devkit_renderer_detail_last(unsigned region);
 #ifdef LUNAR_RENDERER_PREP_PROFILE
 /* Nested diagnostic regions: note-on batch, note-off batch, level, filter,
  * engine note-on, modulation live-note, voice start, modulation plan build,
- * sequencer flush, advance, dispatch and post-dispatch inserts/mixing.
+ * sequencer flush, advance, dispatch and post-dispatch inserts/mixing (0-11);
+ * MIDI effects, hook begin/tick, modulation tick, voice-write collection,
+ * system inputs, module loop, sinks, voice loop, voiced/ticked callbacks and
+ * hook-write conversion (12-23).
  * Counts are invocations, not rendered frames; nested totals must not be summed. */
-#define LUNAR_RENDERER_PREP_REGIONS 12u
+#define LUNAR_RENDERER_PREP_REGIONS 24u
 void lunar_devkit_prep_profile(unsigned region, int entering);
 void lunar_devkit_renderer_prep_read(unsigned region, struct lunar_renderer_profile *out);
 uint32_t lunar_devkit_renderer_prep_last(unsigned region);

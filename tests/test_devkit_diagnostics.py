@@ -294,7 +294,10 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             assert receipt['plaits_table_original_sha256'] == {}
         assert receipt['prep_profile'] == prep_profile
         if prep_profile:
-            assert len(receipt['prep_profile_original_sha256']) == 2
+            assert set(receipt['prep_profile_original_sha256']) == {
+                'sim/web/src/fm1_app.c', 'engines/mod/mod_plan.c',
+                'engines/seq/seq_host.c', 'engines/mod/mod_glue.c', 'engines/mod/mod_core.c',
+            }
             assert '-DLUNAR_RENDERER_PREP_PROFILE=1' in (out/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
             for name, planner in (('sim/web/src/fm1_app.c', False), ('engines/mod/mod_plan.c', True)):
                 observed = (out/'lunar-source'/name).read_text()
@@ -303,6 +306,19 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
                 prep_original = (ROOT/name).read_text()
                 if name.endswith('mod_plan.c'):
                     assert receipt['prep_profile_original_sha256'][name] == hashlib.sha256(prep_original.encode()).hexdigest()
+            for name, functions in renderer_module.DISPATCH_PROFILE_CALLS.items():
+                observed = (out/'lunar-source'/name).read_text()
+                assert observed.startswith('extern void lunar_devkit_prep_profile(unsigned, int);\n')
+                unobserved = observed.split('\n', 1)[1]
+                unobserved = re.sub(r'^ *lunar_devkit_prep_profile\(\d+, [01]\);\n', '', unobserved, flags=re.M)
+                # Observer insertion changes indentation only; its recorded input
+                # remains checked by the dedicated source-preservation test.
+                assert 'lunar_devkit_prep_profile(' not in unobserved
+                for _, calls in functions:
+                    for region, call in calls:
+                        assert observed.count(f'lunar_devkit_prep_profile({region}, 1);') == 1
+                        assert observed.count(f'lunar_devkit_prep_profile({region}, 0);') == 1
+                        assert unobserved.count(call) == 1
         else:
             assert receipt['prep_profile_original_sha256'] == {}
         assert receipt['ui_ram'] == ui_ram
@@ -336,7 +352,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             original_control = (ROOT/name).read_bytes()
             prepared_control = (out/'lunar-source'/name).read_bytes()
             normalized = prepared_control.replace(b'#pragma code_seg(".volatile_ram_code")\n', b'').replace(b'\n#pragma code_seg()', b'')
-            if prep_profile and name.endswith('fm1_app.c'):
+            if prep_profile:
                 normalized = re.sub(rb'^extern void lunar_devkit_prep_profile\(unsigned, int\);\n', b'', normalized, flags=re.M)
                 normalized = re.sub(rb'^ *lunar_devkit_prep_profile\(\d+, [01]\);\n', b'', normalized, flags=re.M)
                 assert re.sub(rb'\s+', b'', normalized) == re.sub(rb'\s+', b'', original_control)

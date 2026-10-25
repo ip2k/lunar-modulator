@@ -233,6 +233,49 @@ def instrument_prep_profile(text, planner=False):
     return "extern void lunar_devkit_prep_profile(unsigned, int);\n" + text
 
 
+DISPATCH_PROFILE_CALLS = {
+    "engines/seq/seq_host.c": (
+        ("void fm1_seq_host_dispatch_slots_ticks", ((12, "mfx_begin(h, frames, 0);"),)),
+        ("static void play_slots_hook", ((13, "tf = hk->begin(hk->ctx, frames, n && slots[0].sink ? slots[0].sink->engine : NULL, bpm, playing);"),)),
+        ("static uint32_t run_tick_slots", ((14, "const uint32_t nw = hk->tick(hk->ctx, tf, &w, &next);"),)),
+    ),
+    "engines/mod/mod_glue.c": (
+        ("static uint32_t glue_tick", (
+            (15, "const uint32_t n = fm1_mod_tick(g->mod, frame, &wr);"),
+            (16, "nv = fm1_mod_voice_writes(g->mod, g->vw, sizeof(g->vw) / sizeof(g->vw[0]));"),
+            (21, "if (nv && g->voiced) g->voiced(g->ctx, frame, g->vw, nv);"),
+            (22, "if (g->ticked) g->ticked(g->ctx, frame, wr, n);"),
+            (23, "k = voice_hook_writes(g, nv, k);"),
+        )),
+    ),
+    "engines/mod/mod_core.c": (
+        ("uint32_t fm1_mod_tick", (
+            (17, "take_system(m);"),
+            (18, "for (i = 0; i < m->plan.n_order; ++i) run_module(m, m->plan.order[i], &tp);"),
+            (19, "write_sinks(m);"),
+            (20, "run_voices(m, &tp);"),
+        )),
+    ),
+}
+
+
+def instrument_dispatch_profile(text, functions):
+    """Observe original calls in private sources; never reorder their work."""
+    for signature, calls in functions:
+        matches = re.findall(r'^' + re.escape(signature) + r'\([^;]*?\) \{.*?^\}', text, re.M | re.S)
+        if len(matches) != 1:
+            raise ValueError("Unexpected dispatch definition; review profiling: " + signature)
+        original = matches[0]
+        body = original
+        for region, call in calls:
+            if body.count(call) != 1:
+                raise ValueError("Unexpected dispatch call; review profiling: " + call)
+            body = body.replace(call, f"lunar_devkit_prep_profile({region}, 1);\n  " + call +
+                                f"\n  lunar_devkit_prep_profile({region}, 0);", 1)
+        text = text.replace(original, body, 1)
+    return "extern void lunar_devkit_prep_profile(unsigned, int);\n" + text
+
+
 HOOK_RAM_FUNCTIONS = {
     "sim/web/src/fm1_app.c": (b"static uint32_t seq_auto_begin", b"static uint32_t seq_auto_tick"),
     "engines/mod/mod_glue.c": (b"static uint32_t glue_begin", b"static uint32_t glue_tick"),
@@ -547,6 +590,11 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             original = p.read_bytes()
             prep_profile_inputs[name] = hashlib.sha256(original).hexdigest()
             p.write_text(instrument_prep_profile(original.decode(), planner))
+        for name, functions in DISPATCH_PROFILE_CALLS.items():
+            p = staging / name
+            original = p.read_bytes()
+            prep_profile_inputs[name] = hashlib.sha256(original).hexdigest()
+            p.write_text(instrument_dispatch_profile(original.decode(), functions))
     engine_profile_inputs = {}
     if engine_profile:
         for engine, name in enumerate(("engines/src/mi_macro.cc", "engines/src/drums.cc")):

@@ -314,7 +314,7 @@ measured renderer are excluded. Counters reset after each case; last-block sums
 are copied with the exact worst total-block snapshot into `LUNAR_RENDERER_PREP`
 rows. Calls count invocations, not audio frames. A last-block sum may exceed the
 maximum individual call when several notes run in one block. Regions are nested;
-never sum all twelve as independent costs. `LUNAR_RENDERER_UNIT_WORST` also
+never sum nested regions as independent costs. `LUNAR_RENDERER_UNIT_WORST` also
 reports each unit's callback sum from that same worst block, accumulating split
 callbacks rather than substituting their independent per-call maxima. Observer clock and bookkeeping cost
 remains in the measured total. The option changes no production source behavior
@@ -327,3 +327,11 @@ begin, voice runner and voice-output helper in startup-copied SRAM. It requires
 timing-only profiled resident dispatch; it does not alter production renderer
 source, PCM math, tick rates, voice state transitions or event ordering. Inspect
 the actual linked ranges, heap and stack before admitting each exact image.
+
+The preparation profile also splits dispatch into MIDI effects, hook begin/tick,
+modulation tick, voice-write collection, system-input handling, module/sink/voice
+loops, voiced/ticked callbacks and hook-write conversion (regions12–23). These
+are observations in guarded private copies, preserving original calls and their
+order. Counts and sums are retained at the exact worst total block; nested
+regions must not be added as independent work. Observer overhead remains charged
+to total block time, and no timing or analog acceptance follows from profiling.

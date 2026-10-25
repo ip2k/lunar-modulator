@@ -4336,3 +4336,26 @@ this configuration but does not establish an individual function's cost or
 solve the deadline. Actual mixed timing, fault-validated DAC/KA6 and
 representative30-minute analog soaks remain outstanding. No analog acceptance
 or firmware merge is claimed.
+
+### Nested dispatch diagnostic (V18, offline work)
+
+[implemented] The private preparation profile now adds twelve nested regions:
+MIDI effects, hook begin/tick, modulation tick, voice-write collection, system
+inputs, module/sink/voice loops, voiced/ticked callbacks and hook-write
+conversion. Each original call remains in place; source guards reject missing
+or duplicate definitions/calls. Removing observer lines reproduces original
+source apart from whitespace. The same existing per-block reset and exact
+worst-total-block snapshot cover all24 regions. No production DSP source,
+rate, math, event order or deadline changes. Observer overhead remains charged
+to total time. Host/vendor validation is running; V18 is not admitted or
+installed. V17 remains healthy idle, with deadlines and analog acceptance open.
+
+[verified, offline]113 tests pass initially with one unavailable32-bit skip;
+one preparation fixture still assumed two instrumented paths. Its updated
+five-path/observer checks pass in the32-test preparation subset. A temporary
+fixture indentation error and variable shadow were corrected before that pass.
+Vendor build and exact SDK/ROM/six FM6 kernel comparisons pass. V18 app is
+565084 bytes; pre-task heap77644. Timing frame384 bytes including52 saved
+register bytes (64 above V17), glue tick176 bytes and UI1160 bytes. Independent
+image/cipher/NOR, complete layout/UART-first review and exact admission remain
+pending; no V18 hardware commands have been sent.
