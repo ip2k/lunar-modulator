@@ -2831,3 +2831,18 @@ Eight complete prepared keys and eight mixed replays retain PCM SHA
 replays verify prepared arithmetic, not vendor loop code generation. Exact
 image/startup/recovery/SDK/packaging review and target PCM/timing remain
 pending. No new candidate admitted or installed; route image stays healthy idle.
+
+
+[verified, offline admission] Five independent section exports produce app
+SHA `6bee706f772eccff8ad4edda707114166e443ba80bb15f4c710d02ee02a014a1`,
+560156 B, end `0x8cd3c`. Manual vendor startup review verifies 81744 B SRAM
+and 27180 B cache copies, unchanged 392412 B BSS, UART-first 1024-word
+reservation, failure skipping worker, 2048-word worker and 200-tick recovery
+window before workload initialization. ROM/P33 and SDK machine code match
+prior after verified relocations; marker and sole SDK late-init match. The
+link audit has zero failures; exact SDK comparison resolves its scheduling
+item. Independent cipher/CRC/protected bytes and 137-sector install/restore
+model pass, including interrupted pages 7/1095/2167/2183. Exact candidate
+`b8823c2a322aa47e28306ca11d423838438daa1328a393969c554ffedaf4ab98`
+is admitted offline only; hardware recovery, target PCM and timing remain
+unverified for it.
