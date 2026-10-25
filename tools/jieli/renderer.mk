@@ -30,5 +30,4 @@ $(BUILD)/fm1-devkit-renderer-ref: $(DEVKIT_RENDERER_OBJ) $(BUILD)/devkit/rendere
 print-devkit-renderer-objs:
 	@printf '%s\n' $(sort $(DEVKIT_RENDERER_OBJ))
 
--include $(BUILD)/devkit/renderer_live.d $(BUILD)/devkit/renderer_timing.d \
-  $(BUILD)/devkit/arithmetic_probe.d $(BUILD)/devkit/renderer_reference.d
+-include $(wildcard $(BUILD)/devkit/*.d)

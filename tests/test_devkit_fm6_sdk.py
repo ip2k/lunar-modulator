@@ -88,6 +88,7 @@ int main(int argc, char **argv) {
         assert(!attached && created == 1);
         assert(!lunar_fm6_sdk_start(clock_tick) && created == 1);
         if (mode == 1) pthread_join(thread, 0);
+        if (mode == 3) assert(!lunar_fm6_sdk_finish()); // no exit acknowledgement
         return 0;
     }
     assert(lunar_fm6_sdk_start(clock_tick) && attached == 1);

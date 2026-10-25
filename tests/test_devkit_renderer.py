@@ -191,6 +191,9 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'fm6_pair': True},
+    {'fm6_pair': True, 'timing_only': True},
+    {'fm6_pair': True, 'timing_only': True, 'hot_ram': True},
     {'msfa_pure_unroll': True},
     {'msfa_pure_unroll': True, 'timing_only': True, 'hot_ram': True, 'msfa_narrow_adds': True},
     {'msfa_sine32': True},

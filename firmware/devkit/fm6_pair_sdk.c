@@ -84,5 +84,5 @@ int lunar_fm6_sdk_finish(void) {
     lunar_fm6_sdk_report(4);
     printf("LUNAR_FM6_PAIR final=1 stack_unused_words=%u word_bytes=4\n", state.stack_unused);
     return !state.error && !state.wrong_core && !state.parent_wrong_core &&
-           state.jobs && lunar_fm6_pair_completed() && !lunar_fm6_pair_disabled();
+           state.jobs && state.jobs == lunar_fm6_pair_completed() && !lunar_fm6_pair_disabled();
 }

@@ -3483,3 +3483,31 @@ GNU asm in SDK headers incompatible with the nested renderer's strict C99.
 Only the SDK wrapper now requests GNU C99; shared DSP flags stay unchanged.
 The correction awaits vendor verification. Final exact code/layout/UART-first,
 PCM/stack/performance, packaging/NOR and hardware gates remain outstanding.
+
+### Finite FM6 attachment exact image review — 2026-10-25
+
+[verified, offline] Final focused renderer/mailbox/lifecycle checks: 54 pass,
+one multilib skip. SDK GNU99 correction links successfully. The final shutdown
+requires worker job count to equal accepted pair count, with no disabled backend
+or wrong-core/error receipt. New objects track their header dependencies.
+
+[verified, offline] Final ELF SHA-256
+`d0bb533be3d8949fdcabd21ff2737e25aa63045a4f53fa8c05d7794f2695c741`;
+independent five-section export matches app SHA-256
+`a8b8a3b88b6be5041ff6a035d141533119a318e453ea262c22a6f4f2985d74f2`.
+The 562556-byte app preserves relocated SDK key-check/ROM routines and the
+UART-first 200-tick window. The vendor machine code retains fences, 34829-tick
+pair budget, million-poll bound, finite worker lifetime and final count equality.
+The kernel call graph has no allocator or mutable global-rate setup; its final
+code matches the prior review except a checked relocation of the memset call.
+Pretask heap is 47916 bytes; the permanent mailbox is 448 bytes aligned to 64.
+Target heap/stack headroom remains unmeasured and is an acceptance gate.
+
+[verified, offline] Candidate SHA-256
+`393f497566bf1ee9b709bdbd67adec23ecb0f216809afd632dffc66adfe7534a`
+changes exactly 138 sectors in `[0x4000,0x8e000)`. Independent cipher/CRC and
+protected-region checks pass. NOR model install/restore is exact, metadata is
+last, and interruptions at pages 7, 1111, 2183 and 2199 restore exactly.
+No hardware acceptance or analog result follows from this review. Board43b9
+remains healthy idle; the next cycle must prove fresh double backups, factory
+restore, unique startup-window verification, then same-image run readback.
