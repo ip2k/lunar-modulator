@@ -1730,3 +1730,23 @@ initial unregistered key state and its dormant return; no key provider/blob.
 The exact candidate hash is now admitted with the existing fixed sector bounds.
 All 36 transaction/reset/arithmetic guard cases pass locally. This is offline
 admission only; cache-table hardware timing, heap and recovery remain unverified.
+
+
+[verified, hardware] Cache-table comparison completed all four cases with
+unchanged PCM hashes, all four arithmetic result bits, 32 unit rows and 24
+stage rows at 352,832 frames per case. Free heap stays at 17,236 bytes across
+five readings, recovering exactly 11,520 bytes; worker peak remains 5,544 bytes
+of 12 KiB. Mean block times for 1/4/8/12 FM6 voices are 3,916.75 / 4,183.875 /
+4,316.125 / 4,513.083 microseconds; maxima 4,661.875 / 4,793.083 / 5,000.25 /
+5,288.458. The mean differs by only 0.29–0.92% from resampler SRAM, insufficient
+to establish a meaningful speed gain from this single comparison. Every one
+of 5,513 blocks in every case still misses the approximately 1,451-us deadline.
+The demonstrable gain is heap headroom, not deadline acceptance.
+
+[verified] Startup ready plus PING/ARM/ENTER completed in 78.6 ms. Fresh ROM
+INQUIRY answered WL82/UBOOT1.00; both full 8 MiB reads matched the candidate.
+The factory restore and same-image reinstall each passed full readback before
+the measurement reset. The receive-only capture completed and was closed by
+matching its exact process command line; ordinary post-workload PING succeeds.
+Raw capture SHA-256 `704e500cec67067ba2eb9d4a5e7842625c294244bfb10e07b0360cccd10a09c2`
+is retained privately. DAC remains off; no analog or soak acceptance is claimed.
