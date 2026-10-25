@@ -655,3 +655,14 @@ def test_prep_profile_preserves_original_calls_and_refuses_drift(planner):
     if planner:
         with pytest.raises(ValueError, match="early return"):
             module.instrument_prep_profile(original.replace("void mod_plan_build(fm1_mod_t *m) {", "void mod_plan_build(fm1_mod_t *m) { return;", 1), True)
+
+
+def test_preparation_profile_cli_registered_before_parsing(tmp_path):
+    result = subprocess.run([sys.executable, str(ROOT / "tools/jieli/prepare-renderer-devkit.py"),
+                             "--sdk", str(tmp_path / "absent"), "--source", str(ROOT),
+                             "--out", str(tmp_path / "out"), "--prep-profile"],
+                            capture_output=True, text=True)
+    assert result.returncode != 0
+    assert "Preparation profiling requires" in result.stderr
+    assert "unrecognized arguments" not in result.stderr
+    assert not (tmp_path / "out").exists()

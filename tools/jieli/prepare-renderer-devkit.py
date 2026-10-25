@@ -673,7 +673,7 @@ if __name__ == "__main__":
                         help="Timing-only FM6 pair scheduling comparison; render priority 16, UART 18")
     parser.add_argument("--ui-ram", action="store_true",
                         help="Compare UI synchronization/query placement in SRAM; timing-only resident dispatch")
-    args = parser.parse_args()
     parser.add_argument("--prep-profile", action="store_true",
                         help="Observe note/control and nested planner costs; timing-only profile")
+    args = parser.parse_args()
     prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile)
