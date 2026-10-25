@@ -2657,3 +2657,9 @@ embedding, local origins and layout all pass, with no browser errors. This
 uses the existing built Wasm module and current page/test sources; exact-head
 repository CI remains a separate gate. This repair does not establish
 hardware audio acceptance.
+
+### Compact session metadata (offline, 2026-10-25)
+
+- [verified] `read_session` used eight full track reads (including automation arrays) and 64 full clip reads per refresh. Added `fm1_seq_get_session_track`, a read-only compact reader of occupancy, active/queued/playing slots, pending stop, native position and playing-loop bounds. UI refresh frequency, position scaling, hold/record/hint logic and rendering are unchanged.
+- [verified] Bounded Aeon Ubuntu 24.04 container: 152 sequencer/session/song UI tests passed, 6 skipped. The new differential C test covers 17,408 snapshots across 1–16 tracks, empty/full grids, all playing slots/NONE, queued stops and randomized positions; it compares the full getters and checks memory remains unchanged, including invalid-track reads. The first attempt failed at build setup because existing staging objects were unwritable; the successful run used fresh executable build tmpfs mounts.
+- [inferred] Removing redundant metadata copies may reduce the measured UI cost; no target speed claim yet. Full original/new PCM replay, vendor compilation and exact-image review remain required before admission. Installed dispatch image remains healthy idle; no hardware operations or analog acceptance in this experiment yet.

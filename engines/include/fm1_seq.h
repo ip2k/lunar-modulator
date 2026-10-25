@@ -335,6 +335,14 @@ typedef struct fm1_seq_clip_info {
   uint16_t notes, locks, trigs;
 } fm1_seq_clip_info_t;
 
+/* Session grid metadata without the track's automation arrays or each clip's
+ * note/lock counts. Position remains in native ticks; the UI scales it. */
+typedef struct fm1_seq_session_track_info {
+  uint16_t pos_tick, playing_length;
+  uint8_t playing_loop_start, clips;
+  uint8_t active, playing, queued, pending_stop;
+} fm1_seq_session_track_info_t;
+
 typedef struct fm1_seq_note_info {
   uint16_t tick, gate, step;
   uint8_t pitch, vel, suppress, fired;
@@ -436,6 +444,8 @@ typedef struct fm1_seq_transport {
 void fm1_seq_transport_take(const fm1_seq_t *s, fm1_seq_transport_t *out);
 void fm1_seq_transport_put(fm1_seq_t *s, const fm1_seq_transport_t *in);
 int fm1_seq_get_track(const fm1_seq_t *s, uint8_t track, fm1_seq_track_info_t *out);
+int fm1_seq_get_session_track(const fm1_seq_t *s, uint8_t track,
+                              fm1_seq_session_track_info_t *out);
 const char *fm1_seq_lane_label(const fm1_seq_t *s, uint8_t track, uint8_t lane);
 int fm1_seq_get_clip(const fm1_seq_t *s, uint8_t track, uint8_t slot, fm1_seq_clip_info_t *out);
 int fm1_seq_get_note(const fm1_seq_t *s, uint8_t track, uint8_t slot, uint16_t i,
