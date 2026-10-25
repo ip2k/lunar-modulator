@@ -4110,3 +4110,32 @@ recovery still require verification. 115 focused transaction/reset/SDK tests
 pass; the new hash exercises the same sector-boundary tests as V13.
 No V14 hardware installation or acceptance is claimed here. Nested profiling
 measures causes; its overhead cannot be claimed as an audio optimization.
+
+### V14 target preparation measurements
+
+[verified, dev kit] The exact V14 image passed startup PING/ARM/ENTER in
+78.751ms, fresh responsive ROM inquiry, two full matching current-image reads,
+factory restoration, same-image reinstall and complete full-flash readback.
+The four PCM and arithmetic checks, 32 unit,24 stage,24 worst-block,12 detail
+and32 preparation receipts pass. All81308 paired jobs completed with zero
+refusals/errors/wrong-core execution and finite worker exit. Heap remains38452
+bytes; parent unused stack2556/8192 bytes, worker3260/4096 bytes. The receive-only
+capture was closed before ordinary PING acknowledged; board is healthy idle.
+
+|Case|Mean us|Maximum us|Late /5513|Worst external preparation us|
+|---|---:|---:|---:|---:|
+|0|1003.000|2126.917|2|485.917|
+|1|1137.667|1961.625|29|400.333|
+|2|1213.333|2112.625|99|460.500|
+|3|1311.125|2290.583|356|533.458|
+
+[verified] All worst snapshots remain block0. Planner runs once in case0,
+138.833us inside the nested live-note region, and zero times in later cases.
+Level/filter edits each run87 times per case: ordinary per-call means are
+97.1..112.8us and112.3..131.2us respectively. These recurring setters warrant
+investigation separately from one-time plan construction. Nested totals must
+not be added. The private validator initially omitted its zero-call branch;
+that is corrected, requiring every aggregate of an unused region to be zero.
+No target source or acceptance threshold was changed to obtain this result.
+Deadline still FAILS. Mixed renderer, fault-validated DAC/KA6 and30-minute
+analog soaks remain undone. V14 diagnostic overhead is not an optimization.
