@@ -2619,3 +2619,41 @@ Candidate `356c0b070d8ac6483fd8034767777b8c5dc13c25d04227c9f63dccaf3b1523e8`
 is separately admitted for timing only; it is not installed or hardware
 accepted. The prior wrong SDK path failed during preparation and was kept
 as failed evidence; the reviewed build uses the established private template.
+
+### Sequencer dispatch SRAM comparison — first target result
+
+[verified, hardware] Candidate `356c0b07…` completed its startup recovery
+window: fresh ready followed by PING/ARM/ENTER acknowledgements in about
+78 ms, fresh WL82/UBOOT inquiry and two full 8 MiB reads matching the
+candidate. Factory restore, same-image installation and full readback passed.
+Both unique reset receipts are consumed; neither may be retried.
+
+All four keys PCM fingerprints match the desktop. Four arithmetic patterns,
+32 unit rows and 24 stage rows cover the full 352,832 frames per case;
+completion is explicit and invalid/clipped counts are zero. Mean times are
+1,334.42 / 1,550.63 / 1,683.13 / 1,892.92 us; maxima are 2,160.00 /
+2,314.92 / 2,451.29 / 2,747.08 us. This is a 4.44 / 4.01 / 4.03 / 3.87%
+mean improvement over the preceding keys image. However, 504 / 4,899 /
+5,484 / 5,513 of 5,513 blocks miss the roughly 1,451 us deadline.
+The comparison still fails deadline acceptance. The mixed stress fixture
+remains unaccepted, and no analog capture or sustained soak is claimed.
+
+Free heap remains 7,636 bytes over five readings; peak worker stack remains
+5,548/8,192 bytes. The sole UART RX process was checked twice and closed
+before the ordinary post-run PING acknowledged. The board is healthy idle.
+Private raw SHA-256:
+`9e837ddb8b160b71f0e5118a5be89bdb4ad00aa5ca886b76ab24a3aeec84d4f6`.
+
+### CI notice dismissal polling
+
+[verified, CI/source] Run 40190108909 Chromium job 121159279951 failed at
+`files.mjs:107`: its poll dereferenced `.hidden` while SweetAlert2 had
+briefly detached the notice before `didClose` restores the original node.
+The predicate now waits for optional `hidden === true`: temporary absence
+keeps polling, and only the restored hidden node satisfies the assertion.
+No timeout or product behavior changes. The complete files browser check passes on Aeon in Chromium 153 using the
+pinned Playwright 1.63 image: files, unavailable storage, load links, hashes,
+embedding, local origins and layout all pass, with no browser errors. This
+uses the existing built Wasm module and current page/test sources; exact-head
+repository CI remains a separate gate. This repair does not establish
+hardware audio acceptance.
