@@ -3626,3 +3626,31 @@ heap remains 84588. Machine code preserves the total deadline, million-poll
 bound, fences, finite lifetime and final equality refusal. Kernel bytes match
 after checked memset relocation and pointer-plus-offset algorithm-table
 relocations; immutable table bytes match. Hardware acceptance remains open.
+
+### First-refusal evidence: elapsed before polling, CPU1 already done
+
+[verified, hardware] Imageb2b3 passes startup three-ACK recovery in 78.0964 ms,
+fresh ROM inquiry, two matching full backups, factory restore and same-image
+install/readback. Actual run passes the 200-tick window, four arithmetic and
+PCM checks, 32 unit and 24 stage rows. Heap remains 42644 bytes, arena 86912;
+parent retains 2620/8192 stack bytes, worker 3260/4096.
+
+[verified] The first refusal is reason 2 (total deadline), elapsed and first
+sample both 50218 ticks (2092.417 us), zero wait polls, request 514 and done 514.
+CPU1 completion was visible at CPU0's first post-compute check. This excludes
+waiting for an unfinished CPU1 job as this refusal's immediate cause, but does
+not distinguish publication/copy, caller computation, preemption or stalls.
+Do not label it a worker crash or claim a precise stall cause without evidence.
+
+[verified] Accepted pairs 513 versus worker jobs 514, disabled 1, zero wrong-core
+and worker-error counters, exited 1; final completion correctly refuses.
+Means 1302.750 / 1513.292 / 1644.083 / 1858.125 us; late
+255 / 3664 / 5291 / 5506 of 5513: FAIL. No DAC/analog acceptance follows.
+Exact owned capture closure and terminal session precede ordinary PING ACK.
+Board healthy idle; all reset receipts consumed. Private raw SHA-256
+`8bd53f29c3656a60778c65710f8940b47e22792d57d296c5b8f852385d6beacd`.
+
+[verified, linked SDK] Worker lifetime check `timer_get_ms` is a 14-byte routine
+that reads jiffies and multiplies by ten, with no lock. It does not establish
+a locking explanation for the CPU0 delay. Next investigate documented CPU/task
+timing facilities before changing scheduling or DSP behavior.
