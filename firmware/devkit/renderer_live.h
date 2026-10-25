@@ -20,6 +20,9 @@ struct lunar_renderer_profile { uint64_t ticks; uint32_t calls, frames, max_tick
 /* Worker diagnostic only. Set clock before init; read/reset outside rendering. */
 void lunar_devkit_renderer_profile_clock(uint32_t (*now)(void));
 void lunar_devkit_renderer_profile_read(unsigned workload_unit, struct lunar_renderer_profile *out);
+/* Stage IDs are fm1_app_profile_stage; stage totals include nested units. */
+unsigned lunar_devkit_renderer_profile_stages(void);
+void lunar_devkit_renderer_stage_read(unsigned stage, struct lunar_renderer_profile *out);
 void lunar_devkit_renderer_profile_reset(void);
 #endif
 #ifdef __cplusplus

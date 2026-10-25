@@ -176,6 +176,13 @@ extern "C" {
  * fm1_app_sound_unit and fm1_app_insert_unit give the others. */
 #define FM1_APP_UNITS (1 + FM1_APP_FX_SLOTS + (FM1_APP_SOUNDS - 1) + FM1_APP_SOUNDS * FM1_APP_INSERTS)
 #define FM1_APP_EFFECTS (FM1_APP_FX_SLOTS + FM1_APP_SOUNDS * FM1_APP_INSERTS)
+/* Optional render observer IDs follow the unit IDs. Stages enclose unit
+ * callbacks, so stage totals must not be added to unit totals. */
+enum fm1_app_profile_stage {
+  FM1_APP_PROFILE_SOUNDS, FM1_APP_PROFILE_MASTERS, FM1_APP_PROFILE_AMP,
+  FM1_APP_PROFILE_LIMITER, FM1_APP_PROFILE_SCOPE, FM1_APP_PROFILE_UI,
+  FM1_APP_PROFILE_STAGES
+};
 #define FM1_APP_MAX_FRAMES 64
 #define FM1_APP_MAX_PARAMS 32
 #define FM1_APP_SCOPE 512

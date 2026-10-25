@@ -24,8 +24,8 @@ static int units[8];
 #ifndef FM1_APP_RENDER_PROFILE
 #error Renderer profiling requires the shared app observer
 #endif
-static struct lunar_renderer_profile profile[FM1_APP_UNITS];
-static uint32_t profile_start[FM1_APP_UNITS];
+static struct lunar_renderer_profile profile[FM1_APP_UNITS + FM1_APP_PROFILE_STAGES];
+static uint32_t profile_start[FM1_APP_UNITS + FM1_APP_PROFILE_STAGES];
 static uint32_t (*profile_now)(void);
 void lunar_devkit_renderer_profile_clock(uint32_t (*now)(void)) { profile_now = now; }
 void lunar_devkit_renderer_profile_read(unsigned unit, struct lunar_renderer_profile *out) {
@@ -33,8 +33,13 @@ void lunar_devkit_renderer_profile_read(unsigned unit, struct lunar_renderer_pro
     else memset(out, 0, sizeof *out);
 }
 void lunar_devkit_renderer_profile_reset(void) { memset(profile, 0, sizeof profile); }
+unsigned lunar_devkit_renderer_profile_stages(void) { return FM1_APP_PROFILE_STAGES; }
+void lunar_devkit_renderer_stage_read(unsigned stage, struct lunar_renderer_profile *out) {
+    if (stage < FM1_APP_PROFILE_STAGES) *out = profile[FM1_APP_UNITS + stage];
+    else memset(out, 0, sizeof *out);
+}
 void fm1_app_render_profile(unsigned unit, uint32_t frames, int entering) {
-    if (unit >= FM1_APP_UNITS) { ++state.invalid; return; }
+    if (unit >= FM1_APP_UNITS + FM1_APP_PROFILE_STAGES) { ++state.invalid; return; }
     uint32_t tick = profile_now ? profile_now() : 0;
     if (entering) profile_start[unit] = tick;
     else {

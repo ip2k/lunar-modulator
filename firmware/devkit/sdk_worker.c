@@ -28,6 +28,13 @@ static void emit_renderer(const struct lunar_renderer_timing *r)
                r->test_case, i, p.calls, p.frames, p.calls ? (unsigned)(p.ticks / p.calls) : 0u,
                p.max_ticks, (unsigned)(p.ticks / r->blocks));
     }
+    for (unsigned i = 0; i < lunar_devkit_renderer_profile_stages(); ++i) {
+        struct lunar_renderer_profile p;
+        lunar_devkit_renderer_stage_read(i, &p);
+        printf("LUNAR_RENDERER_STAGE case=%u stage=%u calls=%u frames=%u mean_call=%u max_call=%u mean_block=%u\n",
+               r->test_case, i, p.calls, p.frames, p.calls ? (unsigned)(p.ticks / p.calls) : 0u,
+               p.max_ticks, (unsigned)(p.ticks / r->blocks));
+    }
 #endif
 }
 #endif

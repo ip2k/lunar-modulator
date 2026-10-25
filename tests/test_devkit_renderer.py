@@ -100,7 +100,21 @@ int main(void) {
             assert(p.calls && p.frames == 5513u * 64u);
             assert(p.ticks == 17ull * p.calls && p.max_ticks == 17u);
         }
+        assert(lunar_devkit_renderer_profile_stages() == 6);
+        for (unsigned i = 0; i < 6; ++i) {
+            struct lunar_renderer_profile p;
+            lunar_devkit_renderer_stage_read(i, &p);
+            assert(p.calls == 5513 && p.frames == 5513u * 64u);
+            /* Sounds/masters include the nested unit clock reads. */
+            assert(p.ticks >= 17ull * p.calls && p.max_ticks >= 17u);
+            if (i >= 2) assert(p.ticks == 17ull * p.calls && p.max_ticks == 17u);
+        }
         lunar_devkit_renderer_profile_reset();
+        for (unsigned i = 0; i <= 6; ++i) {
+            struct lunar_renderer_profile p;
+            lunar_devkit_renderer_stage_read(i, &p);
+            assert(!p.calls && !p.frames && !p.ticks && !p.max_ticks);
+        }
         for (unsigned i = 0; i <= 8; ++i) {
             struct lunar_renderer_profile p;
             lunar_devkit_renderer_profile_read(i, &p);

@@ -29,6 +29,7 @@ extern void fm1_app_render_profile(unsigned unit, uint32_t frames, int entering)
 #else
 #define PROFILE_UNIT(unit, frames, entering) ((void)0)
 #endif
+#define PROFILE_STAGE(stage, frames, entering) PROFILE_UNIT(FM1_APP_UNITS + (stage), frames, entering)
 
 /* Compile-time checks of the sequencer's fixed sizes (docs/15 §2.6; C99 has
  * no static_assert): the event buffer is 3,264 B, the pending record one
@@ -3622,19 +3623,28 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
    * every sound unit split at each one it takes, its inserts and its level;
    * the runtime's ticks run inside the block at their own frames
    * (fm1_mod_host.h). */
+  PROFILE_STAGE(FM1_APP_PROFILE_SOUNDS, n, 1);
   render_sounds(a, n, out);
+  PROFILE_STAGE(FM1_APP_PROFILE_SOUNDS, n, 0);
   if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS, out, n);   /* the Mix */
+  PROFILE_STAGE(FM1_APP_PROFILE_MASTERS, n, 1);
   for (int u = 1; u <= FM1_APP_FX_SLOTS; ++u) {   /* the master bus, after the mix */
     if (a->unit[u].e) {
       render_fx(a, u, out, n);
     }
     if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + (unsigned)u, out, n);
   }
+  PROFILE_STAGE(FM1_APP_PROFILE_MASTERS, n, 0);
+  PROFILE_STAGE(FM1_APP_PROFILE_AMP, n, 1);
   if (a->mod) apply_amp(a, out, n);
+  PROFILE_STAGE(FM1_APP_PROFILE_AMP, n, 0);
+  PROFILE_STAGE(FM1_APP_PROFILE_LIMITER, n, 1);
   /* The metronome's click (O11), from the block's events, as fm1-render
    * adds it: after the effects, before the limiter. */
   if (a->seq) fm1_seq_click_mix(&a->click, a->seq, a->seq_ev, a->seq_last_n, n, out);
   fm1_mix_limiter_process(&a->limiter, out, n);
+  PROFILE_STAGE(FM1_APP_PROFILE_LIMITER, n, 0);
+  PROFILE_STAGE(FM1_APP_PROFILE_SCOPE, n, 1);
   if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + FM1_APP_FX_SLOTS + 1u, out, n);   /* the output */
   for (uint32_t i = 0; i < n; ++i) {
     float m = 0.5f * (out[2 * i] + out[2 * i + 1]);
@@ -3647,6 +3657,8 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
     for (uint32_t i = 0; i < 2 * n; ++i) out[i] *= a->gain;
   }
   if (a->edit) fm1_edit_meter(a, FM1_TELE_POINTS + FM1_APP_SOUNDS, out, n);
+  PROFILE_STAGE(FM1_APP_PROFILE_SCOPE, n, 0);
+  PROFILE_STAGE(FM1_APP_PROFILE_UI, n, 1);
   a->frames += n;
   if (a->edit) {                         /* ARP held: Latch, for the next block: the panel's */
     const uint8_t src = a->edit->src;
@@ -3684,6 +3696,7 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   }
   update_leds(a);
   if (a->edit) fm1_edit_block_end(a);    /* module outputs' extremes, when subscribed */
+  PROFILE_STAGE(FM1_APP_PROFILE_UI, n, 0);
   return out;
 }
 

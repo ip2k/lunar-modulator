@@ -1453,3 +1453,28 @@ still fails the approximately 1,451 us deadline. There was no DAC or KA6
 capture in this timing-only run. Analog acceptance and sustained soaks remain
 incomplete. Exact source head `82c74b3d` passed all 13 CI jobs (40159566208)
 and Pages (40159566233); PR #155 remains draft and unmerged.
+
+### Separating the unassigned renderer cost
+
+[verified, offline] Six opt-in enclosing stage timers now separate sound
+sequencing/mixing, master effects, amplitude modulation, click/limiter,
+scope/gain and UI work. Stage totals include nested unit callbacks and must
+not be added to unit totals. Host checks preserve all four PCM hashes and
+cover every stage/frame, timer wrap and reset. The 65 focused Linux checks
+pass. Rarefaction selects the primary checkout, so its app context is older
+than this sibling worktree and its named Python lookup is incomplete; Serena
+and bounded actual-source reads establish the worktree changes. Neither
+index is evidence for pi32v2 code generation.
+
+[verified, offline] The vendor link has zero audit failures; its expected
+SDK scheduling item was independently checked in vendor disassembly. Startup
+still reserves UART first, gates worker creation on success and delays the
+workload for 200 OS ticks. Strong ROM/P33 entry is retained. Independent five
+section exports match the 550,352-byte app; sine/exp2 bytes are unchanged.
+The heap budget is 56,972 bytes before tasks, 160 bytes below the prior image.
+Candidate `e16931a08a7357b4e2cf97adeee9d4628f89a1de8706b5db3c33e4870e3b54f4`
+preserves factory boot/config/tail, passes independent cipher/CRC and the
+135-sector install/restore model with four interrupted-page recoveries.
+Admission is for a timing preflight; it is not installed or target accepted.
+The real browser rebuild passes 108 parity scenarios with identical WASM
+bytes; profiling hooks remain absent from that ordinary build.
