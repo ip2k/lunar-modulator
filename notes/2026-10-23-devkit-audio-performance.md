@@ -3695,3 +3695,51 @@ by checked full-routine relocations. FM6 kernel/table bytes match v7 after
 checked readonly table and memset relocations. Independent objcopy app agrees;
 reference cipher/CRC and interrupted NOR restore at pages 7/1111/2183/2199 pass.
 The image is admitted offline only. Hardware recovery and timing remain untested.
+
+### Scheduling comparison — target result, deadline still fails
+
+[verified, hardware] Exact14dd startup recovery acknowledges PING/ARM/ENTER in
+79.1874 ms. Fresh ROM inquiry, two full current backups, factory restore,
+WINDOW install/readback, fresh startup recovery, two full new-image backups,
+factory restore and SAME RUN install/readback pass. Both reset receipts are
+consumed. Four arithmetic and PCM fingerprints match; 32 unit and 24 stage
+rows cover every output frame. All 81,308 pairs complete, disabled/error/
+wrong-core counts stay zero, and the worker exits with final equality intact.
+Heap is stable at 42,644 bytes; unused parent stack is 2,620/8,192 bytes and
+worker stack 3,260/4,096 bytes.
+
+| Keys case | Mean us | Max us | Late blocks / 5,513 |
+| --- | ---: | ---: | ---: |
+| 0 | 1,111.958 | 2,148.250 | 16 |
+| 1 | 1,250.875 | 2,039.167 | 169 |
+| 2 | 1,332.958 | 2,172.625 | 528 |
+| 3 | 1,425.542 | 2,331.208 | 2,176 |
+
+[verified] The earlier roughly 48,000-tick additions to unrelated stage maxima
+are absent in this comparison. Scheduling contributes materially, but the
+precise offending prior task/stall is not established. The busiest case has
+mean sound/insert 1,014.833 us, masters 247.417 us and control/UI 111.625 us;
+these are averages, not simultaneous per-block maxima. Deadline acceptance
+still FAILS. Mixed, DAC/KA6 and 30-minute analog acceptance remain open.
+Capture PID190628 was verified twice before one SIGTERM; terminal capture
+session preceded ordinary PING ACK. Board healthy idle. Private raw SHA-256
+40ce9e4ed17c1a9d590babe0fc774a42a3c7c45285f21a5f5cde649edc2fc8fc.
+
+### Exact-head CI evidence and focused repairs
+
+[verified] CI40228013436 macOS job121273554215 fails only the keys case-3
+fingerprint: Apple replay produces2e91545b versus Linux/target2f409722.
+Two local Apple replays reproduce the exact CI rows and identical complete
+PCM SHA-256 1cb0ae8884179c3d7265c28d2468e3cbde2f7fc7313a63bf567d0f6af15b6038.
+This establishes a platform-build difference, not its exact math/compiler
+cause. The regression pins the observed Apple fingerprint separately;
+Linux/target expectations, repeatability and profiled equality stay exact.
+The exact test body passes on macOS (pytest unavailable locally, body run
+with its environment adapter); the actual focused pytest passes on Aeon Linux.
+
+[verified] Chromium job121273554461 fails sequencer-native.mjs229 before
+pointer-down, dereferencing a null boundingBox during a resize redraw. The
+focused check now waits for measurable geometry before starting the existing
+real held-pointer sequence. Connected-target/click/native-state assertions
+remain unchanged. Complete sequencer-native Chromium check passes in the
+bounded Aeon container against synchronized tracked UI/test sources.

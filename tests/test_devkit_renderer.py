@@ -93,7 +93,12 @@ def test_keys_workload_replays_real_app_and_refuses_missing_master(tmp_path, mon
     assert all(row["workload"] == "keys" and row["invalid"] == row["clipped"] == "0"
                for row in rows)
     assert [int(row["case"]) for row in rows] == list(range(4)) * 2
-    assert [row["hash"] for row in rows[:4]] == ["1e3b4d6a", "8d53e78f", "2894bb36", "2f409722"]
+    # Apple and Linux math/toolchain paths have distinct PCM fingerprints.
+    # Pin each checked host exactly; Linux also matches the pi32v2 capture.
+    expected = ["1e3b4d6a", "8d53e78f", "2894bb36", "2f409722"]
+    if sys.platform == "darwin":
+        expected[-1] = "2e91545b"
+    assert [row["hash"] for row in rows[:4]] == expected
     assert all(0 < int(row["arena"]) <= 96 * 1024 for row in rows)
     assert [int(row["blocks"]) for row in rows] == [5513 * i for i in range(1, 9)]
     assert int(rows[-1]["controls"]) > 1000
