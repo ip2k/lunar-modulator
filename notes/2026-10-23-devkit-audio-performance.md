@@ -2555,3 +2555,30 @@ installs/restores exactly and recovers four interrupted pages, metadata last.
 Exact keys candidate `bee9d4bc83cc78e1c1a4a40448dc4211f2d8276cb6a8cad5878c9c5d7ee2aa36`
 is admitted only for the 137-sector unattended timing comparison. It has not
 yet been installed or hardware accepted. Mixed deadline failure remains.
+
+
+### Named keys arrangement — first target result (deadline failure)
+
+[verified, hardware] Startup UART PING/ARM/ENTER acknowledges, followed by
+fresh WL82/UBOOT inquiry and two matching full 8 MiB reads. Exact factory
+restore, same-image reinstall/readback and both single reset attempts pass
+their applicable gates; reset receipts are consumed. The initial transition
+restore using the new smaller image range refused before mutation, correctly
+protecting the installed larger image's last sector. Restoring with the
+installed image's reviewed range then passed; no bounds were widened.
+
+All four keys PCM hashes match the desktop, with four arithmetic patterns,
+32 unit rows (four active/four zero per case), 24 full stage rows and explicit
+completion. Means are 1,396.42 / 1,615.42 / 1,753.79 / 1,969.17 us; maxima
+are 2,220.46 / 2,319.08 / 2,516.71 / 2,763.17 us. Respectively 1,450 /
+5,228 / 5,510 / 5,513 blocks miss the roughly 1,451 us deadline. This named
+arrangement also fails acceptance. No analog or sustained soak is claimed.
+
+The instrument costs 244–791 us/block across densities; filter 205–209 us,
+echo 163–167 us, compressor 107–108 us, control/UI stage 167–175 us.
+The sound-stage time beyond instrument/filter counters is roughly 443–468 us;
+this is a profiling lead, not proof of any one function's cost. Free heap
+remains 9,140 bytes across five readings; peak worker stack is 5,548/8,192.
+The sole RX process was verified twice, terminated, and its session closed
+before ordinary post-run PING acknowledged. Private raw SHA-256:
+`b90584fd2da94af561b89c640e8fe30d7a6482a5275bc050a8f8306575ff758b`.
