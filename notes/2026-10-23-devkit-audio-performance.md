@@ -2911,3 +2911,30 @@ checks pass. Four interrupted-write cases restore correctly. App is 560220 bytes
 SRAM 81808 bytes, pre-task heap 49324 bytes; the same 137-sector boundary applies.
 The transaction/reset suites pass all 56 checks. Only this exact hash is added
 to admission. It has not yet been installed or accepted on hardware.
+
+
+### Settled compressor — target result
+
+[verified, hardware] Fresh startup recovery acknowledged in 78.6 ms.
+Fresh ROM inquiry, two full current-image backups, factory restore, same-image
+reinstall and full 8 MiB readback pass. Both one-shot reset receipts are consumed.
+All four PCM/arithmetic hashes, 32 unit/24 stage rows and complete frame/block
+counts match; invalid/clipped samples remain zero. The compressor falls from
+about 108 to 85 us/block. Total means are 1241.29 / 1443.92 / 1565.38 /
+1757.63 us (1.3–1.9 percent better); maxima 2095.13 / 2145.25 / 2371.88 /
+2600.29 us. Late blocks remain 104 / 2481 / 5034 / 5480 of 5513. Deadline
+acceptance FAILS. Heap remains 7380 bytes over five readings; peak worker
+stack 5552/8192 bytes. Exact owned RX was checked twice, closed and terminal
+before ordinary post-run PING acknowledged. Private raw SHA
+`a38a0572bd5828bc7e4a90ae497c6ffa065a763e65fc83aaec93ed0cfd5e8a05`.
+No DAC, analog or sustained-soak acceptance is claimed.
+
+[verified, offline investigation] The pinned SDK's linked task initializer
+recognizes a `#C0`/`#C1` task-name prefix and validates a core index of 0 or 1.
+This establishes a scheduling mechanism, not a working parallel renderer.
+FM6 currently shares its FmCore buses and per-voice scratch between voices;
+parallel voice work needs separate scratch, unchanged ordered mixing, bounded
+publication/timeout handling and fault injection before target admission.
+The sequencer/UI profile also remains about 114–120 us/block; its sync copies
+a complete 656-byte previous UI snapshot and reserves 1636 local stack bytes
+in the current vendor image. These are optimization leads, not measured gains.
