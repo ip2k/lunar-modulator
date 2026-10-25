@@ -2,6 +2,16 @@
 #ifndef LUNAR_DEVKIT_RENDERER_LIVE_H
 #define LUNAR_DEVKIT_RENDERER_LIVE_H
 #include <stdint.h>
+#ifndef LUNAR_RENDERER_WORKLOAD
+#define LUNAR_RENDERER_WORKLOAD 0
+#endif
+#if LUNAR_RENDERER_WORKLOAD == 0
+#define LUNAR_RENDERER_WORKLOAD_NAME "mixed"
+#elif LUNAR_RENDERER_WORKLOAD == 1
+#define LUNAR_RENDERER_WORKLOAD_NAME "keys"
+#else
+#error Unsupported diagnostic renderer workload
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif

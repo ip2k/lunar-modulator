@@ -41,8 +41,11 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile', 'renderer-mixer-profile', 'renderer-schedule-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile', 'renderer-mixer-profile', 'renderer-schedule-profile', 'renderer-keys-profile', 'renderer-keys-live'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
+    keys = mode in ('renderer-keys-profile', 'renderer-keys-live')
+    if keys:
+        mode = 'renderer-mixer-profile' if mode.endswith('profile') else 'renderer'
     engine_profile = mode == 'renderer-engine-profile'
     schedule = mode == 'renderer-schedule-profile'
     mixer_ram = mode == 'renderer-mixer-profile' or schedule
@@ -94,7 +97,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll, renderer_o3=renderer_o3, mixer_ram=mixer_ram, resampler_schedule=schedule)
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll, renderer_o3=renderer_o3, mixer_ram=mixer_ram, resampler_schedule=schedule, workload="keys" if keys else "mixed")
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -113,6 +116,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert 'if (!lunar_devkit_boot_control_start()) {' in main_text
         assert main_text.index('boot_control_start())') < main_text.index('int lunar_status = os_task_create')
     if renderer:
+        assert ('-DLUNAR_RENDERER_WORKLOAD=1' in result) == keys
         stack_words = 2048 if filter_process else 3072
         assert f'10, {stack_words}, 0, "lunar_devkit"' in (out/'apps/demo/demo_hello/app_main.c').read_text()
     if timing:
@@ -155,6 +159,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     if renderer:
         import hashlib, json
         receipt = json.loads((out/'lunar-devkit-input.json').read_text())
+        assert receipt['renderer_workload'] == ('keys' if keys else 'mixed')
         assert bool(receipt['hot_ram_sources']) == (mode in ('renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'))
         for name, digest in receipt['hot_ram_sources'].items():
             original = (ROOT/name).read_bytes()

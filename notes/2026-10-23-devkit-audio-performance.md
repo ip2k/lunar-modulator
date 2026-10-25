@@ -2523,3 +2523,19 @@ remains an explicit diagnostic comparison. Free heap is stable at 9,524 bytes
 over five readings; peak worker stack remains 5,548 of 8,192 bytes. Private
 raw SHA-256: `76c7f53d1c421b4bb8e345af2ce0f2962ebf87fdc280e75b3ca78172d6d74fc4`.
 No analog or sustained-soak acceptance is claimed.
+
+### Named shared-renderer keys arrangement — offline preparation
+
+[verified, source] The default mixed stress arrangement is retained. An
+explicit `--workload keys` selects FM6, a filter insert and echo/compressor
+masters through the same shared app. Sequencing, LFO brightness modulation,
+envelope/filter modulation, note densities, release tails and live level/
+cutoff edits remain. Both the build receipt and runtime name the workload;
+its results require separate PCM references and cannot accept the mixed test.
+Unused unit-profile rows are zero, rather than copies of sound zero.
+
+[verified, offline] The first replay rejected the nonexistent `env1` source;
+the arrangement now uses the existing `env3` modulation unit. 79 focused Linux checks pass (one ABI-dependent skip), including
+profiled/unprofiled output, full active-unit frame accounting,
+zero unused rows, deterministic two-cycle PCM, and refusal when the required
+compressor is absent. Target timing, analog and soak acceptance remain pending.

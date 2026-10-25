@@ -22,6 +22,7 @@ static uint32_t case_block, startup_frames, hash;
 static int ready;
 static const unsigned voices[] = {1, 4, 8, 12};
 static int units[8];
+static unsigned active_units;
 
 #ifdef LUNAR_RENDERER_PROFILE
 #ifndef FM1_APP_RENDER_PROFILE
@@ -52,7 +53,7 @@ void lunar_devkit_renderer_engine_read(unsigned region, struct lunar_renderer_pr
 #endif
 void lunar_devkit_renderer_profile_clock(uint32_t (*now)(void)) { profile_now = now; }
 void lunar_devkit_renderer_profile_read(unsigned unit, struct lunar_renderer_profile *out) {
-    if (unit < 8) *out = profile[units[unit]];
+    if (unit < active_units) *out = profile[units[unit]];
     else memset(out, 0, sizeof *out);
 }
 void lunar_devkit_renderer_profile_reset(void) {
@@ -95,15 +96,21 @@ int lunar_devkit_renderer_init(void) {
     if (ready) return 0;
     const fm1_host_t host = {FM1_ENGINE_API_VERSION, (float)RATE, BLOCK};
     fm1_app_arena_t arenas[FM1_APP_UNITS];
+#if LUNAR_RENDERER_WORKLOAD == 1
+    const char *ids[] = {"dx7", "filter", "echo", "comp"};
+    const int selected[] = {fm1_app_sound_unit(0), fm1_app_insert_unit(0, 0), 1, 2};
+#else
     const char *ids[] = {"dx7", "macro", "drums", "dx7", "filter", "drive", "echo", "comp"};
     const int selected[] = {fm1_app_sound_unit(0), fm1_app_sound_unit(1),
         fm1_app_sound_unit(2), fm1_app_sound_unit(3),
         fm1_app_insert_unit(0, 0), fm1_app_insert_unit(1, 0), 1, 2};
-    memcpy(units, selected, sizeof units);
+#endif
+    active_units = sizeof selected / sizeof selected[0];
+    memcpy(units, selected, sizeof selected);
     size_t used = 0;
     memset(arenas, 0, sizeof arenas);
     memset(&state, 0, sizeof state);
-    for (unsigned i = 0; i < sizeof units / sizeof units[0]; ++i) {
+    for (unsigned i = 0; i < active_units; ++i) {
         const fm1_engine_t *e = fm1_engine_find(ids[i]);
         if (!e) { state.init_error = 1; return 0; }
         size_t bytes = e->instance_size(&host);
@@ -116,26 +123,35 @@ int lunar_devkit_renderer_init(void) {
         if (used > sizeof pool) { state.init_error = 2; return 0; }
     }
     if (fm1_app_init_arenas(&app, (float)RATE, arenas)) { state.init_error = 3; return 0; }
-    for (unsigned i = 0; i < sizeof units / sizeof units[0]; ++i)
+    for (unsigned i = 0; i < active_units; ++i)
         if (fm1_app_select(&app, units[i], fm1_app_find(ids[i]))) { state.init_error = 4 + i; return 0; }
     state.arena_bytes = (uint32_t)used;
-    /* Fixed patches/models and modest wet levels; four distinguishable voices. */
+    /* Fixed patches/models and modest wet levels for the named arrangement. */
     fm1_app_set_param(&app, units[0], 0, 19); /* electric piano */
+#if LUNAR_RENDERER_WORKLOAD == 0
     fm1_app_set_param(&app, units[1], 0, 0);  /* VA model */
     fm1_app_set_param(&app, units[3], 0, 25); /* pad */
     fm1_app_set_param(&app, units[5], 3, .15f);
+#endif
     fm1_app_set_param(&app, 1, 3, .12f);
-    for (int s = 0; s < 4; ++s) {
+    for (int s = 0; s < (LUNAR_RENDERER_WORKLOAD == 1 ? 1 : 4); ++s) {
         fm1_app_unit_set_level(&app, s, s == 2 ? 45.f : 55.f);
         if (fm1_app_unit_route(&app, s, s) < 0) { state.init_error = 20; return 0; }
     }
     /* Each line is a small bounded setup transaction. No text parser in IRQ. */
-    if (!line("tog 0 0 48 100;tog 0 4 55 85;tog 0 8 58 95;tog 0 12 53 80") ||
-        !line("tog 1 0 36 100;tog 1 6 43 80;tog 1 8 34 95;tog 1 14 41 75") ||
+    if (!line("tog 0 0 48 100;tog 0 4 55 85;tog 0 8 58 95;tog 0 12 53 80")) {
+        state.init_error = 21; return 0;
+    }
+#if LUNAR_RENDERER_WORKLOAD == 0
+    if (!line("tog 1 0 36 100;tog 1 6 43 80;tog 1 8 34 95;tog 1 14 41 75") ||
         !line("tog 2 0 36 100;tog 2 4 37 85;tog 2 8 36 95;tog 2 12 37 90") ||
         !line("tog 3 0 60 75;tog 3 8 58 80")) { state.init_error = 21; return 0; }
     if (!mod("slot 3 lfo1 > snd2:Timbre amt=20") ||
         !mod("slot 4 env3 > snd1.fx1:Cutoff amt=15")) { state.init_error = 22; return 0; }
+#else
+    if (!mod("slot 3 lfo1 > snd1:Brightness amt=20") ||
+        !mod("slot 4 env3 > snd1.fx1:Cutoff amt=15")) { state.init_error = 22; return 0; }
+#endif
     fm1_app_button(&app, FM1_BTN_PLAY, 1);
     fm1_app_button(&app, FM1_BTN_PLAY, 0);
     case_block = startup_frames = 0;
@@ -159,7 +175,8 @@ void lunar_devkit_renderer_render(int16_t *out) {
         state.controls += voices[state.test_case];
     }
     if (!(case_block % 64u)) {
-        fm1_app_unit_set_level(&app, 1, (case_block & 64u) ? 45.f : 55.f);
+        fm1_app_unit_set_level(&app, LUNAR_RENDERER_WORKLOAD == 1 ? 0 : 1,
+                               (case_block & 64u) ? 45.f : 55.f);
         fm1_app_set_param(&app, fm1_app_insert_unit(0, 0), 1,
                           (case_block & 64u) ? 1200.f : 2400.f);
         state.controls += 2;

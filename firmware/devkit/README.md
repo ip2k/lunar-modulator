@@ -96,6 +96,21 @@ codec, so its output path needs separate validation.
 See the [active campaign](../../notes/2026-10-23-devkit-audio-performance.md)
 and [other FM1 runtime lessons](../../notes/2026-10-23-fm1-audio-runtime-comparison.md).
 
+### Named shared-renderer workloads
+
+`prepare-renderer-devkit.py --workload mixed` remains the default four-sound
+stress arrangement. `--workload keys` selects one FM6 instrument, a filter
+insert, echo and compressor masters, sequencing, brightness modulation and
+filter-envelope modulation. Both retain the 1/4/8/12-note density cycle,
+release tails and live level/cutoff edits through the app API. Required module
+failure refuses initialization; no automatic fallback changes the workload.
+The private build receipt, boot banner and desktop replay identify the name.
+
+Compare each workload with its own desktop PCM fingerprints. A passing keys
+deadline or analog soak establishes only that named arrangement; it cannot
+accept the mixed stress test or arbitrary combinations. Neither named option
+admits a flash image or establishes hardware acceptance by itself.
+
 ### Unattended dev-board test cycle
 
 The owner requires routine future dev-board tests to run without physical

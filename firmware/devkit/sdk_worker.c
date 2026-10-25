@@ -4,6 +4,9 @@
 #include "os/os_api.h"
 #include "asm/includes.h"
 #include "benchmark.h"
+#if defined(LUNAR_DEVKIT_RENDERER_TIMING) || defined(LUNAR_DEVKIT_RENDERER_AUDIO)
+#include "renderer_live.h"
+#endif
 #ifdef LUNAR_DEVKIT_RENDERER_TIMING
 #include "renderer_timing.h"
 #ifdef LUNAR_RENDERER_PROFILE
@@ -95,10 +98,10 @@ void lunar_devkit_worker(void *unused)
     (void)unused;
     os_time_dly(100);
 #ifdef LUNAR_DEVKIT_RENDERER_TIMING
-    printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=shared-renderer-no-dac\n", clk_get("sys"));
+    printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=shared-renderer-no-dac workload=" LUNAR_RENDERER_WORKLOAD_NAME "\n", clk_get("sys"));
 #elif defined(LUNAR_DEVKIT_AUDIO_PROBE)
 #ifdef LUNAR_DEVKIT_RENDERER_AUDIO
-    printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=shared-renderer-internal-dac\n", clk_get("sys"));
+    printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=shared-renderer-internal-dac workload=" LUNAR_RENDERER_WORKLOAD_NAME "\n", clk_get("sys"));
 #elif defined(LUNAR_DEVKIT_FM6_AUDIO)
     printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=fm6-internal-dac\n", clk_get("sys"));
 #else

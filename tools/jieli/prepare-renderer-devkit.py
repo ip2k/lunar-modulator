@@ -115,7 +115,9 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed"):
+    if workload not in ("mixed", "keys"):
+        raise ValueError("Unknown renderer workload; choose mixed or keys")
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -356,8 +358,10 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Unexpected SDK build structure; review renderer integration")
     # Defines must precede the immediate := snapshot for the DAC callback.
     renderer_flags = ""
+    if workload == "keys":
+        renderer_flags += "CFLAGS += -DLUNAR_RENDERER_WORKLOAD=1\n"
     if timing_only:
-        renderer_flags = "CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n"
+        renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n"
         if control_ram:
             renderer_flags += "CFLAGS += -DLUNAR_RENDERER_POOL_BYTES=139264\n"
         if profile:
@@ -388,6 +392,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "resampler_schedule": resampler_schedule,
         "resampler_schedule_original_sha256": schedule_input,
         "renderer_optimization": "-O3" if renderer_o3 else "-O2",
+        "renderer_workload": workload,
         "prepared_renderer_fragment_sha256": hashlib.sha256(fragment.read_bytes()).hexdigest(),
         "resampler_unroll_original_sha256": unroll_input,
         "engine_profile_original_sha256": engine_profile_inputs,
@@ -429,6 +434,8 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--timing-only", action="store_true",
                         help="Worker-context full-renderer preflight with OS yields; no DAC output")
+    parser.add_argument("--workload", choices=("mixed", "keys"), default="mixed",
+                        help="Named shared-renderer arrangement; keys is FM6/filter/echo/compressor, not the mixed stress test")
     parser.add_argument("--profile", action="store_true",
                         help="Time instrument/effect calls; requires --timing-only")
     parser.add_argument("--hot-ram", action="store_true",
@@ -462,4 +469,4 @@ if __name__ == "__main__":
     parser.add_argument("--resampler-schedule", action="store_true",
                         help="Group independent FIR sums/products; requires timing-only resident mixer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload)

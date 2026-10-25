@@ -52,13 +52,24 @@ int main(int argc, char **argv) {
             assert(state.completed_case == completed % 4);
             assert(energy > 0);
             ++nonzero_cases; energy = 0; completed = state.completed_cases;
-            printf("LUNAR_RENDERER completed=%u case=%u hash=%08x blocks=%u controls=%u arena=%u invalid=%u clipped=%u\n",
+            printf("LUNAR_RENDERER completed=%u case=%u hash=%08x blocks=%u controls=%u arena=%u invalid=%u clipped=%u workload=" LUNAR_RENDERER_WORKLOAD_NAME "\n",
                 completed, state.completed_case, state.completed_hash, state.blocks,
                 state.controls, state.arena_bytes, state.invalid, state.clipped);
         }
         assert(state.blocks <= 8u * ((8u * 44100u + 63u) / 64u));
     } while (state.cycles < 2);
     assert(nonzero_cases == 8 && state.controls > 100 && state.arena_bytes > 0);
+#ifdef LUNAR_RENDERER_PROFILE
+    for (unsigned i = 0; i < 8; ++i) {
+        struct lunar_renderer_profile p;
+        lunar_devkit_renderer_profile_read(i, &p);
+        if (i < (LUNAR_RENDERER_WORKLOAD == 1 ? 4u : 8u)) {
+            assert(p.calls && p.frames == state.blocks * 64u);
+        } else {
+            assert(!p.calls && !p.frames && !p.ticks && !p.max_ticks);
+        }
+    }
+#endif
     if (pcm && fclose(pcm)) return 2;
     return 0;
 }

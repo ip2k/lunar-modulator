@@ -78,6 +78,48 @@ def test_missing_effect_refuses_whole_workload():
     assert "LUNAR_RENDERER completed=" not in result.stdout
 
 
+def test_keys_workload_replays_real_app_and_refuses_missing_master(tmp_path, monkeypatch):
+    # This arrangement retains the real sequencer, two modulation routes,
+    # filter insert and both masters. No Macro/drum implementation is needed.
+    monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
+                      " -DLUNAR_RENDERER_WORKLOAD=1")
+    modules = MODULES.replace(",macro,drums", "").replace(",drive", "")
+    target = build_reference(modules)
+    pcm = tmp_path / "keys.pcm"
+    result = subprocess.run([str(target), str(pcm)], capture_output=True, text=True,
+                            check=True, env=dict(os.environ, LUNAR_TRAP_DIVZERO="1"))
+    rows = [dict(re.findall(r"(\w+)=(\w+)", line)) for line in result.stdout.splitlines()]
+    assert len(rows) == 8
+    assert all(row["workload"] == "keys" and row["invalid"] == row["clipped"] == "0"
+               for row in rows)
+    assert [int(row["case"]) for row in rows] == list(range(4)) * 2
+    assert [int(row["blocks"]) for row in rows] == [5513 * i for i in range(1, 9)]
+    assert int(rows[-1]["controls"]) > 1000
+    assert pcm.stat().st_size == 8 * 5513 * 64 * 4
+    replay = subprocess.run([str(target)], capture_output=True, text=True, check=True)
+    assert result.stdout == replay.stdout
+    monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
+                      " -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1")
+    profiled = subprocess.run([str(build_reference(modules))], capture_output=True,
+                              text=True, check=True)
+    # The reference also checks complete active-unit coverage and zero counts
+    # for the four unused workload rows, rather than duplicating sound zero.
+    assert profiled.stdout == result.stdout
+    missing = subprocess.run([str(build_reference(modules.replace(",comp", "")))],
+                             capture_output=True, text=True)
+    assert missing.returncode == 1 and "initialization refused: stage 1" in missing.stderr
+
+
+def test_unknown_renderer_workload_refused_before_sdk_access(tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("renderer_prepare", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    with pytest.raises(ValueError, match="Unknown renderer workload"):
+        module.prepare_renderer(tmp_path / "absent-sdk", ROOT, tmp_path / "out", workload="typo")
+    assert not (tmp_path / "out").exists()
+
+
 
 def test_profile_preserves_pcm_and_counts_all_unit_frames(tmp_path, monkeypatch):
     # Profiling must preserve PCM relative to the unprofiled build on this
