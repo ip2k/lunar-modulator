@@ -4025,3 +4025,24 @@ SDK-preparation/refusal tests pass. Vendor layout/stack, exact image admission
 and target performance remain pending; this is not a hardware-accepted image.
 Rarefaction remains rooted at the primary checkout and cannot find this
 worktree-only preparation tool; Serena locates its current function here.
+
+[verified, offline admission] V13 ELF SHA-256
+`553feae34c9a0555bdc18ead0f5249f04a21b6bc9120021149722e8b02344955`,
+app `69e39f04b660f477a48b1be5606d0c5a4e01fddc205c62554b99ecb1fcc2fb19`,
+563580bytes, end0x8da9c. The four selected functions reside in SRAM;
+pretask heap80620. Permanent mailbox0x1c15280/448bytes and worker0x1c15440/
+4260bytes remain aligned/disjoint in ram0 BSS below heap. Their addresses move;
+no claim of unchanged addresses is made. Timing frame260bytes, UI sync frame
+1108bytes; target high-water assessment remains required. Vendor code confirms
+UART18/4KiB allocation before parent16/8KiB, failed-allocation guard,200-tick
+recovery, fixed34829-tick/one-million-poll bounds, fences and finite worker exit.
+Exact kernel/table comparison after checked relocations, complete SDK/ROM-entry
+comparison and link audit pass (0 failures; scheduling pending covered by
+complete comparison). Diagnostic C/header and UI/control source hashes match;
+an older noncompiled README in build staging is not claimed current.
+Independent five-section objcopy, cipher/CRC and protected boot/config/tail
+checks pass. Exact image
+`6d977407df3c892278e6d41cd15f4e7c1c4763e886fba36b6c99456e4bf73bc9`
+uses138 sectors[0x4000,0x8e000). NOR install/restore and interrupted pages7/
+1111/2183/2199 restore factory exactly.113 admission/reset/SDK tests pass.
+Not installed or hardware accepted; V12 remains healthy idle.
