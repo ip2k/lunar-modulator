@@ -454,6 +454,10 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     if text.count(anchor) != (0 if timing_only else 1) or text.count("ifeq ($(LINK_AT), 1)") != 1:
         raise ValueError("Unexpected SDK build structure; review renderer integration")
     # Defines must precede the immediate := snapshot for the DAC callback.
+    # Keys uses 86896 target arena bytes; reserve 96 KiB with checked init
+    # bounds. Mixed retains its existing pool and complete workload.
+    renderer_pool_bytes = (96 if fm6_pair and workload == "keys" else
+                           136 if control_ram else 148) * 1024
     renderer_flags = ""
     if fm6_pair:
         renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_DEVKIT_FM6_SDK=1\n"
@@ -461,8 +465,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         renderer_flags += "CFLAGS += -DLUNAR_RENDERER_WORKLOAD=1\n"
     if timing_only:
         renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n"
-        if control_ram:
-            renderer_flags += "CFLAGS += -DLUNAR_RENDERER_POOL_BYTES=139264\n"
+        if control_ram or (fm6_pair and workload == "keys"):
+            renderer_flags += f"CFLAGS += -DLUNAR_RENDERER_POOL_BYTES={renderer_pool_bytes}\n"
         if profile:
             renderer_flags += "CFLAGS += -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1\n"
         if engine_profile:
@@ -518,7 +522,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
                        ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + ("; pre-scaled resampler kernel pairs" if resampler_slopes else "") + ("; sound mixer and effect dispatch code also SRAM" if mixer_ram else "") + ("; independent FIR scheduling groups" if resampler_schedule else "") + ("; sequencer event walk and slot dispatch also SRAM" if dispatch_ram else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
-        "renderer_pool_bytes": (136 if control_ram else 148) * 1024,
+        "renderer_pool_bytes": renderer_pool_bytes,
         "worker_stack_bytes": worker_stack_words * 4,
         "renderer_integration_complete": False,
         "hardware_acceptance": False,

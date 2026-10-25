@@ -3548,3 +3548,32 @@ Only the wrapper source input changed; prepared app_main/link script and the
 call relocation. Pretask heap is now 43628 bytes; estimated remaining boot
 heap is only 1684 bytes if allocations are unchanged. Startup recovery, actual
 heap/stack headroom and renderer timing remain mandatory target gates.
+
+### Keys arena capacity and parent allocation — 2026-10-25
+
+[verified, hardware] Imageafdc proves fresh UART ready/PING/ARM/ENTER in
+77.028 ms, but its 8192-byte parent stack allocation fails. No parent recovery
+window, renderer timing or pair work ran. The board returned to ROM; fresh
+ROM inquiry and two matching complete current-image backups pass. Both reset
+receipts remain consumed.
+
+[implemented, verified offline] The finite keys diagnostic now reserves 96 KiB
+for its renderer, versus 136 KiB previously. All prior target keys cases use
+86896 bytes, leaving 11408 bytes margin; initialization still checks capacity.
+Mixed remains unchanged. Stack sizes, instruments, rates, quality and order
+are unchanged. Full host renderer checks pass: 51 tests, one missing-multilib
+skip, including pinned four keys hashes, full two-thread PCM, synchronous and
+refusal fallback, and mixed replay.
+
+[verified, offline] Final ELF SHA-256
+`f9387def164e6ef1a286fd50a5e63efc8a5abe247d91ddb80d0e376cb0278de6`,
+independent app SHA-256
+`95da0ef4d79bd0bc691f1fe162e9d4a34f743746d6d02e1e5c432c816d1e83b5`,
+candidate SHA-256
+`718f09c30e9b4efe8fdf226926a3d0701bcab37609dbc4e2dbec7857f5580d25`.
+Exact SDK/ROM, UART-first parent window, static worker layout and kernel
+review pass. Kernel changes are checked memset-call and immutable algorithm-
+table address relocations; table bytes match. Pretask heap rises to 84588 bytes.
+Independent cipher/CRC and 138-sector NOR install/restore pass, including
+interruptions at pages 7, 1111, 2183 and 2199. Hardware startup, both stack
+headrooms, pair completion and renderer deadlines remain unaccepted.

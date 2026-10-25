@@ -82,7 +82,7 @@ def test_keys_workload_replays_real_app_and_refuses_missing_master(tmp_path, mon
     # This arrangement retains the real sequencer, two modulation routes,
     # filter insert and both masters. No Macro/drum implementation is needed.
     monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
-                      " -DLUNAR_RENDERER_WORKLOAD=1")
+                      " -DLUNAR_RENDERER_WORKLOAD=1 -DLUNAR_RENDERER_POOL_BYTES=98304")
     modules = MODULES.replace(",macro,drums", "").replace(",drive", "")
     target = build_reference(modules)
     pcm = tmp_path / "keys.pcm"
@@ -93,6 +93,8 @@ def test_keys_workload_replays_real_app_and_refuses_missing_master(tmp_path, mon
     assert all(row["workload"] == "keys" and row["invalid"] == row["clipped"] == "0"
                for row in rows)
     assert [int(row["case"]) for row in rows] == list(range(4)) * 2
+    assert [row["hash"] for row in rows[:4]] == ["1e3b4d6a", "8d53e78f", "2894bb36", "2f409722"]
+    assert all(0 < int(row["arena"]) <= 96 * 1024 for row in rows)
     assert [int(row["blocks"]) for row in rows] == [5513 * i for i in range(1, 9)]
     assert int(rows[-1]["controls"]) > 1000
     assert pcm.stat().st_size == 8 * 5513 * 64 * 4
@@ -471,7 +473,7 @@ def test_copied_kernel_attachment_preserves_full_renderer_pcm(tmp_path, monkeypa
     extra = os.environ.get('FM1_SIM_EXTRA', '') + (
         ' -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_MAILBOX_HOST_TEST=1 -pthread')
     if workload == 'keys':
-        extra += ' -DLUNAR_RENDERER_WORKLOAD=1'
+        extra += ' -DLUNAR_RENDERER_WORKLOAD=1 -DLUNAR_RENDERER_POOL_BYTES=98304'
     monkeypatch.setenv('FM1_SIM_EXTRA', extra)
     target = build_reference(MODULES)
     baseline = tmp_path / 'baseline.pcm'
