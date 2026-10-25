@@ -41,10 +41,10 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
-    renderer = mode in ('renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile')
-    timing = mode in ('renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile')
+    renderer = mode in ('renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile')
+    timing = mode in ('renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile')
     live = mode == 'fm6-audio'
     audio_probe, fm6 = mode in ('audio', 'renderer'), mode in ('fm6', 'fm6-ram')
     spec = importlib.util.spec_from_file_location('prepare_devkit', ROOT/'tools/jieli/prepare-devkit.py')
@@ -73,7 +73,14 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         renderer_spec = importlib.util.spec_from_file_location('prepare_renderer', ROOT/'tools/jieli/prepare-renderer-devkit.py')
         renderer_module = importlib.util.module_from_spec(renderer_spec)
         renderer_spec.loader.exec_module(renderer_module)
-        renderer_module.prepare_renderer(sdk, ROOT, out, timing_only=timing, profile=mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile'), hot_ram=mode in ('renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile'), sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile'), resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile'), cache_tables=mode == 'renderer-cache-profile')
+        renderer_module.prepare_renderer(
+            sdk, ROOT, out, timing_only=timing,
+            profile=mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
+            hot_ram=mode in ('renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
+            sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
+            resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
+            cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
+            fx_ram=mode == 'renderer-fx-profile')
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -95,8 +102,8 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert '10, 3072, 0, "lunar_devkit"' in (out/'apps/demo/demo_hello/app_main.c').read_text()
     if timing:
         assert '-DLUNAR_DEVKIT_RENDERER_TIMING=1' in result
-        assert ('-DLUNAR_RENDERER_PROFILE=1' in result) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile'))
-        assert ('-DFM1_APP_RENDER_PROFILE=1' in result) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile'))
+        assert ('-DLUNAR_RENDERER_PROFILE=1' in result) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'))
+        assert ('-DFM1_APP_RENDER_PROFILE=1' in result) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'))
         assert (out/'apps/demo/demo_hello/renderer_timing.h').exists()
         assert not (out/'apps/demo/demo_hello/audio_probe.c').exists()
         makefile = out/'apps/demo/demo_hello/board/wl82/Makefile'
@@ -105,8 +112,8 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         flags = subprocess.run(['make', '-s', '-f', str(makefile), 'print-renderer-flags'],
                                cwd=makefile.parent, check=True, capture_output=True, text=True).stdout
         assert '-DLUNAR_DEVKIT_RENDERER_TIMING=1' in flags
-        assert ('-DLUNAR_RENDERER_PROFILE=1' in flags) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile'))
-        assert ('-DFM1_APP_RENDER_PROFILE=1' in flags) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile'))
+        assert ('-DLUNAR_RENDERER_PROFILE=1' in flags) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'))
+        assert ('-DFM1_APP_RENDER_PROFILE=1' in flags) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'))
     if audio_probe or live:
         # Exercise Make's immediate target-variable expansion, not merely the
         # presence of a later global define in the generated text.
@@ -132,25 +139,25 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     if renderer:
         import hashlib, json
         receipt = json.loads((out/'lunar-devkit-input.json').read_text())
-        assert bool(receipt['hot_ram_sources']) == (mode in ('renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile'))
+        assert bool(receipt['hot_ram_sources']) == (mode in ('renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'))
         for name, digest in receipt['hot_ram_sources'].items():
             original = (ROOT/name).read_bytes()
             assert digest == hashlib.sha256(original).hexdigest()
             prepared = (out/'lunar-source'/name).read_bytes()
             prefix = b'#pragma code_seg(".volatile_ram_code")\n' + original
-            if mode in ('renderer-resampler-profile', 'renderer-cache-profile') and name == 'engines/src/mi_macro.cc':
+            if mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile') and name == 'engines/src/mi_macro.cc':
                 assert prepared.startswith(prefix)
             else:
                 assert prepared == prefix
             assert receipt['inputs'][name] == hashlib.sha256(prepared).hexdigest()
         original = (ROOT/'engines/src/msfa_rom.cc').read_bytes()
         prepared = (out/'lunar-source/engines/src/msfa_rom.cc').read_bytes()
-        section = b'.lunar_cache_tables' if mode == 'renderer-cache-profile' else b'.volatile_ram'
-        if mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile'):
+        section = b'.lunar_cache_tables' if mode in ('renderer-cache-profile', 'renderer-fx-profile') else b'.volatile_ram'
+        if mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'):
             assert receipt['sine_ram_original_sha256'] == hashlib.sha256(original).hexdigest()
             expected = original.replace(b'extern const int32_t kSinTab[2048] = {',
                 b'extern const int32_t kSinTab[2048] __attribute__((section("' + section + b'"))) = {', 1)
-            if mode == 'renderer-cache-profile':
+            if mode in ('renderer-cache-profile', 'renderer-fx-profile'):
                 expected = expected.replace(b'extern const int32_t kExp2Tab[2048] = {',
                     b'extern const int32_t kExp2Tab[2048] __attribute__((section(".lunar_cache_tables"))) = {', 1)
             assert prepared == expected
@@ -158,7 +165,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             assert receipt['sine_ram_original_sha256'] is None and prepared == original
         original = (ROOT/'engines/include/fm1_resampler.h').read_bytes()
         prepared = (out/'lunar-source/engines/include/fm1_resampler.h').read_bytes()
-        if mode in ('renderer-resampler-profile', 'renderer-cache-profile'):
+        if mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'):
             import re
             assert receipt['resampler_ram_original_sha256'] == hashlib.sha256(original).hexdigest()
             definitions = re.findall(rb'static const float fm1_resampler_\w+\[[^\]]+\] = \{.*?\n\};', original, re.S)
@@ -173,10 +180,13 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         else:
             assert receipt['resampler_ram_original_sha256'] is None
             assert prepared == original
-        assert receipt['cache_tables'] == (mode == 'renderer-cache-profile')
+        assert receipt['cache_tables'] == (mode in ('renderer-cache-profile', 'renderer-fx-profile'))
+        assert receipt['fx_ram'] == (mode == 'renderer-fx-profile')
+        effects = {'engines/src/fx_comp.cc', 'engines/src/fx_drive.cc', 'engines/src/fx_echo.cc'}
+        assert effects.intersection(receipt['hot_ram_sources']) == (effects if mode == 'renderer-fx-profile' else set())
         linked = (out/'cpu/wl82/sdk_ld_sfc.c').read_bytes()
         assert receipt['prepared_link_script_sha256'] == hashlib.sha256(linked).hexdigest()
-        if mode == 'renderer-cache-profile':
+        if mode in ('renderer-cache-profile', 'renderer-fx-profile'):
             assert receipt['cache_link_original_sha256']
             assert b'    .cache_ram_data ALIGN(4):\n    {\n        *(.lunar_cache_tables)\n' in linked
             assert b'FREE_DACHE_WAY' not in linked  # No way-allocation edits.

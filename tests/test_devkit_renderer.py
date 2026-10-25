@@ -135,6 +135,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'fx_ram': True},
+    {'fx_ram': True, 'timing_only': True},
     {'cache_tables': True},
     {'cache_tables': True, 'timing_only': True, 'hot_ram': True, 'sine_ram': True},
     {'profile': True}, {'hot_ram': True}, {'sine_ram': True},

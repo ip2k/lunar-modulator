@@ -23,7 +23,7 @@ HOT_RAM_SOURCES = (
 )
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -34,6 +34,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Resampler SRAM comparison requires timing-only hot code and sine SRAM")
     if cache_tables and not (timing_only and hot_ram and sine_ram and resampler_ram):
         raise ValueError("Cache table comparison requires timing-only hot code, sine and resampler SRAM")
+    if fx_ram and not (timing_only and cache_tables):
+        raise ValueError("Effect SRAM comparison requires timing-only cache table placement")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -64,7 +66,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         # existing -fms-extensions flag; modern clang section is ignored.
         # Preserve LTO/arithmetic flags and source bodies. Only prepared private
         # copies change. Constants deliberately stay in XIP in this comparison.
-        for name in HOT_RAM_SOURCES:
+        selected_hot = HOT_RAM_SOURCES + (("engines/src/fx_comp.cc", "engines/src/fx_drive.cc",
+                                            "engines/src/fx_echo.cc") if fx_ram else ())
+        for name in selected_hot:
             p = staging / name
             original = p.read_bytes()
             hot_inputs[name] = hashlib.sha256(original).hexdigest()
@@ -158,9 +162,10 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "sine_ram_original_sha256": sine_input,
         "resampler_ram_original_sha256": resampler_input,
         "cache_tables": cache_tables,
+        "fx_ram": fx_ram,
         "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": 148 * 1024,
         "worker_stack_bytes": 12 * 1024,
@@ -197,5 +202,7 @@ if __name__ == "__main__":
                         help="Compare one shared SRAM coefficient copy; requires timing-only hot code and sine SRAM")
     parser.add_argument("--cache-tables", action="store_true",
                         help="Compare sine/exp2/resampler in existing SDK data RAM; requires all timing-only SRAM options")
+    parser.add_argument("--fx-ram", action="store_true",
+                        help="Compare compressor/drive/echo code in SRAM; requires timing-only cache tables")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram)

@@ -1750,3 +1750,14 @@ the measurement reset. The receive-only capture completed and was closed by
 matching its exact process command line; ordinary post-workload PING succeeds.
 Raw capture SHA-256 `704e500cec67067ba2eb9d4a5e7842625c294244bfb10e07b0360cccd10a09c2`
 is retained privately. DAC remains off; no analog or soak acceptance is claimed.
+
+
+[verified, offline] Actual cache-image symbols still place compressor, drive
+and echo render paths in XIP. Their linked functions total approximately
+11.5 KiB. The next preparation-only `--fx-ram` comparison applies the existing
+vendor code-segment pragma to those three source copies, preserving DSP
+bodies, constants, flags and workload. It requires timing-only cache-table
+placement and retains recovery-first allocation. All 24 local preparation/
+rejection cases pass after correcting a test-call syntax error caught during
+collection. Vendor placement, remaining heap, exact-image review and hardware
+results remain pending; no image has been admitted for this option.
