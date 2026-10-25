@@ -1914,3 +1914,27 @@ otherwise identical. Cipher/CRC/protected factory checks and the 135-sector
 NOR interruption/restore model pass. Exact admitted image SHA-256:
 `842758192917d9eeaf877d1117b1e38426063fd432e6f00fa7fe09c507844bd0`.
 Hardware allocation, recovery, timing and stack checks remain pending.
+
+### Filter-v2 target timing and stack acceptance
+
+[verified] The 8 KiB renderer stack allocates successfully. Four cases
+complete with all four arithmetic bit patterns and PCM hashes unchanged,
+32 unit and 24 stage rows covering 352,832 frames per case, and zero
+invalid/clipped samples. Heap remains 6,516 bytes across five readings.
+Peak stack use is 5,544 bytes in every case, leaving 2,648 bytes. Ordinary
+post-run PING acknowledges. No physical button was needed for recovery or
+measurement; full backup/restore/reinstall/readback checks passed.
+
+| FM6 voices | Mean render (us) | Maximum (us) | Filter (us) | Mean reduction versus FX |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 3620.25 | 4376.29 | 245.54 | 1.52% |
+| 4 | 3898.63 | 4489.50 | 238.88 | 1.32% |
+| 8 | 4023.46 | 4702.96 | 238.54 | 1.13% |
+| 12 | 4215.13 | 4962.46 | 239.04 | 1.12% |
+
+[verified] The filter's own measured mean improves 14.0–15.0%. Every one
+of the 5,513 blocks in every case still exceeds the approximately 1,451 us
+deadline. This worker-only, DAC-off run is not dropout-free audio acceptance.
+No KA6 analog soak was attempted. Private raw capture SHA-256:
+`5e7d1b9f76385ccb52ccd91dd781b9ee4cbfd28f1c9d5734ecc56986a995d23d`.
+The installed exact image is `84275819…`; PR #155 remains draft and unmerged.
