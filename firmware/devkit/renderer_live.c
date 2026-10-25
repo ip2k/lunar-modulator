@@ -50,6 +50,35 @@ void lunar_devkit_renderer_detail_read(unsigned region, struct lunar_renderer_pr
 uint32_t lunar_devkit_renderer_detail_last(unsigned region) {
     return region < LUNAR_RENDERER_DETAIL_REGIONS ? last_detail[region] : 0;
 }
+#ifdef LUNAR_RENDERER_PREP_PROFILE
+static struct lunar_renderer_profile prep[LUNAR_RENDERER_PREP_REGIONS];
+static uint32_t prep_start[LUNAR_RENDERER_PREP_REGIONS];
+static uint32_t last_prep[LUNAR_RENDERER_PREP_REGIONS];
+static int prep_active;
+void lunar_devkit_prep_profile(unsigned region, int entering) {
+    if (!prep_active) return; /* Exclude setup before the measured render. */
+    if (region >= LUNAR_RENDERER_PREP_REGIONS) { ++state.invalid; return; }
+    uint32_t tick = profile_now ? profile_now() : 0;
+    if (entering) prep_start[region] = tick;
+    else {
+        uint32_t elapsed = tick - prep_start[region];
+        struct lunar_renderer_profile *p = &prep[region];
+        p->ticks += elapsed; ++p->calls;
+        last_prep[region] += elapsed;
+        if (elapsed > p->max_ticks) p->max_ticks = elapsed;
+    }
+}
+void lunar_devkit_renderer_prep_read(unsigned region, struct lunar_renderer_profile *out) {
+    if (region < LUNAR_RENDERER_PREP_REGIONS) *out = prep[region];
+    else memset(out, 0, sizeof *out);
+}
+uint32_t lunar_devkit_renderer_prep_last(unsigned region) {
+    return region < LUNAR_RENDERER_PREP_REGIONS ? last_prep[region] : 0;
+}
+#define PREP(region, entering) lunar_devkit_prep_profile(region, entering)
+#else
+#define PREP(region, entering) ((void)0)
+#endif
 #ifdef LUNAR_RENDERER_ENGINE_PROFILE
 static struct lunar_renderer_profile engine_profile[LUNAR_RENDERER_ENGINE_REGIONS];
 static uint32_t engine_start[LUNAR_RENDERER_ENGINE_REGIONS];
@@ -80,6 +109,11 @@ void lunar_devkit_renderer_profile_reset(void) {
     memset(last_stage, 0, sizeof last_stage);
     memset(detail, 0, sizeof detail);
     memset(last_detail, 0, sizeof last_detail);
+#ifdef LUNAR_RENDERER_PREP_PROFILE
+    memset(prep, 0, sizeof prep);
+    memset(prep_start, 0, sizeof prep_start);
+    memset(last_prep, 0, sizeof last_prep);
+#endif
 #ifdef LUNAR_RENDERER_ENGINE_PROFILE
     memset(engine_profile, 0, sizeof engine_profile);
 #endif
@@ -107,6 +141,9 @@ void fm1_app_render_profile(unsigned unit, uint32_t frames, int entering) {
 }
 #endif
 
+#ifndef LUNAR_RENDERER_PROFILE
+#define PREP(region, entering) ((void)0)
+#endif
 static int line(const char *ops) {
     size_t n = strlen(ops);
     return fm1_app_seq_line(&app, ops, n) == n;
@@ -195,23 +232,35 @@ void lunar_devkit_renderer_render(int16_t *out) {
     uint32_t boundary[4];
     boundary[0] = profile_now ? profile_now() : 0;
 #endif
+#ifdef LUNAR_RENDERER_PREP_PROFILE
+    memset(last_prep, 0, sizeof last_prep);
+    prep_active = 1;
+#endif
     /* Density increases every eight seconds; ongoing sequencer notes and
      * release tails remain active. Control edits use the app's real API. */
     if (!case_block) {
+        PREP(0, 1);
         for (unsigned n = 0; n < voices[state.test_case]; ++n)
             fm1_app_unit_note_on(&app, 0, 48 + (int)n, 90);
         state.controls += voices[state.test_case];
+        PREP(0, 0);
     }
     if (case_block == (6u * RATE / BLOCK)) {
+        PREP(1, 1);
         for (unsigned n = 0; n < voices[state.test_case]; ++n)
             fm1_app_unit_note_off(&app, 0, 48 + (int)n);
         state.controls += voices[state.test_case];
+        PREP(1, 0);
     }
     if (!(case_block % 64u)) {
+        PREP(2, 1);
         fm1_app_unit_set_level(&app, LUNAR_RENDERER_WORKLOAD == 1 ? 0 : 1,
                                (case_block & 64u) ? 45.f : 55.f);
+        PREP(2, 0);
+        PREP(3, 1);
         fm1_app_set_param(&app, fm1_app_insert_unit(0, 0), 1,
                           (case_block & 64u) ? 1200.f : 2400.f);
+        PREP(3, 0);
         state.controls += 2;
     }
 #ifdef LUNAR_RENDERER_PROFILE
@@ -245,6 +294,9 @@ void lunar_devkit_renderer_render(int16_t *out) {
         p->ticks += elapsed; ++p->calls; p->frames += BLOCK;
         if (elapsed > p->max_ticks) p->max_ticks = elapsed;
     }
+#endif
+#ifdef LUNAR_RENDERER_PREP_PROFILE
+    prep_active = 0;
 #endif
     if (startup_frames < 2205u) startup_frames += BLOCK;
     ++state.blocks;

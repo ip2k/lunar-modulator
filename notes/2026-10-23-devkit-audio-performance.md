@@ -4075,3 +4075,20 @@ Every worst snapshot remains block0. The34829-tick deadline still FAILS;
 mixed, fault-validated DAC/KA6 and30-minute analog acceptance remain undone.
 Next measure the actual note/control preparation subregions before changing
 semantics; no claim that modulation planning causes the spike is supported yet.
+
+### Preparation cost diagnostic source checkpoint
+
+[verified, host] Opt-in `--prep-profile` adds eight nested diagnostic regions
+without changing the original call order: note-on/off batches, level/filter
+edits, engine note-on, modulation live-note, voice-start and plan build.
+Setup calls are excluded; per-call maxima and per-block sums remain distinct.
+The worst total-block snapshot retains matching region sums. All observer cost
+remains charged to the deadline. Source-normalization tests preserve every
+original call, and changed anchors/early planner returns are refused.
+83 focused preparation/refusal/PCM/counter-reset tests pass on bounded Aeon.
+Initial test execution exposed a fixture variable shadow and stale root-owned
+build dependency files; the fixture is fixed and a fresh build tag passes.
+Vendor build, exact-image review/admission and hardware timing remain pending;
+V13 stays healthy idle. Rarefaction cannot access this external worktree's new
+renderer source; Serena resolves the actual renderer symbol here. No missing
+caller claim is inferred from Rarefaction's empty/wrong-checkout results.

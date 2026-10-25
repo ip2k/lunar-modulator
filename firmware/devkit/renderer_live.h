@@ -45,6 +45,15 @@ uint32_t lunar_devkit_renderer_stage_last(unsigned stage);
 void lunar_devkit_renderer_profile_reset(void);
 void lunar_devkit_renderer_detail_read(unsigned region, struct lunar_renderer_profile *out);
 uint32_t lunar_devkit_renderer_detail_last(unsigned region);
+#ifdef LUNAR_RENDERER_PREP_PROFILE
+/* Nested diagnostic regions: note-on batch, note-off batch, level, filter,
+ * engine note-on, modulation live-note, voice start, modulation plan build.
+ * Counts are invocations, not rendered frames; nested totals must not be summed. */
+#define LUNAR_RENDERER_PREP_REGIONS 8u
+void lunar_devkit_prep_profile(unsigned region, int entering);
+void lunar_devkit_renderer_prep_read(unsigned region, struct lunar_renderer_profile *out);
+uint32_t lunar_devkit_renderer_prep_last(unsigned region);
+#endif
 #ifdef LUNAR_RENDERER_ENGINE_PROFILE
 /* Diagnostic prepared copies only: Macro generate/pop, drums generate/pop.
  * These regions are nested inside unit/stage totals, never additional work. */

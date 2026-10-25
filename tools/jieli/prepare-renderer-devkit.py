@@ -179,7 +179,41 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False):
+
+def instrument_prep_profile(text, planner=False):
+    """Observe existing C calls in private copies, preserving their order."""
+    signature = "void mod_plan_build(" if planner else "static void play_on("
+    functions = re.findall(re.escape(signature) + r"[^\n]+\{.*?\n\}", text, re.S)
+    if len(functions) != 1:
+        raise ValueError("Unexpected note/planner definition; review preparation profiling")
+    original = functions[0]
+    body = original
+    if planner:
+        if re.search(r"\breturn\b", body):
+            raise ValueError("Planner has an early return; review preparation profiling")
+        at = body.index("{") + 1
+        body = body[:at] + "\n  lunar_devkit_prep_profile(7, 1);" + body[at:]
+        body = body[:-2] + "\n  lunar_devkit_prep_profile(7, 0);\n}"
+    else:
+        anchors = (
+            (4, "if (s->e && s->e->note_on) s->e->note_on(s->self, (uint8_t)note, (uint8_t)velocity);"),
+            (5, "fm1_mod_live_sound_note(a->mod, (unsigned)sound, (uint8_t)note, (uint8_t)velocity);"),
+            (6, "n = fm1_mod_voice_start(a->mod, (unsigned)sound, (uint8_t)note, w, FM1_MOD_VDESTS + 1u);"),
+        )
+        for region, call in anchors:
+            if body.count(call) != 1:
+                raise ValueError("Unexpected note call; review preparation profiling")
+            # Region4 includes the original null guard; calls/order unchanged.
+            wrapped = (f"lunar_devkit_prep_profile({region}, 1);\n    " + call +
+                       f"\n    lunar_devkit_prep_profile({region}, 0);")
+            body = body.replace(call, wrapped, 1)
+    return ("extern void lunar_devkit_prep_profile(unsigned, int);\n" +
+            text.replace(original, body, 1))
+
+
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False):
+    if prep_profile and not (timing_only and profile):
+        raise ValueError("Preparation profiling requires the timing-only shared profile")
     if ui_ram and not (timing_only and dispatch_ram):
         raise ValueError("UI SRAM requires the timing-only resident dispatch comparison")
     if scheduling_probe and not fm6_pair:
@@ -456,6 +490,14 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         p = staging / "engines/include/fm1_resampler.h"
         schedule_input = hashlib.sha256(p.read_bytes()).hexdigest()
         p.write_text(schedule_resampler_lowpass(p.read_text()))
+    prep_profile_inputs = {}
+    if prep_profile:
+        for name, planner in (("sim/web/src/fm1_app.c", False),
+                              ("engines/mod/mod_plan.c", True)):
+            p = staging / name
+            original = p.read_bytes()
+            prep_profile_inputs[name] = hashlib.sha256(original).hexdigest()
+            p.write_text(instrument_prep_profile(original.decode(), planner))
     engine_profile_inputs = {}
     if engine_profile:
         for engine, name in enumerate(("engines/src/mi_macro.cc", "engines/src/drums.cc")):
@@ -495,6 +537,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             renderer_flags += f"CFLAGS += -DLUNAR_RENDERER_POOL_BYTES={renderer_pool_bytes}\n"
         if profile:
             renderer_flags += "CFLAGS += -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1\n"
+        if prep_profile:
+            renderer_flags += "CFLAGS += -DLUNAR_RENDERER_PREP_PROFILE=1\n"
         if engine_profile:
             renderer_flags += "CFLAGS += -DLUNAR_RENDERER_ENGINE_PROFILE=1\n"
     else:
@@ -529,6 +573,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "cache_tables": cache_tables,
         "plaits_cache": plaits_cache,
         "resampler_slopes": resampler_slopes,
+        "prep_profile": prep_profile,
+        "prep_profile_original_sha256": prep_profile_inputs,
         "engine_profile": engine_profile,
         "resampler_unroll": resampler_unroll,
         "resampler_schedule": resampler_schedule,
@@ -628,4 +674,6 @@ if __name__ == "__main__":
     parser.add_argument("--ui-ram", action="store_true",
                         help="Compare UI synchronization/query placement in SRAM; timing-only resident dispatch")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram)
+    parser.add_argument("--prep-profile", action="store_true",
+                        help="Observe note/control and nested planner costs; timing-only profile")
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile)

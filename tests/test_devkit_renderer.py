@@ -128,7 +128,8 @@ def test_unknown_renderer_workload_refused_before_sdk_access(tmp_path):
 
 
 
-def test_profile_preserves_pcm_and_counts_all_unit_frames(tmp_path, monkeypatch):
+@pytest.mark.parametrize("prep_profile", [False, True])
+def test_profile_preserves_pcm_and_counts_all_unit_frames(tmp_path, monkeypatch, prep_profile):
     # Profiling must preserve PCM relative to the unprofiled build on this
     # same host/libm. Keep the target-compatible Linux fingerprints pinned too.
     baseline = subprocess.run([str(build_reference(MODULES))], capture_output=True,
@@ -139,6 +140,8 @@ def test_profile_preserves_pcm_and_counts_all_unit_frames(tmp_path, monkeypatch)
         assert hashes == [0x6bcab227, 0x46c02687, 0x1e2f305d, 0x5b7dbc03]
     monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
                       " -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1")
+    if prep_profile:
+        monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] + " -DLUNAR_RENDERER_PREP_PROFILE=1")
     target = build_reference(MODULES)
     harness = tmp_path / "profile.cc"
     harness.write_text(r'''
@@ -181,13 +184,37 @@ int main(void) {
             lunar_devkit_renderer_detail_read(i, &p);
             assert(p.calls == 5513 && p.frames == 5513u * 64u);
             assert(p.ticks >= 17ull * p.calls && p.max_ticks >= 17u);
-            if (i != 1) assert(p.ticks == 17ull * p.calls && p.max_ticks == 17u);
+            if (i == 2) assert(p.ticks == 17ull * p.calls && p.max_ticks == 17u);
+#ifndef LUNAR_RENDERER_PREP_PROFILE
+            if (i == 0) assert(p.ticks == 17ull * p.calls && p.max_ticks == 17u);
+#endif
             assert(lunar_devkit_renderer_detail_last(i) >= 17u);
         }
         lunar_devkit_renderer_detail_read(LUNAR_RENDERER_DETAIL_REGIONS, &invalid_detail);
         assert(!invalid_detail.calls && !invalid_detail.frames && !invalid_detail.ticks);
         assert(!lunar_devkit_renderer_detail_last(LUNAR_RENDERER_DETAIL_REGIONS));
+#ifdef LUNAR_RENDERER_PREP_PROFILE
+        for (unsigned i = 0; i <= LUNAR_RENDERER_PREP_REGIONS; ++i) {
+            struct lunar_renderer_profile p;
+            lunar_devkit_renderer_prep_read(i, &p);
+            unsigned calls = i < 2 ? 1u : i < 4 ? 87u : 0u;
+            assert(p.calls == calls && p.frames == 0);
+            assert(p.ticks == 17ull * calls && p.max_ticks == (calls ? 17u : 0u));
+            /* Last controls run at5504; final5512 has no events. */
+            assert(!lunar_devkit_renderer_prep_last(i));
+        }
+        lunar_devkit_prep_profile(0, 1); /* inactive outside render */
+        lunar_devkit_prep_profile(0, 0);
+#endif
         lunar_devkit_renderer_profile_reset();
+#ifdef LUNAR_RENDERER_PREP_PROFILE
+        for (unsigned i = 0; i <= LUNAR_RENDERER_PREP_REGIONS; ++i) {
+            struct lunar_renderer_profile p;
+            lunar_devkit_renderer_prep_read(i, &p);
+            assert(!p.calls && !p.frames && !p.ticks && !p.max_ticks);
+            assert(!lunar_devkit_renderer_prep_last(i));
+        }
+#endif
         for (unsigned i = 0; i <= LUNAR_RENDERER_DETAIL_REGIONS; ++i) {
             struct lunar_renderer_profile p;
             lunar_devkit_renderer_detail_read(i, &p);
@@ -214,12 +241,15 @@ int main(void) {
     objects = sorted(str(p) for p in target.parent.rglob("*.o") if p.name != "renderer_reference.o")
     exe = tmp_path / "profile"
     subprocess.run([os.environ.get("FM1_SIM_CXX", "c++"), "-std=c++11", "-DLUNAR_RENDERER_PROFILE=1",
+                    *(["-DLUNAR_RENDERER_PREP_PROFILE=1"] if prep_profile else []),
                     "-I" + str(ROOT / "firmware/devkit"), str(harness), *objects,
                     "-lm", "-o", str(exe)], check=True)
     subprocess.run([str(exe)], check=True)
 
 
 @pytest.mark.parametrize('options', [
+    {'prep_profile': True},
+    {'prep_profile': True, 'timing_only': True},
     {'scheduling_probe': True},
     {'scheduling_probe': True, 'timing_only': True, 'profile': True, 'hot_ram': True},
     {'fm6_pair': True},
@@ -600,3 +630,28 @@ int main(int argc, char **argv) {
         pcm = tmp_path / f'attach-{mode}.pcm'
         subprocess.run([str(exe), str(mode), str(pcm)], check=True, timeout=120)
         assert hashlib.sha256(pcm.read_bytes()).hexdigest() == expected
+
+
+@pytest.mark.parametrize("planner", [False, True])
+def test_prep_profile_preserves_original_calls_and_refuses_drift(planner):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("prep_profile", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    path = "engines/mod/mod_plan.c" if planner else "sim/web/src/fm1_app.c"
+    original = (ROOT / path).read_text()
+    observed = module.instrument_prep_profile(original, planner)
+    assert observed.startswith("extern void lunar_devkit_prep_profile(unsigned, int);\n")
+    normalized = observed.split("\n", 1)[1]
+    # Drop only the newly inserted observer lines; normalize whitespace, not code.
+    normalized = re.sub(r"^ *lunar_devkit_prep_profile\(\d, [01]\);\n", "", normalized, flags=re.M)
+    assert re.sub(r"\s+", "", normalized) == re.sub(r"\s+", "", original)
+    regions = (7,) if planner else (4, 5, 6)
+    for region in regions:
+        assert observed.count(f"lunar_devkit_prep_profile({region}, 1);") == 1
+        assert observed.count(f"lunar_devkit_prep_profile({region}, 0);") == 1
+    with pytest.raises(ValueError):
+        module.instrument_prep_profile(original.replace("mod_plan_build(" if planner else "static void play_on(", "changed(", 1), planner)
+    if planner:
+        with pytest.raises(ValueError, match="early return"):
+            module.instrument_prep_profile(original.replace("void mod_plan_build(fm1_mod_t *m) {", "void mod_plan_build(fm1_mod_t *m) { return;", 1), True)
