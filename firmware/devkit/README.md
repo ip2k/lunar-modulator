@@ -320,3 +320,10 @@ callbacks rather than substituting their independent per-call maxima. Observer c
 remains in the measured total. The option changes no production source behavior
 and is refused for DAC builds. Exact vendor code, stack/layout, image admission,
 startup recovery, target PCM and deadline checks remain separate requirements.
+
+The private `--hook-ram` comparison additionally places the unchanged sequencer
+begin/tick callbacks, modulation glue begin/tick callbacks, modulation block
+begin, voice runner and voice-output helper in startup-copied SRAM. It requires
+timing-only profiled resident dispatch; it does not alter production renderer
+source, PCM math, tick rates, voice state transitions or event ordering. Inspect
+the actual linked ranges, heap and stack before admitting each exact image.

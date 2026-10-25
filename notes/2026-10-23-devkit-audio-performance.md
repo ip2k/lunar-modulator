@@ -4267,3 +4267,23 @@ insert/mix regions257.833/236.250/234.333/237.042us. Sequencer advance is
 12.750–20.750us on the worst block; flush stays0.292us. New profiling adds
 observations and is not a speedup. Deadlines still fail; actual mixed timing,
 fault-validated DAC/KA6 and representative30-minute analog soaks remain open.
+
+### Remaining hook SRAM placement comparison (V17, offline)
+
+[implemented] The private `--hook-ram` option places seven unchanged function
+definitions in startup-copied SRAM: sequencer automation begin/tick, modulation
+glue begin/tick, modulation block begin, voice runner and voice-output helper.
+V16 vendor disassembly confirms these paths include flash-resident call targets
+inside the measured dispatch region. This motivates a controlled placement
+comparison, not an attribution of all dispatch overhead to those functions.
+Source guards reject missing/duplicate definitions; stripping placement pragmas
+reproduces original files byte for byte. Timing-only/profile/resident-dispatch
+prerequisites reject incomplete or DAC configurations before writing outputs.
+No production source, tick rate, PCM math or event order changes.
+
+[verified, offline]113 renderer/preparation/diagnostic tests pass; one target
+32-bit pool replay skips because its compiler/runtime is unavailable. Vendor
+build succeeds; first exact SDK/ROM comparison passes. Pre-task heap78156 bytes
+(down1984 from V16) and mailbox448 bytes at0x1c15a80. Remaining kernel, manifest,
+independent extraction, layout/stack/UART-first, cipher/CRC and NOR checks must
+pass before exact admission. V17 is not admitted, staged or installed.

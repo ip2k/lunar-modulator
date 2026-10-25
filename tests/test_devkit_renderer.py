@@ -289,6 +289,9 @@ int main(void) {
     {'resampler_slopes': True, 'timing_only': True},
     {'plaits_cache': True},
     {'plaits_cache': True, 'timing_only': True},
+    {'hook_ram': True},
+    {'hook_ram': True, 'timing_only': True},
+    {'hook_ram': True, 'timing_only': True, 'profile': True},
     {'ui_ram': True},
     {'ui_ram': True, 'timing_only': True},
     {'dispatch_ram': True},
@@ -692,3 +695,19 @@ def test_preparation_profile_cli_registered_before_parsing(tmp_path):
     assert "Preparation profiling requires" in result.stderr
     assert "unrecognized arguments" not in result.stderr
     assert not (tmp_path / "out").exists()
+
+
+def test_hook_ram_preserves_definitions_and_refuses_source_drift():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("renderer_prepare", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    for name, signatures in module.HOOK_RAM_FUNCTIONS.items():
+        original = (ROOT / name).read_bytes()
+        placed = module.place_hook_ram(original, signatures)
+        assert placed.count(b'#pragma code_seg(".volatile_ram_code")') == len(signatures)
+        assert placed.replace(b'#pragma code_seg(".volatile_ram_code")\n', b'').replace(b'\n#pragma code_seg()', b'') == original
+        with pytest.raises(ValueError, match="Unexpected hook definition"):
+            module.place_hook_ram(original + original, signatures)
+        with pytest.raises(ValueError, match="Unexpected hook definition"):
+            module.place_hook_ram(original.replace(signatures[0], b"missing_hook", 1), signatures)
