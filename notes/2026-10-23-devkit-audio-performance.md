@@ -1774,3 +1774,24 @@ Independent cipher/CRC and protected factory-region checks pass for candidate
 `31690344…`; the 135-sector NOR model restores exactly after interruptions at
 pages 7, 1079, 2135 and 2151. Its exact hash is admitted for the existing sector
 bounds. Hardware timing, heap and startup recovery remain pending.
+
+
+[verified, hardware] Resident compressor/drive/echo comparison completed all
+four cases, four arithmetic results, 32 unit rows and 24 stage rows, with
+352,832 frames per case and all PCM hashes unchanged. Invalid/clipped samples
+remain zero. Heap stays at 5,716 bytes across five readings; stack peak stays
+5,544 bytes of 12 KiB. Mean block times are 3,676.25 / 3,950.917 / 4,069.292 /
+4,262.792 us; maxima 4,381.75 / 4,559.958 / 4,714.375 / 5,010.083 us. Means
+improve 5.55–6.14% over cache-table placement, but all 5,513 blocks in every
+case still miss the approximately 1,451-us deadline. Drive/echo/compressor
+means fall to roughly 236 / 167 / 108 us per block. This remains a timing
+failure, with DAC off and no analog/soak acceptance.
+
+[verified] Fresh startup ready and three UART acknowledgements took 78.3 ms;
+ROM INQUIRY responded WL82/UBOOT1.00. Both full 8 MiB reads matched the new
+image, then exact factory restoration and same-image reinstall passed full
+readback before measurement. Both one-shot reset receipts are consumed. The
+receive-only capture was closed by matching its exact process command line;
+post-workload PING succeeds. Raw capture SHA-256
+`a9af49de3520cc7eb43ac22893e4d1ecce1c06d0abfbfd7f7f328e9db03d5853`
+is retained privately. No physical buttons were used.
