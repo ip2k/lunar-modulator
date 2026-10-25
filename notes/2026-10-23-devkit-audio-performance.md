@@ -1535,6 +1535,32 @@ and the 135-sector NOR install/restore model, including interrupted pages
 7/1079/2135/2151, pass. Local preparation checks pass (29), focused Linux tests
 pass (65), and final transaction/reset checks pass (32).
 
-This exact candidate is admitted offline, but is not installed and has no
-hardware performance or recovery acceptance yet. Measure it against the stage
-baseline above before claiming a speedup.
+### VA+Filter SRAM comparison on hardware, 2026-10-25
+
+[verified] Candidate `14c60db2…` passed full 8 MiB installation readback,
+fresh startup PING/ARM/ENTER acknowledgments in 79 ms, and a subsequent
+responsive WL82/UBOOT1.00 inquiry. Both independent flash reads then matched.
+The factory restore and second installation each passed full readback before
+one fresh software-reset receipt started the uninterrupted measurement.
+No buttons were required.
+
+[verified] All four cases completed with the expected PCM hashes, 32 unit
+rows, 24 stage rows and 352,832 frames per case. Free heap stayed 8,788 bytes
+before initialization and after every case; peak worker stack remained
+5,484 bytes of 12 KiB. A post-workload ordinary PING succeeded.
+
+| FM6 voices | Mean render (us) | Maximum (us) | Mean improvement | VA+Filter (us/block) |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 4607.29 | 5333.92 | 2.15% | 1413.13 |
+| 4 | 4895.21 | 5585.50 | 2.20% | 1480.83 |
+| 8 | 5026.13 | 5672.54 | 2.22% | 1474.00 |
+| 12 | 5232.21 | 5918.83 | 2.18% | 1479.46 |
+
+[verified] All 5,513 blocks in every case still exceed the approximately
+1,451 us deadline. The selected engine placement fixes a real gap but saves
+only about 0.10–0.12 ms per complete block. This evidence does not support
+code placement alone as the solution. Arithmetic and data-access costs in
+the actual hot call paths need further investigation before selecting the
+next change. No analog, live-DAC or sustained-soak acceptance is claimed.
+Private raw capture SHA-256 is
+`5be01a4ac5afafad5737678e5b09533fbe78d92d6e36f569e7e112ee2288b713`.
