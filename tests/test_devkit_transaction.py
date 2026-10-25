@@ -132,3 +132,22 @@ def test_renderer_plan_preserves_boot_tail_and_older_bounds(target_sha):
         changed = bytearray(desired)
         changed[address] = 1
         assert tx.protected_equal(changed, desired, allowed) == permitted
+
+
+def test_renderer_profile_extra_sector_is_image_specific():
+    allowed = tx.IMAGE_PLANS[tx.RENDERER_PROFILE_TARGET_SHA]
+    assert allowed == tuple(range(0x4000, 0x8b000, 4096))
+    desired = bytes(tx.backup.FLASH_SIZE)
+    tx.mutation_request(0xFB01, 0x8a000, b'', desired, allowed)
+    tx.mutation_request(0xFB04, 0x8af00, bytes(256), desired, allowed)
+    for sha, other in tx.IMAGE_PLANS.items():
+        if sha != tx.RENDERER_PROFILE_TARGET_SHA:
+            with pytest.raises(ValueError):
+                tx.mutation_request(0xFB01, 0x8a000, b'', desired, other)
+    for address in (0x3000, 0x8b000, 0x7ff000):
+        with pytest.raises(ValueError):
+            tx.mutation_request(0xFB01, address, b'', desired, allowed)
+    for address, permitted in ((0x3fff, False), (0x8afff, True), (0x8b000, False)):
+        changed = bytearray(desired)
+        changed[address] = 1
+        assert tx.protected_equal(changed, desired, allowed) == permitted
