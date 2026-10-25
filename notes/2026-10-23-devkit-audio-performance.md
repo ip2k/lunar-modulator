@@ -2483,3 +2483,22 @@ Both expanded and scheduled full streaming states match their reference
 byte-for-byte across seven native rates and two host rates. Production DSP
 sources are unchanged. Hardware still runs the healthy mixer image; no
 analog or sustained-soak acceptance is claimed.
+
+
+[verified, exact offline admission] Fresh reproducible vendor ELF
+`0a14e3833b1c07d62161924b1878eca20986100759f9e1e9dff23ce649a5b3fd`
+independently exports app
+`5f41e45041b2651c5a56beec4c93648e053ba6f8bbf8f777ea9bbab5023b723c`
+(562,044 bytes). Five section exports, unchanged table bytes and three SDK
+function bodies pass independent checks, allowing only verified relocations.
+Vendor floating disassembly confirms grouped pair/product/accumulator work.
+Startup copies 79,664 SRAM bytes and 27,180 cache bytes; pre-task heap is
+51,468 bytes. UART-first allocation/success guard, 1,024/2,048-word task
+stacks, 200-tick window, strong ROM marker/P33 path and dormant SDK schedule
+are reviewed. Cipher/CRC, protected boot/config/tail and four interrupted
+NOR restores pass across the same 138 sectors. Exact candidate
+`fe4a860bcbebd57bee05ff94c3dffb613f2914163f1d302bdb007ccc14016512`
+is admitted for the no-button comparison. All 48 final transaction/reset/
+arithmetic checks pass. It has not yet been installed or hardware accepted.
+Rarefaction cannot resolve the sibling-worktree transaction tool; Serena
+resolves its allowlist, and direct source/tests cover this small admission.
