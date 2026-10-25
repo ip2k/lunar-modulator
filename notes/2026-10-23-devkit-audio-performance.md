@@ -1598,3 +1598,51 @@ operand bits match source; sine and exp2 tables match the previous candidate.
 A final dependency-only relink leaves the ELF byte-identical. All 34 final
 arithmetic/admission/reset checks pass. Hardware installation and results
 are still pending.
+
+### Arithmetic comparison on target and next table-placement experiment
+
+[verified] Arithmetic candidate `8d67a77a…` completed startup recovery and the
+full four-case renderer replay without buttons. Each of four probe results
+matches independently rounded binary32 expectations: `00000401`, `40000000`,
+`402de298`, `3ebc7241`. Minimum elapsed time per dependent loop iteration was
+31.33 ns integer add, 34.46 ns float add/multiply, and 40.73 ns float divide.
+These include volatile SRAM loads, loop control and timing overhead; they are
+not isolated instruction latencies. This does not support blaming the several
+milliseconds of renderer cost on slow basic floating-point operations alone.
+
+[verified] All four PCM hashes, 32 unit rows, 24 stage rows and 352,832 frames
+per case match. Mean blocks are 4,612.25 / 4,897.29 / 5,024.46 / 5,224.13 us;
+maxima are 5,372.17 / 5,548.79 / 5,674.04 / 5,863.92 us. All 5,513 blocks
+in every case miss the deadline. Heap remains 9,012 bytes across all five
+readings; worker peak is 5,544 bytes of 12 KiB. Post-workload PING acknowledged.
+Private UART SHA-256 is `1bc8adf533d2554bc591c1d4fe100365a1d5aed8769cdbef3033139e50644877`.
+No DAC/analog acceptance is implied.
+
+[inferred] Resampler table access is a candidate cost: both selected Mutable
+wrappers resample their mixes, and the exact ELF retains two XIP copies of the
+same 3,324 bytes of coefficients. An opt-in preparation-only experiment now
+replaces those definitions with one external SRAM copy. It preserves every
+coefficient literal and DSP operation, requires the existing timing-only hot
+code/sine configuration, and cannot prepare a DAC image. Actual ELF placement,
+heap budget, output parity and target speed must be checked before claiming
+any benefit. Original engine/header sources remain unchanged. Rarefaction
+cannot resolve the sibling's preparer; Serena resolves its actual symbol.
+
+[verified, offline] The resampler placement experiment passes 69 focused Linux
+checks (9.33 s), 18 local preparation/rejection cases, and the final 35 local
+arithmetic/admission/reset checks. Vendor ELF `ec7afbaa…`, app `747ce4a7…`
+(550,480 bytes), candidate `a680a4e8…` pass independent section export,
+cipher/CRC, factory protection and the 135-sector interrupted-restore model.
+The selected Macro/Drums machine code loads coefficients at SRAM `0x01c0d68c`
+and `0x01c0e290`; their bytes match the prior image exactly. A separate C
+benchmark retains its XIP copy. Sine and exp2 bytes also match. Startup copies
+67,088 bytes; heap before tasks is 51,756 bytes, predicting 5,716 after tasks.
+UART-before-worker, the recovery window, ROM marker/P33 entry and dormant SDK
+schedule were reviewed in exact vendor machine code. Hardware is pending.
+
+[verified] CI run 40163530243 for `67d08ba7…` passed 12 jobs and failed WebKit
+at compact-toolbar-check.mjs:29 waiting for Resume after Pause. This is not the
+later Stop-to-Play assertion. Five local traced repetitions of the four
+transport transitions passed with the same WebKit/PulseAudio configuration;
+the cause is not yet established. Passing CI jobs were not rerun. PR155 remains
+draft; no merge or hardware audio acceptance.

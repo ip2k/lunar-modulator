@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 import shutil
 
@@ -22,13 +23,15 @@ HOT_RAM_SOURCES = (
 )
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
         raise ValueError("Hot SRAM comparison is worker-only until target validation")
     if sine_ram and not (timing_only and hot_ram):
         raise ValueError("Sine SRAM comparison requires timing-only hot code placement")
+    if resampler_ram and not (timing_only and hot_ram and sine_ram):
+        raise ValueError("Resampler SRAM comparison requires timing-only hot code and sine SRAM")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -74,6 +77,29 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         sine_input = hashlib.sha256(original).hexdigest()
         p.write_bytes(original.replace(anchor,
             b'extern const int32_t kSinTab[2048] __attribute__((section(".volatile_ram"))) = {', 1))
+    resampler_input = None
+    if resampler_ram:
+        # A single external copy avoids spending SRAM once per header user.
+        # Keep every coefficient literal and arithmetic operation unchanged.
+        p = staging / "engines/include/fm1_resampler.h"
+        original = p.read_text()
+        resampler_input = hashlib.sha256(p.read_bytes()).hexdigest()
+        definitions = []
+        for name, length in (("kernel", "FM1_RESAMPLER_KERNEL_LEN"),
+                             ("lowpass", "FM1_RESAMPLER_LP_PAIRS + 1")):
+            pattern = r"static const float fm1_resampler_" + name + r"\[[^\]]+\] = \{.*?\n\};"
+            matches = list(re.finditer(pattern, original, flags=re.S))
+            if len(matches) != 1:
+                raise ValueError("Unexpected resampler table; review placement")
+            definition = matches[0].group()
+            definitions.append(definition.replace("static const float", "extern const float", 1)
+                               .replace(" = {", ' __attribute__((section(".volatile_ram"))) = {', 1))
+            original = original.replace(definition,
+                "extern const float fm1_resampler_" + name + "[" + length + "];", 1)
+        p.write_text(original)
+        # Macro is always present in this fixed diagnostic; no extra build list.
+        p = staging / "engines/src/mi_macro.cc"
+        p.write_text(p.read_text() + "\n" + "\n".join(definitions) + "\n")
     (staging / "tools/jieli").mkdir(parents=True)
     shutil.copyfile(source / "tools/jieli/renderer.mk", staging / "tools/jieli/renderer.mk")
     shutil.copyfile(source / "tools/jieli/devkit-renderer-sdk.mk", app / "board/wl82/lunar-renderer.mk")
@@ -103,8 +129,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "render_profile": profile,
         "hot_ram_sources": hot_inputs,
         "sine_ram_original_sha256": sine_input,
+        "resampler_ram_original_sha256": resampler_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": 148 * 1024,
         "worker_stack_bytes": 12 * 1024,
@@ -136,5 +163,7 @@ if __name__ == "__main__":
                         help="Compare profiled DSP code in SRAM, constants in XIP; requires --timing-only")
     parser.add_argument("--sine-ram", action="store_true",
                         help="Move only FM6 sine table to SRAM; requires --hot-ram --timing-only")
+    parser.add_argument("--resampler-ram", action="store_true",
+                        help="Compare one shared SRAM coefficient copy; requires timing-only hot code and sine SRAM")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram)

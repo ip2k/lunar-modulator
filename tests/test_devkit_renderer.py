@@ -137,6 +137,8 @@ int main(void) {
 @pytest.mark.parametrize('options', [
     {'profile': True}, {'hot_ram': True}, {'sine_ram': True},
     {'sine_ram': True, 'timing_only': True},
+    {'resampler_ram': True},
+    {'resampler_ram': True, 'timing_only': True, 'hot_ram': True},
 ])
 def test_profile_rejects_dac_preparation_before_writing(tmp_path, options):
     import importlib.util
