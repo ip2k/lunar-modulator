@@ -23,7 +23,8 @@ unsigned timer_get_ms(void);
 int current_cpu_id(void);
 unsigned uxTaskGetStackHighWaterMark(void *);
 void os_time_dly(unsigned);
-int os_task_create(void (*)(void *), void *, int, unsigned, int, const char *);
+typedef struct { unsigned char opaque[196]; } StaticTask_t;
+int os_task_create_static(void (*)(void *), void *, int, unsigned, int, const char *, unsigned char *);
 ''')
     source = (ROOT / 'firmware/devkit/fm6_pair_sdk.c').read_text()
     source = source.replace('volatile unsigned', '_Atomic unsigned').replace(
@@ -58,8 +59,11 @@ void os_time_dly(unsigned ticks) {
     struct timespec t = {0, ticks * 1000000u}; nanosleep(&t, 0);
 }
 static void *launch(void *arg) { cpu = mode == 1 ? 2 : 1; entry(arg); return 0; }
-int os_task_create(void (*fn)(void *), void *arg, int pri, unsigned stack,
-                   int queue, const char *name) {
+int os_task_create_static(void (*fn)(void *), void *arg, int pri, unsigned stack,
+                   int queue, const char *name, unsigned char *memory) {
+    assert(memory && !((uintptr_t)memory % 4));
+    for (unsigned i = 0; i < sizeof(StaticTask_t) + 1024u * 4u; ++i)
+        assert(memory[i] == 0);
     assert(!cpu && pri == 10 && stack == 1024 && !queue && !arg);
     assert(!strcmp(name, "#C1lunar_fm6") && !attached);
     ++created; entry = fn;

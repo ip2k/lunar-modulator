@@ -10,6 +10,10 @@
 
 #define LIFETIME_MS 120000u
 #define PAIR_BUDGET_TICKS (24000000u * 64u / 44100u)
+/* SDK static-task contract: TCB followed by 1024 four-byte stack words.
+ * Permanent storage survives worker exit; queue size is zero. */
+static unsigned char worker_memory[sizeof(StaticTask_t) + 1024u * 4u]
+    __attribute__((aligned(4)));
 static struct {
     volatile unsigned ready, stop, exited, error, jobs, wrong_core, stack_unused;
     unsigned started_ms, parent_blocks, parent_wrong_core, invoked;
@@ -44,7 +48,7 @@ int lunar_fm6_sdk_start(uint32_t (*clock)(void)) {
     if (!lunar_fm6_pair_init(clock, PAIR_BUDGET_TICKS)) return 0;
     state.started_ms = timer_get_ms();
     fence();
-    int status = os_task_create(worker, NULL, 10, 1024, 0, "#C1lunar_fm6");
+    int status = os_task_create_static(worker, NULL, 10, 1024, 0, "#C1lunar_fm6", worker_memory);
     if (status) {
         printf("LUNAR_FM6_PAIR error=create status=%d\n", status);
         return 0;

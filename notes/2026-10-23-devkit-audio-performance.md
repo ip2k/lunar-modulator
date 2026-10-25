@@ -3511,3 +3511,40 @@ last, and interruptions at pages 7, 1111, 2183 and 2199 restore exactly.
 No hardware acceptance or analog result follows from this review. Board43b9
 remains healthy idle; the next cycle must prove fresh double backups, factory
 restore, unique startup-window verification, then same-image run readback.
+
+### FM6 attachment allocation refusal and static SDK storage — 2026-10-25
+
+[verified, hardware] Image393f passed startup ready/PING/ARM/ENTER in
+78.0683 ms, fresh ROM inquiry, two matching full backups, factory restore,
+same-image install/readback and a single run reset. All four arithmetic rows
+pass. Before renderer initialization the heap reports total 47916, free 5972;
+the SDK then refuses the requested 4096-byte worker stack, reports null stack
+and create status -1. No renderer timing or pair-count result was produced.
+Total free heap is not proof of a contiguous available stack allocation.
+
+[verified] The failure path retains UART recovery; after exact owned RX closure
+and terminal session, ordinary PING acknowledges. No physical recovery needed.
+Raw capture SHA-256
+`e1ce2452db098e46e9d9e929c170d929ffb8e6e0af3ff1c648a17a6b7e53c529`.
+WINDOW and RUN receipts are consumed and must never be retried.
+
+[implemented, verified offline] Use the pinned SDK's documented static-task API
+instead. Its own zero-queue example specifies aligned TCB-plus-stack storage;
+the final linked implementation uses 164 TCB bytes followed by 1024 four-byte
+stack words, with no dynamic stack allocation on the zero-queue path. Permanent
+storage is 4260 bytes at aligned SRAM 0x1c14580. The original 4 KiB stack,
+CPU1 pin, priority, pair deadline and lifetime/exit guards remain unchanged.
+All six host lifecycle modes pass; mocks do not verify target ABI or timing.
+
+[verified, offline] ELF SHA-256
+`59ed95d77dcf697025e6b37b9f4d32cded8d4359f5d221219bb7aa419b0653d9`,
+app SHA-256 `56fc543cf0d8f00ebdce28c95ee64ad947d094675d7fb029716b2b5a4767738f`,
+candidate SHA-256
+`afdc2fa73bc27aff9ade73f8e10cb1ecdaa1d9e2c1f6e0e693d423af16fe322a`.
+Exact SDK/ROM checks, five-section independent export, cipher/CRC and the
+138-sector NOR model pass, including the same four interrupted-page restores.
+Only the wrapper source input changed; prepared app_main/link script and the
+200-tick window are unchanged. Kernel code differs only in a checked memset
+call relocation. Pretask heap is now 43628 bytes; estimated remaining boot
+heap is only 1684 bytes if allocations are unchanged. Startup recovery, actual
+heap/stack headroom and renderer timing remain mandatory target gates.
