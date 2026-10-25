@@ -29,6 +29,8 @@ int main(void) {
         tr->queued = (uint8_t)(pass % 3 ? next() % 8 : FM1_SEQ_NONE);
         tr->pending_stop = (uint8_t)(pass & 1);
         tr->pos_tick = (uint16_t)next();
+        tr->route_kind = (uint8_t)(pass * 16u + t);
+        tr->route_index = (uint8_t)(next() >> 16);
         for (unsigned k = 0; k < FM1_SEQ_SLOTS; ++k) {
           sq_clip_t *c = sq_clip(s, t, k);
           c->length_steps = pass % 4 == 0 ? 0 : pass % 4 == 1 ? 256 : (uint16_t)(next() % 257);
@@ -39,8 +41,12 @@ int main(void) {
       for (unsigned t = 0; t < tracks; ++t) {
         fm1_seq_track_info_t tr;
         fm1_seq_session_track_info_t got;
+        fm1_seq_route_info_t route;
         unsigned clips = 0, length = 0, start = 0;
         assert(fm1_seq_get_track(s, (uint8_t)t, &tr));
+        memset(&route, 0xa5, sizeof route);
+        assert(fm1_seq_get_route(s, (uint8_t)t, &route));
+        assert(route.route_kind == tr.route_kind && route.route_index == tr.route_index);
         for (unsigned k = 0; k < FM1_SEQ_SLOTS; ++k) {
           fm1_seq_clip_info_t c;
           assert(fm1_seq_get_clip(s, (uint8_t)t, (uint8_t)k, &c));
@@ -63,6 +69,11 @@ int main(void) {
         untouched = got;
         assert(!fm1_seq_get_session_track(s, (uint8_t)tracks, &got));
         assert(!memcmp(&got, &untouched, sizeof got));
+        fm1_seq_route_info_t route, route_before;
+        memset(&route, 0xa5, sizeof route);
+        route_before = route;
+        assert(!fm1_seq_get_route(s, (uint8_t)tracks, &route));
+        assert(!memcmp(&route, &route_before, sizeof route));
       }
     }
   }

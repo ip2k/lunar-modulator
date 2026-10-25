@@ -2753,3 +2753,30 @@ readings; peak worker stack remains 5548/8192 B. Exact owned RX identity
 checked twice, terminated and terminal before ordinary PING acknowledged.
 Private raw SHA `e2f73f79b3fca7057d15204495902c009756af616c15d92b6edc0348c863eec3`.
 No DAC/analog/soak acceptance.
+
+### Compact current-route reads — offline comparison
+
+[verified, source] `fm1_app_unit_of_track` and the sequencer bridge's
+per-event/post-dispatch destination reads copied full track snapshots,
+including automation arrays, for only route kind/index. Added a two-byte
+`fm1_seq_get_route` snapshot and switched those callers. Reads remain current
+at every invocation; previous-route note-off handling and event order remain
+unchanged. No state cache, persistent allocation, rate or DSP arithmetic change.
+The existing differential C test now also checks routes against full getters
+across all 17,408 snapshots, varied byte values, unchanged sequencer memory and
+invalid-track refusal without changing the output.
+
+[verified, offline] 384 sequencer/UI/render tests pass in a bounded Aeon
+container. Eight complete keys and mixed PCM replays match their previous
+SHA values (`b62e14e1…` and `c676e9b4…`). Refreshed Wasm passes all 108 parity
+scenarios, each identical to JavaScript and musl. Vendor build passes with
+downloader disabled: ELF `fcc8db3d…`, app `f93ae8f2…`, 560060 B. Actual route
+getter is 44 bytes, reading the same two fields directly. SRAM increases to
+81648 B; pre-task heap is 49484 B. Exact startup/recovery/layout, SDK and
+packaging review remains required before admission; no new image installed.
+The sine32 image stays healthy idle. No target speed or audio acceptance claim.
+
+[verified, rejected probe] Private output-buffer `__restrict__` annotations
+for echo/filter/compressor offered no convincing code-generation improvement:
+echo remained 2106 bytes, compressor grew 2242→2284 bytes with more stack
+accesses. This probe is not part of the committed implementation or board image.

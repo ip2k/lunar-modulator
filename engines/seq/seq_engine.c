@@ -2246,6 +2246,15 @@ int fm1_seq_get_track(const fm1_seq_t *s, uint8_t t, fm1_seq_track_info_t *o) {
   return 1;
 }
 
+int fm1_seq_get_route(const fm1_seq_t *s, uint8_t t, fm1_seq_route_info_t *o) {
+  const sq_track_t *tr;
+  if (t >= s->n_tracks) return 0;
+  tr = &sq_ctracks(s)[t];
+  o->route_kind = tr->route_kind;
+  o->route_index = tr->route_index;
+  return 1;
+}
+
 int fm1_seq_get_session_track(const fm1_seq_t *s, uint8_t t,
                               fm1_seq_session_track_info_t *o) {
   const sq_track_t *tr;

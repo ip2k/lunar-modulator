@@ -328,6 +328,11 @@ typedef struct fm1_seq_track_info {
   uint8_t route_kind, route_index;        /* FM1_SEQ_ROUTE_*, channel or slot */
 } fm1_seq_track_info_t;
 
+/* Current destination only, without copying the track's automation arrays. */
+typedef struct fm1_seq_route_info {
+  uint8_t route_kind, route_index;        /* FM1_SEQ_ROUTE_*, channel or slot */
+} fm1_seq_route_info_t;
+
 typedef struct fm1_seq_clip_info {
   uint16_t length_steps;                  /* 0: no clip in this slot */
   uint8_t loop_start, scale_num, scale_den, quant;
@@ -444,6 +449,7 @@ typedef struct fm1_seq_transport {
 void fm1_seq_transport_take(const fm1_seq_t *s, fm1_seq_transport_t *out);
 void fm1_seq_transport_put(fm1_seq_t *s, const fm1_seq_transport_t *in);
 int fm1_seq_get_track(const fm1_seq_t *s, uint8_t track, fm1_seq_track_info_t *out);
+int fm1_seq_get_route(const fm1_seq_t *s, uint8_t track, fm1_seq_route_info_t *out);
 int fm1_seq_get_session_track(const fm1_seq_t *s, uint8_t track,
                               fm1_seq_session_track_info_t *out);
 const char *fm1_seq_lane_label(const fm1_seq_t *s, uint8_t track, uint8_t lane);

@@ -243,7 +243,7 @@ static int lock_target(fm1_seq_host_t *h, const fm1_engine_t *e, const fm1_seq_e
 
 /* A track's route as a destination: its engine slot, or 0x80 | its MIDI
  * channel. */
-static uint8_t dest_of(const fm1_seq_track_info_t *ti) {
+static uint8_t dest_of(const fm1_seq_route_info_t *ti) {
   return ti->route_kind == FM1_SEQ_ROUTE_ENGINE ? ti->route_index
                                                 : (uint8_t)(0x80u | ti->route_index);
 }
@@ -253,8 +253,8 @@ static uint8_t dest_of(const fm1_seq_track_info_t *ti) {
  * dispatch (Rerouting, fm1_seq_host.h). 0xFF: nowhere (no such track). */
 static uint8_t dest_of_event(const fm1_seq_host_t *h, uint32_t k) {
   const fm1_seq_ev_t *e = &h->ev[k];
-  fm1_seq_track_info_t ti;
-  if (!fm1_seq_get_track(h->seq, e->track, &ti)) return FM1_SEQ_HOST_NO_DEST;
+  fm1_seq_route_info_t ti;
+  if (!fm1_seq_get_route(h->seq, e->track, &ti)) return FM1_SEQ_HOST_NO_DEST;
   if (e->kind == FM1_SEQ_EV_NOTE_OFF && k < h->cmd_n && e->track < FM1_SEQ_MAX_TRACKS &&
       h->dest[e->track] != FM1_SEQ_HOST_NO_DEST) {
     return h->dest[e->track];
@@ -370,8 +370,8 @@ static void dispatched(fm1_seq_host_t *h) {
   uint32_t k;
   for (k = 0; h->mfx && k < h->n; ++k) h->ev[k].kind &= (uint8_t)~FM1_MFX_TAKEN;
   for (t = 0; t < FM1_SEQ_MAX_TRACKS; ++t) {
-    fm1_seq_track_info_t ti;
-    h->dest[t] = h->seq && fm1_seq_get_track(h->seq, (uint8_t)t, &ti) ? dest_of(&ti)
+    fm1_seq_route_info_t ti;
+    h->dest[t] = h->seq && fm1_seq_get_route(h->seq, (uint8_t)t, &ti) ? dest_of(&ti)
                                                                       : FM1_SEQ_HOST_NO_DEST;
   }
   h->cmd_n = 0;

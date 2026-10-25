@@ -1585,8 +1585,8 @@ int fm1_app_unit_route(fm1_app_t *a, int track, int sound) {
 }
 
 int fm1_app_unit_of_track(const fm1_app_t *a, int track) {
-  fm1_seq_track_info_t ti;
-  if (!a->seq || track < 0 || track > 255 || !fm1_seq_get_track(a->seq, (uint8_t)track, &ti) ||
+  fm1_seq_route_info_t ti;
+  if (!a->seq || track < 0 || track > 255 || !fm1_seq_get_route(a->seq, (uint8_t)track, &ti) ||
       ti.route_kind != FM1_SEQ_ROUTE_ENGINE) {
     return -1;
   }
