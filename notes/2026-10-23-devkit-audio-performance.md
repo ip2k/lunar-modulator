@@ -2025,3 +2025,21 @@ a project path outside its workspace root. Serena locates the actual worktree
 preparer; bounded source checks cover this edit. Its C navigation verifies
 `NoteToFrequency`, but misses its known callers under fallback include flags.
 The source and vendor ELF/disassembly remain necessary for this target.
+
+
+[verified, offline admission] Plaits-cache-v1 exact image
+`1e1068c7a99071d44b1d4400d41e1ab8027feee5b8b6222f7f8adbae74e07dcb`
+passes independent cipher/directory/app/config CRC checks and protected factory
+region equality. The NOR model installs/restores 135 sectors with metadata last
+and restores after interrupted pages 7/1079/2135/2151. No device commands were
+used for that model. The linked startup copies 74,512 SRAM bytes and 24,360
+cache-data bytes; the latter fits the SDK's **28 KiB usable allocation**,
+leaving 4,312 bytes. Cache-way configuration is unchanged. UART configuration
+and its 1,024-word task precede the guarded 2,048-word renderer worker; its
+200-tick recovery window precedes renderer work. Strong ROM marker/P33 entry
+remains linked. SDK scheduling is two IRQ-123 registrations plus the 8,000 ms
+check timer; its three functions match control-v1 after verified symbol
+relocations. Audit reports zero failures; the scheduling pending item is
+resolved by this vendor-instruction review. No eFuse access or weak entry
+fallback is present. Admission permits the bounded recovery rehearsal;
+hardware allocation, timing and analog acceptance remain unverified.
