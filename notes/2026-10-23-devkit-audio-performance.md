@@ -1959,3 +1959,16 @@ skipped in the image without multilib. A separate bounded multilib replay passes
 and deterministic PCM comparison with the 136 KiB pool. No candidate is
 admitted or installed; the board remains healthy
 idle filter-v2. No performance improvement or audio acceptance is claimed.
+
+
+[verified, offline admission] Control-v1 independent five-section ELF/flat
+comparison, all retained DSP table copies, and cipher/directory/app CRC checks
+pass. Protected factory regions remain byte-identical. The NOR model installs
+and restores 135 sectors, metadata last, and restores after interruptions at
+pages 7/1079/2135/2151. SDK scheduling and three linked SDK functions match
+the reviewed filter build after checked symbol/call relocations. UART is
+configured and its 1,024-word task created before the guarded 2,048-word
+worker; the 200-tick recovery wait precedes renderer work. SRAM/cache startup
+copies and the strong ROM marker/P33 path were reviewed in vendor disassembly.
+Exact admitted image: `bb3cc21d3fdc9fa0a0920334920845a6795e7726086a3638dbf1f4e20df3f759`.
+This permits its bounded recovery rehearsal, not a hardware performance claim.
