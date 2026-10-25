@@ -41,8 +41,11 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
+    outline = mode == 'renderer-outline-profile'
+    if outline:
+        mode = 'renderer-fx-profile'
     renderer = mode in ('renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile')
     timing = mode in ('renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile')
     live = mode == 'fm6-audio'
@@ -80,7 +83,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile')
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline)
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -182,6 +185,19 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             assert prepared == original
         assert receipt['cache_tables'] == (mode in ('renderer-cache-profile', 'renderer-fx-profile'))
         assert receipt['fx_ram'] == (mode == 'renderer-fx-profile')
+        assert receipt['resampler_outline'] == outline
+        for name in (b'fm1_resampler_intermediate_', b'fm1_resampler_pop'):
+            signature = b'static __attribute__((noinline)) float ' + name + b'(fm1_resampler_t *r) {'
+            assert (signature in prepared) == outline
+        # Exactly the table declarations and optional two qualifiers may change.
+        if mode == 'renderer-fx-profile':
+            expected = original
+            for definition in definitions:
+                declaration = definition.split(b' = {', 1)[0].replace(b'static const', b'extern const', 1) + b';'
+                expected = expected.replace(definition, declaration, 1)
+            normalized = prepared.replace(b'static __attribute__((noinline)) float ', b'static inline float ')
+            assert normalized == expected
+
         effects = {'engines/src/fx_comp.cc', 'engines/src/fx_drive.cc', 'engines/src/fx_echo.cc'}
         assert effects.intersection(receipt['hot_ram_sources']) == (effects if mode == 'renderer-fx-profile' else set())
         linked = (out/'cpu/wl82/sdk_ld_sfc.c').read_bytes()

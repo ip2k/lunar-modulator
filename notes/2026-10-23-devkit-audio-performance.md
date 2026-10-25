@@ -1795,3 +1795,14 @@ receive-only capture was closed by matching its exact process command line;
 post-workload PING succeeds. Raw capture SHA-256
 `a9af49de3520cc7eb43ac22893e4d1ecce1c06d0abfbfd7f7f328e9db03d5853`
 is retained privately. No physical buttons were used.
+
+
+[verified, offline preparation] The next optional `--resampler-outline`
+comparison changes only two function qualifiers in a private prepared header:
+`fm1_resampler_pop` and `fm1_resampler_intermediate_` become noinline. It
+requires timing-only resident-effects placement. All arithmetic bodies,
+coefficients, rates and sum order remain byte-identical after removing the
+qualifier changes and the existing table-declaration transformation. All 27
+local preparation/rejection cases pass, as do 84 focused Linux checks. The
+vendor build completed with its downloader disabled. Exact generated-code and
+image review, target timing and admission remain pending.
