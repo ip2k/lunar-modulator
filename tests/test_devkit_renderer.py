@@ -135,6 +135,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'filter_process_ram': True},
+    {'filter_process_ram': True, 'timing_only': True},
     {'resampler_outline': True},
     {'resampler_outline': True, 'timing_only': True},
     {'fx_ram': True},

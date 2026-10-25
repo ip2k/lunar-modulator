@@ -23,7 +23,7 @@ HOT_RAM_SOURCES = (
 )
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -38,6 +38,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Effect SRAM comparison requires timing-only cache table placement")
     if resampler_outline and not (timing_only and fx_ram):
         raise ValueError("Outlined resampler comparison requires timing-only resident effects")
+    if filter_process_ram and not (timing_only and fx_ram and not resampler_outline):
+        raise ValueError("Filter process SRAM requires timing-only resident effects without outlining")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -144,6 +146,16 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
                 raise ValueError("Unexpected resampler kernel; review outlining")
             text = text.replace(anchor, anchor.replace("static inline", "static __attribute__((noinline))"), 1)
         p.write_text(text)
+    filter_process_input = None
+    if filter_process_ram:
+        p = staging / "engines/src/fx_filter.cc"
+        original = p.read_bytes()
+        anchor = re.findall(rb'static void FiltProcess\([^\n]+\) \{.*?\n\}', original, re.S)
+        if len(anchor) != 1:
+            raise ValueError("Unexpected filter process definition; review placement")
+        filter_process_input = hashlib.sha256(original).hexdigest()
+        wrapped = b'#pragma code_seg(".volatile_ram_code")\n' + anchor[0] + b'\n#pragma code_seg()'
+        p.write_bytes(original.replace(anchor[0], wrapped, 1))
     (staging / "tools/jieli").mkdir(parents=True)
     shutil.copyfile(source / "tools/jieli/renderer.mk", staging / "tools/jieli/renderer.mk")
     shutil.copyfile(source / "tools/jieli/devkit-renderer-sdk.mk", app / "board/wl82/lunar-renderer.mk")
@@ -177,9 +189,11 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "cache_tables": cache_tables,
         "fx_ram": fx_ram,
         "resampler_outline": resampler_outline,
+        "filter_process_ram": filter_process_ram,
+        "filter_process_original_sha256": filter_process_input,
         "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": 148 * 1024,
         "worker_stack_bytes": 12 * 1024,
@@ -220,5 +234,7 @@ if __name__ == "__main__":
                         help="Compare compressor/drive/echo code in SRAM; requires timing-only cache tables")
     parser.add_argument("--resampler-outline", action="store_true",
                         help="Compare outlined resampler kernels; requires timing-only resident effects")
+    parser.add_argument("--filter-process-ram", action="store_true",
+                        help="Compare only filter processing code in SRAM; requires timing-only resident effects without outlining")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram)

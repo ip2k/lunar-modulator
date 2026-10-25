@@ -1846,3 +1846,23 @@ acknowledges. Private raw SHA-256:
 No buttons were used. The later owner approval of the old sine-image recovery
 request was a delayed reply to an already-resolved failure; no new physical
 recovery was requested or performed.
+
+[inferred, next comparison] Vendor symbols place `FiltProcess` in XIP at
+3,300 bytes, within a Filter stage averaging roughly 279 us/block. Whole-filter
+placement exceeds available heap headroom. Optional `--filter-process-ram`
+wraps only that function in the private SDK source, preserves source bodies,
+and requires timing-only resident-effects placement without outlining. All 30
+local preparation/rejection cases and 88 focused Linux checks pass; the vendor
+build completes with its downloader disabled. Actual code placement, memory
+cost, recovery and timing remain unverified.
+
+[verified, offline alternative evaluation] Pinned SpeexDSP
+`7a158783df74efe7c2d1c6ee8363c1e695c71226` source and three-clause BSD terms
+were inspected. An isolated bounded Aeon container probe of its unmodified
+source reports quality-5 output latency 40/40/41 samples at input rates
+96k/48k/47,872.34 to 44,118 Hz, versus Lunar's 30. Coefficient storage is
+5,664 bytes per stream; 64-bit host allocation payload is 7,144/6,792/6,792
+bytes (not a device allocator measurement). It is not a drop-in replacement
+under current latency/memory constraints. No speed, spectral or chunking
+equivalence is established; no foreign code is integrated. Primary source:
+https://github.com/xiph/speexdsp/blob/7a158783df74efe7c2d1c6ee8363c1e695c71226/libspeexdsp/resample.c

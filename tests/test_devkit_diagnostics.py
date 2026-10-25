@@ -41,10 +41,11 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     outline = mode == 'renderer-outline-profile'
-    if outline:
+    filter_process = mode == 'renderer-filter-profile'
+    if outline or filter_process:
         mode = 'renderer-fx-profile'
     renderer = mode in ('renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile')
     timing = mode in ('renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile')
@@ -83,7 +84,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline)
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process)
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -186,6 +187,19 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert receipt['cache_tables'] == (mode in ('renderer-cache-profile', 'renderer-fx-profile'))
         assert receipt['fx_ram'] == (mode == 'renderer-fx-profile')
         assert receipt['resampler_outline'] == outline
+        assert receipt['filter_process_ram'] == filter_process
+        original_filter = (ROOT/'engines/src/fx_filter.cc').read_bytes()
+        prepared_filter = (out/'lunar-source/engines/src/fx_filter.cc').read_bytes()
+        if filter_process:
+            import re
+            body, = re.findall(rb'static void FiltProcess\([^\n]+\) \{.*?\n\}', original_filter, re.S)
+            expected_filter = original_filter.replace(body, b'#pragma code_seg(".volatile_ram_code")\n' + body + b'\n#pragma code_seg()', 1)
+            assert prepared_filter == expected_filter
+            assert receipt['filter_process_original_sha256'] == hashlib.sha256(original_filter).hexdigest()
+        else:
+            assert prepared_filter == original_filter
+            assert receipt['filter_process_original_sha256'] is None
+
         for name in (b'fm1_resampler_intermediate_', b'fm1_resampler_pop'):
             signature = b'static __attribute__((noinline)) float ' + name + b'(fm1_resampler_t *r) {'
             assert (signature in prepared) == outline
