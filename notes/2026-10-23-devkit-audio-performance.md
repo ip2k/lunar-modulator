@@ -3153,3 +3153,26 @@ the saved raw capture then passes, without another hardware run. Timestamped,
 corrupted, duplicated and quoted receipt regressions pass 17 focused checks.
 The short probe does not satisfy long coherence, FPU, SPSC ring, actual renderer,
 underrun/DAC/KA6 or representative 30-minute analog soak acceptance.
+
+### Long CPU1 publication comparison — offline development
+
+[implemented, not admitted] A separate probe exchanges one sequence-tagged
+word 100 million times without a fence, then 100 million times with `csync`.
+Unfenced data errors are recorded as comparison evidence, never permission to
+omit fences; fenced errors fail the gate. Both phases require full completion
+and unchanged CPU0/CPU1 pinning. Each wait is limited to one second; a checked
+24 MHz timer imposes a 160-second total bound, below its 178.96-second wrap.
+Both tasks yield every 65536 exchanges, retain permanent mailbox/task storage,
+and leave the timer running after failure while a late worker might read it.
+UART reservation and the 200-tick recovery window remain ahead of the workload.
+This performs no audio or flash operation and does not replace FPU/ring/audio
+acceptance. The default preparer still builds the short probe; the new mode is
+explicit `--long-publication` and records exact source hashes and bounds.
+
+[verified, offline] The long mode's preparation and result-rejection tests pass
+in a bounded Aeon container, including incomplete, migrated, corrupted,
+duplicated, malformed, timed-out and mismatched phase/completion receipts.
+The pinned vendor build succeeds with the downloader disabled. Exact generated
+code, complete image/recovery/cipher/NOR review and hardware admission remain
+pending; no candidate has been packaged or installed. The board remains healthy
+idle on the short probe image 9d3d4f8c, with no capture live.

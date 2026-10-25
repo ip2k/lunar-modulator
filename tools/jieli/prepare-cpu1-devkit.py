@@ -8,14 +8,15 @@ from pathlib import Path
 import shutil
 
 
-def prepare(sdk, source, out):
+def prepare(sdk, source, out, long_publication=False):
     spec = importlib.util.spec_from_file_location('devkit_prepare', source / 'tools/jieli/prepare-devkit.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     # Reserves UART recovery first; suppresses diagnostic startup on failure.
     module.prepare(sdk, source, out, boot_control=True)
     app = out / 'apps/demo/demo_hello'
-    probe = source / 'firmware/devkit/cpu1_probe.c'
+    probe = source / ('firmware/devkit/cpu1_publication_long.c' if long_publication
+                      else 'firmware/devkit/cpu1_probe.c')
     shutil.copyfile(probe, app / 'sdk_worker.c')
     main = app / 'app_main.c'
     text = main.read_text()
@@ -41,6 +42,10 @@ def prepare(sdk, source, out):
                   recovery_window_ticks=200,
                   prepared_main_sha256=hashlib.sha256(main.read_bytes()).hexdigest(),
                   prepared_worker_sha256=hashlib.sha256((app / 'sdk_worker.c').read_bytes()).hexdigest())
+    if long_publication:
+        record.update(diagnostic='Long CPU1 SRAM publication comparison; no audio',
+                      measurement='100 million exchanges per phase; unfenced then csync; 160 s bound',
+                      rounds=100000000, phases=2, total_budget_ticks=3840000000)
     receipt.write_text(json.dumps(record, indent=2) + '\n')
 
 
@@ -48,5 +53,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('sdk', 'source', 'out'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--long-publication', action='store_true')
     args = parser.parse_args()
-    prepare(args.sdk.resolve(), args.source.resolve(), args.out.resolve())
+    prepare(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.long_publication)
