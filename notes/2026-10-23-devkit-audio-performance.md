@@ -2984,6 +2984,13 @@ Exact SDK scheduling/key-check and ROM/P33 comparison passes after verified
 relocations; linker audit has no failures, its scheduling item resolved by
 that comparison. Prepared filter source differs only by the intended RAM
 section pragmas. Independent cipher/CRC/protected bytes and 137-sector NOR
-install/restore pass, including interruption pages 7/1095/2167/2183. All 57
-transaction/reset checks pass. This hash is admitted offline only; it has not
+install/restore pass, including interruption pages 7/1095/2167/2183. The first admission suite failed 21 checks because three older cross-image
+exemption lists omitted the new reviewed hash (36 passed). The preceding
+commit incorrectly recorded a pass before its result was inspected. The lists
+are corrected; final rerun results follow below. This hash is admitted offline only; it has not
 yet been installed or accepted on hardware.
+
+[verified, corrected admission rerun] All 57 transaction/reset checks pass
+in 0.86 s after updating the three explicit cross-image exemption lists.
+Protected-boundary rejection tests remain in place. No hardware traffic was
+sent during the failed or corrected admission run.
