@@ -4359,3 +4359,22 @@ Vendor build and exact SDK/ROM/six FM6 kernel comparisons pass. V18 app is
 register bytes (64 above V17), glue tick176 bytes and UI1160 bytes. Independent
 image/cipher/NOR, complete layout/UART-first review and exact admission remain
 pending; no V18 hardware commands have been sent.
+
+[verified, offline] V18 exact-image review is complete: all630 prepared inputs
+and app-main/linker/renderer-fragment hashes match. Static mailbox/worker,
+24-region counter/start/snapshot, pool/app and profile ranges do not overlap
+and precede the heap. Compiled region bound is24; original nested calls and
+optional callback guards remain. UART task18/1024 is created before parent
+16/2048, and the worker delays200 OS ticks before workload. The independent
+five-section app copy, whole cipher/CRC/protected ranges and NOR model pass;
+interrupted pages7/1111/2199/2215 each restore byte-identically.73 transaction/
+reset tests pass. SDK link audit has0 failures; its one pending machine-code
+item is covered by the independent exact vendor comparison.
+
+[verified, offline] Exact candidate SHA-256:
+`f68182d2e673abf012b5571c2e45cbfc3fc5d4cdb213e4bd70679461c35b2dfc`.
+It extends through0x8e07c,124 bytes into an added sector. Only this SHA admits
+139 sectors `[0x4000,0x8f000)`; every older image still rejects the extra sector.
+The currently installed V17 restore remains138 sectors. This admits the V18
+hardware experiment, not audio acceptance. V18 is not yet installed; V17 is
+healthy idle. All previous reset receipts remain consumed.
