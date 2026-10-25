@@ -3202,3 +3202,16 @@ the permanent mailbox is 64-byte aligned/64 bytes. These are offline findings;
 actual task stack, run duration and publication results remain unverified.
 The exact hash is admitted with the existing narrow CPU1 sector plan. It is
 not installed or hardware accepted; the board remains healthy on 9d3d4f8c.
+
+### Full CI metadata example repair — 2026-10-25
+
+[verified] Exact-head CI 40214119758 Linux job 121231670813 finished with
+5565 passed and one failure: the metadata example retained meta_id 7b8200b9,
+while the actual full build exports a077a566 following the FM6 instance change.
+Regenerating the same subset from that build's `fm1-render --meta` changed only
+`meta_id`; the example and assertion remain otherwise unchanged. The schema,
+engine metadata and editor metadata checks pass 25 tests with one skip in a
+bounded Aeon container. An initial command named a nonexistent test file and
+collected no tests; the corrected command produced these results. This repairs
+an example, not hardware timing or audio acceptance. Current candidate3bb bytes
+and startup recovery review are unaffected.
