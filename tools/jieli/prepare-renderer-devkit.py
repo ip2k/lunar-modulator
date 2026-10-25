@@ -9,6 +9,7 @@ import hashlib
 import importlib.util
 import json
 import re
+import struct
 from pathlib import Path
 import shutil
 
@@ -23,7 +24,29 @@ HOT_RAM_SOURCES = (
 )
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False):
+
+def resampler_slope_definition(definition):
+    """Encode float32 base/slope pairs for the existing 768 tap intervals."""
+    body = definition.split(" = {", 1)[1].rsplit("};", 1)[0]
+    literals = [x.strip() for x in body.split(",") if x.strip()]
+    if len(literals) != 769 or any(not re.fullmatch(r"[-+0-9.eE]+f", x) for x in literals):
+        raise ValueError("Unexpected kernel coefficients; review slope comparison")
+    f32 = lambda x: struct.unpack("<f", struct.pack("<f", x))[0]
+    values = [f32(float(x[:-1])) for x in literals]
+    pairs = []
+    for i, base in enumerate(literals[:-1]):
+        # Round the subtraction exactly as the original target expression does.
+        slope = f32(f32(values[i + 1] - values[i]) * (1.0 / 65536.0))
+        literal = format(slope, ".9g")
+        if not any(x in literal for x in ".eE"):
+            literal += ".0"
+        if f32(float(literal)) != slope:
+            raise ValueError("Slope literal failed float32 round trip")
+        pairs.append("  " + base + ", " + literal + "f,")
+    return ("static const float fm1_resampler_kernel_pairs[(FM1_RESAMPLER_KERNEL_LEN - 1) * 2] = {\n"
+            + "\n".join(pairs) + "\n};")
+
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -44,6 +67,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Control SRAM requires the timing-only resident filter comparison")
     if plaits_cache and not control_ram:
         raise ValueError("Plaits cache tables require the timing-only resident control comparison")
+    if resampler_slopes and not plaits_cache:
+        raise ValueError("Resampler slopes require the timing-only Plaits cache comparison")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -110,10 +135,24 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             if len(matches) != 1:
                 raise ValueError("Unexpected resampler table; review placement")
             definition = matches[0].group()
+            original_definition = definition
+            table_name = name
+            if resampler_slopes and name == "kernel":
+                definition = resampler_slope_definition(definition)
+                table_name = "kernel_pairs"
+                length = "(FM1_RESAMPLER_KERNEL_LEN - 1) * 2"
             definitions.append(definition.replace("static const float", "extern const float", 1)
                                .replace(" = {", ' __attribute__((section(".volatile_ram"))) = {', 1))
-            original = original.replace(definition,
-                "extern const float fm1_resampler_" + name + "[" + length + "];", 1)
+            original = original.replace(original_definition,
+                "extern const float fm1_resampler_" + table_name + "[" + length + "];", 1)
+        if resampler_slopes:
+            anchor = ("  const float *k = &fm1_resampler_kernel[t >> 16];\n"
+                      "  return k[0] + (float)(t & 0xFFFFu) * (1.0f / 65536.0f) * (k[1] - k[0]);")
+            if original.count(anchor) != 1:
+                raise ValueError("Unexpected tap interpolation; review slope comparison")
+            original = original.replace(anchor,
+                "  const float *k = &fm1_resampler_kernel_pairs[(t >> 16) * 2];\n"
+                "  return k[0] + (float)(t & 0xFFFFu) * k[1];", 1)
         p.write_text(original)
         # Macro is always present in this fixed diagnostic; no extra build list.
         p = staging / "engines/src/mi_macro.cc"
@@ -238,6 +277,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "resampler_ram_original_sha256": resampler_input,
         "cache_tables": cache_tables,
         "plaits_cache": plaits_cache,
+        "resampler_slopes": resampler_slopes,
         "plaits_table_original_sha256": plaits_table_inputs,
         "fx_ram": fx_ram,
         "resampler_outline": resampler_outline,
@@ -248,7 +288,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "filter_process_original_sha256": filter_process_input,
         "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + ("; pre-scaled resampler kernel pairs" if resampler_slopes else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": (136 if control_ram else 148) * 1024,
         "worker_stack_bytes": worker_stack_words * 4,
@@ -295,5 +335,7 @@ if __name__ == "__main__":
                         help="Compare render/sequence/modulation SRAM with a 136 KiB fixed workload pool; requires resident filter")
     parser.add_argument("--plaits-cache", action="store_true",
                         help="Compare exact Plaits sine/pitch tables in existing SDK data RAM; requires resident control")
+    parser.add_argument("--resampler-slopes", action="store_true",
+                        help="Compare pre-scaled float32 kernel pairs; requires timing-only Plaits cache")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes)

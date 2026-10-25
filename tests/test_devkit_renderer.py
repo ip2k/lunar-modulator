@@ -149,6 +149,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'resampler_slopes': True},
+    {'resampler_slopes': True, 'timing_only': True},
     {'plaits_cache': True},
     {'plaits_cache': True, 'timing_only': True},
     {'control_ram': True},

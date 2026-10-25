@@ -2075,3 +2075,21 @@ for all 50,331,648 inputs. This supports a private optional comparison, not
 vendor-compiler equivalence or target performance. Rarefaction and Serena
 locate the same tap body; Rarefaction finds intermediate/pop callers and
 resampler_test.cc co-change history under fallback compiler flags.
+
+
+### Pre-scaled resampler kernel — offline comparison
+
+[verified, source/tests] Optional `--resampler-slopes` is restricted to the
+timing-only Plaits cache profile. Private preparation replaces 769 kernel
+values with 768 base/slope pairs; the slope is the rounded float32 adjacent
+difference multiplied by 2^-16. Original base literals are preserved and
+nine-digit slope literals round-trip exactly. The hot tap drops its scale
+multiply and subtraction; the FIR, accumulation order, workload and pool
+are unchanged. Ordinary production sources are unchanged.
+
+42 local focused preparation/rejection/coefficient/stream cases pass. The
+stream comparison checks 16,384 outputs each at five supported rate pairs,
+with uneven input/output chunks. The bounded Linux run passes 101 focused
+checks and skips one multilib-dependent 136 KiB replay. Vendor build passes
+with downloader disabled. Exact ELF/startup/table/code-generation review,
+image admission, actual target timing and analog acceptance remain pending.
