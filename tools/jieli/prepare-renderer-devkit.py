@@ -23,7 +23,7 @@ HOT_RAM_SOURCES = (
 )
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -32,6 +32,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Sine SRAM comparison requires timing-only hot code placement")
     if resampler_ram and not (timing_only and hot_ram and sine_ram):
         raise ValueError("Resampler SRAM comparison requires timing-only hot code and sine SRAM")
+    if cache_tables and not (timing_only and hot_ram and sine_ram and resampler_ram):
+        raise ValueError("Cache table comparison requires timing-only hot code, sine and resampler SRAM")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -100,6 +102,31 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         # Macro is always present in this fixed diagnostic; no extra build list.
         p = staging / "engines/src/mi_macro.cc"
         p.write_text(p.read_text() + "\n" + "\n".join(definitions) + "\n")
+    cache_link_input = None
+    if cache_tables:
+        # Use the SDK's existing initialized-data region, without changing
+        # cache-way allocation or putting executable code in its rw region.
+        p = out / "cpu/wl82/sdk_ld_sfc.c"
+        original = p.read_text()
+        anchor = "    .cache_ram_data ALIGN(4):\n    {\n"
+        if original.count(anchor) != 1:
+            raise ValueError("Unexpected cache RAM linker region; review startup copy")
+        cache_link_input = hashlib.sha256(p.read_bytes()).hexdigest()
+        p.write_text(original.replace(anchor, anchor + "        *(.lunar_cache_tables)\n", 1))
+        for name in ("mi_macro.cc", "msfa_rom.cc"):
+            p = staging / "engines/src" / name
+            original = p.read_text()
+            expected = 2 if name == "mi_macro.cc" else 1
+            attribute = '__attribute__((section(".volatile_ram")))'
+            if original.count(attribute) != expected:
+                raise ValueError("Unexpected resident table definitions; review cache placement")
+            text = original.replace(attribute, '__attribute__((section(".lunar_cache_tables")))')
+            if name == "msfa_rom.cc":
+                exp2 = "extern const int32_t kExp2Tab[2048] = {"
+                if text.count(exp2) != 1:
+                    raise ValueError("Unexpected exp2 table definition; review placement")
+                text = text.replace(exp2, exp2.replace(" = {", ' __attribute__((section(".lunar_cache_tables"))) = {'), 1)
+            p.write_text(text)
     (staging / "tools/jieli").mkdir(parents=True)
     shutil.copyfile(source / "tools/jieli/renderer.mk", staging / "tools/jieli/renderer.mk")
     shutil.copyfile(source / "tools/jieli/devkit-renderer-sdk.mk", app / "board/wl82/lunar-renderer.mk")
@@ -130,8 +157,10 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "hot_ram_sources": hot_inputs,
         "sine_ram_original_sha256": sine_input,
         "resampler_ram_original_sha256": resampler_input,
+        "cache_tables": cache_tables,
+        "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": 148 * 1024,
         "worker_stack_bytes": 12 * 1024,
@@ -139,6 +168,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "hardware_acceptance": False,
     })
     receipt["prepared_app_main_sha256"] = hashlib.sha256(main.read_bytes()).hexdigest()
+    receipt["prepared_link_script_sha256"] = hashlib.sha256((out / "cpu/wl82/sdk_ld_sfc.c").read_bytes()).hexdigest()
     # The experiment keeps its exact source provenance in private build storage.
     for directory in ("engines", "sim/web/src", "sim/web/mk", "firmware/devkit"):
         for p in sorted((staging / directory).rglob("*")):
@@ -165,5 +195,7 @@ if __name__ == "__main__":
                         help="Move only FM6 sine table to SRAM; requires --hot-ram --timing-only")
     parser.add_argument("--resampler-ram", action="store_true",
                         help="Compare one shared SRAM coefficient copy; requires timing-only hot code and sine SRAM")
+    parser.add_argument("--cache-tables", action="store_true",
+                        help="Compare sine/exp2/resampler in existing SDK data RAM; requires all timing-only SRAM options")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables)

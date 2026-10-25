@@ -1646,3 +1646,50 @@ later Stop-to-Play assertion. Five local traced repetitions of the four
 transport transitions passed with the same WebKit/PulseAudio configuration;
 the cause is not yet established. Passing CI jobs were not rerun. PR155 remains
 draft; no merge or hardware audio acceptance.
+
+### Resampler tables in SRAM: target comparison
+
+[verified] Candidate `a680a4e8…` completed the startup PING/ARM/ENTER
+handshake and responsive ROM inquiry, two matching full backups, factory
+restore, exact reinstall and the full workload without buttons. Four arithmetic
+bit patterns, four PCM hashes, 32 unit rows, 24 stage rows and all 352,832
+frames per case match. Heap is 5,716 bytes across five readings; peak worker
+stack is 5,544 bytes of 12 KiB. Post-workload PING acknowledged.
+
+| FM6 voices | Mean block, us | Maximum, us | Improvement over arithmetic image | Over deadline |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 3928.08 | 4594.17 | 14.83% | 5513/5513 |
+| 4 | 4209.50 | 4780.96 | 14.04% | 5513/5513 |
+| 8 | 4349.46 | 4996.25 | 13.43% | 5513/5513 |
+| 12 | 4555.08 | 5180.92 | 12.81% | 5513/5513 |
+
+[verified] This is a useful placement improvement, still a failed deadline
+result with the DAC off. Private UART SHA-256 is
+`915103f3923b9f24c87468572300b85660f7c40bbfc2f7ae75e3e2ad29924bec`.
+No analog/soak acceptance is claimed.
+
+[verified, offline] The prepared pinned SDK link script reserves seven free
+data-cache ways as 28 KiB of `cache_ram(rw)` at `0x01f28000`; current ELF
+initialized data there is only 32 bytes. Its existing startup-copy section
+is `.cache_ram_data`. A new timing-only `--cache-tables` experiment collects
+19,708 bytes of unchanged sine, exp2 and shared resampler data in that region,
+without changing cache-way allocation or placing executable code there.
+Preparation tests preserve all literals and source provenance. Actual vendor
+placement, startup copy, capacity, output parity and timing remain pending;
+there is no admitted or installed cache-table candidate yet.
+
+[verified, offline] Cache-table preparation passes 72 focused Linux tests
+(9.48 s) and 21 local preparation/rejection cases. The actual vendor build
+succeeds with downloader disabled. Its exports are saved for independent
+section/table/startup analysis; no cache-table image is admitted or installed.
+The first test collection caught a syntax error in the extended test call;
+it was corrected before the passing runs. Pytest's cache-directory permission
+warning did not affect the Linux test execution.
+
+[verified] Exact-head `80144295…` WebKit log shows compact-toolbar-check **passed**.
+Its failure is instead initial-view-ui.mjs:122 during the URL-selection case:
+`The project changed while checking. Retry the edit.` Chromium and Firefox
+passed; the sanitizer job was still running at the last query. Investigation
+must preserve the stale-project protection and establish whether the test
+starts before native project loading finishes. Private job log saved; no
+browser assertion or product behavior has yet been changed for this failure.
