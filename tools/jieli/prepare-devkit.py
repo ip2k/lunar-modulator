@@ -56,6 +56,14 @@ def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False, boot_contr
     assert 'os_task_create(hello_demo_task, NULL, 10, 1000, 0, "hello_demo_task");' in text
     text = text.replace('os_task_create(hello_demo_task, NULL, 10, 1000, 0, "hello_demo_task");',
                         'os_task_create(lunar_devkit_worker, NULL, 10, 2048, 0, "lunar_devkit");')
+    if boot_control:
+        text = '#include "boot_command.h"\n' + text
+        worker = 'os_task_create(lunar_devkit_worker, NULL, 10, 2048, 0, "lunar_devkit");'
+        text = text.replace(worker,
+            'if (!lunar_devkit_boot_control_start()) {\n'
+            '    int lunar_status = ' + worker + '\n'
+            '    if (lunar_status) printf("LUNAR_CONTROL error=worker_create status=%d\\n", lunar_status);\n'
+            '}', 1)
     main.write_text(text)
     names = ['benchmark.c', 'benchmark.h', 'sdk_worker.c']
     if audio_probe or fm6_audio:

@@ -15,5 +15,6 @@ struct lunar_boot_command {
  * this is a private, physically connected diagnostic UART. */
 enum lunar_boot_action lunar_boot_command_feed(struct lunar_boot_command *,
                                               unsigned char, uint32_t now_ms);
-void lunar_devkit_boot_control_start(void);
+/* app_main must call this before allocating the workload; zero means ready. */
+int lunar_devkit_boot_control_start(void);
 #endif

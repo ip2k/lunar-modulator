@@ -87,8 +87,12 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     assert ('-DLUNAR_DEVKIT_AUDIO_PROBE=1' in result) == (audio_probe or live)
     assert (out/'apps/demo/demo_hello/audio_probe.c').exists() == (audio_probe or live)
     assert ('-DLUNAR_DEVKIT_FM6_AUDIO=1' in result) == live
+    if mode == 'control' or live or renderer:
+        main_text = (out/'apps/demo/demo_hello/app_main.c').read_text()
+        assert 'if (!lunar_devkit_boot_control_start()) {' in main_text
+        assert main_text.index('boot_control_start())') < main_text.index('int lunar_status = os_task_create')
     if renderer:
-        assert '10, 5120, 0, "lunar_devkit"' in (out/'apps/demo/demo_hello/app_main.c').read_text()
+        assert '10, 3072, 0, "lunar_devkit"' in (out/'apps/demo/demo_hello/app_main.c').read_text()
     if timing:
         assert '-DLUNAR_DEVKIT_RENDERER_TIMING=1' in result
         assert ('-DLUNAR_RENDERER_PROFILE=1' in result) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile'))

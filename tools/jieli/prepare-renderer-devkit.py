@@ -36,12 +36,14 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     app = out / "apps/demo/demo_hello"
     # os_api.h specifies four-byte stack units. Shared app setup includes the
     # modulation script parser and UI helpers, unlike the isolated FM6 probe.
+    # Actual target high-water usage is 5400 bytes; retain >2x that budget.
+    # Recovery is already reserved/configured before this allocation.
     main = app / "app_main.c"
     text = main.read_text()
     worker = 'os_task_create(lunar_devkit_worker, NULL, 10, 2048, 0, "lunar_devkit");'
     if text.count(worker) != 1:
         raise ValueError("Unexpected worker creation; review renderer task stack")
-    main.write_text(text.replace(worker, worker.replace('10, 2048,', '10, 5120,'), 1))
+    main.write_text(text.replace(worker, worker.replace('10, 2048,', '10, 3072,'), 1))
     shutil.copyfile(source / "firmware/devkit/renderer_live.h", app / "renderer_live.h")
     shutil.copyfile(source / "firmware/devkit/renderer_timing.h", app / "renderer_timing.h")
     staging = out / "lunar-source"
@@ -102,7 +104,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
                        ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": 148 * 1024,
-        "worker_stack_bytes": 20 * 1024,
+        "worker_stack_bytes": 12 * 1024,
         "renderer_integration_complete": False,
         "hardware_acceptance": False,
     })

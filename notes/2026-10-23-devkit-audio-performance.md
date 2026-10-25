@@ -1383,3 +1383,40 @@ of ram0_data before initialization. SDK scheduling, strong ROM entry and UART
 before-workload delay pass exact vendor disassembly review. The 135-sector
 NOR install/restore model recovers after all four injected interruption points.
 Exact hash admission is for a worker comparison only; no target result yet.
+
+
+### UART reservation failure and corrected startup
+
+[verified, hardware] Sine-v1 installed with an exact full 8 MiB readback but
+failed its recovery acceptance: the SDK could not allocate the UART task's
+4,096-byte stack. It reported 7,444 bytes total free afterward. Total free
+space does not establish a contiguous allocation guarantee. No ready marker
+or UART commands occurred. The worker incorrectly continued after the failed
+receiver creation. All four workload hashes match, but every block still
+misses its deadline; these results do not accept the image or its recovery.
+The owned verifier is stopped, and no captures remain live. Private raw SHA:
+`ed5060c4825ed412ee5682fc99180dc37d71d5f12bc9cdc87684f3806b293886`.
+
+[verified, offline] Preparation now opens/configures UART and reserves its
+4 KiB task from app_main before allocating the workload. Any setup/allocation
+failure prevents workload creation; worker allocation failure leaves recovery
+allocated. The renderer stack is 12 KiB, over twice its measured 5,400-byte
+peak. Runtime tests inject UART-open, each configuration and task-allocation
+failure, check workload exclusion, and check retained recovery on worker OOM.
+Thirty-five focused Linux tests pass, plus 30 transaction/reset checks.
+
+[verified, offline] The actual vendor link confirms all four UART configuration
+calls and receiver task creation precede the conditional renderer allocation;
+failure branches bypass that allocation. The 200-tick window still precedes
+renderer initialization. Independent five-section exports match the app; sine
+and exp2 bytes are unchanged. Link audit has zero failures, with the expected
+SDK scheduling item manually checked. Independent cipher/CRC and factory
+boot/config/tail checks pass. Exact install/restore and four interrupted-page
+restores pass in the NOR model. Candidate
+`d1d534f71ed6473046d1f23bedd4c39fe8df8a3ef0874f544c82458766324274`
+is admitted offline for the recovery preflight only, not installed or accepted.
+
+[verified] After the owner's latest download-mode reply, passive Bench01 USB
+enumeration still shows no dev-board ROM device or SCSI generic node. No loader
+or new device command was sent. Fresh ROM enumeration is required before
+backup/restore/install, followed by actual UART acknowledgement before workload.

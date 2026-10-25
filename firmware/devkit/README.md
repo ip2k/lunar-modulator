@@ -188,10 +188,13 @@ complete four-case schedule without enabling the DAC, measures render plus
 scheduled note/control/conversion/fingerprint work, and yields to the OS every
 16 blocks. Case reports include worst/mean ticks and counts at or beyond the
 64-frame budget. The worker reports FreeRTOS stack high-water words after each
-case. The preparer gives the shared-renderer worker 20 KiB of task stack;
+case. The preparer gives the shared-renderer worker 12 KiB of task stack, over twice the measured 5,400-byte peak;
 this is dynamically allocated and must be counted separately from static BSS.
 Neither this mode nor a larger task stack establishes interrupt-stack safety
-or audio continuity. Keep UART control running throughout the preflight.
+or audio continuity. Keep UART control running throughout the preflight. The prepared app starts and
+reserves UART recovery before allocating the worker. UART setup/task failures
+prevent workload creation; worker allocation failure leaves recovery allocated.
+A fresh acknowledged startup handshake remains mandatory before a measurement run.
 
 
 ### Worker-only callback profiling

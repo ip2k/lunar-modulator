@@ -20,20 +20,9 @@ static void __attribute__((section(".volatile_ram_code"), noinline)) enter_rom(v
 
 static void boot_control(void *unused)
 {
-    static unsigned char ring[128] __attribute__((aligned(32)));
     struct lunar_boot_command parser = {0};
     unsigned char input[32];
-    void *uart = dev_open("uart1", NULL);
-    (void)unused;
-    if (!uart) { puts("LUNAR_CONTROL error=uart_open\n"); return; }
-    if (dev_ioctl(uart, UART_SET_CIRCULAR_BUFF_ADDR, (u32)ring) ||
-        dev_ioctl(uart, UART_SET_CIRCULAR_BUFF_LENTH, sizeof(ring)) ||
-        dev_ioctl(uart, UART_SET_RECV_BLOCK, 0) ||
-        dev_ioctl(uart, UART_START, 0)) {
-        puts("LUNAR_CONTROL error=uart_start\n");
-        dev_close(uart);
-        return;
-    }
+    void *uart = unused;
     puts("LUNAR_CONTROL ready=1 rx=PA5 baud=1000000 protocol=1\n");
     for (;;) {
         int i, n = dev_read(uart, input, sizeof(input));
@@ -54,8 +43,26 @@ static void boot_control(void *unused)
     }
 }
 
-void lunar_devkit_boot_control_start(void)
+int lunar_devkit_boot_control_start(void)
 {
-    int status = os_task_create(boot_control, NULL, 8, 1024, 0, "lunar_control");
-    if (status) printf("LUNAR_CONTROL error=task_create status=%d\n", status);
+    /* Reserve and configure recovery before app_main allocates the worker.
+     * A receiver task failure must never start the diagnostic workload. */
+    static unsigned char ring[128] __attribute__((aligned(32)));
+    void *uart = dev_open("uart1", NULL);
+    int status;
+    if (!uart) { puts("LUNAR_CONTROL error=uart_open\n"); return -1; }
+    if (dev_ioctl(uart, UART_SET_CIRCULAR_BUFF_ADDR, (u32)ring) ||
+        dev_ioctl(uart, UART_SET_CIRCULAR_BUFF_LENTH, sizeof(ring)) ||
+        dev_ioctl(uart, UART_SET_RECV_BLOCK, 0) ||
+        dev_ioctl(uart, UART_START, 0)) {
+        puts("LUNAR_CONTROL error=uart_start\n");
+        dev_close(uart);
+        return -1;
+    }
+    status = os_task_create(boot_control, uart, 8, 1024, 0, "lunar_control");
+    if (status) {
+        printf("LUNAR_CONTROL error=task_create status=%d\n", status);
+        dev_close(uart);
+    }
+    return status;
 }
