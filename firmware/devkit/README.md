@@ -212,3 +212,18 @@ for the DAC build. A matching desktop replay and full per-unit frame coverage
 are necessary integrity checks; the instrumented image needs its own link,
 packing, recovery and installation review. It is not an admitted image merely
 because preparation or host tests pass.
+
+
+### Optional control-path SRAM comparison
+
+`--control-ram` requires the timing-only resident-filter profile. It wraps
+only `fm1_app_render`, `fm1_mod_tick`, `sum_slots` and
+`fm1_seq_host_dispatch_slots_ticks` in the private prepared source. Source
+bodies, arithmetic flags, engine counts, rates, effects and schedule remain
+unchanged. The fixed workload uses a 136 KiB caller-owned pool in this
+comparison, retaining bounds checks; other profiles keep 148 KiB. The 32-bit
+target measured 134,944 bytes in the previous image. Native 64-bit instances
+are larger and must not be used to assert that this target budget fits.
+A 32-bit replay checks the reduced pool when multilib is available. Actual
+linked placement, startup allocation, recovery, PCM parity, stack and target
+timing must pass separately before selecting this comparison.

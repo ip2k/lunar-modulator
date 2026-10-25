@@ -41,10 +41,11 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
+    control = mode == 'renderer-control-profile'
     outline = mode == 'renderer-outline-profile'
-    filter_process = mode == 'renderer-filter-profile'
+    filter_process = mode in ('renderer-filter-profile', 'renderer-control-profile')
     if outline or filter_process:
         mode = 'renderer-fx-profile'
     renderer = mode in ('renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile')
@@ -84,7 +85,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process)
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control)
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -117,6 +118,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         flags = subprocess.run(['make', '-s', '-f', str(makefile), 'print-renderer-flags'],
                                cwd=makefile.parent, check=True, capture_output=True, text=True).stdout
         assert '-DLUNAR_DEVKIT_RENDERER_TIMING=1' in flags
+        assert ('-DLUNAR_RENDERER_POOL_BYTES=139264' in flags) == control
         assert ('-DLUNAR_RENDERER_PROFILE=1' in flags) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'))
         assert ('-DFM1_APP_RENDER_PROFILE=1' in flags) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'))
     if audio_probe or live:
@@ -190,6 +192,21 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert receipt['resampler_outline'] == outline
         assert receipt['filter_process_ram'] == filter_process
         assert receipt['worker_stack_words'] == (2048 if filter_process else 3072)
+        assert receipt['worker_stack_bytes'] == receipt['worker_stack_words'] * 4
+        assert receipt['renderer_pool_bytes'] == (136 if control else 148) * 1024
+        assert receipt['control_ram'] == control
+        assert ('-DLUNAR_RENDERER_POOL_BYTES=139264' in result) == control
+        for name in ('sim/web/src/fm1_app.c', 'engines/mod/mod_core.c', 'engines/seq/seq_host.c'):
+            original_control = (ROOT/name).read_bytes()
+            prepared_control = (out/'lunar-source'/name).read_bytes()
+            normalized = prepared_control.replace(b'#pragma code_seg(".volatile_ram_code")\n', b'').replace(b'\n#pragma code_seg()', b'')
+            assert normalized == original_control
+            assert (prepared_control != original_control) == control
+            if control:
+                assert receipt['control_ram_original_sha256'][name] == hashlib.sha256(original_control).hexdigest()
+        if not control:
+            assert receipt['control_ram_original_sha256'] == {}
+
         original_filter = (ROOT/'engines/src/fx_filter.cc').read_bytes()
         prepared_filter = (out/'lunar-source/engines/src/fx_filter.cc').read_bytes()
         if filter_process:
@@ -226,7 +243,8 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             assert receipt['cache_link_original_sha256'] is None
             assert b'.lunar_cache_tables' not in linked
         # Unselected hot-path callers are not silently pulled into the change.
-        assert (out/'lunar-source/sim/web/src/fm1_app.c').read_bytes() == (ROOT/'sim/web/src/fm1_app.c').read_bytes()
+        if not control:
+            assert (out/'lunar-source/sim/web/src/fm1_app.c').read_bytes() == (ROOT/'sim/web/src/fm1_app.c').read_bytes()
     assert ('-DLUNAR_DEVKIT_FM6_BENCHMARK=1' in result) == fm6
     assert ('-DLUNAR_DEVKIT_BOOT_CONTROL=1' in result) == (mode == 'control' or live or renderer)
     if mode == 'control':

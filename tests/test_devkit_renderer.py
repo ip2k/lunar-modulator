@@ -32,7 +32,21 @@ def build_reference(modules):
     return target
 
 
-def test_shared_renderer_schedule_and_pcm(tmp_path):
+@pytest.mark.parametrize("pool_bytes", [148 * 1024, 136 * 1024])
+def test_shared_renderer_schedule_and_pcm(tmp_path, monkeypatch, pool_bytes):
+    extra = os.environ.get("FM1_SIM_EXTRA", "")
+    if pool_bytes == 136 * 1024:
+        # This pool is a 32-bit target budget. The 64-bit echo/voice instances
+        # are larger, so require a real 32-bit replay rather than weakening it.
+        probe = subprocess.run([os.environ.get("FM1_SIM_CC", "cc"), "-m32", "-x", "c",
+                                "-", "-o", str(tmp_path / "abi-probe")],
+                               input="int main(void) { return sizeof(void*) != 4; }\n",
+                               capture_output=True, text=True)
+        if probe.returncode:
+            pytest.skip("32-bit compiler/runtime unavailable for target pool replay")
+        subprocess.run([str(tmp_path / "abi-probe")], check=True)
+        extra += " -m32"
+    monkeypatch.setenv("FM1_SIM_EXTRA", extra + f" -DLUNAR_RENDERER_POOL_BYTES={pool_bytes}")
     target = build_reference(MODULES)
     pcm = tmp_path / "reference.pcm"
     # glibc replay enables the same divide-by-zero trap that exposed a
@@ -46,7 +60,7 @@ def test_shared_renderer_schedule_and_pcm(tmp_path):
         assert int(row["case"]) == i % 4
         assert int(row["blocks"]) == (i + 1) * 5513
         assert row["invalid"] == row["clipped"] == "0"
-        assert 0 < int(row["arena"]) <= 148 * 1024
+        assert 0 < int(row["arena"]) <= pool_bytes
     assert int(rows[-1]["controls"]) > 1000
     assert pcm.stat().st_size == 8 * 5513 * 64 * 4
     # The same source and schedule, fresh process: reproducible PCM receipts.
@@ -135,6 +149,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'control_ram': True},
+    {'control_ram': True, 'timing_only': True},
     {'filter_process_ram': True},
     {'filter_process_ram': True, 'timing_only': True},
     {'resampler_outline': True},

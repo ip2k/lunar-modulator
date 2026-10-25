@@ -23,7 +23,7 @@ HOT_RAM_SOURCES = (
 )
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -40,6 +40,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Outlined resampler comparison requires timing-only resident effects")
     if filter_process_ram and not (timing_only and fx_ram and not resampler_outline):
         raise ValueError("Filter process SRAM requires timing-only resident effects without outlining")
+    if control_ram and not (timing_only and filter_process_ram):
+        raise ValueError("Control SRAM requires the timing-only resident filter comparison")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -160,6 +162,26 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         filter_process_input = hashlib.sha256(original).hexdigest()
         wrapped = b'#pragma code_seg(".volatile_ram_code")\n' + anchor[0] + b'\n#pragma code_seg()'
         p.write_bytes(original.replace(anchor[0], wrapped, 1))
+    control_inputs = {}
+    if control_ram:
+        # Only private copies change. Column-zero closing braces delimit these
+        # C definitions; reject source drift rather than guessing a new boundary.
+        for name, signatures in (
+            ("sim/web/src/fm1_app.c", (b"const float *fm1_app_render",)),
+            ("engines/mod/mod_core.c", (b"static float sum_slots", b"uint32_t fm1_mod_tick")),
+            ("engines/seq/seq_host.c", (b"void fm1_seq_host_dispatch_slots_ticks",)),
+        ):
+            p = staging / name
+            original = p.read_bytes()
+            control_inputs[name] = hashlib.sha256(original).hexdigest()
+            text = original
+            for signature in signatures:
+                matches = re.findall(rb'^' + re.escape(signature) + rb'\([^;]*?\) \{.*?^\}', text, re.M | re.S)
+                if len(matches) != 1:
+                    raise ValueError("Unexpected control definition; review placement: " + signature.decode())
+                wrapped = b'#pragma code_seg(".volatile_ram_code")\n' + matches[0] + b'\n#pragma code_seg()'
+                text = text.replace(matches[0], wrapped, 1)
+            p.write_bytes(text)
     (staging / "tools/jieli").mkdir(parents=True)
     shutil.copyfile(source / "tools/jieli/renderer.mk", staging / "tools/jieli/renderer.mk")
     shutil.copyfile(source / "tools/jieli/devkit-renderer-sdk.mk", app / "board/wl82/lunar-renderer.mk")
@@ -172,6 +194,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     renderer_flags = ""
     if timing_only:
         renderer_flags = "CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n"
+        if control_ram:
+            renderer_flags += "CFLAGS += -DLUNAR_RENDERER_POOL_BYTES=139264\n"
         if profile:
             renderer_flags += "CFLAGS += -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1\n"
     else:
@@ -195,13 +219,15 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "resampler_outline": resampler_outline,
         "filter_process_ram": filter_process_ram,
         "worker_stack_words": worker_stack_words,
+        "control_ram": control_ram,
+        "control_ram_original_sha256": control_inputs,
         "filter_process_original_sha256": filter_process_input,
         "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
-        "renderer_pool_bytes": 148 * 1024,
-        "worker_stack_bytes": 12 * 1024,
+        "renderer_pool_bytes": (136 if control_ram else 148) * 1024,
+        "worker_stack_bytes": worker_stack_words * 4,
         "renderer_integration_complete": False,
         "hardware_acceptance": False,
     })
@@ -241,5 +267,7 @@ if __name__ == "__main__":
                         help="Compare outlined resampler kernels; requires timing-only resident effects")
     parser.add_argument("--filter-process-ram", action="store_true",
                         help="Compare only filter processing code in SRAM; requires timing-only resident effects without outlining")
+    parser.add_argument("--control-ram", action="store_true",
+                        help="Compare render/sequence/modulation SRAM with a 136 KiB fixed workload pool; requires resident filter")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram)

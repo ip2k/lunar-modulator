@@ -11,7 +11,10 @@
 #define RATE 44100u
 #define BLOCK 64u
 #define CASE_BLOCKS ((8u * RATE + BLOCK - 1u) / BLOCK)
-#define POOL_BYTES (148u * 1024u)
+#ifndef LUNAR_RENDERER_POOL_BYTES
+#define LUNAR_RENDERER_POOL_BYTES (148u * 1024u)
+#endif
+#define POOL_BYTES LUNAR_RENDERER_POOL_BYTES
 static fm1_app_t app;
 static unsigned char pool[POOL_BYTES] FM1_APP_ALIGN16;
 static struct lunar_renderer_status state;

@@ -1938,3 +1938,24 @@ deadline. This worker-only, DAC-off run is not dropout-free audio acceptance.
 No KA6 analog soak was attempted. Private raw capture SHA-256:
 `5e7d1b9f76385ccb52ccd91dd781b9ee4cbfd28f1c9d5734ecc56986a995d23d`.
 The installed exact image is `84275819…`; PR #155 remains draft and unmerged.
+
+
+### Control-path placement comparison, preparation only
+
+[verified, offline] The filter-v2 symbol map leaves the outer render,
+sequencer dispatch and modulation tick in XIP. An optional `--control-ram`
+comparison relocates four named definitions in private prepared sources,
+without changing bodies or the workload. Its 136 KiB pool is a 32-bit budget;
+64-bit replay correctly refuses initialization at that capacity. Default
+profiles retain 148 KiB. The new receipt reports the actual selected worker
+stack bytes rather than an unconditional 12 KiB.
+
+[verified, offline] Vendor build completes with downloader disabled. The
+four selected symbols reside in ram0_data; initialized SRAM is 74,832 bytes,
+BSS 392,408 bytes, and pre-task heap 56,300 bytes. Link audit reports zero
+failures, with SDK scheduling review pending. 33 local preparation/rejection
+checks pass; 92 focused Linux checks pass, with the reduced-pool replay
+skipped in the image without multilib. A separate bounded multilib replay passes the full eight-case schedule
+and deterministic PCM comparison with the 136 KiB pool. No candidate is
+admitted or installed; the board remains healthy
+idle filter-v2. No performance improvement or audio acceptance is claimed.
