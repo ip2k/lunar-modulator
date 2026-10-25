@@ -1478,3 +1478,37 @@ preserves factory boot/config/tail, passes independent cipher/CRC and the
 Admission is for a timing preflight; it is not installed or target accepted.
 The real browser rebuild passes 108 parity scenarios with identical WASM
 bytes; profiling hooks remain absent from that ordinary build.
+
+## Stage profiling on hardware, 2026-10-25
+
+[verified] The stage-profiler image completed its UART recovery preflight:
+startup readiness followed by PING, ARM and ENTER acknowledgments in 79 ms,
+then a responsive UBOOT inquiry. The uninterrupted measurement installation
+matched all 8 MiB before its single software reset. No buttons were required.
+All four PCM hashes match the desktop, all 32 instrument and 24 stage rows
+cover 352,832 frames per case, and the run reports `complete=1`. A subsequent
+ordinary PING succeeded. Worker peak stack use is 5,484 bytes of 12 KiB;
+free heap remains 10,932 bytes before initialization and after all four cases.
+
+| FM6 voices | Mean render (us) | Maximum (us) | Sound stage (us) | Master FX (us) | UI stage (us) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | 4708.38 | 5432.21 | 3976.79 | 369.62 | 283.42 |
+| 4 | 5005.42 | 5765.50 | 4268.08 | 370.42 | 288.08 |
+| 8 | 5140.21 | 5784.46 | 4403.71 | 371.50 | 285.83 |
+| 12 | 5348.79 | 6097.08 | 4614.92 | 371.08 | 284.33 |
+
+[verified] All 5,513 blocks in every case exceed the approximately 1,451 us
+budget. Within the sound stage, Macro VA costs 1,474–1,545 us/block and drums
+809–813 us/block; filter and drive inserts cost approximately 269 and 289 us.
+The sound stage also contains sequencing, modulation and mixing outside these
+nested engine measurements. Do not add instrument totals to their enclosing
+stage totals. Amplitude modulation costs about 6 us, click/limiting 26 us,
+scope/gain 14 us, and work outside the six stages 32–33 us/block. These measured
+costs prioritize hot call-path/code-generation investigation; they do not yet
+establish which individual operation causes each cost.
+
+[verified] Private raw capture SHA-256 is
+`6753391e334966bae22f21ff03b244058ef745031eb30e9c491e1d9846ca3e00`.
+The exact candidate is `e16931a0…`, described above. This is worker-only timing
+with the DAC off: deadline acceptance fails, and analog/soak acceptance remains
+outstanding. PR #155 stays draft.
