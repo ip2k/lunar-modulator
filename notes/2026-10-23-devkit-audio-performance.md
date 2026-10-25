@@ -4156,3 +4156,15 @@ not passes. All108 WebAssembly parity scenarios pass with exact JS/musl PCM;
 one LSB. Vendor build and checked SDK/ROM/six-kernel comparisons pass.
 The linked sequence classifies the label before `fm1_seq_get_track`.
 Exact image admission and target timing remain pending; no speedup claimed.
+
+[verified, offline] V15 exact candidate
+`7353e97745fae6c2489a85e5ad1a90ab33cdf4b9660bf8561fe63f28e98c1d03`
+is admitted for138 sectors after116 transaction/reset/SDK tests pass. App
+`303b2869b287526dc2afd249e161ffb1798f0074a9cadc603076f2dc53bb0ce8`
+is564412 bytes, ending0x8dddc. Independent objcopy/cipher/CRC, checked SDK/ROM
+and FM6 kernel/table comparisons,630 prepared manifest entries, identical
+mailbox/worker/diagnostic/heap layout and interrupted NOR install/restore pass.
+UART creation remains priority18/1024 words before parent16/2048 words;
+its200-tick recovery wait precedes initialization. Timing frame272 bytes,
+planner1060 and UI1160 with saved registers remain reviewed; actual high-water
+and recovery require target verification. No hardware V15 acceptance yet.
