@@ -2717,3 +2717,21 @@ original expression. A vendor compiler probe emits a single 32-bit multiply
 and arithmetic shift. Full vendor build, complete keys/mixed PCM replay,
 exact-image review and hardware timing remain pending; no new image is
 admitted or installed and no dropout-free acceptance is claimed.
+
+
+[verified, offline admission] Full keys/mixed eight-case PCM replays match
+(`b62e14e1…` / `c676e9b4…`); 142 FM behavioral tests pass, with only the
+private modified-copy upstream byte-provenance check deselected. Repository
+provenance checks remain intact. Vendor ELF `530f5fd4…` exports app
+`93c7f29a…` (560060 B). SRAM/cache/BSS sizes are 81520/27180/392412 B,
+pre-task heap 49612 B. Manual vendor review confirms UART-first 1024-word
+reservation, failure skips worker, worker 2048 words, 200-tick recovery,
+startup copies and unchanged ROM/P33 code after verified pointer relocations.
+Tables and SDK key-check code match the prior image; sole late-init remains
+`sdk_meky_check`. FM loop loads the same sine table and emits signed32
+interpolation products while retaining wide gain products.
+
+Candidate `4589d46ba8382c86ae7f05c6c60c8b3c8e3c8b0b942c811ffceefa03d1d2a7bf`
+passes independent cipher/CRC/protected-byte checks and 137-sector NOR
+install/restore plus four interrupted-page restorations. App end `0x8ccdc`.
+Admitted for this exact hash only; not installed or hardware accepted.
