@@ -81,6 +81,7 @@ static const fm1_dx7_kernel_adapter_t adapter = {0, 0};
 const fm1_dx7_kernel_adapter_t *lunar_fm6_pair_adapter(void) { return &adapter; }
 unsigned lunar_fm6_pair_completed(void) { return completed; }
 int lunar_fm6_pair_disabled(void) { return mode == 5; }
+void lunar_fm6_pair_diagnostics(struct lunar_fm6_pair_diagnostic *d) { memset(d, 0, sizeof(*d)); }
 int lunar_devkit_renderer_kernel_adapter(const fm1_dx7_kernel_adapter_t *p) {
     assert(!cpu && p == &adapter); ++attached; return 1;
 }

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT. Offline CPU1 kernel handoff prototype. */
 #ifndef LUNAR_FM6_PAIR_MAILBOX_H
 #define LUNAR_FM6_PAIR_MAILBOX_H
-#include "fm1_dx7_kernel.h"
+#include "fm6_pair_bridge.h"
 #include <stdint.h>
 #ifdef LUNAR_MAILBOX_HOST_TEST
 #include <atomic>
@@ -23,6 +23,9 @@ class alignas(64) LunarFm6Mailbox {
   int WorkerStep();
   bool disabled() const { return disabled_; } // Audio caller only.
   unsigned completed_pairs() const { return completed_; }
+  void diagnostics(lunar_fm6_pair_diagnostic *out) const {
+    if (out) *out = diagnostic_; // CPU0 only; worker never writes this record.
+  }
  private:
   LunarFm6Mailbox(const LunarFm6Mailbox &);
   LunarFm6Mailbox &operator=(const LunarFm6Mailbox &);
@@ -33,5 +36,6 @@ class alignas(64) LunarFm6Mailbox {
   uint32_t budget_;
   bool disabled_;
   unsigned completed_;
+  lunar_fm6_pair_diagnostic diagnostic_;
 };
 #endif

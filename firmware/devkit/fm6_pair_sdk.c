@@ -72,6 +72,10 @@ void lunar_fm6_sdk_parent_block(void) {
     if (current_cpu_id() != 0) ++state.parent_wrong_core;
 }
 void lunar_fm6_sdk_report(unsigned test_case) {
+    struct lunar_fm6_pair_diagnostic d;
+    lunar_fm6_pair_diagnostics(&d);
+    printf("LUNAR_FM6_REFUSAL case=%u reason=%u elapsed_ticks=%u polls=%u first_ticks=%u request=%u done=%u\n",
+           test_case, d.reason, d.elapsed_ticks, d.polls, d.first_ticks, d.request, d.done);
     /* Only jobs/errors may still change; a final fenced row follows exit. */
     printf("LUNAR_FM6_PAIR case=%u completed=%u disabled=%d parent_blocks=%u parent_wrong=%u worker_jobs=%u worker_wrong=%u error=%u exited=%u\n",
            test_case, lunar_fm6_pair_completed(), lunar_fm6_pair_disabled(),

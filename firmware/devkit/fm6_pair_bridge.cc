@@ -32,3 +32,12 @@ extern "C" unsigned lunar_fm6_pair_completed(void) {
 extern "C" int lunar_fm6_pair_disabled(void) {
   return !mailbox || mailbox->disabled();
 }
+
+extern "C" void lunar_fm6_pair_diagnostics(lunar_fm6_pair_diagnostic *out) {
+  if (!out) return;
+  if (mailbox) mailbox->diagnostics(out);
+  else {
+    *out = lunar_fm6_pair_diagnostic();
+    out->reason = LUNAR_FM6_PAIR_CONFIG;
+  }
+}

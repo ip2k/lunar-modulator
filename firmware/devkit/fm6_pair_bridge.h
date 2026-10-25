@@ -5,6 +5,17 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/* CPU0-owned snapshot. first_ticks includes publication and the caller kernel;
+ * elapsed also includes waiting. A visible completion can still miss deadline. */
+enum lunar_fm6_pair_failure {
+  LUNAR_FM6_PAIR_OK = 0, LUNAR_FM6_PAIR_CALLER = 1,
+  LUNAR_FM6_PAIR_DEADLINE = 2, LUNAR_FM6_PAIR_POLLS = 3,
+  LUNAR_FM6_PAIR_WORKER = 4, LUNAR_FM6_PAIR_CONFIG = 5
+};
+struct lunar_fm6_pair_diagnostic {
+  unsigned reason, elapsed_ticks, polls, first_ticks, request, done;
+};
+void lunar_fm6_pair_diagnostics(struct lunar_fm6_pair_diagnostic *out);
 /* Initialize once before starting the worker or attaching to a renderer.
  * Static storage survives rejection, timeout, detach and engine destruction.
  * Never reinitialize it while a late worker may still be executing. */

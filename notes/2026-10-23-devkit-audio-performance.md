@@ -3577,3 +3577,39 @@ table address relocations; table bytes match. Pretask heap rises to 84588 bytes.
 Independent cipher/CRC and 138-sector NOR install/restore pass, including
 interruptions at pages 7, 1111, 2183 and 2199. Hardware startup, both stack
 headrooms, pair completion and renderer deadlines remain unaccepted.
+
+### First copied FM6 hardware run: fallback intact, acceptance failed
+
+[verified, hardware] Image718f passed startup three-ACK recovery in 78.1083 ms,
+fresh ROM inquiry, two matching full backups, factory restore and same-image
+install/readback. The parent task now starts; the run observes the 200-tick
+window, four arithmetic checks, CPU0 parent and CPU1 worker placement.
+Heap remains 42644 bytes; arena is 86912. Parent stack retains 2644 of 8192
+bytes and worker stack retains 3260 of 4096 bytes.
+
+[verified] All four PCM hashes match; 32 unit and 24 stage rows are complete.
+The pair backend nevertheless disables during case 0 after 5393 accepted pairs;
+worker jobs reach 5394, with zero wrong-core/error counters and exit acknowledged.
+The final pair-equality gate correctly refuses completion. Means are
+1270.292 / 1514.417 / 1643.917 / 1860.750 us, late counts
+183 / 3755 / 5263 / 5505 of 5513: FAIL, not an audio-acceptance result.
+The existing boolean does not identify deadline, poll-bound or kernel-refusal
+cause. Do not infer a worker crash from one unaccepted result.
+
+[verified] Exact owned RX closure and terminal session precede ordinary PING ACK;
+the board is healthy idle. Both resets are consumed. Private raw SHA-256
+`7bbae3b519acdb307a50ebc0f76f1d7994ddb181cd8b55655aad965d9aef4b72`.
+
+[implemented, offline only] Add CPU0-owned first-failure diagnostics: reason,
+request/completion sequence, elapsed ticks, poll count and first observed ticks
+after caller computation. This uses existing clock reads and retains the total
+deadline, poll bound, permanent disable and fallback. No new image is admitted
+by this source change. Rarefaction still cannot resolve the external worktree;
+Serena sees bridge functions but not the mailbox method. Source and actual
+builds remain necessary for this target and its ABI.
+
+[verified, host] Refusal fault and SDK lifecycle tests plus renderer checks:
+54 pass, one missing-multilib skip. The initial mixed replay build failed
+because its reused ignored build directory was root-owned. Correcting that
+exact directory's ownership and rerunning the affected mixed PCM check passes.
+Keys full PCM and fallback also pass; no target timing follows from host tests.

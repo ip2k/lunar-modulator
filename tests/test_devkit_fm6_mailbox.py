@@ -29,6 +29,7 @@ static uint32_t tick(void *p) {
   unsigned value=t.now; t.now+=t.step; return value;
 }
 int main() {
+  lunar_fm6_pair_diagnostic d;
   fm1_dx7_kernel_job_t jobs[2]={};
   jobs[0].op[0].phase=10; jobs[1].op[0].phase=20;
   Time t={0xfffffffcu,1,0}; LunarFm6Mailbox m(tick,&t,20); t.worker=&m;
@@ -42,6 +43,9 @@ int main() {
   Time stall={0,1,0}; LunarFm6Mailbox late(tick,&stall,8);
   fm1_dx7_kernel_job_t original=jobs[1];
   assert(!late.RenderPair(jobs) && late.disabled());
+  late.diagnostics(&d);
+  assert(d.reason==LUNAR_FM6_PAIR_DEADLINE && d.elapsed_ticks==8 && d.first_ticks==1);
+  assert(d.request==1 && d.done==0);
   assert(!std::memcmp(&jobs[1],&original,sizeof original));
   std::memset(jobs,0xa5,sizeof jobs);
   fm1_dx7_kernel_job_t sentinel[2]; std::memcpy(sentinel,jobs,sizeof jobs);
@@ -52,17 +56,26 @@ int main() {
   std::memset(jobs,0,sizeof jobs); jobs[1].algorithm=32; original=jobs[1];
   Time reject={0,1,0}; LunarFm6Mailbox bad(tick,&reject,8); reject.worker=&bad;
   assert(!bad.RenderPair(jobs) && bad.disabled());
+  bad.diagnostics(&d); assert(d.reason==LUNAR_FM6_PAIR_WORKER && d.request==d.done);
   assert(!std::memcmp(&jobs[1],&original,sizeof original));
   // Completion after the total deadline is rejected, as is a frozen clock.
   std::memset(jobs,0,sizeof jobs);
   Time slow={0,8,0}; LunarFm6Mailbox expired(tick,&slow,8); slow.worker=&expired;
   assert(!expired.RenderPair(jobs) && expired.disabled());
+  expired.diagnostics(&d);
+  assert(d.reason==LUNAR_FM6_PAIR_DEADLINE && d.first_ticks==8 && d.polls==0 && d.request==d.done);
   Time frozen={0,0,0}; LunarFm6Mailbox stuck(tick,&frozen,8);
   assert(!stuck.RenderPair(jobs) && stuck.disabled());
+  stuck.diagnostics(&d); assert(d.reason==LUNAR_FM6_PAIR_POLLS && d.polls==1000000 && !d.elapsed_ticks);
   assert(stuck.WorkerStep()==1);
   LunarFm6Mailbox invalid(tick,&t,0), nullclock(0,0,8), wide(tick,&t,0x80000000u);
   assert(invalid.disabled() && nullclock.disabled() && wide.disabled());
   assert(!invalid.RenderPair(jobs));
+  invalid.diagnostics(&d); assert(d.reason==LUNAR_FM6_PAIR_CONFIG);
+  jobs[0].algorithm=32; jobs[1].algorithm=0;
+  Time caller={0,1,0}; LunarFm6Mailbox refused(tick,&caller,8);
+  assert(!refused.RenderPair(jobs));
+  refused.diagnostics(&d); assert(d.reason==LUNAR_FM6_PAIR_CALLER && d.request==1);
   return 0;
 }
 ''')
