@@ -2283,3 +2283,35 @@ exact process identity. Private raw SHA-256:
 `292ff614f2fe2881c2216596d7b095f56fcb220ab974f78275ad8b74178bf764`.
 The optimization is useful but insufficient; further shared-renderer cost
 reduction and actual audio acceptance remain required.
+
+### Renderer compiler comparison — offline
+
+[verified, offline] The nested vendor command uses `-O2 -flto`; renderer
+input IR has neither `optsize` nor `minsize`. The SDK LTO link uses an
+inlining threshold of 5. This does not establish that LTO loses `-O2`.
+A private no-LTO comparison exceeded SRAM because unused state buffers
+remained in combined BSS. Enabling per-variable data sections then linked,
+but placed live buffers in orphan sections outside usable SRAM. Both
+experiments are rejected for installation; their private staging receipts
+are deliberately marked stale. No device command was sent for either.
+
+[verified, source/tests] Optional `--renderer-o3` instead changes only the
+prepared renderer's `OPT` from `-O2` to `-O3`, retaining SDK/LTO flags and
+memory-section rules. It requires the timing-only profiled unroll comparison.
+The receipt records the optimization and exact prepared make-fragment hash.
+Default builds stay at `-O2`. All 23 local preparation cases pass; the focused
+Linux suite passes 124 tests with one unavailable-multilib skip. The actual
+prepared source at `-O3` matches all eight desktop reference PCM hashes.
+Rarefaction cannot resolve the sibling worktree preparer; Serena resolves
+its actual definition, with file inspection used for the configuration edit.
+
+[verified, offline build] Vendor ELF
+`dd315632f93c3caabfe77000ea23205ad914f84806a77298ee3084aea44ac97c`
+independently packs to app
+`af221664070a37a5c31b967d1fb14a127c6af01177cb4bc792586a5b7cf7298f`
+(562,844 bytes). Five exports, coefficient/table bytes and three dormant SDK
+functions match independent checks. SRAM startup data grows by 992 bytes
+relative to unroll-v1; pre-task heap is 53,036 bytes. Link audit reports zero
+failures and one pending manual SDK-scheduling check. Exact startup/recovery,
+cipher/CRC, NOR interruption/restore review and admission remain pending.
+No O3 image is installed, and no speed or audio acceptance is claimed.

@@ -41,10 +41,11 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     engine_profile = mode == 'renderer-engine-profile'
-    unroll = mode == 'renderer-unroll-profile'
+    renderer_o3 = mode == 'renderer-o3-profile'
+    unroll = mode == 'renderer-unroll-profile' or renderer_o3
     if engine_profile or unroll:
         mode = 'renderer-slopes-profile'
     slopes = mode == 'renderer-slopes-profile'
@@ -91,7 +92,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll)
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll, renderer_o3=renderer_o3)
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -215,6 +216,15 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert receipt['plaits_cache'] == plaits_cache
         assert receipt['resampler_slopes'] == slopes
         assert receipt['resampler_unroll'] == unroll
+        fragment = (out/'apps/demo/demo_hello/board/wl82/lunar-renderer.mk').read_bytes()
+        assert receipt['prepared_renderer_fragment_sha256'] == hashlib.sha256(fragment).hexdigest()
+        opt = '-O3' if renderer_o3 else '-O2'
+        assert receipt['renderer_optimization'] == opt
+        assert ('OPT=' + opt).encode() in fragment
+        expected_fragment = (ROOT/'tools/jieli/devkit-renderer-sdk.mk').read_bytes()
+        if renderer_o3:
+            expected_fragment = expected_fragment.replace(b'OPT=-O2', b'OPT=-O3', 1)
+        assert fragment == expected_fragment
         assert receipt['engine_profile'] == engine_profile
         assert ('-DLUNAR_RENDERER_ENGINE_PROFILE=1' in result) == engine_profile
         if not engine_profile:

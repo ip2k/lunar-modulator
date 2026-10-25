@@ -90,7 +90,7 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -117,6 +117,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Engine profiling requires timing-only profiled resampler slopes")
     if resampler_unroll and not (resampler_slopes and profile and not engine_profile):
         raise ValueError("Lowpass unrolling requires timing-only profiled slopes without detail instrumentation")
+    if renderer_o3 and not resampler_unroll:
+        raise ValueError("Renderer O3 comparison requires timing-only profiled lowpass unrolling")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -305,7 +307,13 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             p.write_text(instrument_engine_profile(original.decode(), engine))
     (staging / "tools/jieli").mkdir(parents=True)
     shutil.copyfile(source / "tools/jieli/renderer.mk", staging / "tools/jieli/renderer.mk")
-    shutil.copyfile(source / "tools/jieli/devkit-renderer-sdk.mk", app / "board/wl82/lunar-renderer.mk")
+    fragment = app / "board/wl82/lunar-renderer.mk"
+    fragment_text = (source / "tools/jieli/devkit-renderer-sdk.mk").read_text()
+    if renderer_o3:
+        if fragment_text.count("OPT=-O2") != 1:
+            raise ValueError("Unexpected renderer optimization flags; review O3 comparison")
+        fragment_text = fragment_text.replace("OPT=-O2", "OPT=-O3", 1)
+    fragment.write_text(fragment_text)
     makefile = app / "board/wl82/Makefile"
     text = makefile.read_text()
     anchor = "objs/apps/demo/demo_hello/audio_probe.c.o: CFLAGS :="
@@ -342,6 +350,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "resampler_slopes": resampler_slopes,
         "engine_profile": engine_profile,
         "resampler_unroll": resampler_unroll,
+        "renderer_optimization": "-O3" if renderer_o3 else "-O2",
+        "prepared_renderer_fragment_sha256": hashlib.sha256(fragment.read_bytes()).hexdigest(),
         "resampler_unroll_original_sha256": unroll_input,
         "engine_profile_original_sha256": engine_profile_inputs,
         "plaits_table_original_sha256": plaits_table_inputs,
@@ -407,5 +417,7 @@ if __name__ == "__main__":
                         help="Locate engine generation/pop cost; adds measurement overhead, requires profiled slopes")
     parser.add_argument("--resampler-unroll", action="store_true",
                         help="Expand the fixed FIR loop without changing sums; requires profiled slopes without engine detail")
+    parser.add_argument("--renderer-o3", action="store_true",
+                        help="Compare renderer -O3 with SDK flags unchanged; requires profiled lowpass unrolling")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3)
