@@ -2259,3 +2259,27 @@ interrupted page positions. Only candidate
 `92d1e3f1fdea9e5a73961f0d88d683527012026a2c5302bbbda2a9d8288f457e`
 is admitted at the existing slopes-image bounds. Target recovery, PCM and
 performance remain pending.
+
+
+### Fixed FIR expansion — target result
+
+[verified, hardware] Fresh startup ready/PING/ARM/ENTER passed in 78.19 ms,
+followed by responsive WL82/UBOOT1.00 inquiry and two matching full reads.
+Factory restore, same-image reinstall and full 8 MiB readbacks passed. Both
+single-use resets are consumed. Four PCM and arithmetic checks match;
+32 unit and 24 stage rows cover 352,832 outputs per case. Invalid/clipped
+samples remain zero, with an explicit completion marker and post-run PING.
+
+Mean block times are 3,164.38 / 3,445.79 / 3,564.25 / 3,761.13 us for
+1 / 4 / 8 / 12 FM6 voices. Maxima are 3,956.88 / 4,164.00 / 4,310.25 /
+4,577.33 us. Compared with the clean slopes image, mean reductions are
+6.65 / 6.32 / 6.33 / 6.04 percent. Every 5,513 blocks in every case still
+misses the approximately 1,451 us deadline. This remains timing-only;
+no analog or sustained-soak acceptance is claimed.
+
+Free heap stays at 12,084 bytes across five readings; peak worker stack
+is 5,544 of 8,192 bytes. Receive-only capture was closed after verifying its
+exact process identity. Private raw SHA-256:
+`292ff614f2fe2881c2216596d7b095f56fcb220ab974f78275ad8b74178bf764`.
+The optimization is useful but insufficient; further shared-renderer cost
+reduction and actual audio acceptance remain required.
