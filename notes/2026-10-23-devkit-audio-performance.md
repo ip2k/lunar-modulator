@@ -1586,3 +1586,15 @@ results, the complete renderer replay and recovery on this new image are still
 pending; no new hardware image has been admitted or installed by this change.
 Rarefaction cannot see the sibling worktree's new worker path; Serena resolves
 the actual worker body, and vendor disassembly remains the code-generation check.
+
+[verified, offline] Exact arithmetic candidate `8d67a77a…` (app 550,512 bytes,
+`b80f6261…`; ELF `077f05d7…`) is now admitted for the same 135-sector timing
+preflight. Independent section exports, cipher/CRC, factory protection and
+four interrupted NOR restores pass. Actual startup copies 63,792 bytes;
+heap before tasks is 55,052 bytes. Vendor disassembly confirms UART/task
+allocation order, 200-tick window before arithmetic, strong ROM/P33 entry,
+and dormant SDK scheduling. The arithmetic function table order and initialized
+operand bits match source; sine and exp2 tables match the previous candidate.
+A final dependency-only relink leaves the ELF byte-identical. All 34 final
+arithmetic/admission/reset checks pass. Hardware installation and results
+are still pending.
