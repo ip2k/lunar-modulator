@@ -142,7 +142,7 @@ def test_renderer_profile_extra_sector_is_image_specific(target_sha):
     tx.mutation_request(0xFB01, 0x8a000, b'', desired, allowed)
     tx.mutation_request(0xFB04, 0x8af00, bytes(256), desired, allowed)
     for sha, other in tx.IMAGE_PLANS.items():
-        if sha not in (tx.RENDERER_SLOPES_TARGET_SHA, tx.RENDERER_PROFILE_TARGET_SHA, tx.RENDERER_HOT_TARGET_SHA, tx.RENDERER_SINE_TARGET_SHA, tx.RENDERER_RECOVERY_TARGET_SHA, tx.RENDERER_STAGES_TARGET_SHA, tx.RENDERER_VCF_TARGET_SHA, tx.RENDERER_ARITHMETIC_TARGET_SHA, tx.RENDERER_RESAMPLER_TARGET_SHA, tx.RENDERER_CACHE_TARGET_SHA, tx.RENDERER_FX_TARGET_SHA, tx.RENDERER_OUTLINE_TARGET_SHA, tx.RENDERER_FILTER_TARGET_SHA, tx.RENDERER_FILTER_STACK_TARGET_SHA, tx.RENDERER_CONTROL_TARGET_SHA, tx.RENDERER_PLAITS_CACHE_TARGET_SHA):
+        if sha not in (tx.RENDERER_DETAIL_TARGET_SHA, tx.RENDERER_SLOPES_TARGET_SHA, tx.RENDERER_PROFILE_TARGET_SHA, tx.RENDERER_HOT_TARGET_SHA, tx.RENDERER_SINE_TARGET_SHA, tx.RENDERER_RECOVERY_TARGET_SHA, tx.RENDERER_STAGES_TARGET_SHA, tx.RENDERER_VCF_TARGET_SHA, tx.RENDERER_ARITHMETIC_TARGET_SHA, tx.RENDERER_RESAMPLER_TARGET_SHA, tx.RENDERER_CACHE_TARGET_SHA, tx.RENDERER_FX_TARGET_SHA, tx.RENDERER_OUTLINE_TARGET_SHA, tx.RENDERER_FILTER_TARGET_SHA, tx.RENDERER_FILTER_STACK_TARGET_SHA, tx.RENDERER_CONTROL_TARGET_SHA, tx.RENDERER_PLAITS_CACHE_TARGET_SHA):
             with pytest.raises(ValueError):
                 tx.mutation_request(0xFB01, 0x8a000, b'', desired, other)
     for address in (0x3000, 0x8b000, 0x7ff000):
@@ -154,15 +154,18 @@ def test_renderer_profile_extra_sector_is_image_specific(target_sha):
         assert tx.protected_equal(changed, desired, allowed) == permitted
 
 
-def test_slope_image_extends_only_its_own_exact_plan():
+@pytest.mark.parametrize('target_sha', [tx.RENDERER_SLOPES_TARGET_SHA,
+                                      tx.RENDERER_DETAIL_TARGET_SHA])
+def test_reviewed_136_sector_images_preserve_older_bounds(target_sha):
     assert tx.RENDERER_SLOPES_TARGET_SHA == '7f1d2286a353084c681258556294b8309d3121fc66c301f80832c98b455f6d34'
-    allowed = tx.IMAGE_PLANS[tx.RENDERER_SLOPES_TARGET_SHA]
+    assert tx.RENDERER_DETAIL_TARGET_SHA == '57a605672d17ae479e8db05f9bacc12fd84bce49940da7c46a56130b352b3027'
+    allowed = tx.IMAGE_PLANS[target_sha]
     assert allowed == tuple(range(0x4000, 0x8c000, 4096))
     desired = bytes(tx.backup.FLASH_SIZE)
     tx.mutation_request(0xFB01, 0x8b000, b'', desired, allowed)
     tx.mutation_request(0xFB04, 0x8bf00, bytes(256), desired, allowed)
     for sha, older in tx.IMAGE_PLANS.items():
-        if sha != tx.RENDERER_SLOPES_TARGET_SHA:
+        if sha not in (tx.RENDERER_SLOPES_TARGET_SHA, tx.RENDERER_DETAIL_TARGET_SHA):
             with pytest.raises(ValueError):
                 tx.mutation_request(0xFB01, 0x8b000, b'', desired, older)
     for address in (0x3000, 0x8c000, 0x7ff000):

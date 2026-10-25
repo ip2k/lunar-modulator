@@ -2172,3 +2172,16 @@ match independent checks; three SDK functions match after verified pointer
 and call relocations. Linked pre-task heap is 56,588 bytes. Final exact
 startup/recovery/code-generation, cipher/NOR admission and hardware timing
 are pending. No new image has been installed.
+
+
+[verified, offline admission] Final vendor review confirms UART-first task
+allocation and its success guard, the 200-tick window before the workload,
+strong ROM entry with the prior exact 16-byte marker, unchanged SDK cache
+allocation and two IRQ-123 registrations plus the 8,000 ms timer. Actual
+Macro/drum code calls the four counters around generation/pop with correct
+entry/exit arguments. Independent cipher/CRC and protected-byte checks pass.
+The NOR model installs/restores 136 sectors metadata-last and restores after
+four interrupted page positions. Exact candidate SHA-256:
+`57a605672d17ae479e8db05f9bacc12fd84bce49940da7c46a56130b352b3027`.
+Only that image is admitted at the existing slope-image bounds; older plans
+are unchanged. Hardware startup recovery and measurements remain pending.
