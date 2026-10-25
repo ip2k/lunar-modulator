@@ -2994,3 +2994,31 @@ yet been installed or accepted on hardware.
 in 0.86 s after updating the three explicit cross-image exemption lists.
 Protected-boundary rejection tests remain in place. No hardware traffic was
 sent during the failed or corrected admission run.
+
+### SVF channel shortcut — target result
+
+[verified, hardware] Startup fresh-ready/PING/ARM/ENTER completed in 78.34 ms.
+Fresh ROM inquiry and two full candidate backups, factory restore, same-image
+reinstall and full-flash readback pass. WINDOW30065 and RUN18951 receipts are
+consumed. Four PCM/arithmetic fingerprints, 32 unit/24 stage rows and complete
+frame/block counts match; invalid/clipped counts are zero. Means are
+1235.708 / 1440.417 / 1561.792 / 1753.458 us; maxima 2094.167 / 2153.417 /
+2361.042 / 2594.750 us. Late blocks are 101 / 2409 / 5003 / 5482 of 5513:
+deadline acceptance still FAILS. Mean changes versus settled compressor are
+only about 0.2–0.5%; the host improvement does not establish a substantial
+target gain. Filter cost remains about 188–193 us/block. Heap is stable at
+7284 bytes over all five readings; peak stack remains 5552/8192 bytes.
+Exact RX PID/command was checked twice and terminated, its session terminal
+before ordinary post-run PING acknowledged. Board remains healthy idle on
+49ef; no capture or device operation remains live. Private raw SHA
+`4adcb6f665c36b42a3df5683361d0fb0359324fd2d012db73312757495538ba1`.
+No analog/DAC/soak acceptance is claimed.
+
+[verified, offline layout] A separate vendor-ABI object probe reports FM6
+Voice=684 bytes, FmCore=544, voice-output buffer=256, Instance=16188 and
+Offsets=24. Thus private core/output scratch alone is 800 bytes; a task stack,
+scheduler allocation and safe job ownership/timeout behavior must also fit.
+The first two standalone probe attempts lacked SDK/MSFA include paths; the
+third compiled and exported these constants with the vendor compiler.
+These sizes establish neither parallel correctness nor available task headroom.
+No parallel implementation or target experiment has been made.
