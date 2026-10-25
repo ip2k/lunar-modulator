@@ -1887,3 +1887,21 @@ injected page interruptions. Exact admitted image SHA-256:
 `cf5328fc716e97604b415fab49d5ece58b4ef4d05874504e108041de4f6fa9f7`.
 Hardware timing, heap measurement, and recovery acceptance are pending;
 this is not a demonstrated speed improvement.
+
+### Filter-v1 startup allocation failure; UART recovery retained
+
+[verified] Filter-v1 passed startup PING/ARM/ENTER in 77.43 ms, responsive
+ROM inquiry, two exact full reads, factory restore and same-image reinstall.
+The measurement boot then failed to allocate the renderer's 12,288-byte
+stack. The UART task was already running and acknowledged ROM entry after
+the receive-only capture closed; no owner button was needed. No renderer
+case ran, so filter-v1 has no PCM, timing or runtime-heap acceptance. Private
+UART SHA-256: `6fb79992e017e386d03fc3fca8fddc0eda82c5d78a2d1f852488706c1b8f617f`.
+
+[inferred] Subtracting SRAM growth from a previous post-startup heap reading
+did not establish allocation feasibility during startup. Temporary allocations
+or fragmentation may matter; their individual contribution is not measured.
+The next timing-only filter build reserves an 8,192-byte renderer stack,
+2,648 bytes above the previously measured 5,544-byte peak. Other profiles
+retain 12 KiB. UART remains first. This budget must pass actual creation
+and high-water checks before it can support a performance claim.

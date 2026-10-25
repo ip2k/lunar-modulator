@@ -49,14 +49,18 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     app = out / "apps/demo/demo_hello"
     # os_api.h specifies four-byte stack units. Shared app setup includes the
     # modulation script parser and UI helpers, unlike the isolated FM6 probe.
-    # Actual target high-water usage is 5400 bytes; retain >2x that budget.
+    # Measured peak is 5544 bytes. Most comparisons retain a 12 KiB stack;
+    # filter placement uses 8 KiB (2648 bytes above that peak) because its
+    # 12 KiB allocation failed during startup. Recheck target high-water use.
     # Recovery is already reserved/configured before this allocation.
     main = app / "app_main.c"
     text = main.read_text()
     worker = 'os_task_create(lunar_devkit_worker, NULL, 10, 2048, 0, "lunar_devkit");'
     if text.count(worker) != 1:
         raise ValueError("Unexpected worker creation; review renderer task stack")
-    main.write_text(text.replace(worker, worker.replace('10, 2048,', '10, 3072,'), 1))
+    worker_stack_words = 2048 if filter_process_ram else 3072
+    main.write_text(text.replace(worker, worker.replace('10, 2048,',
+        '10, ' + str(worker_stack_words) + ','), 1))
     shutil.copyfile(source / "firmware/devkit/renderer_live.h", app / "renderer_live.h")
     shutil.copyfile(source / "firmware/devkit/renderer_timing.h", app / "renderer_timing.h")
     shutil.copyfile(source / "firmware/devkit/arithmetic_probe.h", app / "arithmetic_probe.h")
@@ -190,6 +194,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "fx_ram": fx_ram,
         "resampler_outline": resampler_outline,
         "filter_process_ram": filter_process_ram,
+        "worker_stack_words": worker_stack_words,
         "filter_process_original_sha256": filter_process_input,
         "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +

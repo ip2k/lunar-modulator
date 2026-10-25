@@ -103,7 +103,8 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert 'if (!lunar_devkit_boot_control_start()) {' in main_text
         assert main_text.index('boot_control_start())') < main_text.index('int lunar_status = os_task_create')
     if renderer:
-        assert '10, 3072, 0, "lunar_devkit"' in (out/'apps/demo/demo_hello/app_main.c').read_text()
+        stack_words = 2048 if filter_process else 3072
+        assert f'10, {stack_words}, 0, "lunar_devkit"' in (out/'apps/demo/demo_hello/app_main.c').read_text()
     if timing:
         assert '-DLUNAR_DEVKIT_RENDERER_TIMING=1' in result
         assert ('-DLUNAR_RENDERER_PROFILE=1' in result) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'))
@@ -188,6 +189,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert receipt['fx_ram'] == (mode == 'renderer-fx-profile')
         assert receipt['resampler_outline'] == outline
         assert receipt['filter_process_ram'] == filter_process
+        assert receipt['worker_stack_words'] == (2048 if filter_process else 3072)
         original_filter = (ROOT/'engines/src/fx_filter.cc').read_bytes()
         prepared_filter = (out/'lunar-source/engines/src/fx_filter.cc').read_bytes()
         if filter_process:
