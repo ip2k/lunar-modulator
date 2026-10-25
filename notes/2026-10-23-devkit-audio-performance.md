@@ -2429,3 +2429,28 @@ the 138-sector metadata-last transaction. Only exact candidate
 `ccee05d465d396d5749b9d70b6cf8387c2bca100040b654af8f6306dc539e416`
 is admitted at those bounds. All 47 transaction/reset/arithmetic checks pass.
 Target startup recovery, PCM, performance and stack remain pending.
+
+
+### Mixer/dispatch placement — target result
+
+[verified, hardware] Fresh startup ready/PING/ARM/ENTER completes in
+78.6 ms, then WL82/UBOOT1.00 inquiry and two full candidate reads match.
+Factory restore, same-image reinstall and full 8 MiB readbacks pass.
+WINDOW and RUN resets are consumed. All four PCM hashes and arithmetic
+probes match, with 32 unit and 24 stage rows covering 352,832 outputs per
+case, zero invalid/clipped samples and explicit completion.
+
+Mean block times are 3,040.50 / 3,323.29 / 3,454.67 / 3,638.75 us;
+maxima are 3,809.67 / 3,940.04 / 4,197.63 / 4,431.54 us. Gains over
+O3 are 2.07 / 1.39 / 1.58 / 1.41 percent. All 5,513 blocks in every
+case still miss the approximately 1,451 us deadline. Mixer placement
+alone is insufficient. Free heap stays at 9,300 bytes over five readings;
+peak worker stack is 5,548 of 8,192 bytes. Capture PID was checked twice
+before termination; post-run PING acknowledges. Private raw SHA-256:
+`bc965e73198aafe00fe211c4ef35f4503c736b2b1cc9149ee28b9665eb9a0385`.
+
+[verified, profile] Sound/insert work still costs 2,530.63–3,129.79 us per
+block, versus approximately 269–270 us master and 181–182 us control/UI.
+The next investigation targets the measured engine/resampler work. Native
+rates, time constants and filtering remain requirements; no analog or
+30-minute-soak acceptance is claimed.
