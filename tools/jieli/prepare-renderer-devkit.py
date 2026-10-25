@@ -46,7 +46,27 @@ def resampler_slope_definition(definition):
     return ("static const float fm1_resampler_kernel_pairs[(FM1_RESAMPLER_KERNEL_LEN - 1) * 2] = {\n"
             + "\n".join(pairs) + "\n};")
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False):
+def instrument_engine_profile(text, engine):
+    """Observe generation/pop in private copies without changing their math."""
+    if engine not in (0, 1):
+        raise ValueError("Unexpected engine profile ID")
+    anchors = ("          RenderBlock();", "fm1_resampler_pop(&resampler_);")
+    if any(text.count(anchor) != 1 for anchor in anchors):
+        raise ValueError("Unexpected engine render loop; review detail profiling")
+    text = text.replace(anchors[0],
+        f"          lunar_devkit_engine_profile({engine * 2}, kBlockSize, 1);\n" + anchors[0] +
+        f"\n          lunar_devkit_engine_profile({engine * 2}, kBlockSize, 0);", 1)
+    lines = text.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        if anchors[1] in line:
+            lines[i] = (f"      lunar_devkit_engine_profile({engine * 2 + 1}, 1, 1);\n" + line +
+                        f"      lunar_devkit_engine_profile({engine * 2 + 1}, 1, 0);\n")
+            break
+    return ('extern "C" void lunar_devkit_engine_profile(unsigned, unsigned, int);\n'
+            + ''.join(lines))
+
+
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -69,6 +89,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Plaits cache tables require the timing-only resident control comparison")
     if resampler_slopes and not plaits_cache:
         raise ValueError("Resampler slopes require the timing-only Plaits cache comparison")
+    if engine_profile and not (profile and resampler_slopes):
+        raise ValueError("Engine profiling requires timing-only profiled resampler slopes")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -243,6 +265,13 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
                 wrapped = b'#pragma code_seg(".volatile_ram_code")\n' + matches[0] + b'\n#pragma code_seg()'
                 text = text.replace(matches[0], wrapped, 1)
             p.write_bytes(text)
+    engine_profile_inputs = {}
+    if engine_profile:
+        for engine, name in enumerate(("engines/src/mi_macro.cc", "engines/src/drums.cc")):
+            p = staging / name
+            original = p.read_bytes()
+            engine_profile_inputs[name] = hashlib.sha256(original).hexdigest()
+            p.write_text(instrument_engine_profile(original.decode(), engine))
     (staging / "tools/jieli").mkdir(parents=True)
     shutil.copyfile(source / "tools/jieli/renderer.mk", staging / "tools/jieli/renderer.mk")
     shutil.copyfile(source / "tools/jieli/devkit-renderer-sdk.mk", app / "board/wl82/lunar-renderer.mk")
@@ -259,6 +288,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             renderer_flags += "CFLAGS += -DLUNAR_RENDERER_POOL_BYTES=139264\n"
         if profile:
             renderer_flags += "CFLAGS += -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1\n"
+        if engine_profile:
+            renderer_flags += "CFLAGS += -DLUNAR_RENDERER_ENGINE_PROFILE=1\n"
     else:
         text = text.replace(anchor, "CFLAGS += -DLUNAR_DEVKIT_RENDERER_AUDIO=1\n" + anchor, 1)
     # The nested make snapshots CFLAGS into LUNAR_EXTRA with :=. Define its
@@ -278,6 +309,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "cache_tables": cache_tables,
         "plaits_cache": plaits_cache,
         "resampler_slopes": resampler_slopes,
+        "engine_profile": engine_profile,
+        "engine_profile_original_sha256": engine_profile_inputs,
         "plaits_table_original_sha256": plaits_table_inputs,
         "fx_ram": fx_ram,
         "resampler_outline": resampler_outline,
@@ -337,5 +370,7 @@ if __name__ == "__main__":
                         help="Compare exact Plaits sine/pitch tables in existing SDK data RAM; requires resident control")
     parser.add_argument("--resampler-slopes", action="store_true",
                         help="Compare pre-scaled float32 kernel pairs; requires timing-only Plaits cache")
+    parser.add_argument("--engine-profile", action="store_true",
+                        help="Locate engine generation/pop cost; adds measurement overhead, requires profiled slopes")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile)

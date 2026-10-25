@@ -2141,3 +2141,34 @@ Private raw capture SHA-256:
 The DAC was disabled; no KA6 analog or sustained-soak acceptance is claimed.
 Further work must address the larger engine/effect costs rather than treating
 this small coefficient change as sufficient.
+
+
+### Engine detail profiler — offline preparation
+
+[verified, source/tests] Optional `--engine-profile` requires the profiled
+slopes comparison and instruments only private Macro/drum source copies.
+Four regions observe 12-sample generation and each resampler pop separately;
+their totals are nested inside existing unit/stage totals. These clock reads
+add overhead, so this image locates costs rather than establishing a clean
+speed gain. Source changes to either expected pull-loop anchor refuse
+preparation. Production engine sources and audio math remain unchanged.
+
+The compiled actual-loop probes preserve output ordering and pending-input
+state across zero, short and uneven calls. A separate prepared Linux full
+renderer replay matches all eight reference PCM hashes; all region clock
+counts, wrap-safe elapsed ticks and per-case resets pass. Each pop region
+covers 352,832 outputs per case and generation covers 31,918 blocks of 12
+samples in the steady cases. The focused Linux suite passes 108 checks with
+one missing-multilib skip. Earlier attempts hit root-owned cache permissions
+and then a non-executable temporary mount; the successful run uses an
+isolated writable executable build cache, without weakening tests.
+
+[verified, offline build] Detail-v2 vendor ELF
+`e06771a1e4c1f06505169b82e6dc4c5dcbaac2399cc31603c5ab7a037e05caff`
+independently packs to app
+`2a20a8ce9e712e4da363e2333b545aa36373e5b208be757cef52c1030378e109`
+(553,492 bytes). Five vendor section exports and existing coefficient bytes
+match independent checks; three SDK functions match after verified pointer
+and call relocations. Linked pre-task heap is 56,588 bytes. Final exact
+startup/recovery/code-generation, cipher/NOR admission and hardware timing
+are pending. No new image has been installed.

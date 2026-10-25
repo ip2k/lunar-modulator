@@ -44,6 +44,15 @@ static void emit_renderer(const struct lunar_renderer_timing *r)
                r->test_case, i, p.calls, p.frames, p.calls ? (unsigned)(p.ticks / p.calls) : 0u,
                p.max_ticks, (unsigned)(p.ticks / r->blocks));
     }
+#ifdef LUNAR_RENDERER_ENGINE_PROFILE
+    for (unsigned i = 0; i < LUNAR_RENDERER_ENGINE_REGIONS; ++i) {
+        struct lunar_renderer_profile p;
+        lunar_devkit_renderer_engine_read(i, &p);
+        printf("LUNAR_RENDERER_ENGINE case=%u region=%u calls=%u frames=%u mean_call=%u max_call=%u mean_block=%u\n",
+               r->test_case, i, p.calls, p.frames, p.calls ? (unsigned)(p.ticks / p.calls) : 0u,
+               p.max_ticks, (unsigned)(p.ticks / r->blocks));
+    }
+#endif
 #endif
 }
 #endif

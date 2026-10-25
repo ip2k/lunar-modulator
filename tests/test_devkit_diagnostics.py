@@ -41,8 +41,11 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
+    engine_profile = mode == 'renderer-engine-profile'
+    if engine_profile:
+        mode = 'renderer-slopes-profile'
     slopes = mode == 'renderer-slopes-profile'
     plaits_cache = mode in ('renderer-plaits-cache-profile', 'renderer-slopes-profile')
     control = mode in ('renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile')
@@ -87,7 +90,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes)
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile)
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -153,12 +156,19 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             original = (ROOT/name).read_bytes()
             assert digest == hashlib.sha256(original).hexdigest()
             prepared = (out/'lunar-source'/name).read_bytes()
+            actual_prepared = prepared
+            if engine_profile and name in ('engines/src/mi_macro.cc', 'engines/src/drums.cc'):
+                import re
+                assert prepared.startswith(b'extern \"C\" void lunar_devkit_engine_profile(unsigned, unsigned, int);\n')
+                prepared = re.sub(rb'^extern \"C\" void lunar_devkit_engine_profile[^\n]+\n|^ +lunar_devkit_engine_profile\([^\n]+\n', b'', prepared, flags=re.M)
+                assert prepared != actual_prepared
+                assert receipt['engine_profile_original_sha256'][name] == hashlib.sha256(prepared).hexdigest()
             prefix = b'#pragma code_seg(".volatile_ram_code")\n' + original
             if mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile') and name == 'engines/src/mi_macro.cc':
                 assert prepared.startswith(prefix)
             else:
                 assert prepared == prefix
-            assert receipt['inputs'][name] == hashlib.sha256(prepared).hexdigest()
+            assert receipt['inputs'][name] == hashlib.sha256(actual_prepared).hexdigest()
         original = (ROOT/'engines/src/msfa_rom.cc').read_bytes()
         prepared = (out/'lunar-source/engines/src/msfa_rom.cc').read_bytes()
         section = b'.lunar_cache_tables' if mode in ('renderer-cache-profile', 'renderer-fx-profile') else b'.volatile_ram'
@@ -203,6 +213,10 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert receipt['renderer_pool_bytes'] == (136 if control else 148) * 1024
         assert receipt['plaits_cache'] == plaits_cache
         assert receipt['resampler_slopes'] == slopes
+        assert receipt['engine_profile'] == engine_profile
+        assert ('-DLUNAR_RENDERER_ENGINE_PROFILE=1' in result) == engine_profile
+        if not engine_profile:
+            assert receipt['engine_profile_original_sha256'] == {}
         tables = {
             'engines/third_party/mutable/stmlib/dsp/units.cc': ('lut_pitch_ratio_high', 'lut_pitch_ratio_low'),
             'engines/third_party/mutable/plaits/resources.cc': ('lut_sine',),
