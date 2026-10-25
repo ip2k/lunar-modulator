@@ -1972,3 +1972,33 @@ worker; the 200-tick recovery wait precedes renderer work. SRAM/cache startup
 copies and the strong ROM marker/P33 path were reviewed in vendor disassembly.
 Exact admitted image: `bb3cc21d3fdc9fa0a0920334920845a6795e7726086a3638dbf1f4e20df3f759`.
 This permits its bounded recovery rehearsal, not a hardware performance claim.
+
+
+### Control-path SRAM comparison — hardware result
+
+[verified, dev board] Exact image `bb3cc21d…` passes the UART-only
+startup recovery rehearsal: fresh ready and three acknowledgements in 78.24 ms,
+responsive WL82 / UBOOT1.00 inquiry, two matching full 8 MiB reads, exact
+factory restore, same-image reinstall and full readback. Both one-shot reset
+receipts are consumed. No physical button was required.
+
+[verified, timing only] All four cases complete with the expected arithmetic
+patterns and PCM hashes `6bcab227`, `46c02687`, `1e2f305d`, `5b7dbc03`;
+32 unit rows and 24 stage rows each account for 352,832 frames per case.
+Invalid and clipped counts are zero. The 136 KiB pool uses 134,944 bytes.
+Free heap stays at 14,356 bytes across five readings. Peak worker stack usage
+is 5,544 of 8,192 bytes, leaving 2,648 bytes. Capture closed before an ordinary
+post-run PING, which acknowledges.
+
+| Case | Mean block us | Maximum us | Mean reduction from filter-v2 |
+| --- | ---: | ---: | ---: |
+| 0 | 3431.083 | 4138.917 | 5.23% |
+| 1 | 3710.125 | 4309.292 | 4.84% |
+| 2 | 3839.875 | 4577.167 | 4.56% |
+| 3 | 4032.542 | 4828.167 | 4.33% |
+
+Every one of 5,513 blocks in every case still exceeds the approximately
+1,451 us deadline. The DAC is off: this is neither analog nor dropout-free
+acceptance. The result supports retaining the optional control placement
+comparison, not merging the unfinished campaign. Raw UART stays private;
+SHA256 `e3222a68fca7547f0e44c22464200d911558789e8fcabe55808a22d519737589`.
