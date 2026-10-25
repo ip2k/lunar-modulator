@@ -491,9 +491,24 @@ static void FiltStartType(FilterInstance *self, int type) {
 /* The types, one frame (both channels) each                               */
 /* ---------------------------------------------------------------------- */
 
+FILT_INLINE uint32_t FiltBits(float x) {
+  uint32_t bits;
+  memcpy(&bits, &x, sizeof bits);
+  return bits;
+}
+
 FILT_INLINE void FiltSvf(FilterInstance *self, const float xin[2], float y[2]) {
   const FilterCoefs *k = &self->co;
-  for (int c = 0; c < 2; ++c) {
+  /* Equal input alone is insufficient: a previous stereo frame or spread
+   * can leave different histories. Compare representations, including -0. */
+  const SvfCh *h0 = &self->svf[0], *h1 = &self->svf[1];
+  const int mono = FiltBits(xin[0]) == FiltBits(xin[1]) &&
+                   FiltBits(k->g[0]) == FiltBits(k->g[1]) &&
+                   FiltBits(h0->ic1) == FiltBits(h1->ic1) &&
+                   FiltBits(h0->ic2) == FiltBits(h1->ic2) &&
+                   FiltBits(h0->v1) == FiltBits(h1->v1) &&
+                   FiltBits(h0->v2) == FiltBits(h1->v2);
+  for (int c = 0; c < (mono ? 1 : 2); ++c) {
     SvfCh *h = &self->svf[c];
     const float x = FiltPresat(xin[c], k->drv);
     const float g = k->g[c];
@@ -509,6 +524,10 @@ FILT_INLINE void FiltSvf(FilterInstance *self, const float xin[2], float y[2]) {
     h->v2 = FiltFlush(v2);
     const float hp = x - ke * v1 - v2;
     y[c] = (k->svf_w[0] * v2 + k->svf_w[1] * kSqrt2 * v1 + k->svf_w[2] * hp) * k->svf_comp;
+  }
+  if (mono) {
+    self->svf[1] = self->svf[0];
+    y[1] = y[0];
   }
 }
 
