@@ -4308,3 +4308,31 @@ priority18/1024 task creation0x2021192 precedes guarded parent16/2048 at
 Reviewed fences,34829-tick budget, bounded poll/lifetime and finite exit remain.
 Hardware startup recovery, PCM, stack and deadline measurements are still
 required; no target speedup or analog acceptance is claimed.
+
+### Hook SRAM V17 hardware measurement
+
+[verified, hardware] Exactb34e5f59 startup recovery succeeds in78.7032ms.
+Fresh WL82/UBOOT1.00 inquiries, double full current/new backups,138-sector
+factory restores and SAME RUN installation/full8MiB readback pass. WINDOW64766
+and RUN90556 reset receipts are consumed; neither may be retried. Four PCM/
+arithmetic cases,32 unit/24 stage/24 correlated stage/12 detail/48 prep/
+32 correlated unit rows pass. All81308 paired jobs complete with zero errors,
+refusals, disabled or wrong-core counts and finite worker exit. Heap36212 bytes
+remains stable; parent unused2508/8192 bytes and worker3260/4096 match V16.
+Sole RX246072 was twice argv-checked, terminated once and session5971 became
+terminal before ordinary PING ACK. Private raw SHA-256:
+`a49dfa4227f368e8c28f9bf872fba4d8bacfb0ed24fa4e6ba8c2ecef279e82e1`.
+
+|Keys case|Mean us|Max us|Late /5513|Worst dispatch us|Worst FM render us|
+|---|---:|---:|---:|---:|---:|
+|0|977.917|1897.083|1|710.667|77.250|
+|1|1112.750|1842.542|4|867.083|319.833|
+|2|1187.667|2007.208|22|956.625|394.667|
+|3|1285.042|2181.917|226|1061.750|515.708|
+
+[verified] Whole-block means improve2.18–2.82% against V16 with unchanged
+PCM and arithmetic checks. All worst blocks remain0. SRAM placement helps
+this configuration but does not establish an individual function's cost or
+solve the deadline. Actual mixed timing, fault-validated DAC/KA6 and
+representative30-minute analog soaks remain outstanding. No analog acceptance
+or firmware merge is claimed.
