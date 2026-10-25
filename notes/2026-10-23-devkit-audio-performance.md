@@ -3122,3 +3122,34 @@ focused transaction/reset/probe/preparation checks pass in a bounded Aeon
 container. An initial audit CLI invocation omitted the JSON output argument;
 the corrected invocation produced the audit above. No device operation occurred.
 The candidate is admitted offline only, not installed or hardware accepted.
+
+### CPU1 short publication/pinning — hardware result, 2026-10-25
+
+[verified, dev board only] Image 9d3d4f8c… completed the button-free recovery
+cycle. Fresh UART PING/ARM/ENTER preceded a fresh WL82/UBOOT1.00 inquiry and
+matching full current-image backups. The installed renderer's full 137-sector
+restore produced the exact factory image. The new probe's full installation
+readback matched; its fresh startup ready marker and three acknowledgments
+completed in 77.784 ms. A new ROM inquiry and two complete 8 MiB probe backups
+matched. Restoring its 41-sector plan again reproduced the full factory image;
+reinstalling the identical probe again matched all 8 MiB before the single run
+reset. Every reset receipt is consumed and must not be retried.
+
+[verified, target UART] All 4096 bidirectional 64-word exchanges pass with zero
+errors, abort=0 and exited=1. Parent core counts are 4096/0/0; worker counts are
+0/4096/0 for CPU0/CPU1/other. The 10-tick timer check reads 2400058; the exchange
+run takes 3820414 ticks (159.184 ms at the checked 24 MHz timer, including
+intentional task yields). Unused stack is 994/1024 words on the worker and
+1935/2048 on the parent. These are short-probe measurements, not renderer
+stack or audio deadlines. The exact RX process identity was verified twice,
+terminated and observed terminal before ordinary post-run PING acknowledged.
+The board remains healthy idle on 9d3d4f8c; no capture remains live.
+
+Private UART SHA-256:
+`87d92152b2c6525604409fd5585f3769169f678fa30cbede547bba25f8f54973`.
+The first parse rejected SDK timestamp prefixes. The parser now strips only
+the exact SDK timestamp syntax before applying unchanged strict receipt checks;
+the saved raw capture then passes, without another hardware run. Timestamped,
+corrupted, duplicated and quoted receipt regressions pass 17 focused checks.
+The short probe does not satisfy long coherence, FPU, SPSC ring, actual renderer,
+underrun/DAC/KA6 or representative 30-minute analog soak acceptance.

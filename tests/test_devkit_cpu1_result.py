@@ -20,6 +20,16 @@ def test_valid_short_capture_is_not_full_acceptance():
     assert 'gates remain' in result['acceptance']
 
 
+def test_sdk_timestamped_receipts_preserve_validation():
+    stamped = CAPTURE.replace(b'LUNAR_CPU1', b'[00:00:03.382]LUNAR_CPU1')
+    assert module.parse(stamped) == module.parse(CAPTURE)
+    for invalid in (stamped + CAPTURE,
+                    stamped.replace(b'errors=0', b'errors=1'),
+                    stamped.replace(b'[00:00:03.382]', b'quoted: ')):
+        with pytest.raises(ValueError):
+            module.parse(invalid)
+
+
 @pytest.mark.parametrize('before,after', [
     (b'complete=4096', b'complete=4095'), (b'errors=0', b'errors=1'),
     (b'abort=0', b'abort=1'), (b'exited=1', b'exited=0'),

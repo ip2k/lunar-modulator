@@ -10,8 +10,11 @@ def parse(data):
     text = data.decode('ascii', errors='replace')
     if 'LUNAR_CPU1 error=' in text:
         raise ValueError('CPU1 diagnostic reported an error')
+    # The SDK prefixes printf rows with [HH:MM:SS.mmm]; strip only that form.
+    receipt_lines = [re.sub(r'^\[\d{2}:\d{2}:\d{2}\.\d{3}\]', '', line)
+                     for line in text.splitlines()]
     def row(prefix):
-        lines = [line for line in text.splitlines() if line.startswith(prefix)]
+        lines = [line for line in receipt_lines if line.startswith(prefix)]
         if len(lines) != 1:
             raise ValueError('Require exactly one ' + prefix + ' receipt')
         pairs = re.findall(r'(\w+)=(\d+)(?=\s|$)', lines[0])
