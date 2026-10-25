@@ -1374,3 +1374,12 @@ before task allocation. Thirty-four focused Linux tests pass; current local
 guard/recovery tests pass too. Independent vendor exports match a 549,616-byte
 app. Runtime heap, exact-image review/admission and target acceptance remain
 pending; this image is not installed.
+
+[verified, offline] Sine-v1 private candidate
+`734b3995171a778e495bfb870e0be695075adf8580a279e944f7da25e743b8a4`
+passes independent cipher/CRC and factory boot/config/tail preservation. The
+actual sine and exp2 bytes match the prior ELF; startup copies all 61,648 bytes
+of ram0_data before initialization. SDK scheduling, strong ROM entry and UART
+before-workload delay pass exact vendor disassembly review. The 135-sector
+NOR install/restore model recovers after all four injected interruption points.
+Exact hash admission is for a worker comparison only; no target result yet.

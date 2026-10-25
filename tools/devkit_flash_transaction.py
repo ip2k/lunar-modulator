@@ -54,6 +54,9 @@ RENDERER_PROFILE_ALLOWED = tuple(range(0x4000, 0x8b000, SECTOR))
 # Same workload with selected DSP code in startup-copied SRAM; constants XIP.
 # Vendor placement/copy/link review and independent cipher/NOR checks pass.
 RENDERER_HOT_TARGET_SHA = 'b4fc59a4eca97df13d8ac1fc324da69e3f89b7bf82a6fb8daa57aad664739181'
+# Code placement retained; only 8 KiB sine table moves from XIP to SRAM.
+# Independent table bytes, link/copy/recovery, cipher/CRC and NOR checks pass.
+RENDERER_SINE_TARGET_SHA = '734b3995171a778e495bfb870e0be695075adf8580a279e944f7da25e743b8a4'
 IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED,
                AUDIO_V3_TARGET_SHA: AUDIO_ALLOWED,
                AUDIO_CONTROL_TARGET_SHA: AUDIO_ALLOWED,
@@ -66,7 +69,8 @@ IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED,
                RENDERER_TIMING_TARGET_SHA: RENDERER_TIMING_ALLOWED,
                RENDERER_TIMING_V3_TARGET_SHA: RENDERER_TIMING_ALLOWED,
                RENDERER_PROFILE_TARGET_SHA: RENDERER_PROFILE_ALLOWED,
-               RENDERER_HOT_TARGET_SHA: RENDERER_PROFILE_ALLOWED}
+               RENDERER_HOT_TARGET_SHA: RENDERER_PROFILE_ALLOWED,
+               RENDERER_SINE_TARGET_SHA: RENDERER_PROFILE_ALLOWED}
 
 
 def digest(data):
