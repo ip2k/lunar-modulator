@@ -3986,3 +3986,29 @@ performance and audio acceptance remain unproven. V11 remains healthy idle.
 
 [verified]69 exact-image admission/reset/SDK lifecycle tests pass. Current
 UART, worker, renderer and control input hashes match the vendor manifest.
+
+### Clock-snapshot v12 target result
+
+[verified, hardware] Exact2c0b53f5 passes startup recovery in76.496ms,
+fresh actual WL82/UBOOT1.00 inquiry, two full current/new-image backups,
+138-sector factory restores and SAME RUN installation/full readback. WINDOW
+and RUN reset receipts are consumed. All four arithmetic/PCM receipts,32 unit,
+24 stage,24 correlated worst and12 outer-region rows pass. All81308 paired
+jobs are accepted, with zero refusals/errors/wrong-core jobs and finite exit.
+Heap42452 stays stable; parent unused2516/8192 bytes and worker unused3260/4096.
+Sole RX217207 was checked twice, terminated once, and session77084 was terminal
+before ordinary PING ACK. Private raw SHA-256:
+`bbd7ca014bc6262a5a658daf5a96acbeb1d5e720df145654f0bca53e50c66aca`.
+
+| Keys case | Mean us | Max us | Late /5513 | Worst prep us | Worst shared app us | Worst PCM us |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+|0|1126.458|2168.917|18|468.417|1671.083|23.875|
+|1|1272.708|2054.708|204|384.167|1642.958|22.958|
+|2|1352.542|2207.167|667|442.458|1737.458|21.750|
+|3|1445.375|2363.917|2377|512.750|1823.125|21.708|
+
+[verified] Every worst snapshot is block0. V12 shows no target improvement
+against V11; no performance gain is claimed for the narrower hook snapshot.
+UI stage means89.792/90.333/91.250/91.958us remain a measured placement lead.
+Deadline, mixed, fault-validated DAC/KA6 and30-minute analog acceptance still
+fail or remain undone. Board healthy idle, no capture/build live after closure.
