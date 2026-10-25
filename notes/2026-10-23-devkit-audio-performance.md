@@ -2789,3 +2789,20 @@ byte-identical to sine32. Independent cipher/CRC, protected bytes and all
 7/1095/2167/2183. 54 transaction/reset tests pass. Candidate
 `e2fb418459789350793538d33ed82dfe5a43ade037c31211d65c84da23c40304`
 is admitted for this exact hash only; no installation or hardware acceptance.
+
+
+### Compact current-route reads — target comparison
+
+[verified, hardware] Startup ready/PING/ARM/ENTER passed in 78.35 ms; a
+fresh WL82/UBOOT inquiry and two full image reads matched afterward. Factory
+restore, same-image reinstall and full readback passed. WINDOW35040 and
+RUN95969 receipts are consumed. Four PCM fingerprints and arithmetic patterns,
+32 unit and 24 stage rows cover all 352832 frames/case; invalid/clipped counts
+are zero and completion explicit. Means are 1271.125 / 1475.958 / 1600.833 /
+1796.542 us (1.20–1.51% lower than sine32); maxima 2115.625 / 2218.125 /
+2363.75 / 2648.292 us. Late counts remain 116 / 3439 / 5259 / 5505 of 5513,
+so deadline acceptance fails. Heap stays 7540 B in all five readings; peak
+worker stack is 5552/8192 B. Owned RX identity checked twice, terminated and
+terminal before ordinary PING acknowledged. Private raw SHA
+`b307aa90fc5a8120d061eea8c62760f884fe3215c1e9d0824d978f4542043c22`.
+Board remains healthy idle; no DAC/analog/soak acceptance.
