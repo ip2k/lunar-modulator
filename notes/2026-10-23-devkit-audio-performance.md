@@ -2846,3 +2846,20 @@ model pass, including interrupted pages 7/1095/2167/2183. Exact candidate
 `b8823c2a322aa47e28306ca11d423838438daa1328a393969c554ffedaf4ab98`
 is admitted offline only; hardware recovery, target PCM and timing remain
 unverified for it.
+
+
+### Pure FM operator unrolling — target comparison
+
+[verified, hardware] Startup ready/PING/ARM/ENTER passed in 78.28 ms; fresh
+WL82/UBOOT inquiry and two full 8 MiB candidate reads matched. Factory
+restore, same-image reinstall and full readback passed. WINDOW53431 and
+RUN10068 receipts are consumed. Four PCM fingerprints and arithmetic patterns,
+32 unit and 24 stage rows cover all 352832 frames/case; invalid/clipped counts
+are zero and completion explicit. Means are 1265.792 / 1467.292 / 1590.042 /
+1781.625 us (0.42–0.83% lower than route); maxima 2119.417 / 2177.125 /
+2372.042 / 2635.542 us. Late counts remain 113 / 3154 / 5181 / 5496 of 5513,
+so deadline acceptance fails. Heap stays 7444 B in all five readings; peak
+worker stack is unchanged at 5552/8192 B. Owned RX identity checked twice,
+terminated and terminal before ordinary PING acknowledged. Private raw SHA
+`700a693e9cb87ef3c081a88873a2b595fd58a066363408323ee117ee68eaf69f`.
+Board remains healthy idle; no DAC/analog/soak acceptance.
