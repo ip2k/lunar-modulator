@@ -1905,3 +1905,12 @@ The next timing-only filter build reserves an 8,192-byte renderer stack,
 2,648 bytes above the previously measured 5,544-byte peak. Other profiles
 retain 12 KiB. UART remains first. This budget must pass actual creation
 and high-water checks before it can support a performance claim.
+
+[verified] Filter-v2 builds with downloader disabled; 89 focused Linux checks
+pass. Independent five-section comparison against reviewed filter-v1 finds
+only the stack-size immediate (3,072 to 2,048 words) and build timestamp.
+DSP code, tables, UART/recovery, startup copy and SDK-check instructions are
+otherwise identical. Cipher/CRC/protected factory checks and the 135-sector
+NOR interruption/restore model pass. Exact admitted image SHA-256:
+`842758192917d9eeaf877d1117b1e38426063fd432e6f00fa7fe09c507844bd0`.
+Hardware allocation, recovery, timing and stack checks remain pending.
