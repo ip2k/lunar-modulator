@@ -2502,3 +2502,24 @@ is admitted for the no-button comparison. All 48 final transaction/reset/
 arithmetic checks pass. It has not yet been installed or hardware accepted.
 Rarefaction cannot resolve the sibling-worktree transaction tool; Serena
 resolves its allowlist, and direct source/tests cover this small admission.
+
+
+### FIR scheduling — target result (rejected optimization)
+
+[verified, hardware] Fresh startup PING/ARM/ENTER acknowledged, followed by
+responsive WL82/UBOOT1.00 inquiry and two full 8 MiB candidate reads matching.
+Factory restore, same-image reinstall and full readback passed. WINDOW and
+RUN resets are consumed. All four arithmetic patterns and PCM hashes match;
+32 unit and 24 stage rows cover 352,832 outputs per case, with explicit
+completion and zero invalid/clipped samples. Receive-only capture was closed
+by exact process identity verified twice; ordinary post-run PING acknowledged.
+
+Mean times are 3,059.79 / 3,337.33 / 3,469.33 / 3,651.33 us; maxima are
+3,866.13 / 3,948.04 / 4,207.08 / 4,446.63 us. Means are 0.35–0.63 percent
+slower than mixer-v1. Every one of 5,513 blocks per case misses the roughly
+1,451 us deadline. Grouping the floating instructions did not improve this
+linked workload and is not adopted as a production optimization. The option
+remains an explicit diagnostic comparison. Free heap is stable at 9,524 bytes
+over five readings; peak worker stack remains 5,548 of 8,192 bytes. Private
+raw SHA-256: `76c7f53d1c421b4bb8e345af2ce0f2962ebf87fdc280e75b3ca78172d6d74fc4`.
+No analog or sustained-soak acceptance is claimed.
