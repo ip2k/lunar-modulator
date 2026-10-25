@@ -2093,3 +2093,26 @@ with uneven input/output chunks. The bounded Linux run passes 101 focused
 checks and skips one multilib-dependent 136 KiB replay. Vendor build passes
 with downloader disabled. Exact ELF/startup/table/code-generation review,
 image admission, actual target timing and analog acceptance remain pending.
+
+
+[verified, offline admission] Exact slopes-v1 image
+`7f1d2286a353084c681258556294b8309d3121fc66c301f80832c98b455f6d34`
+contains app `4bba133693b7adabbe1ce23fd3bd0020054269adbd6903ac9151b7068ac49d6a`
+(553,140 bytes). Independent ELF/export packing, cipher/directory/app/config
+CRC and protected factory equality pass. The NOR model checks 136 sectors
+with metadata last and restores after interrupted pages 7/1095/2151/2167.
+This image alone extends the allow-list to sector 0x8b000.
+
+Vendor pair bytes independently match values derived from the prior ELF's
+float32 kernel. SDK startup copies 74,416 SRAM bytes and 27,428 cache bytes;
+BSS remains 392,408 bytes and linked pre-task heap is 56,716 bytes. Cache
+ways remain I=0/D=7. UART configuration and its 1,024-word task precede the
+guarded 2,048-word renderer task; the 200-tick delay precedes workload.
+Strong entry copies its 16-byte ROM marker and calls P33 with 160/4/1/1.
+The three SDK key-check functions match the prior link after verified
+relocations. Two IRQ-123 registrations and the 8,000 ms timer resolve the
+audit's manual scheduling item; zero failures or eFuse accesses are found.
+The Macro and drum tap loops load base/slope pairs, convert the fraction,
+multiply and add, without the old per-tap subtraction/scale multiply.
+The prepared Linux shared renderer matches all eight reference PCM hashes.
+Hardware recovery, allocation, timing and analog acceptance are pending.
