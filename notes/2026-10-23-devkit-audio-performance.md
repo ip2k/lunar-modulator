@@ -1693,3 +1693,25 @@ passed; the sanitizer job was still running at the last query. Investigation
 must preserve the stale-project protection and establish whether the test
 starts before native project loading finishes. Private job log saved; no
 browser assertion or product behavior has yet been changed for this failure.
+
+[verified] The initial-view test observed the editor selection before its
+native panel-follow edit: `openOnPanel` debounces that edit by 120 ms, and
+selection updates before it is sent. The URL-selection case now waits for
+acknowledged native Home/Sound 1/Page 1, no arpeggiator view, no in-flight edit
+and no pending snapshot before its canonical refresh. This strengthens the
+ordering condition; no fixed sleep, write retry, expectedHash bypass or product
+code change is introduced. Three WebKit runs, one Chromium and one Firefox
+run each pass all nine initial-view checks (45 checks) in the same Playwright
+1.63.0/PulseAudio null-sink setup. Exact-head CI remains a separate gate.
+Rarefaction cannot address this sibling worktree's new JS paths; source
+inspection and Serena are used with that limitation.
+
+[verified, offline] Cache-table ELF `fe954286…` and app `d0372bcd…`
+(550,476 bytes) match five independently exported sections. The four data
+tables match the preceding ELF byte for byte; `.cache_ram_data` is 19,740
+bytes including 32 SDK bytes, within the existing 28 KiB region. Startup's
+`cache_way_config` retains zero free instruction ways/seven data ways and
+copies exactly 19,740 bytes from `0x02081a50` to `0x01f28000` before main.
+Ordinary SRAM startup data drops to 55,568 bytes; heap before tasks is 63,276,
+predicting 17,236 at runtime. Remaining exact-image review/model/admission
+and all hardware checks are still pending.
