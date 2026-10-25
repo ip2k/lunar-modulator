@@ -25,6 +25,31 @@ HOT_RAM_SOURCES = (
 
 
 
+def narrow_msfa_adds(text, kind):
+    """Keep the low 32 result bits without a dead 64-bit carry addition.
+
+    Only private prepared copies change. Unsigned addition preserves the
+    original int64 sum's final int32 conversion, including wraparound.
+    """
+    if kind == "sin.h":
+        pairs = [("return y0 + (" + expr + ");",
+                  "return (int32_t)((uint32_t)y0 + (uint32_t)(" + expr + "));")
+                 for expr in ("((int64_t)dy * (int64_t)lowbits) >> SHIFT",
+                              "((int64_t)(y1 - y0) * (int64_t)lowbits) >> SHIFT")]
+    elif kind == "fm_op_kernel.cc":
+        old = "output[i] += ((int64_t)y * (int64_t)gain) >> 24;"
+        pairs = [(old, "output[i] = (int32_t)((uint32_t)output[i] + "
+                       "(uint32_t)(((int64_t)y * (int64_t)gain) >> 24));")]
+    else:
+        raise ValueError("Unexpected msfa source; review narrow-add comparison")
+    for old, new in pairs:
+        expected = 2 if kind == "fm_op_kernel.cc" else 1
+        if text.count(old) != expected:
+            raise ValueError("Unexpected msfa addition; review exact arithmetic")
+        text = text.replace(old, new)
+    return text
+
+
 def resampler_slope_definition(definition):
     """Encode float32 base/slope pairs for the existing 768 tap intervals."""
     body = definition.split(" = {", 1)[1].rsplit("};", 1)[0]
@@ -115,9 +140,11 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False):
     if workload not in ("mixed", "keys"):
         raise ValueError("Unknown renderer workload; choose mixed or keys")
+    if msfa_narrow_adds and not (timing_only and hot_ram):
+        raise ValueError("Narrow msfa additions require timing-only hot code comparison")
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -180,6 +207,13 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     for directory in ("engines", "sim/web/src", "sim/web/mk", "firmware/devkit"):
         shutil.copytree(source / directory, staging / directory,
                         ignore=shutil.ignore_patterns("build", "build-*", ".git", "__pycache__", ".DS_Store", "._*"))
+    narrow_inputs = {}
+    if msfa_narrow_adds:
+        for name in ("sin.h", "fm_op_kernel.cc"):
+            p = staging / "engines/third_party/msfa" / name
+            original = p.read_bytes()
+            narrow_inputs[name] = hashlib.sha256(original).hexdigest()
+            p.write_text(narrow_msfa_adds(original.decode(), name))
     hot_inputs = {}
     if hot_ram:
         # The pinned clang 4 vendor build supports MS code_seg under its
@@ -385,6 +419,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "timing_only": timing_only,
         "render_profile": profile,
         "hot_ram_sources": hot_inputs,
+        "msfa_narrow_adds": msfa_narrow_adds,
+        "msfa_narrow_adds_original_sha256": narrow_inputs,
         "sine_ram_original_sha256": sine_input,
         "resampler_ram_original_sha256": resampler_input,
         "cache_tables": cache_tables,
@@ -472,7 +508,9 @@ if __name__ == "__main__":
                         help="Compare sound mixer/effect dispatch in SRAM; requires timing-only profiled O3")
     parser.add_argument("--resampler-schedule", action="store_true",
                         help="Group independent FIR sums/products; requires timing-only resident mixer")
+    parser.add_argument("--msfa-narrow-adds", action="store_true",
+                        help="Compare explicit 32-bit FM sums in private copies; timing-only hot code")
     parser.add_argument("--dispatch-ram", action="store_true",
                         help="Compare sequencer event walk and slot dispatch in SRAM; requires timing-only resident mixer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds)

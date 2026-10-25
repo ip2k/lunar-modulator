@@ -191,6 +191,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'msfa_narrow_adds': True},
+    {'msfa_narrow_adds': True, 'timing_only': True},
     {'resampler_schedule': True},
     {'resampler_schedule': True, 'timing_only': True},
     {'mixer_ram': True},
