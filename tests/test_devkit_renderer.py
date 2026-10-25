@@ -171,12 +171,16 @@ int main(void) {
             /* Sounds/masters include the nested unit clock reads. */
             assert(p.ticks >= 17ull * p.calls && p.max_ticks >= 17u);
             if (i >= 2) assert(p.ticks == 17ull * p.calls && p.max_ticks == 17u);
+            assert(lunar_devkit_renderer_stage_last(i) >= 17u);
+            if (i >= 2) assert(lunar_devkit_renderer_stage_last(i) == 17u);
         }
+        assert(!lunar_devkit_renderer_stage_last(6));
         lunar_devkit_renderer_profile_reset();
         for (unsigned i = 0; i <= 6; ++i) {
             struct lunar_renderer_profile p;
             lunar_devkit_renderer_stage_read(i, &p);
             assert(!p.calls && !p.frames && !p.ticks && !p.max_ticks);
+            assert(!lunar_devkit_renderer_stage_last(i));
         }
         for (unsigned i = 0; i <= 8; ++i) {
             struct lunar_renderer_profile p;
@@ -250,7 +254,8 @@ def test_profile_rejects_dac_preparation_before_writing(tmp_path, options):
         module.prepare_renderer(tmp_path / "absent-sdk", ROOT, out, **options)
     assert not out.exists()
 
-def test_worker_timing_wrap_and_yields(tmp_path):
+@pytest.mark.parametrize("profile", [False, True])
+def test_worker_timing_wrap_and_yields(tmp_path, profile):
     # Test the timing controller independently of DSP cost: the injected clock
     # wraps and makes every render late. UART scheduling yields and reporting
     # must stay outside each measured region and cover every density case.
@@ -266,14 +271,28 @@ void lunar_devkit_renderer_render(int16_t *p) { ++rendered; memset(p, 0, 512); }
 void lunar_devkit_renderer_status(struct lunar_renderer_status *p) {
     memset(p, 0, sizeof *p); p->blocks = rendered;
 }
-static uint32_t now(void) { ++clock_calls; tick += 35000u; return tick; }
+static uint32_t now(void) {
+    ++clock_calls;
+    tick += (!(clock_calls & 1u) && rendered % 5513u == 18u) ? 45000u : 35000u;
+    return tick;
+}
+#ifdef LUNAR_RENDERER_PROFILE
+void lunar_devkit_renderer_profile_clock(uint32_t (*clock)(void)) { assert(clock == now); }
+void lunar_devkit_renderer_profile_reset(void) { }
+uint32_t lunar_devkit_renderer_stage_last(unsigned s) { return rendered * 10u + s; }
+#endif
 static void yield(void) { assert(!(clock_calls & 1u)); ++yielded; }
 static void emit(const struct lunar_renderer_timing *r) {
     assert(!(clock_calls & 1u)); assert(r->test_case == emitted++);
     assert(r->blocks == 5513 && r->over_budget == 5513);
-    assert(r->min_ticks == 35000 && r->max_ticks == 35000);
-    assert(r->ticks == 5513ull * 35000u);
+    assert(r->min_ticks == 35000 && r->max_ticks == 45000);
+    assert(r->ticks == 5513ull * 35000u + 10000u);
     assert(r->state.blocks == emitted * 5513u);
+#ifdef LUNAR_RENDERER_PROFILE
+    assert(r->worst_block == 17u);
+    for (unsigned s = 0; s < LUNAR_RENDERER_PROFILE_STAGES; ++s)
+        assert(r->worst_stages[s] == (r->test_case * 5513u + 18u) * 10u + s);
+#endif
 }
 int main(void) {
     assert(!lunar_devkit_renderer_timing(0, yield, emit));
@@ -291,6 +310,7 @@ int main(void) {
 ''')
     exe = tmp_path / "timing"
     subprocess.run([os.environ.get("FM1_SIM_CC", "cc"), "-std=c99", "-Wall", "-Wextra", "-Werror",
+                    *(["-DLUNAR_RENDERER_PROFILE=1"] if profile else []),
                     "-I" + str(ROOT / "firmware/devkit"), str(harness),
                     str(ROOT / "firmware/devkit/renderer_timing.c"), "-o", str(exe)], check=True)
     subprocess.run([str(exe)], check=True)

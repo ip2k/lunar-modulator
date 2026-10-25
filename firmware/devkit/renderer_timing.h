@@ -6,6 +6,9 @@ struct lunar_renderer_timing {
     uint32_t test_case, blocks, min_ticks, max_ticks, over_budget;
     uint64_t ticks;
     struct lunar_renderer_status state;
+#ifdef LUNAR_RENDERER_PROFILE
+    uint32_t worst_block, worst_stages[LUNAR_RENDERER_PROFILE_STAGES];
+#endif
 };
 /* Worker-context preflight, never an audio-output acceptance test. The caller
  * yields between batches and emits outside the measured render region. */

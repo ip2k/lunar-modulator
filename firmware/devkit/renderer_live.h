@@ -30,6 +30,7 @@ int lunar_devkit_renderer_kernel_adapter(const struct fm1_dx7_kernel_adapter *ad
 void lunar_devkit_renderer_render(int16_t *four_channel_64_frames);
 void lunar_devkit_renderer_status(struct lunar_renderer_status *out);
 #ifdef LUNAR_RENDERER_PROFILE
+#define LUNAR_RENDERER_PROFILE_STAGES 6u
 struct lunar_renderer_profile { uint64_t ticks; uint32_t calls, frames, max_ticks; };
 /* Worker diagnostic only. Set clock before init; read/reset outside rendering. */
 void lunar_devkit_renderer_profile_clock(uint32_t (*now)(void));
@@ -37,6 +38,8 @@ void lunar_devkit_renderer_profile_read(unsigned workload_unit, struct lunar_ren
 /* Stage IDs are fm1_app_profile_stage; stage totals include nested units. */
 unsigned lunar_devkit_renderer_profile_stages(void);
 void lunar_devkit_renderer_stage_read(unsigned stage, struct lunar_renderer_profile *out);
+/* Last completed block, using existing observer clock samples. */
+uint32_t lunar_devkit_renderer_stage_last(unsigned stage);
 void lunar_devkit_renderer_profile_reset(void);
 #ifdef LUNAR_RENDERER_ENGINE_PROFILE
 /* Diagnostic prepared copies only: Macro generate/pop, drums generate/pop.

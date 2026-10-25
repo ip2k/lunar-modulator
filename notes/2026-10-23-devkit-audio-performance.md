@@ -3743,3 +3743,21 @@ focused check now waits for measurable geometry before starting the existing
 real held-pointer sequence. Connected-target/click/native-state assertions
 remain unchanged. Complete sequencer-native Chromium check passes in the
 bounded Aeon container against synchronized tracked UI/test sources.
+
+### Correlated worst-block stages — offline diagnostic
+
+[implemented, not admitted] Profiled timing now retains each stage's last
+elapsed value from existing observer clock samples. When a new total maximum
+appears, it copies the six values and zero-based block index into that case's
+result. UART emits the snapshot outside rendering. This distinguishes costs
+that coexist on the slowest block from unrelated per-stage maxima; it does
+not identify an IRQ or infer that separate maxima may be added. Six diagnostic
+stores add overhead, but no new timer samples, logging or DSP changes occur
+inside the measured render. Non-profiled builds retain their prior path.
+
+[verified, host] The actual mixed/profile replay retains complete PCM equality.
+Renderer and SDK lifecycle checks report 57 passes, one missing 32-bit-runtime
+skip. Synthetic timing verifies wraparound, unchanged clock-call/yield counts,
+an early slow block followed by later ordinary blocks, and the matching stage
+snapshot rather than the last rendered block. Snapshot reset/bounds are checked.
+Vendor v9 build is running; no v9 image has been admitted or installed.

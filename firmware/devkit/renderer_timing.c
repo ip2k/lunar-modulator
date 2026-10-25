@@ -32,7 +32,14 @@ int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
             uint32_t elapsed = now() - start;
             result.ticks += elapsed;
             if (elapsed < result.min_ticks) result.min_ticks = elapsed;
-            if (elapsed > result.max_ticks) result.max_ticks = elapsed;
+            if (elapsed > result.max_ticks) {
+                result.max_ticks = elapsed;
+#ifdef LUNAR_RENDERER_PROFILE
+                result.worst_block = b;
+                for (unsigned s = 0; s < LUNAR_RENDERER_PROFILE_STAGES; ++s)
+                    result.worst_stages[s] = lunar_devkit_renderer_stage_last(s);
+#endif
+            }
             if (elapsed >= BUDGET_TICKS) ++result.over_budget;
             ++result.blocks;
             if (!(b % 16u)) yield();
