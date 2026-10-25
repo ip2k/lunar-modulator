@@ -1715,3 +1715,18 @@ copies exactly 19,740 bytes from `0x02081a50` to `0x01f28000` before main.
 Ordinary SRAM startup data drops to 55,568 bytes; heap before tasks is 63,276,
 predicting 17,236 at runtime. Remaining exact-image review/model/admission
 and all hardware checks are still pending.
+
+
+[verified, offline] Cache candidate `ea83cfdb…` passes independent reference
+cipher decoding and all directory/app CRCs, with factory boot, configuration
+and tail bytes unchanged. The 135-sector NOR model passes exact installation,
+restoration and interrupted-page recovery at 7, 1079, 2135 and 2151. Actual
+vendor instructions confirm both renderer coefficient callers and FM6 sine/
+exp2 loads use the cache data addresses. UART control allocation (1,024 words)
+precedes and gates the worker (3,072 words); its 200-tick recovery delay remains
+before probes. Strong ROM entry, 16-byte boot marker and P33 arguments remain
+intact. SDK scheduling is reviewed: two IRQ-123 registrations, 8-second timer,
+initial unregistered key state and its dormant return; no key provider/blob.
+The exact candidate hash is now admitted with the existing fixed sector bounds.
+All 36 transaction/reset/arithmetic guard cases pass locally. This is offline
+admission only; cache-table hardware timing, heap and recovery remain unverified.
