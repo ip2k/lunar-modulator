@@ -1361,3 +1361,16 @@ zero late quanta/10,341 quanta, maximum 1.030411 ms, edit cost 9.355 us. Both
 strict committed-build and existing zero-late tests pass locally. The previous
 two-late observation is retained above; this host result does not accept the
 dev board's audio. No assertion was weakened.
+
+[verified, offline] A separate `--sine-ram` comparison retains hot code/LTO
+and moves only the unchanged 8 KiB FM6 sine table, recording source provenance.
+Preparation refuses missing timing/hot-code prerequisites before writing. The
+SDK worker reports allocator statistics outside timed blocks, after the UART
+recovery window and after cases. An initial link rejected the SDK header's
+unprovided `xPortGetFreeHeapSize`; the build now uses exported `malloc_stats`.
+Actual sine-v2 ELF `3ef66c06a5d0b5bd440891229ef63cf24192b3ea91c6078e9118d0184e38061e`
+places sine at `0x01c0ce4c`, exp2 in XIP, and leaves 57,356 bytes of linker heap
+before task allocation. Thirty-four focused Linux tests pass; current local
+guard/recovery tests pass too. Independent vendor exports match a 549,616-byte
+app. Runtime heap, exact-image review/admission and target acceptance remain
+pending; this image is not installed.

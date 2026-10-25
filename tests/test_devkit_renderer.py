@@ -108,15 +108,18 @@ int main(void) {
     subprocess.run([str(exe)], check=True)
 
 
-@pytest.mark.parametrize('option', ['profile', 'hot_ram'])
-def test_profile_rejects_dac_preparation_before_writing(tmp_path, option):
+@pytest.mark.parametrize('options', [
+    {'profile': True}, {'hot_ram': True}, {'sine_ram': True},
+    {'sine_ram': True, 'timing_only': True},
+])
+def test_profile_rejects_dac_preparation_before_writing(tmp_path, options):
     import importlib.util
     spec = importlib.util.spec_from_file_location("renderer_prepare", ROOT / "tools/jieli/prepare-renderer-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     out = tmp_path / "out"
-    with pytest.raises(ValueError, match="worker-only"):
-        module.prepare_renderer(tmp_path / "absent-sdk", ROOT, out, **{option: True})
+    with pytest.raises(ValueError, match="worker-only|timing-only"):
+        module.prepare_renderer(tmp_path / "absent-sdk", ROOT, out, **options)
     assert not out.exists()
 
 def test_worker_timing_wrap_and_yields(tmp_path):
@@ -182,6 +185,7 @@ extern struct mock_timer timer;
 int clk_get(const char *);
 void os_time_dly(unsigned);
 unsigned uxTaskGetStackHighWaterMark(void *);
+void malloc_stats(void);
 ''')
     harness = tmp_path / 'worker.c'
     harness.write_text(r'''
@@ -198,6 +202,7 @@ static struct lunar_boot_command parser;
 void lunar_devkit_worker(void *);
 int clk_get(const char *name) { assert(!strcmp(name, "sys")); return 320000000; }
 unsigned uxTaskGetStackHighWaterMark(void *p) { (void)p; return 256; }
+void malloc_stats(void) {}
 void lunar_devkit_boot_control_start(void) { assert(!ready); ready = 1; }
 static void command(const char *s, enum lunar_boot_action expected) {
     enum lunar_boot_action action = LUNAR_BOOT_NONE;

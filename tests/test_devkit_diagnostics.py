@@ -41,10 +41,10 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
-    renderer = mode in ('renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile')
-    timing = mode in ('renderer-timing', 'renderer-profile', 'renderer-hot-profile')
+    renderer = mode in ('renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile')
+    timing = mode in ('renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile')
     live = mode == 'fm6-audio'
     audio_probe, fm6 = mode in ('audio', 'renderer'), mode in ('fm6', 'fm6-ram')
     spec = importlib.util.spec_from_file_location('prepare_devkit', ROOT/'tools/jieli/prepare-devkit.py')
@@ -73,7 +73,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         renderer_spec = importlib.util.spec_from_file_location('prepare_renderer', ROOT/'tools/jieli/prepare-renderer-devkit.py')
         renderer_module = importlib.util.module_from_spec(renderer_spec)
         renderer_spec.loader.exec_module(renderer_module)
-        renderer_module.prepare_renderer(sdk, ROOT, out, timing_only=timing, profile=mode in ('renderer-profile', 'renderer-hot-profile'), hot_ram=mode == 'renderer-hot-profile')
+        renderer_module.prepare_renderer(sdk, ROOT, out, timing_only=timing, profile=mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile'), hot_ram=mode in ('renderer-hot-profile', 'renderer-sine-profile'), sine_ram=mode == 'renderer-sine-profile')
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -91,8 +91,8 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert '10, 5120, 0, "lunar_devkit"' in (out/'apps/demo/demo_hello/app_main.c').read_text()
     if timing:
         assert '-DLUNAR_DEVKIT_RENDERER_TIMING=1' in result
-        assert ('-DLUNAR_RENDERER_PROFILE=1' in result) == (mode in ('renderer-profile', 'renderer-hot-profile'))
-        assert ('-DFM1_APP_RENDER_PROFILE=1' in result) == (mode in ('renderer-profile', 'renderer-hot-profile'))
+        assert ('-DLUNAR_RENDERER_PROFILE=1' in result) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile'))
+        assert ('-DFM1_APP_RENDER_PROFILE=1' in result) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile'))
         assert (out/'apps/demo/demo_hello/renderer_timing.h').exists()
         assert not (out/'apps/demo/demo_hello/audio_probe.c').exists()
         makefile = out/'apps/demo/demo_hello/board/wl82/Makefile'
@@ -101,8 +101,8 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         flags = subprocess.run(['make', '-s', '-f', str(makefile), 'print-renderer-flags'],
                                cwd=makefile.parent, check=True, capture_output=True, text=True).stdout
         assert '-DLUNAR_DEVKIT_RENDERER_TIMING=1' in flags
-        assert ('-DLUNAR_RENDERER_PROFILE=1' in flags) == (mode in ('renderer-profile', 'renderer-hot-profile'))
-        assert ('-DFM1_APP_RENDER_PROFILE=1' in flags) == (mode in ('renderer-profile', 'renderer-hot-profile'))
+        assert ('-DLUNAR_RENDERER_PROFILE=1' in flags) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile'))
+        assert ('-DFM1_APP_RENDER_PROFILE=1' in flags) == (mode in ('renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile'))
     if audio_probe or live:
         # Exercise Make's immediate target-variable expansion, not merely the
         # presence of a later global define in the generated text.
@@ -128,13 +128,21 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     if renderer:
         import hashlib, json
         receipt = json.loads((out/'lunar-devkit-input.json').read_text())
-        assert bool(receipt['hot_ram_sources']) == (mode == 'renderer-hot-profile')
+        assert bool(receipt['hot_ram_sources']) == (mode in ('renderer-hot-profile', 'renderer-sine-profile'))
         for name, digest in receipt['hot_ram_sources'].items():
             original = (ROOT/name).read_bytes()
             assert digest == hashlib.sha256(original).hexdigest()
             prepared = (out/'lunar-source'/name).read_bytes()
             assert prepared == b'#pragma code_seg(".volatile_ram_code")\n' + original
             assert receipt['inputs'][name] == hashlib.sha256(prepared).hexdigest()
+        original = (ROOT/'engines/src/msfa_rom.cc').read_bytes()
+        prepared = (out/'lunar-source/engines/src/msfa_rom.cc').read_bytes()
+        if mode == 'renderer-sine-profile':
+            assert receipt['sine_ram_original_sha256'] == hashlib.sha256(original).hexdigest()
+            assert prepared == original.replace(b'extern const int32_t kSinTab[2048] = {',
+                b'extern const int32_t kSinTab[2048] __attribute__((section(".volatile_ram"))) = {', 1)
+        else:
+            assert receipt['sine_ram_original_sha256'] is None and prepared == original
         # Unselected hot-path callers are not silently pulled into the change.
         assert (out/'lunar-source/sim/web/src/fm1_app.c').read_bytes() == (ROOT/'sim/web/src/fm1_app.c').read_bytes()
     assert ('-DLUNAR_DEVKIT_FM6_BENCHMARK=1' in result) == fm6

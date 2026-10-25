@@ -6,6 +6,8 @@
 #include "benchmark.h"
 #ifdef LUNAR_DEVKIT_RENDERER_TIMING
 #include "renderer_timing.h"
+/* SDK allocator diagnostics, emitted only outside timed render blocks. */
+extern void malloc_stats(void);
 static void renderer_yield(void) { os_time_dly(1); }
 static void emit_renderer(const struct lunar_renderer_timing *r)
 {
@@ -14,6 +16,8 @@ static void emit_renderer(const struct lunar_renderer_timing *r)
            (unsigned)(r->ticks / r->blocks), r->over_budget, r->state.controls,
            r->state.arena_bytes, r->state.invalid, r->state.clipped,
            r->state.completed_hash);
+    puts("LUNAR_RENDERER_HEAP after_case=1\n");
+    malloc_stats();
     printf("LUNAR_RENDERER_STACK unused_words=%u word_bytes=4\n",
            (unsigned)uxTaskGetStackHighWaterMark(NULL));
 #ifdef LUNAR_RENDERER_PROFILE
@@ -103,6 +107,8 @@ void lunar_devkit_worker(void *unused)
     os_time_dly(200);
 #endif
 #ifdef LUNAR_DEVKIT_RENDERER_TIMING
+    puts("LUNAR_RENDERER_HEAP before_init=1\n");
+    malloc_stats();
     printf("LUNAR_DEVKIT complete=%d\n", lunar_devkit_renderer_timing(now, renderer_yield, emit_renderer));
 #elif defined(LUNAR_DEVKIT_AUDIO_PROBE)
     lunar_devkit_audio_probe();
