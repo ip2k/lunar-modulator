@@ -3884,3 +3884,25 @@ logs121284866925/121284866911/121284867037 show this same failure. The MIT/BSD
 job otherwise passes4511 tests. Rebuilding the module and its build record is
 required; the gate is retained. Pages40231711027 succeeds, separately from
 hardware and PR CI acceptance.
+
+[implemented, diagnostic] Outer profile regions now separate note/control
+preparation, the shared app call, and PCM conversion/checksum. Each region's
+aggregate and last-block sample is reset per case; the deadline controller
+copies all three samples from the exact worst total block. Four additional
+clock reads and aggregate bookkeeping remain part of the outer total. The
+existing six stage counts, audio/event operations and unprofiled build remain
+unchanged. Host tests verify unchanged PCM, full frame coverage, reset/bounds,
+timer wrap and worst-block correlation:99 pass,1 unavailable32-bit skip.
+
+[verified, partial offline review] Detail diagnostic v11 links with downloader
+disabled: ELF SHA-256
+`10e64e7004dce0ce205bcfe6ec8073bb1c2f8c7bee48a3848aa6774d7d061e77`;
+exported app SHA-256
+`03206f51f49ee3b3de23a15ee87fa3c29e7fbb73e9fb03e450e2b24b8f55a10d`.
+App563452 bytes; pretask heap84396. Complete SDK/ROM routine comparison and
+link audit pass (the scheduling pending item is covered by the full routine
+comparison). FM6 kernels match after individually verified relocations: the
+new readonly-base displacement5984 resolves to the identical768-byte algorithm
+table, versus5852 before. Static mailbox/worker layout and priorities remain.
+Final renderer/UART machine-code review, independent objcopy/cipher/CRC and
+NOR model remain outstanding. No v11 candidate is admitted or installed.

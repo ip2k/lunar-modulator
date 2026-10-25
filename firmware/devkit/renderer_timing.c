@@ -38,6 +38,8 @@ int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
                 result.worst_block = b;
                 for (unsigned s = 0; s < LUNAR_RENDERER_PROFILE_STAGES; ++s)
                     result.worst_stages[s] = lunar_devkit_renderer_stage_last(s);
+                for (unsigned d = 0; d < LUNAR_RENDERER_DETAIL_REGIONS; ++d)
+                    result.worst_details[d] = lunar_devkit_renderer_detail_last(d);
 #endif
             }
             if (elapsed >= BUDGET_TICKS) ++result.over_budget;

@@ -229,6 +229,15 @@ packing, recovery and installation review. It is not an admitted image merely
 because preparation or host tests pass.
 
 
+The same profile also reports three outer `LUNAR_RENDERER_DETAIL` regions:
+0 is note/control preparation,1 is the shared app call (including the six
+nested stages), and2 is float-to-PCM conversion and checksum work. Each report
+includes per-region aggregates and the values from the exact worst total block.
+Four extra clock samples delimit these regions; counter updates follow all four
+samples. Their overhead and end-of-block bookkeeping remain in the outer total,
+so these measurements do not silently subtract diagnostic cost or first blocks.
+
+
 ### Optional control-path SRAM comparison
 
 `--control-ram` requires the timing-only resident-filter profile. It wraps

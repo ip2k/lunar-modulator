@@ -42,6 +42,13 @@ static void emit_renderer(const struct lunar_renderer_timing *r)
     for (unsigned i = 0; i < LUNAR_RENDERER_PROFILE_STAGES; ++i)
         printf("LUNAR_RENDERER_WORST case=%u block=%u total=%u stage=%u ticks=%u\n",
                r->test_case, r->worst_block, r->max_ticks, i, r->worst_stages[i]);
+    for (unsigned i = 0; i < LUNAR_RENDERER_DETAIL_REGIONS; ++i) {
+        struct lunar_renderer_profile p;
+        lunar_devkit_renderer_detail_read(i, &p);
+        printf("LUNAR_RENDERER_DETAIL case=%u region=%u calls=%u frames=%u mean_call=%u max_call=%u mean_block=%u worst_block=%u worst_ticks=%u\n",
+               r->test_case, i, p.calls, p.frames, p.calls ? (unsigned)(p.ticks / p.calls) : 0u,
+               p.max_ticks, (unsigned)(p.ticks / r->blocks), r->worst_block, r->worst_details[i]);
+    }
     for (unsigned i = 0; i < 8; ++i) {
         struct lunar_renderer_profile p;
         lunar_devkit_renderer_profile_read(i, &p);

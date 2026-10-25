@@ -8,6 +8,7 @@ struct lunar_renderer_timing {
     struct lunar_renderer_status state;
 #ifdef LUNAR_RENDERER_PROFILE
     uint32_t worst_block, worst_stages[LUNAR_RENDERER_PROFILE_STAGES];
+    uint32_t worst_details[LUNAR_RENDERER_DETAIL_REGIONS];
 #endif
 };
 /* Worker-context preflight, never an audio-output acceptance test. The caller

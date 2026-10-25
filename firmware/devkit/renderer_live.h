@@ -31,6 +31,8 @@ void lunar_devkit_renderer_render(int16_t *four_channel_64_frames);
 void lunar_devkit_renderer_status(struct lunar_renderer_status *out);
 #ifdef LUNAR_RENDERER_PROFILE
 #define LUNAR_RENDERER_PROFILE_STAGES 6u
+/* Outer render regions: note/control preparation, shared app, PCM conversion. */
+#define LUNAR_RENDERER_DETAIL_REGIONS 3u
 struct lunar_renderer_profile { uint64_t ticks; uint32_t calls, frames, max_ticks; };
 /* Worker diagnostic only. Set clock before init; read/reset outside rendering. */
 void lunar_devkit_renderer_profile_clock(uint32_t (*now)(void));
@@ -41,6 +43,8 @@ void lunar_devkit_renderer_stage_read(unsigned stage, struct lunar_renderer_prof
 /* Last completed block, using existing observer clock samples. */
 uint32_t lunar_devkit_renderer_stage_last(unsigned stage);
 void lunar_devkit_renderer_profile_reset(void);
+void lunar_devkit_renderer_detail_read(unsigned region, struct lunar_renderer_profile *out);
+uint32_t lunar_devkit_renderer_detail_last(unsigned region);
 #ifdef LUNAR_RENDERER_ENGINE_PROFILE
 /* Diagnostic prepared copies only: Macro generate/pop, drums generate/pop.
  * These regions are nested inside unit/stage totals, never additional work. */

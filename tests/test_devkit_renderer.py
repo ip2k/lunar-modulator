@@ -152,6 +152,7 @@ int main(void) {
     lunar_devkit_renderer_profile_clock(now);
     assert(lunar_devkit_renderer_init());
     int16_t pcm[256];
+    struct lunar_renderer_profile invalid_detail;
     for (unsigned c = 0; c < 4; ++c) {
         for (unsigned b = 0; b < 5513; ++b) lunar_devkit_renderer_render(pcm);
         struct lunar_renderer_status state;
@@ -175,7 +176,24 @@ int main(void) {
             if (i >= 2) assert(lunar_devkit_renderer_stage_last(i) == 17u);
         }
         assert(!lunar_devkit_renderer_stage_last(6));
+        for (unsigned i = 0; i < LUNAR_RENDERER_DETAIL_REGIONS; ++i) {
+            struct lunar_renderer_profile p;
+            lunar_devkit_renderer_detail_read(i, &p);
+            assert(p.calls == 5513 && p.frames == 5513u * 64u);
+            assert(p.ticks >= 17ull * p.calls && p.max_ticks >= 17u);
+            if (i != 1) assert(p.ticks == 17ull * p.calls && p.max_ticks == 17u);
+            assert(lunar_devkit_renderer_detail_last(i) >= 17u);
+        }
+        lunar_devkit_renderer_detail_read(LUNAR_RENDERER_DETAIL_REGIONS, &invalid_detail);
+        assert(!invalid_detail.calls && !invalid_detail.frames && !invalid_detail.ticks);
+        assert(!lunar_devkit_renderer_detail_last(LUNAR_RENDERER_DETAIL_REGIONS));
         lunar_devkit_renderer_profile_reset();
+        for (unsigned i = 0; i <= LUNAR_RENDERER_DETAIL_REGIONS; ++i) {
+            struct lunar_renderer_profile p;
+            lunar_devkit_renderer_detail_read(i, &p);
+            assert(!p.calls && !p.frames && !p.ticks && !p.max_ticks);
+            assert(!lunar_devkit_renderer_detail_last(i));
+        }
         for (unsigned i = 0; i <= 6; ++i) {
             struct lunar_renderer_profile p;
             lunar_devkit_renderer_stage_read(i, &p);
@@ -280,6 +298,7 @@ static uint32_t now(void) {
 void lunar_devkit_renderer_profile_clock(uint32_t (*clock)(void)) { assert(clock == now); }
 void lunar_devkit_renderer_profile_reset(void) { }
 uint32_t lunar_devkit_renderer_stage_last(unsigned s) { return rendered * 10u + s; }
+uint32_t lunar_devkit_renderer_detail_last(unsigned s) { return rendered * 100u + s; }
 #endif
 static void yield(void) { assert(!(clock_calls & 1u)); ++yielded; }
 static void emit(const struct lunar_renderer_timing *r) {
@@ -292,6 +311,8 @@ static void emit(const struct lunar_renderer_timing *r) {
     assert(r->worst_block == 17u);
     for (unsigned s = 0; s < LUNAR_RENDERER_PROFILE_STAGES; ++s)
         assert(r->worst_stages[s] == (r->test_case * 5513u + 18u) * 10u + s);
+    for (unsigned d = 0; d < LUNAR_RENDERER_DETAIL_REGIONS; ++d)
+        assert(r->worst_details[d] == (r->test_case * 5513u + 18u) * 100u + d);
 #endif
 }
 int main(void) {

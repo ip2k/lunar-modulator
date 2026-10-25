@@ -41,6 +41,15 @@ static uint32_t (*profile_now)(void);
 typedef char lunar_stage_count_check[
     LUNAR_RENDERER_PROFILE_STAGES == FM1_APP_PROFILE_STAGES ? 1 : -1];
 static uint32_t last_stage[LUNAR_RENDERER_PROFILE_STAGES];
+static struct lunar_renderer_profile detail[LUNAR_RENDERER_DETAIL_REGIONS];
+static uint32_t last_detail[LUNAR_RENDERER_DETAIL_REGIONS];
+void lunar_devkit_renderer_detail_read(unsigned region, struct lunar_renderer_profile *out) {
+    if (region < LUNAR_RENDERER_DETAIL_REGIONS) *out = detail[region];
+    else memset(out, 0, sizeof *out);
+}
+uint32_t lunar_devkit_renderer_detail_last(unsigned region) {
+    return region < LUNAR_RENDERER_DETAIL_REGIONS ? last_detail[region] : 0;
+}
 #ifdef LUNAR_RENDERER_ENGINE_PROFILE
 static struct lunar_renderer_profile engine_profile[LUNAR_RENDERER_ENGINE_REGIONS];
 static uint32_t engine_start[LUNAR_RENDERER_ENGINE_REGIONS];
@@ -69,6 +78,8 @@ void lunar_devkit_renderer_profile_read(unsigned unit, struct lunar_renderer_pro
 void lunar_devkit_renderer_profile_reset(void) {
     memset(profile, 0, sizeof profile);
     memset(last_stage, 0, sizeof last_stage);
+    memset(detail, 0, sizeof detail);
+    memset(last_detail, 0, sizeof last_detail);
 #ifdef LUNAR_RENDERER_ENGINE_PROFILE
     memset(engine_profile, 0, sizeof engine_profile);
 #endif
@@ -180,6 +191,10 @@ int lunar_devkit_renderer_init(void) {
 
 void lunar_devkit_renderer_render(int16_t *out) {
     if (!ready) { memset(out, 0, BLOCK * 4u * sizeof *out); return; }
+#ifdef LUNAR_RENDERER_PROFILE
+    uint32_t boundary[4];
+    boundary[0] = profile_now ? profile_now() : 0;
+#endif
     /* Density increases every eight seconds; ongoing sequencer notes and
      * release tails remain active. Control edits use the app's real API. */
     if (!case_block) {
@@ -199,7 +214,13 @@ void lunar_devkit_renderer_render(int16_t *out) {
                           (case_block & 64u) ? 1200.f : 2400.f);
         state.controls += 2;
     }
+#ifdef LUNAR_RENDERER_PROFILE
+    boundary[1] = profile_now ? profile_now() : 0;
+#endif
     const float *samples = fm1_app_render(&app, BLOCK);
+#ifdef LUNAR_RENDERER_PROFILE
+    boundary[2] = profile_now ? profile_now() : 0;
+#endif
     for (unsigned i = 0; i < BLOCK; ++i) for (unsigned ch = 0; ch < 2; ++ch) {
         float x = samples[2 * i + ch];
         uint32_t bits; memcpy(&bits, &x, sizeof bits);
@@ -213,6 +234,18 @@ void lunar_devkit_renderer_render(int16_t *out) {
         hash = (hash ^ (word & 255u)) * 16777619u;
         hash = (hash ^ (word >> 8)) * 16777619u;
     }
+#ifdef LUNAR_RENDERER_PROFILE
+    boundary[3] = profile_now ? profile_now() : 0;
+    /* Aggregate after all boundary samples: no accounting work is charged
+     * to a subsequent region. Unsigned subtraction handles timer wrap. */
+    for (unsigned i = 0; i < LUNAR_RENDERER_DETAIL_REGIONS; ++i) {
+        uint32_t elapsed = boundary[i + 1] - boundary[i];
+        struct lunar_renderer_profile *p = &detail[i];
+        last_detail[i] = elapsed;
+        p->ticks += elapsed; ++p->calls; p->frames += BLOCK;
+        if (elapsed > p->max_ticks) p->max_ticks = elapsed;
+    }
+#endif
     if (startup_frames < 2205u) startup_frames += BLOCK;
     ++state.blocks;
     if (++case_block == CASE_BLOCKS) {
