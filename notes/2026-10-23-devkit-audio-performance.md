@@ -3093,3 +3093,32 @@ probe mode. Mac Python environments lack pytest; these checks ran in a bounded
 Aeon container. No image is packaged, admitted or installed. A passing short
 probe would still leave the ladder's long coherence, FPU, ring, real renderer,
 underrun, DAC/KA6 and sustained analog soak gates outstanding.
+
+[verified, offline admission] The final short CPU1 probe build has ELF SHA-256
+`eacb70e7ba2944fec4df84b029a21e103d5582cc7d6aec892736774ef8a6e3a0`;
+independent vendor objcopy of all five load sections matches the 163984-byte
+app `f8a989e65683357a157c9b111c2545129d48578bec488bef856687dd9e98d3b0`.
+The private factory-based candidate is
+`9d3d4f8c46ddf3a0edb3fce6abd5a7482a257f82c3b798ba87ec5460bce9f761`.
+Only 41 sectors, 0x4000 through 0x2c000 inclusive, differ; the protected boot
+prefix and tail remain factory-identical. Independent cipher derivation,
+metadata/app CRCs and exact NOR install/restore pass. Injected interruptions
+at pages 7/327/631/647 each restore the full factory image.
+
+[verified, generated code] The final image reserves UART recovery before the
+parent task, preserves the 200-tick window, and uses the reviewed aligned
+SRAM/csync exchange. SDK dormant-key routines, local IRQ/P33 helpers and the
+complete ROM-entry marker routine match the installed image after normalizing
+only individually checked symbol/call relocations. The link audit reports zero
+failures and one scheduling item, resolved by that exact vendor-instruction
+comparison; no forbidden key symbols, SDK key blob, IRQ123 vector use or eFuse
+SFR access is found. Pretask heap is 491788 bytes; mailbox is 576 bytes aligned
+to 64. This is static layout evidence, not measured target stack/heap acceptance.
+
+The exact probe hash now has its own narrow transaction plan. The existing
+49ef renderer restore range remains 137 sectors and must be used to remove
+that currently installed image before installing this smaller probe. All 116
+focused transaction/reset/probe/preparation checks pass in a bounded Aeon
+container. An initial audit CLI invocation omitted the JSON output argument;
+the corrected invocation produced the audit above. No device operation occurred.
+The candidate is admitted offline only, not installed or hardware accepted.

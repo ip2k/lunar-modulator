@@ -14,6 +14,25 @@ def test_unpinned_images_rejected():
         tx.validate_images(bytes(tx.backup.FLASH_SIZE), bytes(tx.backup.FLASH_SIZE))
 
 
+def test_cpu1_probe_plan_is_narrow_and_preserves_renderer_restore_bounds():
+    assert tx.CPU1_PUBLICATION_TARGET_SHA == '9d3d4f8c46ddf3a0edb3fce6abd5a7482a257f82c3b798ba87ec5460bce9f761'
+    allowed = tx.IMAGE_PLANS[tx.CPU1_PUBLICATION_TARGET_SHA]
+    assert allowed == tuple(range(0x4000, 0x2d000, 4096))
+    assert len(allowed) == 41
+    assert tx.IMAGE_PLANS[tx.RENDERER_FILTER_MONO_TARGET_SHA] == tuple(range(0x4000, 0x8d000, 4096))
+    desired = bytes(tx.backup.FLASH_SIZE)
+    tx.mutation_request(0xFB01, 0x2c000, b'', desired, allowed)
+    tx.mutation_request(0xFB04, 0x2cf00, bytes(256), desired, allowed)
+    for address in (0x3000, 0x2d000, 0x8c000, 0x7ff000):
+        with pytest.raises(ValueError):
+            tx.mutation_request(0xFB01, address, b'', desired, allowed)
+        with pytest.raises(ValueError):
+            tx.mutation_request(0xFB04, address, bytes(256), desired, allowed)
+    changed = bytearray(desired)
+    changed[0x2d000] = 1
+    assert not tx.protected_equal(changed, desired, allowed)
+
+
 def test_all_other_opcodes_denied():
     desired = bytes(tx.backup.FLASH_SIZE)
     for op in range(65536):
