@@ -71,6 +71,24 @@ def narrow_msfa_sine_multiply(text, rom):
     return text.replace(old, "(dy * lowbits) >> SHIFT")
 
 
+def unroll_msfa_pure(text):
+    """Annotate only the reviewed pure operator; preserve every sample operation."""
+    start = text.find("void FmOpKernel::compute_pure(")
+    end = text.find("\n}\n#endif", start)
+    if end >= 0:
+        end += 2
+    if start < 0 or end < 0:
+        raise ValueError("Unexpected pure FM kernel; review unrolling")
+    body = text[start:end]
+    if hashlib.sha256(body.encode()).hexdigest() != "394dd29bcb8f63fcf87f8d37e1feb2cbbbeb4dfb99ab548ebe4cb8d76484d335":
+        raise ValueError("Unexpected pure FM kernel; review unrolling")
+    loop = "      for (int i = 0; i < N; i++) {"
+    if body.count(loop) != 2:
+        raise ValueError("Unexpected pure FM loops; review unrolling")
+    body = body.replace(loop, "#if defined(__clang__)\n#pragma clang loop unroll_count(2)\n#endif\n" + loop)
+    return text[:start] + body + text[end:]
+
+
 def resampler_slope_definition(definition):
     """Encode float32 base/slope pairs for the existing 768 tap intervals."""
     body = definition.split(" = {", 1)[1].rsplit("};", 1)[0]
@@ -161,9 +179,11 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False):
     if workload not in ("mixed", "keys"):
         raise ValueError("Unknown renderer workload; choose mixed or keys")
+    if msfa_pure_unroll and not (timing_only and hot_ram and msfa_narrow_adds and renderer_o3):
+        raise ValueError("Pure FM unrolling requires timing-only hot O3 and narrow additions")
     if msfa_sine32 and not (timing_only and hot_ram and msfa_narrow_adds):
         raise ValueError("Signed32 sine requires timing-only hot code and narrow additions")
     if msfa_narrow_adds and not (timing_only and hot_ram):
@@ -237,6 +257,11 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             original = p.read_bytes()
             narrow_inputs[name] = hashlib.sha256(original).hexdigest()
             p.write_text(narrow_msfa_adds(original.decode(), name))
+    pure_unroll_input = None
+    if msfa_pure_unroll:
+        p = staging / "engines/third_party/msfa/fm_op_kernel.cc"
+        pure_unroll_input = hashlib.sha256(p.read_bytes()).hexdigest()
+        p.write_text(unroll_msfa_pure(p.read_text()))
     sine32_input = None
     if msfa_sine32:
         p = staging / "engines/third_party/msfa/sin.h"
@@ -448,6 +473,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "timing_only": timing_only,
         "render_profile": profile,
         "hot_ram_sources": hot_inputs,
+        "msfa_pure_unroll": msfa_pure_unroll,
+        "msfa_pure_unroll_original_sha256": pure_unroll_input,
         "msfa_sine32": msfa_sine32,
         "msfa_sine32_rom_sha256": sine32_input,
         "msfa_narrow_adds": msfa_narrow_adds,
@@ -539,6 +566,8 @@ if __name__ == "__main__":
                         help="Compare sound mixer/effect dispatch in SRAM; requires timing-only profiled O3")
     parser.add_argument("--resampler-schedule", action="store_true",
                         help="Group independent FIR sums/products; requires timing-only resident mixer")
+    parser.add_argument("--msfa-pure-unroll", action="store_true",
+                        help="Compare two-way pure FM loops; timing-only hot O3 with narrow additions")
     parser.add_argument("--msfa-sine32", action="store_true",
                         help="Compare bounded signed32 sine products; requires narrow FM additions")
     parser.add_argument("--msfa-narrow-adds", action="store_true",
@@ -546,4 +575,4 @@ if __name__ == "__main__":
     parser.add_argument("--dispatch-ram", action="store_true",
                         help="Compare sequencer event walk and slot dispatch in SRAM; requires timing-only resident mixer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll)

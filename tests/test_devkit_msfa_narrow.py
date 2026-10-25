@@ -118,3 +118,19 @@ int main(void){
     exe = tmp_path / 'sine32'
     subprocess.run([cc, '-std=c99', '-O2', str(path), '-o', str(exe)], check=True)
     subprocess.run([str(exe)], check=True)
+
+
+def test_pure_unroll_preserves_operations_and_rejects_drift():
+    module = preparer()
+    original = (ROOT / 'engines/third_party/msfa/fm_op_kernel.cc').read_text()
+    narrow = module.narrow_msfa_adds(original, 'fm_op_kernel.cc')
+    changed = module.unroll_msfa_pure(narrow)
+    annotation = '#if defined(__clang__)\n#pragma clang loop unroll_count(2)\n#endif\n'
+    assert changed.count(annotation) == 2
+    assert changed.replace(annotation, '') == narrow
+    first = changed.index('void FmOpKernel::compute_pure(')
+    end = changed.index('\n#endif', changed.index('  }\n}', first))
+    assert annotation not in changed[:first] + changed[end:]
+    for drift in (original, changed, narrow.replace('gain += dgain;', 'gain -= dgain;')):
+        with pytest.raises(ValueError, match='Unexpected pure FM kernel'):
+            module.unroll_msfa_pure(drift)

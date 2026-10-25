@@ -2806,3 +2806,28 @@ worker stack is 5552/8192 B. Owned RX identity checked twice, terminated and
 terminal before ordinary PING acknowledged. Private raw SHA
 `b307aa90fc5a8120d061eea8c62760f884fe3215c1e9d0824d978f4542043c22`.
 Board remains healthy idle; no DAC/analog/soak acceptance.
+
+
+### Pure FM operator unrolling — offline experiment
+
+[verified, compiler probe] Four-way hints on all six active FM loops increased
+stack accesses (modulated kernel 6→30, pure 5→24 static stack-related
+instructions). Two-way all-loop hints still added a loop stack read in the
+modulated kernel. Neither broad probe is admitted. A narrower opt-in
+`--msfa-pure-unroll` annotates only the two branches of the reviewed active
+pure operator, after narrow additions. The source-body SHA guard rejects
+drift or repeat application; stripping only its two annotations reproduces
+the input exactly. Timing-only hot O3 preparation is mandatory. Default
+builds and repository vendor source remain unchanged.
+
+[verified, offline] 51 focused checks pass, including the three native
+renderer tests rerun with a writable temporary build mount after the initial
+read-only-mount refusal. The private full vendor build passes, downloader
+disabled. Modulated kernel stays byte-identical at 168 B; pure kernel grows
+150→238 B without additional static stack accesses. SRAM is 81744 B, cache
+data 27180 B, BSS 392412 B. ELF SHA `df09508ef28fdb2acd1e7ea52b5b279cb46839d60f9a9d5ae16e9d8dce96b9df`.
+Eight complete prepared keys and eight mixed replays retain PCM SHA
+`b62e14e1…` and `c676e9b4…`; host GCC ignores the clang loop hint, so those
+replays verify prepared arithmetic, not vendor loop code generation. Exact
+image/startup/recovery/SDK/packaging review and target PCM/timing remain
+pending. No new candidate admitted or installed; route image stays healthy idle.
