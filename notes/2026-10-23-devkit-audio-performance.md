@@ -3334,3 +3334,33 @@ all original assertions remain. Chromium, Firefox and WebKit focused tests
 pass in bounded Aeon containers. This proves the redraw repair, not that the
 original intermittent opening failure has necessarily the same trigger.
 Pages40216326782 succeeded; PR155 remains draft/unmerged.
+
+### Paced CPU1 ring — hardware data pass, pacing FAIL, 2026-10-25
+
+[verified] Exact candidate 0fd1dcb5 completes the UART-only WINDOW/RUN cycle.
+Fresh startup ready and PING/ARM/ENTER acknowledge within 77.917 ms; a fresh
+WL82/UBOOT1.00 inquiry and two full matching 8 MiB new-image backups follow.
+The intervening factory restore matches 127b2ebb, and the same candidate's RUN
+installation/full readback match. Each reset was invoked once and consumed.
+
+[verified] All four finite arithmetic results match CPU0/CPU1. The SRAM ring
+completes/consumes all 413607 blocks in 600010 ms, with zero CRC/data/sequence
+errors, abort=0, exited=1. Parent CPU0 and worker CPU1 counts are each 413607;
+opposite/other counts are zero. Peak queue depth is two; unused stack is
+972/1024 worker words and 1922/2048 parent words.
+
+[verified, FAIL] There are 2784 late producer blocks. Maximum publication lag
+is 50028 ticks (2084.5 microseconds), exceeding the 34815-tick block period.
+The unchanged strict parser rejects the result. Correct data and finite FPU
+parity do not turn this into a timing or audio pass. No DAC/KA6 capture ran.
+The exact RX identity was checked twice, terminated, and its session became
+terminal before ordinary post-run PING acknowledged. Board0fd is healthy idle.
+Private raw UART SHA-256:
+81cf3fa4d2103531cfa132b8fe2169a2c99551813682e7f5a3a023d545995999.
+
+[inferred, unresolved] Parent scheduling, shared XIP/cache contention and the
+bitwise CRC's own cost are candidates for the publication delay. This receipt
+does not attribute it to any one of them. Measure pre-compute lag and compute
+cost separately before claiming a cause; do not weaken the ring acceptance gate.
+The actual shared renderer's deadline failures and all analog acceptance gates
+remain open. The copied-job mailbox is still an offline prototype.
