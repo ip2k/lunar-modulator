@@ -3906,3 +3906,18 @@ new readonly-base displacement5984 resolves to the identical768-byte algorithm
 table, versus5852 before. Static mailbox/worker layout and priorities remain.
 Final renderer/UART machine-code review, independent objcopy/cipher/CRC and
 NOR model remain outstanding. No v11 candidate is admitted or installed.
+
+[verified, offline admission] V11 final vendor review confirms four boundary
+samples and aggregation after conversion; worst-block samples copy only after
+the outer closing clock. The timing routine's stack frame is260 bytes. UART18
+creation precedes parent16 with allocation-failure guard,200-tick recovery
+window, worker16/34829-tick budget, million-poll bound, permanent aligned
+mailbox/worker storage, fences and finite exit. All five changed diagnostic
+input hashes match the checkout. Independent five-section objcopy equals the
+ELF export. Independent cipher/CRC protects boot/config/tail; app ends0x8da1c.
+Exact image SHA-256
+`344330443ae9cb9e11b95525b2d5fa58714df2397cf15656940a7a1de974a49a`
+uses138 sectors[0x4000,0x8e000). Install/restore and interrupted pages7/1111/
+2183/2199 return the exact factory image in the offline NOR model.68 admission,
+loader-reset and SDK lifecycle tests pass. Existing image plans are retained;
+only this exact hash is newly admitted. Not installed or hardware accepted.
