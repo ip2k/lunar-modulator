@@ -3679,3 +3679,19 @@ all six worker fault modes. Vendor v8 build is running; exact image/SDK/kernel,
 independent export/cipher/CRC and NOR reviews remain before hardware admission.
 Rarefaction cannot resolve this external worktree symbol; Serena locates the
 actual preparer and real-source checks supplement the SDK/ABI review.
+
+[verified, offline] Scheduling v8 ELF SHA-256
+bbd2843e7e05b497e2f8795377ad76b064d40971340d6cf04c9c669d681dbcc1;
+independent app SHA-256
+6685b50882bb5cc274adbaf39fa98f8252922cea91da1ce8eeb4754f1919f968;
+exact candidate SHA-256
+14dd61780bca60ae1ea772cb925a068d7117539f81f4dd0fbccf5a8f9fc1a061.
+App 562876 bytes, end 0x8d7dc, same 138 sectors. Pretask heap 84588,
+mailbox 448 bytes and worker storage 4260 bytes remain unchanged. Linked
+UART-first creation, priorities 18/16/16, 200-tick recovery window, 34829-tick
+deadline, million-poll refusal and finite worker exit are inspected. Exact SDK
+and ROM routine comparison passes; dormant-key scheduling pending is covered
+by checked full-routine relocations. FM6 kernel/table bytes match v7 after
+checked readonly table and memset relocations. Independent objcopy app agrees;
+reference cipher/CRC and interrupted NOR restore at pages 7/1111/2183/2199 pass.
+The image is admitted offline only. Hardware recovery and timing remain untested.
