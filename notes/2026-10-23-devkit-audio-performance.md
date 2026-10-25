@@ -3613,3 +3613,16 @@ builds remain necessary for this target and its ABI.
 because its reused ignored build directory was root-owned. Correcting that
 exact directory's ownership and rerunning the affected mixed PCM check passes.
 Keys full PCM and fallback also pass; no target timing follows from host tests.
+
+[verified, offline] Refusal-diagnostic ELF SHA-256
+`ef66cf27e679043149980a3df0851defaf729e418d804564a5d22e38254e5053`,
+app SHA-256 `04c5180f1a4081a404fc5c050bd98cf81ab5234ebca55630510c7a828a3a031d`,
+candidate SHA-256
+`b2b3ab557b788b6c8e500755e41be47db14986ed5aa6dfd6681c4aefd611f983`.
+Independent section export/cipher/CRC and the 138-sector interrupted NOR model
+pass. Exact linked SDK/ROM routines, UART-first creation and 200-tick window,
+static 448-byte mailbox and 4260-byte worker storage are retained; pretask
+heap remains 84588. Machine code preserves the total deadline, million-poll
+bound, fences, finite lifetime and final equality refusal. Kernel bytes match
+after checked memset relocation and pointer-plus-offset algorithm-table
+relocations; immutable table bytes match. Hardware acceptance remains open.
