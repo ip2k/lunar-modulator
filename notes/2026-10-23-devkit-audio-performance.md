@@ -4046,3 +4046,32 @@ checks pass. Exact image
 uses138 sectors[0x4000,0x8e000). NOR install/restore and interrupted pages7/
 1111/2183/2199 restore factory exactly.113 admission/reset/SDK tests pass.
 Not installed or hardware accepted; V12 remains healthy idle.
+
+### UI SRAM v13 target result
+
+[verified, hardware] Exact6d977407 passes startup recovery in78.608ms,
+fresh actual WL82/UBOOT1.00 inquiry, two full current/new-image backups,
+138-sector factory restores and SAME RUN installation/full readback. WINDOW
+24555 and RUN72027 reset receipts are consumed; neither may be retried.
+All four arithmetic/PCM receipts,32 unit,24 stage,24 correlated worst and12
+outer-region rows pass. All81308 paired jobs are accepted, with zero
+refusals/errors/wrong-core jobs and finite exit. Heap38676 stays stable;
+parent unused2516/8192 bytes and worker unused3260/4096. Sole RX221969 was
+checked twice, terminated once, and session1489 was terminal before ordinary
+PING ACK. No capture remains live. Private raw SHA-256:
+`ae5cc311700ed54b7748da894ec4ae946b73597ac9f2286a0aaebdd6cf2446b1`.
+
+| Keys case | Mean us | Max us | Late /5513 | UI mean us | Worst prep us | Worst shared app us |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+|0|1015.417|1978.583|1|48.875|466.125|1481.833|
+|1|1151.083|1947.625|10|48.375|378.833|1541.750|
+|2|1227.625|2060.250|81|49.250|433.125|1600.208|
+|3|1325.500|2230.125|321|49.625|499.958|1703.208|
+
+[verified] Means improve8.29..9.86percent against V12, with unchanged PCM
+hashes and event schedule. UI stage drops from89.79..91.96us to48.38..49.63us;
+other placement/cache effects are included in the whole-block improvement.
+Every worst snapshot remains block0. The34829-tick deadline still FAILS;
+mixed, fault-validated DAC/KA6 and30-minute analog acceptance remain undone.
+Next measure the actual note/control preparation subregions before changing
+semantics; no claim that modulation planning causes the spike is supported yet.
