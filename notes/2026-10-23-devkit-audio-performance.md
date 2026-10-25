@@ -3850,3 +3850,37 @@ physical audio acceptance remain outstanding; not installed yet.
 
 [verified, host]67 admission/reset/SDK lifecycle tests pass for the exact v10
 allowlist change. Packaging and model operations sent zero hardware commands.
+
+### Page-cache v10 hardware result
+
+[verified, hardware] Exact cc85 passes startup recovery in78.8873ms, fresh
+WL82/UBOOT1.00 inquiry, two matching full new-image backups,138-sector factory
+restore and SAME RUN install/readback. Both reset receipts are consumed. All
+four arithmetic/PCM receipts,32 unit/24 stage rows and24 correlated worst-block
+snapshots pass. All81308 pairs finish with no refusal/error/wrong-core report;
+finite worker exit succeeds. Heap42516 stays stable; parent unused2556/8192
+bytes and worker unused3260/4096 bytes. The sole RX process was checked twice,
+terminated once, and session56855 was terminal before ordinary PING ACK.
+Private capture SHA-256
+`bb9a2a31eb03fd7928aaae27d78e468148bad978f565ae6cc844833433a96508`.
+
+| Keys case | Mean us | Max us | Late /5513 | Worst block | Outside six stages us |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0 |1104.792|2027.333|8|0|494.792|
+| 1 |1245.625|2010.167|169|0|412.958|
+| 2 |1328.417|2172.708|472|0|465.375|
+| 3 |1419.833|2325.417|1987|0|532.333|
+
+[verified] Means improve22.458–25.625us versus v9. UI stage means fall from
+104.333–106.500us to92.875–95.125us; exact attribution of the remaining gain
+needs more measurements. Every case still fails its deadline. Initial note
+and control setup, shared rendering and output conversion remain within the
+reported total; first blocks are never excluded. Mixed, DAC/KA6 and30-minute
+soak acceptance remain outstanding.
+
+[verified, CI diagnosis] a13d027's MIT/BSD, sanitizer and32-bit jobs fail the
+committed Wasm source-hash gate after the shared app-layout change. Actual job
+logs121284866925/121284866911/121284867037 show this same failure. The MIT/BSD
+job otherwise passes4511 tests. Rebuilding the module and its build record is
+required; the gate is retained. Pages40231711027 succeeds, separately from
+hardware and PR CI acceptance.
