@@ -2780,3 +2780,12 @@ The sine32 image stays healthy idle. No target speed or audio acceptance claim.
 for echo/filter/compressor offered no convincing code-generation improvement:
 echo remained 2106 bytes, compressor grew 2242→2284 bytes with more stack
 accesses. This probe is not part of the committed implementation or board image.
+
+[verified, offline admission] Exact startup/UART-first/200-tick recovery,
+ROM/P33 marker and SDK checks pass. Cache-copy `memmove`/`memset` call
+relocations are checked against the same target symbols; the FM loop is
+byte-identical to sine32. Independent cipher/CRC, protected bytes and all
+137-sector NOR install/restore checks pass, including interrupted pages
+7/1095/2167/2183. 54 transaction/reset tests pass. Candidate
+`e2fb418459789350793538d33ed82dfe5a43ade037c31211d65c84da23c40304`
+is admitted for this exact hash only; no installation or hardware acceptance.
