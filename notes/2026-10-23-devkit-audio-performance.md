@@ -1420,3 +1420,36 @@ is admitted offline for the recovery preflight only, not installed or accepted.
 enumeration still shows no dev-board ROM device or SCSI generic node. No loader
 or new device command was sent. Fresh ROM enumeration is required before
 backup/restore/install, followed by actual UART acknowledgement before workload.
+
+### Recovery-first image: target window and workload results
+
+[verified, hardware] The owner performed a fresh physical recovery exception
+for the failed sine-v1 receiver. Fresh ROM identity was checked before the
+fixed-loader double backup, factory restore and corrected-image install.
+Every full 8 MiB readback matched its intended image. Candidate `d1d534f7…`
+created the UART task before the renderer; fresh ready, PING, ARM and ENTER
+acknowledgements completed in 78 ms. Linux retained USB device number 109 after
+reset; a fresh read-only SCSI INQUIRY returned `WL82 / UBOOT1.00`, establishing
+ROM responsiveness rather than inferring it from the transport disconnect.
+
+[verified, hardware] After another verified factory restore/install cycle,
+one reviewed loader reset started the workload without a button press. All
+four cases completed, all four desktop PCM hashes matched, and all 32 profile
+rows covered 352,832 frames each. UART PING succeeded after completion. The
+12 KiB worker stack peaked at 5,396 bytes, leaving 6,892 bytes unused; reported
+heap free stayed 11,092 bytes before initialization and after every case.
+Private raw capture SHA:
+`d34f1cae3e9038d476bb1b169cab1ebe40d22fd86bd55a3f7078bdf7a03d77f9`.
+
+| FM6 voices | Mean block, us | Maximum block, us | Over deadline |
+| --- | ---: | ---: | ---: |
+| 1 | 4660.25 | 5612.75 | 5513 / 5513 |
+| 4 | 4960.13 | 5756.83 | 5513 / 5513 |
+| 8 | 5081.92 | 5749.29 | 5513 / 5513 |
+| 12 | 5283.58 | 5989.00 | 5513 / 5513 |
+
+The receiver correction passes this recovery/workload cycle; the renderer
+still fails the approximately 1,451 us deadline. There was no DAC or KA6
+capture in this timing-only run. Analog acceptance and sustained soaks remain
+incomplete. Exact source head `82c74b3d` passed all 13 CI jobs (40159566208)
+and Pages (40159566233); PR #155 remains draft and unmerged.
