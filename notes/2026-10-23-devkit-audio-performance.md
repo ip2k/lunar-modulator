@@ -2735,3 +2735,21 @@ Candidate `4589d46ba8382c86ae7f05c6c60c8b3c8e3c8b0b942c811ffceefa03d1d2a7bf`
 passes independent cipher/CRC/protected-byte checks and 137-sector NOR
 install/restore plus four interrupted-page restorations. App end `0x8ccdc`.
 Admitted for this exact hash only; not installed or hardware accepted.
+
+
+### Bounded sine multiply — target comparison
+
+[verified, hardware] Startup ready/PING/ARM/ENTER passed in 78.7 ms,
+followed by fresh WL82/UBOOT inquiry and two full reads matching the image.
+Factory restore, same-image reinstall and full readback passed. WINDOW22176
+and RUN80552 receipts are consumed. Four PCM hashes and arithmetic patterns,
+32 unit rows and 24 stage rows cover all 352832 frames/case; invalid/clipped
+counts are zero and completion explicit. Mean block times are
+1288.625 / 1493.833 / 1621.042 / 1824.125 us (0.28–0.92% lower than narrow
+adds); maxima 2139.25 / 2225.75 / 2401.08 / 2642.33 us. Late counts remain
+216 / 3740 / 5265 / 5512 of 5513: deadline acceptance fails. FM unit means
+are 233.54 / 434.08 / 554.71 / 737.96 us. Heap remains 7668 B in all five
+readings; peak worker stack remains 5548/8192 B. Exact owned RX identity
+checked twice, terminated and terminal before ordinary PING acknowledged.
+Private raw SHA `e2f73f79b3fca7057d15204495902c009756af616c15d92b6edc0348c863eec3`.
+No DAC/analog/soak acceptance.
