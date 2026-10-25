@@ -2600,3 +2600,22 @@ no event order, modulation cadence, samples, rates or filtering change.
 Preparation/refusal checks pass locally. Actual vendor placement, heap,
 startup recovery, PCM equivalence and target performance still require
 review and measurement. No dispatch image is admitted or installed.
+
+
+[verified, exact offline review] Dispatch comparison ELF
+`c4eb6e2557584aaafd8b17f8b280608846ee12c8791898410b21cec687dd0e86`
+exports app `2213bd5aa22219ae4ecfa0dce3e9041de35338e14fcda98cc705009fefcf8caf`
+(559,868 bytes). Startup copies 81,552 SRAM bytes; cache remains 27,180.
+Pre-task heap is 49,580 bytes. `walk_next` is resident at `0x01c0154a`;
+the slot dispatch including inlined helpers is resident at `0x01c01784`.
+Eight original/prepared PCM renders match the keys reference exactly.
+81 focused Linux tests pass (one ABI skip); 49 final transaction/reset
+checks pass locally. Five vendor exports, tables and SDK exact relocated
+functions match. Disassembly confirms guarded UART-first allocation,
+200-tick recovery before initialization, strong ROM marker/P33 path and
+the unchanged dormant SDK scheduling. Cipher/CRC, protected bytes and
+137-sector NOR install/restore with four interrupted-page restores pass.
+Candidate `356c0b070d8ac6483fd8034767777b8c5dc13c25d04227c9f63dccaf3b1523e8`
+is separately admitted for timing only; it is not installed or hardware
+accepted. The prior wrong SDK path failed during preparation and was kept
+as failed evidence; the reviewed build uses the established private template.
