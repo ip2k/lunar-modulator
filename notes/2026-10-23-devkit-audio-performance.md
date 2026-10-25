@@ -2670,3 +2670,18 @@ hardware audio acceptance.
 
 
 [verified, CI repair] Exact-head run 40192720153 GPL-disabled job passed 4,494 tests but failed the committed-Wasm freshness check after the session UI change. Rebuilt the module and record in bounded Aeon containers through the existing build/parity workflow: all 108 scenarios pass, matching musl and JavaScript exactly. Local build-record and licensing checks pass. No assertion was relaxed; new exact-head CI remains required.
+
+
+### Compact session metadata — target comparison
+
+[verified, hardware] Startup ready/PING/ARM/ENTER acknowledged in 78.5 ms, followed by fresh WL82/UBOOT inquiry and two matching full 8 MiB reads. Factory restore, same-image reinstall and full readback pass. WINDOW and RUN receipts are consumed. Four PCM hashes and arithmetic patterns match; 32 unit and 24 stage rows cover 352,832 frames per case, invalid/clipped counts are zero and completion is explicit. Mean block times are 1352.50 / 1573.38 / 1710.42 / 1928.08 us; maxima 2169.50 / 2312.92 / 2402.54 / 2727.46 us. Late counts are 779 / 5026 / 5495 / 5513 of 5513: deadline acceptance still fails. UI-stage means fall to 147.96 / 152.83 / 156.17 / 163.29 us, but total means are slower than dispatch-v2. This is not an overall performance improvement. Free heap remains 7636 B; peak stack is 5548/8192 B. Sole RX identity was checked twice, terminated and terminal before post-run PING acknowledged. Raw private SHA: `947d0ee445c593fe9824dd96416fac4fe6661312d4d9e22aa92f5a0ee9148d3d`. No analog or soak acceptance.
+
+[verified, source/vendor disassembly] The octave LED helper computes seconds before its off/solid returns. In session-v1, both inlined calls execute software double conversion/division before checking the magnitude (0x0201e70a–0x0201e730 and 0x0201e78e–0x0201e7a8). Moved the unchanged seconds calculation below those returns. This removes unnecessary work in source; exact vendor code generation, differential LED/PCM checks and actual timing are still pending. No new candidate is admitted.
+
+
+### LED early-return guards — offline review
+
+- [verified] Vendor code now branches around software double conversion/division for both off/solid LED paths (guards at `0x0201e708` and `0x0201e780`). Blink calculations, frame clock, native sample rates and UI cadence are unchanged. 7,200,000 old/new helper comparisons pass across eight sample rates and full-range frame counters; 27 focused octave/LED/pitch tests pass in a bounded Aeon container.
+- [verified] All eight original/prepared keys PCM rows match, full SHA `b62e14e11377f683ffc5088e425f4c1c9825ac672ead222f0e4cfc07cc937732`. Browser rebuild passes 108 parity scenarios; build-record/licensing checks pass.
+- [verified] Vendor ELF `76a7a475…`, app `ca12490d…` (560092 B). Five independent section exports match packing. SRAM/cache/BSS/pre-task heap remain 81552/27180/392412/49580 B. Reviewed UART-first task allocation and failure branch, 200-tick startup window, startup copies, strong ROM/P33 exact prior bytes, relocated `usb_update_mode` marker and SDK key-check relocations. Independent cipher/CRC/protected bytes and NOR install/restore with four interrupted pages pass.
+- [verified, offline admission] Exact candidate `f6c74b7b198dd1ac5e154862e39d09dded5a2cfa6dae4613528aa63b8d545f23` uses the existing 137-sector range, app end `0x8ccfc`. Admitted for that exact hash only. It is not installed or hardware accepted; target speed and analog acceptance remain unverified.

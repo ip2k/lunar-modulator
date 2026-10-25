@@ -142,7 +142,7 @@ def test_renderer_profile_extra_sector_is_image_specific(target_sha):
     tx.mutation_request(0xFB01, 0x8a000, b'', desired, allowed)
     tx.mutation_request(0xFB04, 0x8af00, bytes(256), desired, allowed)
     for sha, other in tx.IMAGE_PLANS.items():
-        if sha not in (tx.RENDERER_SESSION_TARGET_SHA, tx.RENDERER_DISPATCH_TARGET_SHA, tx.RENDERER_KEYS_TARGET_SHA, tx.RENDERER_SCHEDULE_TARGET_SHA, tx.RENDERER_MIXER_TARGET_SHA, tx.RENDERER_O3_TARGET_SHA, tx.RENDERER_UNROLL_TARGET_SHA, tx.RENDERER_DETAIL_TARGET_SHA, tx.RENDERER_SLOPES_TARGET_SHA, tx.RENDERER_PROFILE_TARGET_SHA, tx.RENDERER_HOT_TARGET_SHA, tx.RENDERER_SINE_TARGET_SHA, tx.RENDERER_RECOVERY_TARGET_SHA, tx.RENDERER_STAGES_TARGET_SHA, tx.RENDERER_VCF_TARGET_SHA, tx.RENDERER_ARITHMETIC_TARGET_SHA, tx.RENDERER_RESAMPLER_TARGET_SHA, tx.RENDERER_CACHE_TARGET_SHA, tx.RENDERER_FX_TARGET_SHA, tx.RENDERER_OUTLINE_TARGET_SHA, tx.RENDERER_FILTER_TARGET_SHA, tx.RENDERER_FILTER_STACK_TARGET_SHA, tx.RENDERER_CONTROL_TARGET_SHA, tx.RENDERER_PLAITS_CACHE_TARGET_SHA):
+        if sha not in (tx.RENDERER_LED_GUARD_TARGET_SHA, tx.RENDERER_SESSION_TARGET_SHA, tx.RENDERER_DISPATCH_TARGET_SHA, tx.RENDERER_KEYS_TARGET_SHA, tx.RENDERER_SCHEDULE_TARGET_SHA, tx.RENDERER_MIXER_TARGET_SHA, tx.RENDERER_O3_TARGET_SHA, tx.RENDERER_UNROLL_TARGET_SHA, tx.RENDERER_DETAIL_TARGET_SHA, tx.RENDERER_SLOPES_TARGET_SHA, tx.RENDERER_PROFILE_TARGET_SHA, tx.RENDERER_HOT_TARGET_SHA, tx.RENDERER_SINE_TARGET_SHA, tx.RENDERER_RECOVERY_TARGET_SHA, tx.RENDERER_STAGES_TARGET_SHA, tx.RENDERER_VCF_TARGET_SHA, tx.RENDERER_ARITHMETIC_TARGET_SHA, tx.RENDERER_RESAMPLER_TARGET_SHA, tx.RENDERER_CACHE_TARGET_SHA, tx.RENDERER_FX_TARGET_SHA, tx.RENDERER_OUTLINE_TARGET_SHA, tx.RENDERER_FILTER_TARGET_SHA, tx.RENDERER_FILTER_STACK_TARGET_SHA, tx.RENDERER_CONTROL_TARGET_SHA, tx.RENDERER_PLAITS_CACHE_TARGET_SHA):
             with pytest.raises(ValueError):
                 tx.mutation_request(0xFB01, 0x8a000, b'', desired, other)
     for address in (0x3000, 0x8b000, 0x7ff000):
@@ -167,7 +167,7 @@ def test_reviewed_136_sector_images_preserve_older_bounds(target_sha):
     tx.mutation_request(0xFB01, 0x8b000, b'', desired, allowed)
     tx.mutation_request(0xFB04, 0x8bf00, bytes(256), desired, allowed)
     for sha, older in tx.IMAGE_PLANS.items():
-        if sha not in (tx.RENDERER_SESSION_TARGET_SHA, tx.RENDERER_DISPATCH_TARGET_SHA, tx.RENDERER_KEYS_TARGET_SHA, tx.RENDERER_SCHEDULE_TARGET_SHA, tx.RENDERER_MIXER_TARGET_SHA, tx.RENDERER_O3_TARGET_SHA, tx.RENDERER_SLOPES_TARGET_SHA, tx.RENDERER_DETAIL_TARGET_SHA, tx.RENDERER_UNROLL_TARGET_SHA):
+        if sha not in (tx.RENDERER_LED_GUARD_TARGET_SHA, tx.RENDERER_SESSION_TARGET_SHA, tx.RENDERER_DISPATCH_TARGET_SHA, tx.RENDERER_KEYS_TARGET_SHA, tx.RENDERER_SCHEDULE_TARGET_SHA, tx.RENDERER_MIXER_TARGET_SHA, tx.RENDERER_O3_TARGET_SHA, tx.RENDERER_SLOPES_TARGET_SHA, tx.RENDERER_DETAIL_TARGET_SHA, tx.RENDERER_UNROLL_TARGET_SHA):
             with pytest.raises(ValueError):
                 tx.mutation_request(0xFB01, 0x8b000, b'', desired, older)
     for address in (0x3000, 0x8c000, 0x7ff000):
@@ -191,7 +191,7 @@ def test_renderer_o3_extra_sectors_are_exact_image_only(target_sha):
         tx.mutation_request(0xFB01, address, b'', desired, allowed)
         tx.mutation_request(0xFB04, address + 0xf00, bytes(256), desired, allowed)
         for sha, older in tx.IMAGE_PLANS.items():
-            if sha not in (tx.RENDERER_O3_TARGET_SHA, tx.RENDERER_MIXER_TARGET_SHA, tx.RENDERER_SCHEDULE_TARGET_SHA) and not (sha in (tx.RENDERER_SESSION_TARGET_SHA, tx.RENDERER_KEYS_TARGET_SHA, tx.RENDERER_DISPATCH_TARGET_SHA) and address == 0x8c000):
+            if sha not in (tx.RENDERER_O3_TARGET_SHA, tx.RENDERER_MIXER_TARGET_SHA, tx.RENDERER_SCHEDULE_TARGET_SHA) and not (sha in (tx.RENDERER_LED_GUARD_TARGET_SHA, tx.RENDERER_SESSION_TARGET_SHA, tx.RENDERER_KEYS_TARGET_SHA, tx.RENDERER_DISPATCH_TARGET_SHA) and address == 0x8c000):
                 with pytest.raises(ValueError):
                     tx.mutation_request(0xFB01, address, b'', desired, older)
     for address in (0x3000, 0x8e000, 0x7ff000):
@@ -203,10 +203,11 @@ def test_renderer_o3_extra_sectors_are_exact_image_only(target_sha):
         assert tx.protected_equal(changed, desired, allowed) == permitted
 
 
-@pytest.mark.parametrize("target_sha", [tx.RENDERER_KEYS_TARGET_SHA, tx.RENDERER_SESSION_TARGET_SHA])
+@pytest.mark.parametrize("target_sha", [tx.RENDERER_KEYS_TARGET_SHA, tx.RENDERER_SESSION_TARGET_SHA, tx.RENDERER_LED_GUARD_TARGET_SHA])
 def test_named_keys_image_has_its_own_narrower_bounds(target_sha):
     assert tx.RENDERER_KEYS_TARGET_SHA == 'bee9d4bc83cc78e1c1a4a40448dc4211f2d8276cb6a8cad5878c9c5d7ee2aa36'
     assert tx.RENDERER_SESSION_TARGET_SHA == '6619c671eaf054db1e7c3e8873787f7a61a54940fd6a3faceb1971d73cf9c4eb'
+    assert tx.RENDERER_LED_GUARD_TARGET_SHA == 'f6c74b7b198dd1ac5e154862e39d09dded5a2cfa6dae4613528aa63b8d545f23'
     allowed = tx.IMAGE_PLANS[target_sha]
     assert allowed == tuple(range(0x4000, 0x8d000, 4096))
     desired = bytes(tx.backup.FLASH_SIZE)
