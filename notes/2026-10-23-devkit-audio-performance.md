@@ -3215,3 +3215,28 @@ bounded Aeon container. An initial command named a nonexistent test file and
 collected no tests; the corrected command produced these results. This repairs
 an example, not hardware timing or audio acceptance. Current candidate3bb bytes
 and startup recovery review are unaffected.
+
+### Long CPU1 publication comparison — hardware result, 2026-10-25
+
+[verified] Candidate 3bbfa865 completed the UART-only WINDOW/RUN cycle.
+Fresh startup PING/ARM/ENTER acknowledged within 77.947 ms, followed by a
+fresh WL82/UBOOT1.00 inquiry. Both full 8 MiB new-image backups match 3bbfa865;
+factory restore matches 127b2ebb, and the same candidate's RUN installation and
+full readback match. Both reset attempts were consumed once; neither was retried.
+
+[verified] The strict result parser accepts both 100,000,000-exchange phases.
+Parent and worker report zero data errors in both unfenced and fenced phases,
+abort=0, exited=1. Parent CPU0 count is 200,000,000 and worker CPU1 count is
+200,000,000; opposite/other core counts are zero. Timer calibration is 2,400,021
+ticks per ten OS ticks. Total run takes 2,923,701,675 ticks, or 121.821 seconds
+at 24 MHz, including deliberate yields. Unused stack is 994/1024 worker words
+and 1929/2048 parent words. The unfenced comparison does not authorize removing
+`csync`. The exact RX process identity was checked twice before termination;
+its session became terminal before ordinary post-run PING acknowledged.
+The board is healthy idle on 3bbfa865 and no capture remains live.
+
+Private raw UART SHA-256:
+`76a9f64549977b79a5fac39389aa32a54aec9e1598fdf05e38e5da2cb6d4f6a7`.
+This establishes only this publication/pinning experiment, not FPU/IRQ behavior,
+SPSC streaming, renderer deadlines, DAC continuity or analog soak acceptance.
+The installed actual renderer's deadline failures remain unresolved.
