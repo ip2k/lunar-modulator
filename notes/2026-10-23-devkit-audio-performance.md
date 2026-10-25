@@ -2248,3 +2248,14 @@ expanded code spends approximately 2.7 KiB more SRAM than slopes-v1.
 The exact image is not yet admitted or installed. Target PCM, speed,
 stack and startup recovery remain pending. The current detail-v2 board
 is healthy and idle; no analog/soak acceptance is claimed.
+
+
+[verified, offline admission] Exact startup copies, UART-first allocation
+with its success guard, 200-tick recovery window, strong ROM marker/P33
+entry and dormant SDK schedule were reviewed against vendor disassembly.
+Independent cipher/CRC and protected boot/config/tail checks pass. The NOR
+model installs/restores 136 sectors metadata-last and restores after four
+interrupted page positions. Only candidate
+`92d1e3f1fdea9e5a73961f0d88d683527012026a2c5302bbbda2a9d8288f457e`
+is admitted at the existing slopes-image bounds. Target recovery, PCM and
+performance remain pending.
