@@ -4221,3 +4221,19 @@ timer wrap. Vendor build succeeds. Exact SDK/kernel/layout/stack/UART-first,
 independent image/cipher/CRC and NOR review remain pending. V16 is not admitted
 or installed. The healthy V15 board is idle; deadlines and analog acceptance
 remain open.
+
+[verified, offline] V16 exact image
+`d7b4d18c6b3a8506ab44244e393fe3f2b0640b3f996103aea18c46d19fec0cab`
+is admitted for138 application sectors after73 transaction/reset/SDK tests and
+two boot-command tests pass. The initial admission command collected no tests
+because it named a nonexistent test file; the corrected command passed.
+App `fa055968d06201a36c1362b30efee82b19655f27e2b00c5965f8a3bf7439c7a4`
+is564700 bytes, ending0x8defc; independent five-section extraction, full
+cipher/CRC and interrupted NOR restoration at four interruption points pass.
+All630 manifest inputs, SDK/ROM routines and six FM6 kernels match the reviewed
+inputs after independently checked relocations. Static ranges do not overlap;
+pre-task heap80140 bytes, timing frame320 bytes, planner1060 and UI1160 bytes.
+UART recovery task creation remains guarded before the renderer task and its
+200-tick wait precedes workload initialization. These are offline checks;
+actual startup recovery, stack high-water and timing still require V16 hardware
+measurement. No deadline or analog acceptance is claimed.
