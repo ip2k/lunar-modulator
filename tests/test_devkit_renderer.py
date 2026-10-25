@@ -191,6 +191,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'msfa_sine32': True},
+    {'msfa_sine32': True, 'timing_only': True, 'hot_ram': True},
     {'msfa_narrow_adds': True},
     {'msfa_narrow_adds': True, 'timing_only': True},
     {'resampler_schedule': True},

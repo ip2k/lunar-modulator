@@ -2702,3 +2702,18 @@ hardware audio acceptance.
 ### Explicit 32-bit FM additions — target comparison
 
 [verified, hardware] Startup ready/PING/ARM/ENTER passed in 78.5 ms. Fresh WL82/UBOOT inquiry and two matching full reads precede factory restore, same-image reinstall and full readback. WINDOW5824 and RUN29034 receipts are consumed. All four arithmetic patterns and PCM hashes match; 32 unit and 24 stage rows cover 352,832 frames per case, with zero invalid/clipped samples and explicit completion. Mean block times are 1292.29 / 1502.29 / 1632.79 / 1841.00 us (0.69–1.73% lower than LED guards); maxima 2134.38 / 2259.67 / 2397.13 / 2662.38 us. Late counts remain 224 / 3952 / 5321 / 5511 of 5513: deadline acceptance fails. FM unit means fall to 237.92 / 442.67 / 565.46 / 751.38 us. Heap is 7604 B at all five readings; peak stack remains 5548/8192 B. Exact owned RX identity checked twice, terminated and terminal before ordinary PING acknowledged. Private raw SHA `ce95cfacf35d13b1276376dd3333d9142154e29c6d4e43a5f14c8a9e17a09792`. No DAC/analog/soak acceptance.
+
+
+### Bounded sine interpolation multiply — offline experiment
+
+[verified, offline] The fixed delta table has maximum absolute delta 102943;
+its largest product with the 14-bit fraction is 1686515169, below INT32_MAX.
+Added an opt-in private preparation transform that verifies table dimensions,
+all 2048 integer entries and the product bound before replacing this one
+64-bit interpolation product with signed 32-bit arithmetic. No table, rate,
+gain, event order or vendored repository source changes. 41 focused checks
+pass, including all 16,777,216 delta/fraction pairs compared against the
+original expression. A vendor compiler probe emits a single 32-bit multiply
+and arithmetic shift. Full vendor build, complete keys/mixed PCM replay,
+exact-image review and hardware timing remain pending; no new image is
+admitted or installed and no dropout-free acceptance is claimed.

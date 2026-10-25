@@ -66,3 +66,55 @@ int main(void){
     exe = tmp_path / 'sums'
     subprocess.run([cc, '-std=c99', '-O2', str(path), '-o', str(exe)], check=True)
     subprocess.run([str(exe)], check=True)
+
+
+def test_sine32_rejects_unproved_tables_and_lookup():
+    module = preparer()
+    sine = (ROOT / 'engines/third_party/msfa/sin.h').read_text()
+    sine = module.narrow_msfa_adds(sine, 'sin.h')
+    rom = (ROOT / 'engines/src/msfa_rom.cc').read_text()
+    changed = module.narrow_msfa_sine_multiply(sine, rom)
+    assert '(dy * lowbits) >> SHIFT' in changed
+    for source, table in [
+        (changed, rom),
+        (sine.replace('SIN_LG_N_SAMPLES 10', 'SIN_LG_N_SAMPLES 11'), rom),
+        (sine.replace('#define SIN_DELTA', '#undef SIN_DELTA'), rom),
+        (sine, rom.replace('kSinTab[2048]', 'kSinTab[2047]')),
+        (sine, rom.replace('102943, 0,', '2147483647, 0,', 1)),
+        (sine, rom.replace('102943, 0,', '102943, 2147483648,', 1)),
+    ]:
+        with pytest.raises(ValueError):
+            module.narrow_msfa_sine_multiply(source, table)
+
+
+def test_sine32_matches_every_fixed_table_fraction(tmp_path):
+    cc = shutil.which('cc')
+    if not cc:
+        pytest.skip('native compiler unavailable')
+    module = preparer()
+    sine = (ROOT / 'engines/third_party/msfa/sin.h').read_text()
+    sine = module.narrow_msfa_adds(sine, 'sin.h')
+    rom = (ROOT / 'engines/src/msfa_rom.cc').read_text()
+    old = re.search(r'  return \(int32_t\).*?;', sine).group()
+    new = re.search(r'  return \(int32_t\).*?;', module.narrow_msfa_sine_multiply(sine, rom)).group()
+    table = re.search(r'kSinTab\[2048\] = \{(.*?)\n\};', rom, re.S).group(1)
+    source = '#include <stdint.h>\n#define SHIFT 14\n'
+    source += 'static const int32_t table[2048]={' + table + '};\n'
+    for name, body in [('wide', old), ('bounded', new)]:
+        source += 'int32_t ' + name + '(int32_t y0,int32_t dy,int32_t lowbits){' + body + '}\n'
+    source += r'''
+int main(void){
+  for(int i=0;i<2048;i+=2)for(int low=0;low<16384;low++){
+    int32_t dy=table[i], y0=table[i+1];
+    int64_t product=(int64_t)dy*low;
+    if(product<INT32_MIN || product>INT32_MAX)return 1;
+    if(wide(y0,dy,low)!=bounded(y0,dy,low))return 2;
+  }
+  return 0;
+}
+'''
+    path = tmp_path / 'sine32.c'
+    path.write_text(source)
+    exe = tmp_path / 'sine32'
+    subprocess.run([cc, '-std=c99', '-O2', str(path), '-o', str(exe)], check=True)
+    subprocess.run([str(exe)], check=True)

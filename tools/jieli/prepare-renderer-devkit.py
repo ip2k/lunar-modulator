@@ -50,6 +50,27 @@ def narrow_msfa_adds(text, kind):
     return text
 
 
+def narrow_msfa_sine_multiply(text, rom):
+    """Use signed32 only after proving the fixed delta-table product bound."""
+    if not all(re.search(r"^" + re.escape(line) + r"$", text, re.M) for line in (
+            "#define SIN_LG_N_SAMPLES 10", "#define SIN_DELTA")):
+        raise ValueError("Unexpected sine lookup dimensions; review product bound")
+    table = re.search(r"kSinTab\[2048\] = \{(.*?)\n\};", rom, re.S)
+    if not table:
+        raise ValueError("Unexpected sine table; review signed32 product bound")
+    literals = [x.strip() for x in table[1].split(",") if x.strip()]
+    if len(literals) != 2048 or any(not re.fullmatch(r"-?\d+", x) for x in literals):
+        raise ValueError("Unexpected sine coefficients; review signed32 product bound")
+    values = [int(x) for x in literals]
+    if any(not -(1 << 31) <= x < (1 << 31) for x in values) or any(
+            abs(x) * 16383 > (1 << 31) - 1 for x in values[::2]):
+        raise ValueError("Sine interpolation product exceeds signed32 bound")
+    old = "((int64_t)dy * (int64_t)lowbits) >> SHIFT"
+    if text.count(old) != 1:
+        raise ValueError("Unexpected sine product; review exact arithmetic")
+    return text.replace(old, "(dy * lowbits) >> SHIFT")
+
+
 def resampler_slope_definition(definition):
     """Encode float32 base/slope pairs for the existing 768 tap intervals."""
     body = definition.split(" = {", 1)[1].rsplit("};", 1)[0]
@@ -140,9 +161,11 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False):
     if workload not in ("mixed", "keys"):
         raise ValueError("Unknown renderer workload; choose mixed or keys")
+    if msfa_sine32 and not (timing_only and hot_ram and msfa_narrow_adds):
+        raise ValueError("Signed32 sine requires timing-only hot code and narrow additions")
     if msfa_narrow_adds and not (timing_only and hot_ram):
         raise ValueError("Narrow msfa additions require timing-only hot code comparison")
     if profile and not timing_only:
@@ -214,6 +237,12 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             original = p.read_bytes()
             narrow_inputs[name] = hashlib.sha256(original).hexdigest()
             p.write_text(narrow_msfa_adds(original.decode(), name))
+    sine32_input = None
+    if msfa_sine32:
+        p = staging / "engines/third_party/msfa/sin.h"
+        rom = (staging / "engines/src/msfa_rom.cc").read_text()
+        sine32_input = hashlib.sha256(rom.encode()).hexdigest()
+        p.write_text(narrow_msfa_sine_multiply(p.read_text(), rom))
     hot_inputs = {}
     if hot_ram:
         # The pinned clang 4 vendor build supports MS code_seg under its
@@ -419,6 +448,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "timing_only": timing_only,
         "render_profile": profile,
         "hot_ram_sources": hot_inputs,
+        "msfa_sine32": msfa_sine32,
+        "msfa_sine32_rom_sha256": sine32_input,
         "msfa_narrow_adds": msfa_narrow_adds,
         "msfa_narrow_adds_original_sha256": narrow_inputs,
         "sine_ram_original_sha256": sine_input,
@@ -508,9 +539,11 @@ if __name__ == "__main__":
                         help="Compare sound mixer/effect dispatch in SRAM; requires timing-only profiled O3")
     parser.add_argument("--resampler-schedule", action="store_true",
                         help="Group independent FIR sums/products; requires timing-only resident mixer")
+    parser.add_argument("--msfa-sine32", action="store_true",
+                        help="Compare bounded signed32 sine products; requires narrow FM additions")
     parser.add_argument("--msfa-narrow-adds", action="store_true",
                         help="Compare explicit 32-bit FM sums in private copies; timing-only hot code")
     parser.add_argument("--dispatch-ram", action="store_true",
                         help="Compare sequencer event walk and slot dispatch in SRAM; requires timing-only resident mixer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32)
