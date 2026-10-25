@@ -2327,3 +2327,61 @@ metadata-last and restores interrupted writes at pages 7, 1111, 2183 and 2199.
 Only image `fd32ec039217b59762efc09b185dd25871420c47db689ffa626b07d3e183adf3`
 is admitted at those bounds. All 46 final transaction/reset/arithmetic checks
 pass. Hardware startup recovery and performance remain pending.
+
+
+### Community performance follow-up — 2026-10-25
+
+[reported, primary repositories read 2026-10-25] SLOOP 2.7 distributes
+audio across both cores; 2.7.1 explicitly describes a short glitch when a
+failed second core is retired. Its [PR #111](https://github.com/isod89/sloop-fm1/pull/111)
+documents independent accumulators, shared scratch/RNG constraints,
+golden-output and fault-injection tests. Those are useful review patterns,
+not acceptance evidence for Lunar. [SLOOP notes](https://github.com/isod89/sloop-fm1#whats-new-in-27).
+
+[reported] [Melodee](https://github.com/keremimo/melodee#whats-new-in-121)
+moves audio into internal RAM and retains voice-budget protection; its
+history also records second-core faults and clock-retuning failures.
+[Clipper](https://github.com/isod89/clipper-fm1#new-in-051-an-audio-timing-readout-the-crackle-hunt)
+exposes late-buffer counts and worst-buffer budget utilization. These
+reports support investigating instruction placement, bounded parallel work
+and measured deadline margins. They do not establish that every firmware
+or workload is dropout-free. No external firmware is installed and no
+third-party code is copied by this follow-up.
+
+
+### Renderer O3 — target result
+
+[verified, hardware] Fresh startup ready/PING/ARM/ENTER completed in
+78.3 ms, followed by responsive WL82/UBOOT1.00 inquiry and two matching
+full reads. Factory restore, same-image reinstall and complete 8 MiB
+readbacks passed. WINDOW and RUN resets are consumed. Four PCM hashes
+and arithmetic probes match; 32 unit and 24 stage rows cover 352,832
+outputs per case, with explicit completion and zero invalid/clipped samples.
+
+Mean times are 3,104.88 / 3,370.21 / 3,509.96 / 3,690.71 us for
+1 / 4 / 8 / 12 FM6 voices. Maxima are 3,867.33 / 4,015.46 / 4,249.13 /
+4,507.08 us. Improvements over unroll-v1 are only
+1.88 / 2.19 / 1.52 / 1.87 percent; all 5,513 blocks in every case still
+miss the approximately 1,451 us deadline. O3 is insufficient.
+
+Heap stays at 11,092 bytes over five readings; peak worker stack is
+5,548 of 8,192 bytes. Receive-only capture was closed after its exact
+process command line was checked twice; post-run PING acknowledged.
+Private raw SHA-256:
+`80757209f68469fde9f99c936ba537b2e80ba96ab877831db326b6c055eab439`.
+Analog and sustained-soak acceptance remain pending.
+
+
+### WebKit resize evidence
+
+[verified, CI] Run 40182264179 failed `sequencer-ui.mjs` at the 844 px
+scene-cell measurement (zero height); its failure screenshot shows normal
+visible cells. A focused Aeon run then caught an intermediate 667 px grid
+with seven stale scene columns compressed into the new viewport.
+The test now polls its existing 54–64 px and non-overlap requirements
+against one current-DOM snapshot, bounded at two seconds, instead of a
+60 ms sleep and separate locator reads. SVG class diagnostics use the
+class attribute. No production UI is changed. Repeated WebKit and a
+Chromium run are pending; repository CI remains pending on the next head.
+Rarefaction cannot resolve this sibling-worktree test path; Serena resolves
+its helper, and source plus screenshots supply the resize evidence.
