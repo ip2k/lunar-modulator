@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT. FM6 kernel adapter differential/fault test.
 #include "fm1_engine.h"
 #include "fm1_dx7_kernel.h"
+#define LUNAR_MAILBOX_HOST_TEST 1
+#include "../../firmware/devkit/fm6_pair_mailbox.h"
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -12,10 +15,21 @@ struct Backend {
   fm1_dx7_kernel_job_t late;
   std::atomic<bool> release;
   std::thread worker;
-  Backend(int m): mode(m), calls(0), release(false) {}
+  LunarFm6Mailbox mailbox;
+  static uint32_t Clock(void *) {
+    return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
+  }
+  Backend(int m): mode(m), calls(0), release(false), mailbox(Clock, NULL, 1000000) {}
 };
 static int Pair(void *ptr, fm1_dx7_kernel_job_t jobs[2]) {
   Backend &b = *static_cast<Backend *>(ptr); ++b.calls;
+  if (b.mode == 3) {
+    if (!b.worker.joinable()) b.worker = std::thread([&] {
+      while (!b.release.load()) b.mailbox.WorkerStep();
+    });
+    return b.mailbox.RenderPair(jobs);
+  }
   if (b.mode == 0) {
     std::thread worker([&] { fm1_dx7_compute_kernel(&jobs[1]); });
     fm1_dx7_compute_kernel(&jobs[0]); worker.join(); return 1;
@@ -75,6 +89,8 @@ int main(int argc, char **argv) {
     }
   }
   if (!backend.calls) return 5;
+  if (backend.mode == 3 && (backend.mailbox.disabled() ||
+      backend.mailbox.completed_pairs() != unsigned(backend.calls))) return 7;
   for (int i = 0; i < 2; ++i) { e.destroy(instance[i]); std::free(memory[i]); }
   if (backend.worker.joinable()) { backend.release.store(true); backend.worker.join(); }
   fm1_dx7_kernel_job_t invalid = {}; invalid.algorithm = 32;

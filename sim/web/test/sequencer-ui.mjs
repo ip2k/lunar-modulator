@@ -131,6 +131,8 @@ try {
  const insert=page.getByRole('button',{name:'S1 insert 1',exact:true});await insert.click();
  const inspector=page.getByRole('dialog',{name:'Device controls',exact:true});await inspector.waitFor({state:'visible'});
  if(!await inspector.getByText('Inspector s1.in1',{exact:true}).isVisible()||await inspector.getByRole('button',{name:'Close inspector',exact:true}).evaluate(e=>e!==document.activeElement))throw Error('Device inspector did not open with focus');
+ await page.evaluate(()=>window.seq.refresh(true));
+ if(await inspector.getByRole('button',{name:'Close inspector',exact:true}).evaluate(e=>e!==document.activeElement))throw Error('Device inspector lost focus during refresh');
  const inspectorFiles=inspector.locator('.sq-device-dialog-footer .sq-file-tools');
  if(await inspectorFiles.count()!==1||await inspector.locator('.sq-transport > .sq-file-tools').count())throw Error('Files & export should move into the device inspector footer');
  await inspector.getByRole('button',{name:'Close inspector',exact:true}).click();

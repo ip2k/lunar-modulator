@@ -3295,3 +3295,42 @@ stack/pacing/FPU results and audio acceptance remain unverified.
 receipt checks pass 164 tests in a bounded Aeon container. An initial invocation
 used a nonexistent reset-test filename and collected no tests; the corrected
 command used test_devkit_loader_reset.py and produced the 164-test result.
+
+### Bounded copied FM6 job handoff — offline only, 2026-10-25
+
+[implemented, offline] A permanent, 64-byte-aligned mailbox copies the second
+prepared FM6 job into its own storage before publishing a request. CPU0 computes
+the first job; CPU1 computes only the private copy. Import requires completion
+inside the total clock budget. Rejection/timeout disables all future submission,
+leaving storage valid for a late worker. A finite poll cap also handles a frozen
+clock. There is no cancellation, reinitialization, engine pointer or task/device
+operation. Default engine behavior is unchanged; no SDK attachment exists.
+
+[verified, host] The mailbox fault test and all 16 copied-kernel differential
+cases pass (17 checks), including the new real two-thread mailbox mode at
+16385/44118/96000/384000 Hz. PCM remains exact through live edits, release tails,
+detach and instance destruction. Host atomic flags test protocol ownership;
+they do not verify the target's volatile/csync memory semantics.
+
+[verified, object only] The pi32v2 r3 vendor compiler accepts the C++11 prototype
+at O2 without exceptions/RTTI. Generated methods retain copy-before-request,
+completion-after-result fences, the unsigned elapsed-time bound and one-million
+poll cap, with no atomic library helper. This is an unlinked object, not a
+reviewed ELF/image, target performance result or hardware admission. Initial
+objdump invocation used unsupported combined -dr; corrected -d disassembly is
+private. A sanitizer invocation initially requested a partial-module test target
+without all its existing link dependencies; the corrected full ASan/UBSan build
+passes the real mailbox mode at 44118 Hz (2533 pairs), with no sanitizer report.
+
+[verified, CI investigation] Head bc0a801b CI40216326749 Chromium job121238387512
+fails sequencer-ui.mjs133, inspector focus, with no page errors. Actual completed
+job logs were inspected via the jobs API while other jobs were still running.
+The unchanged exact test passes an isolated Chromium reproduction. A private
+forced refresh(true) then deterministically reproduces lost inspector focus:
+the Close button has no aria-label, so the existing label-based focus restorer
+cannot find its replacement. Adding the same accessible label preserves focus.
+The permanent browser test now forces a refresh and asserts focus remains;
+all original assertions remain. Chromium, Firefox and WebKit focused tests
+pass in bounded Aeon containers. This proves the redraw repair, not that the
+original intermittent opening failure has necessarily the same trigger.
+Pages40216326782 succeeded; PR155 remains draft/unmerged.

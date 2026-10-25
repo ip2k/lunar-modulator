@@ -7,7 +7,7 @@ from tests.engine_helpers import ENGINES, renderer  # noqa: F401
 
 
 @pytest.mark.parametrize("rate", [16385, 44118, 96000, 384000])
-@pytest.mark.parametrize("mode", [0, 1, 2], ids=["parallel", "rejected", "late-after-destroy"])
+@pytest.mark.parametrize("mode", [0, 1, 2, 3], ids=["parallel", "rejected", "late-after-destroy", "bounded-mailbox"])
 def test_copied_kernels_match_sequential_engine(renderer, rate, mode):  # noqa: F811
     result = subprocess.run([str(ENGINES / "build/fm1-dx7-kernel-test"), str(rate), str(mode)],
                             check=True, capture_output=True, text=True, timeout=60)

@@ -1093,7 +1093,7 @@ export function makeSequencer(ctx) {
       if (body) {
         const footer = el('footer', 'sq-device-dialog-footer', {}, []);
         if (!ctx.fileToolsHost) { const files = transportMount.querySelector('.sq-file-tools'); if (files) footer.append(files); }
-        deviceDialog.replaceChildren(el('div', 'sq-device-dialog-header', {}, [el('h3', '', { text: 'Device controls' }), btn('Close inspector', closeInspector)]), body, footer);
+        deviceDialog.replaceChildren(el('div', 'sq-device-dialog-header', {}, [el('h3', '', { text: 'Device controls' }), btn('Close inspector', closeInspector, { 'aria-label': 'Close inspector' })]), body, footer);
         if (!deviceDialog.open && deviceDialog.isConnected) deviceDialog.showModal();
       } else closeInspector();
     } else { if (deviceDialog.open) deviceDialog.close(); deviceDialog.replaceChildren(); }
