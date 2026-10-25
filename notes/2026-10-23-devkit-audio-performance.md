@@ -2863,3 +2863,40 @@ worker stack is unchanged at 5552/8192 B. Owned RX identity checked twice,
 terminated and terminal before ordinary PING acknowledged. Private raw SHA
 `700a693e9cb87ef3c081a88873a2b595fd58a066363408323ee117ee68eaf69f`.
 Board remains healthy idle; no DAC/analog/soak acceptance.
+
+
+### Compressor settled-control scan — offline comparison
+
+[verified, source] `CompRender` now stops scanning control glides for the
+remainder of a render call after finding all settled. Every new render call
+checks again. The final step that reaches a target still updates curve and
+auto gain, and all detector/gain arithmetic runs at the unchanged sample rate.
+The engine API serializes parameter changes and render on the audio task;
+`CompUpdateAuto` does not mutate control targets. No persistent state is added.
+
+[verified, offline] The compressor and effect-switch suites pass (86 checks),
+including exact hashes and 1/7/64-frame equivalence during control changes.
+Eight complete prepared keys and eight mixed replays retain their reference
+PCM SHA `b62e14e1…` / `c676e9b4…`. Full vendor build passes; exact generated
+code branches around the settled scan at `0x01c054fa`, and local frame
+reservation falls 116→96 bytes. This is code-generation evidence, not target
+timing or image admission. Host cost comparison, best of three internal runs:
+Peak 1348.9→1190.3 ns/block, Glue+Auto 1536.8→1371.8, continuously gliding
+1752.8→1786.3. The gliding cost increase must be checked on target too. The
+first cost attempt had no baseline executable; the second omitted `--cost`.
+Neither failed setup is counted as a timing result.
+
+[verified, browser build] Rebuilt the default module in bounded Aeon
+containers. All 108 parity scenarios pass (108 exact versus JavaScript/musl;
+105 exact versus glibc, existing libm-sensitive differences). DX7, metadata,
+edit parity and the 30-second edit storm pass; zero late storm quanta. Actual
+container digests, local source/Wasm hashes and provenance check pass. Local
+pytest was unavailable; the provenance test passed in the Aeon test image.
+Module SHA `51f8ccf666ff978da065354ba710f3a8a14ad0b17470610b9796b35c0d32072d`.
+Private source/build/logs use `source-comp-settled`,
+`build-sdk-renderer-comp-settled-v1`, `comp-settled-*` under the existing task
+directory. No candidate packaged/admitted/installed; board remains pure2,
+healthy idle. Exact image/SDK/startup/recovery/cipher/NOR review, target timing
+and analog acceptance remain pending. Rarefaction still selects the primary
+checkout with fallback flags; Serena resolves the actual worktree symbols.
+Direct worktree source inspection is the authority where they differ.
