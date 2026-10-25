@@ -2418,3 +2418,14 @@ three SDK functions match independent checks. Pre-task heap is 51,244 bytes,
 a separate linked symbol, and its SRAM caller grows. Link audit has zero
 failures and one pending manual SDK-scheduling check. Exact startup/recovery,
 cipher/CRC, interrupted NOR restore and hardware timing remain pending.
+
+[verified, offline admission] Startup copies 79,888 SRAM bytes and the
+unchanged 27,180 cache-data bytes. UART-first allocation, its success guard,
+1,024/2,048-word task stacks and the 200-tick recovery window are verified
+in vendor disassembly. Strong ROM marker/P33 entry and dormant SDK schedule
+remain intact. Independent cipher/CRC and protected boot/config/tail checks
+pass. The NOR model restores after four interrupted page positions across
+the 138-sector metadata-last transaction. Only exact candidate
+`ccee05d465d396d5749b9d70b6cf8387c2bca100040b654af8f6306dc539e416`
+is admitted at those bounds. All 47 transaction/reset/arithmetic checks pass.
+Target startup recovery, PCM, performance and stack remain pending.
