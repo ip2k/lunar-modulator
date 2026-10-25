@@ -2185,3 +2185,34 @@ four interrupted page positions. Exact candidate SHA-256:
 `57a605672d17ae479e8db05f9bacc12fd84bce49940da7c46a56130b352b3027`.
 Only that image is admitted at the existing slope-image bounds; older plans
 are unchanged. Hardware startup recovery and measurements remain pending.
+
+### Engine detail profiler — target result
+
+[verified, hardware] Detail-v2 passed fresh startup ready/PING/ARM/ENTER in
+78.25 ms, responsive WL82/UBOOT1.00 inquiry and two matching full reads.
+Factory restore, same-image reinstall and full 8 MiB readbacks passed. Both
+single-use resets are consumed. Four arithmetic checks and PCM hashes match;
+32 unit, 24 stage and 16 engine-region rows cover 352,832 outputs per case.
+No invalid/clipped samples occurred. Synthesis calls produce 12 native samples;
+per-case counts are 31,919 / 31,917 / 31,918 / 31,918 for both engines.
+The private checker verifies complete pop coverage and generation accounting.
+
+Nested mean times per 64-frame block, in microseconds:
+
+| FM6 voices | Macro synthesis | Macro resampling | Drum synthesis | Drum resampling |
+| --- | --- | --- | --- | --- |
+| 1 | 616.04 | 394.46 | 98.54 | 408.67 |
+| 4 | 686.25 | 393.42 | 98.04 | 406.71 |
+| 8 | 685.58 | 393.54 | 98.00 | 406.04 |
+| 12 | 683.29 | 391.42 | 97.75 | 405.67 |
+
+These include instrumentation overhead. Total means are 3,491.29 / 3,762.08 /
+3,892.83 / 4,085.54 us; maxima 4,198.17 / 4,330.71 / 4,617.33 / 4,889.21 us.
+Every 5,513 blocks in every case still misses the approximately 1,451 us
+budget. This diagnostic establishes attribution, not a clean speed comparison.
+Free heap is stable at 14,644 bytes across five readings; peak worker stack
+is 5,544 of 8,192 bytes. Receive-only capture was closed by verified process
+identity and ordinary post-workload PING acknowledged. Private raw SHA-256:
+`4a8b50ccb873632750f52b4644ec30846cab30fbcf00faaaf46b341e6360cec5`.
+No DAC/KA6/analog/soak acceptance is claimed. The substantial common
+resampling cost warrants further causal investigation before another image.
