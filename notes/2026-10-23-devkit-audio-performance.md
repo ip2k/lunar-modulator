@@ -1193,3 +1193,22 @@ resizeGrids and updateTransport in the actual absolute worktree, with direct
 source inspection covering the pointer lifetime. Complete replacement-head CI
 is required. This browser repair provides no new dev-board audio acceptance;
 no device commands were sent.
+
+
+## Timing-v3 startup recovery accepted (2026-10-24)
+
+[verified] The owner authorized and performed one physical Update/Reset
+exception to recover the crashing timing-v2 image. Two fresh 8 MiB reads
+matched the installed timing-v2 hash. Factory restoration and timing-v3
+installation each passed complete flash comparisons; the installed v3 SHA-256
+is `7478c40947fa308a6ffacba32ab1f109632446b0370dafc2183c091421a93b16`.
+
+[verified] A capture was armed before the single fixed-loader software reset.
+On fresh UART readiness, PING, ARM and ENTER were each acknowledged, and
+USB independently re-enumerated as `4c4a:8057` with a new device number.
+The handshake completed about 94 ms after readiness, inside the reserved
+200-tick startup window. Two subsequent complete reads again matched v3.
+This proves the startup recovery path on this image before workload execution;
+it does not establish rendering performance, stack margin or audio continuity.
+Private UART and transaction captures remain outside Git. Routine subsequent
+tests retain the owner's no-button requirement.
