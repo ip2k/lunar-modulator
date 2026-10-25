@@ -3952,3 +3952,37 @@ sound/master/UI stages are1027.667/251.667/92.625us. These are diagnostic
 measurements with added boundary/accounting overhead, not an optimization
 comparison. All four deadlines fail; mixed, fault-validated DAC/KA6 and
 representative30-minute analog acceptance remain outstanding.
+
+### Audio-hook clock snapshot, v12
+
+[verified, source/host] Both audio-hook entry paths now use the existing
+`fm1_seq_get_clock` API for tempo/playing instead of the full UI snapshot.
+The read stays at the same point before hook begin; no rate, event order,
+filter or DSP change. The full snapshot scans capture history and song
+state unnecessarily for these two fields. A bridge test checks both paths
+against the UI snapshot across tempo edits, play/pause/resume/stop and a
+missing sequencer.61 focused renderer/transport tests pass with1 unavailable
+32-bit skip; the corrected explicit-tempo bridge test also passes. Refreshed
+Wasm passes108 parity scenarios (all identical to JS/musl;105 to glibc under
+the existing libm policy). Rarefaction still selects the primary checkout;
+its empty callers are incomplete. Serena selects this absolute worktree and
+locates the current getter; actual source and vendor code bound the change.
+
+[verified, offline admission] V12 ELF SHA-256
+`38ea3418594e3e7f179c8bd9c7ea92985e299650ab9c28d5b07e68c349fa9c05`,
+app `832d01ec513385de983f7060482ab1d7543fe39ee75216b5d7ea45e48849387a`,
+563420bytes, pretask heap84396. Vendor code confirms clock-getter calls at
+both dispatch sites, UART18 allocated before parent16 with failure guard,
+200-tick recovery,260-byte timing frame, fixed mailbox/worker layout,
+fences and finite worker exit. Exact FM6 kernel/table comparison after
+checked relocations and complete SDK/ROM-entry comparison pass; link audit
+has0 failures and its scheduling pending item is covered by that comparison.
+Independent five-section objcopy, cipher/CRC, protected boot/config/tail and
+NOR138-sector install/restore/interrupted pages7/1111/2183/2199 pass.
+Exact candidate
+`2c0b53f53b8e8c240233b9c9233860b5fe4c68bf784e6e53d86145ac24763686`
+ends0x8d9fc and is admitted only over[0x4000,0x8e000). Not installed; target
+performance and audio acceptance remain unproven. V11 remains healthy idle.
+
+[verified]69 exact-image admission/reset/SDK lifecycle tests pass. Current
+UART, worker, renderer and control input hashes match the vendor manifest.

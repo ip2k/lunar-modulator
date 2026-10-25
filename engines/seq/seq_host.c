@@ -435,10 +435,10 @@ static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm
     uint32_t bpm = 0;
     int playing = 0;
     if (h->seq) {
-      fm1_seq_info_t info;
-      fm1_seq_get_info(h->seq, &info);
-      bpm = info.bpm_x100;
-      playing = info.playing;
+      fm1_seq_clock_t clock;
+      fm1_seq_get_clock(h->seq, &clock);
+      bpm = clock.bpm_x100;
+      playing = clock.playing;
     }
     tf = hk->begin(hk->ctx, frames, sink ? sink->engine : NULL, bpm, playing);
   }
@@ -556,10 +556,10 @@ static void play_slots_hook(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_sl
   if (n > FM1_SEQ_HOST_HOOK_SLOTS) n = FM1_SEQ_HOST_HOOK_SLOTS;
   for (s = 0; s < FM1_SEQ_HOST_HOOK_SLOTS; ++s) cur[s] = 0;
   if (h->seq) {
-    fm1_seq_info_t info;
-    fm1_seq_get_info(h->seq, &info);
-    bpm = info.bpm_x100;
-    playing = info.playing;
+    fm1_seq_clock_t clock;
+    fm1_seq_get_clock(h->seq, &clock);
+    bpm = clock.bpm_x100;
+    playing = clock.playing;
   }
   tf = hk->begin(hk->ctx, frames, n && slots[0].sink ? slots[0].sink->engine : NULL, bpm, playing);
   walk_init(&w, h, frames);
