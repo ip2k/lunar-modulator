@@ -3921,3 +3921,34 @@ uses138 sectors[0x4000,0x8e000). Install/restore and interrupted pages7/1111/
 2183/2199 return the exact factory image in the offline NOR model.68 admission,
 loader-reset and SDK lifecycle tests pass. Existing image plans are retained;
 only this exact hash is newly admitted. Not installed or hardware accepted.
+
+### Outer-region v11 hardware result
+
+[verified, hardware] Exact34433044 passes startup recovery in78.8414ms,
+actual WL82/UBOOT1.00 inquiries, two matching full current/new-image backups,
+138-sector factory restores and SAME RUN installation/full readback. WINDOW
+and RUN reset receipts are consumed. Four arithmetic/PCM receipts,32 unit/
+24 stage rows,24 correlated worst-stage rows and12 outer-region rows pass.
+All81308 paired jobs are accepted; refusal/error/wrong-core counts are zero
+and finite worker exit succeeds. Heap42452 stays stable. Parent unused stack
+is2516/8192 bytes; worker unused3260/4096. Sole RX210175 was checked twice,
+terminated once, and capture session72526 was terminal before ordinary PING
+ACK. Private raw SHA-256:
+`258bd93cc63e4b4c713b0ffbf14a791d5e797bb90134badb0ca8540aae1d570e`.
+
+| Keys case | Mean us | Max us | Late /5513 | Worst prep us | Worst shared app us | Worst PCM us |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+|0|1116.542|2169.167|11|464.042|1674.083|23.875|
+|1|1257.667|2059.333|170|377.917|1652.417|22.875|
+|2|1335.750|2181.708|539|441.583|1712.250|21.708|
+|3|1429.708|2358.083|2101|510.125|1819.375|22.250|
+
+[verified] Every worst snapshot is block0; region counts cover all5513 blocks
+and352832 frames per case. Mean prep is3.542–3.875us, shared app1091.500–
+1404.375us and PCM20.792–21.000us. The first-block prep spike is therefore
+substantial, but the shared app itself also exceeds the34829-tick deadline
+on those blocks. PCM conversion alone cannot resolve this. In case3, mean
+sound/master/UI stages are1027.667/251.667/92.625us. These are diagnostic
+measurements with added boundary/accounting overhead, not an optimization
+comparison. All four deadlines fail; mixed, fault-validated DAC/KA6 and
+representative30-minute analog acceptance remain outstanding.
