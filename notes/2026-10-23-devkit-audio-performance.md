@@ -4287,3 +4287,24 @@ build succeeds; first exact SDK/ROM comparison passes. Pre-task heap78156 bytes
 (down1984 from V16) and mailbox448 bytes at0x1c15a80. Remaining kernel, manifest,
 independent extraction, layout/stack/UART-first, cipher/CRC and NOR checks must
 pass before exact admission. V17 is not admitted, staged or installed.
+
+[verified, offline] V17 exact candidate
+`b34e5f591b14bade352c60630aa394fba74f7cedbe0d7080f3481f34930cf27a`
+is admitted for138 sectors after76 transaction/reset/SDK/boot tests pass.
+App `f5f1ce4a4f550af11f0ae63dcd67f24b31eec2463ce16ade950c384bab88770e`
+is564732 bytes, ending0x8df1c. ELF
+`1cce03ed2a378af9d60259d6fd1b4baab52538d65ccf4da0e19d3143dab8c2d8`.
+All630 manifest entries plus prepared app_main/linker match. Independent
+five-section extraction/cipher/CRC, protected factory/config/tail checks and
+NOR138 interrupted install/restore at pages7/1111/2183/2199 pass. Six FM6
+kernels/tables match V16 after checked relocations. Exact SDK/ROM comparison
+covers the link audit's remaining decoder-pending item (zero failures).
+Static ranges remain nonoverlapping, pool98304 and worker memory4260 bytes;
+mailbox448 aligned64. Timing320/planner1060/app-render296/UI1160 frames remain
+unchanged; glue tick184 and sequencer begin64 bytes include saved registers.
+Selected voice runner/block begin inline into the resident hook. Actual UART
+priority18/1024 task creation0x2021192 precedes guarded parent16/2048 at
+0x20211be; the worker's200-tick wait at0x201f02e/0x201f030 precedes workload.
+Reviewed fences,34829-tick budget, bounded poll/lifetime and finite exit remain.
+Hardware startup recovery, PCM, stack and deadline measurements are still
+required; no target speedup or analog acceptance is claimed.
