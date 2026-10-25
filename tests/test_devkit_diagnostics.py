@@ -41,10 +41,11 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     engine_profile = mode == 'renderer-engine-profile'
-    if engine_profile:
+    unroll = mode == 'renderer-unroll-profile'
+    if engine_profile or unroll:
         mode = 'renderer-slopes-profile'
     slopes = mode == 'renderer-slopes-profile'
     plaits_cache = mode in ('renderer-plaits-cache-profile', 'renderer-slopes-profile')
@@ -90,7 +91,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile)
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll)
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -213,6 +214,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert receipt['renderer_pool_bytes'] == (136 if control else 148) * 1024
         assert receipt['plaits_cache'] == plaits_cache
         assert receipt['resampler_slopes'] == slopes
+        assert receipt['resampler_unroll'] == unroll
         assert receipt['engine_profile'] == engine_profile
         assert ('-DLUNAR_RENDERER_ENGINE_PROFILE=1' in result) == engine_profile
         if not engine_profile:
@@ -262,7 +264,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         for name in (b'fm1_resampler_intermediate_', b'fm1_resampler_pop'):
             signature = b'static __attribute__((noinline)) float ' + name + b'(fm1_resampler_t *r) {'
             assert (signature in prepared) == outline
-        # Exactly the table declarations and optional two qualifiers may change.
+        # Verify exact table, qualifier and optional fixed-loop transformations.
         if mode == 'renderer-fx-profile':
             expected = original
             for definition in definitions:
@@ -275,6 +277,9 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
                     b"&fm1_resampler_kernel_pairs[(t >> 16) * 2]", 1).replace(
                     b"(1.0f / 65536.0f) * (k[1] - k[0])", b"k[1]", 1)
             normalized = prepared.replace(b'static __attribute__((noinline)) float ', b'static inline float ')
+            if unroll:
+                assert receipt['resampler_unroll_original_sha256'] == hashlib.sha256(expected).hexdigest()
+                expected = renderer_module.unroll_resampler_lowpass(expected.decode()).encode()
             assert normalized == expected
 
         effects = {'engines/src/fx_comp.cc', 'engines/src/fx_drive.cc', 'engines/src/fx_echo.cc'}

@@ -2216,3 +2216,35 @@ identity and ordinary post-workload PING acknowledged. Private raw SHA-256:
 `4a8b50ccb873632750f52b4644ec30846cab30fbcf00faaaf46b341e6360cec5`.
 No DAC/KA6/analog/soak acceptance is claimed. The substantial common
 resampling cost warrants further causal investigation before another image.
+
+
+### Fixed FIR expansion — offline comparison
+
+[verified, source/tests] Optional `--resampler-unroll` expands the fixed
+61 symmetric coefficient pairs in the private prepared header, retaining
+all four accumulation chains, coefficient values and final reduction.
+It requires the profiled slopes comparison and refuses detail profiling
+or drift in the expected loop, delay or length definitions. Production
+engine sources, native sample rates and filter quality are unchanged.
+The pinned SDK's exposed sample-rate converter uses 16-bit sample buffers
+and a different state/filter interface; it is not a direct replacement for
+this floating-point stream. A bounded header search found no matching
+floating-point dot-product API, so this comparison tests compiler loop
+handling without introducing a format conversion or vendor dependency.
+
+Compiled original/expanded stream replay is bit-identical for PCM and full
+state at every output over seven input rates and two output rates, including
+passthrough and refused configurations. The focused Linux suite passes
+121 checks with one unavailable-multilib skip. The actual prepared full
+renderer matches all eight desktop reference PCM hashes.
+
+[verified, offline build] Vendor ELF
+`d5bc904e1d2181709cbebaa441fcbfe1f1c65cac44a1ef715e6af522057a5fc4`
+independently packs to app
+`b40148de112066290b6941f49d81a7e41632d40f28dd8bd39474ab6f5a32b24e`
+(555,580 bytes). Five exported sections, prior table bytes and three SDK
+functions match independent checks. Pre-task heap is 54,028 bytes; the
+expanded code spends approximately 2.7 KiB more SRAM than slopes-v1.
+The exact image is not yet admitted or installed. Target PCM, speed,
+stack and startup recovery remain pending. The current detail-v2 board
+is healthy and idle; no analog/soak acceptance is claimed.

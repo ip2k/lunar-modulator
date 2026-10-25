@@ -46,6 +46,30 @@ def resampler_slope_definition(definition):
     return ("static const float fm1_resampler_kernel_pairs[(FM1_RESAMPLER_KERNEL_LEN - 1) * 2] = {\n"
             + "\n".join(pairs) + "\n};")
 
+def unroll_resampler_lowpass(text):
+    """Expand only the fixed FIR loop, preserving its four float sum chains."""
+    pattern = (r'  for \(j = 0; j \+ 4 <= FM1_RESAMPLER_LP_PAIRS; j \+= 4\) \{\n'
+               r'(.*?)\n  \}\n'
+               r'  for \(; j < FM1_RESAMPLER_LP_PAIRS; \+\+j\) y0 \+= h\[j\] \* '
+               r'\(e\[j\] \+ e\[FM1_RESAMPLER_LP_LEN - 1 - j\]\);')
+    matches = list(re.finditer(pattern, text, re.S))
+    if len(matches) != 1 or any(not re.search(r'^' + re.escape(anchor) + r'\s*(?:/\*.*\*/)?$', text, re.M) for anchor in (
+            '#define FM1_RESAMPLER_DELAY 30',
+            '#define FM1_RESAMPLER_LP_LEN (4 * FM1_RESAMPLER_DELAY + 3)',
+            '#define FM1_RESAMPLER_LP_PAIRS (2 * FM1_RESAMPLER_DELAY + 1)')):
+        raise ValueError("Unexpected lowpass loop; review fixed unrolling")
+    body = matches[0].group(1)
+    expected = '\n'.join(
+        f'    y{i} += h[j' + (f' + {i}' if i else '') + '] * (e[j' +
+        (f' + {i}' if i else '') + f'] + e[FM1_RESAMPLER_LP_LEN - {i + 1} - j]);'
+        for i in range(4))
+    if body != expected:
+        raise ValueError("Unexpected lowpass sums; preserve evaluation order")
+    lines = [f'  y{i % 4} += h[{i}] * (e[{i}] + e[{122 - i}]);'
+             for i in range(61)]
+    return text[:matches[0].start()] + '\n'.join(lines) + text[matches[0].end():]
+
+
 def instrument_engine_profile(text, engine):
     """Observe generation/pop in private copies without changing their math."""
     if engine not in (0, 1):
@@ -66,7 +90,7 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -91,6 +115,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Resampler slopes require the timing-only Plaits cache comparison")
     if engine_profile and not (profile and resampler_slopes):
         raise ValueError("Engine profiling requires timing-only profiled resampler slopes")
+    if resampler_unroll and not (resampler_slopes and profile and not engine_profile):
+        raise ValueError("Lowpass unrolling requires timing-only profiled slopes without detail instrumentation")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -265,6 +291,11 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
                 wrapped = b'#pragma code_seg(".volatile_ram_code")\n' + matches[0] + b'\n#pragma code_seg()'
                 text = text.replace(matches[0], wrapped, 1)
             p.write_bytes(text)
+    unroll_input = None
+    if resampler_unroll:
+        p = staging / "engines/include/fm1_resampler.h"
+        unroll_input = hashlib.sha256(p.read_bytes()).hexdigest()
+        p.write_text(unroll_resampler_lowpass(p.read_text()))
     engine_profile_inputs = {}
     if engine_profile:
         for engine, name in enumerate(("engines/src/mi_macro.cc", "engines/src/drums.cc")):
@@ -310,6 +341,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "plaits_cache": plaits_cache,
         "resampler_slopes": resampler_slopes,
         "engine_profile": engine_profile,
+        "resampler_unroll": resampler_unroll,
+        "resampler_unroll_original_sha256": unroll_input,
         "engine_profile_original_sha256": engine_profile_inputs,
         "plaits_table_original_sha256": plaits_table_inputs,
         "fx_ram": fx_ram,
@@ -372,5 +405,7 @@ if __name__ == "__main__":
                         help="Compare pre-scaled float32 kernel pairs; requires timing-only Plaits cache")
     parser.add_argument("--engine-profile", action="store_true",
                         help="Locate engine generation/pop cost; adds measurement overhead, requires profiled slopes")
+    parser.add_argument("--resampler-unroll", action="store_true",
+                        help="Expand the fixed FIR loop without changing sums; requires profiled slopes without engine detail")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll)

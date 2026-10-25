@@ -149,6 +149,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'resampler_unroll': True},
+    {'resampler_unroll': True, 'timing_only': True},
     {'engine_profile': True},
     {'engine_profile': True, 'timing_only': True},
     {'resampler_slopes': True},
