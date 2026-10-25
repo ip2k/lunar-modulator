@@ -2043,3 +2043,35 @@ relocations. Audit reports zero failures; the scheduling pending item is
 resolved by this vendor-instruction review. No eFuse access or weak entry
 fallback is present. Admission permits the bounded recovery rehearsal;
 hardware allocation, timing and analog acceptance remain unverified.
+
+
+### Plaits table cache comparison — target result
+
+[verified, timing only] The admitted image completes startup recovery with
+three UART acknowledgements in 78.58 ms, fresh WL82 / UBOOT1.00 inquiry, two
+matching full reads, exact factory restore, same-image reinstall and full
+readback. Both unique reset receipts are consumed. No button was required.
+All four arithmetic patterns and PCM hashes match control-v1; 32 unit and
+24 stage rows cover 352,832 frames per case. Invalid/clipped counts are zero.
+Free heap stays at 14,676 bytes; peak stack remains 5,544 of 8,192 bytes.
+Capture was closed before a successful ordinary post-run PING.
+
+| Case | Mean block us | Maximum us | Mean reduction from control-v1 |
+| --- | ---: | ---: | ---: |
+| 0 | 3415.792 | 4139.667 | 0.446% |
+| 1 | 3700.167 | 4369.250 | 0.268% |
+| 2 | 3828.250 | 4547.042 | 0.303% |
+| 3 | 4023.458 | 4816.417 | 0.225% |
+
+Every block in every case still exceeds the approximately 1,451 us deadline.
+The small mean change does not establish an audible improvement. DAC output
+remains off; no analog or sustained-soak acceptance is claimed. Raw UART is
+private, SHA256 `38613e5573d14c61a2bbd1be5d15549e780d0abdbea319cc6badee239c0ea459`.
+
+[verified, offline only] An independent exhaustive float32 experiment checks
+all 768 kernel intervals and all 65,536 phase fractions: pre-scaling each
+rounded coefficient difference by 2^-16 gives identical interpolation bits
+for all 50,331,648 inputs. This supports a private optional comparison, not
+vendor-compiler equivalence or target performance. Rarefaction and Serena
+locate the same tap body; Rarefaction finds intermediate/pop callers and
+resampler_test.cc co-change history under fallback compiler flags.
