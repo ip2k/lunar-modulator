@@ -2900,3 +2900,14 @@ healthy idle. Exact image/SDK/startup/recovery/cipher/NOR review, target timing
 and analog acceptance remain pending. Rarefaction still selects the primary
 checkout with fallback flags; Serena resolves the actual worktree symbols.
 Direct worktree source inspection is the authority where they differ.
+
+
+[verified, offline admission] The settled-compressor candidate is
+`f9233d22b81bcd3203e460fa602d2d2d6f00c75387347a5a997c642937f093f3`.
+Independent section export/app reconstruction, exact SDK functions with checked
+relocations, startup memory copies, UART-first allocation/failure path, 200-tick
+recovery window, ROM/P33 code, cipher/CRC/protected bytes and NOR install/restore
+checks pass. Four interrupted-write cases restore correctly. App is 560220 bytes;
+SRAM 81808 bytes, pre-task heap 49324 bytes; the same 137-sector boundary applies.
+The transaction/reset suites pass all 56 checks. Only this exact hash is added
+to admission. It has not yet been installed or accepted on hardware.
