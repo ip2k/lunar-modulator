@@ -3070,3 +3070,26 @@ The prior pushed fc4476fa CI run 40209299831 finished with all 13 jobs passing;
 its Pages build succeeded, deployment skipped for the feature branch.
 The board remains on 49ef, with its deadline failures; no adapter speedup,
 DAC/KA6 or soak acceptance is claimed. PR155 remains draft and unmerged.
+
+### CPU1 short publication/pinning probe — offline only
+
+[implemented, not hardware accepted] A separate diagnostic requests
+`#C0lunar_parent` and `#C1lunar_worker`, preserving UART-first reservation and
+a 200-tick recovery window. It exchanges 64 sequence-tagged words in both
+directions 4096 times, checks actual core IDs and both stack high-water marks,
+and bounds each poll with the checked 24 MHz timer. Mailbox and task storage
+remain allocated after failure; nothing is cancelled or reused. It produces
+no audio and performs no flash operation. This is a target-specific volatile
+SRAM plus `csync` experiment, not a portable C atomics implementation.
+
+[verified, offline] The pinned vendor build succeeds. Reviewed generated code
+uses aligned word loads/stores, `csync` before publication and after observing
+a flag, direct `cnum` reads and timer-bounded polls; no atomic runtime helper
+is called by the exchange. Preparation and result-rejection checks pass 17
+focused tests, including wrong-core, corrupted, incomplete and timed-out
+receipts. The first preparation test exposed an old resampler/control-mode
+expectation in the shared fixture; that expectation now includes the new UART
+probe mode. Mac Python environments lack pytest; these checks ran in a bounded
+Aeon container. No image is packaged, admitted or installed. A passing short
+probe would still leave the ladder's long coherence, FPU, ring, real renderer,
+underrun, DAC/KA6 and sustained analog soak gates outstanding.
