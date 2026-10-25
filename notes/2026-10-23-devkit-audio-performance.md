@@ -4139,3 +4139,20 @@ that is corrected, requiring every aggregate of an unused region to be zero.
 No target source or acceptance threshold was changed to obtain this result.
 Deadline still FAILS. Mixed renderer, fault-validated DAC/KA6 and30-minute
 analog soaks remain undone. V14 diagnostic overhead is not an optimization.
+
+### Early automation-label rejection experiment
+
+[verified, source] Both recurring control setters call `seq_auto_base`, which
+walks64 lanes. `seq_auto_target` previously copied track state before rejecting
+an empty, ordinary sound or invalid app-target label. It now classifies the
+bounds-checked label first. Accepted labels still query fresh track route/base
+state and preserve the original command order; no cache, UI decimation, event
+skipping or quality/rate changes were introduced.
+206 sequencer UI/shared-renderer tests pass. Six Movy-oracle cases skip because
+the private reference is absent in this staging tree; one32-bit target-pool
+replay skips because the image lacks that compiler/runtime. These are limits,
+not passes. All108 WebAssembly parity scenarios pass with exact JS/musl PCM;
+105 match glibc exactly and the established exact scenarios differ by at most
+one LSB. Vendor build and checked SDK/ROM/six-kernel comparisons pass.
+The linked sequence classifies the label before `fm1_seq_get_track`.
+Exact image admission and target timing remain pending; no speedup claimed.

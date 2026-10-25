@@ -861,10 +861,12 @@ static int seq_auto_target(fm1_app_t *a, unsigned track, unsigned lane,
   fm1_seq_track_info_t ti;
   const char *name;
   int kind, unit, index;
-  if (!a->seq || track >= FM1_APP_SEQ_TRACKS || lane >= FM1_SEQ_LANES ||
-      !fm1_seq_get_track(a->seq, (uint8_t)track, &ti)) return 0;
+  if (!a->seq || track >= FM1_APP_SEQ_TRACKS || lane >= FM1_SEQ_LANES) return 0;
   kind = fm1_seq_lane_target(fm1_seq_lane_label(a->seq, (uint8_t)track, (uint8_t)lane), &name);
   if (kind <= FM1_SEQ_TARGET_SOUND) return 0;
+  /* Most lanes have no app target. Copy track state only for accepted labels;
+   * fm1_seq_lane_label already bounds-checks the sequencer's track count. */
+  if (!fm1_seq_get_track(a->seq, (uint8_t)track, &ti)) return 0;
   if (kind == FM1_SEQ_TARGET_MASTER1 || kind == FM1_SEQ_TARGET_MASTER2) {
     unit = kind - FM1_SEQ_TARGET_MASTER1 + 1;
   } else {
