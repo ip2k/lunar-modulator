@@ -4092,3 +4092,21 @@ Vendor build, exact-image review/admission and hardware timing remain pending;
 V13 stays healthy idle. Rarefaction cannot access this external worktree's new
 renderer source; Serena resolves the actual renderer symbol here. No missing
 caller claim is inferred from Rarefaction's empty/wrong-checkout results.
+
+### V14 exact diagnostic admitted offline
+
+[verified] Candidate SHA-256
+`8f705a96c211e8ec06896e99b4d86552a3fb8047eeebff61160b75e5503ca665`
+is admitted only for the existing 138 application sectors `[0x4000,0x8e000)`.
+Vendor build, independent five-section app reconstruction, cipher/CRC and
+protected bytes, exact SDK/ROM entry comparison, six FM6 kernels/tables and
+interrupted NOR install/restore model pass. All 627 prepared input hashes
+match their manifest. The app is 564412 bytes; its last byte is below0x8dddc.
+The timing frame uses272 bytes; planner1060; UI1160 including saved registers.
+Pre-task heap is80396 bytes. UART is created first at priority18 with a
+1024-word stack before the priority16 parent, and the mandatory200-tick
+recovery window precedes renderer initialization. Actual target stack and
+recovery still require verification. 115 focused transaction/reset/SDK tests
+pass; the new hash exercises the same sector-boundary tests as V13.
+No V14 hardware installation or acceptance is claimed here. Nested profiling
+measures causes; its overhead cannot be claimed as an audio optimization.
