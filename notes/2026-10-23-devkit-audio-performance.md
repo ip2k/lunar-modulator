@@ -1331,3 +1331,33 @@ startup/recovery review pass. Its separate hash admission uses the same
 135-sector bounds as profile-v1. NOR modeling proves exact install/restore
 and recovery after interrupted pages 7, 1079, 2135 and 2151. It is admitted
 for the worker timing comparison only; not installed or hardware accepted.
+
+[verified, hardware] The code-only SRAM image completed a fresh startup
+recovery handshake in 94 ms and returned to a fresh ROM enumeration. A second
+automatic cycle completed all four cases/32 rows with exact reference hashes
+and complete frame coverage, zero invalid/clipped samples, and 5,400 bytes
+worker stack high-water usage. PING succeeds afterward; captures are stopped.
+
+| Held notes | SRAM mean us | SRAM max us | Mean speedup vs profiled XIP |
+| --- | ---: | ---: | ---: |
+| 1 | 5361.04 | 6556.38 | 1.093 |
+| 4 | 6015.33 | 6948.42 | 1.091 |
+| 8 | 6447.88 | 7516.04 | 1.084 |
+| 12 | 7163.92 | 8116.71 | 1.074 |
+
+Every block still exceeds the deadline. Private raw SHA-256:
+`5efdd101b7de08c27250a945e654d541ce9b0fcd449e98783d66900a5b1ce01b`.
+The outside-unit residual remains about 1.16 ms. This is a useful negative
+result: code placement alone is insufficient. Actual ELF still places the
+8 KiB sine and 8 KiB exp2 tables in XIP. Unlike this experiment, the earlier
+isolated FM6 SRAM build moved code and constants and disabled LTO. These
+are candidates for separate comparisons, not established causes.
+
+[verified] Exact-head CI at 28a7f62c exposed the previously recorded browser
+edit storm's two late quanta (same assertion in Ubuntu and MIT suites). A real
+bounded rebuild with the pinned image digests retains identical module/source
+hashes, passes all 108 parity cases, DX7 and metadata checks, and measures
+zero late quanta/10,341 quanta, maximum 1.030411 ms, edit cost 9.355 us. Both
+strict committed-build and existing zero-late tests pass locally. The previous
+two-late observation is retained above; this host result does not accept the
+dev board's audio. No assertion was weakened.
