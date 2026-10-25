@@ -3265,3 +3265,33 @@ source list, before expansion. The corrected v2 vendor build passes with the
 downloader disabled. All 106 short/long/ring receipt and preparation checks
 pass. Exact generated clock/loop/SDK/recovery review remains pending; no candidate
 has been packaged, admitted, staged or installed.
+
+[verified, offline review] Final ring probe v3 names its permanent mailbox
+`cpu1_ring` so it cannot be confused with a different SDK-local `state` symbol.
+ELF SHA-256 is 10a1a1f179d4c07ccc122ade0d336069c6f5bec0ebef1400d5254b46211c8d3c;
+independent five-section vendor objcopy matches the 165584-byte app
+ce80d73ac4f543880c85440e2294e09c38bfcd67d82e1d8d621a9bc11826c1ea.
+Pretask heap is 487756 bytes; mailbox is 4544 bytes at aligned SRAM 0x1c04a40.
+The exact UART-first main hash matches the previously accepted main. Generated
+pacing uses 34815 ticks plus the 31830/44118 fractional carry; the short signed
+timer differences survive timer wrap. The overall timer_get_ms call is a direct
+jiffies load times ten, with no lock. Generated loops retain 625000 ms total
+and one-second waits, core reads and publication/slot-reuse fences. SDK dormant
+key scheduling and complete ROM/P33 helpers match after verified relocations;
+audit_link reports zero failures, its one scheduling item covered by that exact
+comparison. Finite division operands remain nonzero, and no IRQ is installed.
+
+[verified, offline packaging] Exact candidate SHA-256 is
+0fd1dcb5ff74bf036f2c785144745bf2fe6254587a73b86bec4d3396fb9dfd09.
+The 41 application sectors end at 0x2c7f0. Protected bytes, independent cipher
+key derivation, metadata/app CRCs and independent app export pass. The NOR model
+passes install/restore with metadata last and injected interruptions at pages
+7/327/631/647 followed by exact factory restore. No hardware commands were sent
+by these checks. The exact hash is admitted offline using the existing narrow
+sector plan; it is not staged, installed or hardware accepted. Full target
+stack/pacing/FPU results and audio acceptance remain unverified.
+
+[verified] Final exact-source transaction/reset/preparation/short/long/ring
+receipt checks pass 164 tests in a bounded Aeon container. An initial invocation
+used a nonexistent reset-test filename and collected no tests; the corrected
+command used test_devkit_loader_reset.py and produced the 164-test result.
