@@ -3825,3 +3825,28 @@ selected a fresh output directory and eliminated those ABI-inconsistent objects.
 The target cache benefit remains unmeasured; no v10 image is admitted/installed.
 Exact prior head e143e27 CI40229750945 passes all13 jobs; Pages40229750897
 passes. Both terminal. PR155 remains draft pending hardware/audio acceptance.
+
+[verified, offline admission] Page-cache v10 ELF SHA-256
+`f01333b229368f0ee1d9b8755c13f584b00700fef98b15c1cdc997f785bb5095`;
+independent objcopy app SHA-256
+`c82f7ab6d31d06c22ceb4cb49f8c38a0443be84fce364913477537af9296cc98`;
+exact candidate SHA-256
+`cc85c192bffa3118f1e4d19b8caec85858d78a43c1790a7bf23abf90ca2fa178`.
+App562876 ends0x8d7dc, still138 sectors. Pretask heap84460. Per-unit
+layout grows8 bytes; fourteen units add112 bytes. Link placement/alignment
+makes the net pretask-heap change96 bytes. Mailbox448 and worker4260 retain
+aligned addresses0x1c143c0/0x1c14580. FM6 kernels and complete algorithm table
+match v9 after individually verified readonly/config/memset relocations;
+table displacement remains5852. Whole SDK/ROM routines pass checked relocation
+comparison and audit has zero failures; its SDK scheduling item is covered by
+the complete routine comparison. UART18 creation and allocation-failure guard
+precede parent16; worker16,200-tick window,34829-tick budget, million-poll bound,
+fences and finite lifetime remain. Vendor lock_sound shows the cached engine
+comparison and page-count load, with scan/store on replacement. Independent
+app export, cipher/CRC and protected boot/config/tail checks pass; NOR138
+install/restore and interruptions7/1111/2183/2199 return the exact factory image.
+Only the exact candidate is added to existing bounds. Target timing/stack and
+physical audio acceptance remain outstanding; not installed yet.
+
+[verified, host]67 admission/reset/SDK lifecycle tests pass for the exact v10
+allowlist change. Packaging and model operations sent zero hardware commands.
