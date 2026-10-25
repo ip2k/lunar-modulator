@@ -1761,3 +1761,16 @@ placement and retains recovery-first allocation. All 24 local preparation/
 rejection cases pass after correcting a test-call syntax error caught during
 collection. Vendor placement, remaining heap, exact-image review and hardware
 results remain pending; no image has been admitted for this option.
+
+
+[verified, offline] The fx-v1 vendor build succeeds with downloader disabled.
+All 80 focused Linux checks pass. Five vendor section exports independently
+match ELF `a29539be…` and app `12264021…` (550,476 bytes). Compressor, drive
+and echo render functions are now in startup-copied SRAM; all four resident
+tables retain identical bytes. Heap before tasks is 51,756 bytes, predicting
+5,716 at runtime. Actual instructions retain recovery-first task allocation,
+the 200-tick pre-workload delay, strong ROM entry and the dormant SDK check.
+Independent cipher/CRC and protected factory-region checks pass for candidate
+`31690344…`; the 135-sector NOR model restores exactly after interruptions at
+pages 7, 1079, 2135 and 2151. Its exact hash is admitted for the existing sector
+bounds. Hardware timing, heap and startup recovery remain pending.
