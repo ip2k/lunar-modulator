@@ -17,6 +17,8 @@ HOT_RAM_SOURCES = (
     "engines/src/dx7_loop.cc", "engines/src/msfa_unit.cc",
     "engines/src/mi_macro.cc", "engines/src/drums.cc",
     "engines/third_party/mutable/plaits/dsp/engine/virtual_analog_engine.cc",
+    # The fixed workload selects model 0 (VA+Filter), not model 4 (VA Pair).
+    "engines/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc",
 )
 
 

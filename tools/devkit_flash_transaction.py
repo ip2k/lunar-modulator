@@ -62,6 +62,9 @@ RENDERER_RECOVERY_TARGET_SHA = 'd1d534f71ed6473046d1f23bedd4c39fe8df8a3ef0874f54
 # Same recovery/placement with six enclosing stage timers; exact export,
 # startup/recovery, independent cipher/CRC and interrupted restore checks pass.
 RENDERER_STAGES_TARGET_SHA = 'e16931a08a7357b4e2cf97adeee9d4628f89a1de8706b5db3c33e4870e3b54f4'
+# Selected VA+Filter code in SRAM; exact export/startup/recovery, table bytes,
+# independent cipher/CRC and interrupted NOR restore model reviewed offline.
+RENDERER_VCF_TARGET_SHA = '14c60db2f8d0f280c39d308535dc62dd4a78a1cb847b7946f35bb9a5fe620df1'
 IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED,
                AUDIO_V3_TARGET_SHA: AUDIO_ALLOWED,
                AUDIO_CONTROL_TARGET_SHA: AUDIO_ALLOWED,
@@ -77,7 +80,8 @@ IMAGE_PLANS = {TARGET_SHA: ALLOWED, AUDIO_TARGET_SHA: AUDIO_ALLOWED,
                RENDERER_HOT_TARGET_SHA: RENDERER_PROFILE_ALLOWED,
                RENDERER_SINE_TARGET_SHA: RENDERER_PROFILE_ALLOWED,
                RENDERER_RECOVERY_TARGET_SHA: RENDERER_PROFILE_ALLOWED,
-               RENDERER_STAGES_TARGET_SHA: RENDERER_PROFILE_ALLOWED}
+               RENDERER_STAGES_TARGET_SHA: RENDERER_PROFILE_ALLOWED,
+               RENDERER_VCF_TARGET_SHA: RENDERER_PROFILE_ALLOWED}
 
 
 def digest(data):

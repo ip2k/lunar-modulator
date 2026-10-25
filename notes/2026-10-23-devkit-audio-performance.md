@@ -1512,3 +1512,29 @@ establish which individual operation causes each cost.
 The exact candidate is `e16931a0…`, described above. This is worker-only timing
 with the DAC off: deadline acceptance fails, and analog/soak acceptance remains
 outstanding. PR #155 stays draft.
+
+### Selected Macro model placement correction (offline)
+
+[verified] The workload sets Macro's model parameter to 0, which is
+`MODEL_VA_VCF` (VA+Filter), not `MODEL_VIRTUAL_ANALOG` (VA Pair, model 4).
+The previous hot-source list moved the latter engine while the actually
+selected `VirtualAnalogVCFEngine::Render` remained at `0x02033810` in XIP.
+The next comparison adds only the selected engine's source to the private
+SRAM preparation list; it preserves the source bodies, flags, workload and
+tables. In the new exact ELF its renderer is at `0x01c051ba` in SRAM.
+
+[verified] Private vendor link succeeds: ELF `cf4eec1d…`, application 550,352
+bytes `08053855…`, complete candidate `14c60db2…`. Five vendor section exports
+match independent ELF extraction. Startup copies 64,016 bytes to SRAM; heap
+before tasks is 54,828 bytes, down 2,144. The UART reservation-before-worker,
+200-tick recovery window, strong ROM-entry routine and dormant SDK scheduling
+were reviewed in the actual vendor disassembly. Link audit has zero failures;
+its one scheduling item was manually resolved. FM6 sine/exp2 table bytes match
+the installed stage-profiler ELF. Independent cipher/CRC/boot/config/tail checks
+and the 135-sector NOR install/restore model, including interrupted pages
+7/1079/2135/2151, pass. Local preparation checks pass (29), focused Linux tests
+pass (65), and final transaction/reset checks pass (32).
+
+This exact candidate is admitted offline, but is not installed and has no
+hardware performance or recovery acceptance yet. Measure it against the stage
+baseline above before claiming a speedup.
