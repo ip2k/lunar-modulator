@@ -354,6 +354,8 @@ typedef struct fm1_app_unit {
   size_t cap;
   float value[FM1_APP_MAX_PARAMS];
   int driven;                    /* FM1_PARAM_DRIVEN as last sent (0: as created) */
+  const fm1_engine_t *lock_pages_engine; /* immutable page layout last counted */
+  int lock_pages;
 } fm1_app_unit_t;
 
 /* A tick's write to an effect or to AMP, at its frame in the block. */

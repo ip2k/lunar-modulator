@@ -434,8 +434,20 @@ static int lock_target_context(fm1_app_t *a, int kind, fm1_seq_ui_sound_t *snd) 
   return k;
 }
 
-/* Held SELECT walks synth, inserts, global masters and the routed level.
- * Contexts are stack-only; no persistent model or RAM budget grows. */
+/* Layouts are fixed for a loaded engine (FM6 bank names do not change pages).
+ * Avoid scanning every parameter on every audio block. Keying by engine also
+ * handles replacement; swapping units carries their cached layout with them. */
+static int lock_target_pages(fm1_app_t *a, const fm1_seq_ui_sound_t *snd) {
+  if (snd->unit < 0 || snd->unit >= FM1_APP_UNITS) return fm1_seq_ui_pages(snd->e);
+  fm1_app_unit_t *u = &a->unit[snd->unit];
+  if (u->lock_pages_engine != snd->e) {
+    u->lock_pages = fm1_seq_ui_pages(snd->e);
+    u->lock_pages_engine = snd->e;
+  }
+  return u->lock_pages;
+}
+
+/* Held SELECT walks synth, inserts, global masters and the routed level. */
 static int lock_sound(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
   int total = 0, chosen = 0;
   const int wanted = a->ui.step_page >= FM1_SEQ_UI_STEP_PAGES ? a->ui.step_page - FM1_SEQ_UI_STEP_PAGES : 0;
@@ -443,7 +455,7 @@ static int lock_sound(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
   for (int kind = FM1_SEQ_TARGET_SOUND; kind <= FM1_SEQ_TARGET_MIX; ++kind) {
     fm1_seq_ui_sound_t next;
     lock_target_context(a, kind, &next);
-    const int pages = fm1_seq_ui_pages(next.e);
+    const int pages = lock_target_pages(a, &next);
     if (wanted >= total && wanted < total + pages) {
       *snd = next;
       snd->page = wanted - total;

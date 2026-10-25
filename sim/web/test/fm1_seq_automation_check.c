@@ -347,9 +347,35 @@ static int meter_bench(void) {
   }
   return 0;
 }
+static int lock_page_replacement(void) {
+  setup();
+  CHECK(line("route 0 1 0;clen 0 16"));
+  fm1_app_render(&app,64);
+  CHECK(app.ui.lock_pages == 6);
+  /* A replacement has a different page layout; the next audio block must
+   * expose it, including after a swap and an empty-slot transition. */
+  fm1_param_t wide_params[5];
+  memcpy(wide_params,params,sizeof wide_params);
+  wide_params[0].page=3;
+  fm1_engine_t wide=fx;
+  wide.params=wide_params;
+  app.unit[6].e=&wide;
+  fm1_app_render(&app,64);
+  CHECK(app.ui.lock_pages == 9);
+  swap_units(&app,6,7);
+  fm1_app_render(&app,64);
+  CHECK(app.ui.lock_pages == 9);
+  app.unit[7].e=NULL;
+  fm1_app_render(&app,64);
+  CHECK(app.ui.lock_pages == 5);
+  app.unit[7].e=&fx;
+  fm1_app_render(&app,64);
+  CHECK(app.ui.lock_pages == 6);
+  return 0;
+}
 int main(int argc, char **argv) {
   if(argc>1 && !strcmp(argv[1],"--meter-bench")) return meter_bench();
-  if(timing() || stop_reset() || routes_types_mask() || release_and_legacy() || modulation() || panel_targets() || meters()) return 1;
+  if(timing() || stop_reset() || routes_types_mask() || release_and_legacy() || modulation() || panel_targets() || meters() || lock_page_replacement()) return 1;
   puts("PASS sample frames, isolation, inserts/master/mix, D6, knob bases, reset, routes, enum/log, NOLOCK/PER_FOCUS, masks and modulation precedence");
   return 0;
 }

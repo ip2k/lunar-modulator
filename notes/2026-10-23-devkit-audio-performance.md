@@ -3782,3 +3782,46 @@ containing bytes. No such relocation is treated as an arbitrary ignored diff.
 Independent cipher/CRC, protected boot/config/tail and interrupted NOR restore
 at pages7/1111/2183/2199 pass.66 admission/reset/SDK tests pass. Exact hash
 only is admitted at existing138-sector bounds. Not installed/hardware accepted.
+
+### Correlated v9 hardware result — every worst block starts a case
+
+[verified, hardware] Exactfd8a passes WINDOW recovery in78.8572ms, fresh
+WL82/UBOOT1.00 inquiry, two matching full new-image backups,138-sector factory
+restore and SAME RUN install/readback. Reset receipts are consumed. Four
+arithmetic/PCM receipts,32 unit/24 stage rows and24 correlated snapshots pass.
+All81308 pairs complete without refusal/error/wrong-core reports; finite worker
+exit succeeds. Heap42612 stays stable; parent unused2556/8192 bytes and worker
+unused3260/4096 bytes. Exact owned RX was checked twice, terminated once, and
+its session was terminal before ordinary PING ACK. Private capture SHA-256
+`e7b62d51295cdeaea67818f6bff8d09470e61c037d46505caf7332b6617b077f`.
+
+| Keys case | Mean us | Max us | Late /5513 | Worst block | Outside six stages us |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0 |1130.417|2155.167|26|0|497.667|
+| 1 |1269.625|2039.667|283|0|407.875|
+| 2 |1350.875|2164.208|796|0|460.667|
+| 3 |1443.583|2335.458|2435|0|517.833|
+
+[verified] Case3's simultaneous sound/master/UI costs are1331.125/277.917/
+177.333us. Worst-block time outside the six stages includes note/control
+preparation and output conversion; the exact subregion and preemption share
+are not yet measured. This does not justify removing first blocks. Sustained
+cost and deadline failure remain, as do mixed, DAC/KA6 and30-minute acceptance.
+
+[implemented, target untested] The shared app now caches each loaded engine's
+immutable knob-page count, keyed by engine pointer per unit. Replacement and
+empty-slot transitions refresh it; swapping units carries metadata with them.
+FM6 imported bank names change no page indices. The six-target walk, per-block
+UI sync, render order and audio processing remain. Target storage grows112
+bytes. A native regression exercises changed page layout, swap, removal and
+reload; actual shared-workload PCM and UI acceptance are the next host checks.
+
+[verified, host] Fresh-output automation, renderer, sequencer and sequencer-UI
+checks pass:242 passed,7 skipped (one unavailable32-bit runtime and six absent
+Movy reference cases). Actual mixed/profile PCM remains exact. An initial reused
+staging build failed with stale objects: dependency files named the old `/src`
+root, so app-layout consumers were not rebuilt. A unique extra compile define
+selected a fresh output directory and eliminated those ABI-inconsistent objects.
+The target cache benefit remains unmeasured; no v10 image is admitted/installed.
+Exact prior head e143e27 CI40229750945 passes all13 jobs; Pages40229750897
+passes. Both terminal. PR155 remains draft pending hardware/audio acceptance.
