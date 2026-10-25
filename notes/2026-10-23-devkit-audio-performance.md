@@ -2002,3 +2002,26 @@ Every one of 5,513 blocks in every case still exceeds the approximately
 acceptance. The result supports retaining the optional control placement
 comparison, not merging the unfinished campaign. Raw UART stays private;
 SHA256 `e3222a68fca7547f0e44c22464200d911558789e8fcabe55808a22d519737589`.
+
+
+### Plaits table cache comparison — offline preparation
+
+[verified, source] Macro/drums use stmlib's pitch-ratio tables; the drum sine
+oscillators use Plaits' sine table. Control-v1 retains these tables in XIP.
+The optional `--plaits-cache` comparison annotates only those three private
+definitions for the existing initialized cache-data section. Preparation
+tests verify exact file equality apart from the selected annotations.
+
+[verified, offline] 37 local preparation/rejection tests and 95 focused Linux
+tests pass; one multilib-dependent replay is skipped in that Linux image.
+Vendor build succeeds with downloader disabled. Independent ELF/export
+packing and retained table-byte comparisons pass. All three selected tables
+reside in cache RAM; total initialized cache data is 24,360 bytes. Linked
+pre-task heap is 56,620 bytes. No image is admitted or installed yet;
+startup copy and exact-image recovery review remain required.
+
+Rarefaction's primary checkout lacks the worktree-only preparer, and rejects
+a project path outside its workspace root. Serena locates the actual worktree
+preparer; bounded source checks cover this edit. Its C navigation verifies
+`NoteToFrequency`, but misses its known callers under fallback include flags.
+The source and vendor ELF/disassembly remain necessary for this target.

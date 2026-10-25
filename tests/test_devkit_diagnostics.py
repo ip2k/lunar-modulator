@@ -41,11 +41,12 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
-    control = mode == 'renderer-control-profile'
+    plaits_cache = mode == 'renderer-plaits-cache-profile'
+    control = mode in ('renderer-control-profile', 'renderer-plaits-cache-profile')
     outline = mode == 'renderer-outline-profile'
-    filter_process = mode in ('renderer-filter-profile', 'renderer-control-profile')
+    filter_process = mode in ('renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile')
     if outline or filter_process:
         mode = 'renderer-fx-profile'
     renderer = mode in ('renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile')
@@ -85,7 +86,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control)
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache)
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -194,6 +195,24 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert receipt['worker_stack_words'] == (2048 if filter_process else 3072)
         assert receipt['worker_stack_bytes'] == receipt['worker_stack_words'] * 4
         assert receipt['renderer_pool_bytes'] == (136 if control else 148) * 1024
+        assert receipt['plaits_cache'] == plaits_cache
+        tables = {
+            'engines/third_party/mutable/stmlib/dsp/units.cc': ('lut_pitch_ratio_high', 'lut_pitch_ratio_low'),
+            'engines/third_party/mutable/plaits/resources.cc': ('lut_sine',),
+        }
+        for name, selected_tables in tables.items():
+            original_tables = (ROOT/name).read_bytes()
+            prepared_tables = (out/'lunar-source'/name).read_bytes()
+            expected_tables = original_tables
+            if plaits_cache:
+                for table in selected_tables:
+                    declaration = b'const float ' + table.encode() + b'[]'
+                    expected_tables = expected_tables.replace(declaration + b' = {',
+                        declaration + b' __attribute__((section(".lunar_cache_tables"))) = {', 1)
+                assert receipt['plaits_table_original_sha256'][name] == hashlib.sha256(original_tables).hexdigest()
+            assert prepared_tables == expected_tables
+        if not plaits_cache:
+            assert receipt['plaits_table_original_sha256'] == {}
         assert receipt['control_ram'] == control
         assert ('-DLUNAR_RENDERER_POOL_BYTES=139264' in result) == control
         for name in ('sim/web/src/fm1_app.c', 'engines/mod/mod_core.c', 'engines/seq/seq_host.c'):

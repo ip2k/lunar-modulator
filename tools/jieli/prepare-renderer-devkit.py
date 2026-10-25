@@ -23,7 +23,7 @@ HOT_RAM_SOURCES = (
 )
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -42,6 +42,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Filter process SRAM requires timing-only resident effects without outlining")
     if control_ram and not (timing_only and filter_process_ram):
         raise ValueError("Control SRAM requires the timing-only resident filter comparison")
+    if plaits_cache and not control_ram:
+        raise ValueError("Plaits cache tables require the timing-only resident control comparison")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -141,6 +143,26 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
                     raise ValueError("Unexpected exp2 table definition; review placement")
                 text = text.replace(exp2, exp2.replace(" = {", ' __attribute__((section(".lunar_cache_tables"))) = {'), 1)
             p.write_text(text)
+    plaits_table_inputs = {}
+    if plaits_cache:
+        # Relocate only exact definitions in private prepared sources. Preserve
+        # the coefficients and external declarations; use existing SDK copying.
+        for name, tables in (
+            ("engines/third_party/mutable/stmlib/dsp/units.cc",
+             ("lut_pitch_ratio_high", "lut_pitch_ratio_low")),
+            ("engines/third_party/mutable/plaits/resources.cc", ("lut_sine",)),
+        ):
+            p = staging / name
+            original = p.read_text()
+            plaits_table_inputs[name] = hashlib.sha256(p.read_bytes()).hexdigest()
+            text = original
+            for table in tables:
+                anchor = "const float " + table + "[] = {"
+                if text.count(anchor) != 1:
+                    raise ValueError("Unexpected Plaits table definition; review cache placement")
+                text = text.replace(anchor, anchor.replace(" = {",
+                    ' __attribute__((section(".lunar_cache_tables"))) = {'), 1)
+            p.write_text(text)
     if resampler_outline:
         # Keep both sums, coefficients and evaluation order unchanged. This
         # private code-generation comparison tests register pressure only.
@@ -215,6 +237,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "sine_ram_original_sha256": sine_input,
         "resampler_ram_original_sha256": resampler_input,
         "cache_tables": cache_tables,
+        "plaits_cache": plaits_cache,
+        "plaits_table_original_sha256": plaits_table_inputs,
         "fx_ram": fx_ram,
         "resampler_outline": resampler_outline,
         "filter_process_ram": filter_process_ram,
@@ -224,7 +248,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "filter_process_original_sha256": filter_process_input,
         "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": (136 if control_ram else 148) * 1024,
         "worker_stack_bytes": worker_stack_words * 4,
@@ -269,5 +293,7 @@ if __name__ == "__main__":
                         help="Compare only filter processing code in SRAM; requires timing-only resident effects without outlining")
     parser.add_argument("--control-ram", action="store_true",
                         help="Compare render/sequence/modulation SRAM with a 136 KiB fixed workload pool; requires resident filter")
+    parser.add_argument("--plaits-cache", action="store_true",
+                        help="Compare exact Plaits sine/pitch tables in existing SDK data RAM; requires resident control")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache)

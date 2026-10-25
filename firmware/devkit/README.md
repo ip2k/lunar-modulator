@@ -227,3 +227,14 @@ are larger and must not be used to assert that this target budget fits.
 A 32-bit replay checks the reduced pool when multilib is available. Actual
 linked placement, startup allocation, recovery, PCM parity, stack and target
 timing must pass separately before selecting this comparison.
+
+
+### Optional Plaits table cache comparison
+
+`--plaits-cache` requires `--control-ram` and its timing-only dependencies.
+It changes only section annotations on the private prepared copies of
+stmlib's two pitch-ratio tables and Plaits' sine table. The existing SDK
+cache-data startup copy is retained; cache-way allocation is unchanged.
+The coefficient bytes, workload and pool size remain unchanged. Inspect the
+linked addresses and bytes before admitting a specific image. A successful
+offline build is not a target performance or audio result.
