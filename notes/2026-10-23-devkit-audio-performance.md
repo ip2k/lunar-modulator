@@ -4168,3 +4168,34 @@ UART creation remains priority18/1024 words before parent16/2048 words;
 its200-tick recovery wait precedes initialization. Timing frame272 bytes,
 planner1060 and UI1160 with saved registers remain reviewed; actual high-water
 and recovery require target verification. No hardware V15 acceptance yet.
+
+### Early-label V15 hardware measurement
+
+[verified, hardware] Exact7353e977 passes startup UART recovery in78.590ms,
+fresh WL82/UBOOT1.00 inquiry, two matching full current/new-image backups,
+138-sector factory restore and SAME RUN installation/full8MiB readback.
+WINDOW80049 and RUN7033 reset receipts are consumed; neither may be retried.
+Four arithmetic/PCM checks,32 unit/24 stage/24 correlated worst/12 detail/
+32 preparation rows pass. All81308 paired jobs complete with zero refusal,
+error or wrong-core counts and finite exit. Heap38452 remains stable; parent
+unused stack2556/8192 bytes and worker3260/4096 match V14. Sole RX233635 was
+checked twice, terminated once, and session33684 was terminal before an
+ordinary PING ACK. Private raw SHA-256:
+`b8ab7782d836046eb3c4c1f31798bfcf888925b5ce361186a08c01cfc8302c1b`.
+
+| Keys case | Mean us | Max us | Late /5513 | Worst prep us | Worst shared app us |
+| --- | ---: | ---: | ---: | ---: | ---: |
+|0|1000.583|1938.375|2|422.042|1484.833|
+|1|1136.708|1902.083|5|333.500|1541.417|
+|2|1212.333|2055.958|92|397.625|1629.750|
+|3|1310.333|2209.042|349|464.375|1716.125|
+
+[verified] Every worst block remains0. Level setter mean calls fall from
+97.458/97.292/97.125/112.792us in V14 to64.333/64.125/64.125/72.667us;
+filter setters fall from112.250/113.375/113.292/131.167us to
+79.583/80.792/81.042/96.500us. Whole-block means improve only0.06–0.24%;
+this change helps recurring controls but does not solve the deadline.
+Sound-stage means remain645.500/785.708/861.833/959.458us and worst
+correlated sound stages1029.542/1169.583/1260.667/1343.875us. The remaining
+first-block cost needs causal investigation. Mixed, fault-validated DAC/KA6
+and representative30-minute analog acceptance remain outstanding.
