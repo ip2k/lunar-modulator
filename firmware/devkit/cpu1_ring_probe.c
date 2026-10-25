@@ -20,6 +20,8 @@ struct ring_state {
     volatile unsigned published, consumed, abort, exited, fpu_done, go;
     volatile unsigned bad_crc, bad_data, bad_sequence, core0, core1, other;
     volatile unsigned stack_unused, started_ms;
+    volatile unsigned worker_compute_max, worker_compute_blocks;
+    unsigned long long worker_compute_ticks;
     struct lunar_arithmetic_result fpu[2][4];
     struct ring_slot slots[CAPACITY];
 } __attribute__((aligned(64)));
@@ -61,6 +63,7 @@ static void cpu1_worker(void *unused) {
         if (cpu1_ring.abort || expired()) { cpu1_ring.abort = 1; goto done; }
         if (!wait_change(&cpu1_ring.published, n)) { cpu1_ring.abort = 1; goto done; }
         volatile struct ring_slot *slot = &cpu1_ring.slots[n % CAPACITY];
+        unsigned compute_start = now();
         int cpu = current_cpu_id();
         if (cpu == 0) ++cpu1_ring.core0; else if (cpu == 1) ++cpu1_ring.core1; else ++cpu1_ring.other;
         unsigned sequence = n + 1u, crc = 0xffffffffu;
@@ -71,6 +74,10 @@ static void cpu1_worker(void *unused) {
             crc = crc_word(crc, word);
         }
         if (~crc != slot->crc) ++cpu1_ring.bad_crc;
+        unsigned compute_ticks = now() - compute_start;
+        cpu1_ring.worker_compute_ticks += compute_ticks;
+        if (compute_ticks > cpu1_ring.worker_compute_max) cpu1_ring.worker_compute_max = compute_ticks;
+        ++cpu1_ring.worker_compute_blocks;
         fence();
         cpu1_ring.consumed = sequence;
     }
@@ -84,6 +91,8 @@ void lunar_devkit_worker(void *unused) {
     unsigned completed = 0, parent0 = 0, parent1 = 0, other = 0;
     unsigned peak = 0, late = 0, max_late = 0, next = 0, fraction = 0;
     unsigned stream_started_ms = 0, elapsed_ms = 0;
+    unsigned start_late_max = 0, compute_max = 0, worst_start = 0, worst_compute = 0;
+    unsigned long long compute_total = 0;
     (void)unused;
     os_time_dly(100);
     puts("LUNAR_CONTROL recovery_window_ticks=200\n");
@@ -131,6 +140,7 @@ void lunar_devkit_worker(void *unused) {
         while ((int)(now() - next) < 0) {
             if (cpu1_ring.abort || expired()) { cpu1_ring.abort = 1; goto done; }
         }
+        unsigned start_lag = now() - next;
         unsigned start = millis();
         while ((unsigned)(n - cpu1_ring.consumed) >= CAPACITY) {
             if (cpu1_ring.abort || expired() || (unsigned)(millis() - start) >= 1000u) {
@@ -138,6 +148,7 @@ void lunar_devkit_worker(void *unused) {
             }
         }
         fence();
+        unsigned compute_start = now();
         int cpu = current_cpu_id();
         if (cpu == 0) ++parent0; else if (cpu == 1) ++parent1; else ++other;
         volatile struct ring_slot *slot = &cpu1_ring.slots[n % CAPACITY];
@@ -149,12 +160,17 @@ void lunar_devkit_worker(void *unused) {
             crc = crc_word(crc, word);
         }
         slot->crc = ~crc;
-        unsigned lag = now() - next;
-        if (lag > max_late) max_late = lag;
+        unsigned compute_end = now();
+        unsigned compute_ticks = compute_end - compute_start;
+        unsigned lag = compute_end - next;
         if (lag >= PERIOD) ++late;
         fence();
         cpu1_ring.published = n + 1u;
         completed = n + 1u;
+        if (lag > max_late) { max_late = lag; worst_start = start_lag; worst_compute = compute_ticks; }
+        if (start_lag > start_late_max) start_late_max = start_lag;
+        if (compute_ticks > compute_max) compute_max = compute_ticks;
+        compute_total += compute_ticks;
         unsigned depth = completed - cpu1_ring.consumed;
         if (depth > peak) peak = depth;
         next += PERIOD;
@@ -176,6 +192,9 @@ done:
                cpu1_ring.abort, cpu1_ring.exited, elapsed_ms, parent0, parent1, other,
                cpu1_ring.core0, cpu1_ring.core1, cpu1_ring.other, peak, late, max_late,
                cpu1_ring.stack_unused, (unsigned)uxTaskGetStackHighWaterMark(NULL));
+        printf("LUNAR_CPU1_RING_PHASE producer_compute_blocks=%u producer_compute_ticks=%llu producer_compute_max=%u start_lag_max=%u worst_start_lag=%u worst_compute_ticks=%u worker_compute_blocks=%u worker_compute_ticks=%llu worker_compute_max=%u\n",
+               completed, compute_total, compute_max, start_late_max, worst_start, worst_compute,
+               cpu1_ring.worker_compute_blocks, cpu1_ring.worker_compute_ticks, cpu1_ring.worker_compute_max);
     }
 idle:
     /* Permanent mailbox and running timer remain valid for any late worker. */

@@ -51,3 +51,10 @@ def test_missing_duplicate_quoted_and_error_receipts_refused():
                  CAPTURE.replace(b'[00:10:04.000]', b'quoted: '),
                  CAPTURE + b'LUNAR_CPU1_RING error=timer_busy\n'):
         with pytest.raises(ValueError): module.parse(data)
+
+
+def test_phase_diagnostics_cannot_override_failed_pacing():
+    diagnostic = b'LUNAR_CPU1_RING_PHASE producer_compute_blocks=413607 producer_compute_ticks=1 producer_compute_max=1 start_lag_max=1 worst_start_lag=1 worst_compute_ticks=1 worker_compute_blocks=413607 worker_compute_ticks=1 worker_compute_max=1\n'
+    assert module.parse(CAPTURE + diagnostic)['paced_ring_pass']
+    with pytest.raises(ValueError, match='late'):
+        module.parse(CAPTURE.replace(b'late_blocks=0', b'late_blocks=1') + diagnostic)

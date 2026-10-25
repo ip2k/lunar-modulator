@@ -3364,3 +3364,36 @@ does not attribute it to any one of them. Measure pre-compute lag and compute
 cost separately before claiming a cause; do not weaken the ring acceptance gate.
 The actual shared renderer's deadline failures and all analog acceptance gates
 remain open. The copied-job mailbox is still an offline prototype.
+
+### Ring phase measurements — offline admission, 2026-10-25
+
+[implemented] The paced ring reports pre-compute lag and producer/worker sample
+and CRC wall-time totals/maxima, plus the start/compute times of the worst
+publication block. Numeric output occurs after the bounded run. These intervals
+include interrupt/preemption time; they cannot by themselves identify an SDK
+scheduler, cache or CRC cause. Rates, workload, fences and strict pacing gate
+are unchanged. Additional statistics follow publication on the producer path.
+
+[verified, exact vendor image] Generated timer reads bracket the complete
+64-sample/CRC loops on both cores. The parent start-lag read precedes slot reuse
+waiting; compute starts after its fence, so queue waiting is not compute time.
+The parent end read follows CRC storage and precedes publication. The generated
+625000 ms total and one-second waits, core reads and recovery window remain.
+App SHA-256 is 67db08a689f9ed76bae9e7f8deb06bebe5ece875a39eb4ddb733e5c857979e05
+(166160 bytes); independent five-section vendor objcopy matches. SDK/ROM/P33
+relocation comparison and UART-first prepared main match the accepted baseline.
+Pretask heap is 487692 bytes, permanent mailbox 4608 bytes aligned to 64.
+
+[verified, offline packaging] Candidate SHA-256 is
+43b911a84f17e0045e911249c495f967cc42087c33a996f87080c6e4d44b0455.
+The same 41 sectors contain the changed app through 0x2ca30. Independent cipher
+key derivation, app/metadata CRCs and protected bytes pass. The NOR model passes
+exact install/restore, metadata last, and interrupted pages 7/327/631/647 with
+exact factory restoration. No hardware operation is part of those checks.
+It is admitted offline only; no new installation or hardware acceptance yet.
+
+[verified] Final transaction/reset/preparation/short/long/ring checks pass
+165 tests in a bounded Aeon container, including a regression proving the
+phase row cannot override a failed pacing receipt. The first test invocation
+mounted the wrong parent for the private pytest libraries and collected no
+tests; the corrected parent mount produced the passing result.

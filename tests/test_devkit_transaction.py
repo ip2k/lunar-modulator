@@ -23,6 +23,8 @@ def test_cpu1_probe_plan_is_narrow_and_preserves_renderer_restore_bounds():
     assert tx.IMAGE_PLANS[tx.CPU1_LONG_TARGET_SHA] == allowed
     assert tx.CPU1_RING_TARGET_SHA == '0fd1dcb5ff74bf036f2c785144745bf2fe6254587a73b86bec4d3396fb9dfd09'
     assert tx.IMAGE_PLANS[tx.CPU1_RING_TARGET_SHA] == allowed
+    assert tx.CPU1_RING_PHASE_TARGET_SHA == '43b911a84f17e0045e911249c495f967cc42087c33a996f87080c6e4d44b0455'
+    assert tx.IMAGE_PLANS[tx.CPU1_RING_PHASE_TARGET_SHA] == allowed
     assert tx.IMAGE_PLANS[tx.RENDERER_FILTER_MONO_TARGET_SHA] == tuple(range(0x4000, 0x8d000, 4096))
     desired = bytes(tx.backup.FLASH_SIZE)
     tx.mutation_request(0xFB01, 0x2c000, b'', desired, allowed)
