@@ -1564,3 +1564,25 @@ the actual hot call paths need further investigation before selecting the
 next change. No analog, live-DAC or sustained-soak acceptance is claimed.
 Private raw capture SHA-256 is
 `5be01a4ac5afafad5737678e5b09533fbe78d92d6e36f569e7e112ee2288b713`.
+
+### Bounded arithmetic diagnostic (offline)
+
+[verified, offline] Profiled timing builds now run four 1,024-iteration kernels
+(integer add, float add, float multiply and float divide), eight batches each,
+after the acknowledged recovery window and before renderer initialization.
+Every batch yields to the OS. Volatile operands prevent constant folding;
+inputs stay finite, positive and away from zero/denormals. Results include
+raw float bits and per-batch elapsed timer ticks. Loop control, operand loads
+and interrupts are included, so these are not instruction-latency claims.
+Ordinary audio builds do not call the probe. DSP source and workload are unchanged.
+
+[verified, offline] The host check validates finite arithmetic, fixed work
+bounds, rejection of missing callbacks and unsigned timer-wrap accounting.
+The focused Linux suite passes 66 tests; local preparation checks pass 25.
+The vendor build succeeds and its disassembly retains one native arithmetic
+operation per loop iteration with an exact 1,024-trip bound. The four kernels
+are in XIP with their volatile operands in initialized SRAM. Target arithmetic
+results, the complete renderer replay and recovery on this new image are still
+pending; no new hardware image has been admitted or installed by this change.
+Rarefaction cannot see the sibling worktree's new worker path; Serena resolves
+the actual worker body, and vendor disassembly remains the code-generation check.

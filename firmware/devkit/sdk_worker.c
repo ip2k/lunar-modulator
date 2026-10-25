@@ -6,6 +6,15 @@
 #include "benchmark.h"
 #ifdef LUNAR_DEVKIT_RENDERER_TIMING
 #include "renderer_timing.h"
+#ifdef LUNAR_RENDERER_PROFILE
+#include "arithmetic_probe.h"
+static void emit_arithmetic(const struct lunar_arithmetic_result *r)
+{
+    printf("LUNAR_ARITHMETIC op=%u iterations=%u batches=%u min=%u max=%u mean=%u bits=%08x\n",
+           r->operation, r->iterations, r->batches, r->min_ticks, r->max_ticks,
+           (unsigned)(r->ticks / r->batches), r->result_bits);
+}
+#endif
 /* SDK allocator diagnostics, emitted only outside timed render blocks. */
 extern void malloc_stats(void);
 static void renderer_yield(void) { os_time_dly(1); }
@@ -113,6 +122,13 @@ void lunar_devkit_worker(void *unused)
     os_time_dly(200);
 #endif
 #ifdef LUNAR_DEVKIT_RENDERER_TIMING
+#ifdef LUNAR_RENDERER_PROFILE
+    if (!lunar_devkit_arithmetic_probe(now, renderer_yield, emit_arithmetic)) {
+        puts("LUNAR_DEVKIT ERROR arithmetic_probe\n");
+        JL_TIMER4->CON = (1u << 14);
+        return;
+    }
+#endif
     puts("LUNAR_RENDERER_HEAP before_init=1\n");
     malloc_stats();
     printf("LUNAR_DEVKIT complete=%d\n", lunar_devkit_renderer_timing(now, renderer_yield, emit_renderer));

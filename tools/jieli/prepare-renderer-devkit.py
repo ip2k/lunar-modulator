@@ -48,6 +48,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     main.write_text(text.replace(worker, worker.replace('10, 2048,', '10, 3072,'), 1))
     shutil.copyfile(source / "firmware/devkit/renderer_live.h", app / "renderer_live.h")
     shutil.copyfile(source / "firmware/devkit/renderer_timing.h", app / "renderer_timing.h")
+    shutil.copyfile(source / "firmware/devkit/arithmetic_probe.h", app / "arithmetic_probe.h")
     staging = out / "lunar-source"
     for directory in ("engines", "sim/web/src", "sim/web/mk", "firmware/devkit"):
         shutil.copytree(source / directory, staging / directory,
