@@ -12,9 +12,19 @@ from pathlib import Path
 import shutil
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False):
+HOT_RAM_SOURCES = (
+    "engines/src/msfa_dx7.cc", "engines/src/dx7_voice.cc",
+    "engines/src/dx7_loop.cc", "engines/src/msfa_unit.cc",
+    "engines/src/mi_macro.cc", "engines/src/drums.cc",
+    "engines/third_party/mutable/plaits/dsp/engine/virtual_analog_engine.cc",
+)
+
+
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
+    if hot_ram and not timing_only:
+        raise ValueError("Hot SRAM comparison is worker-only until target validation")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -36,6 +46,17 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False):
     for directory in ("engines", "sim/web/src", "sim/web/mk", "firmware/devkit"):
         shutil.copytree(source / directory, staging / directory,
                         ignore=shutil.ignore_patterns("build", "build-*", ".git", "__pycache__", ".DS_Store", "._*"))
+    hot_inputs = {}
+    if hot_ram:
+        # The pinned clang 4 vendor build supports MS code_seg under its
+        # existing -fms-extensions flag; modern clang section is ignored.
+        # Preserve LTO/arithmetic flags and source bodies. Only prepared private
+        # copies change. Constants deliberately stay in XIP in this comparison.
+        for name in HOT_RAM_SOURCES:
+            p = staging / name
+            original = p.read_bytes()
+            hot_inputs[name] = hashlib.sha256(original).hexdigest()
+            p.write_bytes(b'#pragma code_seg(".volatile_ram_code")\n' + original)
     (staging / "tools/jieli").mkdir(parents=True)
     shutil.copyfile(source / "tools/jieli/renderer.mk", staging / "tools/jieli/renderer.mk")
     shutil.copyfile(source / "tools/jieli/devkit-renderer-sdk.mk", app / "board/wl82/lunar-renderer.mk")
@@ -63,7 +84,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False):
                        "; four sounds/tracks, inserts, master effects, modulation and control edits",
         "timing_only": timing_only,
         "render_profile": profile,
-        "placement": "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured",
+        "hot_ram_sources": hot_inputs,
+        "placement": ("SDK LTO, profiled DSP source code in startup-copied ram0_data; constants remain XIP; target result pending"
+                      if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": 148 * 1024,
         "worker_stack_bytes": 20 * 1024,
         "renderer_integration_complete": False,
@@ -90,5 +113,7 @@ if __name__ == "__main__":
                         help="Worker-context full-renderer preflight with OS yields; no DAC output")
     parser.add_argument("--profile", action="store_true",
                         help="Time instrument/effect calls; requires --timing-only")
+    parser.add_argument("--hot-ram", action="store_true",
+                        help="Compare profiled DSP code in SRAM, constants in XIP; requires --timing-only")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram)

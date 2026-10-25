@@ -108,14 +108,15 @@ int main(void) {
     subprocess.run([str(exe)], check=True)
 
 
-def test_profile_rejects_dac_preparation_before_writing(tmp_path):
+@pytest.mark.parametrize('option', ['profile', 'hot_ram'])
+def test_profile_rejects_dac_preparation_before_writing(tmp_path, option):
     import importlib.util
     spec = importlib.util.spec_from_file_location("renderer_prepare", ROOT / "tools/jieli/prepare-renderer-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     out = tmp_path / "out"
     with pytest.raises(ValueError, match="worker-only"):
-        module.prepare_renderer(tmp_path / "absent-sdk", ROOT, out, profile=True)
+        module.prepare_renderer(tmp_path / "absent-sdk", ROOT, out, **{option: True})
     assert not out.exists()
 
 def test_worker_timing_wrap_and_yields(tmp_path):

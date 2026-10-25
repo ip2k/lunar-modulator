@@ -1275,3 +1275,43 @@ not a new claim of zero-late playback. The build's assertions pass. Exact-head
 repository CI and all target/analog acceptance remain separate gates.
 
 [verified, offline] Profile-v1 application is 549,264 bytes; vendor single-section exports match an independent ELF-byte assembly. The exact private 8 MiB candidate is `a6ce75351236f19c2d517841b7392e58e2ca94197c7255352b62a8f672810870`. The linked audit has zero failures; vendor disassembly confirms the two reserved IRQ registrations and 8000-tick SDK timer, UART task creation before the 200-tick delay, and the unchanged reviewed ROM-entry/P33 reset path. Independent cipher/CRC and factory boot/configuration/tail preservation pass. The 135-sector plan spans `[0x4000,0x8b000)` and is separate from prior images. Offline NOR simulation restores exact factory bytes after application-page and final metadata-page interruptions (pages 7, 1079, 2135, 2151). Twenty-seven transaction/reset tests pass, including rejection of that extra sector for every earlier image. This admits the exact image for a UART-controlled profiling experiment; it is not hardware acceptance.
+
+
+### Actual per-unit profile and first SRAM comparison
+
+[verified] Profile-v1 installed with matching full 8 MiB readback. Its fresh
+startup PING/ARM/ENTER handshake completed in about 94 ms and produced a fresh
+ROM enumeration before any workload. A subsequent automatic cycle completed
+all four cases and all 32 unit rows; all four PCM hashes match the reference.
+Every unit covers 352,832 frames per case. Worker high-water usage is 5,400
+bytes. An ordinary PING after completion succeeds. No UART/KA6 capture remains
+live. No physical buttons were needed for either profiling cycle.
+
+| Held notes | Total mean us | FM6 EP us | Macro VA us | Drums us | Remaining outside unit calls us |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | 5860.54 | 928.79 | 1675.83 | 945.33 | 1277.54 |
+| 4 | 6564.17 | 1528.83 | 1774.33 | 947.08 | 1278.04 |
+| 8 | 6988.04 | 1948.29 | 1771.50 | 948.00 | 1281.92 |
+| 12 | 7696.21 | 2663.08 | 1765.29 | 948.08 | 1286.04 |
+
+[verified] The other mean costs at 12 notes are FM6 pad 76.38 us, Filter
+280.83 us, Drive 301.04 us, Echo 221.92 us and Compressor 153.54 us. These
+are inclusive unit-call times, with instrument callbacks excluding external
+note/control handlers and effect calls including host segmentation. The
+residual is an arithmetic difference between rounded mean counters; it
+includes shared-app work, workload controls/conversion/hash and profiling
+overhead, not an isolated sequencer measurement. Every block still misses
+its deadline. Private raw UART SHA-256:
+`a27e34edf34c09cfbeeea3d382862d52cc54b16cb023f32f924bd94826a278b9`.
+
+[verified, offline] The pinned vendor compiler identifies as clang 4.0.1.
+It ignores modern `#pragma clang section`, but a direct IR probe confirms
+`#pragma code_seg(".volatile_ram_code")` under the existing MS extensions
+flag. An opt-in `--hot-ram` preparation mode prepends only this directive to
+private copies of FM6 wrapper/core, Macro wrapper/VA and Drums sources. It
+preserves source bodies, LTO/arithmetic flags and XIP constants, and records
+original and prepared hashes. It rejects DAC preparation before writing.
+Target linking, actual retained-function placement, SRAM headroom, complete
+PCM/timing replay and image/recovery review must pass before drawing any
+performance conclusion or admitting a new image. No SRAM optimization is yet
+installed or hardware accepted.
