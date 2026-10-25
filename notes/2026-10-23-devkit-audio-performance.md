@@ -4237,3 +4237,33 @@ UART recovery task creation remains guarded before the renderer task and its
 200-tick wait precedes workload initialization. These are offline checks;
 actual startup recovery, stack high-water and timing still require V16 hardware
 measurement. No deadline or analog acceptance is claimed.
+
+### Correlated dispatch V16 hardware measurement
+
+[verified, hardware] Exactd7b4d18c startup recovery succeeds in78.7947ms.
+Fresh WL82/UBOOT1.00 inquiry, double full current/new backups,138-sector
+factory restores and SAME RUN installation/full readback pass. WINDOW57330
+and RUN74773 reset receipts are consumed and must never be retried. Four
+PCM/arithmetic cases,32 unit/24 stage/24 correlated stage/12 detail/48 prep/
+32 correlated unit rows pass. All81308 paired jobs complete with zero errors,
+refusal, disabled or wrong-core counts and finite worker exit. Heap38196
+remains stable; parent unused2508/8192 bytes and worker3260/4096. Sole RX240364
+was twice argv-checked, terminated once and session60899 became terminal
+before ordinary PING ACK. Private raw SHA-256:
+`9bd7be25d0f58059bf20477ef0a85eca7ca375679089c0b10d44db4a61af136b`.
+
+|Keys case|Mean us|Max us|Late /5513|Worst dispatch us|Worst FM render us|
+|---|---:|---:|---:|---:|---:|
+|0|1006.292|1928.375|2|735.292|74.417|
+|1|1140.417|1887.083|5|900.833|318.708|
+|2|1214.625|2027.500|77|979.958|396.125|
+|3|1313.708|2203.500|415|1079.792|513.417|
+
+[verified] All worst blocks are0. Dispatch minus its enclosed FM render is
+566–661us on those blocks and277–281us on average. This includes modulation
+hooks and control work, not only dispatcher bookkeeping. Worst filter
+callbacks238.792/220.292/219.000/220.875us fit inside their post-dispatch
+insert/mix regions257.833/236.250/234.333/237.042us. Sequencer advance is
+12.750–20.750us on the worst block; flush stays0.292us. New profiling adds
+observations and is not a speedup. Deadlines still fail; actual mixed timing,
+fault-validated DAC/KA6 and representative30-minute analog soaks remain open.
