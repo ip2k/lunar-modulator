@@ -2315,3 +2315,15 @@ relative to unroll-v1; pre-task heap is 53,036 bytes. Link audit reports zero
 failures and one pending manual SDK-scheduling check. Exact startup/recovery,
 cipher/CRC, NOR interruption/restore review and admission remain pending.
 No O3 image is installed, and no speed or audio acceptance is claimed.
+
+[verified, offline admission] Startup copies 78,096 SRAM bytes and 27,180
+cache-data bytes with the existing cache-way allocation. UART recovery
+reserves 1,024 stack words before the guarded 2,048-word worker allocation;
+its 200-tick wait precedes probes and renderer work. Strong ROM entry retains
+the exact prior marker and P33 arguments. Vendor disassembly confirms the
+unchanged dormant SDK schedule. Independent cipher/CRC and protected
+boot/config/tail checks pass. The NOR model installs/restores 138 sectors
+metadata-last and restores interrupted writes at pages 7, 1111, 2183 and 2199.
+Only image `fd32ec039217b59762efc09b185dd25871420c47db689ffa626b07d3e183adf3`
+is admitted at those bounds. All 46 final transaction/reset/arithmetic checks
+pass. Hardware startup recovery and performance remain pending.
