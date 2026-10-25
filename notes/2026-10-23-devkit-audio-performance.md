@@ -3456,3 +3456,30 @@ is healthy idle. Private UART SHA-256:
 5ab5798b47fa753bd3e54a39331dbae69f8e95e2565e36fd6c66f9f1ccae0184.
 The actual shared renderer's deadline failures and all analog acceptance remain
 open. Do not weaken the ring gate or claim a scheduling cause from these data.
+
+### Shared renderer copied-kernel attachment — WIP offline, 2026-10-25
+
+[implemented, not admitted] The diagnostic accepts an immutable FM6 adapter
+before initialization only and attaches it only to selected DX7 instances.
+The default remains sequential. An optional timing-only SDK wrapper reserves
+CPU1 before renderer allocation, bounds readiness/shutdown to one second and
+lifetime to 120 seconds, and reports completed pairs, fallback, core placement
+and stack. Pair timeout retains the original 34829-tick block budget. The
+parent retains the timer on failed startup/shutdown; UART recovery allocation
+and its 200-tick window still precede this work. No new image is installed.
+
+[verified, host] Mixed and keys shared-renderer replays preserve every PCM
+byte through an actual two-thread copied mailbox, synchronous adapter, and
+copy-corrupting refusal/fallback. Initialization refuses an invalid adapter
+and changes after successful initialization. SDK task mocks exercise normal
+exit, wrong core, allocation failure, missing readiness, lifetime expiry and
+disabled backend. Focused renderer/mailbox/lifecycle run: 51 pass, one skip
+(the container lacks multilib for the smaller target-pool replay). Host
+atomics in the test translation do not verify target fences or timing.
+
+[WIP vendor check] A new exact build first refused an existing output folder;
+that evidence was preserved and a unique v2 folder used. Compilation found
+GNU asm in SDK headers incompatible with the nested renderer's strict C99.
+Only the SDK wrapper now requests GNU C99; shared DSP flags stay unchanged.
+The correction awaits vendor verification. Final exact code/layout/UART-first,
+PCM/stack/performance, packaging/NOR and hardware gates remain outstanding.

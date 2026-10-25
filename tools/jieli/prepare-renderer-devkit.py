@@ -179,7 +179,9 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False):
+    if fm6_pair and not (timing_only and hot_ram and profile):
+        raise ValueError("CPU1 FM6 requires timing-only profiled hot code; no DAC acceptance")
     if workload not in ("mixed", "keys"):
         raise ValueError("Unknown renderer workload; choose mixed or keys")
     if msfa_pure_unroll and not (timing_only and hot_ram and msfa_narrow_adds and renderer_o3):
@@ -241,8 +243,12 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     if text.count(worker) != 1:
         raise ValueError("Unexpected worker creation; review renderer task stack")
     worker_stack_words = 2048 if filter_process_ram else 3072
-    main.write_text(text.replace(worker, worker.replace('10, 2048,',
-        '10, ' + str(worker_stack_words) + ','), 1))
+    replacement = worker.replace('10, 2048,', '10, ' + str(worker_stack_words) + ',')
+    if fm6_pair:
+        replacement = replacement.replace('"lunar_devkit"', '"#C0lunar_parent"')
+    main.write_text(text.replace(worker, replacement, 1))
+    if fm6_pair:
+        shutil.copyfile(source / "firmware/devkit/fm6_pair_sdk.h", app / "fm6_pair_sdk.h")
     shutil.copyfile(source / "firmware/devkit/renderer_live.h", app / "renderer_live.h")
     shutil.copyfile(source / "firmware/devkit/renderer_timing.h", app / "renderer_timing.h")
     shutil.copyfile(source / "firmware/devkit/arithmetic_probe.h", app / "arithmetic_probe.h")
@@ -449,6 +455,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Unexpected SDK build structure; review renderer integration")
     # Defines must precede the immediate := snapshot for the DAC callback.
     renderer_flags = ""
+    if fm6_pair:
+        renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_DEVKIT_FM6_SDK=1\n"
     if workload == "keys":
         renderer_flags += "CFLAGS += -DLUNAR_RENDERER_WORKLOAD=1\n"
     if timing_only:
@@ -472,6 +480,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
                        "; four sounds/tracks, inserts, master effects, modulation and control edits",
         "timing_only": timing_only,
         "render_profile": profile,
+        "fm6_pair": fm6_pair,
+        "fm6_pair_budget_ticks": 24000000 * 64 // 44100 if fm6_pair else 0,
+        "fm6_pair_lifetime_ms": 120000 if fm6_pair else 0,
         "hot_ram_sources": hot_inputs,
         "msfa_pure_unroll": msfa_pure_unroll,
         "msfa_pure_unroll_original_sha256": pure_unroll_input,
@@ -574,5 +585,7 @@ if __name__ == "__main__":
                         help="Compare explicit 32-bit FM sums in private copies; timing-only hot code")
     parser.add_argument("--dispatch-ram", action="store_true",
                         help="Compare sequencer event walk and slot dispatch in SRAM; requires timing-only resident mixer")
+    parser.add_argument("--fm6-pair", action="store_true",
+                        help="Finite CPU1 copied FM6 jobs; timing-only profiled hot code, no DAC")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair)

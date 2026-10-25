@@ -461,3 +461,84 @@ int main(void) {
                     str(harness), str(control),
                     str(ROOT / 'firmware/devkit/boot_command.c'), '-o', str(exe)], check=True)
     subprocess.run([str(exe)], check=True, capture_output=True)
+
+
+@pytest.mark.parametrize('workload', ['mixed', 'keys'])
+def test_copied_kernel_attachment_preserves_full_renderer_pcm(tmp_path, monkeypatch, workload):
+    extra = os.environ.get('FM1_SIM_EXTRA', '') + (
+        ' -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_MAILBOX_HOST_TEST=1 -pthread')
+    if workload == 'keys':
+        extra += ' -DLUNAR_RENDERER_WORKLOAD=1'
+    monkeypatch.setenv('FM1_SIM_EXTRA', extra)
+    target = build_reference(MODULES)
+    baseline = tmp_path / 'baseline.pcm'
+    subprocess.run([str(target), str(baseline)], check=True, capture_output=True)
+    expected = hashlib.sha256(baseline.read_bytes()[:4 * 5513 * 64 * 4]).hexdigest()
+    source = tmp_path / 'attach.cc'
+    source.write_text(r'''
+#include "renderer_live.h"
+#include "fm6_pair_bridge.h"
+#include <atomic>
+#include <cassert>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <thread>
+static unsigned calls;
+static uint32_t now() {
+    std::this_thread::yield(); // host scheduling only, not target timing evidence
+    return (uint32_t)std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+static int serial(void *, fm1_dx7_kernel_job_t jobs[2]) {
+    ++calls;
+    return fm1_dx7_compute_kernel(&jobs[0]) && fm1_dx7_compute_kernel(&jobs[1]);
+}
+static int reject(void *, fm1_dx7_kernel_job_t jobs[2]) {
+    ++calls;
+    std::memset(jobs, 0xa5, 2 * sizeof *jobs);
+    return 0; // mutated copies must be discarded without advancing envelopes twice
+}
+int main(int argc, char **argv) {
+    assert(argc == 3);
+    const int mode = std::atoi(argv[1]);
+    fm1_dx7_kernel_adapter_t invalid = {0, 0};
+    assert(!lunar_devkit_renderer_kernel_adapter(&invalid));
+    assert(lunar_devkit_renderer_kernel_adapter(0));
+    fm1_dx7_kernel_adapter_t synchronous = {mode == 1 ? serial : reject, 0};
+    std::atomic<bool> run(true);
+    std::thread worker;
+    if (!mode) {
+        assert(lunar_fm6_pair_init(now, 1000000u));
+        worker = std::thread([&] { while (run.load()) lunar_fm6_pair_worker_step(); });
+    }
+    assert(lunar_devkit_renderer_kernel_adapter(mode ? &synchronous : lunar_fm6_pair_adapter()));
+    assert(lunar_devkit_renderer_init());
+    assert(!lunar_devkit_renderer_kernel_adapter(0)); // cannot detach during a live render
+    FILE *out = std::fopen(argv[2], "wb"); assert(out);
+    int16_t pcm[256];
+    for (unsigned b = 0; b < 4 * 5513u; ++b) {
+        lunar_devkit_renderer_render(pcm);
+        for (unsigned i = 0; i < 64; ++i)
+            assert(std::fwrite(pcm + 4 * i, 4, 1, out) == 1);
+    }
+    assert(!std::fclose(out));
+    struct lunar_renderer_status status;
+    lunar_devkit_renderer_status(&status);
+    assert(status.completed_cases == 4 && !status.invalid && !status.clipped);
+    run.store(false);
+    if (worker.joinable()) worker.join();
+    if (!mode) assert(lunar_fm6_pair_completed() > 100 && !lunar_fm6_pair_disabled());
+    else assert(calls > 100);
+}
+''')
+    objects = sorted(str(p) for p in target.parent.rglob('*.o') if p.name != 'renderer_reference.o')
+    exe = tmp_path / 'attach'
+    subprocess.run([os.environ.get('FM1_SIM_CXX', 'c++'), '-std=c++11', '-O2', '-pthread',
+                    '-I' + str(ROOT / 'firmware/devkit'), '-I' + str(ROOT / 'engines/include'),
+                    str(source), *objects, '-lm', '-o', str(exe)], check=True)
+    for mode in (0, 1, 2):
+        pcm = tmp_path / f'attach-{mode}.pcm'
+        subprocess.run([str(exe), str(mode), str(pcm)], check=True, timeout=120)
+        assert hashlib.sha256(pcm.read_bytes()).hexdigest() == expected

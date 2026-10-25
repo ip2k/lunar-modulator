@@ -23,6 +23,10 @@ struct lunar_renderer_status {
 /* One audio owner, initialized before DAC start. Status must be copied with
  * that IRQ excluded. Initialization failure refuses output, not a smaller kit. */
 int lunar_devkit_renderer_init(void);
+struct fm1_dx7_kernel_adapter;
+/* Diagnostic audio owner, before init only. Adapter storage must be permanent;
+ * NULL retains the normal sequential path. Refused after successful init. */
+int lunar_devkit_renderer_kernel_adapter(const struct fm1_dx7_kernel_adapter *adapter);
 void lunar_devkit_renderer_render(int16_t *four_channel_64_frames);
 void lunar_devkit_renderer_status(struct lunar_renderer_status *out);
 #ifdef LUNAR_RENDERER_PROFILE

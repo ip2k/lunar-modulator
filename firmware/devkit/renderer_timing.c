@@ -2,6 +2,9 @@
 #include "renderer_timing.h"
 #include <stddef.h>
 #include <string.h>
+#ifdef LUNAR_DEVKIT_FM6_SDK
+#include "fm6_pair_sdk.h"
+#endif
 
 #define CASE_BLOCKS ((8u * 44100u + 63u) / 64u)
 #define BUDGET_TICKS (24000000u * 64u / 44100u)
@@ -20,6 +23,9 @@ int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
         result.test_case = c;
         result.min_ticks = UINT32_MAX;
         for (unsigned b = 0; b < CASE_BLOCKS; ++b) {
+#ifdef LUNAR_DEVKIT_FM6_SDK
+            lunar_fm6_sdk_parent_block();
+#endif
             uint32_t start = now();
             lunar_devkit_renderer_render(samples);
             /* Unsigned subtraction handles the 24 MHz timer wrap. */

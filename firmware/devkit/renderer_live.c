@@ -3,6 +3,7 @@
  * No SDK, logging, allocation or DAC dependency in this translation unit. */
 #include "renderer_live.h"
 #include "fm1_app.h"
+#include "fm1_dx7_kernel.h"
 #include <string.h>
 
 #if !FM1_APP_EXTERNAL_ARENAS
@@ -20,6 +21,12 @@ static unsigned char pool[POOL_BYTES] FM1_APP_ALIGN16;
 static struct lunar_renderer_status state;
 static uint32_t case_block, startup_frames, hash;
 static int ready;
+static const fm1_dx7_kernel_adapter_t *kernel_adapter;
+int lunar_devkit_renderer_kernel_adapter(const fm1_dx7_kernel_adapter_t *adapter) {
+    if (ready || (adapter && !adapter->render_pair)) return 0;
+    kernel_adapter = adapter;
+    return 1;
+}
 static const unsigned voices[] = {1, 4, 8, 12};
 static int units[8];
 static unsigned active_units;
@@ -125,6 +132,9 @@ int lunar_devkit_renderer_init(void) {
     if (fm1_app_init_arenas(&app, (float)RATE, arenas)) { state.init_error = 3; return 0; }
     for (unsigned i = 0; i < active_units; ++i)
         if (fm1_app_select(&app, units[i], fm1_app_find(ids[i]))) { state.init_error = 4 + i; return 0; }
+    for (unsigned i = 0; i < active_units; ++i)
+        if (!strcmp(ids[i], "dx7"))
+            fm1_dx7_set_kernel_adapter(app.unit[units[i]].self, kernel_adapter);
     state.arena_bytes = (uint32_t)used;
     /* Fixed patches/models and modest wet levels for the named arrangement. */
     fm1_app_set_param(&app, units[0], 0, 19); /* electric piano */

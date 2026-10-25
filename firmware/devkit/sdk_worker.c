@@ -4,6 +4,9 @@
 #include "os/os_api.h"
 #include "asm/includes.h"
 #include "benchmark.h"
+#ifdef LUNAR_DEVKIT_FM6_SDK
+#include "fm6_pair_sdk.h"
+#endif
 #if defined(LUNAR_DEVKIT_RENDERER_TIMING) || defined(LUNAR_DEVKIT_RENDERER_AUDIO)
 #include "renderer_live.h"
 #endif
@@ -23,6 +26,9 @@ extern void malloc_stats(void);
 static void renderer_yield(void) { os_time_dly(1); }
 static void emit_renderer(const struct lunar_renderer_timing *r)
 {
+#ifdef LUNAR_DEVKIT_FM6_SDK
+    lunar_fm6_sdk_report(r->test_case);
+#endif
     printf("\nLUNAR_RENDERER_TIMING case=%u blocks=%u min=%u max=%u mean=%u over=%u controls=%u arena=%u invalid=%u clipped=%u hash=%08x\n",
            r->test_case, r->blocks, r->min_ticks, r->max_ticks,
            (unsigned)(r->ticks / r->blocks), r->over_budget, r->state.controls,
@@ -143,7 +149,21 @@ void lunar_devkit_worker(void *unused)
 #endif
     puts("LUNAR_RENDERER_HEAP before_init=1\n");
     malloc_stats();
-    printf("LUNAR_DEVKIT complete=%d\n", lunar_devkit_renderer_timing(now, renderer_yield, emit_renderer));
+#ifdef LUNAR_DEVKIT_FM6_SDK
+    if (!lunar_fm6_sdk_start(now)) {
+        puts("LUNAR_DEVKIT ERROR fm6_pair_start\n");
+        /* Worker might be late: retain its timer and permanent storage. */
+        for (;;) os_time_dly(100);
+    }
+#endif
+    int complete = lunar_devkit_renderer_timing(now, renderer_yield, emit_renderer);
+#ifdef LUNAR_DEVKIT_FM6_SDK
+    if (!lunar_fm6_sdk_finish()) {
+        puts("LUNAR_DEVKIT ERROR fm6_pair_finish\n");
+        for (;;) os_time_dly(100);
+    }
+#endif
+    printf("LUNAR_DEVKIT complete=%d\n", complete);
 #elif defined(LUNAR_DEVKIT_AUDIO_PROBE)
     lunar_devkit_audio_probe();
 #elif defined(LUNAR_DEVKIT_FM6_BENCHMARK)

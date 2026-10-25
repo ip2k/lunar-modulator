@@ -6,6 +6,19 @@ DEVKIT_RENDERER_OBJ = $(SIM_APP_OBJ) $(SIM_ENGINE_OBJ) $(SIM_META_OBJ) \
   $(BUILD)/devkit/renderer_live.o $(BUILD)/devkit/renderer_timing.o \
   $(BUILD)/devkit/arithmetic_probe.o
 
+ifneq ($(filter -DLUNAR_DEVKIT_FM6_PAIR=1,$(EXTRA)),)
+DEVKIT_RENDERER_OBJ += $(BUILD)/devkit/fm6_pair_bridge.o $(BUILD)/devkit/fm6_pair_mailbox.o
+endif
+ifneq ($(filter -DLUNAR_DEVKIT_FM6_SDK=1,$(EXTRA)),)
+DEVKIT_RENDERER_OBJ += $(BUILD)/devkit/fm6_pair_sdk.o
+# SDK headers use GNU asm spelling. Keep the shared renderer strictly C99.
+$(BUILD)/devkit/fm6_pair_sdk.o: SIM_CFLAGS += -std=gnu99
+endif
+
+$(BUILD)/devkit/%.o: $(DEVKIT)/%.cc
+	@mkdir -p $(dir $@)
+	$(CXX) $(COMMON) $(OUR_WARN) -I$(DEVKIT) -c $< -o $@
+
 $(BUILD)/devkit/%.o: $(DEVKIT)/%.c
 	@mkdir -p $(dir $@)
 	$(CC) $(SIM_CFLAGS) -I$(DEVKIT) -c $< -o $@
