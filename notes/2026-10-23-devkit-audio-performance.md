@@ -3426,3 +3426,33 @@ hardware acceptance. Rarefaction still indexes the primary checkout rather than
 this worktree; Serena diagnostics resolve this actual worktree but lack its
 engine include path. File inspection plus actual vendor/host compiles cover
 this bounded change, not an assertion of complete language-server coverage.
+
+### Ring phase measurements — hardware pacing FAIL, 2026-10-25
+
+[verified] Candidate 43b911a8 completed its UART-only WINDOW/RUN cycle. Fresh
+startup ready and PING/ARM/ENTER completed within 77.808 ms. Fresh ROM inquiry,
+two full matching new-image backups, factory restore and same-image installation
+with full readback passed. Both reset receipts were consumed once.
+
+[verified] All 413607 blocks completed and were consumed in 600010 ms, with
+zero CRC/data/sequence errors, abort=0 and exited=1. Every producer block ran on
+CPU0 and every worker block on CPU1; peak depth was two. Unused stack was
+968/1024 worker words and 1911/2048 parent words. Four finite arithmetic rows
+matched across cores.
+
+[verified, FAIL] The unchanged strict parser rejected 2780 late blocks, with
+maximum publication lag 50064 ticks. Producer mean measured work was 44.302592
+microseconds, maximum 50058 ticks (2085.75 microseconds); worker mean was
+43.406808 microseconds, maximum 1341 ticks (55.875 microseconds). The worst
+producer block started only two ticks late, so that delay occurred inside its
+measured work interval. Maximum pre-compute start lag was also 48944 ticks.
+These are wall intervals including preemption/interrupt/cache stalls; the
+receipt does not identify the cause. Task pacing failure is not proof of DAC
+IRQ failure, and intact data is not audio acceptance. No DAC/KA6 capture ran.
+
+[verified] The exact RX process identity was checked twice, terminated and its
+session became terminal before ordinary post-run PING acknowledged. Board43b9
+is healthy idle. Private UART SHA-256:
+5ab5798b47fa753bd3e54a39331dbae69f8e95e2565e36fd6c66f9f1ccae0184.
+The actual shared renderer's deadline failures and all analog acceptance remain
+open. Do not weaken the ring gate or claim a scheduling cause from these data.
