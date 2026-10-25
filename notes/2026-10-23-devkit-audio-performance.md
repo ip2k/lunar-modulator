@@ -3397,3 +3397,32 @@ It is admitted offline only; no new installation or hardware acceptance yet.
 phase row cannot override a failed pacing receipt. The first test invocation
 mounted the wrong parent for the private pytest libraries and collected no
 tests; the corrected parent mount produced the passing result.
+
+### Permanent FM6 C bridge — offline only, 2026-10-25
+
+[implemented] A C-callable, one-time initializer constructs the copied-job
+mailbox in aligned permanent storage, with an immutable adapter and separate
+worker step. Invalid bounds and every reinitialization attempt are refused.
+There is no heap allocation, global constructor, SDK task creation, renderer
+attachment or device operation. Getters are audio-owner only; initialization
+must finish before the worker starts. No current diagnostic image includes it.
+
+[verified, host] All 18 mailbox fault/lifecycle and actual kernel differential
+checks pass. A new bridge test covers refusal before initialization, repeated
+initialization, successful result import, permanent timeout, late completion
+after caller storage reuse, and unchanged adapter lifetime. That exact test
+also passes ASan/UBSan without reports. Prior mailbox two-thread PCM coverage
+remains part of the 18-check run.
+
+[verified, object only] The pi32v2 r3 O2 C++11 object contains 448-byte mailbox
+storage and no initializer/constructor section. Its only undefined symbols are
+mailbox constructor/RenderPair/WorkerStep; there is no allocator or guard helper.
+Generated init validates bounds and stores the mailbox pointer after construction.
+The first compile omitted the SDK C++ include paths and failed on <new>; the
+corrected SDK-header compile passes. Objdump relocation names are Unknown in
+this object, so symbol-table inspection checked dependencies independently.
+This is not final linked layout, target ABI/performance, task readiness or
+hardware acceptance. Rarefaction still indexes the primary checkout rather than
+this worktree; Serena diagnostics resolve this actual worktree but lack its
+engine include path. File inspection plus actual vendor/host compiles cover
+this bounded change, not an assertion of complete language-server coverage.

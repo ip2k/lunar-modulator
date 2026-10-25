@@ -73,3 +73,54 @@ int main() {
                     str(ROOT/'firmware/devkit/fm6_pair_mailbox.cc'), '-o', str(exe)],
                    check=True, capture_output=True, text=True)
     subprocess.run([str(exe)], check=True, timeout=10)
+
+
+def test_bridge_one_time_lifetime_and_late_worker(tmp_path):
+    source = tmp_path / 'bridge.cc'
+    source.write_text(r'''
+#include "fm6_pair_bridge.h"
+#include <cassert>
+#include <cstring>
+extern "C" int fm1_dx7_compute_kernel(fm1_dx7_kernel_job_t *job) {
+  ++job->op[0].phase; return 1;
+}
+static unsigned ticks;
+static bool work=true;
+static uint32_t tick() {
+  if (work) lunar_fm6_pair_worker_step();
+  return ticks++;
+}
+int main() {
+  assert(!lunar_fm6_pair_adapter() && lunar_fm6_pair_worker_step()==-1);
+  assert(lunar_fm6_pair_disabled() && !lunar_fm6_pair_completed());
+  assert(!lunar_fm6_pair_init(0,20) && !lunar_fm6_pair_init(tick,0));
+  assert(!lunar_fm6_pair_init(tick,0x80000000u));
+  assert(lunar_fm6_pair_init(tick,20));
+  const fm1_dx7_kernel_adapter_t *adapter=lunar_fm6_pair_adapter();
+  assert(adapter && !lunar_fm6_pair_init(tick,20));
+  fm1_dx7_kernel_job_t jobs[2]={};
+  assert(adapter->render_pair(adapter->ctx,jobs));
+  assert(jobs[0].op[0].phase==1 && jobs[1].op[0].phase==1);
+  assert(lunar_fm6_pair_completed()==1 && !lunar_fm6_pair_disabled());
+  work=false;
+  assert(!adapter->render_pair(adapter->ctx,jobs));
+  assert(lunar_fm6_pair_disabled() && lunar_fm6_pair_completed()==1);
+  assert(jobs[1].op[0].phase==1);
+  std::memset(jobs,0xa5,sizeof jobs);
+  fm1_dx7_kernel_job_t sentinel[2];std::memcpy(sentinel,jobs,sizeof jobs);
+  assert(lunar_fm6_pair_worker_step()==1 && lunar_fm6_pair_worker_step()==0);
+  assert(!std::memcmp(sentinel,jobs,sizeof jobs));
+  assert(!lunar_fm6_pair_init(tick,20));
+  assert(lunar_fm6_pair_adapter()==adapter);
+  assert(!adapter->render_pair(adapter->ctx,jobs));
+  return 0;
+}
+''')
+    exe = tmp_path / 'bridge-test'
+    subprocess.run(['c++', '-std=c++11', '-O2', '-Wall', '-Wextra', '-Werror',
+                    '-DLUNAR_MAILBOX_HOST_TEST', '-I'+str(ROOT/'firmware/devkit'),
+                    '-I'+str(ROOT/'engines/include'), str(source),
+                    str(ROOT/'firmware/devkit/fm6_pair_mailbox.cc'),
+                    str(ROOT/'firmware/devkit/fm6_pair_bridge.cc'), '-o', str(exe)],
+                   check=True, capture_output=True, text=True)
+    subprocess.run([str(exe)], check=True, timeout=10)
