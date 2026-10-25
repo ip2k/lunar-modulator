@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "fc97b60d07562311f985b956e4d22994527759adda62fab15eb753b8538f562c",
-  "wasm_bytes": 1586298,
+  "wasm_sha256": "a09698b1b4d23f7f7b246c39924beab975ba6b3010f9b9c3e0aaf305ae9fbfb7",
+  "wasm_bytes": 1587605,
   "sources_sha256": {
-    "engines": "60833ba99aa2f64b71b1bcb0412a36fce3ffd54a642789b8a2a6184635272698",
+    "engines": "ef10f7042de65fd4489130e2eea89db35b65c3c671abdeef6a41b6faf0e7890f",
     "sim": "945517adeefb32b187776699fd157f1051dcc2e66a08375ba8e75be96fbdfda5"
   },
   "engines": "working tree",
-  "built": "2026-10-25T15:35:39Z",
+  "built": "2026-10-25T16:12:25Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -83,12 +83,12 @@
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "meta": {
-    "meta_id": "fbd3d320",
-    "module_meta_id": "fbd3d320",
+    "meta_id": "02ae6810",
+    "module_meta_id": "02ae6810",
     "bytes": 255480,
     "lunar": "1.3",
-    "native_meta_id": "7b8200b9",
-    "ram_differ_at_64_bits": 9,
+    "native_meta_id": "a077a566",
+    "ram_differ_at_64_bits": 10,
     "passed": true
   },
   "dx7_sysex": {
@@ -180,10 +180,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.06463299999995797,
-      "p99_ms": 0.100972999999982,
-      "max_ms": 0.29381100000000515,
-      "edit_us_per_quantum": 9.2289901363511
+      "p50_ms": 0.06407199999989643,
+      "p99_ms": 0.09860799999998449,
+      "max_ms": 2.3533320000000018,
+      "edit_us_per_quantum": 9.465917319408227
     },
     "check": {
       "params": 474,
@@ -488,8 +488,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 96260,
-        "native64": 96788
+        "wasm32": 96264,
+        "native64": 96800
       }
     },
     {
@@ -516,8 +516,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 91524,
-        "native64": 92036
+        "wasm32": 91528,
+        "native64": 92048
       }
     },
     {
@@ -544,8 +544,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 157252,
-        "native64": 157764
+        "wasm32": 157256,
+        "native64": 157776
       }
     },
     {
@@ -572,8 +572,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 91524,
-        "native64": 92036
+        "wasm32": 91528,
+        "native64": 92048
       }
     },
     {
@@ -2764,8 +2764,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 91524,
-        "native64": 92036
+        "wasm32": 91528,
+        "native64": 92048
       }
     },
     {
@@ -3430,8 +3430,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 197836,
-        "native64": 212980
+        "wasm32": 197840,
+        "native64": 212992
       }
     },
     {
@@ -3458,8 +3458,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 189788,
-        "native64": 204932
+        "wasm32": 189792,
+        "native64": 204944
       },
       "cmd": "seq/repeat-hold.verbs",
       "seq": {
@@ -3495,8 +3495,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 277532,
-        "native64": 303964
+        "wasm32": 277536,
+        "native64": 303976
       },
       "cmd": "state/play.verbs",
       "seq": {

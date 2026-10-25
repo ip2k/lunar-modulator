@@ -3022,3 +3022,51 @@ The first two standalone probe attempts lacked SDK/MSFA include paths; the
 third compiled and exported these constants with the vendor compiler.
 These sizes establish neither parallel correctness nor available task headroom.
 No parallel implementation or target experiment has been made.
+
+### FM6 copied-kernel adapter — offline development
+
+[verified, source/vendor code] Whole-voice asynchronous rendering would expose
+mutable frequency and pitch-envelope rate globals to late jobs. The operator
+kernel reads the lifetime-static sine table, copied parameters and feedback,
+and private FmCore scratch instead. A private host experiment compared 512
+independent jobs, each 128 blocks, across all 32 algorithms and eight feedback
+settings: concurrent PCM hashes, final PCM, parameters and feedback match
+sequential execution. The host scratch/job total is 904 bytes. This does not
+establish CPU1 timing, coherence or available task memory.
+
+[verified, vendor code] A standalone acquire-load/release-store probe with the
+pinned vendor compiler emits runtime calls, despite reporting 32-bit atomics
+lock-free. The runtime helpers call `__rt_local_irq_disable/enable`; the linked
+SDK implementation disables local interrupts and takes the global `bt_lock`
+with an unbounded testset loop. They are unsuitable for a bounded audio wait.
+SDK semaphore wakeup is available; its tick-based wait is too coarse for the
+audio deadline. The verification ladder's CPU1 publication/coherence and pinning
+cases remain required. No new device traffic or CPU1 test has occurred.
+
+[implemented, offline only] FM6 now offers an opt-in copied-kernel pair adapter.
+Preparation remains on the parent audio task, each envelope advances once,
+and gain/mixing/retirement retain ascending voice order. The adapter receives
+copies without engine pointers. A rejected result is discarded, and sequential
+fallback uses the already prepared live parameters. Backends must complete
+within a bound and stop accessing the call's jobs before returning; any late
+work must own independent storage. The default has no adapter attached.
+The focused native suite passed all 155 tests, including 12 new differential
+cases at 16385/44118/96000/384000 Hz for concurrent, partially computed rejected,
+and stalled jobs released after engine destruction. Initial build access and
+unsupported 8 kHz test setup errors were fixed before that successful rerun.
+The same 12 cases passed ASan+UBSan, including releasing a stalled copied job
+only after destroying and freeing its engine. Full prepared keys and mixed
+replays retain their prior PCM SHA-256 values (b62e14e1… and c676e9b4…).
+The private vendor build passes: Instance grows from 16188 to 16192 bytes;
+RenderPair reserves 772 bytes plus 52 bytes of saved registers. This is static
+code-generation evidence, not measured target stack headroom. No backend is
+attached, and no new image has been admitted or installed.
+
+The rebuilt default browser module (SHA-256 a09698b1…) passes all 108 parity
+cases and a 30-second edit storm with zero late quanta. A subsequent desktop
+harness-only null-allocation check changes the broad engine provenance hash;
+the module predates that test-only edit, while its simulator hash still matches.
+The prior pushed fc4476fa CI run 40209299831 finished with all 13 jobs passing;
+its Pages build succeeded, deployment skipped for the feature branch.
+The board remains on 49ef, with its deadline failures; no adapter speedup,
+DAC/KA6 or soak acceptance is claimed. PR155 remains draft and unmerged.

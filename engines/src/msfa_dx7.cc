@@ -58,6 +58,7 @@
 
 #include "fm1_engine.h"
 #include "fm1_dx7.h"
+#include "fm1_dx7_kernel.h"
 #include "fm1_smooth.h"
 #include "glide.h"
 #include "note_offsets.h"
@@ -238,6 +239,10 @@ int32_t Clamp32(int64_t x, int32_t lo, int32_t hi) {
 
 class Instance {
  public:
+  void SetKernelAdapter(const fm1_dx7_kernel_adapter_t *adapter) {
+    kernel_adapter_ = adapter && adapter->render_pair ? adapter : NULL;
+  }
+
   // Called right after the instance is value-initialised (zeroed) in
   // Create, so every member starts at zero; Init sets the rest.
   void Init(const fm1_host_t *host) {
@@ -593,34 +598,87 @@ class Instance {
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
       if (!v.active) continue;
-      RenderVoice(&v, lfo_val, lfo_delay);
-      bool silent = true;
-      for (int k = 0; k < kN; ++k) {
-        if (vbuf_[k]) { silent = false; break; }
-      }
-      const float vol = v.note.Value(kParams, P_VOLUME, value_[P_VOLUME]);
-      const int32_t g1 = static_cast<int32_t>(vol * 65536.0f);   // 0..65536
-      const int32_t g0 = v.gain_q16 < 0 ? g1 : v.gain_q16;
-      v.gain_q16 = g1;
-      if (!silent) {
-        const int32_t dg = g1 - g0;
-        for (int k = 0; k < kN; ++k) {
-          const int32_t g = g0 + ((dg * (k + 1)) >> kLgN);
-          mix[k] += static_cast<int32_t>((static_cast<int64_t>(vbuf_[k]) * g) >> kVoiceShift);
+      if (kernel_adapter_) {
+        int next = i + 1;
+        while (next < kNumVoices && !voice_[next].active) ++next;
+        if (next < kNumVoices) {
+          RenderPair(v, voice_[next], lfo_val, lfo_delay, mix);
+          i = next;
+          continue;
         }
       }
-      v.silent_blocks = (!v.gate && Quiet(v)) ? v.silent_blocks + 1 : 0;
-      if (v.silent_blocks > silent_after_release_) {
-        v.active = false;
-        v.note.Clear();
-      }
+      RenderVoice(&v, lfo_val, lfo_delay);
+      MixVoice(v, vbuf_, mix);
     }
     for (int k = 0; k < kN; ++k) out_[k] = static_cast<float>(mix[k]) * kOutScale;
+  }
+
+  void MixVoice(Voice &v, const int32_t *buffer, int32_t *mix) {
+    bool silent = true;
+    for (int k = 0; k < kN; ++k) {
+      if (buffer[k]) { silent = false; break; }
+    }
+    const float vol = v.note.Value(kParams, P_VOLUME, value_[P_VOLUME]);
+    const int32_t g1 = static_cast<int32_t>(vol * 65536.0f);   // 0..65536
+    const int32_t g0 = v.gain_q16 < 0 ? g1 : v.gain_q16;
+    v.gain_q16 = g1;
+    if (!silent) {
+      const int32_t dg = g1 - g0;
+      for (int k = 0; k < kN; ++k) {
+        const int32_t g = g0 + ((dg * (k + 1)) >> kLgN);
+        mix[k] += static_cast<int32_t>((static_cast<int64_t>(buffer[k]) * g) >> kVoiceShift);
+      }
+    }
+    v.silent_blocks = (!v.gate && Quiet(v)) ? v.silent_blocks + 1 : 0;
+    if (v.silent_blocks > silent_after_release_) {
+      v.active = false;
+      v.note.Clear();
+    }
+  }
+
+  static void ExportKernel(const Voice &v, int shift, fm1_dx7_kernel_job_t &job) {
+    for (int op = 0; op < 6; ++op) {
+      job.op[op].gain[0] = v.params[op].gain[0];
+      job.op[op].gain[1] = v.params[op].gain[1];
+      job.op[op].freq = v.params[op].freq;
+      job.op[op].phase = v.params[op].phase;
+    }
+    job.feedback[0] = v.fb_buf[0]; job.feedback[1] = v.fb_buf[1];
+    job.algorithm = v.algorithm & 31; job.feedback_shift = shift;
+    for (int k = 0; k < kN; ++k) job.output[k] = 0;
+  }
+
+  static void ImportKernel(Voice &v, const fm1_dx7_kernel_job_t &job) {
+    // Only kernel-owned state is committed; preparation and note state stay here.
+    for (int op = 0; op < 6; ++op) v.params[op].phase = job.op[op].phase;
+    v.fb_buf[0] = job.feedback[0]; v.fb_buf[1] = job.feedback[1];
+  }
+
+  void RenderPair(Voice &first, Voice &second, int32_t lfo_val,
+                  int32_t lfo_delay, int32_t *mix) {
+    const int shifts[2] = { PrepareVoice(&first, lfo_val, lfo_delay),
+                            PrepareVoice(&second, lfo_val, lfo_delay) };
+    fm1_dx7_kernel_job_t jobs[2];
+    ExportKernel(first, shifts[0], jobs[0]);
+    ExportKernel(second, shifts[1], jobs[1]);
+    if (kernel_adapter_->render_pair(kernel_adapter_->ctx, jobs)) {
+      ImportKernel(first, jobs[0]); ImportKernel(second, jobs[1]);
+      MixVoice(first, jobs[0].output, mix);
+      MixVoice(second, jobs[1].output, mix);
+    } else {
+      // Callback output is untrusted on rejection; envelopes already advanced.
+      RunVoiceKernel(&first, shifts[0]); MixVoice(first, vbuf_, mix);
+      RunVoiceKernel(&second, shifts[1]); MixVoice(second, vbuf_, mix);
+    }
   }
 
   // One msfa block of voice v into vbuf_, as Dx7Note::compute, plus the
   // amplitude modulation, the macros and the loops of algorithms 4 and 6.
   void RenderVoice(Voice *v, int32_t lfo_val, int32_t lfo_delay) {
+    RunVoiceKernel(v, PrepareVoice(v, lfo_val, lfo_delay));
+  }
+
+  int PrepareVoice(Voice *v, int32_t lfo_val, int32_t lfo_delay) {
     const float bright = v->note.Value(kParams, P_BRIGHTNESS, value_[P_BRIGHTNESS]);
     const float env_time = v->note.Value(kParams, P_ENV_TIME, value_[P_ENV_TIME]);
     const float fb_offset = v->note.Value(kParams, P_FEEDBACK, value_[P_FEEDBACK]);
@@ -670,10 +728,13 @@ class Instance {
 
     int fb = v->feedback + Round(fb_offset);
     fb = fb < 0 ? 0 : (fb > 7 ? 7 : fb);
-    const int fb_shift = fb ? 8 - fb : 16;
+    return fb ? 8 - fb : 16;
+  }
+
+  void RunVoiceKernel(Voice *v, int fb_shift) {
     for (int k = 0; k < kN; ++k) vbuf_[k] = 0;
     const int alg = v->algorithm & 31;
-    if (fb && (alg == 3 || alg == 5)) {
+    if (fb_shift < 16 && (alg == 3 || alg == 5)) {
       RenderWithLoop(&core_, v->params, alg, alg == 3 ? 3 : 2, fb_shift, v->fb_buf, vbuf_);
     } else {
       core_.compute(vbuf_, v->params, alg, v->fb_buf, fb_shift);
@@ -685,6 +746,7 @@ class Instance {
     return x >= 0.0f ? static_cast<int>(x + 0.5f) : -static_cast<int>(0.5f - x);
   }
 
+  const fm1_dx7_kernel_adapter_t *kernel_adapter_;  // optional, host-owned
   FmCore core_;                   // msfa's algorithm runner (its buses are scratch)
   Lfo lfo_;                       // one LFO, as on the keyboards
   Voice voice_[kNumVoices];
@@ -774,4 +836,29 @@ extern "C" int fm1_dx7_get_user_voice(const void *self, unsigned slot,
 extern "C" int fm1_dx7_set_user_voice(void *self, unsigned slot,
                                       const uint8_t vced[FM1_DX7_VCED_BYTES]) {
   return static_cast<fm1::dx7::Instance *>(self)->SetUserVoice(slot, vced);
+}
+
+extern "C" void fm1_dx7_set_kernel_adapter(void *self,
+    const fm1_dx7_kernel_adapter_t *adapter) {
+  static_cast<fm1::dx7::Instance *>(self)->SetKernelAdapter(adapter);
+}
+
+extern "C" int fm1_dx7_compute_kernel(fm1_dx7_kernel_job_t *job) {
+  if (!job || job->algorithm < 0 || job->algorithm > 31 ||
+      job->feedback_shift < 1 || job->feedback_shift > 16) return 0;
+  fm1_msfa::FmCore core;
+  fm1_msfa::FmOpParams params[6];
+  for (int op = 0; op < 6; ++op) {
+    params[op].gain[0] = job->op[op].gain[0];
+    params[op].gain[1] = job->op[op].gain[1];
+    params[op].freq = job->op[op].freq;
+    params[op].phase = job->op[op].phase;
+  }
+  for (int k = 0; k < 64; ++k) job->output[k] = 0;
+  if (job->feedback_shift < 16 && (job->algorithm == 3 || job->algorithm == 5))
+    fm1::dx7::RenderWithLoop(&core, params, job->algorithm,
+        job->algorithm == 3 ? 3 : 2, job->feedback_shift, job->feedback, job->output);
+  else core.compute(job->output, params, job->algorithm, job->feedback, job->feedback_shift);
+  for (int op = 0; op < 6; ++op) job->op[op].phase = params[op].phase;
+  return 1;
 }

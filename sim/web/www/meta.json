@@ -1197,7 +1197,7 @@
       "per_note": true,
       "pads": null,
       "fx_wants": [],
-      "ram": 16188,
+      "ram": 16192,
       "page_names": [
         null,
         null,
@@ -11990,5 +11990,5 @@
       }
     ]
   },
-  "meta_id": "fbd3d320"
+  "meta_id": "02ae6810"
 }
