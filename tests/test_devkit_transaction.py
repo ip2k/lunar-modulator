@@ -203,7 +203,7 @@ def test_renderer_o3_extra_sectors_are_exact_image_only(target_sha):
         assert tx.protected_equal(changed, desired, allowed) == permitted
 
 
-@pytest.mark.parametrize("target_sha", [tx.RENDERER_KEYS_TARGET_SHA, tx.RENDERER_SESSION_TARGET_SHA, tx.RENDERER_LED_GUARD_TARGET_SHA, tx.RENDERER_FM_NARROW_TARGET_SHA, tx.RENDERER_FM_SINE32_TARGET_SHA, tx.RENDERER_ROUTE_TARGET_SHA, tx.RENDERER_FM_PURE2_TARGET_SHA, tx.RENDERER_COMP_SETTLED_TARGET_SHA])
+@pytest.mark.parametrize("target_sha", [tx.RENDERER_KEYS_TARGET_SHA, tx.RENDERER_SESSION_TARGET_SHA, tx.RENDERER_LED_GUARD_TARGET_SHA, tx.RENDERER_FM_NARROW_TARGET_SHA, tx.RENDERER_FM_SINE32_TARGET_SHA, tx.RENDERER_ROUTE_TARGET_SHA, tx.RENDERER_FM_PURE2_TARGET_SHA, tx.RENDERER_COMP_SETTLED_TARGET_SHA, tx.RENDERER_FILTER_MONO_TARGET_SHA])
 def test_named_keys_image_has_its_own_narrower_bounds(target_sha):
     assert tx.RENDERER_KEYS_TARGET_SHA == 'bee9d4bc83cc78e1c1a4a40448dc4211f2d8276cb6a8cad5878c9c5d7ee2aa36'
     assert tx.RENDERER_SESSION_TARGET_SHA == '6619c671eaf054db1e7c3e8873787f7a61a54940fd6a3faceb1971d73cf9c4eb'
@@ -211,6 +211,7 @@ def test_named_keys_image_has_its_own_narrower_bounds(target_sha):
     assert tx.RENDERER_ROUTE_TARGET_SHA == 'e2fb418459789350793538d33ed82dfe5a43ade037c31211d65c84da23c40304'
     assert tx.RENDERER_FM_PURE2_TARGET_SHA == 'b8823c2a322aa47e28306ca11d423838438daa1328a393969c554ffedaf4ab98'
     assert tx.RENDERER_COMP_SETTLED_TARGET_SHA == 'f9233d22b81bcd3203e460fa602d2d2d6f00c75387347a5a997c642937f093f3'
+    assert tx.RENDERER_FILTER_MONO_TARGET_SHA == '49ef7762bf3276e5e5ec150ca6d777f285b7b83f60b0ca5f1d771d60e2314a8e'
     assert tx.RENDERER_FM_NARROW_TARGET_SHA == '5370ec631766ddee6594a8648a0840c213dd1e37637d3c064cbc4a8a2412a2ab'
     assert tx.RENDERER_LED_GUARD_TARGET_SHA == 'f6c74b7b198dd1ac5e154862e39d09dded5a2cfa6dae4613528aa63b8d545f23'
     allowed = tx.IMAGE_PLANS[target_sha]

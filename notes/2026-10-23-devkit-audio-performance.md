@@ -2972,3 +2972,18 @@ No new image is admitted or installed. Exact image/recovery/SDK/cipher/NOR
 review and hardware timing remain pending; board stays healthy on f923.
 Deadline, mixed target, fault/underrun, DAC/KA6 and 30-minute soak acceptance
 remain incomplete. PR155 stays draft and unmerged.
+
+[verified, offline admission] Exact candidate
+`49ef7762bf3276e5e5ec150ca6d777f285b7b83f60b0ca5f1d771d60e2314a8e`
+has app SHA `8ab9ac7c9acdce27ec21c4d14c55bc74c84ad17ae0678945e442af273127b8b9`,
+560316 bytes, end `0x8cddc`. Independent section exports reconstruct the app;
+SRAM copy is 81904 bytes, cache 27180, BSS 392412, pre-task heap 49228.
+Manual generated-code review confirms the UART-first 1024-word allocation,
+failure skipping the worker, 2048-word worker and 200-tick recovery window.
+Exact SDK scheduling/key-check and ROM/P33 comparison passes after verified
+relocations; linker audit has no failures, its scheduling item resolved by
+that comparison. Prepared filter source differs only by the intended RAM
+section pragmas. Independent cipher/CRC/protected bytes and 137-sector NOR
+install/restore pass, including interruption pages 7/1095/2167/2183. All 57
+transaction/reset checks pass. This hash is admitted offline only; it has not
+yet been installed or accepted on hardware.
