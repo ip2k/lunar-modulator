@@ -205,6 +205,8 @@ int main(void) {
     {'resampler_slopes': True, 'timing_only': True},
     {'plaits_cache': True},
     {'plaits_cache': True, 'timing_only': True},
+    {'dispatch_ram': True},
+    {'dispatch_ram': True, 'timing_only': True},
     {'control_ram': True},
     {'control_ram': True, 'timing_only': True},
     {'filter_process_ram': True},

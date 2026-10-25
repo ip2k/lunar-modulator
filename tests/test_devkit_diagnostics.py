@@ -41,14 +41,15 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile', 'renderer-mixer-profile', 'renderer-schedule-profile', 'renderer-keys-profile', 'renderer-keys-live'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile', 'renderer-mixer-profile', 'renderer-schedule-profile', 'renderer-keys-profile', 'renderer-keys-live', 'renderer-dispatch-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     keys = mode in ('renderer-keys-profile', 'renderer-keys-live')
     if keys:
         mode = 'renderer-mixer-profile' if mode.endswith('profile') else 'renderer'
     engine_profile = mode == 'renderer-engine-profile'
+    dispatch = mode == 'renderer-dispatch-profile'
     schedule = mode == 'renderer-schedule-profile'
-    mixer_ram = mode == 'renderer-mixer-profile' or schedule
+    mixer_ram = mode == 'renderer-mixer-profile' or schedule or dispatch
     renderer_o3 = mode == 'renderer-o3-profile' or mixer_ram
     unroll = mode == 'renderer-unroll-profile' or renderer_o3
     if engine_profile or unroll:
@@ -97,7 +98,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll, renderer_o3=renderer_o3, mixer_ram=mixer_ram, resampler_schedule=schedule, workload="keys" if keys else "mixed")
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll, renderer_o3=renderer_o3, mixer_ram=mixer_ram, resampler_schedule=schedule, workload="keys" if keys else "mixed", dispatch_ram=dispatch)
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -254,6 +255,10 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             assert prepared_tables == expected_tables
         if not plaits_cache:
             assert receipt['plaits_table_original_sha256'] == {}
+        assert receipt['dispatch_ram'] == dispatch
+        prepared_seq = (out/'lunar-source/engines/seq/seq_host.c').read_text()
+        for signature in ('static int walk_next(', 'static void dispatched(', 'static void play_slots_hook('):
+            assert ('#pragma code_seg(".volatile_ram_code")\n' + signature in prepared_seq) == dispatch
         assert receipt['mixer_ram'] == mixer_ram
         prepared_app = (out/'lunar-source/sim/web/src/fm1_app.c').read_text()
         for signature in ('static void render_fx(', 'static void render_sounds('):

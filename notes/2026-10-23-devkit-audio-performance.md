@@ -2582,3 +2582,21 @@ remains 9,140 bytes across five readings; peak worker stack is 5,548/8,192.
 The sole RX process was verified twice, terminated, and its session closed
 before ordinary post-run PING acknowledged. Private raw SHA-256:
 `b90584fd2da94af561b89c640e8fe30d7a6482a5275bc050a8f8306575ff758b`.
+
+
+### Sequencer dispatch placement comparison — offline only
+
+[verified, offline] Ten complete host keys replays under gprof locate calls
+through the sequencer slot dispatch and modulation hooks. Host time is a
+profiling lead, not pi32v2 timing. The filter's frequent coefficient updates
+are intentional control-rate smoothing and are retained. In the current
+linked target, `play_slots_hook`, `walk_next` and `dispatched` remain XIP
+and total 2,368 bytes despite the resident dispatch wrapper.
+
+An explicit `--dispatch-ram` preparation option places those three functions
+in startup-copied SRAM. It requires the existing timing-only resident mixer
+comparison. Removing placement pragmas reproduces the original sources;
+no event order, modulation cadence, samples, rates or filtering change.
+Preparation/refusal checks pass locally. Actual vendor placement, heap,
+startup recovery, PCM equivalence and target performance still require
+review and measurement. No dispatch image is admitted or installed.
