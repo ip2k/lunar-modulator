@@ -2116,3 +2116,28 @@ The Macro and drum tap loops load base/slope pairs, convert the fraction,
 multiply and add, without the old per-tap subtraction/scale multiply.
 The prepared Linux shared renderer matches all eight reference PCM hashes.
 Hardware recovery, allocation, timing and analog acceptance are pending.
+
+
+### Pre-scaled kernel — target result
+
+[verified, hardware] Slopes-v1 passed the startup recovery handshake in
+78.34 ms, responsive ROM inquiry, two identical full reads, byte-identical
+factory restore, same-image reinstall and full 8 MiB readback. Measurement
+boot completed all four arithmetic bit patterns, four expected PCM hashes,
+32 unit and 24 stage rows, with 352,832 frames per case and no invalid or
+clipped samples. Post-workload ordinary UART PING acknowledged. Both resets
+were single-use receipts; no physical button was needed.
+
+Mean block times for 1/4/8/12 FM6 voices were 3,389.875 / 3,678.167 /
+3,805.167 / 4,002.917 us; maxima 4,063.750 / 4,244.000 / 4,509.750 /
+4,778.333 us. The means are only 0.51–0.76% lower than Plaits-cache-v1 in
+this comparison. Every one of 5,513 blocks in every case still exceeds the
+approximately 1,451 us deadline. This result does not solve real-time audio.
+
+Free heap remained 14,772 bytes across five readings. Worker peak stack was
+5,544 of 8,192 bytes (662 unused words), unchanged from the preceding image.
+Private raw capture SHA-256:
+`45f2ff43e595237d3ea27433bfa4bb78daaa4619e124201ca403d5b1ba902611`.
+The DAC was disabled; no KA6 analog or sustained-soak acceptance is claimed.
+Further work must address the larger engine/effect costs rather than treating
+this small coefficient change as sufficient.
