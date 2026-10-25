@@ -1866,3 +1866,24 @@ bytes (not a device allocator measurement). It is not a drop-in replacement
 under current latency/memory constraints. No speed, spectral or chunking
 equivalence is established; no foreign code is integrated. Primary source:
 https://github.com/xiph/speexdsp/blob/7a158783df74efe7c2d1c6ee8363c1e695c71226/libspeexdsp/resample.c
+
+### Function-only filter SRAM image: offline admission
+
+[verified] The vendor filter-v1 ELF places `FiltProcess` (3,300 bytes) at
+`0x01c05404`; `FilterRender` and `FiltUpdateCoefs` remain in flash. Its five
+section exports independently match ELF contents, and all four DSP tables
+match the reviewed FX baseline. SRAM code/data is 70,384 bytes, with 48,460
+bytes of heap before task allocations; expected remaining heap is 2,420
+bytes, pending hardware measurement. UART allocation precedes the worker,
+and the 200-tick recovery window remains before arithmetic/renderer work.
+
+[verified] Link audit has zero failures. Its SDK scheduling item was resolved
+against vendor disassembly: two IRQ-123 registrations and the 8,000 ms timer.
+All three dormant SDK functions match the reviewed FX build after verifying
+call destinations and relocated pointers. Protected factory data and
+independent cipher/directory/application CRC checks pass. The NOR model
+installs/restores 135 sectors, writes metadata last, and restores after four
+injected page interruptions. Exact admitted image SHA-256:
+`cf5328fc716e97604b415fab49d5ece58b4ef4d05874504e108041de4f6fa9f7`.
+Hardware timing, heap measurement, and recovery acceptance are pending;
+this is not a demonstrated speed improvement.
