@@ -1825,3 +1825,24 @@ directory/app CRCs pass, protected factory bytes are unchanged, and the NOR
 model passes exact install/restore plus four interrupted-page restores over
 the same 135 sectors. Exact-hash admission does not establish hardware
 acceptance; startup recovery must pass before the workload runs.
+
+[verified, hardware] The outlined-resampler comparison completed four cases,
+four arithmetic results, all 32 unit/24 stage rows and unchanged PCM hashes.
+Heap is stable at 5,876 bytes across five readings; peak stack remains 5,544
+bytes of 12 KiB. Means are 3,686.75 / 3,966.917 / 4,087.875 / 4,286.125 us;
+maxima 4,506.333 / 4,574.958 / 4,770.667 / 4,926.917 us. Means are 0.29–0.55%
+slower than the effects-in-SRAM baseline: no demonstrated speed benefit. All
+5,513 blocks in every case still exceed the approximately 1,451-us deadline.
+Keep outlining optional as a measured diagnostic; do not select it as an
+optimization. DAC remains off; no analog or soak acceptance is implied.
+
+[verified] Startup ready plus all three UART acknowledgements took 78.31 ms,
+followed by responsive WL82/UBOOT1.00 ROM INQUIRY and matching full-flash reads.
+Exact factory restoration and same-image reinstall passed full readback before
+the measurement. Both outline reset receipts are consumed. Receive-only
+capture closed by its exact owned process identity, and post-workload PING
+acknowledges. Private raw SHA-256:
+`49d39b67ad576919536dc3ce998181401d2141a43bb7e981275ec538ccff6675`.
+No buttons were used. The later owner approval of the old sine-image recovery
+request was a delayed reply to an already-resolved failure; no new physical
+recovery was requested or performed.
