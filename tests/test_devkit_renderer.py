@@ -149,6 +149,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'resampler_schedule': True},
+    {'resampler_schedule': True, 'timing_only': True},
     {'mixer_ram': True},
     {'mixer_ram': True, 'timing_only': True},
     {'renderer_o3': True},

@@ -70,6 +70,31 @@ def unroll_resampler_lowpass(text):
     return text[:matches[0].start()] + '\n'.join(lines) + text[matches[0].end():]
 
 
+
+def schedule_resampler_lowpass(text):
+    """Group independent FIR work; preserve coefficients and four sum chains."""
+    expected = "\n".join(f"  y{i % 4} += h[{i}] * (e[{i}] + e[{122-i}]);" for i in range(61))
+    if text.count(expected) != 1:
+        raise ValueError("Unexpected expanded lowpass; review scheduling")
+    lines = []
+    for j in range(0, 60, 4):
+        lines.append("  {")
+        for k in range(4):
+            lines.append(f"    float p{k} = e[{j+k}] + e[{122-j-k}];")
+        # Empty read/write operands constrain scheduling without CPU operations.
+        # Consume each group before the next to avoid retaining/spilling all taps.
+        lines.append('    __asm__ volatile("" : "+r"(p0), "+r"(p1), "+r"(p2), "+r"(p3));')
+        for k in range(4):
+            lines.append(f"    float m{k} = h[{j+k}] * p{k};")
+        lines.append('    __asm__ volatile("" : "+r"(m0), "+r"(m1), "+r"(m2), "+r"(m3));')
+        for k in range(4):
+            lines.append(f"    y{k} += m{k};")
+        lines.append('    __asm__ volatile("" : "+r"(y0), "+r"(y1), "+r"(y2), "+r"(y3));')
+        lines.append("  }")
+    lines.append("  y0 += h[60] * (e[60] + e[62]);")
+    return text.replace(expected, "\n".join(lines), 1)
+
+
 def instrument_engine_profile(text, engine):
     """Observe generation/pop in private copies without changing their math."""
     if engine not in (0, 1):
@@ -90,7 +115,7 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -119,6 +144,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Lowpass unrolling requires timing-only profiled slopes without detail instrumentation")
     if renderer_o3 and not resampler_unroll:
         raise ValueError("Renderer O3 comparison requires timing-only profiled lowpass unrolling")
+    if resampler_schedule and not mixer_ram:
+        raise ValueError("FIR scheduling comparison requires timing-only resident mixer")
     if mixer_ram and not renderer_o3:
         raise ValueError("Mixer SRAM requires the timing-only profiled O3 comparison")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
@@ -301,6 +328,11 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         p = staging / "engines/include/fm1_resampler.h"
         unroll_input = hashlib.sha256(p.read_bytes()).hexdigest()
         p.write_text(unroll_resampler_lowpass(p.read_text()))
+    schedule_input = None
+    if resampler_schedule:
+        p = staging / "engines/include/fm1_resampler.h"
+        schedule_input = hashlib.sha256(p.read_bytes()).hexdigest()
+        p.write_text(schedule_resampler_lowpass(p.read_text()))
     engine_profile_inputs = {}
     if engine_profile:
         for engine, name in enumerate(("engines/src/mi_macro.cc", "engines/src/drums.cc")):
@@ -353,6 +385,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "resampler_slopes": resampler_slopes,
         "engine_profile": engine_profile,
         "resampler_unroll": resampler_unroll,
+        "resampler_schedule": resampler_schedule,
+        "resampler_schedule_original_sha256": schedule_input,
         "renderer_optimization": "-O3" if renderer_o3 else "-O2",
         "prepared_renderer_fragment_sha256": hashlib.sha256(fragment.read_bytes()).hexdigest(),
         "resampler_unroll_original_sha256": unroll_input,
@@ -368,7 +402,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "filter_process_original_sha256": filter_process_input,
         "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + ("; pre-scaled resampler kernel pairs" if resampler_slopes else "") + ("; sound mixer and effect dispatch code also SRAM" if mixer_ram else "") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + ("; pre-scaled resampler kernel pairs" if resampler_slopes else "") + ("; sound mixer and effect dispatch code also SRAM" if mixer_ram else "") + ("; independent FIR scheduling groups" if resampler_schedule else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": (136 if control_ram else 148) * 1024,
         "worker_stack_bytes": worker_stack_words * 4,
@@ -425,5 +459,7 @@ if __name__ == "__main__":
                         help="Compare renderer -O3 with SDK flags unchanged; requires profiled lowpass unrolling")
     parser.add_argument("--mixer-ram", action="store_true",
                         help="Compare sound mixer/effect dispatch in SRAM; requires timing-only profiled O3")
+    parser.add_argument("--resampler-schedule", action="store_true",
+                        help="Group independent FIR sums/products; requires timing-only resident mixer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule)

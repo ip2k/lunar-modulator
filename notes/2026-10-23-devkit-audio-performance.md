@@ -2454,3 +2454,32 @@ block, versus approximately 269–270 us master and 181–182 us control/UI.
 The next investigation targets the measured engine/resampler work. Native
 rates, time constants and filtering remain requirements; no analog or
 30-minute-soak acceptance is claimed.
+
+
+### FIR scheduling — offline comparison
+
+[verified, source/vendor disassembly] The vendor decoder needs
+`-mcpu=r3 -mattr=+fprev1` for the floating instructions; decoding without
+that feature produces misleading unknown/split instructions. The measured
+resampler's expanded lowpass largely serializes four independent chains.
+Optional `--resampler-schedule` groups four pair additions, four coefficient
+products and four accumulations using empty read/write register constraints.
+All 61 symmetric pairs, the centre tap, coefficients, each chain's addition
+order, native rates and filtering remain unchanged. The option requires the
+existing timing-only resident-mixer configuration and refuses source drift.
+
+[verified, offline] A first prototype retained too many values and raised
+standalone stack use from 28 to 156 bytes; it is rejected. Adding the
+accumulator-group constraint restores 28-byte standalone stack use. The
+revised private SDK prototype links with 224 fewer SRAM bytes and smaller
+linked drums/macro renderers. Its eight prepared renderer PCM hashes match.
+The hand-patched prototype has intentionally stale provenance and must never
+be flashed. Fresh reproducible preparation and final machine-code/layout,
+recovery and image checks are pending; no target-speed claim is made.
+
+[verified, tests] 131 focused Linux preparation, renderer, resampler,
+transaction, reset and arithmetic tests pass; one ABI-dependent case skips.
+Both expanded and scheduled full streaming states match their reference
+byte-for-byte across seven native rates and two host rates. Production DSP
+sources are unchanged. Hardware still runs the healthy mixer image; no
+analog or sustained-soak acceptance is claimed.

@@ -17,11 +17,14 @@ def preparer():
     return module
 
 
-def test_expanded_lowpass_stream_is_bit_identical(tmp_path):
+@pytest.mark.parametrize("schedule", [False, True])
+def test_expanded_lowpass_stream_is_bit_identical(tmp_path, schedule):
     if not shutil.which('c++'):
         pytest.skip('C++ compiler unavailable')
     original = (ROOT / 'engines/include/fm1_resampler.h').read_text()
     expanded = preparer().unroll_resampler_lowpass(original)
+    if schedule:
+        expanded = preparer().schedule_resampler_lowpass(expanded)
     # Separate namespaces compile both real implementations in one program.
     # Strip only the header guard, which would suppress the second copy.
     (tmp_path / 'original.h').write_text(original)
@@ -71,3 +74,11 @@ def test_lowpass_source_drift_refuses(change):
     original = (ROOT / 'engines/include/fm1_resampler.h').read_text()
     with pytest.raises(ValueError, match='lowpass'):
         preparer().unroll_resampler_lowpass(original.replace(change, 'source_changed', 1))
+
+
+@pytest.mark.parametrize('change', ['y0 += h[0]', 'y1 += h[1]', 'e[122]', 'y0 += h[60]'])
+def test_scheduled_lowpass_source_drift_refuses(change):
+    module = preparer()
+    expanded = module.unroll_resampler_lowpass((ROOT / 'engines/include/fm1_resampler.h').read_text())
+    with pytest.raises(ValueError, match='lowpass'):
+        module.schedule_resampler_lowpass(expanded.replace(change, 'source_changed', 1))

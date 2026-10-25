@@ -41,10 +41,11 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile', 'renderer-mixer-profile'])
+@pytest.mark.parametrize('mode', ['resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile', 'renderer-mixer-profile', 'renderer-schedule-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     engine_profile = mode == 'renderer-engine-profile'
-    mixer_ram = mode == 'renderer-mixer-profile'
+    schedule = mode == 'renderer-schedule-profile'
+    mixer_ram = mode == 'renderer-mixer-profile' or schedule
     renderer_o3 = mode == 'renderer-o3-profile' or mixer_ram
     unroll = mode == 'renderer-unroll-profile' or renderer_o3
     if engine_profile or unroll:
@@ -93,7 +94,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             sine_ram=mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
-            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll, renderer_o3=renderer_o3, mixer_ram=mixer_ram)
+            fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll, renderer_o3=renderer_o3, mixer_ram=mixer_ram, resampler_schedule=schedule)
     else:
         module.prepare(sdk, ROOT, out, audio_probe=audio_probe, fm6_benchmark=fm6,
                        boot_control=mode == 'control' or live,
@@ -217,6 +218,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         assert receipt['plaits_cache'] == plaits_cache
         assert receipt['resampler_slopes'] == slopes
         assert receipt['resampler_unroll'] == unroll
+        assert receipt['resampler_schedule'] == schedule
         fragment = (out/'apps/demo/demo_hello/board/wl82/lunar-renderer.mk').read_bytes()
         assert receipt['prepared_renderer_fragment_sha256'] == hashlib.sha256(fragment).hexdigest()
         opt = '-O3' if renderer_o3 else '-O2'
@@ -295,6 +297,9 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             if unroll:
                 assert receipt['resampler_unroll_original_sha256'] == hashlib.sha256(expected).hexdigest()
                 expected = renderer_module.unroll_resampler_lowpass(expected.decode()).encode()
+            if schedule:
+                assert receipt["resampler_schedule_original_sha256"] == hashlib.sha256(expected).hexdigest()
+                expected = renderer_module.schedule_resampler_lowpass(expected.decode()).encode()
             assert normalized == expected
 
         effects = {'engines/src/fx_comp.cc', 'engines/src/fx_drive.cc', 'engines/src/fx_echo.cc'}
