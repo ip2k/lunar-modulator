@@ -41,7 +41,7 @@ def test_devkit_loader_pin_differs_from_historical_original():
     assert backup.LOADER_SHA == 'fe6d1bd36c8ffe4674e4a05ee748fe87480b5867fac58230b14ff089d411012c'
 
 
-@pytest.mark.parametrize('mode', ['cpu1', 'cpu1-long', 'resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile', 'renderer-mixer-profile', 'renderer-schedule-profile', 'renderer-keys-profile', 'renderer-keys-live', 'renderer-dispatch-profile'])
+@pytest.mark.parametrize('mode', ['cpu1', 'cpu1-long', 'cpu1-ring', 'resampler', 'audio', 'fm6', 'fm6-ram', 'fm6-audio', 'control', 'renderer', 'renderer-timing', 'renderer-profile', 'renderer-hot-profile', 'renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile', 'renderer-outline-profile', 'renderer-filter-profile', 'renderer-control-profile', 'renderer-plaits-cache-profile', 'renderer-slopes-profile', 'renderer-engine-profile', 'renderer-unroll-profile', 'renderer-o3-profile', 'renderer-mixer-profile', 'renderer-schedule-profile', 'renderer-keys-profile', 'renderer-keys-live', 'renderer-dispatch-profile'])
 def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     keys = mode in ('renderer-keys-profile', 'renderer-keys-live')
     if keys:
@@ -99,23 +99,36 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
             resampler_ram=mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'),
             cache_tables=mode in ('renderer-cache-profile', 'renderer-fx-profile'),
             fx_ram=mode == 'renderer-fx-profile', resampler_outline=outline, filter_process_ram=filter_process, control_ram=control, plaits_cache=plaits_cache, resampler_slopes=slopes, engine_profile=engine_profile, resampler_unroll=unroll, renderer_o3=renderer_o3, mixer_ram=mixer_ram, resampler_schedule=schedule, workload="keys" if keys else "mixed", dispatch_ram=dispatch)
-    elif mode in ('cpu1', 'cpu1-long'):
+    elif mode in ('cpu1', 'cpu1-long', 'cpu1-ring'):
         cpu_spec = importlib.util.spec_from_file_location('prepare_cpu1', ROOT/'tools/jieli/prepare-cpu1-devkit.py')
         cpu_module = importlib.util.module_from_spec(cpu_spec)
         cpu_spec.loader.exec_module(cpu_module)
-        cpu_module.prepare(sdk, ROOT, out, long_publication=mode == 'cpu1-long')
+        cpu_module.prepare(sdk, ROOT, out, long_publication=mode == 'cpu1-long', paced_ring=mode == 'cpu1-ring')
         import hashlib, json
         receipt = json.loads((out/'lunar-devkit-input.json').read_text())
         assert 'firmware/devkit/sdk_worker.c' not in receipt['inputs']
-        probe_path = 'firmware/devkit/cpu1_publication_long.c' if mode == 'cpu1-long' else 'firmware/devkit/cpu1_probe.c'
+        probe_path = ('firmware/devkit/cpu1_ring_probe.c' if mode == 'cpu1-ring' else
+                      'firmware/devkit/cpu1_publication_long.c' if mode == 'cpu1-long' else
+                      'firmware/devkit/cpu1_probe.c')
         probe = ROOT/probe_path
         assert receipt['inputs'][probe_path] == hashlib.sha256(probe.read_bytes()).hexdigest()
         assert (out/'apps/demo/demo_hello/sdk_worker.c').read_bytes() == probe.read_bytes()
         assert '10, 2048, 0, "#C0lunar_parent"' in (out/'apps/demo/demo_hello/app_main.c').read_text()
-        assert receipt['rounds'] == (100000000 if mode == 'cpu1-long' else 4096)
+        assert receipt['rounds'] == (413607 if mode == 'cpu1-ring' else
+                                     100000000 if mode == 'cpu1-long' else 4096)
         assert receipt['recovery_window_ticks'] == 200
         if mode == 'cpu1-long':
             assert receipt['phases'] == 2 and receipt['total_budget_ticks'] == 3840000000
+        if mode == 'cpu1-ring':
+            assert receipt['total_budget_ms'] == 625000
+            assert receipt['frames'] == 64 and receipt['rate'] == 44118
+            assert receipt['fpu_irq_acceptance'] is False
+            prepared_make = (out/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
+            assert 'c_SRC_FILES := ' + chr(92) + '\n\t../../../../../apps/demo/demo_hello/arithmetic_probe.c ' + chr(92) in prepared_make
+            for name in ('arithmetic_probe.c', 'arithmetic_probe.h'):
+                original = ROOT/'firmware/devkit'/name
+                assert (out/'apps/demo/demo_hello'/name).read_bytes() == original.read_bytes()
+                assert receipt['inputs'][str(original.relative_to(ROOT))] == hashlib.sha256(original.read_bytes()).hexdigest()
         assert receipt['worker_task'] == '#C1lunar_worker'
         with pytest.raises(ValueError, match='Output must not exist'):
             cpu_module.prepare(sdk, ROOT, out)
@@ -132,7 +145,7 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     assert ('-DLUNAR_DEVKIT_AUDIO_PROBE=1' in result) == (audio_probe or live)
     assert (out/'apps/demo/demo_hello/audio_probe.c').exists() == (audio_probe or live)
     assert ('-DLUNAR_DEVKIT_FM6_AUDIO=1' in result) == live
-    if mode in ('control', 'cpu1', 'cpu1-long') or live or renderer:
+    if mode in ('control', 'cpu1', 'cpu1-long', 'cpu1-ring') or live or renderer:
         main_text = (out/'apps/demo/demo_hello/app_main.c').read_text()
         assert 'if (!lunar_devkit_boot_control_start()) {' in main_text
         assert main_text.index('boot_control_start())') < main_text.index('int lunar_status = os_task_create')
@@ -347,8 +360,8 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         if not control:
             assert (out/'lunar-source/sim/web/src/fm1_app.c').read_bytes() == (ROOT/'sim/web/src/fm1_app.c').read_bytes()
     assert ('-DLUNAR_DEVKIT_FM6_BENCHMARK=1' in result) == fm6
-    assert ('-DLUNAR_DEVKIT_BOOT_CONTROL=1' in result) == (mode in ('control', 'cpu1', 'cpu1-long') or live or renderer)
-    if mode in ('control', 'cpu1', 'cpu1-long'):
+    assert ('-DLUNAR_DEVKIT_BOOT_CONTROL=1' in result) == (mode in ('control', 'cpu1', 'cpu1-long', 'cpu1-ring') or live or renderer)
+    if mode in ('control', 'cpu1', 'cpu1-long', 'cpu1-ring'):
         board = (out/'apps/demo/demo_hello/board/wl82/board.c').read_text()
         assert '.rx_pin = IO_PORTA_05' in board and '.tx_pin = -1' in board
         assert '.rx_pin = -1' in board  # Logging UART stays transmit-only.

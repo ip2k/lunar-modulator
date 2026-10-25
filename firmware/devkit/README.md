@@ -253,3 +253,23 @@ cache-data startup copy is retained; cache-way allocation is unchanged.
 The coefficient bytes, workload and pool size remain unchanged. Inspect the
 linked addresses and bytes before admitting a specific image. A successful
 offline build is not a target performance or audio result.
+
+### CPU1 finite arithmetic and paced SRAM ring (offline prototype)
+
+`tools/jieli/prepare-cpu1-devkit.py --paced-ring` prepares a separate UART-first
+probe. It reuses the finite, nonzero arithmetic kernels on both pinned tasks,
+then publishes 413607 blocks of 64 words through a 16-slot SRAM SPSC ring.
+The producer carries the fractional 24 MHz timer interval for 44118 frames/s,
+representing 600.001088 seconds. Each block carries a sequence and CRC, and the
+consumer independently checks every deterministic sample. `csync` fences
+publication and slot reuse. A millisecond clock bounds the whole run to 625 s;
+individual waits stop after one second. Permanent storage remains allocated
+if a worker is late. The parent reports pacing misses, depth and both task
+core histograms/stack high waters. `tools/devkit_cpu1_ring_result.py` rejects
+missing, corrupt, incomplete, migrated, late or out-of-duration receipts.
+
+This is an offline prototype, not an admitted image. It does not install an
+IRQ or test FPU exception/corner behavior, nor does it drive DAC/audio output.
+Finite task arithmetic parity is narrower than full FPU context acceptance.
+Exact vendor/clock/synchronization/layout/recovery/cipher/NOR review and a
+separate hardware transaction remain necessary before running it.

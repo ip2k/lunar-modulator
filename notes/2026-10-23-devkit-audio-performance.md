@@ -3240,3 +3240,28 @@ Private raw UART SHA-256:
 This establishes only this publication/pinning experiment, not FPU/IRQ behavior,
 SPSC streaming, renderer deadlines, DAC continuity or analog soak acceptance.
 The installed actual renderer's deadline failures remain unresolved.
+
+### Finite per-task arithmetic and paced SRAM ring — offline prototype
+
+[implemented, not admitted] A separate `--paced-ring` mode reuses the finite
+arithmetic probe on CPU0/CPU1, checking exact results and recording batch times.
+It then sends 413607 sequence-tagged 64-word CRC blocks through a 16-slot SPSC
+ring, with deterministic sample verification. Fractional timer carry preserves
+44118 frames/s over 600.001088 seconds. Publication and reuse use target-specific
+volatile accesses and `csync`, not a portable C atomic claim. The whole run has
+a 625 s millisecond-clock bound, individual waits one second; permanent state
+and timer remain valid after failure. All 72 focused prep/result-gate checks
+pass in a bounded Aeon container, including corrupted, incomplete, migrated,
+late, out-of-duration and mismatched arithmetic receipts. The vendor build and
+exact code review remain pending; no candidate is packaged/admitted/installed.
+No IRQ or floating exception probes are added; this does not satisfy full C3,
+renderer, DAC or analog acceptance. Board3bb remains healthy idle after its
+long publication probe, with no capture live.
+
+[verified, offline] The initial vendor link failed because appending a C source
+variable after immediate object-list expansion did not link the arithmetic
+object. Preparation now inserts its exact SDK-relative path into the original
+source list, before expansion. The corrected v2 vendor build passes with the
+downloader disabled. All 106 short/long/ring receipt and preparation checks
+pass. Exact generated clock/loop/SDK/recovery review remains pending; no candidate
+has been packaged, admitted, staged or installed.
