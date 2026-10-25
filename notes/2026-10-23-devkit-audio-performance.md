@@ -3761,3 +3761,24 @@ skip. Synthetic timing verifies wraparound, unchanged clock-call/yield counts,
 an early slow block followed by later ordinary blocks, and the matching stage
 snapshot rather than the last rendered block. Snapshot reset/bounds are checked.
 Vendor v9 build is running; no v9 image has been admitted or installed.
+
+[verified, offline admission] Correlated v9 vendor ELF SHA-256
+`df2c981558123ed86b235dd11c96f4e3f0d02d23b598e312219e2edfd29724ac`;
+independent objcopy app SHA-256
+`633181baedfccef80c4fec33b8700da687631d8e58650ed9aedbeed9d1dbba61`;
+exact candidate SHA-256
+`fd8a5df8a0d10cf2ab7294c69e5f35b9e1717ba1199131e8c02c34097e891309`.
+App 563132 bytes ends0x8d8dc, still138 sectors. Pretask heap84556
+(32 fewer); static mailbox448 and worker4260 retain their prior addresses.
+Whole linked SDK/ROM routines match after checked relocations; link audit has
+zero failures and its manually reviewed SDK-scheduling pending item. UART18
+is created before parent16, with allocation-failure guard; worker16, 200-tick
+recovery, 34829-tick deadline, poll limit and finite exit remain. Profile
+stores use existing samples; the worst-block copy follows the closing clock
+read. Kernel leaves/table are exact after verified memset and readonly-base
+relocations. The table displacement changes5724→5852 and still resolves to
+the identical768-byte algorithm table; both config loads retain identical
+containing bytes. No such relocation is treated as an arbitrary ignored diff.
+Independent cipher/CRC, protected boot/config/tail and interrupted NOR restore
+at pages7/1111/2183/2199 pass.66 admission/reset/SDK tests pass. Exact hash
+only is admitted at existing138-sector bounds. Not installed/hardware accepted.
