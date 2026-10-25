@@ -2381,7 +2381,40 @@ with seven stale scene columns compressed into the new viewport.
 The test now polls its existing 54–64 px and non-overlap requirements
 against one current-DOM snapshot, bounded at two seconds, instead of a
 60 ms sleep and separate locator reads. SVG class diagnostics use the
-class attribute. No production UI is changed. Repeated WebKit and a
-Chromium run are pending; repository CI remains pending on the next head.
+class attribute. No production UI is changed. Three repeated WebKit runs and one Chromium run pass on Aeon against
+the synchronized source tree; the passing screenshot was inspected.
+Repository CI is pending on the next head.
 Rarefaction cannot resolve this sibling-worktree test path; Serena resolves
 its helper, and source plus screenshots supply the resize evidence.
+
+
+### Mixer/dispatch placement — offline comparison
+
+[verified, source/vendor disassembly] O3 retains `render_fx` (846 bytes)
+and `render_sounds` (1,146 bytes) in flash despite their SRAM caller.
+Optional `--mixer-ram` places exactly those two definitions in startup-copied
+SRAM in private prepared sources. It requires the timing-only profiled O3
+configuration; production sources, DSP arithmetic, rates and filtering stay
+unchanged. Preparation checks compare normalized source bodies, placement
+and receipt provenance. All 51 focused preparation/refusal cases pass.
+The vendor build links; independent layout/startup review and target timing
+are pending. No new image is admitted or installed.
+
+[verified, research] The pinned SDK's `jl_math.c` contains floating-point
+assembly helpers as well as integer-vector paths. The inspected operations
+are complex multiply/add/subtract/power, with no direct equivalent to this
+streaming symmetric FIR. JieLi's [math API documentation](https://doc.zh-jieli.com/AC79/zh-cn/release_v1.1.0/module_example/system/math.html)
+also documents fixed-point vector routines. None is substituted without
+checking arithmetic, filter behavior and actual target cost.
+
+[verified, offline build/replay] All eight prepared full-renderer PCM hashes
+match the reference. Vendor ELF
+`359f571e27fbfd603e2bc3722eda76a2a9f1a090775eb40073c9315c43addd3d`
+independently packs to app
+`871a5ceeef90b3696c2e00cd5761600316b59e3eb404d9930636684ae8205545`
+(562,268 bytes). Five vendor section exports, coefficient/table bytes and
+three SDK functions match independent checks. Pre-task heap is 51,244 bytes,
+1,792 fewer than O3. `render_fx` is now in SRAM; `render_sounds` is no longer
+a separate linked symbol, and its SRAM caller grows. Link audit has zero
+failures and one pending manual SDK-scheduling check. Exact startup/recovery,
+cipher/CRC, interrupted NOR restore and hardware timing remain pending.

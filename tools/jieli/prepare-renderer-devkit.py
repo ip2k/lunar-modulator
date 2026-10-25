@@ -90,7 +90,7 @@ def instrument_engine_profile(text, engine):
             + ''.join(lines))
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False):
     if profile and not timing_only:
         raise ValueError("Render profiling is worker-only; not an audio acceptance image")
     if hot_ram and not timing_only:
@@ -119,6 +119,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Lowpass unrolling requires timing-only profiled slopes without detail instrumentation")
     if renderer_o3 and not resampler_unroll:
         raise ValueError("Renderer O3 comparison requires timing-only profiled lowpass unrolling")
+    if mixer_ram and not renderer_o3:
+        raise ValueError("Mixer SRAM requires the timing-only profiled O3 comparison")
     spec = importlib.util.spec_from_file_location("devkit_prepare", source / "tools/jieli/prepare-devkit.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -278,7 +280,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         # Only private copies change. Column-zero closing braces delimit these
         # C definitions; reject source drift rather than guessing a new boundary.
         for name, signatures in (
-            ("sim/web/src/fm1_app.c", (b"const float *fm1_app_render",)),
+            ("sim/web/src/fm1_app.c", (b"const float *fm1_app_render",) +
+             ((b"static void render_fx", b"static void render_sounds") if mixer_ram else ())),
             ("engines/mod/mod_core.c", (b"static float sum_slots", b"uint32_t fm1_mod_tick")),
             ("engines/seq/seq_host.c", (b"void fm1_seq_host_dispatch_slots_ticks",)),
         ):
@@ -360,11 +363,12 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "filter_process_ram": filter_process_ram,
         "worker_stack_words": worker_stack_words,
         "control_ram": control_ram,
+        "mixer_ram": mixer_ram,
         "control_ram_original_sha256": control_inputs,
         "filter_process_original_sha256": filter_process_input,
         "cache_link_original_sha256": cache_link_input,
         "placement": ("SDK LTO, profiled DSP code in startup-copied ram0_data; " +
-                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + ("; pre-scaled resampler kernel pairs" if resampler_slopes else "") + "; target result pending"
+                       ("only 8 KiB FM6 sine table also SRAM" if sine_ram else "constants remain XIP") + ("; shared resampler tables also SRAM" if resampler_ram else "") + ("; sine/exp2/resampler tables relocated to SDK cache RAM data" if cache_tables else "") + ("; compressor/drive/echo code also SRAM" if fx_ram else "") + ("; two resampler kernels outlined" if resampler_outline else "") + ("; filter process code also SRAM" if filter_process_ram else "") + ("; render/sequence/modulation control code also SRAM" if control_ram else "") + ("; Plaits sine/pitch tables also cache RAM" if plaits_cache else "") + ("; pre-scaled resampler kernel pairs" if resampler_slopes else "") + ("; sound mixer and effect dispatch code also SRAM" if mixer_ram else "") + "; target result pending"
                       if hot_ram else "SDK LTO, XIP code/constants; internal SRAM app and caller-owned engine pool; hot placement not yet measured"),
         "renderer_pool_bytes": (136 if control_ram else 148) * 1024,
         "worker_stack_bytes": worker_stack_words * 4,
@@ -419,5 +423,7 @@ if __name__ == "__main__":
                         help="Expand the fixed FIR loop without changing sums; requires profiled slopes without engine detail")
     parser.add_argument("--renderer-o3", action="store_true",
                         help="Compare renderer -O3 with SDK flags unchanged; requires profiled lowpass unrolling")
+    parser.add_argument("--mixer-ram", action="store_true",
+                        help="Compare sound mixer/effect dispatch in SRAM; requires timing-only profiled O3")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram)
