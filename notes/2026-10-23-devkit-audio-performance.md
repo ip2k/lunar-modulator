@@ -5126,3 +5126,49 @@ objcopy, cipher/CRC and protected boot/cfg/tail checks pass. The offline NOR mod
 restores interrupted pages 7/1111/2199/2215 and independently restores all 140
 CURRENT sectors. Hardware installation, actual timing and analog acceptance are
 still pending. Private binaries and review artifacts remain ignored.
+
+
+### V28 outer-only target result and validation gap (2026-10-26)
+
+[verified, hardware] Full protected cycle passed: two CURRENT V27 backups,
+CURRENT140 restore, V28 WINDOW139 install, fresh startup ready/PING/ARM/ENTER
+79.1764 ms and actual ROM inquiry, two NEW backups, NEW139 restore and SAME
+RUN install, each full 8 MiB comparison exact. WINDOW18612 and RUN83525 are
+consumed; never retry. Sole RX PID321860 was checked twice before one SIGTERM;
+session63010 terminated before ordinary PING acknowledged healthy idle.
+No RX/KA6/build/device operation remains live. CURRENT V28 restore uses139
+sectors `[0x4000,0x8f000)`.
+
+| Case | Mean us | Maximum us | Late /5513 |
+| --- | ---: | ---: | ---: |
+| 0 | 2456.792 | 2871.042 | 5513 |
+| 1 | 2668.750 | 2980.625 | 5513 |
+| 2 | 2743.708 | 3253.958 | 5513 |
+| 3 | 2834.917 | 3423.958 | 5513 |
+
+[verified] Four mixed PCM/control fingerprints match; internal observer records
+are absent. Paired jobs total81308 with no refusal/error/wrong core and finite
+exit. Heap91956 is stable; unused parent/worker stack2664/8192 and3260/4096.
+Every block still misses34829 ticks: observer overhead does not explain the
+remaining gap. Raw SHA256 is
+`81ed2eb451810281349e0c91e0a5943631c220ed44fa1e2db03f35e41008f39e`.
+
+[verified, validation gap] The full supplement parser FAILS because the
+standalone arithmetic probe did not run: `sdk_worker.c` coupled it to the
+removed `LUNAR_RENDERER_PROFILE` flag. Pair-only results above are separately
+validated; no arithmetic pass or hardware acceptance is claimed for V28.
+The next source correction makes that preflight unconditional for timing images,
+after the200-tick recovery window and before initialization, with a regression
+test executing the actual worker and arithmetic probe without profile flags.
+The new test fails against the old worker (missing32 probe yields). A new exact
+vendor image and full admission review are required before any further install.
+CIaa70a386 remains running; Pages40267102487 succeeded. PR155 is draft and
+unmerged. Fault-validated DAC/KA6 and representative30-minute soaks remain undone.
+
+[verified, host correction] Arithmetic preflight is now independent of internal
+render observers, while remaining after the 200-tick UART recovery window and
+before renderer initialization. The actual-worker regression failed against the
+old guard and passes with the correction. Bounded Aeon renderer/arithmetic tests
+complete with 101 passed and one unavailable-toolchain skip (59.49 seconds).
+This source correction has not been built into or installed as a new vendor
+image; it does not retroactively close V28's hardware arithmetic coverage gap.

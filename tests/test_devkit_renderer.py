@@ -588,7 +588,7 @@ void malloc_stats(void);
 #include <string.h>
 struct mock_timer timer;
 static jmp_buf exit_worker;
-static unsigned recovering, ready, ticks, init_calls, acknowledgments;
+static unsigned recovering, ready, ticks, init_calls, acknowledgments, probe_yields;
 static struct lunar_boot_command parser;
 void lunar_devkit_worker(void *);
 int clk_get(const char *name) { assert(!strcmp(name, "sys")); return 320000000; }
@@ -612,11 +612,12 @@ void os_time_dly(unsigned n) {
             longjmp(exit_worker, 2);
         }
     }
+    if (n == 1) { assert(!init_calls && ticks >= 310); ++probe_yields; }
     ticks += n; timer.CNT += n * 240000u;
 }
 int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
     void (*emit)(const struct lunar_renderer_timing *)) {
-    assert(now && yield && emit && ready && ticks >= 310);
+    assert(now && yield && emit && ready && ticks >= 310 && probe_yields == 32);
     ++init_calls;
     longjmp(exit_worker, 1); /* workload initialization faults */
 }
@@ -626,14 +627,14 @@ int main(void) {
     case 1: assert(init_calls == 1); break;
     default: assert(0);
     }
-    recovering = 1; ready = ticks = init_calls = 0;
+    recovering = 1; ready = ticks = init_calls = probe_yields = 0;
     memset(&timer, 0, sizeof timer); memset(&parser, 0, sizeof parser);
     switch (setjmp(exit_worker)) {
     case 0: ready = 1; lunar_devkit_worker(0); assert(0); break;
     case 2: assert(acknowledgments == 3); break;
     default: assert(0);
     }
-    assert(!init_calls); /* Recovery completes before the faulty workload runs. */
+    assert(!init_calls && !probe_yields); /* Recovery completes before the faulty workload runs. */
     return 0;
 }
 ''')
@@ -648,7 +649,8 @@ int main(void) {
                     '-DLUNAR_DEVKIT_RENDERER_TIMING=1', '-DLUNAR_DEVKIT_BOOT_CONTROL=1',
                     '-I' + str(tmp_path), '-I' + str(ROOT / 'firmware/devkit'),
                     str(harness), str(worker),
-                    str(ROOT / 'firmware/devkit/boot_command.c'), '-o', str(exe)], check=True)
+                    str(ROOT / 'firmware/devkit/boot_command.c'),
+                    str(ROOT / 'firmware/devkit/arithmetic_probe.c'), '-o', str(exe)], check=True)
     subprocess.run([str(exe)], check=True, capture_output=True)
 
 
