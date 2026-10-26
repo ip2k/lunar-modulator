@@ -4608,3 +4608,15 @@ app611afffb…565340bytes; ram0_data113392bytes, pre-task heap52940bytes.
 That is8448bytes more SRAM than V21; target heap/stack remain required.
 V22 is NOT admitted or installed. Exact layout/recovery/cipher/NOR review and
 hardware timing remain pending. V21 is healthy idle with no capture running.
+
+[verified, offline] Exact V22 `5f893eff…` passes independent five-section app
+copy, full cipher decode/CRC/protected ranges and630-input manifest plus
+app-main/linker/fragment hashes. Static mailbox448bytes/alignment64, worker
+pool/app/profile/24prep regions are disjoint before heap. Compiled UART18/1024
+precedes parent16/2048 on success;200-tick window,34829-tick deadline,120000ms
+lifetime and24-region bound remain. New planner1056bytes frame, note128,
+modtick292; other established large frames are unchanged. Target stack remains
+required. App end0x8e17c gives exact139sectors[0x4000,0x8f000). NOR model
+passes install/restore and interruptions7/1111/2199/2215 with metadata last.
+77 admission/reset tests pass. Only this exact image gains139-sector admission;
+V21 retains138 sectors. No hardware installation or acceptance yet.
