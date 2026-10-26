@@ -4483,3 +4483,14 @@ table comparisons against V19 with checked relocations. Pre-task heap65292
 bytes is10240 below V19; target heap/stack assessment remains required. Exact
 layout/UART-first, independent app/cipher/NOR review still gate admission.
 V20 remains uninstalled; V19 is healthy idle.
+
+[verified, offline] Exact V20 candidate `d4c443a8…` passes630-input manifest,
+independent five-section app copy, full cipher/CRC/protected ranges and139-
+sector NOR model, including interrupted pages7/1111/2199/2215. All static
+mailbox/worker/pool/app/profile ranges remain disjoint before heap. UART task
+18/1024 precedes parent16/2048; worker200-tick delay,34829-tick budget,120000ms
+lifetime and24-region bound remain. LFO-run and chance-clock helpers inline
+into their resident processors; frames LFO120, envelope128, chance104 bytes,
+with envelope-run68 and primitives48/60. Target PCM, stack and deadlines remain
+required. Only exact V20 gains the existing139-sector admission. No target
+acceptance is implied; V20 has not yet been installed.
