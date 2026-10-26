@@ -407,6 +407,8 @@ hardware acceptance. ThreadSanitizer cannot start in the current container.
 The offline whole-engine queue now has a permanent-storage C bridge in
 `renderer_queue_bridge.{h,cc}`. Its experimental static CPU1 backend is in
 `renderer_queue_sdk.{h,c}`; neither is in the build lists or preparer yet.
-The SDK backend still needs compilation and lifecycle/integration review.
+The objects compile with the pinned vendor toolchain, and controlled host
+lifecycle checks pass. Full integration, publication and target stack review
+remain pending.
 Its protocol timeout is not the audio deadline. Queue failures require the
 caller to stop rendering and retain all engine/output storage through recovery.

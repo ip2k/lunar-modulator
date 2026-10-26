@@ -207,3 +207,108 @@ int main(int argc, char **) {
                     str(ROOT / "firmware/devkit/renderer_queue_bridge.cc"), "-o", str(exe)], check=True)
     for arguments in ([], ["kind"], ["index", "x"], ["key", "x", "x"], ["velocity", "x", "x", "x"]):
         subprocess.run([str(exe), *arguments], check=True, timeout=10)
+
+
+def test_queue_sdk_lifecycle_with_controlled_scheduler(tmp_path):
+    """Exercise actual backend control flow; not concurrency/target ABI proof."""
+    cc = os.environ.get("FM1_SIM_CC", "cc")
+    if not shutil.which(cc):
+        pytest.skip("native C toolchain unavailable")
+    (tmp_path / "system").mkdir()
+    (tmp_path / "os").mkdir()
+    (tmp_path / "asm").mkdir()
+    (tmp_path / "app_config.h").write_text("")
+    (tmp_path / "system/includes.h").write_text('#include <stdio.h>\n#include <stddef.h>\ntypedef struct { unsigned words[16]; } StaticTask_t;\n')
+    (tmp_path / "os/os_api.h").write_text('''
+unsigned timer_get_ms(void);
+void os_time_dly(unsigned);
+unsigned uxTaskGetStackHighWaterMark(void *);
+int os_task_create_static(void (*)(void *), void *, unsigned, unsigned, unsigned, const char *, unsigned char *);
+''')
+    (tmp_path / "asm/includes.h").write_text("unsigned current_cpu_id(void);\n")
+    source = tmp_path / "sdk.c"
+    # Suppress only pi32 assembly in this single-threaded scheduler model.
+    # All SDK state, loop bounds and error/exit branches are the actual source.
+    source.write_text(r'''
+#include <assert.h>
+#include <setjmp.h>
+#include <stdio.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#define __asm__
+#define volatile(...)
+#include "renderer_queue_sdk.c"
+#undef volatile
+#undef __asm__
+static unsigned ticks, core, mode, completions, initialized, created, steps;
+static void (*entry)(void *);
+static jmp_buf parked;
+unsigned timer_get_ms(void) { return ticks++; }
+unsigned current_cpu_id(void) { return core; }
+unsigned uxTaskGetStackHighWaterMark(void *p) { assert(!p); return 1024; }
+void os_time_dly(unsigned n) {
+ if (n==100) longjmp(parked,1); /* Terminal parking loop, no stack reclaimed. */
+ assert(n==1);
+ if (mode==2) ticks+=1000; /* Startup timeout, never ready. */
+ else if (!state.stop) state.ready=1;
+ else {
+  core=1;
+  if (!setjmp(parked)) entry(0);
+  core=0;
+ }
+}
+int os_task_create_static(void (*f)(void *), void *arg, unsigned priority,
+ unsigned words, unsigned queue_words, const char *name, unsigned char *memory) {
+ ++created; assert(!arg && priority==16 && words==2048 && !queue_words);
+ assert(!strcmp(name,"#C1lunar_queue") && memory==worker_memory);
+ assert(sizeof worker_memory==sizeof(StaticTask_t)+8192);
+ entry=f; return mode==1 ? -7 : 0;
+}
+int lunar_renderer_queue_init(uint32_t (*clock)(void), uint32_t budget) {
+ assert(clock && budget==2400000u); return !initialized++;
+}
+int lunar_renderer_queue_worker_step(void) {
+ ++steps;
+ if(mode==4) return -1;
+ if(steps==3) ticks=state.started_ms+120000u;
+ ++completions; return 1;
+}
+unsigned lunar_renderer_queue_completed(void) { return completions; }
+unsigned lunar_renderer_queue_error(void) { return mode==6; }
+unsigned lunar_renderer_queue_peak(unsigned s) { return s+1; }
+static uint32_t clock_now(void) { return ticks; }
+int main(int argc,char **argv) {
+ assert(argc==2); mode=(unsigned)atoi(argv[1]);
+ if(mode==7) {
+  core=1; assert(!lunar_renderer_queue_sdk_start(clock_now));
+  assert(!initialized && !created); return 0;
+ }
+ int ok=lunar_renderer_queue_sdk_start(clock_now);
+ assert(initialized==1 && created==1);
+ assert(!lunar_renderer_queue_sdk_start(clock_now) && initialized==1 && created==1);
+ if(mode==1) { assert(!ok && !steps); return 0; }
+ if(mode==2) { assert(!ok && state.stop && !steps); return 0; }
+ assert(ok && state.ready);
+ if(mode==3 || mode==4 || mode==5) {
+  core=mode==5 ? 0 : 1;
+  if(!setjmp(parked)) entry(0);
+  core=0;
+  assert(state.exited && state.error==(mode==3 ? 2u : mode==4 ? 3u : 1u));
+  assert(!lunar_renderer_queue_sdk_finish()); return 0;
+ }
+ /* A completed batch followed by an acknowledged stop. */
+ completions=state.jobs=1;
+ lunar_renderer_queue_sdk_parent_block();
+ assert(state.parent_blocks==1 && !state.parent_wrong_core);
+ assert(lunar_renderer_queue_sdk_finish()==(mode!=6));
+ assert(state.stop && state.exited && state.stack_unused==1024 && !steps);
+}
+''')
+    exe = tmp_path / "sdk"
+    subprocess.run([cc, "-std=c99", "-O2", "-I" + str(tmp_path),
+                    "-I" + str(ROOT / "firmware/devkit"), "-I" + str(ROOT / "engines/include"),
+                    str(source), "-o", str(exe)], check=True)
+    for mode in range(8):
+        subprocess.run([str(exe), str(mode)], check=True, timeout=10)

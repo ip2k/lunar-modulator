@@ -5244,3 +5244,19 @@ build list, app callback, preparer, timer or device behavior changes here.
 Next: guarded fixed-arrangement integration, explicit independent-engine/model
 allowlist, fatal propagation retaining the arena/timer after timeout, host PCM
 and lifecycle checks, then exact vendor/layout/recovery/cipher/NOR review.
+
+[verified, subsequent offline check] All three queue/backend objects compiled
+with the pinned vendor pi32v2 toolchain using the reviewed V28 SDK include/config
+snapshot, with the old FM6 worker flags removed. No link or image was produced.
+Commands and objects remain private under Aeon
+`renderer-queue-sdk-compile-v1/`; log `renderer-queue-sdk-compile.log`.
+The actual SDK backend source also passed a single-threaded controlled scheduler
+harness covering creation failure, startup timeout, wrong-core start/worker,
+finite lifetime, worker refusal, normal stop and failed queue status. This test
+suppresses only target inline assembly and substitutes SDK calls; it establishes
+control flow, not concurrency, target task ABI, cache publication or stack use.
+Together with the bridge/ownership tests: **4 passed, 1.27 s**, private
+`renderer-queue-lifecycle-tests.log`. The initial harness failed to suppress
+pi32 assembly and then interfered with libc assembly aliases; including standard
+headers before the test macros corrected the harness without changing backend
+source. Guarded preparer/app integration and target admission remain pending.
