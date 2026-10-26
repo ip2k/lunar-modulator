@@ -1352,13 +1352,26 @@ static void take_system(fm1_mod_t *m) {
     m->pend_g[0][g].start = (uint8_t)fm1_mod_gate_end(&m->sys_gate[g]);
     mod_gate_clear(&m->pend_g[1][g], (unsigned)fm1_mod_gate_end(&m->pend_g[0][g]));
   }
-  for (id = 0; id < FM1_MOD_SRC_SYSTEM; ++id) {
-    if ((m->cv_has[0] >> id) & 1u) {
-      const float v = m->pend_cv[0][id];
-      if (mod_finite(v)) m->sys_cv[id] = v;
-      else ++m->stats.nonfinite;
+  /* Visit pending CVs in the original ascending order. Use 32-bit halves
+   * so the 32-bit target does not shift two 64-bit masks for every source.
+   * ctz is only defined for nonzero inputs; pending guards every call. */
+  for (unsigned half = 0; half < 2; ++half) {
+    const unsigned shift = half * 32u;
+    const uint32_t now = (uint32_t)(m->cv_has[0] >> shift);
+    const uint32_t next = (uint32_t)(m->cv_has[1] >> shift);
+    uint32_t pending = now | next;
+    while (pending) {
+      const unsigned bit = (unsigned)__builtin_ctz(pending);
+      const uint32_t mask = (uint32_t)1u << bit;
+      id = shift + bit;
+      if (now & mask) {
+        const float v = m->pend_cv[0][id];
+        if (mod_finite(v)) m->sys_cv[id] = v;
+        else ++m->stats.nonfinite;
+      }
+      if (next & mask) m->pend_cv[0][id] = m->pend_cv[1][id];
+      pending &= pending - 1u;
     }
-    if ((m->cv_has[1] >> id) & 1u) m->pend_cv[0][id] = m->pend_cv[1][id];
   }
   m->cv_has[0] = m->cv_has[1];
   m->cv_has[1] = 0;
