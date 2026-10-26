@@ -4520,3 +4520,28 @@ the six reported stages is455.542/368.208/419.917/488.333us. That residual
 and cold-block preparation need attribution; no deadline failure is excluded.
 Actual mixed timing, fault-validated DAC/KA6 and representative30-minute analog
 soaks remain open. PR155 remains draft and unmerged.
+
+### First-block attribution and event placement experiment (V21, offline)
+
+[verified] V20's outer counters attribute419.042/340.958/392.708/462.917us
+of its worst blocks to control preparation before rendering, and26.125/21.542/
+21.583/21.667us to PCM conversion. The six stages cover sounds, masters, amp,
+limiter, scope and UI; their residual is not unmeasured DSP alone. Preparation
+profiles split note-on and level/filter edits, with nested modulation-note cost.
+No first block is excluded and no event is moved outside the deadline.
+
+[implemented, not accepted] A separate guarded `--event-ram` relocates eight
+existing definitions in private copies: app note/control dispatch and automation
+target/base helpers, plus modulation note/input feeding. Function bodies remain
+byte-identical after removing placement pragmas. Existing timing-only/prep/kind
+guards apply and original prepared hashes are recorded. V20 stays healthy idle;
+V21 requires host, vendor size/heap/stack/layout/PCM and exact admission review.
+Rarefaction's primary checkout lacks this preparation script; Serena selects the
+absolute worktree and verified actual control/automation/modulation-note bodies.
+
+[verified, offline]81 renderer tests pass with one unavailable32-bit replay
+skip, and the V21 vendor build succeeds. Pre-task heap61388 bytes is3904 less
+than V20. Exact SDK/ROM safeguards and six FM6 kernels/table comparisons pass
+with checked relocations; generic link audit has no failure, with its SDK
+scheduling pending item covered by the independent exact comparison. V21 has
+not been admitted or installed. Full layout/recovery/cipher/NOR review remains.

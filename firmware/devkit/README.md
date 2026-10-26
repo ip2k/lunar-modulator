@@ -348,3 +348,10 @@ envelope and chance hot processors and their LFO/envelope process primitives
 in SRAM. It requires timing-only profiled resident module helpers. Bodies,
 random state, rates and event order are unchanged; original source hashes are
 retained. Vendor layout/stack and exact target PCM/timing remain required.
+
+The separate private `--event-ram` experiment places unchanged note dispatch,
+modulation input feeding and control-edit/automation-target helpers in SRAM.
+It requires timing-only preparation profiling and resident kinds. The existing
+outer and preparation counters attribute cold-block work without moving events
+or excluding first blocks. Original prepared hashes are retained; compiled
+size, remaining heap, stack, PCM and target deadlines still gate this experiment.
