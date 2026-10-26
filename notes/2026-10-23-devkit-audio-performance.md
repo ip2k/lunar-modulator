@@ -6222,3 +6222,45 @@ this checkout; this was a collection environment issue, not a device action.
 [verified] Corrected exact-source admission transaction suite:85PASS0.97s on
 bounded Aeon. V38 firmware bytes unchanged from230672; only hash admission,
 boundary inventory/test and these evidence notes changed.
+
+[verified] V38 protected dev-kit cycle completed. Fresh UARTentry/actual ROM
+WL82UBOOT1.00, double CURRENT V37 backups, CURRENT140factory restore,
+WINDOW install/fullreadback, armed sole startup verifier, one WINDOW reset,
+fresh startup3ACK in78.9792ms, actual ROM response, double NEW V38 backups,
+NEW140factory restore, SAME RUN install/fullreadback and armed sole receive-only
+capture all passed their applicable gates. WINDOW59409/RUN83482 receipts are
+CONSUMED at invocation: NEVER retry. Sole RX33358/PID442429 was twice exactargv
+verified, sent one SIGTERM and TERMINAL255 before ordinary PINGACK; PID absence
+checked. Board now V38 healthy idle. No build/RX/KA6/device operation remains live.
+
+[verified] Strict parser passed4arithmetic/4mixedPCMcontrol/24outer/40DETAIL/
+104MICRO records;22052queue jobs zeroerrors, worker finiteexit. Mean per64frame
+block1974.375/2033.958/2067.417/2223.458us; ALL5513blocks late in eachcase:
+FAIL34829tick deadline. Max56002/57947/62019/68542ticks. Stable heap77044bytes;
+parent unused1532/8192bytes, worker7452/8192. No deadline or analog acceptance.
+
+[verified] New six components, means across fourcases per audio block:
+systemintake37.167..37.458us; moduleparams49.875..50.250us;
+gates20.625..20.833us; output/IOprepare8.792..8.875us;
+moduleprocess56.292..56.750us; outputsanitation13.375..13.542us.
+System counts11025/11026/11026/11026; each of five modulecomponents exactly
+5times thosecounts. These contain observer overhead and are SUBSETS of
+recording/outer banks; NEVER add bank totals. Workerouter5 OVERLAPS CPU0.
+Instrumentation has higher total means than V37; no speedup claimed.
+Neither params nor process alone can close the measured500..772us gap.
+
+[verified] Private raw SHA256
+4c577c243e41fa1a5b5d0a994b0cb1c3183102ea9f81aa8639ce668ff696d13a.
+Target facts/startup/transaction receipts/uart metadata saved under
+scratch/devkit-20261023/build-renderer-module-micro-v38; raw beside that folder.
+Offline admission is historical and its hardware flags remain unmodified;
+these target facts separately establish deployment/correctness, not acceptance.
+
+[inferred] Next investigate whether the existing CPU1 Macro-only partition can
+also process its instance-owned insert Drive/meter work while CPU0 renders the
+other sounds, following the community whole-part approach. First inspect exact
+app ordering/control updates and transitive mutable state, then host exactPCM
+and fault ownership/lifetime proofs before any implementation promotion or new
+image. This is a hypothesis, not demonstrated timing savings; do not repeat
+V30 Macro+Drums partition regression or weaken PCM/rates/polyphony/firstblocks.
+Actual FM1 recovery remains untouched; no physical FM1 or Hera traffic.
