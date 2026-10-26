@@ -6394,3 +6394,40 @@ privately as ci-40323150122-chromium.log. This is a separate actionable browser
 audio failure; no gate was relaxed or passing test rerun. Other CI jobs remained
 in progress at last inspection. Pages40323150021 succeeded. PR155 stays draft and
 unmerged; analog/fault validation and representative30minute soaks remain undone.
+
+### Chromium delivery stall: failing CI trace and independent passing control
+
+[verified] Downloaded the failed job's complete browser trace and phase timeline.
+Both SyncReader timeouts occur during the edit loop, about29.46seconds after its
+start, before snapshot drain. The two underruns total23.218ms. Three glitch trace
+publications describe the same two-event counter, not three separate glitches.
+Trace collection is complete with zero dropped events; no FIFO-shortage events
+appear. Absence of that event does not negate the playback-counter failure.
+
+[verified] The failing callback contains a38.771ms PushPullFIFO::Push span with
+only73us thread CPU time. Its nested under-lock span begins near the end and
+takes7us. The immediately preceding RealtimeAudioDestinationHandler::Render
+takes175us. AudioOutputDevice's waiting span lasts39.464ms. No overlapping traced
+FIFO Pull explains the stall. This locates the observed delay outside that DSP
+render; it does not identify a lock owner or distinguish mutex waiting from OS
+descheduling. The Chromium FIFO source places its under-lock trace after
+AutoLock acquisition [verified against the inspected source revision, not an
+exact-version source match](https://chromium.googlesource.com/chromium/src.git/+/ab6b23fbaa30f59c1f7b7c984e4f4247aea6d2a8/third_party/blink/renderer/platform/audio/push_pull_fifo.cc).
+
+[verified] One independent exact9c0c07d7 source archive ran the unchanged30second
+storm on bounded Aeon: Playwright1.63.0 / Chromium153.0.8010.12, four CPUs,
+6GiB memory/swap limit, PulseAudio null sink and the same scheduling capture.
+Session75488 terminated0:7168accepted edits, no rejected codes or error logs,
+10695quanta, binary snapshot and zero playback underruns. Its longest FIFO Push
+was665us; its longest DSP render was2319us during startup. This is a passing
+control, not a fix or proof that the CI failure is harmless. No gate, renderer or
+committed WASM changed. Private artifacts are ci-40323150122-chromium-artifacts
+and repro-traced under scratch/devkit-20261023; the Aeon source/output directory
+is chromium-underrun-9c0c07d7. No test remains live.
+
+[inferred] Browser delivery waiting/descheduling is the next hypothesis to test.
+Use a predeclared bounded idle/storm or observer-on/off diagnostic comparison;
+retain failures and the ordinary zero-underrun acceptance gate. Existing trace
+does not establish that playbackStats polling, tracing, host contention or Lunar
+caused the wait. Exact9c0CI40325582091 remained in progress at last check;
+Pages40325581941 succeeded. No device traffic occurred during this investigation.
