@@ -6028,3 +6028,22 @@ Serena session7b7f9712 selected the correct absolute worktree and located it.
 cost, but omit plan rebuild/tick bookkeeping and include observer overhead.
 Host proof cannot establish target stack/cache/race/timing. The narrow parent
 stack margin still requires exact vendor frame review before any admission.
+
+[verified] V37 firmware/preparer checkpoint ef4380b10d26a46307c76b66d3f99ebc459facad
+pushed with explicit refspec and remote SHA verified. Fresh exact-source vendor
+build12291 TERMINAL0; export92462 TERMINAL0. Preliminary final-ELF review finds
+8 micro-mark calls in fm1_mod_tick and4 in glue_tick, no remaining whole-hook
+wrapper symbols, and no micro calls on CPU1. The core frame remains236 local
+bytes plus52 saved (288 total), timing1268+52 (1320 total); glue28+52 (80 total).
+This is preliminary frame/symbol evidence, NOT a full call-path stack proof.
+Receipt confirms26 regions and six alternative labels. No8MiB candidate,
+admission, staging or installation has occurred. Private ELF/disassembly/input
+and preliminary-modulation-review.json saved under build-renderer-mod-micro-v37.
+
+[verified] Strict private V37 UART parser requires all six stage counts to match
+exact finite-case modulation ticks11025/11026/11026/11026. Its synthetic fixture
+and19 malformed/old-mode refusals pass; synthetic zero-time records establish
+parser scheduling structure only, not measured performance. Next complete exact
+timer branch/control review, full manifest/layout/UART-first/SDK/source-independence,
+independent app-copy/cipherCRC/NOR admission and parser fault coverage before
+any protected hardware cycle. V36 remains healthy-idle CURRENT and deadline FAIL.
