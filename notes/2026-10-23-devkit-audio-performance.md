@@ -5431,3 +5431,40 @@ and the reviewed preparation receipt must accompany any future V30 result.
 All scripts, binaries and detailed reports remain private and ignored.
 V30 has not been staged or installed. V29 remains healthy idle; its missed
 deadlines and outstanding fault-validated analog30-minute acceptance remain.
+
+
+### V30 Macro/Drums queue target result (2026-10-26)
+
+[verified, hardware] Full UART-only protected cycle passed: two full CURRENT
+V29 backups, CURRENT139 byte-identical factory restore, V30 WINDOW install/full
+readback, fresh startup PING/ARM/ENTER in78.9898ms and responsive actual ROM,
+two full NEW V30 backups, NEW139 factory restore and SAME RUN install/full
+readback. WINDOW37316 and RUN39436 receipts are consumed; never retry.
+The first unprivileged backup stopped on EACCES before opening the device;
+its receipt was retained and the existing sudo path used a new directory.
+Sole RX PID351570 was checked twice before one SIGTERM; capture50650 reached
+terminal255 before ordinary PING acknowledged healthy idle. No RX/KA6/build or
+device operation remains live. CURRENT is V30 `14e39d30…34d786c2`,139 sectors
+`[0x4000,0x8f000)`; no physical buttons or FM1 traffic were used.
+
+[verified] Strict parser passes arithmetic4, mixed PCM/control4,22052 completed
+queue jobs with zero wrong-core/error/refusal, expected peaks and finite worker
+exit. Heap77844 bytes is stable; unused parent stack2748/8192 and worker7452/8192.
+Private UART SHA256:
+`30d4182f48b184ac0fbe69740ebf486e1eacf3d991c4e706d5977570bda7f9a2`.
+
+|Case|Mean us|Maximum ticks|Late /5513|Mean regression vs V29|
+|---|---:|---:|---:|---:|
+|0|2311.625|64060|5513|19.18%|
+|1|2374.458|64893|5513|18.65%|
+|2|2375.167|68780|5513|16.68%|
+|3|2375.042|71215|5513|8.19%|
+
+[verified] All cases FAIL the unchanged34829-tick deadline. The new worker
+partition is correct for this fixed workload but slower than V29. No analog
+acceptance is established. [inferred] Additional serialization on CPU1 is a
+candidate explanation; exact attribution needs separate recording/caller/worker/
+wait measurements. The next experiment should measure those regions before
+another scheduling change, retain V29's default partition, and preserve all
+PCM/rates/filters/first blocks. Fault-validated DAC/KA6 and representative
+30-minute analog soaks remain undone. PR155 stays draft and unmerged.
