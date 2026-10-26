@@ -5544,3 +5544,27 @@ retained V30 restore plan. Detailed artifacts remain private in
 V31 is not staged or installed. The full protected WINDOW/RUN cycle, fresh target
 region/stack results and final uninstrumented deadline/analog acceptance remain
 required. PR155 remains draft and unmerged.
+
+### V31 target regions and community/recovery research, 2026-10-26
+
+[verified] V31 f9aa8f87 completed its full protected WINDOW/RUN cycle and is
+healthy idle after ordinary PING ACK. Startup recovery79.0572ms with fresh3ACK
+and actualROM. WINDOW77679/RUN17180 and all older reset receipts consumed,
+never retry. RUN17180terminal0; soleRX31771/PID367683 twice exactargv checked,
+SIGTERM once, terminal255 before PING. Raw capture SHA256
+ffde669943276b3ffba9a02cf8e39410fb9933092c170860b28dbcef143a8036.
+Strict parser passes four arithmetic and four PCM/control cases,22052queue
+jobs zeroerrors/finiteexit; stableheap77780, parentunused2500/8192 and
+workerunused7452/8192. Means1950.167/2013/2043.25/2198.667us, all5513late
+percase: FAIL34829ticks. CPU0postdispatch790..797us andrecording257..258us;
+lightcase removingallwait still1715.5us. CPU1regionoverlaps, neveradd.
+No RX/KA6/build/deviceop live. Instrumented timing is not final acceptance.
+
+Owner requested deeper community architecture research and FM-1-transporter
+for actual nonbooting FM1, then confirmed Pico2W/Tigard/Cynthion availability.
+Read-only findings and exact revisions:
+[community audio architecture and recovery](2026-10-26-community-audio-architecture-and-recovery.md).
+No actual FM1 traffic or writes. Next performance work splits postdispatch
+FX/mix/UI/hash before repartitioning; next recovery dependency is failed-write
+history/backup and reviewed electrical/bridge plan. Campaign/PR155/hardware
+acceptance remain unfinished.
