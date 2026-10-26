@@ -52,6 +52,18 @@ int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
                 if (elapsed > result.max_ticks) result.queue_worst[i] = regions[i];
             }
 #endif
+#ifdef LUNAR_QUEUE_DETAIL
+            uint32_t details[LUNAR_QUEUE_DETAILS];
+            if (!lunar_renderer_queue_detail_read(details)) return 0;
+            uint64_t detail_sum = 0;
+            for (unsigned i = 0; i < LUNAR_QUEUE_DETAILS; ++i) detail_sum += details[i];
+            if (detail_sum > elapsed) return 0;
+            for (unsigned i = 0; i < LUNAR_QUEUE_DETAILS; ++i) {
+                result.queue_detail_ticks[i] += details[i];
+                if (details[i] > result.queue_detail_max[i]) result.queue_detail_max[i] = details[i];
+                if (elapsed > result.max_ticks) result.queue_detail_worst[i] = details[i];
+            }
+#endif
             result.ticks += elapsed;
             if (elapsed < result.min_ticks) result.min_ticks = elapsed;
             if (elapsed > result.max_ticks) {

@@ -285,12 +285,18 @@ void lunar_devkit_renderer_render(int16_t *out) {
 #ifdef LUNAR_RENDERER_PROFILE
     boundary[1] = profile_now ? profile_now() : 0;
 #endif
+#ifdef LUNAR_QUEUE_DETAIL
+    lunar_renderer_queue_detail_reset();
+#endif
     const float *samples = fm1_app_render(&app, BLOCK);
 #ifdef LUNAR_DEVKIT_ENGINE_QUEUE
     if (!samples || lunar_renderer_queue_error()) return;
 #endif
 #ifdef LUNAR_RENDERER_PROFILE
     boundary[2] = profile_now ? profile_now() : 0;
+#endif
+#ifdef LUNAR_QUEUE_DETAIL
+    lunar_renderer_queue_detail_mark(9, 1);
 #endif
     for (unsigned i = 0; i < BLOCK; ++i) for (unsigned ch = 0; ch < 2; ++ch) {
         float x = samples[2 * i + ch];
@@ -305,6 +311,9 @@ void lunar_devkit_renderer_render(int16_t *out) {
         hash = (hash ^ (word & 255u)) * 16777619u;
         hash = (hash ^ (word >> 8)) * 16777619u;
     }
+#ifdef LUNAR_QUEUE_DETAIL
+    lunar_renderer_queue_detail_mark(9, 0);
+#endif
 #ifdef LUNAR_RENDERER_PROFILE
     boundary[3] = profile_now ? profile_now() : 0;
     /* Aggregate after all boundary samples: no accounting work is charged

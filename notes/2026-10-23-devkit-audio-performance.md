@@ -5568,3 +5568,38 @@ No actual FM1 traffic or writes. Next performance work splits postdispatch
 FX/mix/UI/hash before repartitioning; next recovery dependency is failed-write
 history/backup and reviewed electrical/bridge plan. Campaign/PR155/hardware
 acceptance remain unfinished.
+
+### 2026-10-26 — CPU0 recording and post-join detail profiler (offline)
+
+[verified] Added guarded `--engine-queue-detail`, requiring the existing queue
+profile experiment. Ten non-nested CPU0 categories separate sequence setup,
+recorded callbacks, inserts/meters, levels/mix, masters, amp, limiter, scope,
+UI and output conversion/hash. Repeated sound intervals accumulate; the
+bridge rejects missing/nested/unclosed/out-of-range intervals, elapsed overflow,
+repeat reads and sums exceeding the outer duration. No sound/event/DSP order
+changed. Hooks are inserted into the private prepared application copy only.
+Default worker remains sound1. New diagnostics are not hardware admission.
+
+[verified] Bounded Aeon host run: 27 of 28 tests passed initially, including
+all six full-app PCM combinations (profile off/on/detail, both worker partitions),
+each comparing all 11,290,624 PCM bytes across44,104 batches and exercising
+permanent timeout/buffer lifetime. The new negative test exposed that a null
+read did not consume/refuse the detail sample; corrected that failure path.
+Three focused bridge/aggregation tests then passed in0.33s. Added aggregate
+sum refusal and reran the affected two aggregation variants successfully.
+Existing normal/ASAN+UBSAN ownership tests passed; TSAN remains unavailable,
+with no target race/cache/stack proof claimed. Logs are private under
+Aeon TASK/queue-detail-v32-{host,faultfix,aggregate}.log.
+
+[verified] Tool orientation: Rarefaction remains rooted in the primary checkout
+and returns older fm1_app_render at3267; not used as current-worktree evidence.
+Serena explicitly selects this absolute worktree and returns3630–3714,
+matching direct source. Neither establishes pi32v2 ABI/code generation.
+
+No new image generated, admitted, staged or installed. V31 remains CURRENT,
+healthy idle; no device/UART/KA6 operation or build was live during the host
+checks. All previous reset receipts remain consumed. Actual deadline and
+analog acceptance remain failed/incomplete. Actual FM1 recovery stays read-only;
+recorded original092 backups and interrupted-write/Cynthion history remain
+in the dated community/recovery note. CI82ac40282425580 is terminal CANCELLED
+by later heads; exact092cCI40286012140 was in progress, Pages40286012222 SUCCESS.

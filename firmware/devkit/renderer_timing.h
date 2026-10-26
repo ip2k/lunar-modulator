@@ -13,6 +13,10 @@ struct lunar_renderer_timing {
     uint64_t queue_ticks[6];
     uint32_t queue_max[6], queue_worst[6];
 #endif
+#ifdef LUNAR_QUEUE_DETAIL
+    uint64_t queue_detail_ticks[10];
+    uint32_t queue_detail_max[10], queue_detail_worst[10];
+#endif
 #ifdef LUNAR_RENDERER_PROFILE
     uint32_t worst_block, worst_stages[LUNAR_RENDERER_PROFILE_STAGES];
     uint32_t worst_details[LUNAR_RENDERER_DETAIL_REGIONS];

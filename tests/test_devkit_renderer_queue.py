@@ -391,7 +391,8 @@ int main() { run(0,100,true); run(0xfffffff0u,100,true); run(0,10,false); }
     subprocess.run([str(exe)], check=True, timeout=10)
 
 
-def test_queue_timing_aggregates_outer_partition_and_stops_on_missing_sample(tmp_path):
+@pytest.mark.parametrize("detail", [False, True])
+def test_queue_timing_aggregates_outer_partition_and_stops_on_missing_sample(tmp_path, detail):
     cc = os.environ.get("FM1_SIM_CC", "cc")
     if not shutil.which(cc):
         pytest.skip("native C toolchain unavailable")
@@ -409,13 +410,26 @@ void lunar_devkit_renderer_status(struct lunar_renderer_status *out) { memset(ou
 unsigned lunar_renderer_queue_error(void) { return 0; }
 int lunar_renderer_queue_profile_read(uint32_t start,uint32_t end,uint32_t out[6]) {
  assert(end-start==90); ++samples;
- if(fault) return 0;
+ if(fault==1) return 0;
  for(unsigned i=0;i<5;++i) out[i]=18;
  out[5]=42; return 1;
 }
+#ifdef LUNAR_QUEUE_DETAIL
+int lunar_renderer_queue_detail_read(uint32_t out[10]) {
+ if(fault==2) return 0;
+ for(unsigned i=0;i<10;++i) out[i]=fault==3?10:i+1;
+ return 1;
+}
+#endif
 static void emit(const struct lunar_renderer_timing *r) {
  assert(r->test_case==emitted++ && r->blocks==5513 && r->ticks==90ull*5513);
  assert(r->min_ticks==90 && r->max_ticks==90 && !r->over_budget);
+#ifdef LUNAR_QUEUE_DETAIL
+ for(unsigned i=0;i<10;++i) {
+  assert(r->queue_detail_ticks[i]==(uint64_t)(i+1)*5513);
+  assert(r->queue_detail_max[i]==i+1 && r->queue_detail_worst[i]==i+1);
+ }
+#endif
  for(unsigned i=0;i<6;++i) {
   unsigned duration=i<5?18:42;
   assert(r->queue_ticks[i]==(uint64_t)duration*5513);
@@ -427,12 +441,69 @@ int main(void) {
  assert(emitted==4 && samples==22052);
  fault=1; assert(!lunar_devkit_renderer_timing(now,yield,emit));
  assert(emitted==4 && samples==22053); // No false case completion.
+#ifdef LUNAR_QUEUE_DETAIL
+ fault=2; assert(!lunar_devkit_renderer_timing(now,yield,emit));
+ assert(emitted==4 && samples==22054);
+ fault=3; assert(!lunar_devkit_renderer_timing(now,yield,emit));
+ assert(emitted==4 && samples==22055); // Overlapping/corrupt detail sum refused.
+#endif
 }
 ''')
     exe = tmp_path / "timing"
     subprocess.run([cc, "-std=c99", "-O2", "-DLUNAR_DEVKIT_ENGINE_QUEUE=1",
-                    "-DLUNAR_QUEUE_PROFILE=1", "-I" + str(ROOT / "firmware/devkit"),
+                    "-DLUNAR_QUEUE_PROFILE=1", *(["-DLUNAR_QUEUE_DETAIL=1"] if detail else []),
+                    "-I" + str(ROOT / "firmware/devkit"),
                     "-I" + str(ROOT / "engines/include"),
                     str(source), str(ROOT / "firmware/devkit/renderer_timing.c"),
+                    "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True, timeout=10)
+
+
+def test_queue_detail_clock_wrap_repeats_and_malformed_intervals(tmp_path):
+    cxx = os.environ.get("FM1_SIM_CXX", "c++")
+    if not shutil.which(cxx):
+        pytest.skip("native C++ toolchain unavailable")
+    source = tmp_path / "detail.cc"
+    source.write_text(r'''
+#include "renderer_queue_bridge.h"
+#include <cassert>
+static uint32_t tick;
+static uint32_t now() { return tick; }
+static void mark(unsigned r) {
+ lunar_renderer_queue_detail_mark(r,1); tick+=7;
+ lunar_renderer_queue_detail_mark(r,0);
+}
+int main() {
+ uint32_t out[LUNAR_QUEUE_DETAILS];
+ assert(lunar_renderer_queue_init(now,100));
+ for(unsigned pass=0;pass<2;++pass) {
+  tick=pass?0xfffffffcu:0;
+  lunar_renderer_queue_detail_reset();
+  for(unsigned r=0;r<LUNAR_QUEUE_DETAILS;++r) mark(r);
+  mark(2); // All four sound intervals accumulate in the same category.
+  assert(lunar_renderer_queue_detail_read(out));
+  for(unsigned r=0;r<LUNAR_QUEUE_DETAILS;++r) assert(out[r]==(r==2?14u:7u));
+  assert(!lunar_renderer_queue_detail_read(out));
+ }
+ for(unsigned fault=0;fault<7;++fault) {
+  lunar_renderer_queue_detail_reset();
+  for(unsigned r=0;r<LUNAR_QUEUE_DETAILS-1;++r) mark(r);
+  if(fault==0) {} // Missing region.
+  if(fault==1) lunar_renderer_queue_detail_mark(9,0); // Unmatched exit.
+  if(fault==2) { lunar_renderer_queue_detail_mark(9,1); lunar_renderer_queue_detail_mark(8,1); }
+  if(fault==3) lunar_renderer_queue_detail_mark(LUNAR_QUEUE_DETAILS,1);
+  if(fault==4) lunar_renderer_queue_detail_mark(9,2);
+  if(fault==5) { lunar_renderer_queue_detail_mark(9,1); tick+=0x80000000u; lunar_renderer_queue_detail_mark(9,0); }
+  if(fault==6) { mark(9); assert(!lunar_renderer_queue_detail_read(0)); }
+  assert(!lunar_renderer_queue_detail_read(out));
+ }
+}
+''')
+    exe = tmp_path / "detail"
+    subprocess.run([cxx, "-std=c++11", "-O2", "-DLUNAR_QUEUE_HOST_TEST=1",
+                    "-DLUNAR_QUEUE_PROFILE=1", "-DLUNAR_QUEUE_DETAIL=1",
+                    "-I" + str(ROOT / "firmware/devkit"), "-I" + str(ROOT / "engines/include"),
+                    str(source), str(ROOT / "firmware/devkit/renderer_queue.cc"),
+                    str(ROOT / "firmware/devkit/renderer_queue_bridge.cc"),
                     "-o", str(exe)], check=True)
     subprocess.run([str(exe)], check=True, timeout=10)

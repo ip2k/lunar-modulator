@@ -437,3 +437,16 @@ idle worker polling adds no timer reads. Failed or stale batches cannot emit a
 profile sample. Default builds contain none of these extra clocks or storage.
 These diagnostic measurements include observer overhead and do not establish
 race/cache safety or replace final uninstrumented deadline/analog acceptance.
+
+
+`--engine-queue-detail` additionally requires `--engine-queue-profile`. It emits
+`LUNAR_QUEUE_DETAIL` records for ten CPU0 subsets: sequence setup/advance,
+recorded callbacks, sound inserts/meters, sound levels/mix, master effects,
+amp, click/limiter, scope, UI, and output conversion/hash. Sound insert and mix
+intervals accumulate over the four sounds without changing their order. The
+preparer inserts hooks only into the private staged application copy; ordinary
+application builds are unchanged. Each successful block must supply every
+category, with no nested/unclosed intervals, before a detail sample is accepted.
+Unsigned timer subtraction supports wraparound. Detail intervals are subsets of
+the six outer regions, **not additional render time**; do not add them to those
+regions or to overlapping worker execution. Observer overhead remains included.

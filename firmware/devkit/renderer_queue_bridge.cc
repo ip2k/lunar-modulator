@@ -55,3 +55,50 @@ extern "C" int lunar_renderer_queue_profile_read(uint32_t start, uint32_t end, u
   return queue && queue->ProfileRead(start, end, ticks);
 }
 #endif
+
+#ifdef LUNAR_QUEUE_DETAIL
+namespace {
+uint32_t detail_ticks[LUNAR_QUEUE_DETAILS], detail_start, detail_seen;
+unsigned detail_active;
+bool detail_valid;
+}
+extern "C" void lunar_renderer_queue_detail_reset(void) {
+  for (unsigned i = 0; i < LUNAR_QUEUE_DETAILS; ++i) detail_ticks[i] = 0;
+  detail_seen = 0;
+  detail_active = LUNAR_QUEUE_DETAILS;
+  detail_valid = queue && direct_clock;
+}
+extern "C" void lunar_renderer_queue_detail_mark(unsigned region, int entering) {
+  if (!detail_valid) return;
+  const uint32_t tick = direct_clock();
+  if (region >= LUNAR_QUEUE_DETAILS || (entering != 0 && entering != 1) ||
+      (entering ? detail_active != LUNAR_QUEUE_DETAILS : detail_active != region)) {
+    detail_valid = false;
+    return;
+  }
+  if (entering) {
+    detail_active = region;
+    detail_start = tick;
+  } else {
+    const uint32_t elapsed = tick - detail_start;
+    if (elapsed >= 0x80000000u || UINT32_MAX - detail_ticks[region] < elapsed) {
+      detail_valid = false;
+      return;
+    }
+    detail_ticks[region] += elapsed;
+    detail_seen |= 1u << region;
+    detail_active = LUNAR_QUEUE_DETAILS;
+  }
+}
+extern "C" int lunar_renderer_queue_detail_read(uint32_t ticks[LUNAR_QUEUE_DETAILS]) {
+  if (!detail_valid || detail_active != LUNAR_QUEUE_DETAILS ||
+      detail_seen != (1u << LUNAR_QUEUE_DETAILS) - 1 || !ticks ||
+      lunar_renderer_queue_error()) {
+    detail_valid = false;
+    return 0;
+  }
+  for (unsigned i = 0; i < LUNAR_QUEUE_DETAILS; ++i) ticks[i] = detail_ticks[i];
+  detail_valid = false; // Exactly one read per completed outer block.
+  return 1;
+}
+#endif

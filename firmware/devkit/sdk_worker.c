@@ -44,6 +44,12 @@ static void emit_renderer(const struct lunar_renderer_timing *r)
                r->test_case, i, r->blocks, (unsigned)(r->queue_ticks[i] / r->blocks),
                r->queue_max[i], r->queue_worst[i]);
 #endif
+#ifdef LUNAR_QUEUE_DETAIL
+    for (unsigned i = 0; i < 10; ++i)
+        printf("LUNAR_QUEUE_DETAIL case=%u region=%u blocks=%u mean=%u max=%u worst=%u\n",
+               r->test_case, i, r->blocks, (unsigned)(r->queue_detail_ticks[i] / r->blocks),
+               r->queue_detail_max[i], r->queue_detail_worst[i]);
+#endif
     puts("LUNAR_RENDERER_HEAP after_case=1\n");
     malloc_stats();
     printf("LUNAR_RENDERER_STACK unused_words=%u word_bytes=4\n",

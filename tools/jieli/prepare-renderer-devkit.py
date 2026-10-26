@@ -472,9 +472,43 @@ static int lunar_queue_dispatch(void) {
     if text.count(old) != 1:
         raise ValueError("Unexpected sound block; review queue failure propagation")
     text = text.replace(old, old + "\n  if (lunar_renderer_queue_error()) return NULL;", 1)
+    # Exact source anchors keep measurements attached to the reviewed operations.
+    detail_pairs = [
+        ("static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {",
+         "static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {\n  QUEUE_DETAIL(0, 1);"),
+        ("    if (!lunar_queue_begin(a)) return;",
+         "    QUEUE_DETAIL(0, 0);\n    if (!lunar_queue_begin(a)) return;\n    QUEUE_DETAIL(1, 1);"),
+        ("    if (!lunar_queue_dispatch()) return;",
+         "    QUEUE_DETAIL(1, 0);\n    if (!lunar_queue_dispatch()) return;"),
+        ("    if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k, b, n);   /* telemetry, read only */",
+         "    QUEUE_DETAIL(2, 1);\n    if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k, b, n);   /* telemetry, read only */"),
+        ("    apply_mix_level(a, (unsigned)k, b, n);\n    if (a->edit)",
+         "    QUEUE_DETAIL(2, 0);\n    QUEUE_DETAIL(3, 1);\n    apply_mix_level(a, (unsigned)k, b, n);\n    if (a->edit)"),
+        ("    if (!(a->export_sound_mask & (1u << k))) continue;",
+         "    if (!(a->export_sound_mask & (1u << k))) { QUEUE_DETAIL(3, 0); continue; }"),
+        ("    first = 0;\n  }\n  if (first)",
+         "    first = 0;\n    QUEUE_DETAIL(3, 0);\n  }\n  if (first)"),
+    ]
+    for stage, region in [("MASTERS", 4), ("AMP", 5), ("LIMITER", 6), ("SCOPE", 7), ("UI", 8)]:
+        for entering in (0, 1):
+            old = f"  PROFILE_STAGE(FM1_APP_PROFILE_{stage}, n, {entering});"
+            detail_pairs.append((old, old + f"\n  QUEUE_DETAIL({region}, {entering});"))
+    for old, new in detail_pairs:
+        if text.count(old) != 1:
+            raise ValueError("Unexpected CPU0 detail boundary; review queue: " + old)
+        text = text.replace(old, new, 1)
+    text = """#ifdef LUNAR_QUEUE_DETAIL
+#include "renderer_queue_bridge.h"
+#define QUEUE_DETAIL(region, entering) lunar_renderer_queue_detail_mark(region, entering)
+#else
+#define QUEUE_DETAIL(region, entering) ((void)0)
+#endif
+""" + text
     return text
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False):
+    if engine_queue_detail and not engine_queue_profile:
+        raise ValueError("Queue detail requires queue region profiling")
     if engine_queue_profile and not engine_queue:
         raise ValueError("Queue region timing requires the guarded whole-engine queue")
     if engine_queue_drums and not engine_queue:
@@ -890,6 +924,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         renderer_flags += f"CFLAGS += -I{staging / 'firmware/devkit'}\n"
     if engine_queue_profile:
         renderer_flags += "CFLAGS += -DLUNAR_QUEUE_PROFILE=1\n"
+    if engine_queue_detail:
+        renderer_flags += "CFLAGS += -DLUNAR_QUEUE_DETAIL=1\n"
     if engine_queue_drums:
         renderer_flags += "CFLAGS += -DLUNAR_QUEUE_WORKER_DRUMS=1\n"
     if scheduling_probe:
@@ -925,6 +961,10 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "engine_queue": engine_queue,
         "engine_queue_drums": engine_queue_drums,
         "engine_queue_profile": engine_queue_profile,
+        "engine_queue_detail": engine_queue_detail,
+        "engine_queue_detail_regions": (["sequence_setup", "record_callbacks", "inserts_meters", "level_mix",
+                                         "masters", "amp", "limiter", "scope", "ui", "conversion_hash"]
+                                        if engine_queue_detail else []),
         "engine_queue_profile_regions": (["before", "recording", "caller", "wait", "after", "worker_overlap"]
                                          if engine_queue_profile else []),
         "engine_queue_worker_sounds": ([1, 2] if engine_queue_drums else [1]) if engine_queue else [],
@@ -1098,5 +1138,7 @@ if __name__ == "__main__":
                         help="Observe VCF oscillator/filter sections; timing-only O3 engine profiling")
     parser.add_argument("--external-pixels", action="store_true",
                         help="Caller-owned screen pixels; timing-only renderer does not draw or attach a framebuffer")
+    parser.add_argument("--engine-queue-detail", action="store_true",
+                        help="Split queue recording and post-join CPU0 work; requires queue profile")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail)

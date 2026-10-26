@@ -28,6 +28,17 @@ unsigned lunar_renderer_queue_peak(unsigned sound);
  * before / recording / caller / wait / after; overlapping worker is sixth. */
 int lunar_renderer_queue_profile_read(uint32_t start, uint32_t end, uint32_t ticks[6]);
 #endif
+#ifdef LUNAR_QUEUE_DETAIL
+#ifndef LUNAR_QUEUE_PROFILE
+#error Queue detail requires queue profile
+#endif
+enum { LUNAR_QUEUE_DETAILS = 10 };
+/* CPU0 only, non-nested intervals; reset once before each outer render.
+ * These are subsets of the outer regions, never additional audio time. */
+void lunar_renderer_queue_detail_reset(void);
+void lunar_renderer_queue_detail_mark(unsigned region, int entering);
+int lunar_renderer_queue_detail_read(uint32_t ticks[LUNAR_QUEUE_DETAILS]);
+#endif
 /* CPU1 only, after init/publication: -1 unavailable, 0 idle, 1 completed. */
 int lunar_renderer_queue_worker_step(void);
 #ifdef __cplusplus
