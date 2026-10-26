@@ -6919,3 +6919,27 @@ No backups, full-flash readbacks or restore rehearsals were performed. The
 V51 reset receipt is consumed and must never be retried. Private scripts,
 compiler output, raw capture and parsed facts are under
 `scratch/devkit-20261023/fm-pair-v51-proof` and corresponding Aeon paths.
+
+## Two-prefix feasibility after V51
+
+[verified] A private host experiment replaces one 64-frame app call with
+two consecutive 32-frame calls, copying the first output before the second
+reuses the app buffer. All eight workload cases remain byte-identical:
+11,290,624 bytes, zero mismatches. This establishes only this workload's
+partition compatibility, not concurrent ownership or arbitrary engine support.
+The first proof launcher accidentally selected the baseline for both paths;
+that run is invalid. The corrected launcher records distinct source and
+executable paths before comparison (`prefix-v52-pcm2.log`).
+
+[inferred] A small exhaustive scheduling model uses V51's heavy-case mean
+regions, splits each cost evenly between two prefixes, and assumes zero
+synchronization overhead and immutable controls. Keeping masters on CPU0
+cannot improve its occupied time (best 1,726.792 us). Assigning the ordered
+masters to CPU1 yields an optimistic best finish of 1,571.083 us, still
+119.875 us beyond the deadline. Total occupied work is approximately
+2,888.083 core-us, leaving only 14.333 core-us below two cores' nominal
+capacity; IRQs, handoffs and worst-case variation still need margin.
+These are model bounds under the stated assumptions, not hardware timings.
+No queue implementation or new image was made for this experiment. Additional
+work reduction must precede promotion of a two-prefix scheduler. Private
+proof/model scripts and results are in `scratch/devkit-20261023/prefix-v52-proof`.
