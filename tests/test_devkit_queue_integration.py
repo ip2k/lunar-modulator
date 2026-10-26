@@ -3,6 +3,7 @@ import importlib.util
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 
 import pytest
@@ -188,7 +189,8 @@ int main() {
     fault_exe = tmp_path / "fault"
     subprocess.run([os.environ.get("FM1_SIM_CXX", "c++"), "-std=c++11", "-pthread",
                     "-I" + str(shadow / "firmware/devkit"), "-I" + str(ROOT / "engines/include"),
-                    str(harness), *objects, "-lm", "-o", str(fault_exe)], check=True)
+                    str(harness), *objects, *shlex.split(os.environ.get("FM1_SIM_EXTRA", "")),
+                    "-lm", "-o", str(fault_exe)], check=True)
     subprocess.run([str(fault_exe)], check=True,
                    env=dict(os.environ, LUNAR_QUEUE_INJECT_TIMEOUT="1"), timeout=30)
 

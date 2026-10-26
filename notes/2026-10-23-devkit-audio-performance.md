@@ -6047,3 +6047,45 @@ parser scheduling structure only, not measured performance. Next complete exact
 timer branch/control review, full manifest/layout/UART-first/SDK/source-independence,
 independent app-copy/cipherCRC/NOR admission and parser fault coverage before
 any protected hardware cycle. V36 remains healthy-idle CURRENT and deadline FAIL.
+
+### V37 final offline review (2026-10-26)
+
+[verified] Exact ELF dce46e067ca19a478b842085fcefbcde304d0332fe08555898e73a1c1faa2975:
+compiled core/glue branch traversal covers920/176 instruction states, one return
+each, with8/4 ordered stage-marker calls and no active marker at a return.
+Early paths skip the core intervals; source review confirms opaque module/write
+callbacks do not enter the flat bank. The mixed app installs no ticked/voiced
+callbacks. Marker code retains direct CPU0 clock67588, overflow/half-wrap
+refusal and one-consume semantics. CPU1 has no micro markers. Core frame288,
+glue80, seq_auto_tick12, aggregate1320; observer16. Individual frames remain
+insufficient for whole-stack/IRQ acceptance. Removing hook wrappers reduced
+resident code320bytes, BSS unchanged, pre-task heap119052. Layout review's old
+heap pin failed, then the new value was checked against actual section/symbol
+arithmetic before updating that private assertion.
+
+[verified] All636 manifest hashes match. UART18 starts before parent16;
+200tick recovery precedes arithmetic, static8KiB CPU1 worker and renderer init.
+Startup copy/BSS/cache ranges and publication/acquire/release instructions pass.
+SDK audit has0fail/1manual; manual scheduling is resolved by complete normalized
+comparison of the protected SDK/ROM-entry routines with the approved baseline.
+Fixed Macro0 source/target independence reviewed; this is not runtime race proof.
+Independent vendor objcopy matches571612-byte app SHA256
+3ee2fe15ca6385b56d22959ab6ceb06771264ff022519f3d695698b908b30d6e.
+
+[verified] Private candidate SHA256
+5704ca9e632fde350cd10b4a5f2a0a7f54f92857e839a28c778fa55d8cc7e05e,
+app end0x8f9fc, exactly140 sectors[0x4000,0x90000). Independent reference
+cipher, directory/application CRCs and protected cfg checks pass. Offline NOR
+install/restore metadata-last and interruptions7/1127/2215/2231 pass; CURRENT
+V36 restore independently covers140sectors. Hardware commands0. Strict parser
+now exercises91new malformed/old-mode refusals plus37base faults and separate
+synthetic timely/late captures; fixtures are not timing evidence.
+
+[verified] Additional ASAN+UBSAN replay initially failed only when linking the
+separate fault executable: replay flags were omitted from that link. The test
+now forwards tokenized FM1_SIM_EXTRA there too. Corrected session74465
+TERMINAL0: both ASAN+UBSAN full-PCM/call-balance/fault-lifetime casesPASS.
+Firmware/prepared C is unchanged by this test-only repair. All84 transaction
+checksPASS. Candidate5704ca9e is now OFFLINE ADMITTED, pinned to140 application
+sectors; NOT staged/installed/hardware accepted. Local/Aeon reports and
+offline-admission.json hash the exact reviewed artifacts. V36 remains CURRENT.
