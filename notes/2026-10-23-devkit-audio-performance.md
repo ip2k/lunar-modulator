@@ -6727,3 +6727,32 @@ remain44/52bytes, respectively. These observations do not establish a target
 speedup. No candidate installed or performance acceptance yet. Private scripts,
 logs and disassembly are under scratch/devkit-20261023; no vendor output is
 committed. Next: one streamlined application flash and fresh target timings.
+
+### V45 target result — stage-one scheduling rejected
+
+[verified, hardware] One application flash and one consumed reset completed,
+with no backups, readbacks or restore rehearsals. Fresh startup completed all
+four arithmetic cases, mixed PCM/control fingerprints,24 queue regions and
+22,052 worker jobs with zero errors and finite exit. Heap remains77,396bytes;
+unused parent/worker stacks remain2,500/7,444bytes of8,192. After closing the
+owned receiver, ordinary UART PING acknowledged.
+
+[verified, target timing] Means are1,706.875 /1,773.000 /1,787.792 /1,924.833us;
+maxima2,053.750 /2,100.083 /2,245.083 /2,480.583us. Late counts are4,951 /
+5,513 /5,513 /5,513 of5,513: all fail the unchanged34,829tick deadline.
+Compared with V43, means range from0.30percent worse to0.33percent better.
+CPU0 caller work falls about6–7us, but the Macro worker rises about6us.
+This single-run result offers no useful overall gain. The opt-in diagnostic
+experiment is retained for reproducibility; it is rejected for promotion.
+Production DSP/default preparation remain unchanged. More instruction
+interleaving alone is not supported as a solution to the remaining gap.
+
+[verified, persistence] Source checkpoint f725a760 pushed and remote verified.
+Current board is the experimental V45 image61b5a0ce7be498de25b33b144cd249a3901a483e54dc58d34781e220907b0d1a,
+not the default build. Reset iteration-stage1-schedule-v45-20261026 is consumed
+and must never be replayed. Receiver25737/PID514173 was exact-argv checked
+twice, sent one SIGTERM, then terminal255 and PID absent before PING. Raw
+SHA3eeec5dcaeb8f768ab4468a91aa591ad65d10ec11ba8b4e5917dfc2c04083e93;
+private target facts and scripts are saved under stage1-schedule-v45-proof.
+No process, build, test or capture remains live. No physical FM1/Hera traffic.
+Actual mixed deadlines and analog/soak acceptance remain unfinished.
