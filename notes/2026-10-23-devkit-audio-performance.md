@@ -7050,3 +7050,23 @@ proof/model scripts and results are in `scratch/devkit-20261023/prefix-v52-proof
 [verified] Whole-block means1571.083/1636.625/1641.917/1707.583 us and late4726/5513/5513/5513 still fail. Heap71188 remains stable; unused parent/worker stacks2508/7456 bytes. RX was closed before ordinary PING ACK. Current image and private target facts remain in ignored storage. No new scheduler, hardware audio acceptance, or sustained result is claimed.
 
 [inferred] Heavy occupied work is2847.792 core-us; measured mean first readiness from the outer start is96.398 us. Even ideal scheduling with only this initial idle gives1472.095 us,20.886 us late. At least41.773 core-us additional work reduction is required before any range, synchronization, interrupt, terminal dependency or tail margin. Early publication is a necessary building block, not a sufficient fix. Next work must measure native incremental-kernel overhead and identify further actual work removal before committing to a new queue pipeline; synchronous FM composition does not prove correctness across mid-block retriggers or late state import.
+
+
+### V76: native incremental FM cost exceeds the scheduling budget
+
+[verified] A private eight-range kernel preserves algorithm 5 operator-pair fusion, native paired sine loads and the original 64-frame gain endpoints. Normal and ASan/UBSan each pass 100,000 randomized blocks  / 809,531 ranges, including feedback, silent operators, phase wrap, untouched suffix and refusal. The complete 11,290,624-byte mixed PCM output is exact. An initial host link failed because a board-only observer was selected; correcting the source selection resolves it without changing the checks.
+
+[verified] One application flash/reset passes four arithmetic fingerprints, four mixed PCM/control cases, 24 regions, 22,052 zero-error queue jobs and finite exit. Means are 1574.000/1641.375/1690.208/1866.375us, respectively 2.917/4.750/48.292/158.792us slower than V75. Late counts 4727/5513/5513/5513 of 5513 all fail the unchanged 34,829-tick deadline. Heap 70,100 bytes remains stable; unused parent 2,508/8,192 and worker 7,456/8,192 bytes. These are synchronous range calls, not an event-interleaved or early-publication scheduler.
+
+[verified model] Heavy occupied work rises to 3010.833 core-us. With 96.680 us startup, even the ideal two-core lower bound is 1553.757 us; at least 205.097 core-us must be removed before new synchronization, dependency idle or tail margin. This implementation fails the pipeline feasibility gate. Private raw/facts/model live in renderer-prefix-fused-v76-exports; no source optimization is promoted and no hardware audio acceptance is claimed.
+
+[inferred hypothesis under test] V76 expresses input/feedback/add choices inside each sample loop, while msfa chooses its kernels outside that loop. V77 specializes those choices at compile time while retaining all routing and state semantics. Both randomized normal/sanitizer proofs and the full mixed PCM comparison pass. Native timing is pending; this is not yet a performance improvement.
+
+
+### V77: specialize range routing; cost remains too high
+
+[verified] Selecting input, feedback and add/replace behavior outside the per-sample loop preserves all 100,000 randomized blocks / 809,531 ranges in normal and sanitizer runs, plus all 11,290,624 mixed PCM bytes. Native range functions remain in SRAM; the application ends at 0x8fffc within the same 140 sectors.
+
+[verified] One application flash/reset passes arithmetic, exact mixed PCM/control, 24 region records, 22,052 zero-error queue jobs, bounded first spans and finite exit. Means are 1572.500 / 1638.500 / 1682.208 / 1857.333 us, with 4727 / 5513 / 5513 / 5513 late blocks. The heavy case recovers only 9.042 us versus V76 and remains 149.750 us slower than V75. Heap is stable at 69,652 bytes, unused parent stack is 2,508 bytes and worker stack 7,456 bytes. This also fails the native range-cost gate; no scheduler or optimization is promoted.
+
+[verified limit] Source identity and exact PCM do not prove safe yielding across note retriggers or asynchronous feedback-state import. Existing msfa pure-loop preparation does not annotate these replacement range loops; its relevance to cost is a follow-up question, not a measured explanation. Astra has the new measurements for a focused source review of substantial work reduction or an earlier legal frontier. No further hardware operation is live; the board acknowledges ordinary PING. Both unique reset attempts are consumed. No backup/readback/restore rehearsal, physical FM1 traffic or Hera contact occurred.
