@@ -4707,3 +4707,15 @@ Exact admission/transaction tests:78PASS. Host full mixed reference has PCM
 hashes6bcab227/46c02687/1e2f305d/5b7dbc03, cumulative paired jobs9639/26178/
 48230/81308 and controls176/358/548/746. Target mixed timing/stack and startup
 recovery remain unverified; no hardware or analog acceptance is claimed.
+
+
+### Browser build record refreshed after framebuffer source changes
+
+[verified] Exact-head CI40254339982 MIT/BSD job121352963397 failed only the
+committed Wasm freshness assertion at test_sim_web.py1063:4511 tests passed,
+239 skipped,2 expected failures. A bounded four-CPU Aeon rebuild passed all108
+parity scenarios, the metadata/SysEx checks and the30-second edit storm with
+zero late quanta. Default embedded-storage Wasm and metadata bytes remained
+identical; its provenance record now names the current simulator source hash.
+The exact CI=true freshness test passes separately. Browser parity is not
+dev-board timing or analog acceptance.
