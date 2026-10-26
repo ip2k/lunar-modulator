@@ -4620,3 +4620,72 @@ required. App end0x8e17c gives exact139sectors[0x4000,0x8f000). NOR model
 passes install/restore and interruptions7/1111/2199/2215 with metadata last.
 77 admission/reset tests pass. Only this exact image gains139-sector admission;
 V21 retains138 sectors. No hardware installation or acceptance yet.
+
+### V22 target result: planner placement does not meet deadlines
+
+[verified, hardware] Exact `5f893eff…` completed the full protected cycle:
+startup recovery acknowledged in78.9318ms; two full current-image backups,
+139-sector factory restore, same-image run install and all full8MiB readbacks
+matched. WINDOW69984 and RUN46560 receipts are consumed and must never be
+retried. Sole RX273605 was checked twice before one termination; its session
+68447 became terminal before ordinary PING acknowledged healthy idle.
+
+All four PCM hashes/arithmetic receipts,81308 paired jobs with no errors or
+wrong-core/refusal counters and finite worker exit,32 unit/24 stage/24 worst/
+12 detail/96 preparation/32 unit-worst records pass strict correlation.
+Private raw SHA256:
+`edb9d0a435060115e3acf5f11d86e9cb15c56ffa50844402dc9b757a9a8ba889`.
+
+|Case|Mean us|Max us|Late /5513|
+|---|---:|---:|---:|
+|0|932.708|1497.167|1|
+|1|1070.042|1476.958|1|
+|2|1142.917|1628.958|1|
+|3|1235.250|1778.833|11|
+
+All worst blocks remain block0. Heap10996bytes stays stable; unused parent
+stack2444/8192bytes and worker3260/4096. The lower first-block maxima do not
+make this a general improvement: average cost and case3 misses increased
+relative to V21. No first block or deadline was excluded or relaxed. V22
+fails deadline acceptance; mixed, DAC/KA6 and30-minute soaks remain undone.
+
+### Caller-owned screen storage for the mixed timing workload (offline)
+
+[verified, offline] A separate mixed V22 link leaves only12108bytes before
+SDK task allocation, with136KiB engine pool and232816-byte shared app. The
+observed keys task topology needs about41944bytes, so that image was never
+admitted or installed. The shared app embeds115200bytes of240x240 RGB565
+pixels; the renderer diagnostic never calls drawing. The existing panel probe
+is an offline command emitter with no hardware transport or framebuffer.
+
+[implemented, not hardware accepted] `FM1_TFT_EXTERNAL_PIXELS` keeps embedded
+storage as the default and optionally replaces it with caller-owned storage.
+Binding checks a full screen's capacity and fails closed; app reinitialization
+retains the binding. Unbound app drawing refuses without consuming dirty,
+meter or last-draw state. Attached storage uses the same pixel writers and
+banner pixel reader. All translation units must use the same compile setting.
+The separate `--external-pixels` preparation option is timing-only; it does
+not attach a framebuffer, drive a panel or establish display/DAC acceptance.
+No audio engine, pool, sample rate, filter or event ordering is removed.
+
+[verified, offline] Two focused tests pass: embedded/attached pixels, all
+fonts, clipping, recorded boxes and guard words match; real app audio, pixels,
+banner pixel reads and repeated initialization match. Full mixed-renderer PCM
+comparison, focused renderer suite and exact vendor mixed memory build are
+in progress. The next mixed build uses V21 placements (not the unsuccessful
+broad planner placement). No new candidate has been admitted or installed.
+Rarefaction's primary-root bounded TFT query supplies caller/co-change leads;
+Serena verifies the actual worktree body. Neither verifies target codegen.
+
+[verified, offline] Full focused renderer/TFT suite:89PASS, one unavailable
+32-bit replay skipped. GCC ASan+UBSan pixel/app tests:2PASS with leak detection
+and halt-on-UB enabled. Clang is absent from this container; its attempted run
+skipped both tests and is not counted as sanitizer evidence. Mixed vendor
+build passes, app117632bytes, pool139264bytes, pre-task heap135724bytes.
+SDK/ROM exact comparisons pass; six copied FM6 kernels and immutable algorithm/
+configuration data match V21 after individually verified relocations. Mixed
+LTO changes readonly-base displacement from6112 to5576; vendor objdump verifies
+the exact instruction and both resolve to the byte-identical768-byte table.
+ELF62f2d427…; app5a0dbfef…564444bytes. Exact layout, UART-first startup, cipher/
+NOR review and target mixed timing remain pending. V23 is not admitted or
+installed; V22 remains healthy idle, with no capture running.

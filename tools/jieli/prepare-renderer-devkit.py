@@ -326,7 +326,9 @@ def place_hook_ram(text, signatures):
     return text
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False):
+    if external_pixels and not timing_only:
+        raise ValueError("Caller-owned pixels require timing-only preparation; no display/DAC acceptance")
     if plan_ram and not (timing_only and profile and prep_profile and event_ram):
         raise ValueError("Plan placement requires timing-only preparation profiling and resident events")
     if event_ram and not (timing_only and profile and prep_profile and kind_ram):
@@ -690,6 +692,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     renderer_pool_bytes = (96 if fm6_pair and workload == "keys" else
                            136 if control_ram else 148) * 1024
     renderer_flags = ""
+    if external_pixels:
+        renderer_flags += "CFLAGS += -DFM1_TFT_EXTERNAL_PIXELS=1\n"
     if fm6_pair:
         renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_DEVKIT_FM6_SDK=1\n"
     if scheduling_probe:
@@ -757,6 +761,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "control_ram": control_ram,
         "mixer_ram": mixer_ram,
         "dispatch_ram": dispatch_ram,
+        "external_pixels": external_pixels,
         "plan_ram": plan_ram,
         "plan_ram_original_sha256": plan_inputs,
         "event_ram": event_ram,
@@ -860,5 +865,7 @@ if __name__ == "__main__":
                         help="Compare unchanged control edits and note dispatch in SRAM; requires timing-only preparation profile and resident kinds")
     parser.add_argument("--plan-ram", action="store_true",
                         help="Compare unchanged modulation planner and event helpers in SRAM; timing-only preparation profile and resident events")
+    parser.add_argument("--external-pixels", action="store_true",
+                        help="Caller-owned screen pixels; timing-only renderer does not draw or attach a framebuffer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels)

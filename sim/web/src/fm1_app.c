@@ -4654,6 +4654,9 @@ static void draw(fm1_app_t *a) {
 }
 
 int fm1_app_draw(fm1_app_t *a, uint32_t min_frames) {
+  /* An unattached target screen is not a completed redraw. Retain dirty,
+   * meters and last_draw so attaching storage can render the actual state. */
+  if (!fm1_tft_ready(&a->tft)) return 0;
   /* With modulation the rack's cells, the live ticks and MATRIX's hint line
    * move without input: redraw like the scope. */
   int live = a->peak > 0.0f || a->meter > 0.0f || a->mod != NULL;
@@ -4668,6 +4671,7 @@ int fm1_app_draw(fm1_app_t *a, uint32_t min_frames) {
 }
 
 void fm1_app_draw_checked(fm1_app_t *a) {
+  if (!fm1_tft_ready(&a->tft)) return;
   a->tft.record = 1;
   draw(a);
   a->tft.record = 0;

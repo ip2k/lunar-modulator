@@ -78,6 +78,20 @@ def test_missing_effect_refuses_whole_workload():
     assert "LUNAR_RENDERER completed=" not in result.stdout
 
 
+def test_mixed_renderer_without_attached_pixels_preserves_pcm(tmp_path, monkeypatch):
+    """Reclaim idle pixels, not any engine/effect/modulation/control work."""
+    extra = os.environ.get("FM1_SIM_EXTRA", "")
+    results = []
+    for external in (0, 1):
+        monkeypatch.setenv("FM1_SIM_EXTRA", extra + f" -DFM1_TFT_EXTERNAL_PIXELS={external}")
+        pcm = tmp_path / f"mixed-{external}.pcm"
+        result = subprocess.run([str(build_reference(MODULES)), str(pcm)],
+                                capture_output=True, check=True,
+                                env=dict(os.environ, LUNAR_TRAP_DIVZERO="1"))
+        results.append((result.stdout, hashlib.sha256(pcm.read_bytes()).hexdigest()))
+    assert results[0] == results[1]
+
+
 def test_keys_workload_replays_real_app_and_refuses_missing_master(tmp_path, monkeypatch):
     # This arrangement retains the real sequencer, two modulation routes,
     # filter insert and both masters. No Macro/drum implementation is needed.
@@ -319,6 +333,7 @@ int main(void) {
     {'fx_ram': True, 'timing_only': True},
     {'cache_tables': True},
     {'cache_tables': True, 'timing_only': True, 'hot_ram': True, 'sine_ram': True},
+    {'external_pixels': True},
     {'profile': True}, {'hot_ram': True}, {'sine_ram': True},
     {'sine_ram': True, 'timing_only': True},
     {'resampler_ram': True},

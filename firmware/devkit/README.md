@@ -355,3 +355,13 @@ It requires timing-only preparation profiling and resident kinds. The existing
 outer and preparation counters attribute cold-block work without moving events
 or excluding first blocks. Original prepared hashes are retained; compiled
 size, remaining heap, stack, PCM and target deadlines still gate this experiment.
+
+The opt-in timing-only `--external-pixels` build uses
+`FM1_TFT_EXTERNAL_PIXELS=1` to replace the desktop's embedded115200-byte
+framebuffer with a caller-owned pointer. This diagnostic never draws or binds
+pixels; its UI synchronization remains in the audio workload. A real drawing
+caller must bind at least240x240 RGB565 pixels with `fm1_tft_bind_pixels` and
+retain their lifetime. Unattached app drawing refuses without marking a redraw
+complete. All translation units must agree on the setting. Desktop/browser
+builds retain embedded storage by default. This is a memory-ownership option,
+not a panel transport, display timing test or analog-audio acceptance result.
