@@ -4545,3 +4545,19 @@ than V20. Exact SDK/ROM safeguards and six FM6 kernels/table comparisons pass
 with checked relocations; generic link audit has no failure, with its SDK
 scheduling pending item covered by the independent exact comparison. V21 has
 not been admitted or installed. Full layout/recovery/cipher/NOR review remains.
+
+[verified, offline] Exact V21 `bb769d4d…`, app `47051658…` (562012bytes,
+end0x8d47c), passes independent five-section copy, full cipher/CRC/protected
+ranges,630-input manifest and138-sector NOR install/restore including
+interrupted pages7/1111/2183/2199. All static mailbox/worker/pool/app/profile
+ranges are disjoint before heap. UART18/1024 precedes parent16/2048 on success;
+worker200-tick delay,34829-tick budget,120000ms lifetime and24-region bound
+remain. New frames target96, base324, param28, level20, play108, feed44/44,
+note120 bytes; established timing/planner/render/UI/mod frames are unchanged.
+Target stack/PCM/deadlines remain required. Only V21 gains its138-sector bounds;
+V20's139-sector restore range stays unchanged. V21 has not been installed.
+
+[verified, offline]76 admission/reset tests pass. The first run exposed two
+historical-image exclusion lists missing V21; updated only those test lists,
+retaining every existing image's actual bounds. V21 is admitted for an exact
+controlled timing experiment, not hardware or audio acceptance.
