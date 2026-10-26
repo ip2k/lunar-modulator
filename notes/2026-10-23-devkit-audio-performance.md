@@ -4689,3 +4689,21 @@ the exact instruction and both resolve to the byte-identical768-byte table.
 ELF62f2d427…; app5a0dbfef…564444bytes. Exact layout, UART-first startup, cipher/
 NOR review and target mixed timing remain pending. V23 is not admitted or
 installed; V22 remains healthy idle, with no capture running.
+
+
+### Exact V23 mixed image admitted offline
+
+[verified, offline] Candidate
+`b8f8e24bd6e8ff05ba4609a3593acc2370bfaf18daa4c4fdbd598cd8f3a79d10`
+contains app564444bytes ending at0x8ddfc. Its reviewed write/restore range is
+138 sectors `[0x4000,0x8e000)`. Installed V22 keeps its independent139-sector
+restore range. All630 input hashes,14 disjoint static ranges, UART task creation
+before the renderer,200-tick recovery delay,34829-tick deadline and120000-tick
+worker lifetime were checked against actual vendor machine code and layout.
+Independent five-section app copy and full cipher/CRC/protected-region checks
+pass. The offline NOR model passes install/restore and interrupted pages7,
+1111,2183 and2199 with metadata last; it sends no hardware commands.
+Exact admission/transaction tests:78PASS. Host full mixed reference has PCM
+hashes6bcab227/46c02687/1e2f305d/5b7dbc03, cumulative paired jobs9639/26178/
+48230/81308 and controls176/358/548/746. Target mixed timing/stack and startup
+recovery remain unverified; no hardware or analog acceptance is claimed.

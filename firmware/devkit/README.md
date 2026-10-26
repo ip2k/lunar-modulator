@@ -365,3 +365,10 @@ retain their lifetime. Unattached app drawing refuses without marking a redraw
 complete. All translation units must agree on the setting. Desktop/browser
 builds retain embedded storage by default. This is a memory-ownership option,
 not a panel transport, display timing test or analog-audio acceptance result.
+
+
+The exact mixed timing candidate `b8f8e24b…` is admitted only for138 sectors
+`[0x4000,0x8e000)`, independently of V22's139-sector restore plan. Offline
+machine-code/layout, SDK, independent app copy, cipher/CRC and interrupted NOR
+restore checks pass. This admission does not establish target timing, recovery,
+DAC output or sustained analog acceptance.
