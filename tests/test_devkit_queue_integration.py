@@ -17,7 +17,7 @@ def load(name, path):
     return module
 
 
-@pytest.mark.parametrize("queue_profile", [False, True, "detail"])
+@pytest.mark.parametrize("queue_profile", [False, True, "detail", "micro"])
 @pytest.mark.parametrize("worker_drums", [False, True])
 def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, queue_profile):
     renderer = load("queue_renderer_reference", ROOT / "tests/test_devkit_renderer.py")
@@ -38,7 +38,8 @@ def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, qu
     for path in (ROOT / "sim/web/src").iterdir():
         destination = shadow / "sim/web/src" / path.name
         if path.name == "fm1_app.c":
-            destination.write_text(prepare.queue_engine_callbacks(path.read_text()))
+            text = prepare.queue_engine_callbacks(path.read_text())
+            destination.write_text(prepare.queue_micro_callbacks(text) if queue_profile == "micro" else text)
         else:
             destination.symlink_to(path, target_is_directory=path.is_dir())
     mk = (ROOT / "tools/jieli/renderer.mk").read_text()
@@ -90,7 +91,7 @@ struct Host {
 };
 static Host host;
 ''')
-    if queue_profile == "detail":
+    if queue_profile in ("detail", "micro"):
         reference = shadow / "firmware/devkit/renderer_reference.c"
         text = reference.read_text().replace('#include "renderer_live.h"',
                     '#include "renderer_live.h"\n#include "renderer_queue_bridge.h"\n#include <assert.h>')
@@ -100,6 +101,17 @@ static Host host;
         uint32_t detail[LUNAR_QUEUE_DETAILS];
         assert(lunar_renderer_queue_detail_read(detail));
         assert(!lunar_renderer_queue_detail_read(detail));
+""")
+        if queue_profile == "micro":
+            text = text.replace("        assert(!lunar_renderer_queue_detail_read(detail));", """
+        assert(!lunar_renderer_queue_detail_read(detail));
+        uint32_t micro[LUNAR_QUEUE_MICROS], calls[LUNAR_QUEUE_MICROS];
+        assert(lunar_renderer_queue_micro_read(micro, calls));
+        assert(calls[LUNAR_QUEUE_RENDER] >= 4);
+        unsigned effects = 0;
+        for (unsigned i = 6; i < LUNAR_QUEUE_MICROS; ++i) effects += calls[i];
+        assert(effects >= 4);
+        assert(!lunar_renderer_queue_micro_read(micro, calls));
 """)
         reference.write_text(text)
     renderer.ROOT = shadow
@@ -112,9 +124,12 @@ static Host host;
     if queue_profile:
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_PROFILE=1")
-    if queue_profile == "detail":
+    if queue_profile in ("detail", "micro"):
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_DETAIL=1")
+    if queue_profile == "micro":
+        monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
+                           " -DLUNAR_QUEUE_MICRO=1")
     target = renderer.build_reference(renderer.MODULES)
     actual = tmp_path / "queue.pcm"
     subprocess.run([str(target), str(actual)], check=True, capture_output=True, timeout=120)
@@ -157,6 +172,8 @@ int main() {
 
 
 @pytest.mark.parametrize("options", [
+    {"engine_queue_micro": True},
+    {"engine_queue": True, "engine_queue_profile": True, "engine_queue_micro": True},
     {"engine_queue_detail": True},
     {"engine_queue": True, "engine_queue_detail": True},
     {"engine_queue_profile": True},

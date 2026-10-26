@@ -288,6 +288,9 @@ void lunar_devkit_renderer_render(int16_t *out) {
 #ifdef LUNAR_QUEUE_DETAIL
     lunar_renderer_queue_detail_reset();
 #endif
+#ifdef LUNAR_QUEUE_MICRO
+    lunar_renderer_queue_micro_reset();
+#endif
     const float *samples = fm1_app_render(&app, BLOCK);
 #ifdef LUNAR_DEVKIT_ENGINE_QUEUE
     if (!samples || lunar_renderer_queue_error()) return;

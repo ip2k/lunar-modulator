@@ -39,6 +39,19 @@ void lunar_renderer_queue_detail_reset(void);
 void lunar_renderer_queue_detail_mark(unsigned region, int entering);
 int lunar_renderer_queue_detail_read(uint32_t ticks[LUNAR_QUEUE_DETAILS]);
 #endif
+#ifdef LUNAR_QUEUE_MICRO
+#ifndef LUNAR_QUEUE_DETAIL
+#error Queue micro timing requires queue detail
+#endif
+/* Six recording command kinds, then fourteen shared-app unit indices.
+ * Sparse: unused effects/command kinds legitimately have zero calls/ticks.
+ * CPU0 only, non-nested within this bank; overlaps the enclosing DETAIL bank. */
+enum { LUNAR_QUEUE_MICROS = 20 };
+void lunar_renderer_queue_micro_reset(void);
+void lunar_renderer_queue_micro_mark(unsigned region, int entering);
+int lunar_renderer_queue_micro_read(uint32_t ticks[LUNAR_QUEUE_MICROS],
+                                   uint32_t calls[LUNAR_QUEUE_MICROS]);
+#endif
 /* CPU1 only, after init/publication: -1 unavailable, 0 idle, 1 completed. */
 int lunar_renderer_queue_worker_step(void);
 #ifdef __cplusplus

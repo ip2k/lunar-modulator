@@ -450,3 +450,18 @@ category, with no nested/unclosed intervals, before a detail sample is accepted.
 Unsigned timer subtraction supports wraparound. Detail intervals are subsets of
 the six outer regions, **not additional render time**; do not add them to those
 regions or to overlapping worker execution. Observer overhead remains included.
+
+
+`--engine-queue-micro` additionally requires queue detail and emits twenty
+`LUNAR_QUEUE_MICRO` records per case. Regions 0–5 time the six command-recording
+kinds in bridge enum order; regions 6–19 time `fm1_fx_render` calls for shared-app
+unit indices 0–13. Sound-unit regions have zero calls because this bank measures
+only effects. Counts distinguish inactive slots from sub-tick calls. Recording
+includes instance lookup and queue publication preparation; effect intervals
+include the effect host wrapper, but exclude app routing scans and meters.
+Intervals are non-nested within this independent bank and **overlap enclosing
+detail/outer totals**. Never add the banks together. Timer overhead remains;
+these diagnostic results do not establish uninstrumented deadline acceptance.
+Malformed, unfinished, overflowing or missing samples refuse case completion.
+The option changes only the private prepared application, with default builds
+and the existing worker partition unchanged.

@@ -64,6 +64,20 @@ int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
                 if (elapsed > result.max_ticks) result.queue_detail_worst[i] = details[i];
             }
 #endif
+#ifdef LUNAR_QUEUE_MICRO
+            uint32_t micro[LUNAR_QUEUE_MICROS], calls[LUNAR_QUEUE_MICROS];
+            if (!lunar_renderer_queue_micro_read(micro, calls)) return 0;
+            uint64_t micro_sum = 0;
+            for (unsigned i = 0; i < LUNAR_QUEUE_MICROS; ++i) micro_sum += micro[i];
+            if (micro_sum > elapsed) return 0;
+            for (unsigned i = 0; i < LUNAR_QUEUE_MICROS; ++i) {
+                if (UINT32_MAX - result.queue_micro_calls[i] < calls[i]) return 0;
+                result.queue_micro_calls[i] += calls[i];
+                result.queue_micro_ticks[i] += micro[i];
+                if (micro[i] > result.queue_micro_max[i]) result.queue_micro_max[i] = micro[i];
+                if (elapsed > result.max_ticks) result.queue_micro_worst[i] = micro[i];
+            }
+#endif
             result.ticks += elapsed;
             if (elapsed < result.min_ticks) result.min_ticks = elapsed;
             if (elapsed > result.max_ticks) {

@@ -391,7 +391,7 @@ int main() { run(0,100,true); run(0xfffffff0u,100,true); run(0,10,false); }
     subprocess.run([str(exe)], check=True, timeout=10)
 
 
-@pytest.mark.parametrize("detail", [False, True])
+@pytest.mark.parametrize("detail", [False, True, "micro"])
 def test_queue_timing_aggregates_outer_partition_and_stops_on_missing_sample(tmp_path, detail):
     cc = os.environ.get("FM1_SIM_CC", "cc")
     if not shutil.which(cc):
@@ -421,6 +421,15 @@ int lunar_renderer_queue_detail_read(uint32_t out[10]) {
  return 1;
 }
 #endif
+#ifdef LUNAR_QUEUE_MICRO
+int lunar_renderer_queue_micro_read(uint32_t out[20], uint32_t calls[20]) {
+ if(fault==4) return 0;
+ for(unsigned i=0;i<20;++i) { out[i]=0; calls[i]=0; }
+ out[0]=fault==5?91:17;
+ calls[0]=fault==6?0xffffffffu:4;
+ return 1;
+}
+#endif
 static void emit(const struct lunar_renderer_timing *r) {
  assert(r->test_case==emitted++ && r->blocks==5513 && r->ticks==90ull*5513);
  assert(r->min_ticks==90 && r->max_ticks==90 && !r->over_budget);
@@ -429,6 +438,11 @@ static void emit(const struct lunar_renderer_timing *r) {
   assert(r->queue_detail_ticks[i]==(uint64_t)(i+1)*5513);
   assert(r->queue_detail_max[i]==i+1 && r->queue_detail_worst[i]==i+1);
  }
+#endif
+#ifdef LUNAR_QUEUE_MICRO
+ assert(r->queue_micro_ticks[0]==17ull*5513 && r->queue_micro_calls[0]==4*5513);
+ assert(r->queue_micro_max[0]==17 && r->queue_micro_worst[0]==17);
+ for(unsigned i=1;i<20;++i) assert(!r->queue_micro_ticks[i] && !r->queue_micro_calls[i]);
 #endif
  for(unsigned i=0;i<6;++i) {
   unsigned duration=i<5?18:42;
@@ -447,11 +461,18 @@ int main(void) {
  fault=3; assert(!lunar_devkit_renderer_timing(now,yield,emit));
  assert(emitted==4 && samples==22055); // Overlapping/corrupt detail sum refused.
 #endif
+#ifdef LUNAR_QUEUE_MICRO
+ for(fault=4;fault<=6;++fault) {
+  assert(!lunar_devkit_renderer_timing(now,yield,emit));
+  assert(emitted==4); // Missing sample, impossible sum, or call-count overflow.
+ }
+#endif
 }
 ''')
     exe = tmp_path / "timing"
     subprocess.run([cc, "-std=c99", "-O2", "-DLUNAR_DEVKIT_ENGINE_QUEUE=1",
                     "-DLUNAR_QUEUE_PROFILE=1", *(["-DLUNAR_QUEUE_DETAIL=1"] if detail else []),
+                    *(["-DLUNAR_QUEUE_MICRO=1"] if detail == "micro" else []),
                     "-I" + str(ROOT / "firmware/devkit"),
                     "-I" + str(ROOT / "engines/include"),
                     str(source), str(ROOT / "firmware/devkit/renderer_timing.c"),
@@ -507,3 +528,71 @@ int main() {
                     str(ROOT / "firmware/devkit/renderer_queue_bridge.cc"),
                     "-o", str(exe)], check=True)
     subprocess.run([str(exe)], check=True, timeout=10)
+
+
+@pytest.mark.parametrize("sanitize", [False, True])
+def test_queue_micro_sparse_intervals_and_faults(tmp_path, sanitize):
+    """Exact synthetic clock tests; not target timing/cache/race evidence."""
+    source = tmp_path / "micro.cc"
+    source.write_text(r'''
+#include "renderer_queue_bridge.h"
+#include <cassert>
+static uint32_t clock_tick;
+static uint32_t now() { return clock_tick; }
+int main() {
+ assert(lunar_renderer_queue_init(now, 100));
+ uint32_t ticks[LUNAR_QUEUE_MICROS], calls[LUNAR_QUEUE_MICROS];
+ lunar_renderer_queue_micro_reset();
+ clock_tick=0xfffffff0u;
+ lunar_renderer_queue_micro_mark(0,1);
+ clock_tick=0x10;
+ lunar_renderer_queue_micro_mark(0,0);
+ lunar_renderer_queue_micro_mark(7,1);
+ lunar_renderer_queue_micro_mark(7,0); // Real call with zero timer ticks.
+ assert(lunar_renderer_queue_micro_read(ticks,calls));
+ assert(ticks[0]==32 && calls[0]==1 && ticks[7]==0 && calls[7]==1);
+ for(unsigned i=1;i<LUNAR_QUEUE_MICROS;++i) if(i!=7) assert(!ticks[i] && !calls[i]);
+ assert(!lunar_renderer_queue_micro_read(ticks,calls));
+ lunar_renderer_queue_micro_reset();
+ for(unsigned i=0;i<3;++i) {
+  lunar_renderer_queue_micro_mark(3,1); clock_tick+=11;
+  lunar_renderer_queue_micro_mark(3,0);
+ }
+ assert(lunar_renderer_queue_micro_read(ticks,calls) && ticks[3]==33 && calls[3]==3);
+ for(unsigned fault=0;fault<8;++fault) {
+  lunar_renderer_queue_micro_reset();
+  if(fault==0) lunar_renderer_queue_micro_mark(LUNAR_QUEUE_MICROS,1);
+  if(fault==1) lunar_renderer_queue_micro_mark(0,2);
+  if(fault==2) lunar_renderer_queue_micro_mark(0,0);
+  if(fault==3) { lunar_renderer_queue_micro_mark(0,1); lunar_renderer_queue_micro_mark(1,1); }
+  if(fault==4) { lunar_renderer_queue_micro_mark(0,1); lunar_renderer_queue_micro_mark(1,0); }
+  if(fault==5) lunar_renderer_queue_micro_mark(0,1); // Unfinished interval.
+  if(fault==6) {
+   lunar_renderer_queue_micro_mark(0,1); clock_tick+=0x80000000u;
+   lunar_renderer_queue_micro_mark(0,0);
+  }
+  if(fault==7) for(unsigned i=0;i<3;++i) {
+   lunar_renderer_queue_micro_mark(0,1); clock_tick+=0x7fffffffu;
+   lunar_renderer_queue_micro_mark(0,0);
+  }
+  assert(!lunar_renderer_queue_micro_read(ticks,calls));
+ }
+ lunar_renderer_queue_micro_reset();
+ assert(!lunar_renderer_queue_micro_read(0,calls));
+ lunar_renderer_queue_micro_reset();
+ assert(!lunar_renderer_queue_micro_read(ticks,0));
+ lunar_renderer_queue_micro_reset();
+ assert(!lunar_renderer_queue_dispatch()); // Queue refusal also refuses measurement.
+ assert(!lunar_renderer_queue_micro_read(ticks,calls));
+}
+''')
+    exe = tmp_path / "micro"
+    flags = ["-fsanitize=address,undefined", "-fno-omit-frame-pointer"] if sanitize else []
+    subprocess.run([os.environ.get("FM1_SIM_CXX", "c++"), "-std=c++11", "-O2", *flags,
+                    "-DLUNAR_QUEUE_HOST_TEST=1", "-DLUNAR_QUEUE_PROFILE=1",
+                    "-DLUNAR_QUEUE_DETAIL=1", "-DLUNAR_QUEUE_MICRO=1",
+                    "-I" + str(ROOT / "firmware/devkit"), "-I" + str(ROOT / "engines/include"),
+                    str(source), str(ROOT / "firmware/devkit/renderer_queue.cc"),
+                    str(ROOT / "firmware/devkit/renderer_queue_bridge.cc"), "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True, timeout=15,
+                   env=dict(os.environ, ASAN_OPTIONS="halt_on_error=1", UBSAN_OPTIONS="halt_on_error=1"))

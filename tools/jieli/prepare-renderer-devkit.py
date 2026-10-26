@@ -506,7 +506,42 @@ static int lunar_queue_dispatch(void) {
 """ + text
     return text
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False):
+def queue_micro_callbacks(text):
+    """CPU0 subsets: recording by command kind and DSP calls by app unit.
+
+    Keep this bank independent of the enclosing detail bank: its intervals are
+    mutually exclusive, but overlap the existing recording/inserts/masters.
+    """
+    pairs = [
+        ("  const fm1_app_unit_t *u = sound_of(c->a, c->sound);\n  /* Once recording,",
+         "  const unsigned micro_kind = kind;\n  QUEUE_MICRO(micro_kind, 1);\n  const fm1_app_unit_t *u = sound_of(c->a, c->sound);\n  /* Once recording,"),
+        ("  lunar_renderer_queue_push(c->sound, u->e, u->self, kind, lr, n, index, key, velocity, value);",
+         "  lunar_renderer_queue_push(c->sound, u->e, u->self, kind, lr, n, index, key, velocity, value);\n  QUEUE_MICRO(micro_kind, 0);"),
+        ("      fm1_fx_render(u->e, u->self, out, cur, f, &b);",
+         "      QUEUE_MICRO(6u + (unsigned)unit, 1);\n      fm1_fx_render(u->e, u->self, out, cur, f, &b);\n      QUEUE_MICRO(6u + (unsigned)unit, 0);"),
+        ("  if (cur < n) fm1_fx_render(u->e, u->self, out, cur, n, &b);",
+         "  if (cur < n) {\n    QUEUE_MICRO(6u + (unsigned)unit, 1);\n    fm1_fx_render(u->e, u->self, out, cur, n, &b);\n    QUEUE_MICRO(6u + (unsigned)unit, 0);\n  }"),
+    ]
+    for old, new in pairs:
+        if text.count(old) != 1:
+            raise ValueError("Unexpected queue micro boundary; review: " + old)
+        text = text.replace(old, new, 1)
+    # The declaration follows app headers so the unit-count assertion is real.
+    anchor = 'static unsigned lunar_queue_recording;'
+    if text.count(anchor) != 1:
+        raise ValueError("Unexpected queue micro support")
+    text = text.replace(anchor, """#ifdef LUNAR_QUEUE_MICRO
+#define QUEUE_MICRO(region, entering) lunar_renderer_queue_micro_mark(region, entering)
+typedef char lunar_micro_units_match[FM1_APP_UNITS + 6 == LUNAR_QUEUE_MICROS ? 1 : -1];
+#else
+#define QUEUE_MICRO(region, entering) ((void)0)
+#endif
+""" + anchor, 1)
+    return text
+
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False):
+    if engine_queue_micro and not engine_queue_detail:
+        raise ValueError("Queue micro timing requires queue detail")
     if engine_queue_detail and not engine_queue_profile:
         raise ValueError("Queue detail requires queue region profiling")
     if engine_queue_profile and not engine_queue:
@@ -894,7 +929,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     if engine_queue:
         p = staging / "sim/web/src/fm1_app.c"
         queue_input = hashlib.sha256(p.read_bytes()).hexdigest()
-        p.write_text(queue_engine_callbacks(p.read_text()))
+        queued = queue_engine_callbacks(p.read_text())
+        p.write_text(queue_micro_callbacks(queued) if engine_queue_micro else queued)
     (staging / "tools/jieli").mkdir(parents=True)
     shutil.copyfile(source / "tools/jieli/renderer.mk", staging / "tools/jieli/renderer.mk")
     fragment = app / "board/wl82/lunar-renderer.mk"
@@ -926,6 +962,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         renderer_flags += "CFLAGS += -DLUNAR_QUEUE_PROFILE=1\n"
     if engine_queue_detail:
         renderer_flags += "CFLAGS += -DLUNAR_QUEUE_DETAIL=1\n"
+    if engine_queue_micro:
+        renderer_flags += "CFLAGS += -DLUNAR_QUEUE_MICRO=1\n"
     if engine_queue_drums:
         renderer_flags += "CFLAGS += -DLUNAR_QUEUE_WORKER_DRUMS=1\n"
     if scheduling_probe:
@@ -962,6 +1000,11 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "engine_queue_drums": engine_queue_drums,
         "engine_queue_profile": engine_queue_profile,
         "engine_queue_detail": engine_queue_detail,
+        "engine_queue_micro": engine_queue_micro,
+        "engine_queue_micro_regions": (["record_render", "record_note_on", "record_note_off",
+                                        "record_set_param", "record_bend", "record_set_note"] +
+                                       [f"fx_dsp_app_unit_{i}" for i in range(14)]
+                                       if engine_queue_micro else []),
         "engine_queue_detail_regions": (["sequence_setup", "record_callbacks", "inserts_meters", "level_mix",
                                          "masters", "amp", "limiter", "scope", "ui", "conversion_hash"]
                                         if engine_queue_detail else []),
@@ -1140,5 +1183,7 @@ if __name__ == "__main__":
                         help="Caller-owned screen pixels; timing-only renderer does not draw or attach a framebuffer")
     parser.add_argument("--engine-queue-detail", action="store_true",
                         help="Split queue recording and post-join CPU0 work; requires queue profile")
+    parser.add_argument("--engine-queue-micro", action="store_true",
+                        help="Time recording command kinds and per-unit effect DSP; requires queue detail")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro)

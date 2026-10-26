@@ -102,3 +102,53 @@ extern "C" int lunar_renderer_queue_detail_read(uint32_t ticks[LUNAR_QUEUE_DETAI
   return 1;
 }
 #endif
+
+#ifdef LUNAR_QUEUE_MICRO
+namespace {
+uint32_t micro_ticks[LUNAR_QUEUE_MICROS], micro_calls[LUNAR_QUEUE_MICROS], micro_start;
+unsigned micro_active;
+bool micro_valid;
+}
+extern "C" void lunar_renderer_queue_micro_reset(void) {
+  for (unsigned i = 0; i < LUNAR_QUEUE_MICROS; ++i) micro_ticks[i] = micro_calls[i] = 0;
+  micro_active = LUNAR_QUEUE_MICROS;
+  micro_valid = queue && direct_clock;
+}
+extern "C" void lunar_renderer_queue_micro_mark(unsigned region, int entering) {
+  if (!micro_valid) return;
+  const uint32_t tick = direct_clock();
+  if (region >= LUNAR_QUEUE_MICROS || (entering != 0 && entering != 1) ||
+      (entering ? micro_active != LUNAR_QUEUE_MICROS : micro_active != region)) {
+    micro_valid = false;
+    return;
+  }
+  if (entering) {
+    micro_active = region;
+    micro_start = tick;
+  } else {
+    const uint32_t elapsed = tick - micro_start;
+    if (elapsed >= 0x80000000u || UINT32_MAX - micro_ticks[region] < elapsed ||
+        micro_calls[region] == UINT32_MAX) {
+      micro_valid = false;
+      return;
+    }
+    micro_ticks[region] += elapsed;
+    ++micro_calls[region];
+    micro_active = LUNAR_QUEUE_MICROS;
+  }
+}
+extern "C" int lunar_renderer_queue_micro_read(uint32_t ticks[LUNAR_QUEUE_MICROS],
+                                               uint32_t calls[LUNAR_QUEUE_MICROS]) {
+  if (!micro_valid || micro_active != LUNAR_QUEUE_MICROS || !ticks || !calls ||
+      lunar_renderer_queue_error()) {
+    micro_valid = false;
+    return 0;
+  }
+  for (unsigned i = 0; i < LUNAR_QUEUE_MICROS; ++i) {
+    ticks[i] = micro_ticks[i];
+    calls[i] = micro_calls[i];
+  }
+  micro_valid = false; // Exactly one read per completed outer block.
+  return 1;
+}
+#endif
