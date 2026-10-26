@@ -6190,3 +6190,35 @@ full manifest/layout/UART-first/SDK audit_link/independent objcopy/cipherCRC/NOR
 admission remain pending. No8MiB candidate generated/admitted/staged/installed.
 Private reports/artifacts copied into local build-renderer-module-micro-v38
 and Aeon renderer-module-micro-v38-exports. V37 remains CURRENT; no device ops.
+
+[verified] V38 completed offline admission: 636 input hashes match, exact
+UART-before-parent/200-tick recovery/static worker/startup-copy/publication
+review PASS, fixed Macro0 source/target independence review covers35 functions
+and36 files. Component helper review preserves params→gates→IO→process→outputs,
+including finite/clamp and gate-edge order. Clock/active-bank/overflow guards
+PASS; no CPU1 observer calls. SDK audit_link has0fail/1manual; the complete
+normalized approved SDK/ROM-entry comparison resolves that manual item.
+Independent vendor objcopy exactly matches571644-byte app19c3454a….
+
+[verified] Private candidate SHA256
+2483bb7c1fcba0d3a3099f826981dd15bac6ca23804bfebe6a99de43ff5f8bd6,
+application end0x8fa1c, changed140 sectors[0x4000,0x90000). Independent reference
+cipher/CRC/config checksPASS. Offline metadata-last install/restore and four
+injected interruptions at pages7/1127/2215/2231 restore byte-identically;
+CURRENT V37 also restores all140 sectors. These models sent0hardwarecommands.
+Reports and hash-pinned offline-admission.json are private under
+scratch/devkit-20261023/build-renderer-module-micro-v38 and Aeon exports.
+No target race/cache/whole-stack proof or timing acceptance is claimed.
+V38 not staged or installed at this checkpoint; V37 remains healthy idle.
+
+[verified] Added only V38's exact hash and fixed sector plan to the dev-kit
+transaction allowlist. New boundary test preserves older restore ranges and
+forbids boot/tail writes. Existing exhaustive image-range test inventories also
+need the newly admitted V38 entry; initial39 failures identified those five
+inventories, corrected without broadening any production range. The isolated
+Aeon test staging initially lacked fm1_uboot_read.py, supplied unchanged from
+this checkout; this was a collection environment issue, not a device action.
+
+[verified] Corrected exact-source admission transaction suite:85PASS0.97s on
+bounded Aeon. V38 firmware bytes unchanged from230672; only hash admission,
+boundary inventory/test and these evidence notes changed.
