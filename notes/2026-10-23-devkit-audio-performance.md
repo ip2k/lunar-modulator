@@ -5603,3 +5603,52 @@ analog acceptance remain failed/incomplete. Actual FM1 recovery stays read-only;
 recorded original092 backups and interrupted-write/Cynthion history remain
 in the dated community/recovery note. CI82ac40282425580 is terminal CANCELLED
 by later heads; exact092cCI40286012140 was in progress, Pages40286012222 SUCCESS.
+
+### 2026-10-26 — V32 offline admission; not installed
+
+[verified] Exact source2b86a150 vendor link completed successfully. Final ELF
+708edea952747d602f2bd36102be389ec8bdd2f4026db2ab40120a655b86712e;
+570,204-byte application
+3a9ca427a4b3d3ee9b2ff4d9615f221d5ee172518d67f51a7e2f9f8ff9431ddd.
+Independent vendor objcopy section concatenation matches the application.
+Exact final instructions retain UART18 before parent16, successful receiver
+creation before parent startup,200 recovery ticks before arithmetic, static
+8KiB CPU1 worker before renderer initialization, and startup copy/BSS bounds.
+Queue10,368B and worker8,356B remain disjoint from app/arena; pretask heap119,532B.
+Timing function has524B locals plus saved registers; live stack remains untested.
+CPU0-only detail marker reads the timer directly, has12B saved registers, and
+rejects malformed/overflowed intervals. The final LTO code preserves worker1,
+CPU0 engines0/2/3 and csync publication/acquisition. Its detail reader checks
+active10, all ten seen bits1023, and a64-bit detail sum bounded by the outer
+sample. No target race/cache/stack proof is implied.
+
+[verified] Reviewed36 source files/35 target engine functions, model0 vtable and
+shared-global independence; largest individual inspected frame1,160B.
+All636 preparation manifest hashes match. SDK link audit has0 failures; its
+one manual scheduling item is resolved by normalized exact vendor instructions
+and checked relocations, singleton late_initcall and empty syscfg review.
+The strict parser passes a complete synthetic capture, separate deadline
+failure,37 malformed fixtures and actual V28/V30/V31 rejection.
+
+[verified] Private8MiB candidate
+886220b70909556e369eab86aec19c37b4ddcd262ae9c4ca61c999de186eae60
+passes independent reference cipher/directory+application CRC/protected cfg
+checks. Application ends0x8f47c; NEW requires140 sectors[0x4000,0x90000).
+Offline NOR installation/restore and interruptions at pages7/1127/2215/2231
+restore exactly, metadata last; hardware commands0. CURRENT V31 independently
+restores its existing139 sectors[0x4000,0x8f000), not the new range.
+The transaction tool admits only this exact new digest for the additional
+sector. Initial transaction run had79 passes and one old test assuming its
+previous140-sector image was unique. Updated the explicit image exception;
+all80 transaction tests pass. No production protection was relaxed generically.
+
+The cipher container initially lacked crcmod and then pip; no candidate was
+produced by those invocations. A bounded Python3.12 container with private
+crcmod1.7 completed the independent check. Private artifacts/review scripts
+and hash-pinned offline-admission.json are under
+scratch/devkit-20261023/build-renderer-queue-detail-v32 and atomic Aeon handoff.
+Candidate is OFFLINE ADMITTED, NOT STAGED/INSTALLED/HARDWARE ACCEPTED.
+No build, UART RX, KA6 capture or device operation is live. Next is exact
+candidate/transaction staging, then the full protected WINDOW/RUN cycle and
+fresh40 detail/24 outer-region records for four cases. All old reset receipts
+remain consumed. Physical FM1 remains untouched; recovery history is recorded.
