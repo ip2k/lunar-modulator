@@ -32,8 +32,10 @@ def build_reference(modules):
     return target
 
 
-@pytest.mark.parametrize("vcf_unroll,vcf_profile", [(False, False), (True, False), (True, True)])
-def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vcf_unroll, vcf_profile):
+@pytest.mark.parametrize("vcf_unroll,vcf_profile,oscillator_slopes",
+                         [(False, False, False), (True, False, False),
+                          (True, True, False), (True, True, True)])
+def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vcf_unroll, vcf_profile, oscillator_slopes):
     """Replay private-copy instrumentation with the optimized FIR, including wrap."""
     import importlib.util
     spec = importlib.util.spec_from_file_location(
@@ -55,7 +57,7 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vc
     engines = shadow / "engines"
     engines.mkdir(parents=True)
     for path in (ROOT / "engines").iterdir():
-        if path.name in ("src", "include") or ((vcf_unroll or vcf_profile) and path.name == "third_party"):
+        if path.name in ("src", "include") or ((vcf_unroll or vcf_profile or oscillator_slopes) and path.name == "third_party"):
             shutil.copytree(path, engines / path.name)
         elif path.name != "build":
             (engines / path.name).symlink_to(path, target_is_directory=path.is_dir())
@@ -69,6 +71,9 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vc
     for engine, name in enumerate(("mi_macro.cc", "drums.cc")):
         path = engines / "src" / name
         path.write_text(prepare.instrument_engine_profile(path.read_text(), engine))
+    if oscillator_slopes:
+        path = engines / "third_party/mutable/plaits/dsp/oscillator/variable_shape_oscillator.h"
+        path.write_text(prepare.reuse_oscillator_slopes(path.read_text()))
     if vcf_unroll:
         path = engines / "third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc"
         path.write_text(prepare.unroll_vcf_samples(path.read_text()))
@@ -400,6 +405,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'oscillator_slopes': True},
+    {'oscillator_slopes': True, 'timing_only': True, 'profile': True, 'hot_ram': True},
     {'vcf_unroll': True},
     {'vcf_profile': True},
     {'vcf_profile': True, 'engine_profile': True},

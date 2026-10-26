@@ -170,6 +170,51 @@ def unroll_vcf_samples(text):
     return text.replace(anchor, directive + anchor, 1)
 
 
+def reuse_oscillator_slopes(s):
+    """Split private oscillator loops; retain every rounded PWM step."""
+    signature='''  template<bool enable_sync, bool output_phase>
+  void Render(
+      float master_frequency,
+      float frequency,
+      float pw,
+      float waveshape,
+      float phase_modulation_amount,
+      float* out,
+      size_t size) {'''
+    if s.count(signature) != 1 or "RenderWithPW" in s:
+        raise ValueError("Unexpected oscillator loop; review reciprocal reuse")
+    dispatch='''
+    float limited_frequency = std::min(frequency, kMaxFrequency);
+    float target_pw = pw;
+    if (limited_frequency >= 0.25f) target_pw = 0.5f;
+    else CONSTRAIN(target_pw, limited_frequency * 2.0f,
+                   1.0f - 2.0f * limited_frequency);
+    const float step = size ? (target_pw - pw_) / static_cast<float>(size) : 0.0f;
+    if (size && pw_ > 0.0f && pw_ < 1.0f && pw_ + step == pw_) {
+      RenderWithPW<enable_sync, output_phase, true>(master_frequency, frequency,
+          pw, waveshape, phase_modulation_amount, out, size);
+    } else {
+      RenderWithPW<enable_sync, output_phase, false>(master_frequency, frequency,
+          pw, waveshape, phase_modulation_amount, out, size);
+    }
+  }
+
+'''
+    body=signature.replace('template<bool enable_sync, bool output_phase>',
+                           'template<bool enable_sync, bool output_phase, bool fixed_pw>').replace('  void Render(', '  void RenderWithPW(')
+    s=s.replace(signature,signature+dispatch+body,1)
+    anchor='    float next_sample = next_sample_;'
+    divisions='      const float slope_up = 1.0f / (pw);\n      const float slope_down = 1.0f / (1.0f - pw);'
+    if s.count(anchor) != 1 or s.count(divisions) != 1:
+        raise ValueError("Unexpected oscillator loop; review reciprocal reuse")
+    setup='''    const float fixed_up = fixed_pw ? 1.0f / pw_ : 0.0f;
+    const float fixed_down = fixed_pw ? 1.0f / (1.0f - pw_) : 0.0f;
+
+'''
+    return s.replace(anchor,setup+anchor,1).replace(divisions,'''      const float slope_up = fixed_pw ? fixed_up : 1.0f / (pw);
+      const float slope_down = fixed_pw ? fixed_down : 1.0f / (1.0f - pw);''',1)
+
+
 def instrument_vcf_profile(text):
     """Observe oscillator/filter sections in the private VCF copy only."""
     first = "  oscillator_.Render(f0, pw, shape, out, size);"
@@ -353,7 +398,9 @@ def place_hook_ram(text, signatures):
     return text
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False):
+    if oscillator_slopes and not (timing_only and profile and hot_ram and renderer_o3):
+        raise ValueError("Oscillator slope reuse requires timing-only profiled resident O3")
     if vcf_unroll and not (timing_only and profile and hot_ram and renderer_o3):
         raise ValueError("VCF unrolling requires timing-only profiled resident O3")
     if external_pixels and not timing_only:
@@ -696,6 +743,12 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             original = p.read_bytes()
             prep_profile_inputs[name] = hashlib.sha256(original).hexdigest()
             p.write_text(instrument_dispatch_profile(original.decode(), functions))
+    oscillator_slopes_input = None
+    if oscillator_slopes:
+        p = staging / "engines/third_party/mutable/plaits/dsp/oscillator/variable_shape_oscillator.h"
+        original = p.read_bytes()
+        oscillator_slopes_input = hashlib.sha256(original).hexdigest()
+        p.write_text(reuse_oscillator_slopes(original.decode()))
     vcf_unroll_input = None
     if vcf_unroll:
         p = staging / "engines/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc"
@@ -789,6 +842,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "resampler_slopes": resampler_slopes,
         "prep_profile": prep_profile,
         "prep_profile_original_sha256": prep_profile_inputs,
+        "oscillator_slopes": oscillator_slopes,
+        "oscillator_slopes_original_sha256": oscillator_slopes_input,
         "vcf_unroll": vcf_unroll,
         "vcf_unroll_original_sha256": vcf_unroll_input,
         "vcf_profile": vcf_profile,
@@ -914,6 +969,8 @@ if __name__ == "__main__":
                         help="Compare unchanged control edits and note dispatch in SRAM; requires timing-only preparation profile and resident kinds")
     parser.add_argument("--plan-ram", action="store_true",
                         help="Compare unchanged modulation planner and event helpers in SRAM; timing-only preparation profile and resident events")
+    parser.add_argument("--oscillator-slopes", action="store_true",
+                        help="Reuse exact rounded PWM reciprocals in private oscillator loops; timing-only profiled resident O3")
     parser.add_argument("--vcf-unroll", action="store_true",
                         help="Compare two-way VCF sample-loop scheduling; timing-only profiled resident O3")
     parser.add_argument("--vcf-profile", action="store_true",
@@ -921,4 +978,4 @@ if __name__ == "__main__":
     parser.add_argument("--external-pixels", action="store_true",
                         help="Caller-owned screen pixels; timing-only renderer does not draw or attach a framebuffer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes)

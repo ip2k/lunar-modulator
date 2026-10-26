@@ -5008,3 +5008,32 @@ unmerged; no deployment or analog acceptance is claimed.
 reciprocals each sample. Reuse is potentially exact when interpolation cannot
 change the rounded pulse width. Preserve the existing rounded state, including
 stalled interpolation; snapping to a requested target would change PCM.
+
+### V27 exact rounded oscillator slopes — offline experiment
+
+[verified, host] Optional private preparation `--oscillator-slopes` splits the
+variable-shape oscillator into fixed-width and changing-width template loops.
+The fixed path requires that the next interpolated width rounds to the current
+state, with a finite denominator inside (0,1); it never snaps state to a target.
+The original interpolation and sample arithmetic remain in both loops. The
+option requires timing-only, profiled, resident O3 preparation and records the
+original header hash. Default and upstream source files remain unchanged.
+
+The full eight-case renderer replay with VCF profiling/unrolling preserves all
+11,290,624 PCM bytes. Separate exact-float stress covers four template modes,
+48,000 blocks, eight sizes (1/2/3/7/12/31/64/127), endpoints, resets, ramps and
+settled widths: 5,928,000 bytes match; Linux FP exception traps remain clear.
+The focused renderer/profile suite passed 103 tests with one unavailable
+32-bit toolchain skip. Two new harness mistakes were corrected (wrong overload
+mutation, executable/include-directory path collision); their rerun passed both
+tests. No implementation change was needed for those harness failures.
+
+[verified, vendor build; not admitted] Formal V27 ELF
+`b15713f529e216ad1262103553b87abd44118a76ad977397c476e6b28e783ea7`
+exports app `b37bd458e2e877534222e01e38d299a65b693fa04a73ccbbd0085844ebdeeb42`
+(570,620 bytes). Initial SDK/ROM relocation review passes. Pre-task heap is
+131,756 bytes. Full layout, input manifest, actual loop/stack, cipher/CRC and NOR
+review remain required before any hardware admission. No V27 image is staged
+or installed. Private prototypes have intentionally stale provenance and must
+never be flashed. V26 remains the healthy idle installed image; its mixed
+workload still misses every deadline. No analog acceptance is claimed.
