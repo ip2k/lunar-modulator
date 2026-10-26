@@ -5681,3 +5681,25 @@ CPU0 detail mean ranges across the four cases (24 MHz timer; these are subsets o
 [verified] Rarefaction still resolves the primary checkout, returning the old fm1_app_render at line3267; it cannot establish this external worktree variant. Serena selected the actual absolute worktree and returned current fm1_app_render at line3630 plus render_fx at3485, matching source. Neither establishes pi32v2 ABI/cache behavior.
 
 Private raw SHA `13ed91ca96bf540a325c388c9964c1900032763c05bf4476eba9d40d072bfeee`; capture `scratch/devkit-20261023/renderer-queue-detail-v32-run-20261026-uart.bin`, strict facts/recovery evidence in `build-renderer-queue-detail-v32/`. No actual FM-1 traffic was sent. Physical FM-1 recovery, actual mixed deadline, fault-validated DAC/KA6 and representative 30-minute analog soaks remain unfinished; PR155 stays draft and unmerged.
+
+## 2026-10-26 Drive settled-control scan optimization (target pending)
+
+[verified] DriveRender now stops rescanning glide controls after a scan finds
+every value at its target during the current render call. It preserves the
+last glide update and continues Type fade advancement and derived-state
+updates independently. Targets cannot change during a render call. This is
+the same settled-scan pattern already used by CompRender; sample arithmetic,
+filter quality, native rates and time constants are unchanged.
+
+[verified] Bounded Aeon host suite tests/test_engines_drive.py plus
+tests/test_devkit_queue_integration.py completed terminal0: 99 tests pass,
+including moving controls, Type crossfades, block partitions, all six
+queue/profile combinations and queue fault lifetime. A separate pre-change
+V32 versus new-source shared-renderer comparison matches all 11,290,624 PCM
+bytes exactly: SHA256 c676e9b496a63e3817428ade9c067d75a2fd81bd786da7c0ad06ee6255c4f81b.
+Private scripts/logs/results are under scratch/devkit-20261023/ and Aeon TASK
+with drive-settled-v33 names. These establish host output preservation, not
+a measured target speedup. No new image has been linked/admitted/installed.
+Next exact-source vendor build and code/layout/stack/recovery/SDK/cipher/NOR
+admission precede any protected hardware timing comparison. V32 stays current;
+no board traffic was sent for this source change.

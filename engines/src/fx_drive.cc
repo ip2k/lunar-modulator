@@ -510,13 +510,19 @@ static void DriveRender(void *s, float *lr, uint32_t frames) {
   DriveChannel ch[2] = { self->ch[0], self->ch[1] };
   const float glide = self->glide, dc_r = self->dc_r;
   const float ge = self->g_emph, gt = self->g_tilt;
+  /* Targets cannot change during this call. Keep the final glide update,
+   * then stop rescanning settled controls; Type fades still advance below. */
+  int unsettled = 1;
   for (uint32_t f = 0; f < frames; ++f) {
     int moving = 0;
-    for (int k = 0; k < S_COUNT; ++k) {
-      if (self->value[k] != self->target[k]) {
-        self->value[k] = DriveGlide(self->value[k], self->target[k], glide);
-        moving = 1;
+    if (unsettled) {
+      for (int k = 0; k < S_COUNT; ++k) {
+        if (self->value[k] != self->target[k]) {
+          self->value[k] = DriveGlide(self->value[k], self->target[k], glide);
+          moving = 1;
+        }
       }
+      unsettled = moving;
     }
     /* A new Type waits for a running crossfade to finish (at most 5 ms). */
     if (self->type_from == self->type_to && self->type_target != self->type_to) {
