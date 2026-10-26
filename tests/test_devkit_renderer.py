@@ -427,6 +427,8 @@ int main(void) {
     {'fm6_pair': True, 'timing_only': True, 'hot_ram': True},
     {'msfa_pure_unroll': True},
     {'msfa_pure_unroll': True, 'timing_only': True, 'hot_ram': True, 'msfa_narrow_adds': True},
+    {'msfa_sine_pair': True},
+    {'msfa_sine_pair': True, 'timing_only': True, 'hot_ram': True},
     {'msfa_sine32': True},
     {'msfa_sine32': True, 'timing_only': True, 'hot_ram': True},
     {'msfa_narrow_adds': True},

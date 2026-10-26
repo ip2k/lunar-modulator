@@ -134,3 +134,46 @@ def test_pure_unroll_preserves_operations_and_rejects_drift():
     for drift in (original, changed, narrow.replace('gain += dgain;', 'gain -= dgain;')):
         with pytest.raises(ValueError, match='Unexpected pure FM kernel'):
             module.unroll_msfa_pure(drift)
+
+
+def test_sine_pair_rejects_layout_drift():
+    module = preparer()
+    source = (ROOT / 'engines/third_party/msfa/sin.h').read_text()
+    changed = module.pair_msfa_sine_load(source)
+    for drift in (changed, source.replace('SIN_LG_N_SAMPLES 10', 'SIN_LG_N_SAMPLES 11'),
+                  source.replace('#define SIN_DELTA', '#undef SIN_DELTA'),
+                  source.replace('int y0 = sintab[phase_int + 1]', 'int y0 = sintab[phase_int]')):
+        with pytest.raises(ValueError, match='Unexpected sine pair layout'):
+            module.pair_msfa_sine_load(drift)
+    assert (ROOT / 'engines/third_party/msfa/sin.h').read_text() == source
+
+
+def test_sine_pair_matches_complete_period_and_wrapped_phases(tmp_path):
+    cxx = shutil.which('c++')
+    if not cxx:
+        pytest.skip('native compiler unavailable')
+    module = preparer()
+    sine = (ROOT / 'engines/third_party/msfa/sin.h').read_text()
+    sine = module.narrow_msfa_adds(sine, 'sin.h')
+    rom = (ROOT / 'engines/src/msfa_rom.cc').read_text()
+    sine = module.narrow_msfa_sine_multiply(sine, rom)
+    table = re.search(r'kSinTab\[2048\] = \{(.*?)\n\};', rom, re.S).group(1)
+    source = '#include <stdint.h>\n'
+    for name, header in [('scalar', sine), ('paired', module.pair_msfa_sine_load(sine))]:
+        source += 'namespace ' + name + ' {\nint32_t sintab[2048]={' + table + '};\n' + header + '\n}\n'
+    source += r'''
+int main() {
+  for (uint32_t phase=0; phase<0x1000000; ++phase)
+    if (scalar::Sin::lookup((int32_t)phase) != paired::Sin::lookup((int32_t)phase)) return 1;
+  uint32_t rng=91;
+  for (uint32_t i=0; i<1000000; ++i) {
+    rng^=rng<<13; rng^=rng>>17; rng^=rng<<5;
+    if (scalar::Sin::lookup((int32_t)rng) != paired::Sin::lookup((int32_t)rng)) return 2;
+  }
+}
+'''
+    path = tmp_path / 'sine-pair.cc'
+    path.write_text(source)
+    exe = tmp_path / 'sine-pair'
+    subprocess.run([cxx, '-std=c++11', '-O2', str(path), '-o', str(exe)], check=True)
+    subprocess.run([str(exe)], check=True)

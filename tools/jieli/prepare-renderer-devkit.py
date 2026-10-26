@@ -71,6 +71,31 @@ def narrow_msfa_sine_multiply(text, rom):
     return text.replace(old, "(dy * lowbits) >> SHIFT")
 
 
+def pair_msfa_sine_load(text):
+    """Read the adjacent signed delta/base words without aliasing casts.
+
+    The target's little-endian pi32v2 compiler lowers this fixed memcpy to
+    one paired load. Preserve the alternative byte order for host checks.
+    Only the private prepared header changes; interpolation is untouched.
+    """
+    anchors = ('#define SIN_LG_N_SAMPLES 10', '#define SIN_DELTA',
+               '  int phase_int = (phase >> (SHIFT - 1)) & ((SIN_N_SAMPLES - 1) << 1);')
+    old = '  int dy = sintab[phase_int];\n  int y0 = sintab[phase_int + 1];'
+    if text.count(old) != 1 or any(
+            not re.search(r"^" + re.escape(anchor) + r"$", text, re.M) for anchor in anchors):
+        raise ValueError("Unexpected sine pair layout; review exact word loads")
+    new = """  uint64_t pair;
+  __builtin_memcpy(&pair, &sintab[phase_int], sizeof(pair));
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  int dy = static_cast<int32_t>(pair >> 32);
+  int y0 = static_cast<int32_t>(pair);
+#else
+  int dy = static_cast<int32_t>(pair);
+  int y0 = static_cast<int32_t>(pair >> 32);
+#endif"""
+    return text.replace(old, new, 1)
+
+
 def unroll_msfa_pure(text):
     """Annotate only the reviewed pure operator; preserve every sample operation."""
     start = text.find("void FmOpKernel::compute_pure(")
@@ -743,7 +768,7 @@ def queue_modulation_micro(text, unit, modules=False):
             "#else\n#define QUEUE_MOD_MICRO(r, e) ((void)0)\n#endif\n" + text)
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False, metadata_ram=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False, metadata_ram=False, msfa_sine_pair=False):
     if engine_queue_caller_post and not engine_queue_insert:
         raise ValueError("Caller post requires guarded queue inserts")
     if engine_queue_insert and (not engine_queue or engine_queue_drums or engine_queue_detail or engine_queue_micro or engine_queue_mod_micro or engine_queue_module_micro):
@@ -794,6 +819,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Unknown renderer workload; choose mixed or keys")
     if msfa_pure_unroll and not (timing_only and hot_ram and msfa_narrow_adds and renderer_o3):
         raise ValueError("Pure FM unrolling requires timing-only hot O3 and narrow additions")
+    if msfa_sine_pair and not (timing_only and hot_ram and msfa_sine32):
+        raise ValueError("Paired sine loads require timing-only hot signed32 sine")
     if msfa_sine32 and not (timing_only and hot_ram and msfa_narrow_adds):
         raise ValueError("Signed32 sine requires timing-only hot code and narrow additions")
     if msfa_narrow_adds and not (timing_only and hot_ram):
@@ -891,6 +918,11 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         rom = (staging / "engines/src/msfa_rom.cc").read_text()
         sine32_input = hashlib.sha256(rom.encode()).hexdigest()
         p.write_text(narrow_msfa_sine_multiply(p.read_text(), rom))
+    sine_pair_input = None
+    if msfa_sine_pair:
+        p = staging / "engines/third_party/msfa/sin.h"
+        sine_pair_input = hashlib.sha256(p.read_bytes()).hexdigest()
+        p.write_text(pair_msfa_sine_load(p.read_text()))
     hot_inputs = {}
     if hot_ram:
         # The pinned clang 4 vendor build supports MS code_seg under its
@@ -1290,6 +1322,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "msfa_pure_unroll": msfa_pure_unroll,
         "msfa_pure_unroll_original_sha256": pure_unroll_input,
         "msfa_sine32": msfa_sine32,
+        "msfa_sine_pair": msfa_sine_pair,
+        "msfa_sine_pair_input_sha256": sine_pair_input,
         "msfa_sine32_rom_sha256": sine32_input,
         "msfa_narrow_adds": msfa_narrow_adds,
         "msfa_narrow_adds_original_sha256": narrow_inputs,
@@ -1411,6 +1445,8 @@ if __name__ == "__main__":
                         help="Group independent FIR sums/products; requires timing-only resident mixer")
     parser.add_argument("--msfa-pure-unroll", action="store_true",
                         help="Compare two-way pure FM loops; timing-only hot O3 with narrow additions")
+    parser.add_argument("--msfa-sine-pair", action="store_true",
+                        help="Pair adjacent sine delta/base loads; requires timing-only hot signed32 sine")
     parser.add_argument("--msfa-sine32", action="store_true",
                         help="Compare bounded signed32 sine products; requires narrow FM additions")
     parser.add_argument("--msfa-narrow-adds", action="store_true",
@@ -1464,4 +1500,4 @@ if __name__ == "__main__":
     parser.add_argument("--engine-queue-module-micro", action="store_true",
                         help="Split global module preparation/process/output; requires modulation micro")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post, args.resampler_stage1_schedule, args.metadata_ram)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post, args.resampler_stage1_schedule, args.metadata_ram, args.msfa_sine_pair)

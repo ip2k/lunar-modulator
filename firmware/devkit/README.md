@@ -525,3 +525,14 @@ and instance-owned before publication. Unsupported layouts permanently refuse.
 Outer profiling only; no worker Drums or nested profilers. Default insert mode
 retains its prior scheduling. Host PCM/ownership checks do not establish target
 speed, stack, cache coherence or dropout-free acceptance.
+
+### Paired FM sine-table loads
+
+The timing-only `--msfa-sine-pair` preparation option requires hot code and
+`--msfa-sine32` (and its existing narrow-add prerequisites). It copies adjacent
+sine delta/base words with a fixed eight-byte `memcpy`; the reviewed pi32v2
+build emits one paired load. Interpolation, gain products and sample order stay
+unchanged. The preparer records the input-header hash and rejects layout drift;
+vendored files in the checkout stay unchanged. V58's heavy mixed mean improved
+from 1732.500 to 1714.125 us in one run, but the 34829-tick deadline still fails.
+This is an optimization result, not sustained or physical audio acceptance.
