@@ -11,6 +11,19 @@ bypassing checks. This authorization applies to this owned repository, not
 upstream contributions or hardware writes. Start the four demo songs once
 their prerequisite work is integrated; keep unfinished work recorded in notes.
 
+## Streamlined dev-board iterations — owner, 2026-10-26
+
+For the recoverable AC79 dev board, routine performance iterations use acknowledged
+UART recovery entry, application flashing, and fresh startup/performance evidence.
+Do not repeat full-flash double backups, factory restore rehearsals, full-flash
+readbacks or exhaustive checksums for every iteration. Existing recovery evidence
+and saved factory images are sufficient. Focus effort on actual performance.
+Retain no-button recovery and one-shot reset ownership; investigate an actual
+failure rather than adding precautionary audit cycles. This replaces the older
+per-image protected WINDOW/RUN choreography for routine dev-board iterations.
+It does not relax the separate physical FM-1 restrictions, source correctness,
+PCM/quality/deadline requirements or CI/review gates.
+
 ## Unattended dev-board tests — owner, 2026-10-24
 
 Routine future dev-board tests must require no physical button presses. Keep
