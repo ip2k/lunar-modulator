@@ -4561,3 +4561,31 @@ V20's139-sector restore range stays unchanged. V21 has not been installed.
 historical-image exclusion lists missing V21; updated only those test lists,
 retaining every existing image's actual bounds. V21 is admitted for an exact
 controlled timing experiment, not hardware or audio acceptance.
+
+### V21 target result: improved tails, still fails deadlines
+
+[verified] The exact admitted image completed its protected install/recovery/
+restore/reinstall cycle. Startup ready plus three acknowledgements took78.9712ms.
+Both full current/new backups, factory restores and full8MiB installs matched.
+WINDOW84123 and RUN9680 are consumed and terminal; neither may be retried.
+The sole receive-only capture was closed after two exact process-argument checks;
+its session85364 terminated before an ordinary PING acknowledged healthy idle.
+
+[verified] All four PCM hashes and arithmetic bits match; strict parsers accept
+32unit,24stage,24worst,12detail,96prep and32unit-worst rows,81308paired jobs
+without refusal/error/wrong-core/disabled work and finite worker exit. Heap19444
+bytes stays stable; unused parent/worker stack2444/3260bytes. Private raw SHA
+`7aa9da876b4f851e921c20dd584c6cbc36c3943970cf03943cb2835051317dcb`.
+
+| Density case | Mean us | Maximum us | Late /5513 |
+| --- | ---: | ---: | ---: |
+| 0 |920.458|1596.083|1|
+| 1 |1057.083|1503.250|1|
+| 2 |1131.000|1692.042|1|
+| 3 |1220.542|1865.750|2|
+
+[verified] All worst blocks remain block0; their outer preparation costs are
+339.833/233.583/317.792/404.958us. Case3 rendering alone takes1436.167us
+on that block, leaving insufficient preparation/conversion margin. V21 improves
+tails but does not satisfy deadline, mixed workload or analog acceptance.
+No DAC/KA6/soak acceptance is claimed; PR155 stays draft and unmerged.
