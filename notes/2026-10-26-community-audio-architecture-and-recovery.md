@@ -241,3 +241,13 @@ it does not measure physical display refresh savings. Heavy-case CPU0 wait is
 about 4 us, so further overlap alone cannot remove the remaining 480 us mean
 gap. The subsequent V44b DX7 frequency-cache experiment preserved PCM but
 produced no useful target gain and was rejected; see the performance note.
+
+
+## Astra benchmark-description correction
+
+[verified] `renderer_live.c` selects DX7 bank index 19 (WARM PAD, algorithm
+5) for the held-note stress and index 25 (SAW LEAD, algorithm 1) for the
+other sequenced DX7 part. Checked against `engines/src/dx7_bank.h`. Earlier
+comments calling these electric piano and pad were incorrect. Only the
+comments are corrected; patch indices, voices, events and fingerprints are
+unchanged. This identifies the actual FM algorithms for subsequent analysis.

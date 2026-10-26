@@ -208,10 +208,10 @@ int lunar_devkit_renderer_init(void) {
             fm1_dx7_set_kernel_adapter(app.unit[units[i]].self, kernel_adapter);
     state.arena_bytes = (uint32_t)used;
     /* Fixed patches/models and modest wet levels for the named arrangement. */
-    fm1_app_set_param(&app, units[0], 0, 19); /* electric piano */
+    fm1_app_set_param(&app, units[0], 0, 19); /* WARM PAD, algorithm 5 */
 #if LUNAR_RENDERER_WORKLOAD == 0
     fm1_app_set_param(&app, units[1], 0, 0);  /* VA model */
-    fm1_app_set_param(&app, units[3], 0, 25); /* pad */
+    fm1_app_set_param(&app, units[3], 0, 25); /* SAW LEAD, algorithm 1 */
     fm1_app_set_param(&app, units[5], 3, .15f);
 #endif
     fm1_app_set_param(&app, 1, 3, .12f);
