@@ -6767,3 +6767,39 @@ strings, DSP source, coefficients, control cadence and default preparation
 remain unchanged. The vendor link succeeds and selected descriptor symbols
 are in0x01c SRAM. Seventy-four preparation rejection checks pass. Target
 performance and PCM remain to be measured; no speedup or acceptance claimed.
+
+### V46 target result — hot descriptors in SRAM
+
+[verified, hardware] A single application flash and one consumed reset ran the
+metadata-only placement experiment. Four arithmetic cases, four mixed PCM/control
+fingerprints, all 24 timing regions and 22,052 queue jobs pass with zero errors
+and finite exit. This checks the target fingerprints; it is not a complete
+byte-for-byte target PCM capture or analog acceptance. No backups, full readbacks
+or restore rehearsals were performed.
+
+[verified, timing] Means are 1644.250 / 1710.375 / 1727.958 / 1869.625 us,
+3.40 / 3.24 / 3.30 / 3.19 percent below the V43 baseline in this single run.
+Maxima are 1970.750 / 2021.417 / 2200.917 / 2453.667 us. Late counts are
+4840 / 5513 / 5513 / 5513 of 5513: every case still FAILS the unchanged
+34,829-tick deadline. Control/recording falls from about 249 to 202 us;
+the heaviest mean still exceeds the deadline by about 418 us. Descriptor
+placement is worth retaining as an opt-in diagnostic, not a completed fix.
+
+[verified, resources] Heap is stable at 73,172 bytes, down 4,160 bytes from
+V45 because of SRAM storage. Unused parent and worker stacks remain
+2500/8192 and 7444/8192 bytes. The board is healthy idle after ordinary PING ACK.
+Receiver session 89742 / PID 516138 was twice exact-argv verified, sent one
+SIGTERM, terminal 255 and PID absent before PING. The reset receipt at
+iteration-metadata-ram-v46-20261026 is consumed and must never be replayed.
+Current image is c2a1cfc3c517d0e97c1c61e9bbdd54180c74be63e4c4958811090a501e07fcb8;
+app d9cb88f76e3aa1705421936f372b37b1502a0b9eabf07ea8dd5db75f250682ea,
+140 sectors [0x4000,0x90000). Raw SHA
+156bb7d7a1e5ce17611aeb1f0799f6961088422d0755e5899d0750f3ed53af03.
+Private facts and placement report are in metadata-ram-v46-proof.
+
+[inferred, next experiment] Keep this measured placement gain while targeting
+remaining repeated control/parameter evaluation or shared-master DSP work.
+The heavy-case wait is only 4.292 us, so eliminating queue wait cannot close
+the remaining gap. Do not repeat rejected pitch-cache or FIR scheduling probes.
+No physical FM1 or Hera traffic; no operation remains live. Mixed deadline,
+output fault validation and sustained analog acceptance remain unfinished.
