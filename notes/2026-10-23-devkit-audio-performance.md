@@ -4465,3 +4465,21 @@ PING ACK. No capture remains live. Private raw SHA-256:
 module-loop cost while preserving PCM, but every case still misses deadlines.
 Actual mixed timing, fault-validated DAC/KA6 and representative30-minute analog
 soaks remain open. PR155 stays draft and unmerged.
+
+### Default modulation kind SRAM experiment (V20, offline work)
+
+[implemented] V19 still spends153–155us/block in the module loop. Vendor
+symbols place default LFO, envelope and chance processors and their LFO/env
+process primitives in XIP. A separate `--kind-ram` experiment relocates only
+eight existing hot definitions in private prepared copies; guards refuse drift.
+No body, random state, rate, arithmetic or event-order changes. Host/vendor
+validation and exact admission remain pending; V20 is not installed. V19 is
+healthy idle. Rarefaction resolves the older primary checkout as advisory only;
+Serena verifies the actual worktree body, including frame-exact LFO carries.
+
+[verified, offline]150 focused tests pass with one unavailable32-bit skip. The
+V20 vendor build passes, as do exact SDK/ROM safeguards and six FM6 kernel/
+table comparisons against V19 with checked relocations. Pre-task heap65292
+bytes is10240 below V19; target heap/stack assessment remains required. Exact
+layout/UART-first, independent app/cipher/NOR review still gate admission.
+V20 remains uninstalled; V19 is healthy idle.
