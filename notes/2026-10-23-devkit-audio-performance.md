@@ -5104,3 +5104,25 @@ exports app `bcef491fb815c168c3d08d4d0e935daf2a0d783909fb643be3034478de858c33`
 Initial SDK/ROM relocation review passes; pre-task heap is 133,900 bytes.
 Full input/layout/stack/UART-first/code/cipher/NOR review is still required.
 No V28 candidate is admitted, staged or installed. V27 remains healthy idle.
+
+
+### V28 outer-only timing image admission (2026-10-26)
+
+[verified] Exact offline image `389b6fa9…6589c53` is admitted only for the dev
+board's 139 sectors `[0x4000,0x8f000)`. CURRENT V27 retains its independent
+140-sector restore range. Eight-case PCM replay is byte-identical; 108 focused
+checks pass with one unavailable 32-bit toolchain check skipped. All 630
+manifest inputs match; only internal observer transformations and their compile
+flags differ from V27. Prepared startup, linker script and make fragment match.
+Vendor ELF has no internal observer routines/counters. Its outer timing frame
+is 176 bytes; app render remains 296, UI sync 1160, mod tick 288 and planner
+1060. Pre-task heap is 133900 bytes. Actual machine code preserves UART priority
+18 / 4 KiB allocation before priority 16 / 8 KiB parent allocation, the success
+edge, 200-tick recovery delay, 34829-tick paired budget and finite lifetime.
+Six FM6 kernels/tables match after checked relocations; startup copies/BSS,
+static ranges, dormant SDK/ROM path and link audit pass, with the audit's manual
+SDK scheduling item resolved against vendor disassembly. Independent five-section
+objcopy, cipher/CRC and protected boot/cfg/tail checks pass. The offline NOR model
+restores interrupted pages 7/1111/2199/2215 and independently restores all 140
+CURRENT sectors. Hardware installation, actual timing and analog acceptance are
+still pending. Private binaries and review artifacts remain ignored.
