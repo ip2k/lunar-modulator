@@ -6411,8 +6411,9 @@ takes175us. AudioOutputDevice's waiting span lasts39.464ms. No overlapping trace
 FIFO Pull explains the stall. This locates the observed delay outside that DSP
 render; it does not identify a lock owner or distinguish mutex waiting from OS
 descheduling. The Chromium FIFO source places its under-lock trace after
-AutoLock acquisition [verified against the inspected source revision, not an
-exact-version source match](https://chromium.googlesource.com/chromium/src.git/+/ab6b23fbaa30f59c1f7b7c984e4f4247aea6d2a8/third_party/blink/renderer/platform/audio/push_pull_fifo.cc).
+AutoLock acquisition [verified against the exact Chromium153.0.8010.12 tagged
+source](https://chromium.googlesource.com/chromium/src/+/refs/tags/153.0.8010.12/third_party/blink/renderer/platform/audio/push_pull_fifo.cc),
+retrieved independently as base64 text and decoded into private research storage.
 
 [verified] One independent exact9c0c07d7 source archive ran the unchanged30second
 storm on bounded Aeon: Playwright1.63.0 / Chromium153.0.8010.12, four CPUs,
@@ -6431,3 +6432,16 @@ retain failures and the ordinary zero-underrun acceptance gate. Existing trace
 does not establish that playbackStats polling, tracing, host contention or Lunar
 caused the wait. Exact9c0CI40325582091 remained in progress at last check;
 Pages40325581941 succeeded. No device traffic occurred during this investigation.
+
+[verified] Predeclared controls40083 terminated0, one30second run each on the
+same archived source and bounded Aeon container: idle playback with observers
+and ordinary edit storm without CDP trace/timeline polling both had zero playback
+underruns. The storm accepted7161edits,10695quanta, no errors and binary snapshot.
+The idle JSON says diagnostic_is_acceptance=false, edited=ops=0, pass=true:
+contrary to the source comment and our initial expectation, the predicate permits
+zero edits when both counts match and initial changes/telemetry exist. This does
+not alter the normal storm, which submitted7161edits, and is not a reason to
+count idle as acceptance. These three passing Aeon observations cannot establish
+that observers, workload or host scheduling caused the failed CI run. All results
+are retained; no retry-until-pass or gate change. Outputs are control-idle-traced
+and control-storm-unobserved in the same private local/Aeon research directories.
