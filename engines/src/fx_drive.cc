@@ -508,6 +508,14 @@ static void DriveRender(void *s, float *lr, uint32_t frames) {
   /* The per-channel state lives in locals for the block: lr may alias any
    * float, so working through self would reload it after every store. */
   DriveChannel ch[2] = { self->ch[0], self->ch[1] };
+  /* Equal input alone is insufficient after stereo history. Compare every
+   * state field by bits (including signed zero), not struct padding. */
+  int mono = 1;
+  const float left_state[] = {ch[0].u0,ch[0].pre,ch[0].post,ch[0].dc_x1,ch[0].dc_y1,ch[0].tilt};
+  const float right_state[] = {ch[1].u0,ch[1].pre,ch[1].post,ch[1].dc_x1,ch[1].dc_y1,ch[1].tilt};
+  for (int k=0;k<6;++k) if (memcmp(&left_state[k], &right_state[k], sizeof(float))) mono=0;
+  for (uint32_t f=0; mono && f<frames; ++f)
+    if (memcmp(lr+2*f,lr+2*f+1,sizeof(float))) mono=0;
   const float glide = self->glide, dc_r = self->dc_r;
   const float ge = self->g_emph, gt = self->g_tilt;
   /* Targets cannot change during this call. Keep the final glide update,
@@ -551,7 +559,7 @@ static void DriveRender(void *s, float *lr, uint32_t frames) {
     const float k = self->value[S_EMPH], kk = self->emph_kk, inv = self->emph_inv;
     const float silence = fading ? self->dc_from + w * (self->dc_to - self->dc_from)
                                  : self->dc_from;
-    for (int c = 0; c < 2; ++c) {
+    for (int c = 0; c < (mono ? 1 : 2); ++c) {
       DriveChannel *h = &ch[c];
       const float x = DriveGuard(lr[2 * f + c]);
       const float vp = (x - h->pre) * ge;                    /* pre-emphasis */
@@ -576,7 +584,9 @@ static void DriveRender(void *s, float *lr, uint32_t frames) {
       const float wet = tl * lt + th * (y - lt);
       lr[2 * f + c] = x + mix * (out * wet - x);
     }
+    if (mono) lr[2*f+1] = lr[2*f];
   }
+  if (mono) ch[1] = ch[0];
   self->ch[0] = ch[0];
   self->ch[1] = ch[1];
 }
