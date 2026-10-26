@@ -4719,3 +4719,32 @@ zero late quanta. Default embedded-storage Wasm and metadata bytes remained
 identical; its provenance record now names the current simulator source hash.
 The exact CI=true freshness test passes separately. Browser parity is not
 dev-board timing or analog acceptance.
+
+
+### V23 mixed hardware result: memory/recovery pass, deadlines fail
+
+[verified] Exact b8f8e24b completed startup recovery in79.0238ms, fresh ROM
+inquiry, two matching full backups,138-sector factory restore, identical run
+install and full8MiB readbacks. WINDOW67093/RUN27550 are consumed, never retry.
+Sole RX280859 was checked twice before one termination; session93926 became
+terminal before ordinary PING acknowledged healthy idle. No capture remains.
+
+All four mixed PCM hashes and control counts match the desktop.32 unit,24
+stage,24 worst,12 detail,96 preparation and32 unit-worst rows correlate; all
+eight units render352832frames per case.81308 paired jobs complete with no
+wrong-core/refusal/error counters and finite worker exit. Heap93780bytes is
+stable; unused parent stack2436/8192bytes, worker3260/4096bytes. Private raw
+SHA256:2e9932b2f00cf7de83159a480b0fc440f7f29c88c184ee49a22fad4608ffa32f.
+
+|Case|Mean us|Maximum us|Late /5513|Worst block|
+|---|---:|---:|---:|---:|
+|0|2561.542|2991.250|5513|4224|
+|1|2775.250|3111.125|5513|0|
+|2|2849.833|3385.000|5513|0|
+|3|2941.292|3576.542|5513|0|
+
+Macro costs909.375–981.917us per block; drums389.625–391.875us. The mixed
+workload fails the34829-tick deadline in every block. No engine, native rate,
+filter, event or first block is removed. DAC/KA6 fault validation and30-minute
+soaks remain undone. The next investigation targets this measured engine cost;
+keys-only improvements cannot establish mixed acceptance.
