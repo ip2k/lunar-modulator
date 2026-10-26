@@ -4589,3 +4589,22 @@ bytes stays stable; unused parent/worker stack2444/3260bytes. Private raw SHA
 on that block, leaving insufficient preparation/conversion margin. V21 improves
 tails but does not satisfy deadline, mixed workload or analog acceptance.
 No DAC/KA6/soak acceptance is claimed; PR155 stays draft and unmerged.
+
+### Remaining event helpers and planner placement (V22, offline)
+
+[implemented, not accepted] Guarded `--plan-ram` retains V21 unchanged and
+places six additional exact definitions in private build copies: window_of,
+feed_level/feed_trigger/feed_rtrg, fm1_mod_set_base and mod_plan_build. It
+requires timing-only preparation profiling plus resident events. No first-block
+work is moved or excluded; all bodies match after stripping placement pragmas.
+Rarefaction resolves planner callers/co-change files from the primary checkout
+with fallback clangd flags; Serena verifies the actual worktree planner body.
+The preparation script remains outside Rarefaction's primary index.
+
+[verified, offline]85 focused renderer tests pass, one unavailable32-bit
+replay skips. The vendor build passes. Exact SDK/ROM safeguards and unchanged
+FM6 kernels/table comparisons pass with checked relocations. ELF56593846…;
+app611afffb…565340bytes; ram0_data113392bytes, pre-task heap52940bytes.
+That is8448bytes more SRAM than V21; target heap/stack remain required.
+V22 is NOT admitted or installed. Exact layout/recovery/cipher/NOR review and
+hardware timing remain pending. V21 is healthy idle with no capture running.

@@ -289,6 +289,9 @@ int main(void) {
     {'resampler_slopes': True, 'timing_only': True},
     {'plaits_cache': True},
     {'plaits_cache': True, 'timing_only': True},
+    {'plan_ram': True},
+    {'plan_ram': True, 'timing_only': True, 'profile': True, 'prep_profile': True},
+    {'plan_ram': True, 'timing_only': True, 'profile': True, 'event_ram': True},
     {'event_ram': True},
     {'event_ram': True, 'timing_only': True, 'profile': True},
     {'event_ram': True, 'timing_only': True, 'profile': True, 'prep_profile': True},
@@ -733,7 +736,7 @@ def test_preparation_profile_cli_registered_before_parsing(tmp_path):
     assert not (tmp_path / "out").exists()
 
 
-@pytest.mark.parametrize("selection", ["HOOK_RAM_FUNCTIONS", "MODULE_RAM_FUNCTIONS", "KIND_RAM_FUNCTIONS", "EVENT_RAM_FUNCTIONS"])
+@pytest.mark.parametrize("selection", ["HOOK_RAM_FUNCTIONS", "MODULE_RAM_FUNCTIONS", "KIND_RAM_FUNCTIONS", "EVENT_RAM_FUNCTIONS", "PLAN_RAM_FUNCTIONS"])
 def test_hook_ram_preserves_definitions_and_refuses_source_drift(selection):
     import importlib.util
     spec = importlib.util.spec_from_file_location("renderer_prepare", ROOT / "tools/jieli/prepare-renderer-devkit.py")
