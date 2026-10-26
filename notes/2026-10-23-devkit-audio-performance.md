@@ -5958,3 +5958,46 @@ tests pass after explicitly classifying the new140-sector image in the range
 fixtures. Reports/hashes in private `build-renderer-env-fast-v36/offline-admission.json`.
 V36 OFFLINE_ADMITTED, not staged/installed; target speedup unknown. V35 remains
 CURRENT; deadline and analog acceptance remain incomplete.
+
+### V36 protected target cycle: correctness PASS, deadline FAIL (2026-10-26)
+
+[verified] V36 is CURRENT on the devkit, image
+`3d00c962b8df3eca3a9ff1122b796cc7328980186498aec97f78a38ee74a8a62`,
+restore140[0x4000,0x90000). Ordinary UART entry acknowledged; fresh actual
+WL82/UBOOT1.00 inquiry; double full CURRENT V35 backups2601; factory restore84831;
+WINDOW install14302/full readback; sole verifier90764PID422245 armed before
+ONE WINDOW reset47770. Fresh startup PING/ARM/ENTER completed in78.7961ms and
+actual ROM inquiry responded. Double full NEW backups66270 matched V36;
+factory restore61822; SAME image RUN install59653/readback; sole receive-only
+capture76924PID423663 armed before ONE RUN reset47923. BOTH resets and ALL
+older receipts are consumed, NEVER RETRY. SG_IO host7/resid16 is recorded as
+interrupted response, not boot proof. After finite completion, capture argv
+was checked twice, one SIGTERM sent, terminal255 confirmed before ordinary
+PING ACK. Owned process absence verified. No live build/RX/KA6/device operation.
+
+[verified] Strict unchanged V35 parser accepts4 arithmetic/4 mixed PCM+control,
+24 outer/40 DETAIL/104 MICRO records,22052 queue jobs with zero errors and finite
+worker exit. Case means1958.917/2018.375/2050.917/2206.250us; ALL5513 blocks late
+in EVERY case, FAIL34829ticks. Maximum55569/56906/61526/67247ticks. Heap76788 stable;
+parent unused1532/8192bytes each case, worker unused7452/8192bytes. Observed mean
+reductions versus V35 are0.019/0.033/0.185/0.307percent; one before/after capture
+is not proof of a causal speedup. Whole modulation tick means213.458/211.917/
+212.667/213.958us, only0.333–0.583us lower than V35. This does not identify the
+main ~213us cost. No deadline or analog acceptance, no real-FM1 recovery claim.
+
+Private raw `renderer-env-fast-v36-run-20261026-uart.bin` SHA256
+`40c62d0f48623efb0a8cdf8e135bab0258c15d69cd01bf6ff3276b3bf22bded5`;
+parsed facts SHA256`86800e69e04eb3b15fcc4fcaa2b1b8ce2ed8c97ca671fb4e156e3d9990c68125`.
+Raw/meta/startup/facts/parser/cycle review saved locally under the campaign
+scratch and build-renderer-env-fast-v36, mirrored and rehashed on Aeon under
+renderer-env-fast-v36-exports. Historical offline-admission hardware=false is
+unchanged; target facts/cycle review establish installation, not acceptance.
+
+Next: bounded internal modulation attribution around take_system, module
+execution, write_sinks, run_voices and glue write conversion before another
+optimization. Preserve event/gate order, rates and exact PCM; account for
+observer overhead and the1532-byte parent stack margin. Do not add overlapping
+worker time or nested MICRO/DETAIL/outer totals. Retain worker1; the V30 drums
+partition remains a measured regression. Deadline/fault-validated DAC/KA6 and
+representative30-minute analog soaks remain unfinished. Physical FM1 remains
+nonbooting and untouched; no Hera contact or button use.
