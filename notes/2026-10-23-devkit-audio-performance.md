@@ -6445,3 +6445,42 @@ count idle as acceptance. These three passing Aeon observations cannot establish
 that observers, workload or host scheduling caused the failed CI run. All results
 are retained; no retry-until-pass or gate change. Outputs are control-idle-traced
 and control-storm-unobserved in the same private local/Aeon research directories.
+
+### Private V40 caller insert overlap proof
+
+[verified] V39's Dispatch executes CPU0 sound streams0/2/3 before waiting for
+CPU1 sound1, but their inserts/meter/level work remains after the join. A private
+shadow prototype invokes the existing generic per-sound post callback immediately
+after each Execute, on its owning core. It removes the duplicate post body from
+render_sounds while retaining the original sound-order sum and both master FX
+after successful acknowledgement. CPU1 still owns only sound1; no Drums worker
+partition, algorithm, rates, event order within streams or arithmetic changed.
+
+[verified] Source ownership review covers the new overlap of CPU0 Filter with
+CPU1 Macro0/Drive: Filter and its DSP header have constant file-scope data,
+instance/local control and filter state, no RNG, and fabsf/floorf/sqrtf math calls.
+The shared route/event/write inputs are frozen through the batch; meter rows and
+seq_level entries are distinct per sound. This is source evidence, not a new
+linked ABI/cache/stack or runtime race proof. Promotion requires a fixed
+Filter/Drive/empty allowlist and nonalias arena validation for ALL moved inserts
+before publication; the existing V39 guard covers only its earlier worker scope.
+
+[verified] Bounded offline Aeon host suite61746 terminated0 with24checks, including
+the full44104batch11290624byte replay exactly matching baseline and timeout buffer
+lifetime. Sanitizer replay45779 terminated0,1PASS20.72s. Ownership harness41701
+terminated0,2PASS0.68s normal+ASAN/UBSAN:2000batches, expected caller/worker thread,
+render-before-post, caller callbacks before the first worker acknowledgement,
+timeout after caller post, late worker post and permanent refusal. The first
+ownership invocation failed compilation because the private harness's braced
+range lacked the required initializer-list declaration; a plain bounded loop
+fixed the harness. No production assertion or acceptance gate changed.
+
+[verified] Scripts/review/logs remain private in scratch/devkit-20261023 as
+queue-caller-post-v40-proof.py, test_queue_caller_post_v40_proof.py,
+test_queue_caller_post_v40_ownership.py and queue-caller-post-v40-ownership-review.md;
+the exact4f2afa82 Aeon archive is source-caller-post-v40-proof. No tracked source
+integration, vendor build, image admission, staging or hardware operation occurred.
+No test remains live. Target speedup is unknown: the current450/325/202/44us waits
+bound the work this scheduling change could hide, with less opportunity in the
+heaviest case. Next: guarded opt-in integration, focused ownership/PCM/fault checks,
+then full vendor and image admission before any target timing comparison.
