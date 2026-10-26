@@ -20,9 +20,10 @@ def load(name, path):
 
 @pytest.mark.parametrize("queue_profile,worker_drums", [(p, d) for p in
     (False, True, "detail", "micro", "mod_micro", "module_micro") for d in (False, True)] +
-    [("insert", False), ("insert_profile", False)])
+    [("insert", False), ("insert_profile", False), ("caller_post", False)])
 def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, queue_profile):
-    insert = queue_profile in ("insert", "insert_profile")
+    caller_post = queue_profile == "caller_post"
+    insert = caller_post or queue_profile in ("insert", "insert_profile")
     profiling = bool(queue_profile) and queue_profile != "insert"
     renderer = load("queue_renderer_reference", ROOT / "tests/test_devkit_renderer.py")
     prepare = load("queue_preparer", ROOT / "tools/jieli/prepare-renderer-devkit.py")
@@ -58,7 +59,7 @@ def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, qu
         if path.name == "fm1_app.c":
             text = prepare.queue_engine_callbacks(path.read_text())
             if insert:
-                text = prepare.queue_insert_callbacks(text)
+                text = prepare.queue_insert_callbacks(text, caller_post)
                 text += "\nint lunar_test_post_layout(const fm1_app_t *a) { return lunar_post_layout_valid(a); }\nint lunar_test_post_begin(fm1_app_t *a) { return lunar_queue_begin(a); }\n"
             destination.write_text(prepare.queue_micro_callbacks(text, queue_profile in ("mod_micro", "module_micro"))
                                    if queue_profile in ("micro", "mod_micro", "module_micro") else text)
@@ -153,6 +154,8 @@ static Host host;
                        " -pthread -I" + str(shadow / "firmware/devkit"))
     if insert:
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] + " -DLUNAR_QUEUE_POST=1")
+    if caller_post:
+        monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] + " -DLUNAR_QUEUE_CALLER_POST=1")
     if worker_drums:
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_WORKER_DRUMS=1")
@@ -236,13 +239,48 @@ int main() {
  assert(lunar_renderer_queue_worker_step()==0 && !lunar_renderer_queue_begin());
 }
 ''')
+        if caller_post:
+            # Every moved sound/insert arena is validated, including unused tails.
+            guard.write_text(guard.read_text().replace('#include <cstring>', '#include <cstring>\n#include <cstdlib>').replace(
+                'assert(macro && drive); unit(sound,macro);',
+                'assert(macro && drive); for(unsigned s=0;s<4;++s) unit(fm1_app_sound_unit(s),fm1_engine_find(s==1?"macro":s==2?"drums":"dx7")); unit(sound,macro);').replace(
+                ' a.unit[fx].e=fm1_engine_find("filter");\n assert(!lunar_test_post_begin',
+                r''' const int callerfx=fm1_app_insert_unit(0,0);
+ unit(callerfx,fm1_engine_find("filter")); assert(lunar_test_post_layout(&a));
+ for(unsigned s=0;s<4;++s) for(unsigned j=0;j<2;++j) {
+   const int id=fm1_app_insert_unit(s,j); const fm1_app_unit_t saved=a.unit[id];
+   unit(id,fm1_engine_find(s==0?"filter":"drive"));
+   if(s<2) assert(lunar_test_post_layout(&a)); else assert(!lunar_test_post_layout(&a));
+   a.unit[id]=saved;
+ }
+ const fm1_app_unit_t saved=a.unit[callerfx];
+ a.unit[callerfx].e=fm1_engine_find("drive"); assert(!lunar_test_post_layout(&a)); a.unit[callerfx]=saved;
+ a.unit[callerfx].self=a.unit[callerfx].mem=memory[sound]+80; assert(!lunar_test_post_layout(&a)); a.unit[callerfx]=saved;
+ a.unit[callerfx].self=a.unit[callerfx].mem=(unsigned char*)(UINTPTR_MAX-32); assert(!lunar_test_post_layout(&a)); a.unit[callerfx]=saved;
+ a.unit[callerfx].cap=63; assert(!lunar_test_post_layout(&a)); a.unit[callerfx]=saved;
+ a.unit[callerfx].self=0; assert(!lunar_test_post_layout(&a)); a.unit[callerfx]=saved;
+ const unsigned fault=(unsigned)atoi(getenv("LUNAR_LAYOUT_FAULT"));
+ switch(fault) {
+ case 0: a.unit[callerfx].e=fm1_engine_find("drive"); break;
+ case 1: a.unit[callerfx].self=a.unit[callerfx].mem=memory[sound]+80; break;
+ case 2: a.unit[callerfx].self=a.unit[callerfx].mem=(unsigned char*)(UINTPTR_MAX-32); break;
+ case 3: a.unit[callerfx].cap=63; break;
+ case 4: a.unit[callerfx].self=0; break;
+ case 5: a.unit[fm1_app_sound_unit(3)].e=0; break;
+ case 6: unit(fm1_app_insert_unit(2,1),drive); break;
+ case 7: a.unit[callerfx].mem=memory[sound]; break;
+ case 8: a.unit[callerfx].bytes=0; break;
+ case 9: a.unit[sound].value[0]=1; break;
+ }
+ assert(!lunar_test_post_begin'''))
         guard_exe = tmp_path / "insert-guard"
         subprocess.run([os.environ.get("FM1_SIM_CXX", "c++"), "-std=c++11", "-pthread",
                         "-I" + str(shadow / "sim/web/src"), "-I" + str(ROOT / "engines/include"),
                         "-I" + str(ROOT / "engines/host"), str(guard), *objects,
                         *shlex.split(os.environ.get("FM1_SIM_EXTRA", "")), "-lm", "-o", str(guard_exe)], check=True)
-        subprocess.run([str(guard_exe)], check=True, timeout=30,
-                       env=dict(os.environ, LUNAR_QUEUE_LAYOUT_ONLY="1"))
+        for fault in range(10 if caller_post else 1):
+            subprocess.run([str(guard_exe)], check=True, timeout=30,
+                           env=dict(os.environ, LUNAR_QUEUE_LAYOUT_ONLY="1", LUNAR_LAYOUT_FAULT=str(fault)))
 
     fault_exe = tmp_path / "fault"
     subprocess.run([os.environ.get("FM1_SIM_CXX", "c++"), "-std=c++11", "-pthread",
@@ -254,6 +292,8 @@ int main() {
 
 
 @pytest.mark.parametrize("options", [
+    {"engine_queue_caller_post": True},
+    {"engine_queue": True, "engine_queue_caller_post": True},
     {"engine_queue_insert": True},
     {"engine_queue": True, "engine_queue_insert": True, "engine_queue_drums": True},
     {"engine_queue": True, "engine_queue_insert": True, "engine_queue_detail": True},

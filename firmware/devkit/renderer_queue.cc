@@ -1,3 +1,6 @@
+#if defined(LUNAR_QUEUE_CALLER_POST) && (!defined(LUNAR_QUEUE_POST) || defined(LUNAR_QUEUE_WORKER_DRUMS))
+#error Caller post requires isolated post scheduling without worker Drums
+#endif
 /* SPDX-License-Identifier: MIT. No tasks, allocation or device operations. */
 #include "renderer_queue.h"
 
@@ -100,7 +103,11 @@ void LunarRendererQueue::Execute(unsigned sound) {
     }
   }
 #ifdef LUNAR_QUEUE_POST
+#ifdef LUNAR_QUEUE_CALLER_POST
+  if (post_) post_(post_context_, sound);
+#else
   if (sound == 1 && post_) post_(post_context_, sound);
+#endif
 #endif
 }
 

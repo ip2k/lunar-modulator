@@ -6484,3 +6484,28 @@ No test remains live. Target speedup is unknown: the current450/325/202/44us wai
 bound the work this scheduling change could hide, with less opportunity in the
 heaviest case. Next: guarded opt-in integration, focused ownership/PCM/fault checks,
 then full vendor and image admission before any target timing comparison.
+
+### V40 guarded caller post integration: host proof
+
+[verified] Added opt-in --engine-queue-caller-post requiring queue inserts and
+the existing isolated mixed outer-profile preparation. CPU0 executes sound0/2/3
+post work after its stream, before joining sound1. Ordered sum and shared masters
+remain after ACK. Default V39 scheduling is preserved. Generated app and compile
+flags must agree. The fixed layout permits Filter/empty on sound0, Drive/empty
+on sound1 and empty inserts on sounds2/3; every moved sound/insert arena is
+capacity-valid, nonalias and instance-owned before publication.
+
+[verified] Bounded Aeon final focused run58744 terminated0:29PASS20.05s, covering
+new/default prepared PCM, callback ownership normal+ASAN/UBSAN, unsupported
+preparation and ten fresh-process layout faults refusing before publication.
+Full caller replay89418 terminated0:1PASS21.06s under ASAN/UBSAN,44104batches
+11290624PCMbytes exact and timeout lifetime. Initial integration23999 and revised
+fault run88985 passed; final tests supersede them. Logs saved privately as
+queue-caller-post-v40-{final,final-asan}.log. No target speed/cache/ABI/stack/race
+proof; TSAN remains unavailable. No image built/admitted/staged/installed yet.
+
+[verified] Serena selected this absolute worktree, Python symbol query matched
+queue_insert_callbacks. Rarefaction status ready at primary checkout but scope
+refused the external worktree path; native inspection used, server not re-rooted.
+Exact e7d262c3 CI40328500916 in progress without failed jobs at check;
+Pages40328500547 success terminal. Older browser underrun remains unresolved.

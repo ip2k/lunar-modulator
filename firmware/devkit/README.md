@@ -513,3 +513,15 @@ execution overlaps CPU0 and must not be added to its totals. Host PCM and saniti
 checks do not establish target timing, memory ordering, cache behavior or stack
 sufficiency. A new vendor image still needs the full existing admission review and
 protected startup/recovery cycle before any device measurement.
+
+### Caller track post overlap (diagnostic only)
+
+`--engine-queue-caller-post --engine-queue-insert` opts into caller-owned
+sound0/2/3 inserts, meters and level before the worker join. CPU1 still owns
+sound1; ordered summation and shared master effects stay after ACK. The fixed
+fixture permits Filter/empty on sound0, Drive/empty on sound1 and empty inserts
+on sounds2/3. All moved sound/insert arenas must be disjoint, capacity-valid
+and instance-owned before publication. Unsupported layouts permanently refuse.
+Outer profiling only; no worker Drums or nested profilers. Default insert mode
+retains its prior scheduling. Host PCM/ownership checks do not establish target
+speed, stack, cache coherence or dropout-free acceptance.

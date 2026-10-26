@@ -399,8 +399,8 @@ def place_hook_ram(text, signatures):
 
 
 
-def queue_insert_callbacks(text):
-    """Move only the reviewed sound1 insert chain before its worker ACK."""
+def queue_insert_callbacks(text, caller_post=False):
+    """Move reviewed per-sound post work to its explicitly selected owner."""
     def replace(old, new):
         nonlocal text
         if text.count(old) != 1:
@@ -436,6 +436,35 @@ static int lunar_post_layout_valid(const fm1_app_t *a) {
   return 1;
 }
 '''
+    if caller_post:
+        start = support.index("  /* Mix buffers")
+        end = support.index("    const uintptr_t p", start)
+        support = support[:start] + r'''  /* Fixed fixture only: validate every moved arena before publication.
+   * Sound order and shared master effects remain on CPU0 after ACK. */
+  const int selected[12] = {
+    fm1_app_sound_unit(0), fm1_app_sound_unit(1), fm1_app_sound_unit(2), fm1_app_sound_unit(3),
+    fm1_app_insert_unit(0,0), fm1_app_insert_unit(0,1),
+    fm1_app_insert_unit(1,0), fm1_app_insert_unit(1,1),
+    fm1_app_insert_unit(2,0), fm1_app_insert_unit(2,1),
+    fm1_app_insert_unit(3,0), fm1_app_insert_unit(3,1)};
+  static const char *const ids[4] = {"dx7", "macro", "drums", "dx7"};
+  for (unsigned w = 0; w < 12; ++w) {
+    const fm1_app_unit_t *u = &a->unit[selected[w]];
+    if (!u->e) { if (w < 4) return 0; else continue; }
+    if (w < 4) {
+      if (!u->e->id || strcmp(u->e->id, ids[w]) || u->e->kind != FM1_KIND_SOUND) return 0;
+      if (w == 1 && u->value[0] != 0.0f) return 0;
+    } else {
+      const char *id = w < 6 ? "filter" : w < 8 ? "drive" : 0;
+      if (!id || !u->e->id || strcmp(u->e->id, id) ||
+          u->e->kind != FM1_KIND_AUDIO_FX || !u->e->render || !u->e->set_param || u->e->render_ext) return 0;
+    }
+''' + support[end:]
+        # Compare complete allocated arenas, not only currently used prefixes.
+        support = support.replace("u->bytes > UINTPTR_MAX - p", "u->cap > UINTPTR_MAX - p")
+        support = support.replace("!v->bytes || v->bytes > UINTPTR_MAX - q", "!v->bytes || v->bytes > v->cap || v->cap > UINTPTR_MAX - q")
+        support = support.replace("q + v->bytes && q < p + u->bytes", "q + v->cap && q < p + u->cap")
+    support = ("#ifndef LUNAR_QUEUE_CALLER_POST\n" if caller_post else "#ifdef LUNAR_QUEUE_CALLER_POST\n") + "#error Generated post scheduling and compile flags disagree\n#endif\n" + support
     replace("static unsigned lunar_queue_recording;", "static unsigned lunar_queue_recording;\n" + support)
     replace("  if (!lunar_renderer_queue_begin()) return 0;", """  if (!lunar_renderer_queue_begin()) return 0;
   if (!lunar_post_layout_valid(a)) {
@@ -459,7 +488,7 @@ static int lunar_post_layout_valid(const fm1_app_t *a) {
   const uint32_t n = p->frames;
   float *b = a->mix[sound];
 """ + body + "}\n\n"
-    text = text[:begin] + "    if (k != 1) {\n" + original + "    }\n" + text[end:]
+    text = text[:begin] + ("" if caller_post else "    if (k != 1) {\n" + original + "    }\n") + text[end:]
     replace("static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {", helper + "static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {")
     return text
 
@@ -693,7 +722,9 @@ def queue_modulation_micro(text, unit, modules=False):
             "#else\n#define QUEUE_MOD_MICRO(r, e) ((void)0)\n#endif\n" + text)
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False):
+    if engine_queue_caller_post and not engine_queue_insert:
+        raise ValueError("Caller post requires guarded queue inserts")
     if engine_queue_insert and (not engine_queue or engine_queue_drums or engine_queue_detail or engine_queue_micro or engine_queue_mod_micro or engine_queue_module_micro):
         raise ValueError("Queue inserts require isolated whole-engine queue with only outer profiling")
     if engine_queue_module_micro and not engine_queue_mod_micro:
@@ -1091,7 +1122,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         queue_input = hashlib.sha256(p.read_bytes()).hexdigest()
         queued = queue_engine_callbacks(p.read_text())
         if engine_queue_insert:
-            queued = queue_insert_callbacks(queued)
+            queued = queue_insert_callbacks(queued, engine_queue_caller_post)
         p.write_text(queue_micro_callbacks(queued, engine_queue_mod_micro) if engine_queue_micro else queued)
     modulation_micro_inputs = {}
     if engine_queue_mod_micro:
@@ -1128,6 +1159,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         renderer_flags += f"CFLAGS += -I{staging / 'firmware/devkit'}\n"
     if engine_queue_insert:
         renderer_flags += "CFLAGS += -DLUNAR_QUEUE_POST=1\n"
+    if engine_queue_caller_post:
+        renderer_flags += "CFLAGS += -DLUNAR_QUEUE_CALLER_POST=1\n"
     if engine_queue_profile:
         renderer_flags += "CFLAGS += -DLUNAR_QUEUE_PROFILE=1\n"
     if engine_queue_detail:
@@ -1167,8 +1200,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "render_profile": profile and not outer_timing_only,
         "outer_timing_only": outer_timing_only,
         "engine_queue": engine_queue,
+        "engine_queue_caller_post": engine_queue_caller_post,
         "engine_queue_insert": engine_queue_insert,
-        "engine_queue_insert_allowlist": ["drive", "empty"] if engine_queue_insert else [],
+        "engine_queue_insert_allowlist": ["filter(sound0)", "drive(sound1)", "empty"] if engine_queue_caller_post else ["drive", "empty"] if engine_queue_insert else [],
         "engine_queue_drums": engine_queue_drums,
         "engine_queue_profile": engine_queue_profile,
         "engine_queue_detail": engine_queue_detail,
@@ -1328,6 +1362,8 @@ if __name__ == "__main__":
                         help="Compare explicit 32-bit FM sums in private copies; timing-only hot code")
     parser.add_argument("--dispatch-ram", action="store_true",
                         help="Compare sequencer event walk and slot dispatch in SRAM; requires timing-only resident mixer")
+    parser.add_argument("--engine-queue-caller-post", action="store_true",
+                        help="Finish fixed caller track inserts before join; requires --engine-queue-insert")
     parser.add_argument("--engine-queue-insert", action="store_true",
                         help="Move sound1 Drive/empty insert chain to CPU1 before ACK; isolated queue mode only")
     parser.add_argument("--engine-queue-profile", action="store_true",
@@ -1373,4 +1409,4 @@ if __name__ == "__main__":
     parser.add_argument("--engine-queue-module-micro", action="store_true",
                         help="Split global module preparation/process/output; requires modulation micro")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post)
