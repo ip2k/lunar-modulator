@@ -482,3 +482,15 @@ observer overhead; they are not a complete replacement for whole-tick timing.
 The voice-glue interval includes optional callbacks; the measured mixed app has
 none installed. Host equality and timer balance do not establish target timing,
 stack, cache or race acceptance.
+
+`--engine-queue-module-micro` additionally requires modulation micro mode and
+replaces its six intervals with system intake plus global-module parameter
+routing, gate preparation, output initialization/IO setup, process callback,
+and output sanitation. The enclosing module-loop and glue timers are omitted;
+these intervals must not nest in the flat bank. The fixed mixed rack has five
+global modules: each component's call count is five times the system-tick count.
+No module is skipped, and no algorithm, order, parameter or state is changed.
+The preparation receipt labels this alternative explicitly. Host replay must
+still match the full PCM and refuse queue faults before an image is considered
+for the independent target admission gates. This is diagnostic-only, not a
+performance improvement or hardware acceptance.

@@ -6137,3 +6137,33 @@ Rarefaction remains rooted at the primary checkout with fallback flags and could
 not resolve this worktree's run_module position; Serena sessionf56a245f selects
 the actual absolute worktree and resolved run_module/module_params/module_outputs.
 Empty Rarefaction results are not evidence of absent callers or target ABI proof.
+
+### V38 global-module component diagnostic preparation (2026-10-26)
+
+[verified] Added opt-in --engine-queue-module-micro, requiring the existing
+modulation-micro dependency chain. The prepared-only core replaces slots20–25
+with system intake, module parameters, gates, output/IO initialization, process
+callback, and output sanitation. It omits the enclosing module-loop and glue
+intervals to avoid flat-bank nesting. The early missing-kind return precedes
+all module markers. No algorithm, native rate, event order, state or default
+build changes. Same26 result arrays; receipt carries explicit alternative labels.
+
+[verified] Bounded Aeon host session74111 TERMINAL0: all32 focused casesPASS.
+Both worker partitions and all12 profile configurations replay44104blocks /
+11290624PCMbytes identically, with marker balance and fault-lifetime checks.
+The fixed rack's five global modules produce exactly five component calls per
+system tick. Sanitizer31328 TERMINAL0: both new-mode partition casesPASS under
+ASAN+UBSAN, fullPCM/call-balance and timeout refusal included. Local .venv lacks
+pytest; established Aeon container supplied it, no local dependency alteration.
+Private strict V38 parser requires system11025/11026/11026/11026 and each
+component exactly5x those counts. Its separate synthetic timely/late fixtures,
+91new+37base malformed refusals and actual V37 old-format rejectionPASS. This
+is structural parser evidence, not target performance.
+
+[verified] Saved preparer/tests/README and private parser/fault scripts; next
+fresh exact-source vendor build and full timer/publication/frame/layout/UARTfirst/
+SDK/source-independence/appcopy/cipherCRC/NOR reviews before any new admission.
+No new8MiB image, staging or installation. V37 remains CURRENT healthy idle;
+ALL prior reset receipts including WINDOW6022/RUN16109 consumed, NEVER retry.
+Actual mixed deadlines and analog acceptance remain unsatisfied. No physical
+FM1 or Hera traffic, device operation or KA6 capture occurred in this step.

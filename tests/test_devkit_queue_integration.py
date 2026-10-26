@@ -18,7 +18,7 @@ def load(name, path):
     return module
 
 
-@pytest.mark.parametrize("queue_profile", [False, True, "detail", "micro", "mod_micro"])
+@pytest.mark.parametrize("queue_profile", [False, True, "detail", "micro", "mod_micro", "module_micro"])
 @pytest.mark.parametrize("worker_drums", [False, True])
 def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, queue_profile):
     renderer = load("queue_renderer_reference", ROOT / "tests/test_devkit_renderer.py")
@@ -33,7 +33,7 @@ def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, qu
     shadow = tmp_path / "source"
     (shadow / "sim/web/src").mkdir(parents=True)
     (shadow / "tools/jieli").mkdir(parents=True)
-    if queue_profile == "mod_micro":
+    if queue_profile in ("mod_micro", "module_micro"):
         # Copy only the two changed files; never modify symlinked real sources.
         (shadow / "engines/mod").mkdir(parents=True)
         for path in (ROOT / "engines").iterdir():
@@ -43,7 +43,7 @@ def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, qu
             destination = shadow / "engines/mod" / path.name
             if path.name in ("mod_core.c", "mod_glue.c"):
                 unit = "core" if path.name == "mod_core.c" else "glue"
-                destination.write_text(prepare.queue_modulation_micro(path.read_text(), unit))
+                destination.write_text(prepare.queue_modulation_micro(path.read_text(), unit, queue_profile == "module_micro"))
             else:
                 destination.symlink_to(path, target_is_directory=path.is_dir())
     else:
@@ -54,8 +54,8 @@ def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, qu
         destination = shadow / "sim/web/src" / path.name
         if path.name == "fm1_app.c":
             text = prepare.queue_engine_callbacks(path.read_text())
-            destination.write_text(prepare.queue_micro_callbacks(text, queue_profile == "mod_micro")
-                                   if queue_profile in ("micro", "mod_micro") else text)
+            destination.write_text(prepare.queue_micro_callbacks(text, queue_profile in ("mod_micro", "module_micro"))
+                                   if queue_profile in ("micro", "mod_micro", "module_micro") else text)
         else:
             destination.symlink_to(path, target_is_directory=path.is_dir())
     mk = (ROOT / "tools/jieli/renderer.mk").read_text()
@@ -107,7 +107,7 @@ struct Host {
 };
 static Host host;
 ''')
-    if queue_profile in ("detail", "micro", "mod_micro"):
+    if queue_profile in ("detail", "micro", "mod_micro", "module_micro"):
         reference = shadow / "firmware/devkit/renderer_reference.c"
         text = reference.read_text().replace('#include "renderer_live.h"',
                     '#include "renderer_live.h"\n#include "renderer_queue_bridge.h"\n#include <assert.h>')
@@ -118,7 +118,7 @@ static Host host;
         assert(lunar_renderer_queue_detail_read(detail));
         assert(!lunar_renderer_queue_detail_read(detail));
 """)
-        if queue_profile in ("micro", "mod_micro"):
+        if queue_profile in ("micro", "mod_micro", "module_micro"):
             text = text.replace("        assert(!lunar_renderer_queue_detail_read(detail));", """
         assert(!lunar_renderer_queue_detail_read(detail));
         uint32_t micro[LUNAR_QUEUE_MICROS], calls[LUNAR_QUEUE_MICROS];
@@ -131,8 +131,10 @@ static Host host;
         MICRO_CONTROL_COUNTS
         assert(!lunar_renderer_queue_micro_read(micro, calls));
 """)
-        if queue_profile in ("micro", "mod_micro"):
-            counts = ("for(unsigned i=20;i<26;++i) assert(calls[i] >= 1 && calls[i] == calls[20]);"
+        if queue_profile in ("micro", "mod_micro", "module_micro"):
+            counts = ("assert(calls[20] >= 1); for(unsigned i=21;i<26;++i) assert(calls[i] == 5*calls[20]);"
+                      if queue_profile == "module_micro" else
+                      "for(unsigned i=20;i<26;++i) assert(calls[i] >= 1 && calls[i] == calls[20]);"
                       if queue_profile == "mod_micro" else
                       "assert(calls[20] == 1 && calls[23] >= 1); assert(calls[22] == 0 && calls[24] == 0);")
             text = text.replace("MICRO_CONTROL_COUNTS", counts)
@@ -147,10 +149,10 @@ static Host host;
     if queue_profile:
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_PROFILE=1")
-    if queue_profile in ("detail", "micro", "mod_micro"):
+    if queue_profile in ("detail", "micro", "mod_micro", "module_micro"):
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_DETAIL=1")
-    if queue_profile in ("micro", "mod_micro"):
+    if queue_profile in ("micro", "mod_micro", "module_micro"):
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_MICRO=1")
     target = renderer.build_reference(renderer.MODULES)
@@ -196,6 +198,8 @@ int main() {
 
 
 @pytest.mark.parametrize("options", [
+    {"engine_queue_module_micro": True},
+    {"engine_queue_micro": True, "engine_queue_module_micro": True},
     {"engine_queue_mod_micro": True},
     {"engine_queue": True, "engine_queue_detail": True, "engine_queue_mod_micro": True},
     {"engine_queue_micro": True},
@@ -253,3 +257,24 @@ def test_modulation_micro_boundaries_refuse_drift_and_nested_hooks():
             prepare.queue_modulation_micro(original.replace(old, "changed_boundary();", 1), unit)
     with pytest.raises(ValueError, match="Unknown"):
         prepare.queue_modulation_micro("", "unknown")
+
+
+def test_module_component_micro_refuses_drift_and_keeps_glue_unmarked():
+    prepare = load("queue_module_preparer", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    core = (ROOT / "engines/mod/mod_core.c").read_text()
+    glue = (ROOT / "engines/mod/mod_glue.c").read_text()
+    assert prepare.queue_modulation_micro(glue, "glue", modules=True) == glue
+    transformed = prepare.queue_modulation_micro(core, "core", modules=True)
+    for region in range(20, 26):
+        assert transformed.count(f"QUEUE_MOD_MICRO({region}, 1);") == 1
+        assert transformed.count(f"QUEUE_MOD_MICRO({region}, 0);") == 1
+    assert "QUEUE_MOD_MICRO(21, 1);\n  for (i = 0; i < m->plan.n_order" not in transformed
+    assert transformed.index("  if (!kd) return;", transformed.index("static void run_module")) < transformed.index("  QUEUE_MOD_MICRO(21, 1);")
+    with pytest.raises(ValueError, match="boundary"):
+        prepare.queue_modulation_micro(transformed, "core", modules=True)
+    for old in ("  module_params(m, pos, kd, m->peff[pos]);",
+                "  module_gates(m, pos, kd, gin, &m->gin_level[pos]);",
+                "  kd->process(instance(m, pos), &io);",
+                "  module_outputs(m, kd, out, gout, prev_end, NULL);"):
+        with pytest.raises(ValueError, match="boundary"):
+            prepare.queue_modulation_micro(core.replace(old, "changed_boundary();", 1), "core", modules=True)

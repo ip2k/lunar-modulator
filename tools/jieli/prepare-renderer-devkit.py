@@ -569,7 +569,7 @@ typedef char lunar_micro_units_match[FM1_APP_UNITS + 12 == LUNAR_QUEUE_MICROS ? 
     text = text.replace(original, replacement, 1)
     return text
 
-def queue_modulation_micro(text, unit):
+def queue_modulation_micro(text, unit, modules=False):
     """Prepared-only, mutually exclusive CPU0 modulation subsets in slots 20–25.
 
     No runtime state or array growth: the existing hook wrapper bank is replaced.
@@ -577,6 +577,29 @@ def queue_modulation_micro(text, unit):
     """
     if "QUEUE_MOD_MICRO" in text:
         raise ValueError("Modulation micro boundary already instrumented")
+    if modules and unit == "glue":
+        return text  # Global-module components own the flat bank in this mode.
+    if modules and unit == "core":
+        start = "static void run_module(fm1_mod_t *m, unsigned pos, const fm1_mod_transport_t *tp) {"
+        if text.count(start) != 1:
+            raise ValueError("Unexpected module micro function boundary")
+        begin = text.index(start)
+        end = text.index("\n}", begin) + 2
+        body = text[begin:end]
+        stages = (
+            (21, "  module_params(m, pos, kd, m->peff[pos]);"),
+            (22, "  module_gates(m, pos, kd, gin, &m->gin_level[pos]);"),
+            (24, "  kd->process(instance(m, pos), &io);"),
+            (25, "  module_outputs(m, kd, out, gout, prev_end, NULL);"),
+        )
+        for region, old in stages:
+            if body.count(old) != 1:
+                raise ValueError("Unexpected module micro boundary; review: " + old)
+            body = body.replace(old, f"  QUEUE_MOD_MICRO({region}, 1);\n{old}\n  QUEUE_MOD_MICRO({region}, 0);", 1)
+        # Preparation between gate inputs and process is distinct from both.
+        body = body.replace("  QUEUE_MOD_MICRO(22, 0);", "  QUEUE_MOD_MICRO(22, 0);\n  QUEUE_MOD_MICRO(23, 1);", 1)
+        body = body.replace("  QUEUE_MOD_MICRO(24, 1);", "  QUEUE_MOD_MICRO(23, 0);\n  QUEUE_MOD_MICRO(24, 1);", 1)
+        text = text[:begin] + body + text[end:]
     boundaries = {
         "core": [
             ("  take_system(m);", "  QUEUE_MOD_MICRO(20, 1);\n  take_system(m);\n  QUEUE_MOD_MICRO(20, 0);"),
@@ -594,6 +617,8 @@ def queue_modulation_micro(text, unit):
     }
     if unit not in boundaries:
         raise ValueError("Unknown modulation micro source")
+    if modules:
+        boundaries["core"] = boundaries["core"][:1]  # System intake only; no enclosing module timer.
     for old, new in boundaries[unit]:
         if text.count(old) != 1:
             raise ValueError("Unexpected modulation micro boundary; review: " + old)
@@ -603,7 +628,9 @@ def queue_modulation_micro(text, unit):
             "#else\n#define QUEUE_MOD_MICRO(r, e) ((void)0)\n#endif\n" + text)
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False):
+    if engine_queue_module_micro and not engine_queue_mod_micro:
+        raise ValueError("Module component timing requires modulation micro")
     if engine_queue_mod_micro and not engine_queue_micro:
         raise ValueError("Modulation micro timing requires queue micro")
     if engine_queue_micro and not engine_queue_detail:
@@ -1002,7 +1029,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         for unit, name in (("core", "mod_core.c"), ("glue", "mod_glue.c")):
             p = staging / "engines/mod" / name
             modulation_micro_inputs[name] = hashlib.sha256(p.read_bytes()).hexdigest()
-            p.write_text(queue_modulation_micro(p.read_text(), unit))
+            p.write_text(queue_modulation_micro(p.read_text(), unit, engine_queue_module_micro))
     (staging / "tools/jieli").mkdir(parents=True)
     shutil.copyfile(source / "tools/jieli/renderer.mk", staging / "tools/jieli/renderer.mk")
     fragment = app / "board/wl82/lunar-renderer.mk"
@@ -1074,11 +1101,14 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "engine_queue_detail": engine_queue_detail,
         "engine_queue_micro": engine_queue_micro,
         "engine_queue_mod_micro": engine_queue_mod_micro,
+        "engine_queue_module_micro": engine_queue_module_micro,
         "engine_queue_mod_micro_inputs": modulation_micro_inputs,
         "engine_queue_micro_regions": (["record_render", "record_note_on", "record_note_off",
                                         "record_set_param", "record_bend", "record_set_note"] +
                                        [f"fx_dsp_app_unit_{i}" for i in range(14)] +
-                                       (["mod_system", "mod_modules", "mod_sinks", "mod_voices",
+                                       (["mod_system", "module_params", "module_gates", "module_prepare",
+                                         "module_process", "module_outputs"] if engine_queue_module_micro else
+                                        ["mod_system", "mod_modules", "mod_sinks", "mod_voices",
                                          "mod_glue_global", "mod_glue_voices"] if engine_queue_mod_micro else
                                         ["control_begin", "control_event", "control_lock", "control_tick",
                                          "control_lock_slot", "control_note_on"])
@@ -1265,5 +1295,7 @@ if __name__ == "__main__":
                         help="Time recording command kinds and per-unit effect DSP; requires queue detail")
     parser.add_argument("--engine-queue-mod-micro", action="store_true",
                         help="Replace six control-hook timers with internal modulation subsets; requires queue micro")
+    parser.add_argument("--engine-queue-module-micro", action="store_true",
+                        help="Split global module preparation/process/output; requires modulation micro")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro)
