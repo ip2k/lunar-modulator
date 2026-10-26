@@ -6167,3 +6167,26 @@ No new8MiB image, staging or installation. V37 remains CURRENT healthy idle;
 ALL prior reset receipts including WINDOW6022/RUN16109 consumed, NEVER retry.
 Actual mixed deadlines and analog acceptance remain unsatisfied. No physical
 FM1 or Hera traffic, device operation or KA6 capture occurred in this step.
+
+[verified] V38 source23067251431ff99a104b081216707289247b9a85 committed,
+pushed explicit refspec and remote SHA verified. Fresh exact-source vendor66976
+TERMINAL0; export39425 TERMINAL0. ELF SHA256
+be75951b4f98150d8d0c9750f4c5acfb68a98f44524108579bbc9fa97594060c;
+concatenated571644-byte app19c3454acf7374342dacb8b90538f85ae32447d0770b4eb371f1c8465ffcd74a.
+Section concatenation, normalized protected SDK/ROM-entry comparison and static
+queue/worker/noFM6/no-global-constructor checksPASS. Pre-task heap118988bytes.
+
+[verified] Preliminary final-ELF component branch review traverses1523
+instruction/history states. The compiler lays the end of a module iteration
+before its beginning in address order; the old lexical sequence assertion
+therefore failed. The replacement checks every branch path for balanced flat
+intervals and legal transitions20→21→22→23→24→25→21 (next module), with empty
+plan/absent-kind returns allowed after20. Three return HISTORY states are
+accepted, each with no active marker; this is not three distinct return sites.
+All12 marker call sites reachable; glue and worker have zero micro calls.
+Core frame236+52=288bytes, glue24+52=76, timing1268+52=1320, marker16. These are
+individual frames, not whole-stack/IRQ proof. Opaque callback source review,
+full manifest/layout/UART-first/SDK audit_link/independent objcopy/cipherCRC/NOR
+admission remain pending. No8MiB candidate generated/admitted/staged/installed.
+Private reports/artifacts copied into local build-renderer-module-micro-v38
+and Aeon renderer-module-micro-v38-exports. V37 remains CURRENT; no device ops.
