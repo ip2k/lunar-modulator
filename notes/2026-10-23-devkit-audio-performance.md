@@ -4770,3 +4770,18 @@ vendor objdump shows readonly base+5692 resolving to the unchanged768-byte
 algorithm table. All630 prepared input hashes and app-main/linker/build-fragment
 hashes match. Pre-task heap135564bytes. Layout/startup/cipher/NOR review is still
 in progress; V24 is not admitted or installed. V23 remains healthy idle.
+
+[verified, offline] Exact V24 candidate
+`a64d6e17162d96367f8ba9fb49c9c07a8839585be63c5aef5553bc0b8b086a0d`
+is admitted for138 sectors `[0x4000,0x8e000)`; app ends0x8df1c. Independent
+five-section objcopy matches. Full cipher/CRC/protected-region checks and NOR
+install/restore/interrupted pages7/1111/2183/2199 pass. Sixteen static ranges
+are disjoint below the heap; engine counters add96bytes. Main workload frames
+remain unchanged, with20bytes for the new observer. Actual compiled branches
+reserve UART18/1024 before parent16/2048, skip parent on UART failure, retain
+the200-tick window,34829-tick budget and120000ms lifetime. Eight compiled hook
+sites, four-region bounds and timer/counter arithmetic were reviewed. The two
+instrumentation preimages exactly match V23 prepared wrappers; app_main is
+byte-identical. Final native replay1PASS; transaction/reset suite79PASS.
+This is offline admission only: target startup/PCM/counts/stack remain to be
+checked. V23 is still installed and healthy idle; no analog acceptance.
