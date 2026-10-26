@@ -130,10 +130,11 @@ inline float TauCoefficient(float tau, float rate) { return 1.0f - expf(-1.0f / 
 struct Glide {
   float value, target;
   void Snap(float v) { value = target = v; }
-  void Step(float k, float epsilon) {
+  bool Step(float k, float epsilon) {
     const float d = target - value;
-    if (d > -epsilon && d < epsilon) value = target;
-    else value += k * d;
+    if (d > -epsilon && d < epsilon) { value = target; return false; }
+    value += k * d;
+    return true;
   }
 };
 
@@ -226,14 +227,19 @@ struct Instance {
   void Render(float *lr, uint32_t frames) {
     running = true;
     const float max_delay = (kParams[P_TIME].max + kWowMs) * 0.001f * rate;
+    // Parameters cannot change within this call. Keep every original glide
+    // step through its snap sample, then skip settled checks until next call.
+    bool gliding = true;
     for (uint32_t i = 0; i < frames; ++i, lr += 2) {
       const float in[2] = { Guard(lr[0]), Guard(lr[1]) };
-      time.Step(k_time, 1e-3f);
-      depth.Step(k_time, 1e-3f);
-      feedback.Step(k_gain, 1e-6f);
-      pingpong.Step(k_gain, 1e-6f);
-      mix.Step(k_gain, 1e-6f);
-      level.Step(k_gain, 1e-6f);
+      if (gliding) {
+        gliding = time.Step(k_time, 1e-3f);
+        gliding |= depth.Step(k_time, 1e-3f);
+        gliding |= feedback.Step(k_gain, 1e-6f);
+        gliding |= pingpong.Step(k_gain, 1e-6f);
+        gliding |= mix.Step(k_gain, 1e-6f);
+        gliding |= level.Step(k_gain, 1e-6f);
+      }
       if (k_tone_ramp.left) fm1_smooth_tick(&k_tone_ramp, &k_tone, 1);
 
       // The delay, and the clock that gives it: the full rate while the line
