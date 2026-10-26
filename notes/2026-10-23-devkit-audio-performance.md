@@ -6534,3 +6534,12 @@ NO8MiBcandidate generated, NOadmission/staging/install. Next full stack/cipherCR
 protected-config/NOR interruption review and exact transaction/parser gates before
 image admission. No build/test/device operation remains live. Exact563e CI40329848882
 in progress with no failed jobs at check; Pages40329848910 last in progress.
+
+
+### 2026-10-26 V40 offline image admission
+
+[verified] Exact firmware source `563e56f745893801f5e78d84ea0febeeea32ea7a` produced private candidate `dae1cd4171dbfdc591e162017d697335a1a6e96e91237e279e23091ce3aafc11`, 140 sectors `[0x4000,0x90000)`. Independent cipher/CRC/protected configuration check passed. NOR install/restore and interruptions at pages 7/1127/2215/2231 restored factory; installed V39 independently restored over its own 140-sector range. Hardware commands: zero. Exact target hash is separately pinned in the transaction tool; V39 restore admission remains intact. Transaction/reset suites: 94 passed (1.15s), including boundary refusals. Strict parser rejects 29 fault fixtures and actual incompatible V28/V30 captures; correct PCM does not imply a deadline pass.
+
+[verified] Nine DSP constant tables (23,454 bytes) match installed V39. Listed stack frame worksheet gives caller Filter post 1,352 bytes, worker Drive post 632, caller control 2,316, caller UI 1,920, worker Macro 812. These deliberately conservative listed sums include mutually exclusive helpers and exclude SDK/IRQ/unlisted paths: they are not whole-stack maxima or runtime safety proof. Fresh target high-water measurements remain required. Full source/vendor/ownership/UART-first/200-tick recovery/SDK/layout reviews and host PCM/fault proofs remain as recorded above. TSAN unavailable, no race pass.
+
+[verified] Private evidence: `scratch/devkit-20261023/build-renderer-caller-post-v40/offline-admission.json` and hashed reports, mirrored to Aeon `renderer-caller-post-v40-exports`. Candidate OFFLINE ADMITTED, not staged or installed at this checkpoint; target gain unknown. Current board V39 remains idle. All prior reset receipts consumed; no retries. Actual mixed deadline and analog acceptance remain unfinished.
