@@ -152,6 +152,8 @@ struct fm1_mod {
   uint32_t seq_keys[8][4];                     /* notes sounding per track */
   float base[FM1_MOD_POSITIONS][FM1_MOD_MAX_PARAMS];
   float peff[FM1_MOD_POSITIONS][FM1_MOD_MAX_PARAMS];
+  /* Effective base edits waiting for the next tick; routed values always run. */
+  uint32_t param_dirty[FM1_MOD_POSITIONS];
   float out[2][FM1_MOD_POSITIONS][FM1_MOD_MAX_OUTS];
   float sys_cv[FM1_MOD_SRC_SYSTEM];
   float pend_cv[2][FM1_MOD_SRC_SYSTEM];

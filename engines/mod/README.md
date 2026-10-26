@@ -526,9 +526,9 @@ and `mod_voice_writes`, only with `--mod`.
   gives, with the same splits, through the sequencer or not, effects
   included [verified: `test_zero_route_identity`]. The bridge change
   itself changed no render: see "No render changed" below.
-- **Size.** `fm1_mod_size()` is 26,848 B since glide's modes (26,512 B since
-  glide, 26,192 B since MG9, 23,200 B since Gate, 22,368 B in MG3, 20,016 B
-  in MG1): the 8,192 B arena and 18,656 B of fixed state, the same in 32- and 64-bit
+- **Size.** `fm1_mod_size()` is 26,880 B with parameter invalidation masks
+  (26,848 B since glide's modes, 26,512 B since glide, 26,192 B since MG9, 23,200 B since Gate, 22,368 B in MG3, 20,016 B
+  in MG1): the 8,192 B arena and 18,688 B of fixed state, the same in 32- and 64-bit
   builds (no pointers, every 64-bit member 8-aligned) [verified: pinned in
   the tests, which CI's `-m32` job runs]. MG3's sound units and inserts
   share a pool of 200 parameter records (HOST takes six since MG9, two

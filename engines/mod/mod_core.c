@@ -452,6 +452,7 @@ int fm1_mod_set_param(fm1_mod_t *m, unsigned pos, unsigned index, float value) {
   const fm1_mod_kind_t *kd = mod_kind_at(m, pos);
   if (!kd || index >= kd->n_params) return 0;
   m->base[pos][index] = fm1_param_clamp(&kd->params[index], value);
+  m->param_dirty[pos] |= 1u << index;
   return 1;
 }
 
@@ -1174,8 +1175,20 @@ static void gate_merge(fm1_mod_t *m, uint32_t slots, fm1_mod_gate_t *g) {
  * ENUMs rounded. In a voice (MG9) the global slots, read globally (mono to
  * poly), and then the VOICE ones, read in the voice. */
 static void module_params(fm1_mod_t *m, unsigned pos, const fm1_mod_kind_t *kd, float *peff) {
-  unsigned i;
-  for (i = 0; i < kd->n_params; ++i) {
+  uint32_t pending = m->plan.routed[pos];
+  if (m->vctx != MOD_NONE) {
+    /* The global instance already refreshed unchanged and global parameters.
+     * Re-evaluate routed values in the original global-then-voice order. */
+    memcpy(peff, m->peff[pos], kd->n_params * sizeof(*peff));
+    pending |= m->plan.vrouted[pos];
+  } else {
+    const uint32_t valid = kd->n_params == 32u ? UINT32_MAX : (1u << kd->n_params) - 1u;
+    pending |= m->param_dirty[pos] & valid;
+    m->param_dirty[pos] = 0;
+  }
+  while (pending) {
+    const unsigned i = (unsigned)__builtin_ctz(pending);
+    pending &= pending - 1u;
     const fm1_param_t *p = &kd->params[i];
     const uint8_t d = m->plan.pdest[pos][i];
     const uint8_t vd = m->vctx != MOD_NONE && ((m->plan.vrouted[pos] >> i) & 1u)

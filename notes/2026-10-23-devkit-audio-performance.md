@@ -6866,3 +6866,12 @@ sibling capture. The rejected V47 flash-code placement is absent.
 rebuild passes all 108 parity scenarios and the strict committed-source
 record check. This does not resolve the separately recorded Chromium
 underrun failure or establish device analog acceptance.
+
+
+## V49 — skip unchanged effective-parameter work
+
+[verified] Implemented Astra's first bounded recommendation: retain unchanged global effective parameters, refresh edits on the next tick, invalidate on plan rebuild, and still recompute routed global/voice parameters in the original order. Free LFO rate conversion caches its pure result keyed by exact input bits. No phase/gate/random update is skipped. The initial full canonical array consumed 1 KiB and caused four existing RAM-budget scenarios to fail; replaced before promotion with 32 bytes of invalidation masks inside the existing application allocation. Runtime size is now 26,880 bytes.
+
+[verified] All 235 focused tests pass, including route removal, raw fractional enums, rack movement, kind replacement and signed zero. ASan/UBSan core/kind executables pass (3,000 plans and 1,245,985 kind checks). Full old/new mixed render is exact across 11,290,624 PCM bytes and 44,104 batches. Actual WASM rebuild passes 108 parity scenarios and the strict committed-record test. No Chromium acceptance is inferred. Vendor build and private application package succeed.
+
+Target V49 is running the ordinary single-flash experiment; final timing pending. Astra's complete private report is scratch/devkit-20261023/astra-performance-review.md. Larger recommendations concern exact DSP kernel granularity; scheduling alone cannot close the measured heavy-case gap. No backups, full readbacks or restore rehearsals were run.
