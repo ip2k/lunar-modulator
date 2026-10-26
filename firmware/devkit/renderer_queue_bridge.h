@@ -19,6 +19,9 @@ int lunar_renderer_queue_begin(void);
 int lunar_renderer_queue_push(unsigned sound, const fm1_engine_t *engine, void *instance,
     unsigned kind, float *output, unsigned frames, unsigned index,
     unsigned key, unsigned velocity, float value);
+#ifdef LUNAR_QUEUE_POST
+int lunar_renderer_queue_post(unsigned sound, void (*callback)(void *, unsigned), void *context);
+#endif
 int lunar_renderer_queue_dispatch(void);
 unsigned lunar_renderer_queue_completed(void);
 unsigned lunar_renderer_queue_error(void);

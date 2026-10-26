@@ -42,6 +42,11 @@ extern "C" int lunar_renderer_queue_push(unsigned sound, const fm1_engine_t *eng
   op.value = value;
   return queue->Push(sound, engine, instance, op);
 }
+#ifdef LUNAR_QUEUE_POST
+extern "C" int lunar_renderer_queue_post(unsigned sound, void (*callback)(void *, unsigned), void *context) {
+  return queue && queue->SetPost(sound, callback, context);
+}
+#endif
 extern "C" int lunar_renderer_queue_dispatch(void) { return queue && queue->Dispatch(); }
 extern "C" unsigned lunar_renderer_queue_completed(void) { return queue ? queue->completed() : 0; }
 extern "C" unsigned lunar_renderer_queue_error(void) {

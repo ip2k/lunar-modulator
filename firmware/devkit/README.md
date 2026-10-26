@@ -494,3 +494,22 @@ The preparation receipt labels this alternative explicitly. Host replay must
 still match the full PCM and refuse queue faults before an image is considered
 for the independent target admission gates. This is diagnostic-only, not a
 performance improvement or hardware acceptance.
+
+
+`--engine-queue-insert` is an optional timing-only preparation mode for the
+existing fixed mixed arrangement. CPU1 runs sound1 Macro model0, then that sound's
+Drive/empty insert slots, raw/insert/level meters and mix-level pass before its
+completion ACK. CPU0 joins before summing sounds in the original order. Runtime
+checks refuse unsupported inserts, nonzero Macro model, null/overlapping instance
+storage and invalid capacities before publication. Inline mix buffers and distinct
+meter/level rows remain owned by their sound. All route/event/control inputs must
+stay immutable until ACK; after timeout retain app/context/arenas and permanently
+refuse reuse, including after a late ACK. No synchronous fallback is permitted.
+The queue post callback and storage compile only with `LUNAR_QUEUE_POST`.
+
+This mode conflicts with the Drums worker partition and queue detail/micro or
+legacy per-unit profiling. Queue outer-region profiling is permitted; worker
+execution overlaps CPU0 and must not be added to its totals. Host PCM and sanitizer
+checks do not establish target timing, memory ordering, cache behavior or stack
+sufficiency. A new vendor image still needs the full existing admission review and
+protected startup/recovery cycle before any device measurement.

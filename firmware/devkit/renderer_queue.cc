@@ -24,6 +24,10 @@ LunarRendererQueue::LunarRendererQueue(Clock clock, void *context, uint32_t budg
   record_start_ = publish_start_ = caller_end_ = dispatch_end_ = worker_ticks_ = 0;
   profiled_completed_ = 0;
 #endif
+#ifdef LUNAR_QUEUE_POST
+  post_ = 0;
+  post_context_ = 0;
+#endif
   if (!clock || !budget || budget >= 0x80000000u) error_ = Configuration;
 }
 
@@ -42,6 +46,10 @@ bool LunarRendererQueue::Begin() {
     streams_[s].instance = 0;
     streams_[s].count = 0;
   }
+#ifdef LUNAR_QUEUE_POST
+  post_ = 0;
+  post_context_ = 0;
+#endif
   recording_ = true;
 #ifdef LUNAR_QUEUE_PROFILE
   record_start_ = clock_(context_);
@@ -67,6 +75,16 @@ bool LunarRendererQueue::Push(unsigned sound, const fm1_engine_t *e, void *insta
   return true;
 }
 
+#ifdef LUNAR_QUEUE_POST
+bool LunarRendererQueue::SetPost(unsigned sound, Post callback, void *context) {
+  if (disabled()) return false;
+  if (!recording_ || sound != 1 || !callback || !context || post_) return Refuse(Command);
+  post_ = callback;
+  post_context_ = context;
+  return true;
+}
+#endif
+
 void LunarRendererQueue::Execute(unsigned sound) {
   const Stream &s = streams_[sound];
   const fm1_engine_t *e = s.engine;
@@ -81,6 +99,9 @@ void LunarRendererQueue::Execute(unsigned sound) {
       case SetNote: if (e->set_param_note) e->set_param_note(s.instance, op.key, op.index, op.value); break;
     }
   }
+#ifdef LUNAR_QUEUE_POST
+  if (sound == 1 && post_) post_(post_context_, sound);
+#endif
 }
 
 bool LunarRendererQueue::Dispatch() {

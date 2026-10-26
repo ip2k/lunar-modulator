@@ -399,6 +399,71 @@ def place_hook_ram(text, signatures):
 
 
 
+def queue_insert_callbacks(text):
+    """Move only the reviewed sound1 insert chain before its worker ACK."""
+    def replace(old, new):
+        nonlocal text
+        if text.count(old) != 1:
+            raise ValueError("Unexpected queue insert boundary; review: " + old)
+        text = text.replace(old, new, 1)
+    support = r'''
+#if !defined(LUNAR_QUEUE_POST) || defined(LUNAR_QUEUE_DETAIL) || defined(LUNAR_QUEUE_MICRO) || defined(LUNAR_QUEUE_WORKER_DRUMS) || defined(FM1_APP_RENDER_PROFILE)
+#error Queue insert scheduling requires its isolated outer-profile-only mode
+#endif
+struct lunar_post_context { fm1_app_t *app; uint32_t frames; };
+static struct lunar_post_context lunar_post;
+static void lunar_post_sound(void *context, unsigned sound);
+static int lunar_post_layout_valid(const fm1_app_t *a) {
+  /* Mix buffers are distinct inline arrays. Only these three instance arenas
+   * move to CPU1; no selected arena may overlap any other live unit. */
+  const int selected[3] = {fm1_app_sound_unit(1), fm1_app_insert_unit(1, 0), fm1_app_insert_unit(1, 1)};
+  for (unsigned w = 0; w < 3; ++w) {
+    const fm1_app_unit_t *u = &a->unit[selected[w]];
+    if (!u->e) { if (!w) return 0; else continue; }
+    if (!w && u->value[0] != 0.0f) return 0;
+    if (w && (!u->e->id || strcmp(u->e->id, "drive") ||
+              u->e->kind != FM1_KIND_AUDIO_FX || !u->e->render || !u->e->set_param || u->e->render_ext)) return 0;
+    const uintptr_t p = (uintptr_t)u->self;
+    if (!p || u->self != u->mem || !u->bytes || u->bytes > u->cap || u->bytes > UINTPTR_MAX - p) return 0;
+    for (unsigned k = 0; k < FM1_APP_UNITS; ++k) {
+      const fm1_app_unit_t *v = &a->unit[k];
+      if ((int)k == selected[w] || !v->e) continue;
+      const uintptr_t q = (uintptr_t)v->self;
+      if (!q || !v->bytes || v->bytes > UINTPTR_MAX - q ||
+          (p < q + v->bytes && q < p + u->bytes)) return 0;
+    }
+  }
+  return 1;
+}
+'''
+    replace("static unsigned lunar_queue_recording;", "static unsigned lunar_queue_recording;\n" + support)
+    replace("  if (!lunar_renderer_queue_begin()) return 0;", """  if (!lunar_renderer_queue_begin()) return 0;
+  if (!lunar_post_layout_valid(a)) {
+    lunar_renderer_queue_push(4,0,0,99,0,0,0,0,0,0);
+    return 0;
+  }""")
+    replace("static int lunar_queue_dispatch(void) {", """static int lunar_queue_dispatch(fm1_app_t *a, uint32_t n) {
+  lunar_post.app = a;
+  lunar_post.frames = n;
+  if (!lunar_renderer_queue_post(1, lunar_post_sound, &lunar_post)) return 0;""")
+    replace("if (!lunar_queue_dispatch()) return;", "if (!lunar_queue_dispatch(a, n)) return;")
+    begin = text.index("    if (a->edit) fm1_edit_meter(a, 3u * (unsigned)k, b, n);")
+    end = text.index("    if (!(a->export_sound_mask", begin)
+    original = text[begin:end]
+    # Detail profiling is rejected above: do not move its CPU0 storage writes.
+    body = "\n".join(line for line in original.splitlines() if "QUEUE_DETAIL(" not in line) + "\n"
+    body = body.replace("(unsigned)k", "sound").replace("fm1_app_insert_unit(k, j)", "fm1_app_insert_unit((int)sound, j)")
+    helper = """static void lunar_post_sound(void *context, unsigned sound) {
+  struct lunar_post_context *p = (struct lunar_post_context *)context;
+  fm1_app_t *a = p->app;
+  const uint32_t n = p->frames;
+  float *b = a->mix[sound];
+""" + body + "}\n\n"
+    text = text[:begin] + "    if (k != 1) {\n" + original + "    }\n" + text[end:]
+    replace("static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {", helper + "static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {")
+    return text
+
+
 def queue_engine_callbacks(text):
     """Private fixed-arrangement transformation; all failures retain buffers."""
     anchor = "static void sink_render(void *ctx, float *lr, uint32_t n) {"
@@ -628,7 +693,9 @@ def queue_modulation_micro(text, unit, modules=False):
             "#else\n#define QUEUE_MOD_MICRO(r, e) ((void)0)\n#endif\n" + text)
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False):
+    if engine_queue_insert and (not engine_queue or engine_queue_drums or engine_queue_detail or engine_queue_micro or engine_queue_mod_micro or engine_queue_module_micro):
+        raise ValueError("Queue inserts require isolated whole-engine queue with only outer profiling")
     if engine_queue_module_micro and not engine_queue_mod_micro:
         raise ValueError("Module component timing requires modulation micro")
     if engine_queue_mod_micro and not engine_queue_micro:
@@ -1023,6 +1090,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         p = staging / "sim/web/src/fm1_app.c"
         queue_input = hashlib.sha256(p.read_bytes()).hexdigest()
         queued = queue_engine_callbacks(p.read_text())
+        if engine_queue_insert:
+            queued = queue_insert_callbacks(queued)
         p.write_text(queue_micro_callbacks(queued, engine_queue_mod_micro) if engine_queue_micro else queued)
     modulation_micro_inputs = {}
     if engine_queue_mod_micro:
@@ -1057,6 +1126,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     if engine_queue:
         renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_ENGINE_QUEUE=1 -DLUNAR_DEVKIT_QUEUE_SDK=1\n"
         renderer_flags += f"CFLAGS += -I{staging / 'firmware/devkit'}\n"
+    if engine_queue_insert:
+        renderer_flags += "CFLAGS += -DLUNAR_QUEUE_POST=1\n"
     if engine_queue_profile:
         renderer_flags += "CFLAGS += -DLUNAR_QUEUE_PROFILE=1\n"
     if engine_queue_detail:
@@ -1096,6 +1167,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "render_profile": profile and not outer_timing_only,
         "outer_timing_only": outer_timing_only,
         "engine_queue": engine_queue,
+        "engine_queue_insert": engine_queue_insert,
+        "engine_queue_insert_allowlist": ["drive", "empty"] if engine_queue_insert else [],
         "engine_queue_drums": engine_queue_drums,
         "engine_queue_profile": engine_queue_profile,
         "engine_queue_detail": engine_queue_detail,
@@ -1255,6 +1328,8 @@ if __name__ == "__main__":
                         help="Compare explicit 32-bit FM sums in private copies; timing-only hot code")
     parser.add_argument("--dispatch-ram", action="store_true",
                         help="Compare sequencer event walk and slot dispatch in SRAM; requires timing-only resident mixer")
+    parser.add_argument("--engine-queue-insert", action="store_true",
+                        help="Move sound1 Drive/empty insert chain to CPU1 before ACK; isolated queue mode only")
     parser.add_argument("--engine-queue-profile", action="store_true",
                         help="Add queue critical-path timers; requires --engine-queue, remains diagnostic-only")
     parser.add_argument("--engine-queue-drums", action="store_true",
@@ -1298,4 +1373,4 @@ if __name__ == "__main__":
     parser.add_argument("--engine-queue-module-micro", action="store_true",
                         help="Split global module preparation/process/output; requires modulation micro")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert)

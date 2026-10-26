@@ -18,9 +18,12 @@ def load(name, path):
     return module
 
 
-@pytest.mark.parametrize("queue_profile", [False, True, "detail", "micro", "mod_micro", "module_micro"])
-@pytest.mark.parametrize("worker_drums", [False, True])
+@pytest.mark.parametrize("queue_profile,worker_drums", [(p, d) for p in
+    (False, True, "detail", "micro", "mod_micro", "module_micro") for d in (False, True)] +
+    [("insert", False), ("insert_profile", False)])
 def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, queue_profile):
+    insert = queue_profile in ("insert", "insert_profile")
+    profiling = bool(queue_profile) and queue_profile != "insert"
     renderer = load("queue_renderer_reference", ROOT / "tests/test_devkit_renderer.py")
     prepare = load("queue_preparer", ROOT / "tools/jieli/prepare-renderer-devkit.py")
     # Compare queue scheduling with the same arithmetic policy on both builds.
@@ -54,6 +57,9 @@ def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, qu
         destination = shadow / "sim/web/src" / path.name
         if path.name == "fm1_app.c":
             text = prepare.queue_engine_callbacks(path.read_text())
+            if insert:
+                text = prepare.queue_insert_callbacks(text)
+                text += "\nint lunar_test_post_layout(const fm1_app_t *a) { return lunar_post_layout_valid(a); }\nint lunar_test_post_begin(fm1_app_t *a) { return lunar_queue_begin(a); }\n"
             destination.write_text(prepare.queue_micro_callbacks(text, queue_profile in ("mod_micro", "module_micro"))
                                    if queue_profile in ("micro", "mod_micro", "module_micro") else text)
         else:
@@ -70,7 +76,7 @@ def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, qu
 #include <thread>
 #include <cassert>
 #include <cstdlib>
-static bool fault;
+static bool fault, layout_only;
 static uint32_t fault_ticks;
 static uint32_t now() {
  if(fault) return fault_ticks+=2000000u;
@@ -84,13 +90,15 @@ struct Host {
  Host():stop(false) {
   fault=getenv("LUNAR_QUEUE_INJECT_TIMEOUT")!=0;
   assert(lunar_renderer_queue_init(now,2000000));
-  if(fault) return;
+  layout_only=getenv("LUNAR_QUEUE_LAYOUT_ONLY")!=0;
+  if(fault || layout_only) return;
   worker=std::thread([this]{while(!stop.load()) {
    lunar_renderer_queue_worker_step(); std::this_thread::yield();
   }});
  }
  ~Host() {
   stop=true;
+  if(layout_only) { assert(!worker.joinable() && !lunar_renderer_queue_completed()); return; }
   if(fault) {
    assert(!worker.joinable() && lunar_renderer_queue_error());
    assert(lunar_renderer_queue_completed()==0);
@@ -143,10 +151,12 @@ static Host host;
     monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
                        " -DLUNAR_DEVKIT_ENGINE_QUEUE=1 -DLUNAR_QUEUE_HOST_TEST=1"
                        " -pthread -I" + str(shadow / "firmware/devkit"))
+    if insert:
+        monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] + " -DLUNAR_QUEUE_POST=1")
     if worker_drums:
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_WORKER_DRUMS=1")
-    if queue_profile:
+    if profiling:
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_PROFILE=1")
     if queue_profile in ("detail", "micro", "mod_micro", "module_micro"):
@@ -188,6 +198,52 @@ int main() {
 ''')
     objects = sorted(str(p) for p in target.parent.rglob("*.o")
                      if p.name != "renderer_reference.o")
+    if insert:
+        guard = tmp_path / "insert-guard.cc"
+        guard.write_text(r'''
+extern "C" {
+#include "fm1_app.h"
+int lunar_test_post_layout(const fm1_app_t *);
+int lunar_test_post_begin(fm1_app_t *);
+#include "renderer_queue_bridge.h"
+}
+#include <cassert>
+#include <cstring>
+static fm1_app_t a;
+static unsigned char memory[FM1_APP_UNITS][128];
+static void unit(int id, const fm1_engine_t *engine) {
+ a.unit[id].e=engine; a.unit[id].self=a.unit[id].mem=memory[id];
+ a.unit[id].bytes=64; a.unit[id].cap=128;
+}
+int main() {
+ const int sound=fm1_app_sound_unit(1), fx=fm1_app_insert_unit(1,0), fx2=fm1_app_insert_unit(1,1);
+ const fm1_engine_t *macro=fm1_engine_find("macro"), *drive=fm1_engine_find("drive");
+ assert(macro && drive); unit(sound,macro); assert(lunar_test_post_layout(&a));
+ unit(fx,drive); assert(lunar_test_post_layout(&a));
+ unit(fx2,drive); assert(lunar_test_post_layout(&a));
+ a.unit[sound].value[0]=1; assert(!lunar_test_post_layout(&a)); a.unit[sound].value[0]=0;
+ a.unit[fx].e=fm1_engine_find("filter"); assert(!lunar_test_post_layout(&a)); a.unit[fx].e=drive;
+ a.unit[fx].self=memory[sound]; assert(!lunar_test_post_layout(&a)); a.unit[fx].self=memory[fx];
+ a.unit[fx].mem=memory[sound]+1; a.unit[fx].self=a.unit[fx].mem;
+ assert(!lunar_test_post_layout(&a)); a.unit[fx].self=a.unit[fx].mem=memory[fx];
+ a.unit[fx].bytes=129; assert(!lunar_test_post_layout(&a)); a.unit[fx].bytes=64;
+ a.unit[fx].self=0; assert(!lunar_test_post_layout(&a)); a.unit[fx].self=memory[fx];
+ unit(fm1_app_sound_unit(0),fm1_engine_find("dx7"));
+ a.unit[fm1_app_sound_unit(0)].self=memory[fx]+1; assert(!lunar_test_post_layout(&a));
+ a.unit[fm1_app_sound_unit(0)].self=memory[fm1_app_sound_unit(0)]; assert(lunar_test_post_layout(&a));
+ a.unit[fx].e=fm1_engine_find("filter");
+ assert(!lunar_test_post_begin(&a) && lunar_renderer_queue_error());
+ assert(lunar_renderer_queue_worker_step()==0 && !lunar_renderer_queue_begin());
+}
+''')
+        guard_exe = tmp_path / "insert-guard"
+        subprocess.run([os.environ.get("FM1_SIM_CXX", "c++"), "-std=c++11", "-pthread",
+                        "-I" + str(shadow / "sim/web/src"), "-I" + str(ROOT / "engines/include"),
+                        "-I" + str(ROOT / "engines/host"), str(guard), *objects,
+                        *shlex.split(os.environ.get("FM1_SIM_EXTRA", "")), "-lm", "-o", str(guard_exe)], check=True)
+        subprocess.run([str(guard_exe)], check=True, timeout=30,
+                       env=dict(os.environ, LUNAR_QUEUE_LAYOUT_ONLY="1"))
+
     fault_exe = tmp_path / "fault"
     subprocess.run([os.environ.get("FM1_SIM_CXX", "c++"), "-std=c++11", "-pthread",
                     "-I" + str(shadow / "firmware/devkit"), "-I" + str(ROOT / "engines/include"),
@@ -198,6 +254,9 @@ int main() {
 
 
 @pytest.mark.parametrize("options", [
+    {"engine_queue_insert": True},
+    {"engine_queue": True, "engine_queue_insert": True, "engine_queue_drums": True},
+    {"engine_queue": True, "engine_queue_insert": True, "engine_queue_detail": True},
     {"engine_queue_module_micro": True},
     {"engine_queue_micro": True, "engine_queue_module_micro": True},
     {"engine_queue_mod_micro": True},

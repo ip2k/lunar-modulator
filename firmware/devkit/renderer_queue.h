@@ -35,6 +35,11 @@ class alignas(64) LunarRendererQueue {
   LunarRendererQueue(Clock clock, void *context, uint32_t budget);
   bool Begin();
   bool Push(unsigned sound, const fm1_engine_t *engine, void *instance, const Op &op);
+#ifdef LUNAR_QUEUE_POST
+  /* Sound1 only; context and buffer ownership extend through this callback. */
+  typedef void (*Post)(void *, unsigned);
+  bool SetPost(unsigned sound, Post callback, void *context);
+#endif
   bool Dispatch();
   int WorkerStep();
 #ifdef LUNAR_QUEUE_PROFILE
@@ -55,6 +60,10 @@ class alignas(64) LunarRendererQueue {
   bool Refuse(Error error);
   LunarQueueWord requested_, done_;
   Stream streams_[kSounds];
+#ifdef LUNAR_QUEUE_POST
+  Post post_;
+  void *post_context_;
+#endif
   Clock clock_;
   void *context_;
   uint32_t budget_;
