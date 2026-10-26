@@ -5727,3 +5727,31 @@ exact additional digest; all80 transaction tests pass. Private evidence is
 in scratch/devkit-20261023/build-renderer-drive-settled-v33 and the atomic Aeon
 exports. V33 is NOT staged or installed; target timing/stack and audio acceptance
 remain pending. V32 remains healthy idle. No actual FM1 traffic was sent.
+
+### V33 protected cycle and target measurement (2026-10-26)
+
+[verified] Full protected cycle passed: acknowledged UART entry, fresh mask-ROM
+response, two CURRENT V32 full backups,140-sector factory restore, V33 WINDOW
+install/full readback, armed sole verifier before single reset81461, startup
+PING/ARM/ENTER78.6838ms after fresh ready marker and responsive actual ROM, two
+NEW full V33 backups,140-sector factory restore, SAME V33 RUN install/full
+readback, armed sole RX before single reset38087. Both reset receipts and every
+older receipt are CONSUMED and must never be retried. Owned RX5211 PID391896 was
+exact-argv checked twice, SIGTERM once, terminal255 before ordinary PING ACK.
+V33 is now CURRENT and healthy idle. No capture/build/device operation remains.
+
+[verified] Strict parser passes four arithmetic and four mixed PCM/control cases,
+24 outer/40 detail records,22052 queue jobs with zero errors and finite worker
+exit. Means1950.667/2012.667/2047.125/2206.958us improve0.62..0.73percent vs V32.
+Inserts/meters392.375..393.208us (V32 406.458..410.125us); individual effect cost
+is still not isolated from dispatch/meters. Recording254.208..255.917us, masters
+246.458..252.375us. ALL5513 blocks in EACH case still late: deadline FAIL34829
+ticks. Maxima55828/56321/61139/67449ticks. Heap77524stable; parentunused2276/8192,
+workerunused7452/8192. Instrumented timing is not analog acceptance.
+
+[verified] Raw capture SHA524cc56245d6dc6846fcce8919600ef7b61e9f709ca6a44b785c078569070d9a
+and target-facts/startup evidence saved locally and hash-verified on Aeon.
+Next isolate per-effect/control-recording overhead before choosing another
+exact-PCM optimization; retain default worker1. Actual mixed deadline,
+fault-validated underrun/DAC/KA6 and representative30-minute analog soaks remain
+unfulfilled. Actual FM1 was not contacted.
