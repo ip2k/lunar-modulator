@@ -4785,3 +4785,54 @@ instrumentation preimages exactly match V23 prepared wrappers; app_main is
 byte-identical. Final native replay1PASS; transaction/reset suite79PASS.
 This is offline admission only: target startup/PCM/counts/stack remain to be
 checked. V23 is still installed and healthy idle; no analog acceptance.
+
+### V24 engine detail — target result
+
+[verified, hardware] Exact `a64d6e17…` passed fresh startup ready/PING/ARM/ENTER
+in 79.0 ms, responsive WL82/UBOOT1.00 inquiry and two matching full 8 MiB
+reads. Both factory restores, the same-image RUN reinstall and full readbacks
+passed. WINDOW 10113 and RUN 87926 resets are consumed and must not be retried.
+One backup invocation supplied an incorrect expected USB number (35 versus
+observed 34); its identity guard refused before loader/device commands. The
+failed output directory is preserved; the succeeding unique backup used 34.
+
+[verified, hardware] All four mixed PCM hashes, control counts, arithmetic
+patterns, 32 unit, 24 stage, 24 worst-stage, 12 detail, 96 preparation,
+32 worst-unit and 16 engine-region records pass strict correlation. Both
+engines produce 31,919 / 31,917 / 31,918 / 31,918 native 12-frame blocks and
+352,832 resampler outputs per case. The FM6 worker completes 81,308 paired
+jobs with zero errors/refusals/wrong-core records and exits. Free heap is
+stable at 93,620 bytes; unused parent/worker stacks are 2,436/8,192 and
+3,260/4,096 bytes. Receive-only PID 291241 was verified twice before a single
+SIGTERM; its SSH session terminated before ordinary PING acknowledged.
+
+Nested mean times per 64-frame block, in microseconds (includes instrumentation):
+
+| Case | Macro synthesis | Macro resampling | Drum synthesis | Drum resampling |
+| --- | --- | --- | --- | --- |
+| 0 | 602.500 | 284.708 | 97.125 | 270.000 |
+| 1 | 675.375 | 284.708 | 97.042 | 269.875 |
+| 2 | 673.167 | 284.583 | 96.875 | 269.375 |
+| 3 | 672.125 | 283.917 | 96.958 | 269.875 |
+
+Total means are 2,634.292 / 2,847.583 / 2,922.458 / 3,013.958 us; maxima
+3,038.958 / 3,197.750 / 3,470.583 / 3,662.375 us. Every 5,513 blocks in every
+case misses the unchanged 34,829-tick deadline: FAIL. The counters preserve
+the actual mixed workload but add measurement cost; these totals are not a
+clean optimization comparison. Native Macro synthesis remains the largest
+single region, while the two resamplers together cost roughly 554 us/block.
+Neither a named-key result nor this diagnostic establishes analog acceptance.
+
+Private raw SHA-256:
+`dca87de88aade921286cb0fc467943853814c588f118416542297c856e52ae4b`.
+Raw/facts and strict parsers remain in ignored `scratch/devkit-20261023/`.
+V24 is healthy idle, current restore range remains 138 sectors
+`[0x4000,0x8e000)`. No UART/KA6 capture remains live. Actual DAC fault validation
+and representative 30-minute analog soaks remain undone. PR #155 stays draft.
+
+[verified, tool coverage] Refreshed Rarefaction status still selects the primary
+checkout; its `fm1_app_render` body is older and reports no indexed callers.
+It cannot establish this external worktree's current call graph. Serena session
+433b2929 selects the absolute performance worktree and locates the actual Python
+`instrument_engine_profile`; its conditional C observer query is empty, so
+source and vendor machine-code inspection remain necessary for that path.
