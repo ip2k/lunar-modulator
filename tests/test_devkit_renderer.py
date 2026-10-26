@@ -32,7 +32,8 @@ def build_reference(modules):
     return target
 
 
-def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch):
+@pytest.mark.parametrize("vcf_unroll", [False, True])
+def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vcf_unroll):
     """Replay private-copy instrumentation with the optimized FIR, including wrap."""
     import importlib.util
     spec = importlib.util.spec_from_file_location(
@@ -41,7 +42,8 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch):
     spec.loader.exec_module(prepare)
     monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
                       " -DLUNAR_ENGINE_DETAIL_REPLAY=1 -O3 -ffp-contract=off")
-    baseline = subprocess.run([str(build_reference(MODULES))],
+    baseline_pcm = tmp_path / "baseline.pcm"
+    baseline = subprocess.run([str(build_reference(MODULES)), str(baseline_pcm)],
                               capture_output=True, text=True, check=True)
     hashes = re.findall(r"hash=([0-9a-fA-F]+)", baseline.stdout)[:4]
     assert len(hashes) == 4
@@ -53,7 +55,7 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch):
     engines = shadow / "engines"
     engines.mkdir(parents=True)
     for path in (ROOT / "engines").iterdir():
-        if path.name in ("src", "include"):
+        if path.name in ("src", "include") or (vcf_unroll and path.name == "third_party"):
             shutil.copytree(path, engines / path.name)
         elif path.name != "build":
             (engines / path.name).symlink_to(path, target_is_directory=path.is_dir())
@@ -67,6 +69,9 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch):
     for engine, name in enumerate(("mi_macro.cc", "drums.cc")):
         path = engines / "src" / name
         path.write_text(prepare.instrument_engine_profile(path.read_text(), engine))
+    if vcf_unroll:
+        path = engines / "third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc"
+        path.write_text(prepare.unroll_vcf_samples(path.read_text()))
     header = engines / "include/fm1_resampler.h"
     text = header.read_text()
     table = re.search(r"static const float fm1_resampler_kernel\[[^\]]+\] = \{.*?\n\};",
@@ -85,6 +90,9 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch):
                       " -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1"
                       " -DLUNAR_RENDERER_ENGINE_PROFILE=1")
     target = build_reference(MODULES)
+    modified_pcm = tmp_path / "modified.pcm"
+    subprocess.run([str(target), str(modified_pcm)], check=True, capture_output=True)
+    assert modified_pcm.read_bytes() == baseline_pcm.read_bytes()
     harness = tmp_path / "engine-profile.cc"
     harness.write_text(r'''
 #include "renderer_live.h"
@@ -372,6 +380,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'vcf_unroll': True},
+    {'vcf_unroll': True, 'timing_only': True, 'profile': True, 'hot_ram': True},
     {'prep_profile': True},
     {'prep_profile': True, 'timing_only': True},
     {'scheduling_probe': True},

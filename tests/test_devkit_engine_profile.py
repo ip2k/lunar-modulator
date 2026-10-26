@@ -18,6 +18,23 @@ def preparer():
     return module
 
 
+def test_vcf_unroll_directive_preserves_sample_body_and_refuses_drift():
+    module = preparer()
+    source = (ROOT / 'engines/third_party/mutable/plaits/dsp/engine2/'
+              'virtual_analog_vcf_engine.cc').read_text()
+    anchor = '  for (size_t i = 0; i < size; ++i) {'
+    transformed = module.unroll_vcf_samples(source)
+    directive = transformed[transformed.index('#if defined(__clang__)'):
+                            transformed.index(anchor)]
+    assert transformed.replace(directive, '', 1) == source
+    assert 'unroll_count(2)' in directive and '#pragma GCC unroll 2' in directive
+    for changed in (source.replace(anchor, anchor + '\n' + anchor),
+                    source.replace('VirtualAnalogVCFEngine::Render(', 'Other::Render('),
+                    source.replace(anchor, ''), transformed):
+        with pytest.raises(ValueError, match='Unexpected VCF sample loop'):
+            module.unroll_vcf_samples(changed)
+
+
 @pytest.mark.parametrize('engine,name', [(0, 'mi_macro'), (1, 'drums')])
 def test_hooks_preserve_actual_pull_loop(tmp_path, engine, name):
     if not shutil.which('c++'):

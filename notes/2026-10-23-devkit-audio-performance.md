@@ -4836,3 +4836,28 @@ It cannot establish this external worktree's current call graph. Serena session
 433b2929 selects the absolute performance worktree and locates the actual Python
 `instrument_engine_profile`; its conditional C observer query is empty, so
 source and vendor machine-code inspection remain necessary for that path.
+
+### Two-way VCF scheduling — offline comparison
+
+[verified, source/vendor code generation] V24 identifies native Macro generation
+as the largest measured engine region. Its VA+Filter implementation is already
+in SRAM, including its called variable-shape oscillators. An offline private
+prototype adds only a two-way compiler unroll directive to the VCF sample loop.
+It preserves all 11,290,624 PCM bytes across eight mixed cases (two schedule
+cycles), with divide-by-zero trapping enabled. PCM SHA-256:
+`c676e9b496a63e3817428ade9c067d75a2fd81bd786da7c0ad06ee6255c4f81b`.
+The vendor emits a two-sample loop and remainder path: VCF code grows from
+1,256 to 2,524 bytes, while its local frame falls from 56 to 52 bytes.
+This is code-generation evidence, not a speed result. The prototype's stale
+provenance deliberately excludes it from image admission.
+
+[verified, source/tests] Optional `--vcf-unroll` now reproducibly applies that
+directive in the private preparation and records its input hash. It requires
+timing-only profiled resident O3; defaults and production DSP sources remain
+unchanged. Drift/duplicate and unsupported-mode guards are tested. The combined
+engine-detail/FIR replay now compares full PCM bytes across eight cases with
+and without the VCF option. Focused renderer/profile suite: 96 PASS, one
+unavailable 32-bit replay skipped. A fresh vendor build completes; its complete
+SDK/machine-code/layout/startup/cipher/NOR review and image admission remain
+pending. Nothing from this comparison has been installed. V24 remains healthy
+idle, and the mixed deadline/analog acceptance gates remain unsatisfied.

@@ -159,6 +159,17 @@ def schedule_resampler_lowpass(text):
     return text.replace(expected, "\n".join(lines), 1)
 
 
+def unroll_vcf_samples(text):
+    """Request two-way scheduling without changing sample/filter operations."""
+    anchor = "  for (size_t i = 0; i < size; ++i) {"
+    if (text.count("void VirtualAnalogVCFEngine::Render(") != 1 or
+            text.count(anchor) != 1 or "#pragma clang loop" in text or "#pragma GCC unroll" in text):
+        raise ValueError("Unexpected VCF sample loop; review unroll comparison")
+    directive = ("#if defined(__clang__)\n#pragma clang loop unroll_count(2)\n"
+                 "#elif defined(__GNUC__)\n#pragma GCC unroll 2\n#endif\n")
+    return text.replace(anchor, directive + anchor, 1)
+
+
 def instrument_engine_profile(text, engine):
     """Observe generation/pop in private copies without changing their math."""
     if engine not in (0, 1):
@@ -326,7 +337,9 @@ def place_hook_ram(text, signatures):
     return text
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False):
+    if vcf_unroll and not (timing_only and profile and hot_ram and renderer_o3):
+        raise ValueError("VCF unrolling requires timing-only profiled resident O3")
     if external_pixels and not timing_only:
         raise ValueError("Caller-owned pixels require timing-only preparation; no display/DAC acceptance")
     if plan_ram and not (timing_only and profile and prep_profile and event_ram):
@@ -665,6 +678,12 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             original = p.read_bytes()
             prep_profile_inputs[name] = hashlib.sha256(original).hexdigest()
             p.write_text(instrument_dispatch_profile(original.decode(), functions))
+    vcf_unroll_input = None
+    if vcf_unroll:
+        p = staging / "engines/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc"
+        original = p.read_bytes()
+        vcf_unroll_input = hashlib.sha256(original).hexdigest()
+        p.write_text(unroll_vcf_samples(original.decode()))
     engine_profile_inputs = {}
     if engine_profile:
         for engine, name in enumerate(("engines/src/mi_macro.cc", "engines/src/drums.cc")):
@@ -744,6 +763,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "resampler_slopes": resampler_slopes,
         "prep_profile": prep_profile,
         "prep_profile_original_sha256": prep_profile_inputs,
+        "vcf_unroll": vcf_unroll,
+        "vcf_unroll_original_sha256": vcf_unroll_input,
         "engine_profile": engine_profile,
         "resampler_unroll": resampler_unroll,
         "resampler_schedule": resampler_schedule,
@@ -865,7 +886,9 @@ if __name__ == "__main__":
                         help="Compare unchanged control edits and note dispatch in SRAM; requires timing-only preparation profile and resident kinds")
     parser.add_argument("--plan-ram", action="store_true",
                         help="Compare unchanged modulation planner and event helpers in SRAM; timing-only preparation profile and resident events")
+    parser.add_argument("--vcf-unroll", action="store_true",
+                        help="Compare two-way VCF sample-loop scheduling; timing-only profiled resident O3")
     parser.add_argument("--external-pixels", action="store_true",
                         help="Caller-owned screen pixels; timing-only renderer does not draw or attach a framebuffer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll)
