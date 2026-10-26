@@ -5823,3 +5823,29 @@ code; this header correction still requires a fresh exact-source vendor build.
 V35 strict offline parser fixtures reject 26 new malformed control/micro cases,
 all 37 inherited faults, and the actual V34 capture missing six control regions.
 These synthetic fixtures are not hardware evidence.
+
+V35 exact-source vendor r2 (74633) linked successfully from firmware commit
+`0ad522b5f29fccbd4a9bc2088bca62fa6a9bd3c4`. [verified] Final ELF
+`00d12effd636705919718e31515292cf09abe12b2c2b698378938c677d0a18e2`,
+571,644-byte application `fb8797290ce388f0f28cbe0eac24051756ab9a1251f22c175163d2c6f66fde53`.
+636 prepared manifest hashes match. Independent vendor objcopy matches the
+section-concatenated application. Final instruction review confirms paired
+six-hook timers with preserved results/output pointers, direct CPU0 timer,
+non-nesting/half-wrap/overflow/one-consume checks, unchanged worker1 publication
+and ACK/acquire ordering. UART18 starts before parent16, 200 recovery ticks
+precede arithmetic and CPU1 static worker allocation; startup copies/BSS/cache,
+fixed-engine independence and normalized SDK/ROM routines pass review.
+`audit_link` has zero failures; its one manual item is resolved by the exact
+normalized protected-routine comparison. Pretask heap is 118,732 bytes. The
+parent timing frame is now 1,320 bytes including saved registers (+160), so
+fresh target stack high-water measurements remain required.
+
+[verified] Candidate `86f02a974ad0a41c13ce09396a4657289dd7f8943aeb416870cd063e595f3d83`
+is admitted OFFLINE for 140 sectors `[0x4000,0x90000)`. Independent reference
+cipher/CRC/protected-config checks, exact NOR install/restore, metadata-last
+interruptions at pages 7/1127/2215/2231, and CURRENT V34 restore all pass with
+zero hardware commands. All 82 transaction tests pass for the added exact hash
+and preserved older bounds. Private scripts/reports are under
+`scratch/devkit-20261023/build-renderer-queue-control-v35/` and Aeon
+`renderer-queue-control-v35-r2-exports/`. No V35 staging or installation has
+occurred. CURRENT V34 and every consumed reset receipt remain unchanged.
