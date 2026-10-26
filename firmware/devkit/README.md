@@ -372,3 +372,34 @@ The exact mixed timing candidate `b8f8e24b…` is admitted only for138 sectors
 machine-code/layout, SDK, independent app copy, cipher/CRC and interrupted NOR
 restore checks pass. This admission does not establish target timing, recovery,
 DAC output or sustained analog acceptance.
+
+### Ordered whole-engine queue (offline experiment)
+
+`renderer_queue.{h,cc}` records four independent sound-operation streams in
+fixed storage. Each stream holds at most128 render/note/parameter/bend/per-note
+operations; a render holds at most64 frames. One caller executes sounds0/2/3
+while one worker executes sound1. The caller waits before any insert processing
+or ordered mixing consumes the buffers. This is an offline scheduling primitive,
+not an enabled SDK task, audio path, or generally safe engine/model combination.
+The existing copied FM6 kernel worker must not be nested inside it.
+
+The recording caller exclusively owns engine selection, command storage and
+buffers until publication; the worker exclusively owns sound1's instance and
+output while executing. All engine state, callbacks and output buffers must
+remain alive through acknowledgement, including after a timeout. Eligible
+engines must have no shared mutable global state. The host backend uses C++11
+atomics; the target publication spelling uses pi32v2 `csync` and still requires
+actual vendor-code review before use. No heap allocation or task creation occurs
+inside this primitive. Its timeout is a protocol bound, not audio acceptance;
+outer64-frame render deadlines remain unchanged.
+
+Overflow before publication refuses the entire batch. State, command, deadline
+and poll-limit faults permanently disable future submission. Late completion
+never permits storage reuse. The caller must stop the diagnostic and retain
+all referenced storage after failure; this is not a fallback audio renderer.
+Tests exercise concurrent operation order, already-running and not-yet-started
+late workers, clock wrap, duplicate submission, overflow and invalid commands.
+Normal and address/undefined-behavior sanitized host tests pass. Private full-app
+replay preserves11,290,624 PCM bytes over44,104 batches, with queue peaks3/6/3/3.
+These facts do not establish target timing, race freedom, analog quality or
+hardware acceptance. ThreadSanitizer cannot start in the current container.

@@ -5201,3 +5201,24 @@ parallelism cannot simply remain nested inside a busy whole-engine worker.
 in progress without a failing job at inspection; Pages40268655347 succeeded.
 PR155 remains draft and unmerged. Current hardware remains V28 idle; its missing
 arithmetic preflight and failed deadlines are unchanged by these host proofs.
+
+### Bounded ordered queue implementation (offline, 2026-10-26)
+
+[verified] `firmware/devkit/renderer_queue.{h,cc}` now implements fixed command
+storage, caller/worker publication and permanent refusal after a protocol fault.
+It creates no task and is absent from default build lists. It is not installed
+on the board. The caller records four independent engine streams, publishes
+sound1 to one worker and executes the others, then waits before consuming outputs.
+No engine may share mutable globals with concurrently executing engines; engine
+and output ownership must persist even if a timed-out worker completes late.
+
+[verified, host] Both normal and address/undefined-behavior versions of
+`tests/test_devkit_renderer_queue.py` pass (2 passed,0.90 seconds). Each executes
+2,000 interleaved concurrent batches against independent ordered callback results.
+Fault cases include full-capacity overflow before publication, state and command
+refusal, duplicate batch execution, elapsed-clock wrap, a stalled clock's poll
+bound, and workers completing after timeout both before and during execution.
+A late acknowledgement never allows reuse. A separate private app-copy replay
+using this actual queue completes44,104 batches/error0 with peaks3/6/3/3 and all
+11,290,624 PCM bytes identical across eight mixed cases. This remains offline;
+no SDK backend, new image admission or target scheduling speed is established.
