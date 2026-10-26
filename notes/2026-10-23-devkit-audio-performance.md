@@ -6509,3 +6509,28 @@ queue_insert_callbacks. Rarefaction status ready at primary checkout but scope
 refused the external worktree path; native inspection used, server not re-rooted.
 Exact e7d262c3 CI40328500916 in progress without failed jobs at check;
 Pages40328500547 success terminal. Older browser underrun remains unresolved.
+
+[verified] V40 exact source563e56f745893801f5e78d84ea0febeeea32ea7a pushed and
+remote SHA verified. Vendor34785 terminated0; export93366 terminated0. ELF
+1d8d0fa2ae103110fe4fd080d9d1ec1ec3bd57afa4fcf904ba69d5576c1b06b7, app569276B
+50e642eab7b7131dc3fcaffd89eb3baa07215bd50838d5c9acd14a4e2c244f0b.
+636manifest files zero mismatches; independent vendor objcopy matches section
+concatenation. Linked ordering shows all owner posts after engines, caller0/2/3
+before join, worker1 before ACK, acquire fence and unsupported guard before
+publication. UART18 before successful parent16,200ticks before arithmetic/static
+8KiBworker/init; startup copy/BSS/cache reviewed. Storage nonalias; pretask heap
+119596. Protected SDK/strong ROM routines match approved normalized bytes;
+audit_link zero failures/one scheduling pending resolved by exact SDK comparison.
+
+[verified] Expanded source/target independence report covers43files61functions,
+Filter/Drive instance-owned state and constant globals, no Filter RNG or absolute
+SRAM immediates in reviewed DSP functions. Math leaves use registers/stack without
+shared writes. Largest listed individual frame1160bytes; this is not a complete
+call-chain/SDK/IRQ bound or runtime high-water result. Initial private linked-order
+script matched an earlier conditional instead of the callback tail; bounding its
+search after the op loop corrected the script. No firmware assertion changed.
+Reports/scripts stored in private build-renderer-caller-post-v40 and review-v40-*;
+NO8MiBcandidate generated, NOadmission/staging/install. Next full stack/cipherCRC/
+protected-config/NOR interruption review and exact transaction/parser gates before
+image admission. No build/test/device operation remains live. Exact563e CI40329848882
+in progress with no failed jobs at check; Pages40329848910 last in progress.
