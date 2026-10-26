@@ -465,6 +465,8 @@ int main(void) {
     {'ui_ram': True, 'timing_only': True},
     {'dispatch_ram': True},
     {'dispatch_ram': True, 'timing_only': True},
+    {'metadata_ram': True},
+    {'metadata_ram': True, 'timing_only': True},
     {'control_ram': True},
     {'control_ram': True, 'timing_only': True},
     {'filter_process_ram': True},

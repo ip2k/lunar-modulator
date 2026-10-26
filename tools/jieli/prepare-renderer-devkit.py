@@ -743,7 +743,7 @@ def queue_modulation_micro(text, unit, modules=False):
             "#else\n#define QUEUE_MOD_MICRO(r, e) ((void)0)\n#endif\n" + text)
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False, metadata_ram=False):
     if engine_queue_caller_post and not engine_queue_insert:
         raise ValueError("Caller post requires guarded queue inserts")
     if engine_queue_insert and (not engine_queue or engine_queue_drums or engine_queue_detail or engine_queue_micro or engine_queue_mod_micro or engine_queue_module_micro):
@@ -828,6 +828,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Lowpass unrolling requires timing-only profiled slopes")
     if renderer_o3 and not resampler_unroll:
         raise ValueError("Renderer O3 comparison requires timing-only profiled lowpass unrolling")
+    if metadata_ram and not (timing_only and kind_ram and cache_tables):
+        raise ValueError("Resident metadata requires timing-only resident control kinds and tables")
     if resampler_stage1_schedule and not (resampler_slopes and mixer_ram):
         raise ValueError("Stage-one scheduling requires pre-scaled pairs and resident mixer")
     if resampler_schedule and not mixer_ram:
@@ -1058,6 +1060,23 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             original = p.read_bytes()
             kind_inputs[name] = hashlib.sha256(original).hexdigest()
             p.write_bytes(place_hook_ram(original, signatures))
+    metadata_inputs = {}
+    if metadata_ram:
+        # Only descriptors: preserve strings, coefficients and all DSP code.
+        for name in (
+                "engines/src/msfa_dx7.cc", "engines/src/mi_macro.cc",
+                "engines/src/drums.cc", "engines/src/fx_filter.cc",
+                "engines/src/fx_drive.cc", "engines/src/fx_echo.cc",
+                "engines/src/fx_comp.cc", "engines/mod/kinds/mod_lfo.c",
+                "engines/mod/kinds/mod_env.c", "engines/mod/kinds/mod_chance.c"):
+            p = staging / name
+            original = p.read_text()
+            pattern = r"((?:static )?const (?:fm1_param_t|fm1_port_t|fm1_mod_kind_t|fm1_engine_t) \w+(?:\[[^\]]*\])?) = \{"
+            expected = 4 if "/kinds/" in name else 2
+            if len(re.findall(pattern, original)) != expected:
+                raise ValueError("Unexpected metadata definitions: " + name)
+            metadata_inputs[name] = hashlib.sha256(p.read_bytes()).hexdigest()
+            p.write_text(re.sub(pattern, r'\1 __attribute__((section(".volatile_ram"))) = {', original))
     event_inputs = {}
     if event_ram:
         for name, signatures in EVENT_RAM_FUNCTIONS.items():
@@ -1311,6 +1330,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "plan_ram_original_sha256": plan_inputs,
         "event_ram": event_ram,
         "event_ram_original_sha256": event_inputs,
+        "metadata_ram": metadata_ram,
+        "metadata_ram_original_sha256": metadata_inputs,
         "kind_ram": kind_ram,
         "kind_ram_original_sha256": kind_inputs,
         "module_ram": module_ram,
@@ -1382,6 +1403,8 @@ if __name__ == "__main__":
                         help="Compare renderer -O3 with SDK flags unchanged; requires profiled lowpass unrolling")
     parser.add_argument("--mixer-ram", action="store_true",
                         help="Compare sound mixer/effect dispatch in SRAM; requires timing-only profiled O3")
+    parser.add_argument("--metadata-ram", action="store_true",
+                        help="Copy hot parameter/port/engine descriptors to SRAM; timing-only resident control")
     parser.add_argument("--resampler-stage1-schedule", action="store_true",
                         help="Interleave independent stage-one tap chains; timing-only pre-scaled resident mixer")
     parser.add_argument("--resampler-schedule", action="store_true",
@@ -1441,4 +1464,4 @@ if __name__ == "__main__":
     parser.add_argument("--engine-queue-module-micro", action="store_true",
                         help="Split global module preparation/process/output; requires modulation micro")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post, args.resampler_stage1_schedule)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post, args.resampler_stage1_schedule, args.metadata_ram)

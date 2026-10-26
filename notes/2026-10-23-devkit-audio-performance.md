@@ -6756,3 +6756,14 @@ SHA3eeec5dcaeb8f768ab4468a91aa591ad65d10ec11ba8b4e5917dfc2c04083e93;
 private target facts and scripts are saved under stage1-schedule-v45-proof.
 No process, build, test or capture remains live. No physical FM1/Hera traffic.
 Actual mixed deadlines and analog/soak acceptance remain unfinished.
+
+### V46 hot descriptor SRAM placement experiment (offline)
+
+[verified, source/vendor symbols] Opt-in `--metadata-ram` places the fixed
+mixed workload's parameter, port, engine and modulation-kind descriptors in
+startup-copied SRAM. Existing hot-code placement did not include those data.
+Only descriptor definition attributes change in private prepared sources;
+strings, DSP source, coefficients, control cadence and default preparation
+remain unchanged. The vendor link succeeds and selected descriptor symbols
+are in0x01c SRAM. Seventy-four preparation rejection checks pass. Target
+performance and PCM remain to be measured; no speedup or acceptance claimed.
