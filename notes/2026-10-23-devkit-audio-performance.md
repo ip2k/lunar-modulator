@@ -4494,3 +4494,29 @@ into their resident processors; frames LFO120, envelope128, chance104 bytes,
 with envelope-run68 and primitives48/60. Target PCM, stack and deadlines remain
 required. Only exact V20 gains the existing139-sector admission. No target
 acceptance is implied; V20 has not yet been installed.
+
+### V20 target default-kind placement (deadlines still fail)
+
+[verified] Exact `d4c443a8…` completes the protected cycle: double CURRENT
+94429, CURRENT139 restore11574, WINDOW install30157/full8MiB readback, startup
+recovery95514 in78.9516ms, double NEW18181, NEW139 restore5091 and SAME RUN
+install75563/full readback. WINDOW39799/RUN34207 are consumed; never retry.
+All four PCM/arithmetic,32 unit/24 stage/24 worst/12 detail/96 prep/32 unit-
+worst checks pass. All81308 paired jobs finish with zero error/refusal/disabled/
+wrong-core and finite exit. Heap23348 bytes is stable; parent unused2444/8192,
+worker3260/4096 bytes. Sole RX262440 was twice argv-checked and terminated once;
+session26175 was terminal before ordinary PING ACK. Private raw SHA-256:
+`6b78eaafb24bc4dcc77021d271cc38b6b5a68efec26ac33b8a74bb8bb438a315`.
+
+|Keys case|Mean us|Max us|Late /5513|Module loop mean us/block|Mean reduction vs V19|
+|---|---:|---:|---:|---:|---:|
+|0|915.250|1701.417|1|138.917|3.78%|
+|1|1054.542|1699.083|1|137.500|3.18%|
+|2|1129.125|1844.625|2|137.708|3.06%|
+|3|1220.750|2015.000|17|139.250|3.16%|
+
+[verified] All worst total blocks remain0. The worst-block residual outside
+the six reported stages is455.542/368.208/419.917/488.333us. That residual
+and cold-block preparation need attribution; no deadline failure is excluded.
+Actual mixed timing, fault-validated DAC/KA6 and representative30-minute analog
+soaks remain open. PR155 remains draft and unmerged.
