@@ -5703,3 +5703,27 @@ a measured target speedup. No new image has been linked/admitted/installed.
 Next exact-source vendor build and code/layout/stack/recovery/SDK/cipher/NOR
 admission precede any protected hardware timing comparison. V32 stays current;
 no board traffic was sent for this source change.
+
+### V33 exact vendor build and offline admission (2026-10-26)
+
+[verified] Exact source 9225abd5e3b8f3ca281dd945f86327b9cd575990 vendor build
+95910 terminated0. ELF 7a1e8cecb721444e075af3429144c588843699c0c35a372b2431d2e48dc1f76f;
+570268-byte app df3fe5894b45899dfd4c299011661deb6c798182849990567be820f04c648027.
+Independent vendor objcopy agrees. Prepared636-file manifest has zero mismatches.
+SDK normalized relocation checks, UART18 before parent16, 200-tick delay before
+arithmetic/worker/init, queue publication/acquisition, startup copy/BSS, fixed
+engine independence and stack-layout checks passed. Heap before tasks119468
+(64 bytes below V32); worker allocation and partition unchanged. Drive generated
+code skips the eight-control scan after settling, preserves the final glide
+update, and reaches independent Type-fade processing on the bypass path.
+
+[verified] Candidate 8f51bda5772b7bcd7e89f4b776b5bff0c9629d709bedd2aa3c2981c5c81dc77e
+is offline admitted:140 sectors [0x4000,0x90000), independent cipher/CRC and
+protected configuration passed. NOR model restored interruption pages
+7/1127/2215/2231 and independently restored CURRENT V32's140 sectors. No device
+commands were used. Existing strict parser protocol/37-fault fixtures remain
+applicable; no protocol change. Transaction allowlist now admits only this
+exact additional digest; all80 transaction tests pass. Private evidence is
+in scratch/devkit-20261023/build-renderer-drive-settled-v33 and the atomic Aeon
+exports. V33 is NOT staged or installed; target timing/stack and audio acceptance
+remain pending. V32 remains healthy idle. No actual FM1 traffic was sent.
