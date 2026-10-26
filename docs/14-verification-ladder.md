@@ -5,6 +5,10 @@ behaviour between Lunar Modulator's emulators and a real JieLi board, and
 between that board and the FM-1. The original order specified the **JL-AC79-DevKit V1.0**
 (core board JL-AC79-WIFI V1.0 with an **AC7916**, docs/07 §3) and JieLi's
 **USB updater dongle** (the "forced download tool", docs/07 §2.1).
+The kit that arrived is `JL_AC79_DevKitBoard V1.2` (the measured update
+below). It has onboard UPDATE (K1) and RESET (K2) buttons, a UART debug
+header and other debug headers [verified: SDK schematic; Update/Reset entry enumerated `4c4a:8057` in `notes/2026-10-22-devkit-uart-bringup.md`], so flashing and recovering it needs neither
+the USB updater dongle nor this project's `USB_KEY` dongle.
 
 This plan builds on docs/07, 10, 11 §8 (stage B) and 13 §7 and §9, on the
 notes in `engines/`, and on the virtual FM-1 (`sim/web/`). The original plan
@@ -29,6 +33,13 @@ restore first. The staged hardware policy in docs/07 §4 supersedes this plan's
 original "one rule" gates. Backups and a concrete recovery plan precede flash
 writes; hardware equivalence remains unverified until measured.
 
+**Owner update, 2026-10-26** (docs/07 §4, D1–D4): the FM-1 rung's gate is
+met. After an interrupted install left the unit unbootable (2026-10-15), it
+was keyed into mask ROM with a Pico 2 W, dumped twice (identical), and stock
+V15 was written over `[0, 0x93000)`, read back [verified: docs/17] and booted
+[reported: owner]; it identifies as `FM-1_015` [verified: docs/17]. docs/17 is the approved recovery route for
+the unit. The next FM-1 step is the first Lunar code, RAM-only first (§4.2).
+
 ## 1. Short answer
 
 | Question | Answer |
@@ -36,7 +47,7 @@ writes; hardware equivalence remains unverified until measured.
 | What does "1:1" mean? | **Bit-exact wherever both sides do the same arithmetic.** That covers sequencer events, screen frames, LED states and MIDI bytes. It covers the DSP too, once float contraction and libm are pinned. A tolerance is allowed only where a named cause differs (compiler, libm, FPU edge cases, the analog path). It is never found by loosening a bound until a test passes. |
 | Emulator ↔ dev board? | Expected to be bit-exact in a "ladder" build profile: `-ffp-contract=off` and one libm on every rung [inferred]. Today the browser module matches native `fm1-render` built against musl in 12 of 12 scenarios, and built against glibc in 10 of 12. The two Sophie scenarios differ because of libm [verified: sim/web/README.md, "Parity"]. |
 | Dev board ↔ FM-1? | Same ISA, FPU, toolchain and object code, so the output before the DAC should be bit-exact. The differences are confined to the board: analog stage, crystal tolerance, flash and cache timing, keys, LEDs, TFT [inferred]. This rung follows the owner-authorized staged hardware policy (docs/07 §4). |
-| Stock firmware ↔ ours? | Never 1:1. Stock is msfa with its own effects, trims and UI. Before the gate it is a black box: the owner plays it by hand and we observe passively (§4.1). |
+| Stock firmware ↔ ours? | Never 1:1. Stock is msfa with its own effects, trims and UI. It is a black box: the owner plays it, ordinary MIDI may drive it since 2026-10-26, and we observe passively (§4.1). |
 | How? | One golden corpus, one heap-free C runner built for every rung, per-block hashes, one diff tool, and a results record per rung like `www/fm1.wasm.json` (§3). |
 | First week? | Inventory, toolchain, the kit's own dump and restore, blink and UART, FPU probes, the second-core probe, audio out, then rung 2 offline and the stage B numbers (§5). |
 
@@ -49,8 +60,8 @@ writes; hardware equivalence remains unverified until measured.
 | R0 desktop | `fm1-render`, `fm1-seq`, `fm1-sim-render`: 64-bit, `-m32`, ASan + UBSan | clang and GCC, CI | [verified] in CI |
 | R1 browser | `fm1.wasm`: the virtual FM-1's app layer and every engine | Emscripten 6.0.10 on aeon | [verified] 12/12 against musl R0 |
 | R2 dev board | the same C sources on the AC79 board, in two modes: *offline* (a render loop) and *live* (driven by the DAC interrupt) | JieLi Clang/LLVM 4.0.1 with newlib 2.2.0's libc and libm [verified: §5.2] | resampler-only timing measured 2026-10-23; complete offline/live equivalence and stage B remain pending |
-| R3 FM-1, ours | R2's portable code with the FM-1's board-support layer; RAM-only first, flash later | the same | staged bench work authorized; not yet run |
-| Rs FM-1, installed | `FM-1_092` (Baud Girl's FM-1+VA) today; stock V15 if the owner rolls back | — | black box only |
+| R3 FM-1, ours | R2's portable code with the FM-1's board-support layer; RAM-only first, flash later | the same | not yet run; the gate is met (2026-10-26) and RAM-only runs are next (§4.2) |
+| Rs FM-1, installed | stock V15 (`FM-1_015`) since 2026-10-26 [verified: docs/17]; FM-1+VA (`FM-1_092`) ran from 2026-09-29 to 2026-10-15 and was not restored | — | black box only |
 
 ### 2.2 Where the arithmetic can differ
 
@@ -173,15 +184,24 @@ fetches the first differing block in full, and classifies the case by
   - Changes to aeon go through lan-compute's Ansible.
 - R3 and the FM-1 never run in CI.
 
-## 4. The FM-1 rung under the one rule
+## 4. The FM-1 rung and its gate
 
-### 4.1 Before a dump and a byte-identical restore
+This section was written under the old "one rule" (a full dump and a
+byte-identical restore before anything is written). The owner replaced that
+rule with the staged policy of docs/07 §4 on 2026-10-07, and the gate this
+section describes was met on 2026-10-26 (owner, D3): two identical dumps, a
+known image (stock V15) written byte-identically over `[0, 0x93000)` and read
+back [verified: docs/17], and a boot [reported: owner]. The restore target was stock V15, not
+the unit's own `FM-1_092` image.
 
-Two things are allowed: the read-only identity query
+### 4.1 The installed firmware as a black box
+
+Before the gate, two things were allowed: the read-only identity query
 (`tools/fm1_identify.py`, at the start and end of every session) and
-passive captures. docs/12 §1 says it plainly: no writes, and no MIDI beyond
-the identity query. The installed firmware is therefore a black box, played
-by the owner's hands:
+passive captures. Since 2026-10-26 ordinary MIDI (notes, CC, program
+change) may also be sent into the unit on stock V15 for testing (owner, D4).
+SysEx stays limited to the identity query. The installed firmware is still a
+black box, played by the owner's hands or by those messages:
 
 | Observation | How | What it settles |
 | --- | --- | --- |
@@ -192,20 +212,21 @@ by the owner's hands:
 | Screen | photos or video | the layout reference for the virtual screen (look, not bits) |
 | TFT and LED buses | a logic analyser on the FPC or on the 595s; passive, but the case must be open | the panel's command stream, for R3's SPI decode. The owner decides whether to open the case |
 
-Not allowed before the gate:
+Still not allowed:
 
-- notes, CCs or SysEx sent from a computer;
-- any update traffic;
+- SysEx other than the identity query; the soft key `F0 22 24 35 7D F7`
+  (CLAUDE.md trap 9), syscmd 33–36 and 48, and `5A AA A5` frames (trap 7)
+  only in an authorised session (D4);
+- update traffic outside a docs/07 §4 experiment;
 - the vendor writer (`isd_download.exe`), which is never run against the
   FM-1 (docs/07 §2.1).
 
-Channel messages are plausibly harmless. Widening the rule to allow them is
-the owner's decision, recorded in CLAUDE.md, and this plan does not assume
-it.
+The owner decided on 2026-10-26 to allow channel messages (D4).
 
-While FM-1+VA is installed, every capture describes FM-1+VA, and a dump
-taken now would capture FM-1+VA rather than stock (docs/07 §4). Record the
-identity with every capture.
+The installed firmware is stock V15 (`FM-1_015`) since 2026-10-26, so
+captures describe stock V15 and a dump taken now captures stock. FM-1+VA's
+only copy is the two private `FM-1_092` backups. Record the identity with
+every capture.
 
 **Comparing with stock audio is meaningful** in only two places:
 
@@ -217,20 +238,26 @@ Never sample by sample. Stock adds its FX slots and calibration trims, and
 today's Six-Op FM is Plaits' DX7-style engine, which is different code from
 msfa [inferred].
 
-### 4.2 After the gate
+### 4.2 After the gate (met 2026-10-26)
 
-The gate is docs/08 Phase 2 on the FM-1, run as its own deliberate session:
-enter `UBOOT1.00` through the dongle, take two identical 1 MB dumps,
-restore, and take a third identical dump (docs/10 §5–6). It is rehearsed
-first on the kit (§5 step 3). After the gate, in order:
+The gate was docs/08 Phase 2 on the FM-1: enter `UBOOT1.00`, take two
+identical 1 MB dumps, write a known image, read it back and boot. It was met
+on 2026-10-26 through docs/17's route (a Pico 2 W running a patched
+FM-1-transporter), not through this project's dongle, and it needed no key
+rehearsal on the kit, which enters download mode with its own buttons
+[verified: notes/2026-10-22-devkit-uart-bringup.md]. What now gates each step below is docs/07 §4: a
+reviewed experiment with its image, ranges and recovery plan, with docs/17
+as the fallback. In order:
 
-1. **RAM-only runs.** `jlrunner.py` loads the runner into RAM and jumps to
-   it. Nothing is written to flash, and a power cycle brings back the
-   installed firmware [reported mechanism: kagaimiq; untested on WL82]. How
-   the results get out is still open (§6).
+1. **RAM-only runs (the current milestone).** `jlrunner.py` loads the
+   runner into RAM and jumps to it. Nothing is written to flash, and a power
+   cycle brings back the installed firmware [reported mechanism: kagaimiq;
+   untested on WL82 with `jlrunner.py`]. The ROM did load and run
+   `wl82loader.bin` from RAM on this unit on 2026-10-26 [verified: docs/17].
+   How the results get out is still open (§6).
 2. **Flash images.** They keep the head, `ota.bin`, `cfg` and the layout
-   byte-identical to stock (docs/07 §4 rule 2; FM-1+VA's layout is not
-   V15's, docs/01 §2). They carry the fail-open boot path and the watchdog
+   byte-identical to stock V15, the installed firmware (docs/07 §4 rule 2;
+   FM-1+VA's layout is not V15's, docs/01 §2). They carry the fail-open boot path and the watchdog
    counter (rule 4). Every update stage is power-cut on the kit first
    (rule 5).
 3. **The full ladder on R3.** The same corpus, digital results over USB,
@@ -261,9 +288,9 @@ only runs whose hashes are equal.
 
 | # | Step | Exit criterion |
 | --- | --- | --- |
-| 1 | Unbox, and photograph both boards and the dongle: AC7916 marking, crystal, flash, USB-UART bridge, audio jack and amp, buttons, LEDs, LCD controller, TF slot, and the dongle's version and DIP switch. The SDK's schematics (core board `JL_AC79_WIFI V1.2`, DevKitBoard V1.2) already show an external 25Q64 flash, UPDATA (K1) and RESET (K2) keys, no USB-UART bridge (debug TX on PB03), earphone jack J12 on DACL/DACR and a TF slot [verified: SDK PDFs]; docs/07 lists the kit as V1.0, so check the bought revision | `notes/<date>-devkit.md` with a parts table; the "unknown" cells of §4.3 filled in |
+| 1 | Partly done: the kit is `JL_AC79_DevKitBoard V1.2`, UART alive (notes/2026-10-22-devkit-uart-bringup.md). Remaining: photograph both boards (and the vendor dongle if one is bought; the kit needs none): AC7916 marking, crystal, flash, USB-UART bridge, audio jack and amp, buttons, LEDs, LCD controller, TF slot, and the dongle's version and DIP switch. The SDK's schematics (core board `JL_AC79_WIFI V1.2`, DevKitBoard V1.2) already show an external 25Q64 flash, UPDATA (K1) and RESET (K2) keys, no USB-UART bridge (debug TX on PB03), earphone jack J12 on DACL/DACR and a TF slot [verified: SDK PDFs]; the bought carrier is V1.2 [verified: owner photo, bring-up note] | `notes/<date>-devkit.md` with a parts table; the "unknown" cells of §4.3 filled in |
 | 2 | Toolchain: JieLi's Linux toolchain and post-build tools in a container on aeon, with the AC79 SDK (Apache-2.0) at a pinned commit (V1.2.13 `e30b1ee`, CLAUDE.md trap 11). Build the SDK's hello demo for the kit, and run `tools/jieli/audit_link.py` on the linked image | the toolchain archive's SHA-256 recorded; two clean builds byte-identical; the link audit passes (no live key/eFuse code) |
-| 3 | The kit's own dump and restore. Rule 1 covers every device, and this also rehearses docs/10 §5 for the FM-1. Enter download mode with the kit's own UPDATA + RESET keys (hold UPDATA, press and release RESET [reported: JieLi doc 2.3]), then again through the vendor dongle in DIP bit 3 (continuous key, no power cut) with a power-up, as on the FM-1 (docs/07 §2.1); then run `jl-uboot-tool` read-only | JEDEC ID; two identical dumps, a restore, a third identical dump; VID:PID, inquiry string and every step recorded |
+| 3 | The kit's own dump and restore, before its first write (docs/07 §4 asks for backups before any erase or program). Enter download mode with the kit's own UPDATA (K1) + RESET (K2) keys (hold UPDATA, press and release RESET [reported: JieLi doc 2.3]); no dongle is needed. The FM-1's key entry no longer needs rehearsing here: it was done on the FM-1 itself on 2026-10-26 (docs/17). The 2026-10-23 application-sector install/restore rehearsal already returned an exact 8-MiB factory image comparison (measured update above) | JEDEC ID; two identical dumps, a restore, a third identical dump; VID:PID, inquiry string and every step recorded |
 | 4 | Blink and UART. Steps 4 and 6 flash the kit with the Linux `isd_download` flow (SDK V1.2.12+, linux-postbuild `20260923.1`) in a container on aeon, its SHA-256 archived; it is a writer, for the kit only | the build id on the console; a toggled pin's period, measured on a logic analyser, within crystal tolerance at 240 MHz |
 | 5 | A probe image covering: the cycle counter against a timer; `sizeof`/`alignof`; `char` signedness; float divide by zero; subnormal handling and cost; NaN and overflow in float → int; fused ops in `objdump` at `-O2`, with and without `-ffp-contract=off`; libm's float functions swept against musl | every [inferred] cell in §2.2 becomes [verified] or is corrected |
 | 5b | The second-core probe (§5.1): how cpu1 starts; per-core counters; the FPU on each core; one core against two; cross-core ordering; the ways to keep audio on cpu1 (C6a–C6f); flash writes; power (optional) | `notes/<date>-devkit-cpu1.md` holds: a yes or no, with the method named, for "audio on cpu1 in an SDK build"; the dual-core factor for code in RAM and in flash; FPU results bit-identical across the cores; how long a flash write stalls cpu1 |
@@ -275,7 +302,8 @@ only runs whose hashes are equal.
 Steps 8 and 9 may run into week two. Step 5b takes 4–5 days and may spill
 into week two as well. Steps 8 and 9 report each figure for one core and,
 if 5b says yes, also with audio on cpu1. The FM-1 receives nothing but the
-identity query all week.
+identity query and, since 2026-10-26, ordinary MIDI (D4) during this plan;
+its own next step (§4.2) runs as a separate docs/07 §4 experiment.
 
 ### 5.1 Step 5b: the second-core probe
 
@@ -439,7 +467,7 @@ which would reach our engines in an LTO build.
 | pi32v2 traps on float divide by zero | Plaits' String model would fault | step 5; add a guard in our wrapper |
 | Subnormal cost | effect tails decay into subnormals (mi-fx.md) | step 5 timings; flush in the wrapper if slow |
 | JieLi's libm differs from musl | affects Sophie, and Capture's tempo search near a tie | pin musl's float functions in the ladder profile; keep JieLi's only if stage B shows it is worth accepting class C |
-| The dongle or `jl-uboot-tool` on AC79 | the dongle listings name only Bluetooth families, and jl-uboot-tool lists WL82 as "unknown" | step 3, read-only first; the RP2040 dongle (docs/10) as the fallback |
+| `jl-uboot-tool` and the WL82 loader on AC79 | jl-uboot-tool lists WL82 as "unknown" | the kit enters download mode with its own UPDATE/RESET keys and needs no dongle; `wl82loader.bin` ran on the FM-1 through FM-1-transporter on 2026-10-26 [verified: docs/17]; step 3, read-only first |
 | The AC7916 is not the FM-1's AC791N variant | caches, flash interface, SDRAM and DAC wiring may differ | compare cycles only for SRAM-resident code; R3 settles the rest |
 | The kit's audio path | the base board has earphone jack J12 on DACL/DACR [verified: DevKitBoard V1.2 schematic], but the FM-1 sends audio over I2S to a codec instead [reported], so the kit's live rung differs from the FM-1's in interrupt source and path | step 1 checks the bought revision; `bsp_audio_start` hides the difference; R3 settles the FM-1's |
 | USB CDC in the AC79 SDK | needed for transport stage 2 | settled: the SDK has a CDC class (`cdc.c`) [verified: 2026-10-01 MIDI study]; SysEx stays the fallback |
@@ -451,5 +479,5 @@ which would reach our engines in an LTO build.
 | The runner's SRAM | the simulator's `fm1_app_t` is 1.17 MB | one sized arena and strip rendering, before step 7 |
 | Results from RAM-only runs on the FM-1 | after the jump, can the ROM loader still read RAM? | a RAM mailbox read back, a USB stack in the RAM image, or hashes drawn on the TFT |
 | Passive bus taps on the FM-1 | the case must be open | the owner decides |
-| Channel messages to the FM-1 before the gate | would allow scripted black-box tests | the owner decides, recorded in CLAUDE.md |
+| Channel messages to the FM-1 | allow scripted black-box tests | settled: ordinary MIDI allowed on stock V15 (owner, 2026-10-26, D4; docs/07 §4) |
 | A self-hosted runner on a public repository | fork PRs would run on aeon | dispatch-only, or no runner |

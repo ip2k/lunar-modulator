@@ -120,7 +120,7 @@ Details and marks are in `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`.
   `FM-1_092`]:** V15's `app.bin` byte for byte except 1,820 bytes in 90 hook
   sites, plus 110 KB of new code appended; VM moved to `0xD9000` and shrunk
   to 64 KB for room; head, OTA loader and `cfg` untouched; msfa table intact.
-  The owner's unit runs it (identifies as `FM-1_092`, 2026-09-29).
+  The owner's unit ran it from 2026-09-29 (identified as `FM-1_092`) until 2026-10-15, and runs stock V15 (`FM-1_015`) since the 2026-10-26 recovery; the two 092 backups are the only copy of that state.
 - **How it installs**: a Web MIDI installer in Chrome/Edge, ported from
   AL-255's `fm1_ota.py` with three fixes. It gates on the SHA-256 of V15's
   flash head, refuses a reinstall of the running version, and resumes an
@@ -165,7 +165,7 @@ Read here, not built or run.*
 
 ### FM-1-transporter (kurogedelic) — https://github.com/kurogedelic/FM-1-transporter
 *`a632d92` (2026-10-01). **MIT**, "Copyright (c) 2026 kurogedelic". Read
-through the GitHub API, not cloned or run.*
+through the GitHub API on 2026-10-05; cloned at `a7fb5e8`, patched for Pico 2 and run against the owner's FM-1 on 2026-10-26 (docs/17).*
 
 - Felucca's recovery tool: a Seeed XIAO RP2040 on the FM-1's D+, D− and GND
   that keys `USB_KEY` `0x16EF`, then acts as USB host to `UBOOT1.00` through
@@ -176,10 +176,14 @@ through the GitHub API, not cloned or run.*
   SCSI `WL82`/`UBOOT1.00`; JEDEC `0x856014`; raw flash reads; keying works
   after a watchdog reset; stock V15 obeys the soft key `F0 22 24 35 7D F7`;
   sector writes in `[0x4000, 0x93000)` with verify.
-- **Not for this project's unit as built**: it drives push-pull with no
-  series resistors (`usb_key_pp`, `set pindirs, 3`) against docs/10's E1,
-  and its `fm1t.py` sends the soft key by itself when it sees V15 [verified:
-  `pio/usb_key.pio`, README]. Its PIO-USB host idea is a candidate for
+- **Used on this project's unit once, by owner exception (2026-10-26,
+  docs/17):** it drives push-pull with no series resistors (`usb_key_pp`,
+  `set pindirs, 3`) against docs/10's E1, and its `fm1t.py` sends the soft key
+  by itself when it sees V15 [verified: `pio/usb_key.pio`, README]. The
+  recovery used our RP2350 patch and a V15-only shim
+  (`tools/fm1-transporter/`), and the soft-key commands stayed off limits.
+  The exception is for that route only; E1/E2 still bind this project's own
+  dongle. Its PIO-USB host idea is a candidate for
   `dongle/` (docs/10 §1.1).
 
 ### fm1-nes (Keitark) — https://github.com/Keitark/fm1-nes

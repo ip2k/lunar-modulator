@@ -307,6 +307,27 @@ jobs:
             dongle/firmware/build/usb_key_dongle.uf2
             dongle/firmware/build/usb_key_dongle.elf.map
 
+  fm1-transporter:
+    name: fm1-transporter (Pico 2 W recovery tool)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the patched FM-1-transporter (pico2_w, pico2)
+        run: tools/fm1-transporter/build.sh "$RUNNER_TEMP/fm1t"
+      - name: Record and compare SHA-256
+        run: |
+          expected=4f5fab3ff5d3930ff1b462491bb2aa272e6536a7dfe3729e63839facd0b7f482
+          w=$(sha256sum "$RUNNER_TEMP/fm1t/fm1_transporter-pico2_w.uf2" | cut -d' ' -f1)
+          p=$(sha256sum "$RUNNER_TEMP/fm1t/fm1_transporter-pico2.uf2" | cut -d' ' -f1)
+          {
+            echo "### fm1-transporter UF2 SHA-256"
+            echo "- pico2_w: \`$w\`"
+            echo "- pico2: \`$p\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$w" != "$expected" ]; then
+            echo "::warning::pico2_w UF2 hash $w differs from the recorded $expected (the ubuntu image is unpinned; a toolchain update can change it)"
+          fi
+
   upstream-fm1-re:
     name: AL-255/FM-1-RE tests on fork branch (${{ matrix.ref }})
     runs-on: ubuntu-latest

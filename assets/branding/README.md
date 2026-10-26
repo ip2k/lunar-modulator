@@ -113,8 +113,9 @@ pixel is one 16-bit little-endian word: red in bits 15–11, green in bits
 full-colour render so the gradients do not band. The PNG shows each code
 expanded to 8 bits by bit replication.
 
-No firmware uses the boot screen yet, and nothing has been flashed (see "The
-one rule" in `CLAUDE.md`). The file's words match a C `uint16_t` array on a
+No firmware uses the boot screen yet, and no Lunar image has been flashed to an
+FM-1 (the unit was rewritten to stock V15 on 2026-10-26, docs/17; see the
+hardware experimentation policy in `CLAUDE.md`). The file's words match a C `uint16_t` array on a
 little-endian CPU [inferred for pi32v2]. ST7789-class controllers normally
 take each pixel's high byte first over SPI, so a driver that streams this
 buffer byte by byte must either swap each pair of bytes or switch the

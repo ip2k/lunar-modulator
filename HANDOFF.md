@@ -6,8 +6,76 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-10-11. Read this first, then
+original conversation; last updated 2026-10-26. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
+
+## Latest hardware update — 2026-10-26
+
+On 2026-10-15 a stage-7 install through a RAM loader stopped at program
+`0x94600` and power was then lost; the unit showed no display and no USB
+since [verified: `notes/2026-10-18-fm1-interrupted-write-forensics.md` on
+`feature/2026-10-11@installable-firmware`]. The boot area `0x0`–`0x4000` was
+never written. The Cynthion `USB_KEY` trials of 2026-10-15..18 did not reach
+ROM entry.
+
+On 2026-10-26 the unit was keyed into mask-ROM `UBOOT1.00` by kurogedelic's
+FM-1-transporter (MIT, `a7fb5e8`) on a Raspberry Pi Pico 2 W with our RP2350
+patch (`tools/fm1-transporter/`): push-pull `USB_KEY` on D+/D−, no VBUS, the
+FM-1 on its battery. Two full 1 MiB dumps are identical. The stock V15
+application region was written (143 sectors, `0x4000`–`0x92000`) and read
+back equal, and an independent dump equals the V15 image over
+`[0, 0x93000)` [verified]. The unit boots stock V15 [reported: owner] and
+answers the identity query as `FM-1_015` [verified]. The V15 settings/VM
+area from `0x93000` was not written; it held leftover bytes and V15 booted
+anyway [inferred: reformatted]. Procedure: docs/17; run, hashes and logs:
+`notes/2026-10-26-fm1-stock-v15-recovery.md`.
+
+Not done: restoring the unit's own `FM-1_092` (Baud Girl's FM-1+VA) image,
+and any Lunar code on the FM-1. The two matching 092 backups are the only
+copy of that state. The unit ran FM-1+VA from 2026-09-29 to 2026-10-15 and
+runs stock V15 since 2026-10-26.
+
+The AC79 dev kit (JL_AC79_DevKitBoard V1.2) is in hand: UART bring-up on
+2026-10-22, resampler diagnostic on 2026-10-23
+(`notes/2026-10-22-devkit-uart-bringup.md`). Its onboard UPDATE (K1) and
+RESET (K2) buttons and UART debug header [verified: SDK schematic; Update/Reset entry enumerated `4c4a:8057` in `notes/2026-10-22-devkit-uart-bringup.md`] mean it needs no
+`USB_KEY` dongle to flash or recover.
+
+## Owner decisions, 2026-10-26
+
+Recorded after the recovery above; CLAUDE.md "Hardware experimentation
+policy" carries the same text.
+
+- **D1, recovery proven, bounded.** Recovery of an unbootable FM-1 whose
+  boot area `0x0`–`0x4000` is intact is proven on this unit: mask-ROM
+  `USB_KEY` entry, dumps, verified write, boot. UBOOT enumeration alone is
+  still not proof. A damaged boot area remains unproven (the transporter
+  refuses to write `0x0`–`0x4000`). Evidence: docs/17,
+  `notes/2026-10-26-fm1-stock-v15-recovery.md`.
+- **D2, standing route.** docs/17 (Pico 2 W, patched FM-1-transporter,
+  V15-only research shim) is the approved recovery route for this unit. The
+  soft-key-sending commands (`fm1t info`, `dump`, `write`, `uboot`, console
+  `k`) are off limits while a running V15 is attached. Its push-pull,
+  no-series-resistor wiring is an approved exception to docs/10 E1/E2 for
+  that route only; E1/E2 still bind our own dongle (docs/10, `dongle/`). The
+  dongle stays useful for other owners and as an open-drain design, but is
+  off the critical path. Evidence: docs/17, `tools/fm1-transporter/`.
+- **D3, I9 gate met, with stock V15 as the target.** Dump, restore and boot
+  passed on 2026-10-26: two identical dumps, the known V15 image written
+  byte-identically over `[0, 0x93000)` and read back, boot. The restore
+  target is stock V15, not FM-1_092. Gates worded "after docs/07's dump and
+  restore", "after I9" or "Phase 2 exit" are met (2026-10-26). Next
+  milestone: the first Lunar code on the FM-1, RAM-only first, under the
+  staged policy (docs/07 §4), with docs/17 as the fallback. Evidence:
+  `notes/2026-10-26-fm1-stock-v15-recovery.md` (Results).
+- **D4, MIDI in allowed.** Ordinary MIDI (notes, CC, program change) may be
+  sent into the unit on stock V15 for testing. SysEx stays limited to the
+  read-only identity query; the soft key `F0 22 24 35 7D F7` (CLAUDE.md trap
+  9), syscmd 33–36/48 and `5A AA A5` frames (trap 7) stay banned except in an
+  authorised session.
+- **Unchanged:** no blanket erase, no eFuse writes, never `0xFC12`/`0xA1`,
+  the stock SPL/OTA/cfg package guards, never ship a V1.2.x uboot or loader
+  (CLAUDE.md trap 11).
 
 ## Active work — 2026-10-11
 
@@ -39,8 +107,9 @@ reporting a cause; this is not evidence that compaction stopped execution.
 The current checkpoint and outstanding gates are in
 [the implementation note](notes/2026-10-11-midi-song-workspace.md).
 The model is shared with Lunar's C sequencer; desktop-only song structures
-must not enter this workspace. The owner's FM-1 still runs FM-1_092, so physical
-Lunar file exchange is untested. USB-MIDI and eventual BLE direct project
+must not enter this workspace. The owner's FM-1 ran FM-1_092 at the time and
+runs stock V15 (`FM-1_015`) since 2026-10-26, so physical Lunar file exchange
+is untested. USB-MIDI and eventual BLE direct project
 access are future capabilities outside this editor scope.
 
 The separately completed demo/example stream merged as PR #145, merge commit
@@ -122,12 +191,18 @@ The focused source diagnosis is `notes/2026-10-10-afterglow-listening-followup-c
 this owner-requested follow-up is not a sixth scored round.
 
 No full-DSP Lunar application has run on or been installed on the FM-1.
-Full-image restoration, broken-app recovery and hardware audio remain unverified.
+Full-image restoration and broken-app recovery were unverified then; a
+broken-app recovery to stock V15 was verified on 2026-10-26 (see the latest
+hardware update). Restoring the unit's own FM-1_092 image and hardware audio
+remain unverified.
 The fixed eight-byte callback observation completed once: 52 audited SCSI
 commands, one FD07 read, no flash writes or custom code execution. Returned
 words 0x01e008e4 and 0x01e0089a have unproven memory-region meaning. Receipts
 are pushed on `chore/2026-10-10@fm1-live-bringup` at `65e9f639`. Owner
-power-cycle confirmation is pending; no further device operations before it.
+power-cycle confirmation was pending at the time [superseded: the unit later
+suffered the interrupted install of 2026-10-15 and was recovered on
+2026-10-26; device operations now follow CLAUDE.md "Hardware
+experimentation policy"].
 
 The whole-code audit is not blanket-closed: findings are classified by demo
 impact in the audit/remediation ledger; developer-tool, unused-module and
@@ -167,7 +242,7 @@ curves and the live graph; its focused tests, 104 parity scenarios and
 Completed review does not mean all findings or dead-code candidates are
 remediated; the remaining-work ledger records the source/status reconciliation.
 
-## Latest hardware update — 2026-10-07
+## Hardware update — 2026-10-07 (historical)
 
 The original research summary below is historical. The owner authorized
 staged recovery experiments, superseding the prior dump-and-restore
@@ -175,7 +250,8 @@ prerequisite. Soft-key UBOOT entry works on FM-1_092; the audited loader ran
 in RAM, matching full backups were saved off-host, and an unused 4 KiB
 sector was programmed and restored with the entire flash unchanged
 [verified: [bench note](notes/2026-10-07-fm1-softkey-bench.md)]. Full-image
-restoration and a Lunar application on hardware remain untested. Normal
+restoration and a Lunar application on hardware were untested at that point
+(the 2026-10-26 update above records what changed since). Normal
 boot after both the initial dump and the restoration was owner-confirmed. The
 mobile hardware editor is explicitly deferred until installable firmware; see
 [its resume plan](notes/2026-10-07-mobile-advanced-editor.md).
@@ -183,7 +259,9 @@ mobile hardware editor is explicitly deferred until installable firmware; see
 ## 1. Where things stand
 
 - **Owner:** Sean (GitHub `ip2k`). Works from a MacBook with Claude Desktop /
-  Claude Code; has **one FM-1** on his desk (do not brick it) and has downloaded
+  Claude Code; has **one FM-1** on his desk (left unbootable by an
+  interrupted install on 2026-10-15, recovered to stock V15 on 2026-10-26;
+  rehearse risky writes on the AC79 dev kit first) and has downloaded
   the official updater disk image **`M-UPGRADE-FM1*.dmg` into `~/Downloads`**
   (that updater embeds **V14**, not V15; V15 is only on the CDN, docs/02 §1).
 - **This repository** is the research output: nine documents, three tools, one
@@ -192,11 +270,15 @@ mobile hardware editor is explicitly deferred until installable firmware; see
   V14. At that research checkpoint, this project had written nothing to the device. The case has been
   opened for photos (2026-09-29, `photos/2026-09-29/`, described in
   `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md`).
-- **The owner's unit now runs Baud Girl's FM-1+VA**: the owner installed it
+- **The owner's unit ran Baud Girl's FM-1+VA from 2026-09-29 to 2026-10-15
+  and runs stock V15 (`FM-1_015`) since 2026-10-26**: the owner installed it
   through Baud Girl's browser installer, and the unit identifies as
   `FM-1_092` [verified 2026-09-29]. The `FM-1_092` package is V15 plus 90 hook
   patches and 110 KB of appended code, with VM moved to `0xD9000` (note §3).
-  The way back to stock is V15's `.fwsc` through the same installer.
+  The documented way back to stock is V15's `.fwsc` through the same
+  installer [reported]; on this unit the return to V15 went through mask ROM
+  on 2026-10-26 (docs/17), because the unit no longer booted. The two
+  matching FM-1_092 backups are the only copy of that state.
 - **Elsewhere, non-stock firmware runs on FM-1s**: Echomatter's `FM-1_016`
   (2026-09-04), and since 2026-09-26 **Baud Girl's FM-1+VA**, a modified V15
   with a virtual-analog engine installed from a browser (`FM-1_020` …
@@ -209,7 +291,7 @@ mobile hardware editor is explicitly deferred until installable firmware; see
   (docs/01 §3.1): audio is ALNK0 (I2S) to an external codec, not the internal
   DAC, and the encoders are scanned in the key matrix. Stock V15 also enters
   mask ROM on the SysEx "soft key" `F0 22 24 35 7D F7`, which was subsequently verified on this unit under the revised staged
-  policy (see the latest hardware update above).
+  policy (see the 2026-10-07 hardware update above).
 - **Where the repo lives now:** `~/Developer/mvave-fm1-firmware` on the
   owner's MacBook (the folder keeps its old name), branch `main`, remote
   `ip2k/lunar-modulator` (published 2026-09-06 as
@@ -243,19 +325,26 @@ mobile hardware editor is explicitly deferred until installable firmware; see
    V15. Two further reported facts: the OTA loader **can rewrite the flash
    head** (`uboot.boot`, `isd_config.ini`), so keep it byte-identical; and a
    loader left waiting after step 1 (`ota-FM-1`) can be resumed (docs/03 §5).
-5. **No recovery path proven on this project's unit.**
-   - Single flash bank, no debug pads or buttons. The one candidate header
-     was the battery connector's leads (2026-09-29).
-   - AL-255's verdict: NO-GO for non-stock flashing. This is the gate for
-     everything.
-   - Our `USB_KEY` dongle, which should open it, is specified and implemented
-     (docs/10, `dongle/`), not yet tried.
+5. **A recovery path is proven on this project's unit** for an FM-1 whose
+   boot area is intact (owner, 2026-10-26, D1; docs/17). A damaged boot area
+   and restoring the unit's own FM-1_092 image are not.
+   - The FM-1 has a single flash bank, no debug pads or buttons (the dev kit
+     has UPDATE and RESET buttons and a UART header). The one candidate
+     header was the battery connector's leads (2026-09-29).
+   - AL-255's verdict was NO-GO for non-stock flashing without recovery.
+     That gate is met for this unit (owner, 2026-10-26, D3); installing
+     Lunar code now follows the staged policy (docs/07 §4), RAM-only first,
+     with docs/17 as the fallback.
+   - The route that worked is FM-1-transporter on a Pico 2 W with our RP2350
+     patch (docs/17, `tools/fm1-transporter/`). Our own `USB_KEY` dongle is
+     specified and implemented (docs/10, `dongle/`), not yet tried, and off
+     the critical path (D2).
    - Since 2026-09-16, other owners report that mask-ROM USB boot works on
      *their* FM-1s with czietz's simpler Pico dongle. One of them backed up
      and wrote firmware that way [reported: issue #2, docs/10 §1.1].
      FM-1-transporter (kurogedelic) and fm1-nes report dumps and writes
      through mask ROM too (docs/10 §1.1, docs/04).
-6. Most promising recovery: JieLi **`USB_KEY`** (`0x16EF` bit-banged on D+/D−
+6. Demonstrated recovery (2026-10-26): JieLi **`USB_KEY`** (`0x16EF` bit-banged on D+/D−
    at ~50 kHz at power-up, ACK = both lines low 1–2 ms, then SOF clock
    detection) → mask-ROM "UBOOT1.00" mass-storage mode → `jl-uboot-tool`
    with its `wl82loader.bin` (`0x1C02000`) or vendor `isd_download`.
@@ -263,7 +352,8 @@ mobile hardware editor is explicitly deferred until installable firmware; see
      FM-1s (issue #2).
    - kagaimiq's `usb-key.md` and the diagram in `how-to-enter-uboot.md`
      agree; only that page's prose says D−.
-   - Try D+ first (docs/10 §1 item 3).
+   - Try D+ first (docs/10 §1 item 3). D+ (Pico GP0) reached `UBOOT1.00`
+     on this project's unit on 2026-10-26 [verified].
 7. Toolchain = JieLi's closed **Clang/LLVM 4.0.1** fork (`pi32v2` backend),
    Linux build available from `pkgman.jieliapp.com`; AL-255 built C++11 with
    it. No Rust, no GCC/LLVM upstream, no JS runtime.
@@ -288,8 +378,12 @@ mobile hardware editor is explicitly deferred until installable firmware; see
 - Target **L1** first (open application on the vendor SDK), then open
   bootloader (L4), then blob removal (L2); an open compiler (L3) is out of
   scope unless a contributor wants it. See docs/05.
-- **Recovery before any flash.** Bench work is read-only until docs/07
-  Phase 2 is done. Rules of engagement in docs/07 §4.
+- **Staged hardware work** (owner, 2026-10-07; supersedes "recovery before
+  any flash" and its docs/07 Phase 2 gate, which was met on 2026-10-26, D3).
+  Take and compare backups before any erase/program, use audited commands
+  and bounded ranges, keep the stock SPL/OTA/cfg and layout; rules in docs/07
+  §4 and CLAUDE.md. Rehearse on the AC79 dev kit first. Owner decisions of
+  2026-10-26 (D1–D4) are at the top of this file.
 - Do not port Movy; reimplement in C with Movy as the reference (docs/06).
 - Never commit vendor firmware (`.fwsc`, `app.bin`) or the JieLi toolchain;
   `.gitignore` enforces the first.
@@ -306,7 +400,10 @@ mobile hardware editor is explicitly deferred until installable firmware; see
    - the FM-1 is switched on while the key runs;
    - the cable is then moved to the PC.
 
-   Not yet tried on this project's unit; try polarity A first.
+   Answered 2026-10-26: yes on this project's unit, with the clock on D+,
+   the FM-1 switched on while the key runs, push-pull drive from a Pico 2 W
+   with our RP2350 patch (docs/17). Open: how long the ROM's D+ drop lasts
+   and whether it counts the probe edge.
 2. ~~What does the step-1 verifier compare?~~ Largely answered (2026-09-29,
    [reported] Baud Girl): it refuses the running version; whether by version
    string or file list is still open, and matters little.
@@ -330,11 +427,15 @@ mobile hardware editor is explicitly deferred until installable firmware; see
 2. ~~docs/09 §1–§3.~~ Done 2026-09-06 (`notes/2026-09-06-bench.md`).
 3. ~~Power-switch-off enumeration test.~~ Done 2026-09-06 (no enumeration when
    off). Still open: the case-open photo list (docs/09 §5).
-4. **Buy JieLi's "JL USB Updater 4.0" dongle** (US$8–18, AliExpress/Taobao;
+4. ~~Buy JieLi's "JL USB Updater 4.0" dongle~~ Superseded 2026-10-26: the
+   FM-1 was recovered with a Pico 2 W and FM-1-transporter (docs/17), and
+   the AC79 dev kit, in hand, is entered with its UPDATE and RESET buttons;
+   a JieLi dongle is optional. (US$8–18, AliExpress/Taobao;
    docs/07 §2.1) plus a USB-A-female-to-USB-C-male adapter, and use it with
    jl-uboot-tool on a Linux PC for read-only dumps (docs/10 §5). The RP2040
    dongle in docs/10 is the open fallback (UF2 from CI). Ideally also a
-   JL_AC79_DevKit or a second FM-1 to rehearse on.
+   JL_AC79_DevKit (done: in hand, `notes/2026-10-22-devkit-uart-bringup.md`)
+   or a second FM-1 to rehearse on.
 5. ~~Contact aroum and AL-255.~~ Done 2026-09-06: AL-255 PR #3 (V15 package),
    comments on their PR #2 and issue #1, aroum issue #2 (docs/04). Watch those
    threads for replies before posting anything further.
@@ -363,8 +464,8 @@ mobile hardware editor is explicitly deferred until installable firmware; see
    under names of our own since 2026-10-01, because the browser simulator is
    going public; `-DFM1_SIXOP_ORIGINAL_NAMES` restores them for personal
    builds (`engines/plaits-heavy.md`). Stage B, the pi32v2 benchmark and a
-   `-fPIC` test, wants the AC79 dev board from item 4
-   (the JL-AC79-DevKit V1.0 with an AC7916; docs/07 §3).
+   `-fPIC` test, runs on the AC79 dev board, in hand since 2026-10-22
+   (JL_AC79_DevKitBoard V1.2; `notes/2026-10-22-devkit-uart-bringup.md`).
 8. **Sequencer (docs/12, docs/13, 2026-10-01).** An Elektron-style
    sequencer with parameter locks is feasible (docs/12). The owner then chose
    Movy as the target: docs/13 is the port plan, pinned to Movy `9190e79`,
@@ -412,8 +513,9 @@ Paste this as the first message of the new project (adjust paths):
 > M-VAVE FM-1 FM synthesizer. The repository
 > (`~/Developer/mvave-fm1-firmware`) contains a completed research phase:
 > read `HANDOFF.md`, then `DEVELOPERS.md`, then `docs/01`–`09` and `CLAUDE.md`. Rules: the FM-1 on my desk is the only unit;
-> nothing may be flashed or sent to it beyond the read-only identity query
-> until recovery is proven (docs/07). Today's tasks: (1) run
+> hardware work follows CLAUDE.md "Hardware experimentation policy" (staged,
+> backed up, audited commands only; the owner's decisions of 2026-10-26 and
+> docs/17 for recovery). Today's tasks: (1) run
 > `docs/09-first-session-checklist.md` §1 to extract and analyse the V15
 > firmware from `~/Downloads/M-UPGRADE-FM1*.dmg`; (2) §2–§3 USB descriptors and
 > identity query with the FM-1 plugged in; (3) write results to

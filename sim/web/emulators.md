@@ -88,6 +88,6 @@ anything about stock firmware.
 
 An interpreter for the CPU alone, no peripherals, running our engines as
 JieLi's clang compiles them, would count instructions per 64-frame block
-before the AC79 dev board arrives (stage B), and would catch code generation
+before the AC79 dev board (stage B, in hand since 2026-10-22) is used, and would catch code generation
 problems. Weeks of work [inferred], and stage B's dev board answers the same
-question with real cycles. Not recommended unless the board is delayed.
+question with real cycles, and the board is in hand. Not recommended.

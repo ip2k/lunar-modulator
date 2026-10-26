@@ -3,16 +3,43 @@
 Specification, reference implementation and test harness for the dongle that
 puts the FM-1's JieLi AC791N into its mask-ROM USB download mode
 (`UBOOT1.00`) through the USB-C port, so the flash can be dumped and restored
-without opening the case. This is Phase 2 of the roadmap (docs/08). Bench
+without opening the case. This is Phase 2 of the roadmap (docs/08). The
+recovery actually performed on the owner's unit (2026-10-26) used a Pico 2 W
+and FM-1-transporter instead: see docs/17. Bench
 work follows the owner's staged backup, image/range and recovery-plan
 conditions (docs/07 §4); this dongle is not a blanket prerequisite for it.
 
-Status 2026-10-09: **specified, implemented and simulated; not yet run against
-an FM-1.** JieLi sells a ready-made equivalent ("JL USB Updater", docs/07 §2.1);
+Status 2026-10-26: **this design is specified, implemented and simulated; not
+yet run against an FM-1.** It is no longer on the project's critical path
+(owner, 2026-10-26, D2 in docs/07 §4): the approved recovery route for this
+unit is docs/17. The dongle stays useful for other owners and as the
+open-drain design, and E1/E2 still bind it. The AC79 dev kit needs no
+`USB_KEY` dongle: it has onboard UPDATE (K1) and RESET (K2) buttons and a
+UART debug header. JieLi sells a ready-made equivalent ("JL USB Updater", docs/07 §2.1);
 buy that first. This design is the open, instrumented alternative. Confidence marks as elsewhere: [reported] = kagaimiq's write-ups,
 or the reports in issue #2 and czietz's gist where §1.1 says so, [inferred] =
 our reading, [verified] = checked in this repository (host-side simulation
 counts as verification of the *logic*, not of the chip's response).
+
+Update 2026-10-26 [verified: docs/17,
+[recovery note](../notes/2026-10-26-fm1-stock-v15-recovery.md)]:
+- **The `USB_KEY` route works on this project's unit.** After an interrupted
+  install (2026-10-15) left the FM-1 unbootable, FM-1-transporter
+  (kurogedelic, `a7fb5e8`, MIT) on a Raspberry Pi Pico 2 W with this
+  project's RP2350 patch (`tools/fm1-transporter/`) keyed it into
+  `WL82`/`UBOOT1.00` with D+ as the clock, the FM-1 on battery and no VBUS.
+  Two full 1 MiB dumps were identical; the stock V15 application region
+  (143 sectors, `0x4000`–`0x92000`) was written and read back equal; an
+  independent dump equals the V15 image over `[0, 0x93000)`; the unit boots
+  stock V15 and identifies as `FM-1_015`.
+- **Owner decisions, 2026-10-26** (docs/07 §4): recovery of an unbootable
+  unit with an intact boot area `0x0`–`0x4000` is proven (D1); a damaged boot
+  area is not. docs/17 is the approved recovery route for this unit (D2). Its
+  push-pull wiring without series resistors is an approved exception to
+  E1/E2 **for that route only**; E1/E2 still bind this dongle. The dump,
+  restore and boot gate is met with stock V15 as the target (D3).
+- **Still not done:** this dongle on hardware, and a restore of the unit's
+  own `FM-1_092` image (its two backups are the only copy).
 
 Update 2026-10-01:
 - **A simpler Pico dongle works on other FM-1s.** czietz reported in issue #2
@@ -37,7 +64,7 @@ Update 2026-10-05 (`notes/2026-10-05-community-repos.md`):
   no substitute for a recovery path that works when no app runs. Soft-key
   entry on FM-1_092 is now verified and owner-authorized (docs/07 §4;
   [bench note](../notes/2026-10-07-fm1-softkey-bench.md)); broken-app recovery
-  remains untested.
+  was then untested. It was done on 2026-10-26 with a hardware key (docs/17).
 
 Update 2026-10-09 [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)]:
 
@@ -46,9 +73,11 @@ Update 2026-10-09 [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.
   4 KiB unused-sector write/readback/restore passed; the complete post-test
   dump matched the backups. The owner confirmed normal boots after the
   read-only session and after restoration, followed by a fresh identity check.
-- **The limits remain:** no whole-image restoration, broken-app recovery or
-  Lunar application execution has been demonstrated. The physical dongle
-  implementation described here has not run on the owner's unit.
+- **The limits then:** no whole-image restoration, broken-app recovery or
+  Lunar application execution had been demonstrated. Broken-app recovery
+  and a verified application-region write followed on 2026-10-26 (docs/17).
+  Still not demonstrated: a restore of the unit's own `FM-1_092` image, Lunar
+  code on the FM-1, and this dongle on the owner's unit.
 
 ## 1. What the mask ROM does [reported: kagaimiq]
 
@@ -72,7 +101,9 @@ Sources: `jielie/isp/usb/usb-key.md` and
      document cited that page's *diagram* as the D− source, which was wrong.
    - czietz's dongle clocks on D+ and has reached UBOOT mode on two FM-1s
      (§1.1) [reported].
-   - Not yet seen on this project's unit. The dongle keeps both roles
+   - Seen on this project's unit: D+ as the clock keyed the ROM with
+     FM-1-transporter on a Pico 2 W on 2026-10-26 [verified: docs/17];
+     polarity B was not tried. The dongle keeps both roles
      (polarity A = D+ clock, B = D− clock) and can alternate.
 4. Sensing the acknowledge needs a **strong external pull-up (< 4.7 kΩ)** on
    each line: the chip keeps its 15 kΩ USB pull-downs active while receiving
@@ -163,8 +194,10 @@ What it tells us about the FM-1:
    - It suggests that jl-uboot-tool's `wl82loader.bin`, which the tool lists
      as "unknown", works [inferred].
    - The original blanket prerequisite was replaced by owner-authorized
-     staged experiments on 2026-10-07 (docs/07 §4); full-image restore
-     remains untested despite successful bounded sector restoration.
+     staged experiments on 2026-10-07 (docs/07 §4). On 2026-10-26 a
+     verified write of the whole stock V15 application region followed on
+     this unit (docs/17); a restore of its own `FM-1_092` image remains
+     untested.
 3. **A square wave probably works as SOF** [inferred].
    - The loop supplies 1 ms falling edges as a 50 % square wave, and the chip
      reached `UBOOT1.00` [reported].
@@ -190,8 +223,10 @@ What it tells us about the FM-1:
    - The gist drives both lines push-pull at 3.3 V with no series resistance,
      and it keeps keying through the chip's 1–2 ms acknowledge. For a moment
      the chip pulls a line low that the Pico is driving high.
-   - E1 (open-drain only) stays anyway: this project has one FM-1 and no
-     spare.
+   - E1 (open-drain only) stays anyway for this design: this project has
+     one FM-1 and no spare. On 2026-10-26 FM-1-transporter's push-pull drive
+     keyed this unit without visible harm, under the owner's exception for
+     docs/17's route only (D2).
 6. **Moving the cable to the PC works as a hand-over on the FM-1** [reported:
    the gist's procedure, which both owners followed].
    - The chip stays in `UBOOT1.00` while the cable goes from the Pico to the
@@ -219,6 +254,10 @@ What it tells us about the FM-1:
 | Hand-over | move the cable to the PC | relay or mux to the PC; moving the cable also works (§3) |
 | Result | UBOOT mode on two FM-1s, about one power-on in two; a backup and a write afterwards [reported] | not yet run on hardware; logic simulated |
 
+For comparison: FM-1-transporter on a Pico 2 W (with this project's RP2350
+patch) keyed this project's unit on 2026-10-26, followed by two identical
+dumps and a verified stock V15 write [verified: docs/17].
+
 **Cross-check:** on the RP2040, GP14 and GP15 can also be SPI1's SCK and TX
 (RP2040 datasheet, GPIO function table). Those are our board's D+ and D−
 pins, in the same order as czietz's GP10 and GP11. So the gist's approach can
@@ -226,9 +265,10 @@ run on our dongle board with only the pin numbers changed, the relay
 energised (GP17 high) and the pull-ups off.
 
 That gives a second, independent waveform to compare on a logic analyser (§6
-step 1), and a second implementation for the dev-kit rehearsal (docs/08
-Phase 2). It drives push-pull, so by E1 it is not for this project's FM-1,
-even though it has worked on others.
+step 1), and a second implementation if this dongle is built. No dev-kit
+rehearsal of the key is needed: the kit enters download mode with its own
+UPDATE (K1) and RESET (K2) buttons. It drives push-pull, so by E1 it is not
+for this project's FM-1, even though it has worked on others.
 
 **A third report: FM-1-transporter (kurogedelic, `a632d92`, MIT).** Felucca's
 recovery tool; read through the GitHub API, not run here
@@ -241,7 +281,9 @@ recovery tool; read through the GitHub API, not run here
   (`set pindirs, 3`), push-pull like czietz's gist, and the README wires D6
   and D7 straight to D+ and D−, with no series resistors [verified:
   `pio/usb_key.pio` and README at `a632d92`]. By E1 it is not for this
-  project's unit as built.
+  project's unit as built, except on docs/17's route, which the owner
+  approved as an exception on 2026-10-26 (D2) and which keyed this unit
+  that day.
 - **What it reports on FM-1s** [reported: `docs/PROTOCOL.md`,
   `docs/DEVLOG.md`]: polarity A only (D+ clock), and polarity B never
   worked; `4C4A:8057` `WL80UBOOT1.00`, SCSI `WL82`/`UBOOT1.00`, READ_KEY
@@ -252,8 +294,11 @@ recovery tool; read through the GitHub API, not run here
 - **The soft key:** stock V15 obeys `F0 22 24 35 7D F7`, leaves the bus
   21 ms later and returns as `UBOOT1.00` 1.0 s after that; it fails with
   another full-speed device on the hub [reported]. Its `fm1t.py` sends it by
-  itself when it sees V15 [verified: README]. Never run that tool against
-  this project's unit before the gate.
+  itself when it sees V15 [verified: README]. docs/17 runs the transporter
+  with a V15-only research shim; while a running V15 is attached, the
+  soft-key-sending commands `fm1t info`, `dump`, `write`, `uboot` and
+  console `k` are off limits (owner, 2026-10-26, D2). Never run the
+  unmodified upstream host tool against this project's unit.
 - **What it changes here:** item 1 (D+ is the clock) now has a third
   report. Its PIO-USB host idea (MIT) could let our dongle run whole
   sessions from the Mac (`dongle/`) [inferred]; we keep E1's open drain.
@@ -279,6 +324,8 @@ Electrical and safety
 - E1 Never drive a line high: **open-drain only** (drive low or release). The
   chip pulls both lines low during the acknowledge, and push-pull outputs
   would short against it.
+  - Exception (owner, 2026-10-26, D2): docs/17's push-pull FM-1-transporter
+    route, for that route only. E1 and E2 still bind this dongle.
 - E2 3.3 V logic on both sides (USB signalling is 3.3 V); 100 Ω series
   resistors on the two GPIO lines as a fault limiter.
 - E3 The pull-ups (2.2 kΩ to 3.3 V) must be switchable, because during the
@@ -453,12 +500,19 @@ one line per transition with microsecond timestamps.
   Evaluate exact images/ranges and a recovery plan under docs/07 §4. The
   reviewed `tools/fm1_uboot_restore_test.py` restored only the unused sector
   `[0xD8000,0xD9000)`, followed by a complete flash comparison and normal boot
-  [verified: bench note]. Whole-image restoration remains untested. Exit
-  criteria are in docs/08 Phase 2.
+  [verified: bench note]. On 2026-10-26 a 143-sector write of the stock V15
+  application region (`0x4000`–`0x92000`) with read-back followed, through
+  FM-1-transporter's host path rather than `jl-uboot-tool` (docs/17)
+  [verified]. A restore of the unit's own `FM-1_092` image is untested. The
+  docs/08 Phase 2 gate is met (owner, 2026-10-26, D3).
 - `jlrunner.py` can load and run code in RAM without touching flash; that is
   the path for the first custom code (docs/08 Phase 3).
 
 ## 6. Bench procedure (first attempt)
+
+For this dongle, if it is built. It has not been run. On the owner's unit
+the approved recovery route is docs/17 (owner, 2026-10-26, D2), and the unit
+runs stock V15 (`FM-1_015`) since that day.
 
 1. Build the dongle; before connecting the FM-1, power the Pico and watch the
    console: `SELFTEST ok` means the pull-ups and lines are wired. With a
@@ -513,20 +567,23 @@ one line per transition with microsecond timestamps.
 
 What the harness cannot tell us: whether the AC791N's ROM honours the key on
 the FM-1's wiring, the real listening window at power-up, the true polarity,
-and whether VBUS alone powers the SoC. Those are §6.
+and whether VBUS alone powers the SoC. Those are §6. Two are answered on this
+unit by other means: the ROM honours the key with D+ as the clock
+[verified 2026-10-26, docs/17], and VBUS alone does not power the SoC
+[verified 2026-09-06].
 
 ## 8. Risks and open questions
 
 | Item | Status |
 | --- | --- |
-| Pin polarity (which line is clock) | D+ (polarity A) on the FM-1 [reported: czietz's dongle on two FM-1s, §1.1]; `usb-key.md` and the diagram in `how-to-enter-uboot.md` agree, and only that page's prose says D− (§1 item 3). Not yet seen on this project's unit; both roles stay implemented |
+| Pin polarity (which line is clock) | D+ (polarity A) on the FM-1 [reported: czietz's dongle on two FM-1s, §1.1]; `usb-key.md` and the diagram in `how-to-enter-uboot.md` agree, and only that page's prose says D− (§1 item 3). Seen on this project's unit: D+ (A) with FM-1-transporter on a Pico 2 W, 2026-10-26 [verified, docs/17]; both roles stay implemented |
 | Does the ROM listen continuously or only briefly at power-up? | perhaps briefly [inferred]: czietz's blind key/SOF loop hits about one power-on in two, which fits a window from milliseconds to a few hundred (§1.1 item 4). Keying from before power-up covers it; fixed polarity A avoids the alternate-mode miss |
 | Does the chip stay in `UBOOT1.00` while the cable moves from dongle to PC? | yes on two FM-1s [reported, §1.1]; presumably the battery holds the SoC up through the swap [inferred] |
-| Push-pull drive against the chip's acknowledge | survived on FM-1s with czietz's gist and FM-1-transporter, both push-pull with no series resistors [inferred from the reported successes; drive verified in their code]; we stay open-drain (E1) |
-| Does the WL82 UBOOT route reach the flash? | yes through the soft-key path on this FM-1_092: matching full backups and bounded 4 KiB restoration, complete flash identical afterward and normal boot confirmed [verified: bench note]; physical dongle and whole-image restoration remain untested here (§5) |
+| Push-pull drive against the chip's acknowledge | survived on FM-1s with czietz's gist and FM-1-transporter, both push-pull with no series resistors [inferred from the reported successes; drive verified in their code]; FM-1-transporter also keyed this project's unit on 2026-10-26 under the owner's exception for docs/17's route (D2) [verified]; this dongle stays open-drain (E1) |
+| Does the WL82 UBOOT route reach the flash? | yes, both ways on this unit. Soft-key path on FM-1_092 (2026-10-07): matching full backups and bounded 4 KiB restoration, complete flash identical afterward and normal boot confirmed [verified: bench note]. Hardware key with no app running (2026-10-26): two identical full dumps and a verified stock V15 application write, then a boot [verified: docs/17]. This dongle and a restore of the unit's own FM-1_092 image remain untested (§5) |
 | Does the FM-1 SoC start on VBUS with the switch off? | **No** [verified 2026-09-06]: with the switch off the unit is absent from USB (no device node, no MIDI port, no identity reply). Power-up is the switch; no VBUS load switch needed |
 | Series/ESD parts between the USB-C receptacle and the SoC | unknown; 2.2 kΩ pull-ups tolerate a few hundred ohms in series |
-| WL82 `UBOOT1.00` VID:PID and inquiry string | `4C4A:8057` `WL80UBOOT1.00`, SCSI `WL82`/`UBOOT1.00` on this FM-1_092; pinned jl-uboot-tool `adb3f188` loader works with 256-byte I/O [verified: bench note]. Read-only commands first here |
+| WL82 `UBOOT1.00` VID:PID and inquiry string | `4C4A:8057` `WL80UBOOT1.00`, SCSI `WL82`/`UBOOT1.00` on this unit (then FM-1_092); `WL82 UBOOT1.00` again on 2026-10-26 through FM-1-transporter [verified: docs/17]; pinned jl-uboot-tool `adb3f188` loader works with 256-byte I/O [verified: bench note]. Read-only commands first here |
 | MengLi cipher / loader block size for wl82 | from `usb-loaders.yaml` [reported] |
 | Battery keeps the SoC powered while "off" | No: the USB device disappears within seconds of switching off [verified 2026-09-06]. The key must be present when the switch is thrown; the dongle keys continuously |
 

@@ -55,10 +55,11 @@ was read at these commits:
 - [inferred]: our estimate or proposal.
 
 **No CPU figure in this document is measured on pi32v2.** All of them stay
-[inferred] until the AC79 dev kit (docs/14, stage B).
+[inferred] until stage B measures them on the AC79 dev kit (in hand since 2026-10-22, docs/14).
 
-**The one rule.** Nothing here runs on, writes to, or is sent to an FM-1
-(CLAUDE.md). Everything below is built and tested on a desktop and in the
+**Scope.** Nothing here runs on, writes to, or is sent to an FM-1. The old
+"one rule" is superseded by the staged hardware policy (CLAUDE.md, docs/07
+§4); this document stays desktop and browser only. Everything below is built and tested on a desktop and in the
 browser simulator.
 
 **Contents**

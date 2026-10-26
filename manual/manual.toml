@@ -66,7 +66,7 @@ features = true
 
 [[chapter]]
 file = "11-updating-and-recovery.md"
-summary = "Why nothing is installed yet, the recovery dongle, and the firmware your FM-1 has now."
+summary = "Why nothing is installed yet, recovery to M-VAVE's firmware, and the firmware your FM-1 has now."
 
 [[chapter]]
 file = "12-troubleshooting.md"

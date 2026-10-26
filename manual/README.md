@@ -80,7 +80,10 @@ FM-1 today. Every `##` section of a chapter marked `features = true` in
 `manual.toml` must carry a `{{status ...}}` line, and the build stops if one
 does not. *Planned for the device* means designed and documented, not built
 for the hardware. Chapter 1 describes the staged recovery policy and points
-to the simulator; it does not imply full-image recovery has been proven.
+to the simulator. Since 2026-10-26 it may say that one FM-1 that would not
+start was brought back to M-VAVE's firmware, with the limits chapter 11
+names (an intact boot area; the unit's own earlier image and Lunar itself
+untested).
 
 The research docs' confidence marks (`[verified]`, `[reported]`,
 `[inferred]`) stay out of the prose; the statuses carry that for functions,

@@ -40,7 +40,7 @@ names below are in `engine/crates/seq-core/src/`; `movy-dsp/` is under
 | How closely? | **Engine:** tick-identical in a `compat` mode used for tests. The shipped default adds sample offsets and fixes behaviours that look like bugs (§3.3). **UI:** every core gesture gets an FM-1 equivalent. Touch gestures and the pad grid are substituted (§4). |
 | What does it cost? | [inferred] **RAM:** about 72 KiB for Movy's whole 16 × 8 grid, with pooled storage: 18.9 % of the 387,924 B stock gap (§5). **CPU:** under 1 % typical. A fire-tick index makes a scan cost the notes due, not the notes stored, but that is not a bound: every note can fall due on one tick, and Movy's core runs up to 255 clip steps per tick (D8 clamps that to 4). The desktop worst case is in engines/seq.md; stage B measures pi32v2. **Code:** about 4–6k lines of C for the core and 3–5k for the FM-1 UI. |
 | What has to change? | Fixed pools instead of `Vec`s; binary undo; direct `set_param` lanes instead of CC 102+lane, which is Movy's own plan D1 [reported: `plans/2026-09-30-drum-modules-schwung-pages.md` line 76]; frame offsets; tracks routed to the engine or to USB-MIDI. **For this goal, docs/12's Elektron revert rule and its MCL lock store are superseded** by Movy's latch and sparse locks. |
-| What gates it? | Nothing on the desktop. On the device, the one rule (CLAUDE.md, docs/07). A differential test needs the owner's approval to build Movy's code (§7). |
+| What gates it? | Nothing on the desktop. On the device, the staged hardware policy (docs/07 §4; the old one rule is superseded). A differential test needs the owner's approval to build Movy's code (§7). |
 
 ## 2. Movy in one page
 
@@ -306,8 +306,9 @@ sequencer the project key, kept in the set as an FM-1 `key` line (owner
 decisions after PR #69) [verified: engines/seq.md, "The project key";
 `tests/test_engine_midi_fx.py`].
 
-**Persistence under the one rule.** Until docs/07's dump and restore, sets
-live only in desktop and dev-board builds. Then RAM, with `movy1` text export
+**Persistence under the staged policy.** The dump-and-restore gate is met
+(2026-10-26, stock V15 as the restore target, docs/17); until Lunar code runs
+on the FM-1 under docs/07 §4, sets live only in desktop and dev-board builds. Then RAM, with `movy1` text export
 and import over SysEx: ASCII needs no 7-bit packing, and a full FM-1 pool is
 about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
 50 KB (13 sectors of 4 KB) as A/B copies with a CRC (docs/12 §5.7); whether
@@ -390,7 +391,7 @@ about 90 KB [inferred], sent in chunks. Flash last: a binary image of about
 | M3 — oracle | desktop, if approved | a `seq-core` driver and random scripts | no unexplained difference in 10,000 scripts |
 | M4 — UI | desktop | §4's gesture state machine in pure C; TFT views rendered to PNG | `automation.mjs` traces reproduced; no overlap in the PNGs |
 | B — bench | JieLi AC79 dev board | pi32v2 build, worst-case cycles per block, USB-MIDI clock in and out | the sequencer takes ≤ 2 % of any block; jitter figures |
-| C — FM-1 | after docs/07's dump and restore | GRID and KEYS modes, LEDs, TFT, RAM sets, SysEx | core gestures playable; export/import round trip |
+| C — FM-1 | docs/07's dump and restore gate is met (2026-10-26, stock V15 target); gated now by the staged rules in docs/07 §4 and the first Lunar code on the FM-1 | GRID and KEYS modes, LEDs, TFT, RAM sets, SysEx | core gestures playable; export/import round trip |
 | D — FM-1 | after C | flash set partition | an A/B save survives a power cut mid-write |
 
 docs/15 plans M4 in the virtual FM-1 as stages S1–S10, with M2's engine API v2 landing before its lock UI.

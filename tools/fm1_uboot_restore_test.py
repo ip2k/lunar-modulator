@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Bounded restore proof: test pattern in ONE unused 4 KiB sector, then restore FF.
 
-Fixed FM-1_092 scratch range [D8000,D9000), verified FF in two full backups.
+Fixed scratch range [D8000,D9000), verified FF in two full FM-1_092 backups
+(2026-10-07) [verified]. Not rechecked on the stock-V15 dumps of 2026-10-26,
+where the V15 write did not reach it [inferred]: check them before use.
 No boot/app/VM/USR/key sector, other write range, arbitrary payload, chip erase
 or eFuse operation is permitted. Requires an explicitly requested test and
 an active, previously audited loader session. MIT licence.

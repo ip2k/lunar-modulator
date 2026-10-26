@@ -101,7 +101,8 @@ its file offset, and the app spans `0x02000120`–`0x0208E6BC`.
 `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §3]:** `PRCT` `[0, 0xD9000)`,
 VM at `0xD9000` shrunk to 0x10000 (64 KB), so the app area can reach
 `0xD9000`; `BTIF`, `USR`, `key_mac` and the head are unchanged. The owner's unit
-runs this layout since installing FM-1+VA.
+ran this layout from the FM-1+VA install (2026-09-29) until 2026-10-15; since the
+2026-10-26 recovery it has the stock V15 layout again (docs/17).
 
 aroum's README assumes a 4 or 8 MB flash. The package directory and the
 SMK-37 Pro notes both point at **1 MB**. No discrete SPI flash chip is visible
@@ -138,7 +139,7 @@ and described in `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §2.
 | Antenna | a bare **wire** soldered to pad `P1`, labelled `天线` (antenna); the SoC area's silkscreen box has oblong corner slots, probably for an unpopulated shield-can frame | wire [verified] photo 1; shield [inferred] |
 | Passives | `L2 100` buck inductor for the SoC, `L1 4R7`, ferrites `FB1..FB6` on audio | [verified] photo 1 |
 | Unidentified | `U5` (QFN-20 class, near the jacks, with ferrites `FB4`/`FB5`) and `U9` (8-lead SOP): audio amp / codec candidates, one of them probably the I2S codec on ALNK0 (§3.1) [inferred]; `U6` (SOT-89/SOT-223 class, probably a regulator); an SOP-10 marked **`SLS316D` / `6253KD`** right of `J12` (designator not legible, function unknown); `U11` (SOT-23-6), `Q2`, `Q4`, `D1..D57`; a **3-pin SOT-23 plus `R21` on the USB data/VBUS path right under J6** [verified present]; a **bottom-side SOIC-8 `U12` near the USB-C with `R35`/`R36` and `R32` = `R100` (0.1 Ω)**: charger IC [inferred] or, if it is an SPI NOR flash, an external-programmer recovery path (docs/07 §2.5); its marking is still unread. `PC1` = `OCIC P2362`, a 5-lead SO6-style TLP2362-class photocoupler: the **MIDI IN optocoupler** [inferred, strong] | `notes/2026-09-08-desk-review.md`; `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §2 |
-| Debug access | **No header, no test pads, no recovery button.** The "unpopulated 3-pin header" left of U2 (desk review 2026-09-08) is the through-hole leads of the bottom-side battery connector, and the plated holes labelled `J14` carry the leads of `C111`–`C113`: in the owner's photos, flipped and aligned on a mounting hole, the pins land on those pads. The round bare pads near the SoC are fiducials | aroum README §1.2; overlay [verified] `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §2 |
+| Debug access | **No header, no test pads, no recovery button** on the FM-1; recovery entry is by `USB_KEY` on D+/D−, which keyed this unit into UBOOT1.00 on 2026-10-26 [verified: docs/17]. (The AC79 dev kit, unlike the FM-1, has UPDATE/RESET buttons and a UART header.) The "unpopulated 3-pin header" left of U2 (desk review 2026-09-08) is the through-hole leads of the bottom-side battery connector, and the plated holes labelled `J14` carry the leads of `C111`–`C113`: in the owner's photos, flipped and aligned on a mounting hole, the pins land on those pads. The round bare pads near the SoC are fiducials | aroum README §1.2; overlay [verified] `notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §2 |
 | Reset | `RESET=PB01_08_0`: hold PB01 low for 8 s to reset (long-press power path). **Not** a recovery input. PB1 is also the battery's ADC input, so firmware keeps it analog | [reported] AL-255 decode of `isd_config.ini`; battery [reported: Felucca `hal/fm1_adc.h`] |
 
 ### 3.1 Pin map from working code [reported, 2026-10-05]

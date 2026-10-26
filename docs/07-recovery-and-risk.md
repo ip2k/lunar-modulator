@@ -1,15 +1,27 @@
 # 07 — Recovery paths, risk register, rules of engagement
 
 **Policy update, 2026-10-07:** the owner has removed the blanket prerequisite
+(the old "one rule": a full dump and byte-identical restore before any write)
 and authorized staged hardware experiments (§4). The following opening
 describes the original rationale, not a current ban on boot-mode probes.
 
+**Owner update, 2026-10-26:** recovery of an unbootable FM-1 whose boot area
+`0x0`–`0x4000` is intact is proven on this unit, and docs/17 is the approved
+recovery route (§4, decisions D1–D4).
+
 The original single most important fact about this project: **a non-stock
 write can leave the FM-1 unable to boot, and the stock updater cannot rescue a
-nonbooting application.** The owner has since authorized and completed the
-bounded experiments in §4. A full-image restore and recovery from a broken
-application remain untested. This document records the risks and staged
-safeguards; it is not a general authorization for device writes.
+nonbooting application.** That happened on this unit: a stage-7 install
+was interrupted on 2026-10-15 and left it with no display and no USB
+[verified: notes/2026-10-26-fm1-stock-v15-recovery.md §State]. On
+2026-10-26 it was keyed into mask ROM with a Pico 2 W, dumped twice
+(identical), and the stock V15 application region was written, read back
+equal; it boots [reported: owner] and identifies as `FM-1_015` [verified: docs/17,
+notes/2026-10-26-fm1-stock-v15-recovery.md]. That route needs an intact boot
+area `0x0`–`0x4000`; recovery from a damaged boot area is unproven. The unit's
+own FM-1+VA (`FM-1_092`) image was not restored. This document records the
+risks and staged safeguards; it is not a general authorization for device
+writes.
 
 ## 1. Why recovery is hard on this device
 
@@ -38,10 +50,21 @@ safeguards; it is not a general authorization for device writes.
 
 ## 2. Candidate recovery paths, ranked
 
-### 2.1 Mask-ROM USB boot via `USB_KEY` through the USB-C port — try first
+### 2.1 Mask-ROM USB boot via `USB_KEY` through the USB-C port — proven, the approved route
 
-The dongle for this is specified, implemented and simulated in docs/10 and
-`dongle/`; the bench procedure is docs/10 §6.
+**Done on the owner's unit [verified 2026-10-26].** A Pico 2 W running
+kurogedelic's FM-1-transporter, patched for the RP2350, keyed the unbootable
+FM-1 into UBOOT, and the stock V15 application region was written back. The
+procedure is docs/17. It is proven for a unit whose boot area `0x0`–`0x4000`
+is intact; the transporter refuses to write that area, so a damaged boot area
+is still unproven (owner, 2026-10-26, D1). docs/17 is the project's approved
+recovery route for this unit (D2).
+
+This project's own dongle is specified, implemented and simulated in docs/10
+and `dongle/` (bench procedure docs/10 §6) but has not run on an FM-1. It is
+no longer on the critical path; it stays useful for other owners and as the
+open-drain design (D2). The material below predates the 2026-10-26 run and
+is kept as background.
 
 **Buy first, build second [added 2026-09-06].** JieLi sells exactly this
 dongle: the "JL USB Updater" / "JL Forced Download Tool" (强制升级工具),
@@ -121,10 +144,11 @@ data lines at power-up **[reported: kagaimiq `isp/usb/usb-key.md`,
   at that moment (the dongle keys continuously).
 
 **Why this is the priority:** it needs no soldering, it is the vendor's own
-production flashing path, and the tooling already exists. Its only unknown is
-whether the AC791N's ROM honours the key on the FM-1's wiring. If it works,
-dump the whole 1 MB, verify the dump matches the stock package where it
-should, restore it, and dump again.
+production flashing path, and the tooling already exists. Its only unknown
+was whether the AC791N's ROM honours the key on the FM-1's wiring. That is
+answered on this unit: the ROM took the key with D+ as the clock, and two
+identical 1 MB dumps, a stock V15 write with read-back and a boot followed
+[verified 2026-10-26, docs/17].
 
 ### 2.2 Failed-boot fallback
 
@@ -148,11 +172,12 @@ to enter `UBOOT1.00` are now known (`notes/2026-10-05-community-repos.md`
 §3.6):
 - **The stock "soft key"** `F0 22 24 35 7D F7`: stock V15 left the bus
   21 ms later and came back as `UBOOT1.00` [reported: FM-1-transporter; it
-  fails with another full-speed device on the hub]. FM-1_092 is unchecked.
-  It is one byte from the upgrade command `F0 22 24 35 7F F7`, and it is
-  **forbidden before the gate** (rule 1, CLAUDE.md trap 9): the gate must
-  prove the path that works when no app runs. Before any later use, find
-  the `7D` handler in FM-1_092's `app.bin` at the desk.
+  fails with another full-speed device on the hub]. FM-1_092 was never checked, and no longer runs on the unit.
+  It is one byte from the upgrade command `F0 22 24 35 7F F7`, and it
+  stays **banned except in an authorised session** (§4 D4, CLAUDE.md trap
+  9). The gate it was held back for (the path that works when no app runs)
+  was met on 2026-10-26 (§4 D3). Before any later use on stock V15, find the
+  `7D` handler in V15's `app.bin` at the desk.
 - **`go_mask_usb_updata()`** in the SDK (`apps/common/usb/device/msd_upgrade.c`,
   identical at V1.1.9): from RAM, IRQs off, `nvram_set_boot_state(2)`, then a
   core reset through `PWR_CON` bit 4 [verified: SDK source; reported
@@ -189,10 +214,10 @@ programmer become the simplest recovery path of all; read it on the bench
 
 | Risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
-| Custom package bricks the only device | high if attempted without a retained recovery path | total loss of the unit | Follow §4 rule 1 before any flash erase/program. The verified bounded sector restore does not prove full-image recovery or rescue from a nonbooting application; rehearse firmware on the AC791N dev board when available. The board is **JL-AC79-DevKit V1.0**: base board, core board JL-AC79-WIFI V1.0 with an **AC7916** (same dual pi32v2 at up to 320 MHz, 578 KB SRAM), LCD board and cameras. The AC7916 may carry in-package SDRAM the FM-1 lacks; keep benchmark state in internal SRAM. It is also where to rehearse `USB_KEY` and the JieLi USB updater before the FM-1 |
-| `USB_KEY` does not work on AC791N through the connector | low (reported working on FM-1s through the USB-C port with czietz's dongle and with FM-1-transporter, docs/10 §1.1) | forces soldering (2.4) | D+ clock first, then the other polarity; quiet bus; dev-board rehearsal |
+| Custom package bricks the only device | medium; it happened once (interrupted install, 2026-10-15) | loss of the application region, recoverable through docs/17 while `0x0`–`0x4000` is intact (proven 2026-10-26); total loss only if the boot area is damaged, which is unproven to recover | Follow §4 before any flash erase/program; keep the boot area byte-identical to stock (rule 2); first Lunar code runs from RAM only (D3). Rehearse firmware on the dev kit, which is in hand: `JL_AC79_DevKitBoard V1.2` (notes/2026-10-22-devkit-uart-bringup.md, docs/14). The V1.0 / AC7916 description the order was based on is superseded, and the V1.2 core board's chip is not yet identified; if it has in-package SDRAM the FM-1 lacks, keep benchmark state in internal SRAM. The kit enters download mode with its own UPDATE (K1) and RESET (K2) buttons and has a UART header, so it needs no `USB_KEY` dongle |
+| `USB_KEY` does not work on AC791N through the connector | retired on this unit: it worked on 2026-10-26 with FM-1-transporter on a Pico 2 W, D+ clock [verified, docs/17]; also reported with czietz's dongle (docs/10 §1.1) | forces soldering (2.4) | docs/17; D+ clock first; quiet bus |
 | Wrong loader / wrong chip family in tooling | medium | corrupt flash | jl-uboot-tool marks WL82 "unknown", but `adb3f18`'s `wl82loader.bin` works on FM-1s with 256-byte I/O [reported: fm1-nes guard patch]. Read-only operations first, compare the dump with the stock package before any write, and finish dump, compare and write in one session: if the host drops the device, the chip boots flash [reported: FM-1-transporter] |
-| Interrupted write (power loss, USB drop) | medium | unbootable app | battery charged, no hubs during writes, dump before every write. Through the stock path, a loader left waiting after step 1 can be resumed [reported: Baud Girl] |
+| Interrupted write (power loss, USB drop) | medium; happened 2026-10-15 | unbootable app | battery charged, no hubs during writes, dump before every write. Recovered on 2026-10-26 by keying again and rewriting the application region (docs/17 §4, §6) [verified]. Through the stock path, a loader left waiting after step 1 can be resumed [reported: Baud Girl] |
 | Package changes the flash head (`uboot.boot`, `isd_config.ini`) | low if rule 2 is kept | the OTA loader rewrites the second-stage bootloader [reported: Baud Girl FINDINGS 5.4]; a bad one bricks the unit | keep the head byte-identical to V15 and compare its SHA-256 (file bytes `[0x414, 0x4414)`) before anything is sent |
 | Verifier gate never explained | low (was medium) | none for development | largely explained: a same-version refusal, content not authenticated (docs/03 §5); bump the version |
 | Toolchain download disappears | low–medium | cannot build | archive the toolchain privately (do not publish) |
@@ -201,19 +226,28 @@ programmer become the simplest recovery path of all; read it on the bench
 
 ## 4. Rules of engagement (owner revised, 2026-10-07)
 
+These rules replace the old "one rule" (a full dump and a byte-identical
+restore before anything is written), which the owner superseded on
+2026-10-07; CLAUDE.md's "Hardware experimentation policy" is the same policy.
+The owner revised them again on 2026-10-26: decisions D1–D4, below the
+numbered rules, apply on top of them.
+
 1. The owner permits staged bench01 experiments without a prior full dump and
    byte-identical restore: vetted soft-key UBOOT entry, reviewed RAM-loader
    flash reads, then evaluation of a bounded restore or prototype install.
    Take and compare private backups before flash erase/program operations,
    record the exact image/ranges and recovery plan, and retain a route to USB
-   update mode. UBOOT entry alone is not proven recovery. No blanket erase or
+   update mode. UBOOT entry alone is not proven recovery: proof needs the
+   dumps, a verified write and a boot, as D1 records. No blanket erase or
    eFuse programming is authorized. See
-   [the current bench record](../notes/2026-10-07-fm1-softkey-bench.md).
+   [the 2026-10-07 bench record](../notes/2026-10-07-fm1-softkey-bench.md)
+   and [the 2026-10-26 recovery](../notes/2026-10-26-fm1-stock-v15-recovery.md).
 2. Keep `uboot.boot`, `ota.bin`, `cfg`, `isd_config.ini` and the partition
    layout **byte-identical to stock** in any experimental package until the
    loader checks are understood.
 3. Never send syscmd commands 33–36 or 48; never send the `5A AA A5` online-tool
-   erase/write commands blind.
+   erase/write commands blind (both banned except in an authorised session,
+   D4).
 4. Every custom firmware carries a fail-open boot path (key combo → USB update
    mode) and a watchdog-backed failure counter from day one.
 5. Test power loss and disconnects at every update stage on the recoverable
@@ -223,7 +257,46 @@ programmer become the simplest recovery path of all; read it on the bench
 7. Log everything on the bench: USB descriptors, SysEx traces, dumps with
    SHA-256, photos of pin probes. Put them under `notes/`.
 
-**Historical policy note (2026-09-29; superseded by §4 rule 1 and the 2026-10-07 bench result).** Baud Girl's FM-1+VA (docs/04) shows the stock path
+**Owner revision, 2026-10-26** (after the recovery in docs/17):
+
+- **D1 — Recovery proven, bounded.** Recovery of an unbootable FM-1 whose
+  boot area `0x0`–`0x4000` is intact is proven on this unit: mask-ROM
+  `USB_KEY` entry, two identical full dumps, a verified write [verified: docs/17],
+  a boot [reported: owner] and identity `FM-1_015` [verified]. UBOOT enumeration alone is still not proof (rule 1).
+  A damaged boot area remains unproven: the transporter refuses to write
+  `0x0`–`0x4000`.
+- **D2 — Standing route.** docs/17 (Pico 2 W, patched FM-1-transporter,
+  V15-only research shim) is the project's approved recovery route for this
+  unit. While a running V15 is attached, the soft-key-sending commands
+  `fm1t info`, `dump`, `write`, `uboot` and console `k` are off limits. Its
+  push-pull wiring without series resistors is an approved exception to
+  docs/10 E1/E2 for that route only; E1/E2 still bind the project's own
+  `USB_KEY` dongle (docs/10, `dongle/`). The dongle stays useful for other
+  owners and as the open-drain design, but it is no longer on the critical
+  path.
+- **D3 — I9 gate met, with V15 as the target.** The dump, restore and boot
+  gate (I9) is met on 2026-10-26 with stock V15 as the restore target: two
+  identical dumps, a known image written byte-identically over
+  `[0, 0x93000)` and read back [verified: docs/17], and a boot [reported: owner]. The restore
+  target is stock V15, not `FM-1_092`. Gates elsewhere that waited on "the
+  dump and restore", "I9" or "Phase 2 exit" are met. The next milestone is
+  the first Lunar code on the FM-1, RAM-only first, under these rules, with
+  docs/17 as the fallback.
+- **D4 — MIDI in allowed.** Ordinary MIDI (notes, CC, program change) may be
+  sent into the unit on stock V15 for testing. SysEx stays limited to the
+  read-only identity query `F0 00 32 45 00 00 00 40 7F F7`. The soft key
+  `F0 22 24 35 7D F7` (trap 9), syscmd 33–36 and 48, and `5A AA A5` frames
+  (trap 7) stay banned except in an authorised session.
+- **Unchanged:** no blanket erase; no eFuse writes; never loader command
+  `FC12` or the raw `0xA1` write; the stock SPL, `ota.bin` and `cfg` package
+  guards (rule 2, CLAUDE.md trap 11); never ship a V1.2.x `uboot.boot` or
+  loader.
+
+Not done, and not covered by D3: restoring the unit's own FM-1+VA
+(`FM-1_092`) image. The two private 092 backups are the only copy of that
+state.
+
+**Historical policy note (2026-09-29; superseded by §4 rule 1, the 2026-10-07 bench result and the 2026-10-26 recovery).** Baud Girl's FM-1+VA (docs/04) shows the stock path
 installing and removing non-stock applications at scale. That is new
 evidence, but it is evidence about *transfers*. Rule 1 exists for the image
 that does not come back, and no FM-1 has yet been dumped and restored through
@@ -236,10 +309,14 @@ FM-1-transporter erased and rewrote one sector on a V15 unit, and Felucca
 and SLOOP install and roll back through the stock path [reported; docs/04].
 Those reports and the statements above are historical context, not current
 rules or current bench status. See §4 rule 1 and the current bench record.
+On 2026-10-26 this project's unit was dumped twice through mask ROM
+(identical) and the stock V15 application region was written and read back
+(docs/17) [verified]; the unit's own `FM-1_092` image was not restored.
 
-The owner had installed FM-1+VA on the unit by their own decision (it
-identifies as `FM-1_092` on 2026-09-29). Current rules are in §4; the
-project's later bounded recovery result is recorded in the bench note. The
-documented way back to stock is M-VAVE's V15 `.fwsc` through Baud Girl's
-installer [reported]; it has not been exercised here. A dump taken now
-captures FM-1+VA, not stock.
+The owner had installed FM-1+VA on the unit by their own decision; it
+identified as `FM-1_092` from 2026-09-29 to the interrupted install of
+2026-10-15. Since 2026-10-26 it runs stock V15 [reported: owner] and identifies as
+`FM-1_015` [verified: docs/17 §7]. It went back to stock through mask ROM (docs/17), not
+through Baud Girl's installer, which has not been exercised here. A dump
+taken now captures stock V15; the two 092 backups are the only copy of
+FM-1+VA as it ran on this unit.
