@@ -6357,3 +6357,40 @@ installed and misses the deadline in every block. V39 speedup, cache/ABI behavio
 and target stack headroom are unknown. Next is the protected WINDOW/RUN cycle,
 followed by mixed timing/stack evaluation; analog/fault/30minute acceptance remains
 unfinished. Private reports/scripts/candidate remain ignored research artifacts.
+
+### V39 target insert overlap: correctness passes, deadline still fails
+
+[verified] Installed exact admitted V39 `de0fa4e5` through the full protected
+cycle: fresh acknowledged UART entry and actual ROM, two complete CURRENT V38
+backups, factory restore, WINDOW install/full readback, armed startup verifier
+before one reset, fresh three-command handshake in79.2427ms and responsive ROM,
+two complete NEW backups, factory restore and SAME-image RUN install/full readback.
+WINDOW35702 and RUN59549 are consumed at invocation, as are all older receipts.
+Sole receiver44854/PID458172 was twice exact-argv verified, sent one SIGTERM and
+observed terminal255/PID absent before an ordinary PING acknowledgement. Board
+healthy idle; no capture or device operation remains live. No physical FM1 traffic.
+
+[verified] Strict actual UART validation passes four arithmetic patterns, all
+four mixed PCM/control fingerprints,24outer regions and22052 queue jobs without
+errors, with finite worker exit and complete marker. Heap77396bytes stays constant;
+unused parent stack2500/8192bytes and worker7444/8192bytes. Means are
+1913.125/1979.958/1978.333/1999.500us; maxima55153/55623/59980/61474ticks.
+Late blocks are5509/5513/5513/5513 of5513: the34829tick deadline FAILS.
+Raw SHA256 `9e352c7d889d3b8bb31353e21a304fc3581fd5fd19bff6380d9770f29d82e5f3`.
+Private raw/facts/receipts/startup metadata are in build-renderer-queue-insert-v39.
+
+[verified] CPU0 post-dispatch is538..544us, recording258..259us and caller
+execution652..1142us; wait450/325/202/44us. CPU1 engine+insert region1102..1170us
+OVERLAPS CPU0 and must never be added. Compared with V31's same outer-profile
+configuration, means decrease1.90/1.64/3.18/9.06percent in this single run. This
+supports moving complete per-sound work together, but does not establish sustained
+speedup or dropout-free acceptance. V38 has extra observers and is not the clean
+comparison. Even removing all wait leaves a substantial deadline gap.
+
+[verified] Exact source19560 CI40323150122 Chromium job121573474858 failed its
+actual30-second edit storm: two playback underruns totaling23.218ms, with empty
+error logs, zero rejected codes and successful snapshot. Actual job log is saved
+privately as ci-40323150122-chromium.log. This is a separate actionable browser
+audio failure; no gate was relaxed or passing test rerun. Other CI jobs remained
+in progress at last inspection. Pages40323150021 succeeded. PR155 stays draft and
+unmerged; analog/fault validation and representative30minute soaks remain undone.
