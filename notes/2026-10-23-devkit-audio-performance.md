@@ -6803,3 +6803,38 @@ The heavy-case wait is only 4.292 us, so eliminating queue wait cannot close
 the remaining gap. Do not repeat rejected pitch-cache or FIR scheduling probes.
 No physical FM1 or Hera traffic; no operation remains live. Mixed deadline,
 output fault validation and sustained analog acceptance remain unfinished.
+
+### V47 Macro cached-flash placement — rejected
+
+[verified, source and symbols] Private preparation removed only mi_macro.cc
+and the two Plaits virtual-analog engine files from HOT_RAM_SOURCES. Their
+Render symbols moved to 0x020 flash; descriptors and hot tables stayed in RAM.
+CPU0 code placement, algorithms and arithmetic were unchanged. This tested
+shared-SRAM contention without changing core ownership or audio calculations.
+
+[verified, target] Single application flash, one consumed reset; no backups,
+readbacks or restore cycles. Strict parser passes four arithmetic cases, four
+mixed PCM/control fingerprints, 24 regions and 22,052 jobs with zero errors and
+finite exit. Means 1826.292 / 1890.333 / 1900.417 / 2030.750 us, regressions
+11.07 / 10.52 / 9.98 / 8.62 percent against V46. Maxima 2270.875 / 2306.125 /
+2431.958 / 2579.250 us; late 5266 / 5513 / 5513 / 5513. All FAIL the unchanged
+34,829-tick deadline. Control and worker both slowed. Reject this placement;
+V46 remains the best measured reference. Shared-SRAM contention is not supported
+as a useful fix by this experiment; no precise cache-counter attribution claimed.
+
+[verified, persistence] Current board remains healthy idle on the rejected
+V47 experiment, image 0cfab95e5ab9484fe059085d22c92277142af820099ec233b7312f3e2bd11d2e,
+app 3eaabcdef2da17faab21a5208a8ca41b0c4a45261f1a5e293d4083c2d7cb27b0,
+140 sectors [0x4000,0x90000), app_end 0x8f2dc. Heap 90,708 stable; unused
+parent/worker stacks 2500/7444 of8192. Sole RX26374 PID519600 twice checked,
+one SIGTERM, terminal255 and PID absent before ordinary PING ACK. Reset
+iteration-macro-xip-v47-20261026 is consumed, NEVER RETRY; all older resets
+remain consumed. Raw SHA38962229ea6d593c50dc15bb6597d4d1172f9cbca1752a26be606d2f1f5106a7.
+Private scripts, placement, target facts and logs remain in scratch/devkit-20261023
+and Aeon source-macro-xip-v47-proof / renderer-macro-xip-v47-exports. No source
+placement change promoted. No operation remains live; physical FM1/Hera untouched.
+
+[verified, coordination] Owner explicitly requested Astra within this session.
+Started astra_performance_review with gpt-6-astra/high, the exact saved prompt
+and fresh V46 evidence. Read-only review except its private report; no hardware
+or competing builds. Review remains in progress, not implementation acceptance.
