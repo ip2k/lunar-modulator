@@ -4,6 +4,9 @@
 #include "os/os_api.h"
 #include "asm/includes.h"
 #include "benchmark.h"
+#ifdef LUNAR_DEVKIT_QUEUE_SDK
+#include "renderer_queue_sdk.h"
+#endif
 #ifdef LUNAR_DEVKIT_FM6_SDK
 #include "fm6_pair_sdk.h"
 #endif
@@ -26,6 +29,9 @@ static void emit_renderer(const struct lunar_renderer_timing *r)
 {
 #ifdef LUNAR_DEVKIT_FM6_SDK
     lunar_fm6_sdk_report(r->test_case);
+#endif
+#ifdef LUNAR_DEVKIT_QUEUE_SDK
+    lunar_renderer_queue_sdk_report(r->test_case);
 #endif
     printf("\nLUNAR_RENDERER_TIMING case=%u blocks=%u min=%u max=%u mean=%u over=%u controls=%u arena=%u invalid=%u clipped=%u hash=%08x\n",
            r->test_case, r->blocks, r->min_ticks, r->max_ticks,
@@ -175,7 +181,20 @@ void lunar_devkit_worker(void *unused)
         for (;;) os_time_dly(100);
     }
 #endif
+#ifdef LUNAR_DEVKIT_QUEUE_SDK
+    if (!lunar_renderer_queue_sdk_start(now)) {
+        puts("LUNAR_DEVKIT ERROR engine_queue_start\n");
+        for (;;) os_time_dly(100);
+    }
+#endif
     int complete = lunar_devkit_renderer_timing(now, renderer_yield, emit_renderer);
+#ifdef LUNAR_DEVKIT_QUEUE_SDK
+    if (!lunar_renderer_queue_sdk_finish() || !complete) {
+        puts("LUNAR_DEVKIT ERROR engine_queue_finish\n");
+        /* A late worker owns permanent app buffers; retain its clock too. */
+        for (;;) os_time_dly(100);
+    }
+#endif
 #ifdef LUNAR_DEVKIT_FM6_SDK
     if (!lunar_fm6_sdk_finish()) {
         puts("LUNAR_DEVKIT ERROR fm6_pair_finish\n");

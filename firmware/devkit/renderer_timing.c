@@ -2,6 +2,12 @@
 #include "renderer_timing.h"
 #include <stddef.h>
 #include <string.h>
+#ifdef LUNAR_DEVKIT_ENGINE_QUEUE
+#include "renderer_queue_bridge.h"
+#endif
+#ifdef LUNAR_DEVKIT_QUEUE_SDK
+#include "renderer_queue_sdk.h"
+#endif
 #ifdef LUNAR_DEVKIT_FM6_SDK
 #include "fm6_pair_sdk.h"
 #endif
@@ -26,8 +32,14 @@ int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
 #ifdef LUNAR_DEVKIT_FM6_SDK
             lunar_fm6_sdk_parent_block();
 #endif
+#ifdef LUNAR_DEVKIT_QUEUE_SDK
+            lunar_renderer_queue_sdk_parent_block();
+#endif
             uint32_t start = now();
             lunar_devkit_renderer_render(samples);
+#ifdef LUNAR_DEVKIT_ENGINE_QUEUE
+            if (lunar_renderer_queue_error()) return 0;
+#endif
             /* Unsigned subtraction handles the 24 MHz timer wrap. */
             uint32_t elapsed = now() - start;
             result.ticks += elapsed;

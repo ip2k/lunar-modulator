@@ -398,7 +398,87 @@ def place_hook_ram(text, signatures):
     return text
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False):
+
+def queue_engine_callbacks(text):
+    """Private fixed-arrangement transformation; all failures retain buffers."""
+    anchor = "static void sink_render(void *ctx, float *lr, uint32_t n) {"
+    if text.count(anchor) != 1:
+        raise ValueError("Unexpected sink structure; review whole-engine queue")
+    support = r"""
+#include "renderer_queue_bridge.h"
+static unsigned lunar_queue_recording;
+static int lunar_queue_record(const fm1_app_sink_ctx_t *c, unsigned kind,
+    float *lr, unsigned n, unsigned index, unsigned key, unsigned velocity, float value) {
+  if (!lunar_queue_recording) return 0;
+  const fm1_app_unit_t *u = sound_of(c->a, c->sound);
+  /* Once recording, never fall back to a direct engine write on refusal. */
+  if (c->sound == 1 && kind == LUNAR_QUEUE_SET_PARAM && index == 0 && value != 0.0f)
+    kind = 99;
+  lunar_renderer_queue_push(c->sound, u->e, u->self, kind, lr, n, index, key, velocity, value);
+  return 1;
+}
+static int lunar_queue_begin(fm1_app_t *a) {
+  static const char *const ids[4] = {"dx7", "macro", "drums", "dx7"};
+  if (!lunar_renderer_queue_begin()) return 0;
+  for (unsigned s = 0; s < 4; ++s) {
+    const fm1_app_unit_t *u = sound_of(a, s);
+    if (!u->e || !u->e->id || strcmp(u->e->id, ids[s])) {
+      lunar_renderer_queue_push(4, u->e, u->self, 99, 0, 0, 0, 0, 0, 0);
+      return 0;
+    }
+  }
+  lunar_queue_recording = 1;
+  return 1;
+}
+static int lunar_queue_dispatch(void) {
+  lunar_queue_recording = 0;
+  return lunar_renderer_queue_dispatch();
+}
+"""
+    text = text.replace(anchor, support + "\n" + anchor, 1)
+    start = text.index(anchor)
+    end = text.index("/* An effect over the block", start)
+    block = text[start:end]
+    replacements = [
+        ("u->e->render(u->self, lr, n);",
+         "if (!lunar_queue_record(c,LUNAR_QUEUE_RENDER,lr,n,0,0,0,0)) u->e->render(u->self, lr, n);"),
+        ("u->e->note_on(u->self, note, velocity);",
+         "if (!lunar_queue_record(c,LUNAR_QUEUE_NOTE_ON,0,0,0,note,velocity,0)) u->e->note_on(u->self, note, velocity);"),
+        ("u->e->note_off(u->self, note);",
+         "if (!lunar_queue_record(c,LUNAR_QUEUE_NOTE_OFF,0,0,0,note,0,0)) u->e->note_off(u->self, note);"),
+        ("u->e->set_param(u->self, index, value);",
+         "if (!lunar_queue_record(c,LUNAR_QUEUE_SET_PARAM,0,0,index,0,0,value)) u->e->set_param(u->self, index, value);"),
+        ("if (u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);",
+         "if (!lunar_queue_record(c,LUNAR_QUEUE_BEND,0,0,0,0,0,semitones) && u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);"),
+        ("if (u->e->set_param_note) u->e->set_param_note(u->self, key, index, offset);",
+         "if (!lunar_queue_record(c,LUNAR_QUEUE_SET_NOTE,0,0,index,key,0,offset) && u->e->set_param_note) u->e->set_param_note(u->self, key, index, offset);")]
+    for old, new in replacements:
+        if block.count(old) != 1:
+            raise ValueError("Unexpected engine callback; review queue: " + old)
+        block = block.replace(old, new, 1)
+    text = text[:start] + block + text[end:]
+    old = "    fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS, &hook);"
+    if text.count(old) != 1:
+        raise ValueError("Unexpected dispatcher; review queue")
+    text = text.replace(old, "    if (!lunar_queue_begin(a)) return;\n" + old +
+                        "\n    if (!lunar_queue_dispatch()) return;", 1)
+    old = "static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {"
+    if text.count(old) != 1:
+        raise ValueError("Unexpected sound block entry; review queue")
+    text = text.replace(old, old + "\n  if (!a->seq) {\n"
+        "    if (lunar_queue_begin(a)) lunar_renderer_queue_push(4,0,0,99,0,0,0,0,0,0);\n"
+        "    return;\n  }", 1)
+    old = "  render_sounds(a, n, out);"
+    if text.count(old) != 1:
+        raise ValueError("Unexpected sound block; review queue failure propagation")
+    text = text.replace(old, old + "\n  if (lunar_renderer_queue_error()) return NULL;", 1)
+    return text
+
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False):
+    if engine_queue and (fm6_pair or scheduling_probe):
+        raise ValueError("Whole-engine queue must not nest the FM6 worker")
+    if engine_queue and not (timing_only and workload == "mixed" and hot_ram and renderer_o3 and outer_timing_only):
+        raise ValueError("Whole-engine queue requires mixed timing-only resident O3 outer timing")
     if outer_timing_only and not (timing_only and profile and renderer_o3):
         raise ValueError("Outer-only timing requires timing-only profiled O3 placement")
     if oscillator_slopes and not (timing_only and profile and hot_ram and renderer_o3):
@@ -488,13 +568,15 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     if text.count(worker) != 1:
         raise ValueError("Unexpected worker creation; review renderer task stack")
     worker_stack_words = 2048 if filter_process_ram else 3072
-    parent_priority = 16 if scheduling_probe else 10
+    parent_priority = 16 if scheduling_probe or engine_queue else 10
     replacement = worker.replace('10, 2048,', f'{parent_priority}, {worker_stack_words},')
-    if fm6_pair:
+    if fm6_pair or engine_queue:
         replacement = replacement.replace('"lunar_devkit"', '"#C0lunar_parent"')
     main.write_text(text.replace(worker, replacement, 1))
     if fm6_pair:
         shutil.copyfile(source / "firmware/devkit/fm6_pair_sdk.h", app / "fm6_pair_sdk.h")
+    if engine_queue:
+        shutil.copyfile(source / "firmware/devkit/renderer_queue_sdk.h", app / "renderer_queue_sdk.h")
     shutil.copyfile(source / "firmware/devkit/renderer_live.h", app / "renderer_live.h")
     shutil.copyfile(source / "firmware/devkit/renderer_timing.h", app / "renderer_timing.h")
     shutil.copyfile(source / "firmware/devkit/arithmetic_probe.h", app / "arithmetic_probe.h")
@@ -770,6 +852,11 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             original = p.read_bytes()
             engine_profile_inputs[name] = hashlib.sha256(original).hexdigest()
             p.write_text(instrument_engine_profile(original.decode(), engine))
+    queue_input = None
+    if engine_queue:
+        p = staging / "sim/web/src/fm1_app.c"
+        queue_input = hashlib.sha256(p.read_bytes()).hexdigest()
+        p.write_text(queue_engine_callbacks(p.read_text()))
     (staging / "tools/jieli").mkdir(parents=True)
     shutil.copyfile(source / "tools/jieli/renderer.mk", staging / "tools/jieli/renderer.mk")
     fragment = app / "board/wl82/lunar-renderer.mk"
@@ -794,6 +881,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         renderer_flags += "CFLAGS += -DFM1_TFT_EXTERNAL_PIXELS=1\n"
     if fm6_pair:
         renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_DEVKIT_FM6_SDK=1\n"
+    if engine_queue:
+        renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_ENGINE_QUEUE=1 -DLUNAR_DEVKIT_QUEUE_SDK=1\n"
+        renderer_flags += f"CFLAGS += -I{staging / 'firmware/devkit'}\n"
     if scheduling_probe:
         renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_SCHEDULING_PROBE=1\n"
     if workload == "keys":
@@ -824,11 +914,18 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "timing_only": timing_only,
         "render_profile": profile and not outer_timing_only,
         "outer_timing_only": outer_timing_only,
+        "engine_queue": engine_queue,
+        "engine_queue_input_sha256": queue_input,
+        "engine_queue_worker_priority": 16 if engine_queue else None,
+        "engine_queue_stack_words": 2048 if engine_queue else 0,
+        "engine_queue_protocol_budget_ticks": 2400000 if engine_queue else 0,
+        "engine_queue_allowlist": ["dx7", "macro:model0", "drums", "dx7"] if engine_queue else [],
+
         "fm6_pair": fm6_pair,
         "scheduling_probe": scheduling_probe,
         "parent_task_priority": parent_priority,
         "fm6_worker_priority": (16 if scheduling_probe else 10) if fm6_pair else None,
-        "uart_task_priority": 18 if scheduling_probe else 8,
+        "uart_task_priority": 18 if scheduling_probe or engine_queue else 8,
         "fm6_pair_budget_ticks": 24000000 * 64 // 44100 if fm6_pair else 0,
         "fm6_pair_lifetime_ms": 120000 if fm6_pair else 0,
         "hot_ram_sources": hot_inputs,
@@ -954,6 +1051,8 @@ if __name__ == "__main__":
                         help="Compare explicit 32-bit FM sums in private copies; timing-only hot code")
     parser.add_argument("--dispatch-ram", action="store_true",
                         help="Compare sequencer event walk and slot dispatch in SRAM; requires timing-only resident mixer")
+    parser.add_argument("--engine-queue", action="store_true",
+                        help="Finite fixed mixed whole-engine CPU1 queue; timing-only outer O3, no nested FM6 worker")
     parser.add_argument("--fm6-pair", action="store_true",
                         help="Finite CPU1 copied FM6 jobs; timing-only profiled hot code, no DAC")
     parser.add_argument("--scheduling-probe", action="store_true",
@@ -983,4 +1082,4 @@ if __name__ == "__main__":
     parser.add_argument("--external-pixels", action="store_true",
                         help="Caller-owned screen pixels; timing-only renderer does not draw or attach a framebuffer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue)

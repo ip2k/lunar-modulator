@@ -4,6 +4,12 @@
 #include "renderer_live.h"
 #include "fm1_app.h"
 #include "fm1_dx7_kernel.h"
+#ifdef LUNAR_DEVKIT_ENGINE_QUEUE
+#include "renderer_queue_bridge.h"
+#if LUNAR_RENDERER_WORKLOAD != 0
+#error Whole-engine queue requires the fixed mixed arrangement
+#endif
+#endif
 #include <string.h>
 
 #if !FM1_APP_EXTERNAL_ARENAS
@@ -163,6 +169,9 @@ static int mod(const char *ops) {
 int lunar_devkit_renderer_init(void) {
     /* Reinitializing live instances is deliberately unsupported. */
     if (ready) return 0;
+#ifdef LUNAR_DEVKIT_ENGINE_QUEUE
+    if (kernel_adapter) return 0; /* No nested FM6 worker. */
+#endif
     const fm1_host_t host = {FM1_ENGINE_API_VERSION, (float)RATE, BLOCK};
     fm1_app_arena_t arenas[FM1_APP_UNITS];
 #if LUNAR_RENDERER_WORKLOAD == 1
@@ -233,6 +242,9 @@ int lunar_devkit_renderer_init(void) {
 }
 
 void lunar_devkit_renderer_render(int16_t *out) {
+#ifdef LUNAR_DEVKIT_ENGINE_QUEUE
+    if (lunar_renderer_queue_error()) return;
+#endif
     if (!ready) { memset(out, 0, BLOCK * 4u * sizeof *out); return; }
 #ifdef LUNAR_RENDERER_PROFILE
     uint32_t boundary[4];
@@ -274,6 +286,9 @@ void lunar_devkit_renderer_render(int16_t *out) {
     boundary[1] = profile_now ? profile_now() : 0;
 #endif
     const float *samples = fm1_app_render(&app, BLOCK);
+#ifdef LUNAR_DEVKIT_ENGINE_QUEUE
+    if (!samples || lunar_renderer_queue_error()) return;
+#endif
 #ifdef LUNAR_RENDERER_PROFILE
     boundary[2] = profile_now ? profile_now() : 0;
 #endif

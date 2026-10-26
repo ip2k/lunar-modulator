@@ -404,11 +404,12 @@ replay preserves11,290,624 PCM bytes over44,104 batches, with queue peaks3/6/3/3
 These facts do not establish target timing, race freedom, analog quality or
 hardware acceptance. ThreadSanitizer cannot start in the current container.
 
-The offline whole-engine queue now has a permanent-storage C bridge in
-`renderer_queue_bridge.{h,cc}`. Its experimental static CPU1 backend is in
-`renderer_queue_sdk.{h,c}`; neither is in the build lists or preparer yet.
-The objects compile with the pinned vendor toolchain, and controlled host
-lifecycle checks pass. Full integration, publication and target stack review
-remain pending.
-Its protocol timeout is not the audio deadline. Queue failures require the
-caller to stop rendering and retain all engine/output storage through recovery.
+The whole-engine queue has a permanent-storage C bridge in
+`renderer_queue_bridge.{h,cc}` and a finite static CPU1 backend in
+`renderer_queue_sdk.{h,c}`. Explicit `--engine-queue` preparation is restricted
+to the mixed timing-only resident O3 outer-timing experiment, conflicts with
+the FM6 worker, and records only the fixed dx7/Macro model0/drums/dx7 streams.
+It is experimental: host PCM/fault checks and vendor linking do not establish
+target independence, cache publication, deadlines or stack acceptance.
+Its protocol timeout is not the audio deadline. Queue failures stop before
+audio consumption and retain all engine/output storage through recovery.

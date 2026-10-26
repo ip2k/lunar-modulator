@@ -15,6 +15,17 @@ DEVKIT_RENDERER_OBJ += $(BUILD)/devkit/fm6_pair_sdk.o
 $(BUILD)/devkit/fm6_pair_sdk.o: SIM_CFLAGS += -std=gnu99
 endif
 
+ifneq ($(filter -DLUNAR_DEVKIT_ENGINE_QUEUE=1,$(EXTRA)),)
+ifneq ($(filter -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_DEVKIT_FM6_SDK=1,$(EXTRA)),)
+$(error Whole-engine queue must not nest the FM6 worker)
+endif
+DEVKIT_RENDERER_OBJ += $(BUILD)/devkit/renderer_queue.o $(BUILD)/devkit/renderer_queue_bridge.o
+ifneq ($(filter -DLUNAR_DEVKIT_QUEUE_SDK=1,$(EXTRA)),)
+DEVKIT_RENDERER_OBJ += $(BUILD)/devkit/renderer_queue_sdk.o
+$(BUILD)/devkit/renderer_queue_sdk.o: SIM_CFLAGS += -std=gnu99
+endif
+endif
+
 $(BUILD)/devkit/%.o: $(DEVKIT)/%.cc
 	@mkdir -p $(dir $@)
 	$(CXX) $(COMMON) $(OUR_WARN) -I$(DEVKIT) -c $< -o $@

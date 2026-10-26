@@ -5260,3 +5260,36 @@ Together with the bridge/ownership tests: **4 passed, 1.27 s**, private
 pi32 assembly and then interfered with libc assembly aliases; including standard
 headers before the test macros corrected the harness without changing backend
 source. Guarded preparer/app integration and target admission remain pending.
+
+### Guarded whole-engine queue integration (2026-10-26)
+
+[verified] The explicit --engine-queue preparer option now requires the mixed,
+timing-only, resident O3, outer-observer-only experiment. It rejects the FM6
+kernel worker/scheduling option. It selects CPU0 parent priority16, UART18,
+a finite CPU1 worker with permanent 8 KiB stack, and records queue input hash,
+fixed sound allowlist and protocol budget in the preparation receipt. Default
+app/build behavior stays unchanged. Only prepared copies record engine calls;
+note counters and UI lock mirrors stay at their original sequencer callbacks.
+The fixed sound stream IDs are dx7/macro/drums/dx7, and recorded Macro model
+changes away from model0 are refused. This is not an arbitrary-engine scheduler;
+independent mutable-global/transitive engine review remains an admission gate.
+
+[verified] The actual prepared app, actual C bridge and queue preserve all
+11,290,624 PCM bytes across eight mixed cases/44,104 batches; queue peaks remain
+3/6/3/3. A whole-renderer injected dispatch timeout returns no timing case,
+leaves completed block/case counts zero, preserves caller output, and permits
+one late worker completion into the still-live app buffers while permanently
+refusing reuse. App returns NULL before effects/mixing; renderer checks before
+sample conversion/hash; timing loop checks before a completed-case report.
+The SDK wrapper retains timer/arena/task storage on failure. Recovery reservation
+and its 200-tick window precede arithmetic, worker startup and renderer init.
+
+[verified] Focused renderer, queue and integration suite: 110 passed, 1
+unavailable-toolchain skip in 68.55 s (Aeon private
+renderer-queue-integration-focused.log). The first extended test needed an
+extern-C wrapper around the existing C-only timing header; no target linkage
+behavior changed. A fresh private V29 vendor build linked successfully
+(renderer-queue-v29-build.log, build-sdk-renderer-queue-v29). It is NOT admitted,
+staged, installed or hardware accepted. Exact machine code, independent app
+copy/cipher, layout, UART-first startup, engine-global independence, SDK guard
+and NOR restore reviews remain required before any device operation.

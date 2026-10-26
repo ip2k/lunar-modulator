@@ -45,7 +45,7 @@ extern "C" int lunar_renderer_queue_push(unsigned sound, const fm1_engine_t *eng
 extern "C" int lunar_renderer_queue_dispatch(void) { return queue && queue->Dispatch(); }
 extern "C" unsigned lunar_renderer_queue_completed(void) { return queue ? queue->completed() : 0; }
 extern "C" unsigned lunar_renderer_queue_error(void) {
-  return queue ? static_cast<unsigned>(queue->error()) : LunarRendererQueue::Configuration;
+  return queue ? static_cast<unsigned>(queue->error()) : static_cast<unsigned>(LunarRendererQueue::Configuration);
 }
 extern "C" unsigned lunar_renderer_queue_peak(unsigned sound) { return queue ? queue->peak(sound) : 0; }
 extern "C" int lunar_renderer_queue_worker_step(void) { return queue ? queue->WorkerStep() : -1; }
