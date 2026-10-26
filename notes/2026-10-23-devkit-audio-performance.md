@@ -4427,3 +4427,15 @@ signature and a fresh staging directory build successfully. No V19 hardware
 commands have been sent. Exact vendor/link/layout/recovery/PCM/cipher/NOR review
 still gates admission. Rarefaction's primary checkout lacks this worktree symbol;
 Serena selects the actual absolute worktree and finds the exact helper bodies.
+
+[verified, offline] V19 exact candidate `06f2087f…` passes independent app copy,
+full cipher/CRC/protected regions,630-input manifest and139-sector NOR install/
+restore including interrupted pages7/1111/2199/2215. SRAM helper placement is
+verified in vendor instructions; LTO inlines the runner into resident mod tick.
+Pre-task heap75532 bytes. Mod tick frame288 plus glue80 replaces the prior
+inlined glue176, so target stack assessment remains required. Static mailbox,
+worker, pool, app and24-region counter/snapshot ranges are disjoint before heap.
+UART18/1024 creation precedes parent16/2048; actual worker200-tick recovery delay,
+34829-tick budget,120000ms lifetime and finite completion path are retained.
+Only the exact V19 hash gains the existing139-sector bounds; all older bounds
+remain unchanged. This is experiment admission, not timing or audio acceptance.
