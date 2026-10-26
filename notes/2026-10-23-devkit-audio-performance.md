@@ -5037,3 +5037,20 @@ review remain required before any hardware admission. No V27 image is staged
 or installed. Private prototypes have intentionally stale provenance and must
 never be flashed. V26 remains the healthy idle installed image; its mixed
 workload still misses every deadline. No analog acceptance is claimed.
+
+[verified, exact offline admission] V27's 630 input hashes and prepared
+startup/link/make hashes pass; only the oscillator header and reviewed preparer
+input differ from V26. Six FM6 kernels/tables, SDK/ROM relocation checks, 16
+disjoint static ranges, recovery allocation/guard and unchanged timing/lifetime
+constants pass. The fixed non-sync loop's reciprocals at 0x1c198d2/0x1c198da
+precede the sample back edge to 0x1c19920. Fixed/changing oscillator local frames
+are 64/60 bytes; enclosing VCF local frame is 64 (previously 56). Main workload
+frames are unchanged. Hardware stack measurement remains required.
+
+Independent five-section objcopy matches the flat app. Cipher decode, CRCs,
+protected boot/config/tail checks pass. Exact candidate
+`23ce7c2d55059beae51625efd849c15b71a180fc33b7301e55d8b310228625ec`
+is admitted OFFLINE for 140 sectors `[0x4000,0x90000)`, ending app at 0x8f61c.
+Metadata-last NOR install/restore and interrupted pages 7/1127/2215/2231 restore
+correctly. Previous images retain their original boundaries, including installed
+V26's 139 sectors. No hardware speed or acceptance is claimed.
