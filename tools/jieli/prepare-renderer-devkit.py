@@ -135,6 +135,27 @@ def unroll_resampler_lowpass(text):
 
 
 
+def schedule_resampler_intermediate(text):
+    """Overlap the two interpolation chains without reassociating either sum."""
+    anchor = ("    sb += fm1_resampler_tap_(tb) * *before;\n"
+              "    sa += fm1_resampler_tap_(ta) * *after;")
+    if text.count(anchor) != 1 or "fm1_resampler_kernel_pairs[(t >> 16) * 2]" not in text:
+        raise ValueError("Unexpected intermediate taps; requires exact pre-scaled pairs")
+    body = '''    const float *kb = &fm1_resampler_kernel_pairs[(tb >> 16) * 2];
+    const float *ka = &fm1_resampler_kernel_pairs[(ta >> 16) * 2];
+    float wb = (float)(tb & 0xFFFFu), wa = (float)(ta & 0xFFFFu);
+    __asm__ volatile("" : "+r"(wb), "+r"(wa));
+    wb = wb * kb[1]; wa = wa * ka[1];
+    __asm__ volatile("" : "+r"(wb), "+r"(wa));
+    wb = kb[0] + wb; wa = ka[0] + wa;
+    __asm__ volatile("" : "+r"(wb), "+r"(wa));
+    wb = wb * *before; wa = wa * *after;
+    __asm__ volatile("" : "+r"(wb), "+r"(wa));
+    sb += wb; sa += wa;
+    __asm__ volatile("" : "+r"(sb), "+r"(sa));'''
+    return text.replace(anchor, body, 1)
+
+
 def schedule_resampler_lowpass(text):
     """Group independent FIR work; preserve coefficients and four sum chains."""
     expected = "\n".join(f"  y{i % 4} += h[{i}] * (e[{i}] + e[{122-i}]);" for i in range(61))
@@ -722,7 +743,7 @@ def queue_modulation_micro(text, unit, modules=False):
             "#else\n#define QUEUE_MOD_MICRO(r, e) ((void)0)\n#endif\n" + text)
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False):
     if engine_queue_caller_post and not engine_queue_insert:
         raise ValueError("Caller post requires guarded queue inserts")
     if engine_queue_insert and (not engine_queue or engine_queue_drums or engine_queue_detail or engine_queue_micro or engine_queue_mod_micro or engine_queue_module_micro):
@@ -807,6 +828,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Lowpass unrolling requires timing-only profiled slopes")
     if renderer_o3 and not resampler_unroll:
         raise ValueError("Renderer O3 comparison requires timing-only profiled lowpass unrolling")
+    if resampler_stage1_schedule and not (resampler_slopes and mixer_ram):
+        raise ValueError("Stage-one scheduling requires pre-scaled pairs and resident mixer")
     if resampler_schedule and not mixer_ram:
         raise ValueError("FIR scheduling comparison requires timing-only resident mixer")
     if dispatch_ram and not mixer_ram:
@@ -1078,6 +1101,11 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         p = staging / "engines/include/fm1_resampler.h"
         schedule_input = hashlib.sha256(p.read_bytes()).hexdigest()
         p.write_text(schedule_resampler_lowpass(p.read_text()))
+    stage1_schedule_input = None
+    if resampler_stage1_schedule:
+        p = staging / "engines/include/fm1_resampler.h"
+        stage1_schedule_input = hashlib.sha256(p.read_bytes()).hexdigest()
+        p.write_text(schedule_resampler_intermediate(p.read_text()))
     prep_profile_inputs = {}
     if prep_profile and not outer_timing_only:
         for name, planner in (("sim/web/src/fm1_app.c", False),
@@ -1261,6 +1289,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "vcf_profile_original_sha256": vcf_profile_input,
         "engine_profile": engine_profile and not outer_timing_only,
         "resampler_unroll": resampler_unroll,
+        "resampler_stage1_schedule": resampler_stage1_schedule,
+        "resampler_stage1_schedule_original_sha256": stage1_schedule_input,
         "resampler_schedule": resampler_schedule,
         "resampler_schedule_original_sha256": schedule_input,
         "renderer_optimization": "-O3" if renderer_o3 else "-O2",
@@ -1352,6 +1382,8 @@ if __name__ == "__main__":
                         help="Compare renderer -O3 with SDK flags unchanged; requires profiled lowpass unrolling")
     parser.add_argument("--mixer-ram", action="store_true",
                         help="Compare sound mixer/effect dispatch in SRAM; requires timing-only profiled O3")
+    parser.add_argument("--resampler-stage1-schedule", action="store_true",
+                        help="Interleave independent stage-one tap chains; timing-only pre-scaled resident mixer")
     parser.add_argument("--resampler-schedule", action="store_true",
                         help="Group independent FIR sums/products; requires timing-only resident mixer")
     parser.add_argument("--msfa-pure-unroll", action="store_true",
@@ -1409,4 +1441,4 @@ if __name__ == "__main__":
     parser.add_argument("--engine-queue-module-micro", action="store_true",
                         help="Split global module preparation/process/output; requires modulation micro")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post, args.resampler_stage1_schedule)

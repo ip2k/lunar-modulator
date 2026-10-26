@@ -6707,3 +6707,23 @@ iteration. This is not a production optimization or audio acceptance.
 cache or the regressing Macro+Drums partition. Echo has same-sample cross-fed
 stereo feedback, so simply assigning one channel to each core is not an
 independent-track optimization. Physical FM1 untouched.
+
+### V45 stage-one interpolation scheduling experiment (offline)
+
+[verified, source and vendor disassembly] The two coefficient interpolation
+chains in the resampler's first stage were emitted consecutively. The new
+opt-in diagnostic flag `--resampler-stage1-schedule` interleaves their
+conversions, slope products, base additions, input products and accumulations.
+Each chain retains its original operations and addition order. This is distinct
+from the earlier rejected stage-two FIR scheduling experiment. Production DSP
+and default preparation are unchanged.
+
+[verified, offline] Fourteen focused resampler tests pass, including bitwise
+output and complete streaming-state comparisons across seven input rates and
+two output rates. Full mixed replay preserves all 11,290,624 PCM bytes across
+44,104 blocks. The bounded vendor build succeeds; actual decoded target code
+interleaves the two floating chains. Drums/Macro callback local stack allocations
+remain44/52bytes, respectively. These observations do not establish a target
+speedup. No candidate installed or performance acceptance yet. Private scripts,
+logs and disassembly are under scratch/devkit-20261023; no vendor output is
+committed. Next: one streamlined application flash and fresh target timings.

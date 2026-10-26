@@ -1,6 +1,7 @@
 """Fixed-loop expansion must preserve the whole streaming state and PCM."""
 import importlib.util
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -17,14 +18,24 @@ def preparer():
     return module
 
 
-@pytest.mark.parametrize("schedule", [False, True])
+@pytest.mark.parametrize("schedule", ["none", "lowpass", "stage1"])
 def test_expanded_lowpass_stream_is_bit_identical(tmp_path, schedule):
     if not shutil.which('c++'):
         pytest.skip('C++ compiler unavailable')
     original = (ROOT / 'engines/include/fm1_resampler.h').read_text()
     expanded = preparer().unroll_resampler_lowpass(original)
-    if schedule:
+    if schedule == "lowpass":
         expanded = preparer().schedule_resampler_lowpass(expanded)
+    elif schedule == "stage1":
+        definition = re.search(r'static const float fm1_resampler_kernel\[[^\]]+\] = \{.*?\n\};',
+                               expanded, re.S).group()
+        expanded = expanded.replace(definition, preparer().resampler_slope_definition(definition), 1)
+        expanded = expanded.replace(
+            '  const float *k = &fm1_resampler_kernel[t >> 16];\n'
+            '  return k[0] + (float)(t & 0xFFFFu) * (1.0f / 65536.0f) * (k[1] - k[0]);',
+            '  const float *k = &fm1_resampler_kernel_pairs[(t >> 16) * 2];\n'
+            '  return k[0] + (float)(t & 0xFFFFu) * k[1];', 1)
+        expanded = preparer().schedule_resampler_intermediate(expanded)
     # Separate namespaces compile both real implementations in one program.
     # Strip only the header guard, which would suppress the second copy.
     (tmp_path / 'original.h').write_text(original)
