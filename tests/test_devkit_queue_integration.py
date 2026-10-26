@@ -259,6 +259,22 @@ int main() {
  a.unit[callerfx].self=a.unit[callerfx].mem=(unsigned char*)(UINTPTR_MAX-32); assert(!lunar_test_post_layout(&a)); a.unit[callerfx]=saved;
  a.unit[callerfx].cap=63; assert(!lunar_test_post_layout(&a)); a.unit[callerfx]=saved;
  a.unit[callerfx].self=0; assert(!lunar_test_post_layout(&a)); a.unit[callerfx]=saved;
+ // Cached approvals must notice changes to unselected live arenas as well.
+ const int master=1;
+ const fm1_app_unit_t master_saved=a.unit[master];
+ unit(master,fm1_engine_find("echo")); assert(lunar_test_post_layout(&a));
+ a.unit[master].self=a.unit[master].mem=memory[sound]+80;
+ assert(!lunar_test_post_layout(&a));
+ a.unit[master]=master_saved; assert(lunar_test_post_layout(&a));
+ // Switching app identity must revalidate even after another app was sealed.
+ static fm1_app_t other; other=a;
+ assert(lunar_test_post_layout(&other));
+ other.unit[callerfx].cap=63; assert(!lunar_test_post_layout(&other));
+ assert(lunar_test_post_layout(&a));
+ // Change only the unused tail of an arena: full-cap overlap is still illegal.
+ const size_t oldcap=a.unit[sound].cap;
+ a.unit[sound].cap=sizeof(memory); assert(!lunar_test_post_layout(&a));
+ a.unit[sound].cap=oldcap; assert(lunar_test_post_layout(&a));
  const unsigned fault=(unsigned)atoi(getenv("LUNAR_LAYOUT_FAULT"));
  switch(fault) {
  case 0: a.unit[callerfx].e=fm1_engine_find("drive"); break;

@@ -459,7 +459,7 @@ def queue_insert_callbacks(text, caller_post=False):
 struct lunar_post_context { fm1_app_t *app; uint32_t frames; };
 static struct lunar_post_context lunar_post;
 static void lunar_post_sound(void *context, unsigned sound);
-static int lunar_post_layout_valid(const fm1_app_t *a) {
+static int lunar_post_layout_full(const fm1_app_t *a) {
   /* Mix buffers are distinct inline arrays. Only these three instance arenas
    * move to CPU1; no selected arena may overlap any other live unit. */
   const int selected[3] = {fm1_app_sound_unit(1), fm1_app_insert_unit(1, 0), fm1_app_insert_unit(1, 1)};
@@ -510,6 +510,44 @@ static int lunar_post_layout_valid(const fm1_app_t *a) {
         support = support.replace("u->bytes > UINTPTR_MAX - p", "u->cap > UINTPTR_MAX - p")
         support = support.replace("!v->bytes || v->bytes > UINTPTR_MAX - q", "!v->bytes || v->bytes > v->cap || v->cap > UINTPTR_MAX - q")
         support = support.replace("q + v->bytes && q < p + u->bytes", "q + v->cap && q < p + u->cap")
+    support += r"""
+/* Engine descriptors are immutable. Cache only the geometry checked above;
+ * compare every live unit, including masters that can alias a moved arena.
+ * This queue has one active app/owner; a different app never inherits a seal. */
+struct lunar_layout_unit {
+  const fm1_engine_t *engine;
+  void *self;
+  unsigned char *mem;
+  size_t bytes, cap;
+};
+static const fm1_app_t *lunar_layout_app;
+static struct lunar_layout_unit lunar_layout_units[FM1_APP_UNITS];
+static int lunar_post_layout_valid(const fm1_app_t *a) {
+  /* Model changes do not alter geometry, so keep this refusal live. */
+  if (a->unit[fm1_app_sound_unit(1)].value[0] != 0.0f) return 0;
+  if (lunar_layout_app == a) {
+    unsigned k;
+    for (k = 0; k < FM1_APP_UNITS; ++k) {
+      const fm1_app_unit_t *u = &a->unit[k];
+      const struct lunar_layout_unit *v = &lunar_layout_units[k];
+      if (u->e != v->engine || (u->e && (u->self != v->self ||
+          u->mem != v->mem || u->bytes != v->bytes || u->cap != v->cap))) break;
+    }
+    if (k == FM1_APP_UNITS) return 1;
+  }
+  /* Invalidate before checking: a failed replacement cannot retain approval. */
+  lunar_layout_app = 0;
+  if (!lunar_post_layout_full(a)) return 0;
+  for (unsigned k = 0; k < FM1_APP_UNITS; ++k) {
+    const fm1_app_unit_t *u = &a->unit[k];
+    struct lunar_layout_unit *v = &lunar_layout_units[k];
+    v->engine = u->e; v->self = u->self; v->mem = u->mem;
+    v->bytes = u->bytes; v->cap = u->cap;
+  }
+  lunar_layout_app = a;
+  return 1;
+}
+"""
     support = ("#ifndef LUNAR_QUEUE_CALLER_POST\n" if caller_post else "#ifdef LUNAR_QUEUE_CALLER_POST\n") + "#error Generated post scheduling and compile flags disagree\n#endif\n" + support
     replace("static unsigned lunar_queue_recording;", "static unsigned lunar_queue_recording;\n" + support)
     replace("  if (!lunar_renderer_queue_begin()) return 0;", """  if (!lunar_renderer_queue_begin()) return 0;
