@@ -5849,3 +5849,58 @@ and preserved older bounds. Private scripts/reports are under
 `scratch/devkit-20261023/build-renderer-queue-control-v35/` and Aeon
 `renderer-queue-control-v35-r2-exports/`. No V35 staging or installation has
 occurred. CURRENT V34 and every consumed reset receipt remain unchanged.
+
+### V35 control-hook attribution on target — 2026-10-26
+
+[verified] Exact firmware base `0ad522b5f29fccbd4a9bc2088bca62fa6a9bd3c4`,
+8 MiB candidate `86f02a974ad0a41c13ce09396a4657289dd7f8943aeb416870cd063e595f3d83`
+completed the protected WINDOW/RUN cycle and is now CURRENT, restore/install
+140 sectors `[0x4000,0x90000)`. Both full CURRENT V34 backups matched
+`c70fdded...`; CURRENT-range factory restore, WINDOW install/full readback,
+fresh startup PING/ARM/ENTER in **78.6943 ms**, actual ROM inquiry
+`WL82/UBOOT1.00`, two full NEW backups, NEW-range factory restore and SAME
+RUN install/full readback all passed. USB45 path3-1.2/sg0. WINDOW71927 and
+RUN10303, plus all older reset receipts, are CONSUMED: never retry.
+Sole RX2346 PID415677 was armed before RUN invocation, twice exact-argv
+verified after finite completion, SIGTERM once, terminal255 before ordinary
+PING ACK. No capture, build or device operation remains live.
+
+[verified] Strict parser passed four arithmetic and four mixed PCM/control
+cases, 24 outer +40 DETAIL +104 MICRO records, 22,052 queue jobs with zero
+ownership/worker errors and finite worker exit. Means were
+**1959.292/2019.042/2054.708/2213.042 us**, and **all 5513 blocks in every case
+missed the 34829-tick deadline**. Heap 76,788 bytes remained stable; parent
+unused stack 1,532/8,192 bytes, worker unused 7,452/8,192 bytes. These are
+instrumented observations, not analog acceptance or proof of an optimization.
+
+[verified] MICRO23 (the entire `seq_auto_tick` hook) measured
+**213.792/212.333/213.208/214.542 us per block**, with 11025/11026 calls per
+case. It explains most of DETAIL1's 254.750/253.042/254.292/255.542 us.
+Begin/event together cost approximately 5.1 us per block; lock/lock-slot
+had zero calls; note-on hook mean rounded to zero with 56 nonzero-cost
+calls. Existing render/parameter callbacks totalled about 9.3–9.5 us.
+MICRO and DETAIL are subsets of outer regions: never add their banks;
+worker outer5 overlaps CPU0 and must never be added to its total.
+
+[verified source] `seq_auto_tick` delegates to `mod_glue`'s `glue_tick`, which
+calls `fm1_mod_tick`, converts global writes and voice writes, and invokes
+optional callbacks. App initialization assigns `write=mod_write` and leaves
+`ticked` unset. The core tick performs `take_system`, module evaluation,
+`write_sinks`, and `run_voices`; this measurement does not separate those
+internal costs. Next inspect that path and the exact configured graph, then
+choose a PCM-identical optimization or bounded internal measurement. Preserve
+native modulation tick rate, gate/event order, first blocks and polyphony.
+Do not attribute this result to queue pushes or sequencer advance (outside
+DETAIL1), or promote the V30 worker+drums regression.
+
+Evidence stays private: `scratch/devkit-20261023/build-renderer-queue-control-v35/`
+contains startup events/raw UART, strict `target-facts.json` and parser log;
+run raw `renderer-queue-control-v35-run-20261026-uart.bin` SHA256
+`388106921fe4b76fe0eaf933a6ad2a38f389f8ab3ca0922708a98f406ac040ca`.
+Original offline-admission evidence remains historical; these fresh target
+facts establish installation and runtime observations. No target race/cache
+proof is claimed; TSAN unavailable. Physical FM1 remains nonbooting and
+untouched. Deadline/stack acceptance, fault-validated underrun/DAC/KA6 and
+representative 30-minute analog soaks remain incomplete; PR155 stays draft,
+open and unmerged. Exact-head CI40302866231 last in progress;
+Pages40302866082 SUCCESS terminal.
