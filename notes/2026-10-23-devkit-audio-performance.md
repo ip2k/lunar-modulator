@@ -4861,3 +4861,28 @@ unavailable 32-bit replay skipped. A fresh vendor build completes; its complete
 SDK/machine-code/layout/startup/cipher/NOR review and image admission remain
 pending. Nothing from this comparison has been installed. V24 remains healthy
 idle, and the mixed deadline/analog acceptance gates remain unsatisfied.
+
+[verified, exact offline admission] Fresh V25 ELF
+`d94ac3376b7c92341e40bdb1c14db3fd1d3957358f985eeebbd27e4607db4506`
+independently exports app
+`9be3bd6b2aeac0d1c0415da15a9ac865922070cf423a6b93196e70e29b826d00`
+(565,980 bytes, flash end 0x8e3fc). Its VCF function bytes match the reviewed
+prototype exactly. Protected SDK/ROM code and six FM6 kernels/tables pass
+checked relocation comparisons; link audit passes with its scheduling item
+resolved by exact vendor comparison. All 630 inputs match. Prepared app-main,
+linker and build-fragment hashes remain identical to V24. Sixteen static ranges
+are disjoint below the heap; pre-task heap is 134,348 bytes. Compiled UART-first
+allocation/guard, 200-tick recovery delay, 34,829-tick deadline, 120,000 ms
+worker lifetime, all eight profiler sites and unchanged main workload frames
+pass review. The VCF local frame is 52 bytes, down from 56.
+
+Independent section copies, cipher/CRC/protected regions and a 139-sector
+metadata-last NOR model pass, including interrupted pages 7/1111/2199/2215.
+Exact candidate:
+`5c57aab671f77465c8024fa94f04e0a2b5c677ad8a67aaeaf68a5762104ad22a`.
+Only that image is admitted for `[0x4000,0x8f000)`. The current V24 restore
+retains its 138-sector range. Transaction/reset suite: 80 PASS. The first
+copy-export attempt lacked the toolchain mount and stopped before packaging;
+the corrected mounted run passed independent objcopy/cipher checks. Hardware
+startup, PCM, timing and stack checks remain pending. No V25 image has been
+installed or hardware accepted; no analog/soak acceptance is claimed.
