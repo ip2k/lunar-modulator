@@ -468,3 +468,17 @@ these diagnostic results do not establish uninstrumented deadline acceptance.
 Malformed, unfinished, overflowing or missing samples refuse case completion.
 The option changes only the private prepared application, with default builds
 and the existing worker partition unchanged.
+
+`--engine-queue-mod-micro` requires `--engine-queue-micro` and replaces only
+regions 20–25 with system-event intake, global module execution, sink writes,
+voice execution, global glue conversion, and voice glue conversion/callbacks.
+Global module time includes parameter/gate preparation and output sanitation.
+The six whole-hook wrappers are omitted in this mode, so internal intervals
+never nest in the flat micro bank. Region count and result arrays stay unchanged;
+the preparation receipt records the alternative labels and both transformed
+modulation-source hashes. Default builds and the original micro mode are
+unchanged. These subsets exclude tick bookkeeping/plan rebuild and include
+observer overhead; they are not a complete replacement for whole-tick timing.
+The voice-glue interval includes optional callbacks; the measured mixed app has
+none installed. Host equality and timer balance do not establish target timing,
+stack, cache or race acceptance.

@@ -6001,3 +6001,30 @@ worker time or nested MICRO/DETAIL/outer totals. Retain worker1; the V30 drums
 partition remains a measured regression. Deadline/fault-validated DAC/KA6 and
 representative30-minute analog soaks remain unfinished. Physical FM1 remains
 nonbooting and untouched; no Hera contact or button use.
+
+### V37 preparation: internal modulation attribution (offline, 2026-10-26)
+
+[verified] Added opt-in `--engine-queue-mod-micro`, requiring the existing
+micro/detail/queue guard chain. It replaces six whole-hook intervals with six
+sequential modulation subsets: system intake, global modules (including params,
+gates and output sanitation), sinks, voices, global glue conversion, and voice
+glue/callback conversion. The original timer bank remains 26 entries; no result
+arrays grow. The outer tick wrapper is omitted so the flat bank never nests.
+Default app/engine sources remain unchanged; only private preparation copies
+are transformed. Input hashes and alternative region names enter the receipt.
+
+[verified] Seventeen focused transformation/guard checks pass locally. A first
+check exposed a missing repeated-transformation refusal; added an explicit
+instrumentation marker guard and the check now passes. Full shared-app PCM,
+call-balance and timeout-lifetime tests for both partitions completed bounded
+on Aeon (session95200 TERMINAL0): all27PASS, each full11290624PCMbytes/44104blocks
+exact. No hardware test was run. Exact 0f7b CI40309256826 is in progress;
+Pages40309256960 succeeded. No new image has been linked/admitted/staged/installed.
+V36 and all consumed reset receipts remain unchanged. Rarefaction is confined
+to the primary checkout and returned ENOENT for this worktree's preparer;
+Serena session7b7f9712 selected the correct absolute worktree and located it.
+
+[inferred] The six intervals should attribute the roughly213us whole-tick
+cost, but omit plan rebuild/tick bookkeeping and include observer overhead.
+Host proof cannot establish target stack/cache/race/timing. The narrow parent
+stack margin still requires exact vendor frame review before any admission.

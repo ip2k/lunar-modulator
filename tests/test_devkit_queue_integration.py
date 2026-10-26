@@ -17,7 +17,7 @@ def load(name, path):
     return module
 
 
-@pytest.mark.parametrize("queue_profile", [False, True, "detail", "micro"])
+@pytest.mark.parametrize("queue_profile", [False, True, "detail", "micro", "mod_micro"])
 @pytest.mark.parametrize("worker_drums", [False, True])
 def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, queue_profile):
     renderer = load("queue_renderer_reference", ROOT / "tests/test_devkit_renderer.py")
@@ -32,14 +32,29 @@ def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, qu
     shadow = tmp_path / "source"
     (shadow / "sim/web/src").mkdir(parents=True)
     (shadow / "tools/jieli").mkdir(parents=True)
-    (shadow / "engines").symlink_to(ROOT / "engines", target_is_directory=True)
+    if queue_profile == "mod_micro":
+        # Copy only the two changed files; never modify symlinked real sources.
+        (shadow / "engines/mod").mkdir(parents=True)
+        for path in (ROOT / "engines").iterdir():
+            if path.name != "mod":
+                (shadow / "engines" / path.name).symlink_to(path, target_is_directory=path.is_dir())
+        for path in (ROOT / "engines/mod").iterdir():
+            destination = shadow / "engines/mod" / path.name
+            if path.name in ("mod_core.c", "mod_glue.c"):
+                unit = "core" if path.name == "mod_core.c" else "glue"
+                destination.write_text(prepare.queue_modulation_micro(path.read_text(), unit))
+            else:
+                destination.symlink_to(path, target_is_directory=path.is_dir())
+    else:
+        (shadow / "engines").symlink_to(ROOT / "engines", target_is_directory=True)
     shutil.copytree(ROOT / "firmware/devkit", shadow / "firmware/devkit")
     (shadow / "sim/web/mk").symlink_to(ROOT / "sim/web/mk", target_is_directory=True)
     for path in (ROOT / "sim/web/src").iterdir():
         destination = shadow / "sim/web/src" / path.name
         if path.name == "fm1_app.c":
             text = prepare.queue_engine_callbacks(path.read_text())
-            destination.write_text(prepare.queue_micro_callbacks(text) if queue_profile == "micro" else text)
+            destination.write_text(prepare.queue_micro_callbacks(text, queue_profile == "mod_micro")
+                                   if queue_profile in ("micro", "mod_micro") else text)
         else:
             destination.symlink_to(path, target_is_directory=path.is_dir())
     mk = (ROOT / "tools/jieli/renderer.mk").read_text()
@@ -91,7 +106,7 @@ struct Host {
 };
 static Host host;
 ''')
-    if queue_profile in ("detail", "micro"):
+    if queue_profile in ("detail", "micro", "mod_micro"):
         reference = shadow / "firmware/devkit/renderer_reference.c"
         text = reference.read_text().replace('#include "renderer_live.h"',
                     '#include "renderer_live.h"\n#include "renderer_queue_bridge.h"\n#include <assert.h>')
@@ -102,7 +117,7 @@ static Host host;
         assert(lunar_renderer_queue_detail_read(detail));
         assert(!lunar_renderer_queue_detail_read(detail));
 """)
-        if queue_profile == "micro":
+        if queue_profile in ("micro", "mod_micro"):
             text = text.replace("        assert(!lunar_renderer_queue_detail_read(detail));", """
         assert(!lunar_renderer_queue_detail_read(detail));
         uint32_t micro[LUNAR_QUEUE_MICROS], calls[LUNAR_QUEUE_MICROS];
@@ -111,10 +126,15 @@ static Host host;
         unsigned effects = 0;
         for (unsigned i = 6; i < 20; ++i) effects += calls[i];
         assert(effects >= 4);
-        assert(LUNAR_QUEUE_MICROS == 26 && calls[20] == 1 && calls[23] >= 1);
-        assert(calls[22] == 0 && calls[24] == 0); // No parameter-lock lanes in this arrangement.
+        assert(LUNAR_QUEUE_MICROS == 26);
+        MICRO_CONTROL_COUNTS
         assert(!lunar_renderer_queue_micro_read(micro, calls));
 """)
+        if queue_profile in ("micro", "mod_micro"):
+            counts = ("for(unsigned i=20;i<26;++i) assert(calls[i] >= 1 && calls[i] == calls[20]);"
+                      if queue_profile == "mod_micro" else
+                      "assert(calls[20] == 1 && calls[23] >= 1); assert(calls[22] == 0 && calls[24] == 0);")
+            text = text.replace("MICRO_CONTROL_COUNTS", counts)
         reference.write_text(text)
     renderer.ROOT = shadow
     monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
@@ -126,10 +146,10 @@ static Host host;
     if queue_profile:
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_PROFILE=1")
-    if queue_profile in ("detail", "micro"):
+    if queue_profile in ("detail", "micro", "mod_micro"):
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_DETAIL=1")
-    if queue_profile == "micro":
+    if queue_profile in ("micro", "mod_micro"):
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_MICRO=1")
     target = renderer.build_reference(renderer.MODULES)
@@ -174,6 +194,8 @@ int main() {
 
 
 @pytest.mark.parametrize("options", [
+    {"engine_queue_mod_micro": True},
+    {"engine_queue": True, "engine_queue_detail": True, "engine_queue_mod_micro": True},
     {"engine_queue_micro": True},
     {"engine_queue": True, "engine_queue_profile": True, "engine_queue_micro": True},
     {"engine_queue_detail": True},
@@ -207,3 +229,25 @@ def test_micro_control_hook_transformation_is_exact_and_refuses_drift():
         assert f"lunar_micro_{name}" in transformed
     with pytest.raises(ValueError, match="hook table"):
         prepare.queue_micro_callbacks(original.replace("a, seq_auto_begin,", "a, changed_begin,", 1))
+
+
+def test_modulation_micro_boundaries_refuse_drift_and_nested_hooks():
+    prepare = load("queue_modulation_preparer", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    app = prepare.queue_engine_callbacks((ROOT / "sim/web/src/fm1_app.c").read_text())
+    app = prepare.queue_micro_callbacks(app, modulation=True)
+    assert "lunar_micro_tick" not in app
+    assert "QUEUE_MICRO(23, 1)" not in app
+    for unit, name, regions in (("core", "mod_core.c", range(20, 24)),
+                                ("glue", "mod_glue.c", range(24, 26))):
+        original = (ROOT / "engines/mod" / name).read_text()
+        transformed = prepare.queue_modulation_micro(original, unit)
+        for region in regions:
+            assert transformed.count(f"QUEUE_MOD_MICRO({region}, 1);") == 1
+            assert transformed.count(f"QUEUE_MOD_MICRO({region}, 0);") == 1
+        with pytest.raises(ValueError, match="boundary"):
+            prepare.queue_modulation_micro(transformed, unit)
+        old = "take_system(m);" if unit == "core" else "g->sound_writes += k;"
+        with pytest.raises(ValueError, match="boundary"):
+            prepare.queue_modulation_micro(original.replace(old, "changed_boundary();", 1), unit)
+    with pytest.raises(ValueError, match="Unknown"):
+        prepare.queue_modulation_micro("", "unknown")
