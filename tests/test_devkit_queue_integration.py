@@ -17,7 +17,8 @@ def load(name, path):
     return module
 
 
-def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch):
+@pytest.mark.parametrize("worker_drums", [False, True])
+def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums):
     renderer = load("queue_renderer_reference", ROOT / "tests/test_devkit_renderer.py")
     prepare = load("queue_preparer", ROOT / "tools/jieli/prepare-renderer-devkit.py")
     baseline = renderer.build_reference(renderer.MODULES)
@@ -88,6 +89,9 @@ static Host host;
     monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
                        " -DLUNAR_DEVKIT_ENGINE_QUEUE=1 -DLUNAR_QUEUE_HOST_TEST=1"
                        " -pthread -ffp-contract=off -I" + str(shadow / "firmware/devkit"))
+    if worker_drums:
+        monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
+                           " -DLUNAR_QUEUE_WORKER_DRUMS=1")
     target = renderer.build_reference(renderer.MODULES)
     actual = tmp_path / "queue.pcm"
     subprocess.run([str(target), str(actual)], check=True, capture_output=True, timeout=120)
@@ -130,6 +134,8 @@ int main() {
 
 
 @pytest.mark.parametrize("options", [
+    {"engine_queue_drums": True},
+    {"engine_queue": True, "engine_queue_drums": True},
     {"engine_queue": True},
     {"engine_queue": True, "timing_only": True, "hot_ram": True, "renderer_o3": True},
     {"engine_queue": True, "timing_only": True, "hot_ram": True, "renderer_o3": True,

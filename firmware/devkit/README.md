@@ -413,3 +413,13 @@ It is experimental: host PCM/fault checks and vendor linking do not establish
 target independence, cache publication, deadlines or stack acceptance.
 Its protocol timeout is not the audio deadline. Queue failures stop before
 audio consumption and retain all engine/output storage through recovery.
+
+`--engine-queue-drums` additionally requires `--engine-queue` and selects the
+experimental CPU1 partition `[1,2]`: Macro model0 followed by Drums. CPU0 keeps
+both DX7 instances `[0,3]`. The original `[1]` worker partition remains the
+default. Preparation records the selected sounds and emits the explicit
+`LUNAR_QUEUE_WORKER_DRUMS` define; it does not change the workload or deadline.
+Drums temporarily uses stmlib's global noise generator. Its worker-side calls
+must remain serialized, while concurrent caller paths must not touch that
+state. Host PCM and ownership tests cover both partitions; target transitive
+independence, generated instructions, stack and timing require a fresh review.

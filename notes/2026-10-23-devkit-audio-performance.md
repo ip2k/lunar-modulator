@@ -5368,3 +5368,23 @@ unchanged 34,829-tick deadline. Mean times improve approximately 21–26% over
 V28, but this does not establish dropout-free audio or analog acceptance.
 PR155 remains draft and unmerged. Actual DAC/underrun fault validation and
 representative 30-minute analog soaks remain outstanding.
+
+### Optional Macro/Drums CPU1 partition (2026-10-26)
+
+[verified] The diagnostic preparer now accepts `--engine-queue-drums` only with
+the existing guarded whole-engine queue. It records CPU1 sounds `[1,2]` and
+serializes Macro model0 then Drums; CPU0 keeps DX7 sounds `[0,3]`. The default
+partition remains `[1]`. No rate, filter, event order, timeout or audio deadline
+changes. Fifteen focused tests pass in the bounded Aeon container (14.69 s):
+both partitions preserve 11,290,624 PCM bytes over 44,104 batches, retain timeout
+refusal/output lifetime, and pass 2,000-batch operation/ownership checks in normal
+and ASan/UBSan builds. Render callbacks explicitly check their owning thread.
+
+[verified] Source inspection shows Drums saves/restores stmlib's global Random
+around its per-pad rendering. Macro and Drums execute serially with the new
+partition. DX7 LFO sample-and-hold uses its instance's randstate; modulation
+random generators also use per-instance state. This is a bounded source lead,
+not completed target transitive-independence or race proof. TSAN is still
+unavailable. A fresh vendor build, complete independence/instruction/stack and
+layout/recovery/SDK/cipher/NOR reviews remain prerequisites to admission. No new
+image has been admitted, staged or installed; V29 remains healthy idle.

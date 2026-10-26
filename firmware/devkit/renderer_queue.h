@@ -12,7 +12,9 @@ typedef volatile uint32_t LunarQueueWord;
 #endif
 
 /* One caller records four independent sound streams. One permanent worker
- * executes sound 1; the caller executes the others. Callbacks, engine state and
+ * executes sound 1 (also sound 2 with LUNAR_QUEUE_WORKER_DRUMS); the caller
+ * executes the others. Each stream executes once in sound order on its owner.
+ * Callbacks, engine state and
  * output buffers must remain alive and exclusively owned through completion.
  * In particular, the selected engines must not share mutable global state.
  * No device integration or engine/model independence is established here. */

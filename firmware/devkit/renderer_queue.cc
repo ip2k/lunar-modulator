@@ -1,6 +1,14 @@
 /* SPDX-License-Identifier: MIT. No tasks, allocation or device operations. */
 #include "renderer_queue.h"
 
+static bool worker_sound(unsigned sound) {
+#ifdef LUNAR_QUEUE_WORKER_DRUMS
+  return sound == 1 || sound == 2;
+#else
+  return sound == 1;
+#endif
+}
+
 static void queue_fence() {
 #ifdef LUNAR_QUEUE_HOST_TEST
   std::atomic_thread_fence(std::memory_order_seq_cst);
@@ -76,7 +84,7 @@ bool LunarRendererQueue::Dispatch() {
   const uint32_t request = requested_ + 1u;
   queue_fence();
   requested_ = request;
-  for (unsigned s = 0; s < kSounds; ++s) if (s != 1) Execute(s);
+  for (unsigned s = 0; s < kSounds; ++s) if (!worker_sound(s)) Execute(s);
   unsigned polls = 0;
   for (;;) {
     if ((uint32_t)(clock_(context_) - start) >= budget_) return Refuse(Deadline);
@@ -92,7 +100,7 @@ int LunarRendererQueue::WorkerStep() {
   const uint32_t request = requested_;
   if (request == done_) return 0;
   queue_fence();
-  Execute(1);
+  for (unsigned s = 0; s < kSounds; ++s) if (worker_sound(s)) Execute(s);
   queue_fence();
   done_ = request;
   /* No stream or instance access after acknowledgement until next request. */

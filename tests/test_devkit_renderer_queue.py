@@ -9,8 +9,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.mark.parametrize("worker_drums", [False, True])
 @pytest.mark.parametrize("sanitize", [False, True])
-def test_renderer_queue_order_and_permanent_refusal(tmp_path, sanitize):
+def test_renderer_queue_order_and_permanent_refusal(tmp_path, sanitize, worker_drums):
     cxx = os.environ.get("FM1_SIM_CXX", "c++")
     if not shutil.which(cxx):
         pytest.skip("native C++ toolchain unavailable")
@@ -23,12 +24,24 @@ def test_renderer_queue_order_and_permanent_refusal(tmp_path, sanitize):
 #include <cstring>
 #include <thread>
 struct Voice { unsigned key, calls; float value, bend, offset; };
+static Voice *owned;
+static thread_local bool in_worker;
+static void check_owner(void *p) {
+ for(unsigned sound=0;owned && sound<4;++sound) if(p==&owned[sound]) {
+#ifdef LUNAR_QUEUE_WORKER_DRUMS
+  assert(in_worker==(sound==1 || sound==2));
+#else
+  assert(in_worker==(sound==1));
+#endif
+ }
+}
 static void on(void *p, uint8_t k, uint8_t v) { Voice &s=*(Voice*)p; s.key=k; s.value=v; ++s.calls; }
 static void off(void *p, uint8_t k) { Voice &s=*(Voice*)p; assert(s.key==k); s.key=0; ++s.calls; }
 static void set(void *p, uint16_t i, float v) { assert(i==3); Voice &s=*(Voice*)p; s.value=v; ++s.calls; }
 static void bend(void *p, float v) { Voice &s=*(Voice*)p; s.bend=v; ++s.calls; }
 static void note(void *p, uint8_t k, uint16_t i, float v) { Voice &s=*(Voice*)p; assert(k==s.key && i==FM1_PARAM_NOTE_PITCH); s.offset=v; ++s.calls; }
 static void render(void *p, float *out, uint32_t n) {
+ check_owner(p);
  Voice &s=*(Voice*)p;
  for (unsigned f=0;f<n;++f) { out[2*f]=(s.key+s.bend)+s.offset; out[2*f+1]=s.value; }
  ++s.calls;
@@ -63,9 +76,10 @@ int main() {
  typedef LunarRendererQueue Q;
  fm1_engine_t e=engine();
  Voice actual[4]={}, reference[4]={}; float outputs[4][128], expected[4][128];
+ owned=actual;
  Q q(now,0,2000000);
  std::atomic<bool> stop(false);
- std::thread worker([&] { while (!stop.load()) { q.WorkerStep(); std::this_thread::yield(); } });
+ std::thread worker([&] { in_worker=true; while (!stop.load()) { q.WorkerStep(); std::this_thread::yield(); } });
  for (unsigned cycle=0;cycle<2000;++cycle) {
   assert(q.Begin());
   /* Deliberately interleave streams: only each engine's order is required. */
@@ -88,7 +102,7 @@ int main() {
   assert(!memcmp(outputs,expected,sizeof outputs));
   assert(!memcmp(actual,reference,sizeof actual));
  }
- stop=true; worker.join(); assert(q.completed()==2000);
+ stop=true; worker.join(); owned=0; assert(q.completed()==2000);
  for(unsigned s=0;s<4;++s) assert(q.peak(s)==6);
  assert(!q.Dispatch() && q.error()==Q::State); /* Never replay a consumed batch. */
 
@@ -144,6 +158,8 @@ int main() {
 ''')
     exe = tmp_path / "queue"
     flags = ["-fsanitize=address,undefined", "-fno-omit-frame-pointer"] if sanitize else []
+    if worker_drums:
+        flags += ["-DLUNAR_QUEUE_WORKER_DRUMS=1"]
     subprocess.run([cxx, "-std=c++11", "-O2", "-pthread", "-ffp-contract=off",
                     "-DLUNAR_QUEUE_HOST_TEST=1", *flags,
                     "-I" + str(ROOT / "firmware/devkit"),
