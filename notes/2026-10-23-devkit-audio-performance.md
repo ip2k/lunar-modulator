@@ -4886,3 +4886,41 @@ copy-export attempt lacked the toolchain mount and stopped before packaging;
 the corrected mounted run passed independent objcopy/cipher checks. Hardware
 startup, PCM, timing and stack checks remain pending. No V25 image has been
 installed or hardware accepted; no analog/soak acceptance is claimed.
+
+### V25 two-way VCF scheduling — target result
+
+[verified, hardware] Exact `5c57aab6…` completed the protected cycle: fresh
+ready/PING/ARM/ENTER in 79.0203 ms, responsive WL82/UBOOT1.00, two matching
+full current-image and new-image backups, factory restores and same-image
+RUN install with full 8 MiB readbacks. The current V24 restore used 138
+sectors; V25 uses its reviewed 139-sector range `[0x4000,0x8f000)`.
+WINDOW 25024 and RUN 68147 are consumed and must never be retried.
+
+All four mixed PCM fingerprints, control counts, arithmetic patterns and
+32 unit / 24 stage / 24 worst-stage / 12 detail / 96 preparation /
+32 worst-unit / 16 engine-region records pass strict correlation. All 81,308
+paired jobs complete without errors/refusals/wrong-core records, followed by
+finite worker exit. Free heap remains 92,404 bytes; unused parent stack is
+2,436/8,192 bytes and worker stack 3,260/4,096 bytes. Sole RX PID 300125 was
+verified twice before one SIGTERM; session 90316 was terminal before the
+ordinary PING acknowledged healthy idle. No capture remains live.
+
+| Case | Mean us | Maximum us | Late /5513 | Mean improvement vs V24 |
+| --- | ---: | ---: | ---: | ---: |
+| 0 | 2622.958 | 3032.042 | 5513 | 0.430% |
+| 1 | 2835.583 | 3171.208 | 5513 | 0.421% |
+| 2 | 2910.667 | 3454.958 | 5513 | 0.403% |
+| 3 | 3002.167 | 3631.208 | 5513 | 0.391% |
+
+Native Macro means fall to 591.917/664.000/662.458/661.625 us per block;
+the combined two resamplers remain roughly 554 us. The small total gain does
+not justify treating loop unrolling as a solution: every block still fails
+the unchanged 34,829-tick deadline. No first block, event, engine, native
+rate, filter or PCM requirement was removed. Actual DAC fault validation,
+KA6 analog captures and representative 30-minute soaks remain undone.
+
+Private raw SHA-256:
+`6e9f60e34c74e8e9c4a85c88e7c6247bfab6ec7d76be9cd6caa07d6c0bab8e5c`.
+Raw/facts and strict parsers remain in ignored scratch storage. PR #155 stays
+draft and unmerged. At this checkpoint, exact source c63af14c CI40260047105
+has three jobs remaining and no failures; Pages40260047129 succeeded.
