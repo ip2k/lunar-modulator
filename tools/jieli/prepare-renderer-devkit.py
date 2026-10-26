@@ -411,8 +411,8 @@ KIND_RAM_FUNCTIONS = {
     "engines/mod/kinds/mod_lfo.c": (b"static void lfo_run", b"static void lfo_process"),
     "engines/mod/kinds/mod_env.c": (b"static void env_run", b"static void env_process"),
     "engines/mod/kinds/mod_chance.c": (b"static void clock_run", b"static void chance_process"),
-    "engines/mod/mp_lfo.c": (b"float fm1_mp_lfo_process",),
-    "engines/mod/mp_env.c": (b"float fm1_mp_env_process",),
+    "engines/mod/mp_lfo.c": (b"float fm1_mp_lfo_process", b"float fm1_mp_lfo_value"),
+    "engines/mod/mp_env.c": (b"float fm1_mp_env_process", b"float fm1_mp_env_value"),
 }
 
 

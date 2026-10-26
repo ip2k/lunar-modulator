@@ -344,8 +344,8 @@ Its per-image manifest records the original prepared source; exact linked
 placement, heap/stack and target PCM/timing remain admission/acceptance checks.
 
 The separate private `--kind-ram` experiment places the existing default LFO,
-envelope and chance hot processors and their LFO/envelope process primitives
-in SRAM. It requires timing-only profiled resident module helpers. Bodies,
+envelope and chance hot processors and their LFO/envelope process and value
+primitives in SRAM. It requires timing-only profiled resident module helpers. Bodies,
 random state, rates and event order are unchanged; original source hashes are
 retained. Vendor layout/stack and exact target PCM/timing remain required.
 
