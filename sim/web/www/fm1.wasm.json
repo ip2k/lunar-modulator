@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "dd091a8be268e4cdfbe0a58a427830194a5914668694ee98c3335a91cb2bb010",
-  "wasm_bytes": 1587263,
+  "wasm_sha256": "f15f99d5a881b154c17cbcded36c779adf0aee14f62dbb9a9c1019604a4a79d7",
+  "wasm_bytes": 1587281,
   "sources_sha256": {
-    "engines": "24e3c24b1cd8f861c3a4a3807457221a159bbda2612a46f1442129fa379ac08b",
-    "sim": "6492fda03868019e564b0039ca55e8f347aa385649bc6c853cfae0ca2b775bc7"
+    "engines": "93d19167b4c2e51fc033256039232826ef2687cee3ac384027714fb356f373fb",
+    "sim": "8d594db2c46c4271968f2658053aab42c599a6895e38c62ae4d86c4e396a2db5"
   },
   "engines": "working tree",
-  "built": "2026-10-26T01:39:34Z",
+  "built": "2026-10-26T12:03:48Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -180,10 +180,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.06582599999998706,
-      "p99_ms": 0.10816700000000878,
-      "max_ms": 0.2519319999999965,
-      "edit_us_per_quantum": 8.929431583018912
+      "p50_ms": 0.06387200000000348,
+      "p99_ms": 0.10698500000000877,
+      "max_ms": 0.2635840000000371,
+      "edit_us_per_quantum": 8.600095058504259
     },
     "check": {
       "params": 474,
