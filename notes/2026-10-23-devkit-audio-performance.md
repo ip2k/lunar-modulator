@@ -4965,3 +4965,46 @@ interrupted pages 7/1111/2199/2215. Exact candidate
 `836f2967e245dd4848704ec3bc282c9b1364f121db855f6fb8db54acd9e27797`
 is admitted only for `[0x4000,0x8f000)`. All prior image bounds remain intact;
 transaction/reset suite: 81 PASS. Not installed or hardware accepted.
+
+### V26 VCF sections — target result
+
+[verified, hardware] Exact `836f2967…` completed the full protected cycle:
+fresh ready/PING/ARM/ENTER in 79.0732 ms, responsive WL82/UBOOT1.00, matching
+two full current/new-image backups, factory restores and same-image RUN
+reinstall with complete 8 MiB readbacks. Both current and new restore ranges
+are 139 sectors `[0x4000,0x8f000)`. WINDOW62722 and RUN70164 are consumed;
+never retry them. Sole RX PID307393 was checked twice before one SIGTERM;
+session64071 terminated before ordinary PING acknowledged healthy idle.
+
+All four PCM/control fingerprints, arithmetic patterns, 32 unit, 24 stage,
+24 worst-stage, 12 detail, 96 preparation, 32 worst-unit and 24 engine-region
+records pass strict correlation. Native block/output counts remain unchanged.
+All 81,308 paired jobs complete with zero error/refusal/wrong-core records and
+finite worker exit. Heap is stable at 92,308 bytes; unused parent/worker stack
+is 2,436/8,192 and 3,260/4,096 bytes. No capture remains live.
+
+| Case | Total mean us | Maximum us | Late /5513 | Oscillator pair us | Filter section us | VCF calls |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 2631.542 | 3029.458 | 5513 | 260.250 | 231.125 | 113626 |
+| 1 | 2847.250 | 3192.083 | 5513 | 293.000 | 260.042 | 127668 |
+| 2 | 2922.625 | 3460.083 | 5513 | 292.000 | 258.958 | 127672 |
+| 3 | 3015.458 | 3650.042 | 5513 | 291.542 | 258.792 | 127672 |
+
+Both section counters match calls and 12 frames per voice call; their sum fits
+inside the enclosing Macro generation total. The filter section includes
+parameter setup and the sample loop, ending before interpolator destructors.
+These instrumented means locate cost, not a production speed regression or
+improvement. The unchanged 34,829-tick deadline still fails for every block.
+An eventual timing comparison without internal counters is required alongside
+actual DAC fault validation and representative 30-minute KA6 analog soaks.
+
+Private raw SHA-256:
+`3835ff6c9481d99d561d900aef020db9e4b1b44eff896254029fb0138bbbf17a`.
+Raw/facts/parsers remain ignored. Source e9fcf1b8 CI40262261441 was still
+running with no failed jobs; Pages40262261567 succeeded. PR155 remains draft,
+unmerged; no deployment or analog acceptance is claimed.
+
+[inferred, next offline comparison] The oscillator computes pulse-width
+reciprocals each sample. Reuse is potentially exact when interpolation cannot
+change the rounded pulse width. Preserve the existing rounded state, including
+stalled interpolation; snapping to a requested target would change PCM.
