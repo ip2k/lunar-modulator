@@ -5222,3 +5222,25 @@ A late acknowledgement never allows reuse. A separate private app-copy replay
 using this actual queue completes44,104 batches/error0 with peaks3/6/3/3 and all
 11,290,624 PCM bytes identical across eight mixed cases. This remains offline;
 no SDK backend, new image admission or target scheduling speed is established.
+
+### Permanent queue bridge and unintegrated SDK backend (2026-10-26)
+
+[verified] Added a C ABI bridge around the ordered queue using aligned permanent
+storage and explicit placement construction. Initialization is single-use; no
+heap allocation, global constructor, destructor or reset/reuse API is provided.
+Malformed wide command fields are rejected before narrowing. Host bridge tests
+exercise successful replay, permanent refusal, invalid initialization and each
+wide-field rejection. Together with ownership and ASan/UBSan queue tests, the
+focused Aeon run passed **3 tests** (1.18 s; private
+`renderer-queue-bridge-tests.log`). This is host evidence, not target ABI proof.
+
+[inferred] The new, currently unintegrated `renderer_queue_sdk.c` backend follows
+the existing static SDK task contract: CPU1, priority 16, permanent 2048-word
+stack, 120-second finite work interval and explicit exit reporting. It rejects
+nested FM6 SDK workers at compile time. Its 100 ms protocol refusal bound is
+separate from the unchanged 34829-tick audio deadline. It has not yet been
+compiled against the vendor SDK, linked, admitted or installed. No default
+build list, app callback, preparer, timer or device behavior changes here.
+Next: guarded fixed-arrangement integration, explicit independent-engine/model
+allowlist, fatal propagation retaining the arena/timer after timeout, host PCM
+and lifecycle checks, then exact vendor/layout/recovery/cipher/NOR review.

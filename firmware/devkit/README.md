@@ -403,3 +403,10 @@ Normal and address/undefined-behavior sanitized host tests pass. Private full-ap
 replay preserves11,290,624 PCM bytes over44,104 batches, with queue peaks3/6/3/3.
 These facts do not establish target timing, race freedom, analog quality or
 hardware acceptance. ThreadSanitizer cannot start in the current container.
+
+The offline whole-engine queue now has a permanent-storage C bridge in
+`renderer_queue_bridge.{h,cc}`. Its experimental static CPU1 backend is in
+`renderer_queue_sdk.{h,c}`; neither is in the build lists or preparer yet.
+The SDK backend still needs compilation and lifecycle/integration review.
+Its protocol timeout is not the audio deadline. Queue failures require the
+caller to stop rendering and retain all engine/output storage through recovery.

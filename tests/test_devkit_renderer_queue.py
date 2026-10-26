@@ -151,3 +151,59 @@ int main() {
                     str(ROOT / "firmware/devkit/renderer_queue.cc"), "-o", str(exe)], check=True)
     env = dict(os.environ, ASAN_OPTIONS="halt_on_error=1", UBSAN_OPTIONS="halt_on_error=1")
     subprocess.run([str(exe)], check=True, env=env, timeout=30)
+
+
+def test_renderer_queue_c_bridge_permanent_storage(tmp_path):
+    cxx = os.environ.get("FM1_SIM_CXX", "c++")
+    if not shutil.which(cxx):
+        pytest.skip("native C++ toolchain unavailable")
+    source = tmp_path / "bridge.cc"
+    source.write_text(r'''
+#include "renderer_queue_bridge.h"
+#include <assert.h>
+#include <atomic>
+#include <thread>
+static unsigned calls;
+static void render(void *, float *out, uint32_t n) { ++calls; out[n-1]=42; }
+static uint32_t clock_now(void) { std::this_thread::yield(); return 0; }
+int main(int argc, char **) {
+ assert(lunar_renderer_queue_worker_step()==-1);
+ assert(!lunar_renderer_queue_begin() && lunar_renderer_queue_error()!=0);
+ assert(!lunar_renderer_queue_init(0,100));
+ assert(!lunar_renderer_queue_init(clock_now,0));
+ assert(!lunar_renderer_queue_init(clock_now,0x80000000u));
+ assert(lunar_renderer_queue_init(clock_now,100));
+ assert(!lunar_renderer_queue_init(clock_now,100));
+ fm1_engine_t e={}; e.kind=FM1_KIND_SOUND; e.render=render;
+ int instance=0; float out[128]={};
+ assert(lunar_renderer_queue_begin());
+ if(argc>1) {
+  /* No integer truncation may turn a malformed operation into a valid one. */
+  unsigned field=argc-2;
+  assert(!lunar_renderer_queue_push(1,&e,&instance,
+   field==0 ? 256 : LUNAR_QUEUE_RENDER,out,64,
+   field==1 ? 65536 : 0, field==2 ? 256 : 0, field==3 ? 256 : 0,0));
+  assert(!lunar_renderer_queue_dispatch() && !lunar_renderer_queue_begin());
+  assert(lunar_renderer_queue_worker_step()==0 && calls==0);
+  return 0;
+ }
+ assert(lunar_renderer_queue_push(1,&e,&instance,LUNAR_QUEUE_RENDER,out,64,0,0,0,0));
+ std::atomic<bool> stop(false);
+ std::thread worker([&]{while(!stop.load()) lunar_renderer_queue_worker_step();});
+ assert(lunar_renderer_queue_dispatch()); stop=true; worker.join();
+ assert(calls==1 && out[63]==42 && lunar_renderer_queue_completed()==1);
+ assert(lunar_renderer_queue_peak(1)==1 && lunar_renderer_queue_peak(4)==0);
+ assert(!lunar_renderer_queue_error());
+ assert(!lunar_renderer_queue_dispatch());
+ assert(!lunar_renderer_queue_begin());
+ assert(!lunar_renderer_queue_init(clock_now,100));
+ assert(calls==1 && lunar_renderer_queue_completed()==1);
+}
+''')
+    exe = tmp_path / "bridge"
+    subprocess.run([cxx, "-std=c++11", "-O2", "-pthread", "-DLUNAR_QUEUE_HOST_TEST=1",
+                    "-I" + str(ROOT / "firmware/devkit"), "-I" + str(ROOT / "engines/include"),
+                    str(source), str(ROOT / "firmware/devkit/renderer_queue.cc"),
+                    str(ROOT / "firmware/devkit/renderer_queue_bridge.cc"), "-o", str(exe)], check=True)
+    for arguments in ([], ["kind"], ["index", "x"], ["key", "x", "x"], ["velocity", "x", "x", "x"]):
+        subprocess.run([str(exe), *arguments], check=True, timeout=10)
