@@ -5172,3 +5172,32 @@ old guard and passes with the correction. Bounded Aeon renderer/arithmetic tests
 complete with 101 passed and one unavailable-toolchain skip (59.49 seconds).
 This source correction has not been built into or installed as a new vendor
 image; it does not retroactively close V28's hardware arithmetic coverage gap.
+
+### Ordered per-engine replay proof (offline, 2026-10-26)
+
+[verified, host only] Two private app-copy experiments preserve all 11,290,624
+PCM bytes across eight cases (two consecutive four-case mixed passes), including
+all control fingerprints. The first records Macro's render/note/parameter/bend/
+per-note operations and replays them after sequencer dispatch. The second records
+all four sounds, replays Macro on a persistent pthread and the other sounds on
+the caller, then joins before insert processing and ordered mixing. Queue peaks
+are 3/6/3/3 operations against capacity128. Neither experiment changes native
+rates, controls, sample boundaries or sum order within an engine. Sources and
+logs are private under the devkit task scratch storage; no device code or image
+was installed. This proves this fixed arrangement's replay result, not arbitrary
+engine/model independence or target speed.
+
+[verified, host] A separately compiled address/undefined-behavior sanitized
+concurrent replay also completes with identical bytes and no sanitizer error
+(leak detection disabled for the permanent test worker). ThreadSanitizer builds,
+but cannot start: `unexpected memory mapping`; a per-process `setarch -R` retry
+is denied by the container. No race-safety pass is claimed. Target admission
+still needs explicit ownership/publication, bounded overflow/timeout behavior,
+permanent late-worker storage, a reviewed independent-engine allowlist and vendor
+machine-code/layout/UART recovery verification. Existing copied FM6 kernel
+parallelism cannot simply remain nested inside a busy whole-engine worker.
+
+[verified] Source18600d4f is remotely backed up. Exact CI40268655368 remains
+in progress without a failing job at inspection; Pages40268655347 succeeded.
+PR155 remains draft and unmerged. Current hardware remains V28 idle; its missing
+arithmetic preflight and failed deadlines are unchanged by these host proofs.
