@@ -209,3 +209,35 @@ Prior owner steering already favored the Pico route and deferred elaborate
 scope work; an official V4.1 forced-download adapter had been ordered in that
 history. Current arrival status is unknown. Existing Pico2W trial stopped at
 SELFTEST/FAULT before keying, with external pull-up wiring unresolved.
+
+## FoMni and the newly published official source
+
+[verified, source] Inspected FoMni at 7e 7547f 384fe 70b 7e 89cfd 725b 0a 211bcc 60db 05
+(`charlesvestal/fm 1-fomni`, firmware/src/app/main_fm 1.c and dsp/omni.c).
+Its audio runs in the ALNK0 interrupt; the approximately 60 Hz UI runs in the
+main loop. It uses 256-frame halves and a purpose-built chord-harp renderer:
+wavetable strings/chords/bass, sampled drums and a shared reverb. String
+filter/shimmer coefficients update every 16 samples. This supports separating
+visual work and avoiding unnecessary coefficient evaluation, but changing
+Lunar's native control rates or replacing its Plaits/filter/resampler would
+change the fixed workload and is not an equivalent optimization. No code imported.
+
+[verified, source] Inspected `m-vave/fm 1_open` at
+4c 7496daac 04a 95ff 10d 1afdcc 8f 9ead 2dbabc 41. Its public application uses 128-frame
+blocks, an ALNK0 interrupt renderer and a guarded DMA commit. The SDK interface
+explicitly separates instrument rendering from APP-owned USB/Bluetooth mixing
+and master output gain. The target instrument renderer is supplied as
+`sdk/lib/libfm 1_engine.a`; public web/synth and web/engine sources provide
+additional algorithm context, but the application wrapper alone does not
+prove how the target library schedules its cores. Its mixer uses explicit
+fixed-point arithmetic and exact special cases (silence/settled nominal gain).
+No proprietary archive unpacking or disassembly was performed in this inspection.
+
+[inferred] The useful recurring pattern is removing invariant work and keeping
+UI outside the real-time path, alongside complete independent track scheduling.
+Lunar already has partial whole-track overlap after V39/V40. V43's unattached
+framebuffer means its quarter-cadence timing only measures scope bookkeeping;
+it does not measure physical display refresh savings. Heavy-case CPU0 wait is
+about 4 us, so more overlap by itself cannot remove the remaining~480 us mean gap.
+Current next experiment caches unchanged DX7 operator frequency conversions
+while preserving every original control, envelope and oscillator step.

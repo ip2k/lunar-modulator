@@ -6663,3 +6663,42 @@ a work priority, not a claim that the hardware acceptance has been achieved.
 Aeon jobs: all 108 parity scenarios pass; strict build-record freshness passes.
 This used --no-screenshot and does not establish Chromium playback acceptance.
 No CI gate was relaxed. PR155 remains draft and unmerged.
+
+### V44b DX7 frequency cache — correct, no useful target gain; rejected
+
+[verified] Tested a per-voice cache of the common pitch-modulation input to
+six frequency lookups. Start/retrigger and legato Retune invalidate the cache;
+all envelope, LFO, glide, gain and phase work remains unchanged. The first
+six-key prototype exceeded the existing 16 KiB instance limit and was rejected.
+The compact key passes all 143  DX7 tests, including that unchanged memory gate,
+and full 11,290,624-byte/44,104-block mixed PCM matches V43 exactly. The proof
+script's initial comparison accidentally read the previous V43 pair; an explicit
+cmp of the newly generated V44 before/after files independently confirmed the
+new outputs equal, and the saved script is corrected. Vendor build succeeds;
+actual browser rebuild passes 108  parity cases (no Chromium acceptance).
+
+[verified] One streamlined application flash, no backup/readback/restore;
+acknowledged UART entry, fresh ROM USB54/path 3-1.2/sg 0, sole receive-only capture
+armed before one consumed reset. Image dde 4ffb 540a 6440acbd 7d 384bfae 7080208f 5b 6572351a 5f 7ad 89ad 727c 6e 9d 8,
+app 2118fb 7de 6b 68a 014fc 35ed 7a 09440c 619397fef 1f 8a 64be 8d 14de 5c 77fcbe 63,
+range 140  sectors [0x 4000,0x 90000). Reset iteration-dx 7-frequency-v 44b-20261026
+CONSUMED NEVER RETRY. RX64402/PID509062 closed with one SIGTERM after exact
+identity check; terminal 255 and PID absent before ordinary PING ACK.
+
+[verified] Arithmetic 4/mixed PCM-control 4/24 outer regions/22,052 queue jobs,
+zero errors and finite exit pass. Means 1701.750/1767.042/1790.333/1942.292 us;
+late 4936/5513/5513/5513 of 5513. All cases FAIL34829 tick deadline. Relative to
+V43, light cases save under 1 us while heavy cases regress 3.375/11.042 us.
+This is a single-run comparison, not sustained acceptance. Heap 77268 stable,
+parent unused 2500/8192 and worker 7444/8192. No useful measured gain: source
+cache and its generated browser artifacts reverted; private prototype retained.
+The board remains on this correct, responsive experimental image until the next
+iteration. It is not a production optimization or audio acceptance.
+
+[verified] Private scripts, source, raw capture and target facts under
+scratch/devkit-20261023/dx 7-frequency-v 44b-proof and
+build-renderer-dx 7-frequency-v 44b; raw SHA 2b 84764f 96f 1f 9294b 10c 298033a 753680fe 17d 5b 67bf 941624fff 60550a 3484.
+[inferred] Continue targeting actual engine/control/master cost. Do not promote
+this cache or the regressing Macro+Drums partition. Source inspection of Echo
+finds same-sample cross-fed stereo feedback, so simply assigning one channel
+to each core is not an independent-track optimization. Physical FM1 untouched.
