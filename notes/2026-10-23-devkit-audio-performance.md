@@ -5811,3 +5811,15 @@ No V35 image is admitted, staged or installed at this checkpoint. V34 remains
 CURRENT and idle; its deadline failure and all consumed reset receipts stand.
 Next: exact-source vendor link, strict new parser/fault fixtures and complete
 machine-code/layout/UART-first/SDK/cipher/NOR admission before any hardware use.
+
+V35 vendor attempt 86623 failed before link because the SDK worker's include
+paths do not contain `fm1_engine.h`: importing the bridge from the result
+header exposed that renderer-only dependency. The result header now keeps a
+small independent region count, checked against the bridge enum in the
+producer translation unit; the emitter uses the result-header count. All
+three local timing aggregation configurations pass after this correction.
+The prior eight full PCM replays remain valid for the unchanged wrapper/DSP
+code; this header correction still requires a fresh exact-source vendor build.
+V35 strict offline parser fixtures reject 26 new malformed control/micro cases,
+all 37 inherited faults, and the actual V34 capture missing six control regions.
+These synthetic fixtures are not hardware evidence.

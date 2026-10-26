@@ -3,7 +3,9 @@
 #define LUNAR_DEVKIT_RENDERER_TIMING_H
 #include "renderer_live.h"
 #ifdef LUNAR_QUEUE_MICRO
-#include "renderer_queue_bridge.h"
+/* This SDK-facing record must not import the renderer engine API. The
+ * producer checks this count against its bridge enum at compile time. */
+enum { LUNAR_RENDERER_QUEUE_MICROS = 26 };
 #endif
 #if defined(LUNAR_QUEUE_PROFILE) && !defined(LUNAR_DEVKIT_ENGINE_QUEUE)
 #error Queue region profiling requires the whole-engine queue
@@ -21,8 +23,8 @@ struct lunar_renderer_timing {
     uint32_t queue_detail_max[10], queue_detail_worst[10];
 #endif
 #ifdef LUNAR_QUEUE_MICRO
-    uint64_t queue_micro_ticks[LUNAR_QUEUE_MICROS];
-    uint32_t queue_micro_max[LUNAR_QUEUE_MICROS], queue_micro_worst[LUNAR_QUEUE_MICROS], queue_micro_calls[LUNAR_QUEUE_MICROS];
+    uint64_t queue_micro_ticks[LUNAR_RENDERER_QUEUE_MICROS];
+    uint32_t queue_micro_max[LUNAR_RENDERER_QUEUE_MICROS], queue_micro_worst[LUNAR_RENDERER_QUEUE_MICROS], queue_micro_calls[LUNAR_RENDERER_QUEUE_MICROS];
 #endif
 #ifdef LUNAR_RENDERER_PROFILE
     uint32_t worst_block, worst_stages[LUNAR_RENDERER_PROFILE_STAGES];

@@ -5,6 +5,10 @@
 #ifdef LUNAR_DEVKIT_ENGINE_QUEUE
 #include "renderer_queue_bridge.h"
 #endif
+#ifdef LUNAR_QUEUE_MICRO
+typedef char lunar_micro_record_count_matches[
+    (int)LUNAR_RENDERER_QUEUE_MICROS == (int)LUNAR_QUEUE_MICROS ? 1 : -1];
+#endif
 #ifdef LUNAR_DEVKIT_QUEUE_SDK
 #include "renderer_queue_sdk.h"
 #endif

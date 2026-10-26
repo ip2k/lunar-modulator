@@ -51,7 +51,7 @@ static void emit_renderer(const struct lunar_renderer_timing *r)
                r->queue_detail_max[i], r->queue_detail_worst[i]);
 #endif
 #ifdef LUNAR_QUEUE_MICRO
-    for (unsigned i = 0; i < LUNAR_QUEUE_MICROS; ++i)
+    for (unsigned i = 0; i < LUNAR_RENDERER_QUEUE_MICROS; ++i)
         printf("LUNAR_QUEUE_MICRO case=%u region=%u blocks=%u mean=%u max=%u worst=%u calls=%u\n",
                r->test_case, i, r->blocks, (unsigned)(r->queue_micro_ticks[i] / r->blocks),
                r->queue_micro_max[i], r->queue_micro_worst[i], r->queue_micro_calls[i]);

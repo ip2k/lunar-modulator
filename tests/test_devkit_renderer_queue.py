@@ -422,9 +422,9 @@ int lunar_renderer_queue_detail_read(uint32_t out[10]) {
 }
 #endif
 #ifdef LUNAR_QUEUE_MICRO
-int lunar_renderer_queue_micro_read(uint32_t out[LUNAR_QUEUE_MICROS], uint32_t calls[LUNAR_QUEUE_MICROS]) {
+int lunar_renderer_queue_micro_read(uint32_t out[LUNAR_RENDERER_QUEUE_MICROS], uint32_t calls[LUNAR_RENDERER_QUEUE_MICROS]) {
  if(fault==4) return 0;
- for(unsigned i=0;i<LUNAR_QUEUE_MICROS;++i) { out[i]=0; calls[i]=0; }
+ for(unsigned i=0;i<LUNAR_RENDERER_QUEUE_MICROS;++i) { out[i]=0; calls[i]=0; }
  out[0]=fault==5?91:17;
  calls[0]=fault==6?0xffffffffu:4;
  return 1;
@@ -442,7 +442,7 @@ static void emit(const struct lunar_renderer_timing *r) {
 #ifdef LUNAR_QUEUE_MICRO
  assert(r->queue_micro_ticks[0]==17ull*5513 && r->queue_micro_calls[0]==4*5513);
  assert(r->queue_micro_max[0]==17 && r->queue_micro_worst[0]==17);
- for(unsigned i=1;i<LUNAR_QUEUE_MICROS;++i) assert(!r->queue_micro_ticks[i] && !r->queue_micro_calls[i]);
+ for(unsigned i=1;i<LUNAR_RENDERER_QUEUE_MICROS;++i) assert(!r->queue_micro_ticks[i] && !r->queue_micro_calls[i]);
 #endif
  for(unsigned i=0;i<6;++i) {
   unsigned duration=i<5?18:42;
