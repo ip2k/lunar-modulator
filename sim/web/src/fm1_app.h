@@ -186,6 +186,10 @@ enum fm1_app_profile_stage {
 #define FM1_APP_MAX_FRAMES 64
 #define FM1_APP_MAX_PARAMS 32
 #define FM1_APP_SCOPE 512
+/* Visual work cadence; 1 restores the original cadence for A/B timing. */
+#ifndef FM1_APP_VISUAL_DIVISOR
+#define FM1_APP_VISUAL_DIVISOR 4
+#endif
 
 /* Pixels the screen keeps between any two labels, or a label and a bar
  * (fm1_tft_check_layout's gap in the tests). */
@@ -467,6 +471,7 @@ typedef struct fm1_app {
   uint64_t last_draw;            /* a->frames at the last redraw */
   float scope[FM1_APP_SCOPE];
   int scope_pos;
+  unsigned scope_block;
   float peak;                    /* largest output sample since the last redraw */
   float meter;                   /* level shown, with a falling decay */
   uint8_t led[FM1_APP_LEDS];     /* keys 0..26, then buttons in enum order */

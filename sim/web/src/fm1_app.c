@@ -3660,12 +3660,14 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   PROFILE_STAGE(FM1_APP_PROFILE_LIMITER, n, 0);
   PROFILE_STAGE(FM1_APP_PROFILE_SCOPE, n, 1);
   if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + FM1_APP_FX_SLOTS + 1u, out, n);   /* the output */
-  for (uint32_t i = 0; i < n; ++i) {
-    float m = 0.5f * (out[2 * i] + out[2 * i + 1]);
-    a->scope[a->scope_pos] = m;
-    a->scope_pos = (a->scope_pos + 1) % FM1_APP_SCOPE;
-    float p = fabsf(out[2 * i]) > fabsf(out[2 * i + 1]) ? fabsf(out[2 * i]) : fabsf(out[2 * i + 1]);
-    if (p > a->peak) a->peak = p;
+  if (a->scope_block++ % FM1_APP_VISUAL_DIVISOR == 0) {
+    for (uint32_t i = 0; i < n; ++i) {
+      float m = 0.5f * (out[2 * i] + out[2 * i + 1]);
+      a->scope[a->scope_pos] = m;
+      a->scope_pos = (a->scope_pos + 1) % FM1_APP_SCOPE;
+      float p = fabsf(out[2 * i]) > fabsf(out[2 * i + 1]) ? fabsf(out[2 * i]) : fabsf(out[2 * i + 1]);
+      if (p > a->peak) a->peak = p;
+    }
   }
   if (a->gain != 1.0f) {
     for (uint32_t i = 0; i < 2 * n; ++i) out[i] *= a->gain;
@@ -4657,10 +4659,14 @@ int fm1_app_draw(fm1_app_t *a, uint32_t min_frames) {
   /* An unattached target screen is not a completed redraw. Retain dirty,
    * meters and last_draw so attaching storage can render the actual state. */
   if (!fm1_tft_ready(&a->tft)) return 0;
+  /* Keep animation and dirty-screen refreshes at the same visual cadence.
+   * A zero interval remains an explicit immediate draw for offline callers. */
+  const uint64_t interval = (uint64_t)min_frames * FM1_APP_VISUAL_DIVISOR;
+  if (min_frames && a->last_draw && a->frames - a->last_draw < interval) return 0;
   /* With modulation the rack's cells, the live ticks and MATRIX's hint line
    * move without input: redraw like the scope. */
   int live = a->peak > 0.0f || a->meter > 0.0f || a->mod != NULL;
-  if (!a->dirty && !(live && a->frames - a->last_draw >= min_frames)) return 0;
+  if (!a->dirty && !(live && a->frames - a->last_draw >= interval)) return 0;
   a->meter = a->peak > a->meter * 0.6f ? a->peak : a->meter * 0.6f;
   if (a->meter < 1e-4f) a->meter = 0.0f;
   a->peak = 0.0f;

@@ -6613,3 +6613,53 @@ in progress with no failed jobs at check; Pages40329848910 last in progress.
 [verified] Strict parser passes4 arithmetic cases,4 exact mixed PCM/control fingerprints,24 outer regions and22052 queue jobs with zero errors and finite worker exit. Means1704.250/1769.375/1789.042/1934.458us, max2041.333/2089.875/2256.417/2527.958us; late4958/5513/5513/5513of5513. All four FAIL unchanged34829tick(~1451.2us) deadline. Heap77396stable, parentunused2500/8192 and workerunused7444/8192bytes. Versus V41 same outer-profile mode, means improve1.007/0.998/0.953/0.825percent, single-run comparison only. CPU0 recording250..251us versus V41~267..268us; caller842..1328us, wait263/136/37/4us, post337..339us. CPU1 region5 overlaps CPU0 and must never be added. Sparse intake removes measurable work but leaves a substantial deadline gap, especially the heavy case with negligible wait.
 
 [verified] RawSHAe0f09efc4e2dc521c5403282a80c978e91ce5280edd3b15b7bd89a0a980d53e3; private raw/facts/summary/startup/cycle receipts saved locally in build-renderer-system-sparse-v42 and Aeon exports. Next inspect remaining recording/module-system or shared-master critical paths before another exact-PCM change; do not assume additional overlap can close the gap. Actual mixed deadline, fault-validated DAC/KA6 and representative30minute analog soaks remain unfinished. Exact040e76fe CI40344620253 last in progress with no failed jobs; Pages40344619962 succeeded terminal. PR155 remains draft/open/unmerged. No build/test/RX/device operation live, physical FM1 remains nonbooting and untouched.
+
+## Quarter-rate waveform and screen experiment — 2026-10-26 (V43)
+
+[verified] At the owner's request, waveform/peak collection runs on one render
+block in four. Normal screen draws, including dirty redraws, wait four times
+the requested interval. Explicit zero-interval offline draws remain immediate.
+The default visual divisor is four; one restores the original cadence for A/B.
+Audio processing, event timing and control polling are unchanged. The separate
+sparse modulation-slot experiment was kept private and excluded from V43.
+
+[verified] Full old/new mixed output matches all 11,290,624 PCM bytes across
+44,104 blocks. Both existing framebuffer tests pass. Vendor build succeeds.
+The owner-approved streamlined installation used acknowledged UART entry,
+one application flash and one reset with an armed receiver. No new backup,
+factory restore rehearsal, full-flash readback or exhaustive admission cycle.
+Initial unprivileged SG open failed before commands; sudo installation succeeded.
+Reset marker iteration-visual-quarter-v43-20261026-b/.reset-attempted is consumed;
+never retry. Receiver PID503521 was closed and terminal before ordinary PING ACK.
+
+| Density | V42 mean us | Quarter-rate mean us | Saved us | Late / 5513 |
+| --- | ---: | ---: | ---: | ---: |
+| 0 | 1704.250 | 1702.167 | 2.083 | 4932 |
+| 1 | 1769.375 | 1767.667 | 1.708 | 5513 |
+| 2 | 1789.042 | 1786.958 | 2.083 | 5513 |
+| 3 | 1934.458 | 1931.250 | 3.208 | 5513 |
+
+[verified] Four arithmetic/mixed PCM/control cases, 24 timing regions and 22,052
+queue jobs pass correctness checks, zero queue errors and finite exit. Heap is
+stable at 77,332 bytes. Unused parent/worker stack is 2500/7444 bytes of 8192.
+All four cases still FAIL the unchanged 34,829-tick deadline. This single-run
+0.10–0.17% mean difference is small; no sustained or perceptual acceptance claimed.
+
+[verified] Important limit: this timing harness uses unattached external pixels,
+so screen drawing already returns early. These figures measure reduced scope
+bookkeeping, not the savings from a quarter-rate physical TFT update. Do not
+attribute the remaining DSP deficit to screen drawing without measuring the
+actual attached-display path. Instrumented timing is not analog acceptance.
+
+Private evidence: scratch/devkit-20261023/build-renderer-visual-quarter-v43,
+visual-quarter-v43-proof, visual-quarter-v43-{build,install-b,package,wasm}.log,
+and renderer-visual-quarter-v43-run-20261026-uart.bin. Raw SHA256
+bc943b1a8f1f4c2dce4a8ff669380845d8548c5fdad437741385701fefaa617b.
+Astra review prompt: notes/2026-10-26-astra-performance-review-prompt.md.
+Owner target is to resolve the performance within the next 24 hours; this is
+a work priority, not a claim that the hardware acceptance has been achieved.
+
+[verified] Rebuilt the committed browser WASM and its generated record on bounded
+Aeon jobs: all 108 parity scenarios pass; strict build-record freshness passes.
+This used --no-screenshot and does not establish Chromium playback acceptance.
+No CI gate was relaxed. PR155 remains draft and unmerged.
