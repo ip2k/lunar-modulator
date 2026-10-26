@@ -51,6 +51,41 @@ void Chain(const fm1_msfa::FmOpParams *params, bool feedback, int fb_shift, int3
 
 }  // namespace
 
+// Algorithm 5 has three independent two-operator stacks. Keep the
+// intermediate modulator sample in a register instead of a 64-sample bus.
+namespace {
+template <bool feedback>
+void OperatorPair(const fm1_msfa::FmOpParams *p, int shift, int32_t fb[2], int32_t *out) {
+  uint32_t pm = static_cast<uint32_t>(p[0].phase), pc = static_cast<uint32_t>(p[1].phase);
+  const uint32_t fm = static_cast<uint32_t>(p[0].freq), fc = static_cast<uint32_t>(p[1].freq);
+  int32_t gm=p[0].gain[0], gc=p[1].gain[0];
+  const int32_t dm=(p[0].gain[1]-gm+32)>>6, dc=(p[1].gain[1]-gc+32)>>6;
+  int32_t y0=fb[0], y=fb[1];
+  for (int i=0; i<64; ++i) {
+    gm+=dm; gc+=dc;
+    const int32_t input=feedback ? Wrap(y0,y)>>(shift+1) : 0;
+    const int32_t mod=static_cast<int32_t>((static_cast<int64_t>(fm1_msfa::Sin::lookup(
+        static_cast<int32_t>(pm+static_cast<uint32_t>(input))))*gm)>>24);
+    if (feedback) { y0=y; y=mod; }
+    const int32_t sample=static_cast<int32_t>((static_cast<int64_t>(fm1_msfa::Sin::lookup(
+        static_cast<int32_t>(pc+static_cast<uint32_t>(mod))))*gc)>>24);
+    out[i]=Wrap(out[i],sample); pm+=fm; pc+=fc;
+  }
+  if (feedback) { fb[0]=y0; fb[1]=y; }
+}
+}
+bool RenderAlgorithmFive(fm1_msfa::FmOpParams *p, int shift, int32_t fb[2], int32_t *out) {
+  // Fall back as a whole before touching output, phases or feedback.
+  for (int j=0;j<6;++j) if (p[j].gain[0]<kLevelThresh && p[j].gain[1]<kLevelThresh) return false;
+  if (shift<0 || shift>16) return false;
+  if (shift<16) OperatorPair<true>(p,shift,fb,out);
+  else OperatorPair<false>(p,shift,fb,out);
+  OperatorPair<false>(p+2,shift,fb,out);
+  OperatorPair<false>(p+4,shift,fb,out);
+  for (int j=0;j<6;++j) p[j].phase=static_cast<int32_t>(static_cast<uint32_t>(p[j].phase)+(static_cast<uint32_t>(p[j].freq)<<6));
+  return true;
+}
+
 void RenderChain(const fm1_msfa::FmOpParams *params, int n, bool feedback, int fb_shift,
                  int32_t fb_buf[2], int32_t *out) {
   switch (n) {

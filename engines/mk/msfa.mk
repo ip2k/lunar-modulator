@@ -78,3 +78,12 @@ $(BUILD)/fm1-dx7-kernel-test: $(DX7_KERNEL_TEST_OBJ) $(DX7_MAILBOX_TEST_OBJ) $(B
 	$(CXX) $(OPT) $(EXTRA) -pthread -o $@ $(DX7_KERNEL_TEST_OBJ) $(DX7_MAILBOX_TEST_OBJ) \
 	  $(filter-out $(BUILD)/our/host/render.o,$(RENDER_OBJ)) -lm
 -include $(DX7_KERNEL_TEST_OBJ:.o=.d) $(DX7_MAILBOX_TEST_OBJ:.o=.d)
+
+# Exact algorithm-5 paired stacks against the original scalar runner.
+DX7_PAIR_TEST_OBJ := $(BUILD)/our/test/dx7_pair_test.o
+$(DX7_PAIR_TEST_OBJ): COMMON += -isystem $(MSFA_DIR)
+all: $(BUILD)/fm1-dx7-pair-test
+$(BUILD)/fm1-dx7-pair-test: $(DX7_PAIR_TEST_OBJ) $(BUILD)/fm1-render
+	$(CXX) $(OPT) $(EXTRA) -o $@ $(DX7_PAIR_TEST_OBJ) \
+	  $(filter-out $(BUILD)/our/host/render.o,$(RENDER_OBJ)) -lm
+-include $(DX7_PAIR_TEST_OBJ:.o=.d)

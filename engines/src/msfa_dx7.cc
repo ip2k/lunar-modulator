@@ -734,7 +734,9 @@ class Instance {
   void RunVoiceKernel(Voice *v, int fb_shift) {
     for (int k = 0; k < kN; ++k) vbuf_[k] = 0;
     const int alg = v->algorithm & 31;
-    if (fb_shift < 16 && (alg == 3 || alg == 5)) {
+    if (alg == 4 && RenderAlgorithmFive(v->params, fb_shift, v->fb_buf, vbuf_)) {
+      // Fully rendered by the exact two-operator stacks.
+    } else if (fb_shift < 16 && (alg == 3 || alg == 5)) {
       RenderWithLoop(&core_, v->params, alg, alg == 3 ? 3 : 2, fb_shift, v->fb_buf, vbuf_);
     } else {
       core_.compute(vbuf_, v->params, alg, v->fb_buf, fb_shift);
@@ -858,6 +860,7 @@ extern "C" int fm1_dx7_compute_kernel(fm1_dx7_kernel_job_t *job) {
   if (job->feedback_shift < 16 && (job->algorithm == 3 || job->algorithm == 5))
     fm1::dx7::RenderWithLoop(&core, params, job->algorithm,
         job->algorithm == 3 ? 3 : 2, job->feedback_shift, job->feedback, job->output);
+  else if (job->algorithm == 4 && fm1::dx7::RenderAlgorithmFive(params, job->feedback_shift, job->feedback, job->output)) {}
   else core.compute(job->output, params, job->algorithm, job->feedback, job->feedback_shift);
   for (int op = 0; op < 6; ++op) job->op[op].phase = params[op].phase;
   return 1;

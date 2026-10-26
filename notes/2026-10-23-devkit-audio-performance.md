@@ -6886,3 +6886,36 @@ Target V49 is running the ordinary single-flash experiment; final timing pending
 [verified] Vendor link succeeds, but target render frames grow from44BDrums/52BMacro inV49 to472B/476B. App grows from569916B to578364B and exceeds the existing140-sector experimental range; package generation stopped at its range assertion, no complete candidate generated. The extra register spill/storage footprint fails Astra's code-generation stop condition. Rejected this unrolled paired implementation before staging or device traffic. It is not an audio/timing result. Board remainsV49healthyidle; all reset receipts consumed. Private script prepare-fir-pair-v50.py, source-fir-pair-v50-proof onAeon, fullPCM/state/build/disassembly artifacts preserved. No tracked DSP implementation changed.
 
 Next bounded experiment is actual WARM PAD algorithm5 two-op stacks: retain generic fallback for unsupported flags, feedback and threshold transitions. Match samples, phases and feedback state before target timing. This must remove intermediate bus transfers and one loop traversal, not alter sine lookup, gain products, voice admission or release behavior.
+
+## V51 — exact algorithm-5 operator pairs (2026-10-26)
+
+[verified] Implemented Astra's next bounded kernel experiment in our DX7
+adapter, leaving Google's vendored msfa sources unchanged. Algorithm 5's
+three two-operator stacks keep each intermediate modulation sample in a
+register. Carrier addition order, gain ramps, phase wrap and first-stack
+self-feedback remain exact. Any silent operator or unsupported feedback
+shift falls back before mutating output or state. Both ordinary voices and
+copied kernel jobs use the same implementation.
+
+[verified] A 100,000-block randomized differential matches all 64 output
+samples, six operator states and feedback state: 83,094 fused blocks and
+16,906 untouched fallbacks, including threshold transitions. The same test
+passes ASan/UBSan with legacy shift checks disabled. The full eight-case
+mixed render matches all 11,290,624 PCM bytes across 44,104 batches. Host
+kernel timing improved approximately 9%; it is not target acceptance.
+
+[verified] One application flash and fresh target run measured means
+1,590.625 / 1,659.167 / 1,661.625 / 1,732.500 us versus V49's
+1,592.083 / 1,660.000 / 1,672.625 / 1,804.583 us. The heavy case improves
+3.99%, principally through CPU0's caller region (1,307.042 to 1,233.792 us);
+CPU1 stays near 1,162 us. All arithmetic, PCM/control fingerprints and
+22,052 queue jobs pass. Late blocks remain 4,735 / 5,513 / 5,513 / 5,513:
+**every workload still fails the unchanged 1,451.208 us deadline**. Heap
+72,212 bytes stays stable; unused parent/worker stacks are 2,500/7,444 of
+8,192 bytes. This is one instrumented run, not sustained or analog acceptance.
+
+[verified] The board returned to idle and acknowledged an ordinary PING.
+No backups, full-flash readbacks or restore rehearsals were performed. The
+V51 reset receipt is consumed and must never be retried. Private scripts,
+compiler output, raw capture and parsed facts are under
+`scratch/devkit-20261023/fm-pair-v51-proof` and corresponding Aeon paths.
