@@ -5497,3 +5497,16 @@ unchanged. Fresh vendor build, instruction/layout/UART-first/SDK/cipher/NOR
 review and protected installation remain prerequisites to target measurement.
 Final uninstrumented deadline and fault-validated analog30-minute acceptance
 remain required; PR155 stays draft and unmerged.
+
+### Queue PCM comparison arithmetic policy repair (2026-10-26)
+
+[verified] Exact-head CI40279373239 failed its macOS Python job121429239560
+in all four queue PCM combinations. The baseline used default contraction while
+only the queue build specified `-ffp-contract=off`. The original failure reproduced
+on this Apple Silicon Mac. Set that flag before building either side, preserving
+the exact11,290,624-byte comparison and firmware arithmetic. All13 focused queue
+integration tests pass locally after the correction, including both partitions
+with profiling on/off and timeout lifetime checks. Initial local test attempts
+could not start because pytest was absent; a private scratch dependency directory
+was used. CI for the corrected source remains required. Pages40279373240 passed.
+No board traffic, image admission or hardware acceptance follows from this repair.

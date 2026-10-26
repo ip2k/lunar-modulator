@@ -22,6 +22,10 @@ def load(name, path):
 def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, queue_profile):
     renderer = load("queue_renderer_reference", ROOT / "tests/test_devkit_renderer.py")
     prepare = load("queue_preparer", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    # Compare queue scheduling with the same arithmetic policy on both builds.
+    # Apple Silicon otherwise contracts the baseline while the queue does not.
+    monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
+                       " -ffp-contract=off")
     baseline = renderer.build_reference(renderer.MODULES)
     expected = tmp_path / "baseline.pcm"
     subprocess.run([str(baseline), str(expected)], check=True, capture_output=True)
@@ -89,7 +93,7 @@ static Host host;
     renderer.ROOT = shadow
     monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
                        " -DLUNAR_DEVKIT_ENGINE_QUEUE=1 -DLUNAR_QUEUE_HOST_TEST=1"
-                       " -pthread -ffp-contract=off -I" + str(shadow / "firmware/devkit"))
+                       " -pthread -I" + str(shadow / "firmware/devkit"))
     if worker_drums:
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                            " -DLUNAR_QUEUE_WORKER_DRUMS=1")
