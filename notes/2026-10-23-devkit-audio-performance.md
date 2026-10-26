@@ -4945,3 +4945,23 @@ remain pending. V26 is not staged or installed; V25 remains healthy idle.
 Rarefaction still cannot resolve this external worktree's new Python preparer;
 Serena locates its actual instrumentation helper. Source and vendor inspection
 remain required for target ABI and conditional instrumentation coverage.
+
+[verified, exact offline admission] V26 ELF
+`683d3c71e90a0d81410689bc3fbeba196c19738cf1002a59b7c09cc2ba8b337f`
+exports app `b3ed05e620186b8e6db9d35740a374a8e8d3bd421f10002169f88719cb2a93f6`
+(566,108 bytes; end 0x8e47c). Protected SDK/ROM routines, six FM6 kernels and
+tables, all 630 input hashes, 16 disjoint static regions, UART-first allocation
+and success guard, 200-tick window, 34,829-tick budget and finite worker lifetime
+pass actual vendor-code review. Observer bounds are six regions with twelve
+compiled call sites. Its counters use 144 static bytes; pre-task heap is
+134,252 bytes. Main workload frames remain unchanged. VCF local frame grows
+from 52 to 56 bytes; hardware stack measurement remains required.
+
+Removing only the four new observer calls and declaration gives the exact
+V25 prepared VCF source. Prepared app-main and linker hashes are unchanged.
+Independent five-section objcopy, cipher decode/CRC/protected boot/config/tail
+and the 139-sector metadata-last NOR model pass, including restoration after
+interrupted pages 7/1111/2199/2215. Exact candidate
+`836f2967e245dd4848704ec3bc282c9b1364f121db855f6fb8db54acd9e27797`
+is admitted only for `[0x4000,0x8f000)`. All prior image bounds remain intact;
+transaction/reset suite: 81 PASS. Not installed or hardware accepted.
