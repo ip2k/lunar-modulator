@@ -5904,3 +5904,35 @@ untouched. Deadline/stack acceptance, fault-validated underrun/DAC/KA6 and
 representative 30-minute analog soaks remain incomplete; PR155 stays draft,
 open and unmerged. Exact-head CI40302866231 last in progress;
 Pages40302866082 SUCCESS terminal.
+
+### V36 offline envelope advancement fast path (2026-10-26)
+
+[verified] V35's whole modulation tick costs 212.333–214.542 us/block;
+this does not attribute that cost to an individual primitive. Source inspection
+found two unconditional 64-bit boundary divisions in envelope advancement:
+`mp_env.c:advance` and the module wrapper `mod_env.c:env_run`. Both now first
+compare the exact uint64 increment-times-frame-count product with remaining
+phase distance. Only a crossing computes the original ceiling division.
+Equality still crosses, segment overshoot is still discarded, and no envelope
+rate, curve, event ordering or floating-point policy changes.
+
+[verified] A new state differential test compares the original algorithm over
+20,000 generated states, including loop/sustain/done states, boundary minus/at/
+plus one, full uint32 frame counts and extreme increments/phases. Local test
+PASS; bounded Aeon host suite TERMINAL0, 187 PASS, covering primitives/runtime/
+kinds/voices and eight complete queue PCM/fault configurations. A separate
+fresh HEAD35ecfdb0 versus working-source mixed replay is byte-identical for
+11,290,624 PCM bytes / 44,104 blocks, SHA256
+`c676e9b496a63e3817428ade9c067d75a2fd81bd786da7c0ad06ee6255c4f81b`.
+Private evidence: `scratch/devkit-20261023/env-fast-v36-host.log` and
+`env-fast-v36-old-new.json`, mirrored under the Aeon task root. Rarefaction's
+primary-checkout fallback does not cover the external worktree reliably;
+Serena's absolute worktree symbols and direct source inspection were used.
+
+[inferred] Avoiding division on non-crossing blocks may reduce target cost.
+No target speedup is established. V35 remains installed/current and healthy
+idle; all reset receipts remain consumed. No V36 vendor image, admission,
+staging or installation at this source checkpoint. Next: exact-source vendor
+build and machine-code review, then all image admission gates before hardware.
+Actual mixed deadline, stack, fault-validation and analog soak acceptance are
+still incomplete. No actual FM1/Hera traffic or device operation was issued.
