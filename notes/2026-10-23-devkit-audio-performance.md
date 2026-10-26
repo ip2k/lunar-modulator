@@ -4439,3 +4439,29 @@ UART18/1024 creation precedes parent16/2048; actual worker200-tick recovery dela
 34829-tick budget,120000ms lifetime and finite completion path are retained.
 Only the exact V19 hash gains the existing139-sector bounds; all older bounds
 remain unchanged. This is experiment admission, not timing or audio acceptance.
+
+### V19 target module placement results (deadlines still fail)
+
+[verified] Exact `06f2087f…` passes the full protected cycle: double CURRENT
+backups43847, CURRENT139 restore66041, WINDOW install43689/full8MiB readback,
+startup recovery57335 in78.5923ms, double NEW backups83991, NEW139 restore84166
+and SAME RUN install11385/full readback. WINDOW77233/RUN48675 are consumed,
+never retry. All four PCM/arithmetic,32 unit/24 stage/24 worst/12 detail/96 prep/
+32 unit-worst checks pass. All81308 paired jobs finish with zero error, refusal,
+disabled or wrong-core counters and finite exit. Heap33588 bytes is stable;
+parent unused2444/8192 and worker3260/4096 bytes. Sole RX257648 was twice
+argv-checked and terminated once; session68346 was terminal before ordinary
+PING ACK. No capture remains live. Private raw SHA-256:
+`e0bfad3f6d3f89f7a0b8bafef1e4744c7b6e7150002d3e144dc95a605e37a99e`.
+
+|Keys case|Mean us|Max us|Late /5513|Module loop mean us/block|Mean reduction vs V18|
+|---|---:|---:|---:|---:|---:|
+|0|951.167|1852.833|1|154.917|3.61%|
+|1|1089.167|1808.875|3|154.958|2.99%|
+|2|1164.792|1952.875|3|153.417|2.84%|
+|3|1260.542|2114.833|98|153.458|2.84%|
+
+[verified] All worst total blocks remain0. SRAM placement reduces the measured
+module-loop cost while preserving PCM, but every case still misses deadlines.
+Actual mixed timing, fault-validated DAC/KA6 and representative30-minute analog
+soaks remain open. PR155 stays draft and unmerged.
