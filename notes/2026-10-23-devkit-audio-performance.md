@@ -5652,3 +5652,32 @@ No build, UART RX, KA6 capture or device operation is live. Next is exact
 candidate/transaction staging, then the full protected WINDOW/RUN cycle and
 fresh40 detail/24 outer-region records for four cases. All old reset receipts
 remain consumed. Physical FM1 remains untouched; recovery history is recorded.
+
+## 2026-10-26 V32 target detail: correctness passes, deadline still fails
+
+[verified] Exact admitted V32 `886220b70909556e369eab86aec19c37b4ddcd262ae9c4ca61c999de186eae60` is installed on the dev board, using 140 sectors `[0x4000,0x90000)`. Fresh paired CURRENT V31 backups, factory restore over the CURRENT 139-sector range, WINDOW install/full readback, fresh startup handshake, paired NEW V32 backups, factory restore over the NEW 140-sector range, and SAME-image RUN install/full readback all passed. Startup PING/ARM/ENTER completed 78.7842 ms after the fresh ready marker, followed by an actual WL82 UBOOT1.00 ROM inquiry. WINDOW67584 and RUN20913 are consumed, including all older reset receipts; never retry them.
+
+[verified] Strict V32 parsing passes four arithmetic rows, four PCM hashes/control counts, 24 outer and 40 detail records, 22,052 queue jobs with zero errors/wrong-core reports, and finite worker exit. All four cases have 5,513/5,513 blocks late against the unchanged 34,829-tick deadline. Means are 1,965.042 / 2,025.833 / 2,061.417 / 2,220.750 us. Maximum ticks are 55,978 / 56,846 / 61,947 / 68,406. This instrumented result is not dropout-free acceptance.
+
+[verified] Heap remains 77,588 bytes in all five snapshots. Parent unused stack is 2,276/8,192 bytes; worker unused is 7,452/8,192. Sole RX53879 PID383537 was checked against its exact argv twice, sent one SIGTERM, and reached terminal255 before ordinary PING acknowledged. No capture, build or device operation remains live.
+
+CPU0 detail mean ranges across the four cases (24 MHz timer; these are subsets of outer regions and must not be added to them):
+
+| Category | Mean us |
+| --- | ---: |
+| setup/advance | 10.750–11.083 |
+| record callbacks | 253.542–255.708 |
+| inserts/meters | 406.458–410.125 |
+| level/mix | 47.167–47.792 |
+| masters | 246.333–251.042 |
+| amp | 0.458–0.500 |
+| click/limiter | 12.625–12.667 |
+| scope | 12.833–12.917 |
+| UI | 47.000–47.458 |
+| conversion/hash | 18.333–18.542 |
+
+[inferred] Inserts/meters and masters together account for about 653–661 us of CPU0 work per block; recording contributes another 254–256 us. Conversion/hash is only about 18 us, so it cannot explain the deficit. The fixed arrangement uses filter and drive inserts, with echo and compressor masters; current measurements do not yet distinguish each effect from its dispatch/meter overhead. Next trace these paths and recording callbacks, then choose an exact-PCM optimization or a bounded per-effect measurement. Do not change the default worker1 partition or weaken audio quality/acceptance.
+
+[verified] Rarefaction still resolves the primary checkout, returning the old fm1_app_render at line3267; it cannot establish this external worktree variant. Serena selected the actual absolute worktree and returned current fm1_app_render at line3630 plus render_fx at3485, matching source. Neither establishes pi32v2 ABI/cache behavior.
+
+Private raw SHA `13ed91ca96bf540a325c388c9964c1900032763c05bf4476eba9d40d072bfeee`; capture `scratch/devkit-20261023/renderer-queue-detail-v32-run-20261026-uart.bin`, strict facts/recovery evidence in `build-renderer-queue-detail-v32/`. No actual FM-1 traffic was sent. Physical FM-1 recovery, actual mixed deadline, fault-validated DAC/KA6 and representative 30-minute analog soaks remain unfinished; PR155 stays draft and unmerged.
