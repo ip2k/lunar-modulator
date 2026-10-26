@@ -6318,3 +6318,42 @@ proof does not establish target ABI/cache/race/stack safety or timing speedup.
 No new vendor image has yet been built, admitted, staged or installed. V38 remains
 installed; all5513blocks/case still miss the34829-tick deadline. Next: exact-source
 vendor build and linked callback/ACK/stack/recovery/SDK/layout/cipher/NOR review.
+
+
+### V39 exact image admitted offline; target timing still pending
+
+[verified] Exact source473e6f84 linked with the vendor compiler. The final ELF
+review confirms Macro engine execution then Drive/empty insert, meter and level
+callback before CPU1 release acknowledgement; CPU0 acquires before its original
+sound-ordered sum. Unsupported layouts refuse before recording/publication.
+UART18 precedes parent16 on the successful allocation path; the200-tick recovery
+window still precedes arithmetic, static8KiB CPU1 worker reservation and renderer
+initialization. Source/linked review covers41files and54target functions,
+including instance-owned Drive state and register/stack-only linked math paths.
+The listed callback frames conservatively sum632bytes, excluding SDK/IRQ and
+unlisted paths; actual target stack high-water remains required. TSAN is unavailable.
+
+[verified] All636manifest input hashes and prepared app/linker/build fragments
+match. Independent vendor objcopy matches the569436-byte flat app
+`e0a332888481e341929623dfe4b6ff5708d5dc3c83ea05a48edcc2cbf22469cc`.
+Nine reviewed DSP tables remain byte-identical to V38. SDK audit has zero failures;
+its one scheduling pending item is resolved by exact normalized SDK/ROM-entry
+comparison against the approved prior link. Independent reference cipher/CRC,
+protected config/prefix/tail checks and the NOR model pass complete install/restore,
+metadata-last ordering and recovery after interrupted pages7/1127/2215/2231.
+CURRENT V38's independent140-sector restore also passes.
+
+[verified] Admitted only the exact8MiB candidate
+`de0fa4e5c54bc3e27763e60cce6732160a72dba143348916c190e7efa9ed31a8`,
+140sectors `[0x4000,0x90000)`, app end0x8f17c. The transaction/reset suite passed93
+checks; parser rejects27existing faults plus two foreign observer banks. Earlier
+53host tests and two final ASAN/UBSAN replay/fault cases remain passing. Initial
+cipher check lacked crcmod; the existing offline queue-detail-v32-libs dependency
+resolved that invocation error. Local test interpreters lacked pytest; existing
+cached wheels supplied an ignored task-local test environment. No checks weakened.
+
+[verified] No V39 hardware staging, install, reset or capture occurred. V38 remains
+installed and misses the deadline in every block. V39 speedup, cache/ABI behavior
+and target stack headroom are unknown. Next is the protected WINDOW/RUN cycle,
+followed by mixed timing/stack evaluation; analog/fault/30minute acceptance remains
+unfinished. Private reports/scripts/candidate remain ignored research artifacts.
