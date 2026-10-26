@@ -379,8 +379,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Resampler slopes require the timing-only Plaits cache comparison")
     if engine_profile and not (profile and resampler_slopes):
         raise ValueError("Engine profiling requires timing-only profiled resampler slopes")
-    if resampler_unroll and not (resampler_slopes and profile and not engine_profile):
-        raise ValueError("Lowpass unrolling requires timing-only profiled slopes without detail instrumentation")
+    if resampler_unroll and not (resampler_slopes and profile):
+        raise ValueError("Lowpass unrolling requires timing-only profiled slopes")
     if renderer_o3 and not resampler_unroll:
         raise ValueError("Renderer O3 comparison requires timing-only profiled lowpass unrolling")
     if resampler_schedule and not mixer_ram:
@@ -832,7 +832,7 @@ if __name__ == "__main__":
     parser.add_argument("--engine-profile", action="store_true",
                         help="Locate engine generation/pop cost; adds measurement overhead, requires profiled slopes")
     parser.add_argument("--resampler-unroll", action="store_true",
-                        help="Expand the fixed FIR loop without changing sums; requires profiled slopes without engine detail")
+                        help="Expand the fixed FIR loop without changing sums; requires profiled slopes")
     parser.add_argument("--renderer-o3", action="store_true",
                         help="Compare renderer -O3 with SDK flags unchanged; requires profiled lowpass unrolling")
     parser.add_argument("--mixer-ram", action="store_true",

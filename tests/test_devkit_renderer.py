@@ -32,6 +32,102 @@ def build_reference(modules):
     return target
 
 
+def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch):
+    """Replay private-copy instrumentation with the optimized FIR, including wrap."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "renderer_prepare", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    prepare = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(prepare)
+    monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
+                      " -DLUNAR_ENGINE_DETAIL_REPLAY=1 -O3 -ffp-contract=off")
+    baseline = subprocess.run([str(build_reference(MODULES))],
+                              capture_output=True, text=True, check=True)
+    hashes = re.findall(r"hash=([0-9a-fA-F]+)", baseline.stdout)[:4]
+    assert len(hashes) == 4
+    if sys.platform.startswith("linux"):
+        assert [int(h, 16) for h in hashes] == [0x6bcab227, 0x46c02687, 0x1e2f305d, 0x5b7dbc03]
+    # Only these private copies change. All other sources and build lists are
+    # shared read-only; use a separate build directory to avoid stale objects.
+    shadow = tmp_path / "source"
+    engines = shadow / "engines"
+    engines.mkdir(parents=True)
+    for path in (ROOT / "engines").iterdir():
+        if path.name in ("src", "include"):
+            shutil.copytree(path, engines / path.name)
+        elif path.name != "build":
+            (engines / path.name).symlink_to(path, target_is_directory=path.is_dir())
+    for name in ("firmware", "tools"):
+        (shadow / name).symlink_to(ROOT / name, target_is_directory=True)
+    # Keep simulator sources read-only, with separate temporary build output.
+    (shadow / "sim/web").mkdir(parents=True)
+    for name in ("src", "mk"):
+        (shadow / "sim/web" / name).symlink_to(ROOT / "sim/web" / name,
+                                              target_is_directory=True)
+    for engine, name in enumerate(("mi_macro.cc", "drums.cc")):
+        path = engines / "src" / name
+        path.write_text(prepare.instrument_engine_profile(path.read_text(), engine))
+    header = engines / "include/fm1_resampler.h"
+    text = header.read_text()
+    table = re.search(r"static const float fm1_resampler_kernel\[[^\]]+\] = \{.*?\n\};",
+                      text, re.S)
+    assert table
+    text = text.replace(table[0], prepare.resampler_slope_definition(table[0]), 1)
+    old = ("  const float *k = &fm1_resampler_kernel[t >> 16];\n"
+           "  return k[0] + (float)(t & 0xFFFFu) * (1.0f / 65536.0f) * (k[1] - k[0]);")
+    assert text.count(old) == 1
+    text = text.replace(old,
+                        "  const float *k = &fm1_resampler_kernel_pairs[(t >> 16) * 2];\n"
+                        "  return k[0] + (float)(t & 0xFFFFu) * k[1];", 1)
+    header.write_text(prepare.unroll_resampler_lowpass(text))
+    monkeypatch.setattr(sys.modules[__name__], "ROOT", shadow)
+    monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
+                      " -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1"
+                      " -DLUNAR_RENDERER_ENGINE_PROFILE=1")
+    target = build_reference(MODULES)
+    harness = tmp_path / "engine-profile.cc"
+    harness.write_text(r'''
+#include "renderer_live.h"
+#include <assert.h>
+#include <stdint.h>
+static uint32_t tick = UINT32_MAX - 8u;
+static uint32_t now(void) { tick += 17u; return tick; }
+int main(void) {
+    const uint32_t hashes[] = {HASHES};
+    lunar_devkit_renderer_profile_clock(now);
+    assert(lunar_devkit_renderer_init());
+    int16_t pcm[256];
+    for (unsigned c = 0; c < 4; ++c) {
+        for (unsigned b = 0; b < 5513; ++b) lunar_devkit_renderer_render(pcm);
+        struct lunar_renderer_status state;
+        lunar_devkit_renderer_status(&state);
+        assert(state.completed_hash == hashes[c] && !state.invalid && !state.clipped);
+        for (unsigned i = 0; i < 4; ++i) {
+            struct lunar_renderer_profile p;
+            lunar_devkit_renderer_engine_read(i, &p);
+            assert(p.calls && p.ticks == 17ull * p.calls && p.max_ticks == 17u);
+            if (i & 1) assert(p.calls == 352832u && p.frames == 352832u);
+            else assert(p.frames == 12u * p.calls && p.frames >= 352832u);
+        }
+        lunar_devkit_renderer_profile_reset();
+        for (unsigned i = 0; i <= 4; ++i) {
+            struct lunar_renderer_profile p;
+            lunar_devkit_renderer_engine_read(i, &p);
+            assert(!p.calls && !p.frames && !p.ticks && !p.max_ticks);
+        }
+    }
+}
+'''.replace("HASHES", ", ".join("0x" + h + "u" for h in hashes)))
+    objects = sorted(str(p) for p in target.parent.rglob("*.o")
+                     if p.name != "renderer_reference.o")
+    exe = tmp_path / "engine-profile"
+    subprocess.run([os.environ.get("FM1_SIM_CXX", "c++"), "-std=c++11",
+                    "-DLUNAR_RENDERER_PROFILE=1", "-DLUNAR_RENDERER_ENGINE_PROFILE=1",
+                    "-I" + str(ROOT / "firmware/devkit"), str(harness), *objects,
+                    "-lm", "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True)
+
+
 @pytest.mark.parametrize("pool_bytes", [148 * 1024, 136 * 1024])
 def test_shared_renderer_schedule_and_pcm(tmp_path, monkeypatch, pool_bytes):
     extra = os.environ.get("FM1_SIM_EXTRA", "")

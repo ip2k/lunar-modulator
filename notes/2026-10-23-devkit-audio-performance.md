@@ -4748,3 +4748,25 @@ workload fails the34829-tick deadline in every block. No engine, native rate,
 filter, event or first block is removed. DAC/KA6 fault validation and30-minute
 soaks remain undone. The next investigation targets this measured engine cost;
 keys-only improvements cannot establish mixed acceptance.
+
+### Detailed Macro/drums timing with the optimized resampler
+
+[verified, offline] The first V24 preparation attempt refused the existing
+engine-detail/unrolled-FIR exclusion before producing an image. These changes
+operate on separate private files: engine wrapper call boundaries versus the
+resampler header. The preparer now permits their combination while retaining
+all worker-only/profile/slopes prerequisites. No production DSP math changes.
+A new native O3 replay instruments both wrappers and uses the prepared slope
+and unrolled FIR transformations. It preserves all four mixed PCM fingerprints,
+counts every352832 resampler outputs per engine/case, checks12-frame native
+block accounting, timer wraparound and counter reset. Full focused renderer
+suite:88PASS, one unavailable32-bit replay skipped. This diagnostic adds clock
+reads; its measured totals cannot establish audio acceptance.
+
+[verified, offline] V24 vendor build completes. Exact ELF6fa94e8a… and app
+ef75a25f…564732bytes pass protected SDK/ROM comparison and link audit. Six
+FM6 kernel/data comparisons pass after individually checked relocations;
+vendor objdump shows readonly base+5692 resolving to the unchanged768-byte
+algorithm table. All630 prepared input hashes and app-main/linker/build-fragment
+hashes match. Pre-task heap135564bytes. Layout/startup/cipher/NOR review is still
+in progress; V24 is not admitted or installed. V23 remains healthy idle.
