@@ -109,8 +109,8 @@ PR155 remains draft and unmerged.
 
 [reported: owner, 2026-10-26] The actual FM-1 still does not boot. Older status
 claiming a healthy FM-1_092 is historical, not current. Owner hardware inventory:
-Raspberry Pi Pico 2 W, Tigard, and Great Scott Gadgets LUNA/Cynthion. The last
-operation preceding this failure has not yet been established in this session.
+Raspberry Pi Pico 2 W, Tigard, and Great Scott Gadgets LUNA/Cynthion. The failed-install history and original backup pair were subsequently found
+in the separate installable-firmware worktree, as detailed below.
 Dev-board recovery results do not establish physical FM-1 recovery.
 
 [verified: transporter source] The independent entry path sends USB_KEY with
@@ -148,8 +148,64 @@ Before a live attempt, prepare a concrete reviewed adapter/wiring plan and
 resolve that specific exception or preserve our existing entry safeguards.
 No exemption was requested or inferred merely from authorization to research.
 
-Next recovery dependency: identify the last write/known-good backup, confirm
-actual bridge and wiring, and select a bounded entry/observation plan. Preserve
+Next recovery dependency: compare the existing failed Cynthion electrical/host
+handoff with transporter, confirm actual bridge/wiring, and select a bounded
+entry/observation plan. The last write and known-good backups are established
+below; do not ask the owner to reconstruct recorded history. Preserve
 full current dumps and original backups before proposing a restore. Never send
 an arbitrary loader from a new SDK or eFuse/programming command. Existing
 protected-target approvals must be checked against the exact loader/method.
+
+
+## Correction: existing failure and Cynthion evidence recovered from sibling branch
+
+[verified: retained repository records read this session] The initial research
+missed the separate feature/2026-10-11@installable-firmware history. Its physical
+FM1 evidence supersedes old healthy092/no-Lunar-app summaries on this dev-board
+branch. The current source worktree is
+/Users/likwid/.codex/worktrees/installable-firmware/mvave-fm1-firmware.
+Read notes/2026-10-18-fm1-interrupted-write-forensics.md and its JSON
+(commit21d529ce87a6e5a6b2640340cecfa5b9afc04d94), the October18 Cynthion
+independent audit/recovery-fix handoff, and the official/Pico recovery note.
+No sibling files or active project selection were changed.
+
+[verified: retained logs/forensic receipt, not fresh chip readback] On October15,
+15:13:08Pacific, USB disconnected during the ROM113 stage7 profiling diagnostic
+installation, followed by reported power interruption. Prewrite paired1MiB
+reads matched28483c411f23d7d5fba09b4770dd29b3c66b1a154138e493e6e079e54dcf400f;
+target18132474c60584d1ff1559076501e3647255cabe6b98957454bd6504ebb9fcd1.
+The transaction was recovery_required;144erases cover0x5000..0x94000,
+2294programs reach0x94500; next0x94600 intent was not submitted. No logged
+mutation below0x5000; directory-last0x4000 was not reached. Boot prefix0..0x4000
+matched original092. This supports interrupted app replacement, not logged SPL
+overwrite or permanent hardware damage. Current post-failure flash is unverified.
+The old launcher/session is consumed and power loss invalidated RAM continuity.
+
+[verified: current local file hashing] Original092 flashA.bin and flashB.bin
+both exist under scratch/hot-ram-fm-buffers-result/physical/campaign-evidence/
+rom83-fm-buffers-cycle/transaction/original-092-archive in that sibling worktree.
+Both are1,048,576bytes and SHA256
+96006a51917750743d7adc68461f1289e82adc004a75bd2bbd5da40ecc44c4e4.
+These are original092 backups, distinct from the pre-failure Lunar28483c41 pair.
+They remain private and were not copied into Git.
+
+[verified: retained audit and receipts] Extensive Cynthion custom gateware was
+already built and tried. Full-speed target-C descriptor-probe/cable checks and
+a low-speed mouse control succeeded, but actual FM1 enumeration/recovery did
+not. Disconnected self-tests, candidateACK and DONE/OEs0 establish narrower
+local observations. The independent audit identifies an unresolved1kOhm path
+between FPGA monitor pins and target bus. Its conditional1.5kOhm pull-up model
+gives1.32V when driving low through1kOhm: a plausible margin problem, not a
+measured FM1 voltage or proof of root cause. The terminal telemetry was repaired
+offline; passing regressions did not establish physical recovery.
+
+[inferred] Transporter's direct RP GPIO plus immediate onboard PIO USB-host
+handoff is materially different from our failed Cynthion monitor-pin approach.
+That makes it worth comparison, not a reason to repeat the old Cynthion trial
+or claim recovery solved. Its0x93000 write ceiling also excludes some addresses
+mutated in the interrupted campaign; do not treat it as a full-image restore
+or lift that ceiling without a separately reviewed exact recovery plan.
+Prior owner steering already favored the Pico route and deferred elaborate
+scope work; an official V4.1 forced-download adapter had been ordered in that
+history. Current arrival status is unknown. Existing Pico2W trial stopped at
+SELFTEST/FAULT before keying, with external pull-up wiring unresolved.
