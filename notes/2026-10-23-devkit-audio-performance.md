@@ -5054,3 +5054,36 @@ is admitted OFFLINE for 140 sectors `[0x4000,0x90000)`, ending app at 0x8f61c.
 Metadata-last NOR install/restore and interrupted pages 7/1127/2215/2231 restore
 correctly. Previous images retain their original boundaries, including installed
 V26's 139 sectors. No hardware speed or acceptance is claimed.
+
+### V27 oscillator slopes — target result
+
+[verified, hardware] Exact `23ce7c2d…` completed the full protected cycle:
+fresh ready/PING/ARM/ENTER in 78.7228 ms, responsive WL82/UBOOT1.00, matching
+two full current/new backups, V26 139-sector and V27 140-sector factory restores,
+same-image RUN reinstall and all full 8 MiB readbacks. WINDOW42848 and RUN69384
+are consumed; never retry. Sole RX PID315493 was checked twice before one
+SIGTERM; session38498 terminated before ordinary PING acknowledged healthy idle.
+
+All seven strict parsers pass: four mixed PCM/control fingerprints, arithmetic,
+32 unit/24 stage/24 worst/12 detail/96 preparation/32 worst-unit/24 engine
+records, unchanged native counts, 81,308 paired jobs without refusal/error/wrong
+core and finite worker exit. Heap remains 89,812 bytes; unused parent/worker
+stack is 2,436/8,192 and 3,260/4,096 bytes. No RX or analog capture remains live.
+
+| Case | Total mean us | Maximum us | Late /5513 | Oscillator pair us | Filter section us |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0 | 2597.458 | 2984.042 | 5513 | 245.208 | 228.833 |
+| 1 | 2811.375 | 3177.458 | 5513 | 276.125 | 257.458 |
+| 2 | 2886.667 | 3462.042 | 5513 | 276.208 | 257.625 |
+| 3 | 2977.333 | 3625.708 | 5513 | 275.833 | 257.250 |
+
+Total means improve 1.23–1.30 percent versus identically instrumented V26;
+this is insufficient: every block still misses the unchanged 34,829-tick
+budget. The next measurement must remove internal profiling overhead while
+retaining outer timing, exact replay and recovery checks. Actual fault-validated
+DAC/KA6 and representative 30-minute analog soaks remain undone.
+
+Private raw SHA-256:
+`224f7c89539ef98779d6ff5d0711f84afe097d8dd42fb06bb6b40e779ce5bf8f`.
+Source ad4e3622 CI40265093573 remains running; Pages40265093502 succeeded.
+PR155 is draft and unmerged; no deployment or audio acceptance is claimed.
