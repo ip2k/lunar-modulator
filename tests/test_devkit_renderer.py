@@ -32,10 +32,11 @@ def build_reference(modules):
     return target
 
 
-@pytest.mark.parametrize("vcf_unroll,vcf_profile,oscillator_slopes",
-                         [(False, False, False), (True, False, False),
-                          (True, True, False), (True, True, True)])
-def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vcf_unroll, vcf_profile, oscillator_slopes):
+@pytest.mark.parametrize("vcf_unroll,vcf_profile,oscillator_slopes,outer_timing_only",
+                         [(False, False, False, False), (True, False, False, False),
+                          (True, True, False, False), (True, True, True, False),
+                          (True, False, True, True)])
+def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vcf_unroll, vcf_profile, oscillator_slopes, outer_timing_only):
     """Replay private-copy instrumentation with the optimized FIR, including wrap."""
     import importlib.util
     spec = importlib.util.spec_from_file_location(
@@ -70,7 +71,8 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vc
                                               target_is_directory=True)
     for engine, name in enumerate(("mi_macro.cc", "drums.cc")):
         path = engines / "src" / name
-        path.write_text(prepare.instrument_engine_profile(path.read_text(), engine))
+        if not outer_timing_only:
+            path.write_text(prepare.instrument_engine_profile(path.read_text(), engine))
     if oscillator_slopes:
         path = engines / "third_party/mutable/plaits/dsp/oscillator/variable_shape_oscillator.h"
         path.write_text(prepare.reuse_oscillator_slopes(path.read_text()))
@@ -94,9 +96,10 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vc
                         "  return k[0] + (float)(t & 0xFFFFu) * k[1];", 1)
     header.write_text(prepare.unroll_resampler_lowpass(text))
     monkeypatch.setattr(sys.modules[__name__], "ROOT", shadow)
-    monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
-                      " -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1"
-                      " -DLUNAR_RENDERER_ENGINE_PROFILE=1")
+    if not outer_timing_only:
+        monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
+                          " -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1"
+                          " -DLUNAR_RENDERER_ENGINE_PROFILE=1")
     if vcf_profile:
         monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
                           " -DLUNAR_RENDERER_VCF_PROFILE=1")
@@ -104,6 +107,8 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vc
     modified_pcm = tmp_path / "modified.pcm"
     subprocess.run([str(target), str(modified_pcm)], check=True, capture_output=True)
     assert modified_pcm.read_bytes() == baseline_pcm.read_bytes()
+    if outer_timing_only:
+        return  # No observer API is compiled in this exact-PCM comparison.
     harness = tmp_path / "engine-profile.cc"
     harness.write_text(r'''
 #include "renderer_live.h"
@@ -405,6 +410,8 @@ int main(void) {
 
 
 @pytest.mark.parametrize('options', [
+    {'outer_timing_only': True},
+    {'outer_timing_only': True, 'timing_only': True, 'profile': True},
     {'oscillator_slopes': True},
     {'oscillator_slopes': True, 'timing_only': True, 'profile': True, 'hot_ram': True},
     {'vcf_unroll': True},

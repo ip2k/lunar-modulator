@@ -5087,3 +5087,20 @@ Private raw SHA-256:
 `224f7c89539ef98779d6ff5d0711f84afe097d8dd42fb06bb6b40e779ce5bf8f`.
 Source ad4e3622 CI40265093573 remains running; Pages40265093502 succeeded.
 PR155 is draft and unmerged; no deployment or audio acceptance is claimed.
+
+### V28 outer-only timing — offline comparison
+
+[verified, host] `--outer-timing-only` retains requested placement validation,
+DSP transformations and the renderer's outer timer, while omitting preparation,
+engine/VCF instrumentation and internal observer compile flags. Effective flags
+are recorded as disabled in the receipt. Defaults retain existing profiling.
+Full eight-case optimized PCM matches with internal profiling absent. Focused
+suite: 108 PASS, one unavailable 32-bit toolchain SKIP.
+
+[verified, vendor build; not admitted] ELF
+`610d3671c16b118113e3c8031f1fb9454b64181626ed859d0eb6cc290af3f9d9`
+exports app `bcef491fb815c168c3d08d4d0e935daf2a0d783909fb643be3034478de858c33`
+(566,620 bytes). No internal observer routines/counter arrays remain linked.
+Initial SDK/ROM relocation review passes; pre-task heap is 133,900 bytes.
+Full input/layout/stack/UART-first/code/cipher/NOR review is still required.
+No V28 candidate is admitted, staged or installed. V27 remains healthy idle.
