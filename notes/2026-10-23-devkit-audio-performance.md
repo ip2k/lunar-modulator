@@ -4924,3 +4924,24 @@ Private raw SHA-256:
 Raw/facts and strict parsers remain in ignored scratch storage. PR #155 stays
 draft and unmerged. At this checkpoint, exact source c63af14c CI40260047105
 has three jobs remaining and no failures; Pages40260047129 succeeded.
+
+### VCF oscillator/filter section counters — offline
+
+[implemented, not hardware accepted] Optional `--vcf-profile` requires the
+existing timing-only O3 engine profile. It instruments only the privately
+prepared VCF source: region 4 covers both oscillators, region 5 covers filter
+parameter preparation and the sample loop. Both are nested inside the existing
+Macro generation total. The explicit diagnostic flag expands observer storage
+from four to six regions; default builds and DSP operations remain unchanged.
+Source-drift/duplicate guards and preimage hashes retain reproducibility.
+
+[verified, offline] 100 focused renderer/profile tests pass; one unavailable
+32-bit replay skips. The positive native O3 test preserves all 11,290,624 PCM
+bytes across eight mixed cases, checks matched per-voice section frame/call
+counts, accounts for nested fake-clock reads, resets counters and exercises
+timer wrap. A fresh V26 vendor build completes with downloader disabled.
+Full machine-code/SDK/kernel/layout/UART-first/cipher/NOR review and admission
+remain pending. V26 is not staged or installed; V25 remains healthy idle.
+Rarefaction still cannot resolve this external worktree's new Python preparer;
+Serena locates its actual instrumentation helper. Source and vendor inspection
+remain required for target ABI and conditional instrumentation coverage.

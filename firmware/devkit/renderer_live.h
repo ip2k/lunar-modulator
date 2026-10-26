@@ -63,7 +63,13 @@ uint32_t lunar_devkit_renderer_prep_last(unsigned region);
 #ifdef LUNAR_RENDERER_ENGINE_PROFILE
 /* Diagnostic prepared copies only: Macro generate/pop, drums generate/pop.
  * These regions are nested inside unit/stage totals, never additional work. */
+#ifdef LUNAR_RENDERER_VCF_PROFILE
+/* VCF oscillator pair (4), then filter parameter setup/sample loop (5).
+ * Both are nested in Macro generation; their frames count active voices. */
+#define LUNAR_RENDERER_ENGINE_REGIONS 6
+#else
 #define LUNAR_RENDERER_ENGINE_REGIONS 4
+#endif
 void lunar_devkit_engine_profile(unsigned region, uint32_t frames, int entering);
 void lunar_devkit_renderer_engine_read(unsigned region, struct lunar_renderer_profile *out);
 #endif

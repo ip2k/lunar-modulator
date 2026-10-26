@@ -35,6 +35,26 @@ def test_vcf_unroll_directive_preserves_sample_body_and_refuses_drift():
             module.unroll_vcf_samples(changed)
 
 
+def test_vcf_section_hooks_preserve_math_and_refuse_drift():
+    module = preparer()
+    source = (ROOT / 'engines/third_party/mutable/plaits/dsp/engine2/'
+              'virtual_analog_vcf_engine.cc').read_text()
+    for text in (source, module.unroll_vcf_samples(source)):
+        transformed = module.instrument_vcf_profile(text)
+        stripped = re.sub(r'^.*lunar_devkit_engine_profile.*\n', '', transformed,
+                          flags=re.M)
+        assert stripped == text
+        assert transformed.count('lunar_devkit_engine_profile(4, size,') == 2
+        assert transformed.count('lunar_devkit_engine_profile(5, size,') == 2
+        with pytest.raises(ValueError, match='VCF sections'):
+            module.instrument_vcf_profile(transformed)
+    for anchor in ('  oscillator_.Render(f0, pw, shape, out, size);',
+                   '  sub_oscillator_.Render(f0 * 0.501f, 0.5f, 1.0f, aux, size);',
+                   '    aux[i] = SoftClip(hp * gain);\n  }\n}'):
+        with pytest.raises(ValueError, match='VCF sections'):
+            module.instrument_vcf_profile(source.replace(anchor, '', 1))
+
+
 @pytest.mark.parametrize('engine,name', [(0, 'mi_macro'), (1, 'drums')])
 def test_hooks_preserve_actual_pull_loop(tmp_path, engine, name):
     if not shutil.which('c++'):

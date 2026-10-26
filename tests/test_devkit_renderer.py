@@ -32,8 +32,8 @@ def build_reference(modules):
     return target
 
 
-@pytest.mark.parametrize("vcf_unroll", [False, True])
-def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vcf_unroll):
+@pytest.mark.parametrize("vcf_unroll,vcf_profile", [(False, False), (True, False), (True, True)])
+def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vcf_unroll, vcf_profile):
     """Replay private-copy instrumentation with the optimized FIR, including wrap."""
     import importlib.util
     spec = importlib.util.spec_from_file_location(
@@ -55,7 +55,7 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vc
     engines = shadow / "engines"
     engines.mkdir(parents=True)
     for path in (ROOT / "engines").iterdir():
-        if path.name in ("src", "include") or (vcf_unroll and path.name == "third_party"):
+        if path.name in ("src", "include") or ((vcf_unroll or vcf_profile) and path.name == "third_party"):
             shutil.copytree(path, engines / path.name)
         elif path.name != "build":
             (engines / path.name).symlink_to(path, target_is_directory=path.is_dir())
@@ -72,6 +72,9 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vc
     if vcf_unroll:
         path = engines / "third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc"
         path.write_text(prepare.unroll_vcf_samples(path.read_text()))
+    if vcf_profile:
+        path = engines / "third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc"
+        path.write_text(prepare.instrument_vcf_profile(path.read_text()))
     header = engines / "include/fm1_resampler.h"
     text = header.read_text()
     table = re.search(r"static const float fm1_resampler_kernel\[[^\]]+\] = \{.*?\n\};",
@@ -89,6 +92,9 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vc
     monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
                       " -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1"
                       " -DLUNAR_RENDERER_ENGINE_PROFILE=1")
+    if vcf_profile:
+        monkeypatch.setenv("FM1_SIM_EXTRA", os.environ["FM1_SIM_EXTRA"] +
+                          " -DLUNAR_RENDERER_VCF_PROFILE=1")
     target = build_reference(MODULES)
     modified_pcm = tmp_path / "modified.pcm"
     subprocess.run([str(target), str(modified_pcm)], check=True, capture_output=True)
@@ -110,15 +116,28 @@ int main(void) {
         struct lunar_renderer_status state;
         lunar_devkit_renderer_status(&state);
         assert(state.completed_hash == hashes[c] && !state.invalid && !state.clipped);
+        uint64_t nested_ticks = 0;
+#ifdef LUNAR_RENDERER_VCF_PROFILE
+        struct lunar_renderer_profile osc, filter;
+        lunar_devkit_renderer_engine_read(4, &osc);
+        lunar_devkit_renderer_engine_read(5, &filter);
+        assert(osc.calls && osc.calls == filter.calls && osc.frames == filter.frames);
+        assert(osc.frames == 12u * osc.calls);
+        assert(osc.ticks == 17ull * osc.calls && osc.max_ticks == 17u);
+        assert(filter.ticks == 17ull * filter.calls && filter.max_ticks == 17u);
+        nested_ticks = 68ull * osc.calls; /* Four nested clock reads per VCF call. */
+#endif
         for (unsigned i = 0; i < 4; ++i) {
             struct lunar_renderer_profile p;
             lunar_devkit_renderer_engine_read(i, &p);
-            assert(p.calls && p.ticks == 17ull * p.calls && p.max_ticks == 17u);
+            assert(p.calls && p.ticks == 17ull * p.calls + (i == 0 ? nested_ticks : 0));
+            assert(p.max_ticks >= 17u);
+            if (i || !nested_ticks) assert(p.max_ticks == 17u);
             if (i & 1) assert(p.calls == 352832u && p.frames == 352832u);
             else assert(p.frames == 12u * p.calls && p.frames >= 352832u);
         }
         lunar_devkit_renderer_profile_reset();
-        for (unsigned i = 0; i <= 4; ++i) {
+        for (unsigned i = 0; i <= LUNAR_RENDERER_ENGINE_REGIONS; ++i) {
             struct lunar_renderer_profile p;
             lunar_devkit_renderer_engine_read(i, &p);
             assert(!p.calls && !p.frames && !p.ticks && !p.max_ticks);
@@ -131,6 +150,7 @@ int main(void) {
     exe = tmp_path / "engine-profile"
     subprocess.run([os.environ.get("FM1_SIM_CXX", "c++"), "-std=c++11",
                     "-DLUNAR_RENDERER_PROFILE=1", "-DLUNAR_RENDERER_ENGINE_PROFILE=1",
+                    *(["-DLUNAR_RENDERER_VCF_PROFILE=1"] if vcf_profile else []),
                     "-I" + str(ROOT / "firmware/devkit"), str(harness), *objects,
                     "-lm", "-o", str(exe)], check=True)
     subprocess.run([str(exe)], check=True)
@@ -381,6 +401,8 @@ int main(void) {
 
 @pytest.mark.parametrize('options', [
     {'vcf_unroll': True},
+    {'vcf_profile': True},
+    {'vcf_profile': True, 'engine_profile': True},
     {'vcf_unroll': True, 'timing_only': True, 'profile': True, 'hot_ram': True},
     {'prep_profile': True},
     {'prep_profile': True, 'timing_only': True},

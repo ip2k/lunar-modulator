@@ -170,6 +170,22 @@ def unroll_vcf_samples(text):
     return text.replace(anchor, directive + anchor, 1)
 
 
+def instrument_vcf_profile(text):
+    """Observe oscillator/filter sections in the private VCF copy only."""
+    first = "  oscillator_.Render(f0, pw, shape, out, size);"
+    last = "  sub_oscillator_.Render(f0 * 0.501f, 0.5f, 1.0f, aux, size);"
+    end = "    aux[i] = SoftClip(hp * gain);\n  }\n}"
+    if (text.count("void VirtualAnalogVCFEngine::Render(") != 1 or
+            any(text.count(a) != 1 for a in (first, last, end)) or
+            "lunar_devkit_engine_profile" in text):
+        raise ValueError("Unexpected VCF sections; review detail profiling")
+    text = text.replace(first, "  lunar_devkit_engine_profile(4, size, 1);\n" + first, 1)
+    text = text.replace(last, last + "\n  lunar_devkit_engine_profile(4, size, 0);\n"
+                        "  lunar_devkit_engine_profile(5, size, 1);", 1)
+    text = text.replace(end, end[:-1] + "  lunar_devkit_engine_profile(5, size, 0);\n}", 1)
+    return ('extern "C" void lunar_devkit_engine_profile(unsigned, unsigned, int);\n' + text)
+
+
 def instrument_engine_profile(text, engine):
     """Observe generation/pop in private copies without changing their math."""
     if engine not in (0, 1):
@@ -337,7 +353,7 @@ def place_hook_ram(text, signatures):
     return text
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False):
     if vcf_unroll and not (timing_only and profile and hot_ram and renderer_o3):
         raise ValueError("VCF unrolling requires timing-only profiled resident O3")
     if external_pixels and not timing_only:
@@ -392,6 +408,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Resampler slopes require the timing-only Plaits cache comparison")
     if engine_profile and not (profile and resampler_slopes):
         raise ValueError("Engine profiling requires timing-only profiled resampler slopes")
+    if vcf_profile and not (engine_profile and timing_only and renderer_o3):
+        raise ValueError("VCF profiling requires timing-only O3 engine profiling")
     if resampler_unroll and not (resampler_slopes and profile):
         raise ValueError("Lowpass unrolling requires timing-only profiled slopes")
     if renderer_o3 and not resampler_unroll:
@@ -684,6 +702,12 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         original = p.read_bytes()
         vcf_unroll_input = hashlib.sha256(original).hexdigest()
         p.write_text(unroll_vcf_samples(original.decode()))
+    vcf_profile_input = None
+    if vcf_profile:
+        p = staging / "engines/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc"
+        original = p.read_bytes()
+        vcf_profile_input = hashlib.sha256(original).hexdigest()
+        p.write_text(instrument_vcf_profile(original.decode()))
     engine_profile_inputs = {}
     if engine_profile:
         for engine, name in enumerate(("engines/src/mi_macro.cc", "engines/src/drums.cc")):
@@ -729,6 +753,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             renderer_flags += "CFLAGS += -DLUNAR_RENDERER_PREP_PROFILE=1\n"
         if engine_profile:
             renderer_flags += "CFLAGS += -DLUNAR_RENDERER_ENGINE_PROFILE=1\n"
+        if vcf_profile:
+            renderer_flags += "CFLAGS += -DLUNAR_RENDERER_VCF_PROFILE=1\n"
     else:
         text = text.replace(anchor, "CFLAGS += -DLUNAR_DEVKIT_RENDERER_AUDIO=1\n" + anchor, 1)
     # The nested make snapshots CFLAGS into LUNAR_EXTRA with :=. Define its
@@ -765,6 +791,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "prep_profile_original_sha256": prep_profile_inputs,
         "vcf_unroll": vcf_unroll,
         "vcf_unroll_original_sha256": vcf_unroll_input,
+        "vcf_profile": vcf_profile,
+        "vcf_profile_original_sha256": vcf_profile_input,
         "engine_profile": engine_profile,
         "resampler_unroll": resampler_unroll,
         "resampler_schedule": resampler_schedule,
@@ -888,7 +916,9 @@ if __name__ == "__main__":
                         help="Compare unchanged modulation planner and event helpers in SRAM; timing-only preparation profile and resident events")
     parser.add_argument("--vcf-unroll", action="store_true",
                         help="Compare two-way VCF sample-loop scheduling; timing-only profiled resident O3")
+    parser.add_argument("--vcf-profile", action="store_true",
+                        help="Observe VCF oscillator/filter sections; timing-only O3 engine profiling")
     parser.add_argument("--external-pixels", action="store_true",
                         help="Caller-owned screen pixels; timing-only renderer does not draw or attach a framebuffer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile)
