@@ -6838,3 +6838,31 @@ placement change promoted. No operation remains live; physical FM1/Hera untouche
 Started astra_performance_review with gpt-6-astra/high, the exact saved prompt
 and fresh V46 evidence. Read-only review except its private report; no hardware
 or competing builds. Review remains in progress, not implementation acceptance.
+
+
+## V48: narrower LFO phase conversions
+
+[verified] Width and start phase are clamped to [0,1] before conversion. The
+largest binary32 value below one scales to 4294967040, which fits uint32.
+Handling width one as 2^32 and phase one as wrapped zero lets the other
+values use uint32 instead of the software uint64 conversion. NaN fallback,
+state layout, rate calculation and update order remain unchanged. Eighty-eight
+focused tests pass, including 144 width/start boundary pairs; all 11,290,624
+mixed PCM bytes across 44,104 host blocks match the prior source exactly.
+
+[verified] One dev-board application flash and fresh run pass all arithmetic,
+mixed PCM/control fingerprints, 24 timing regions and 22,052 queue jobs.
+Means are 1624.750 /1691.500 /1705.292 /1839.667 us, compared with V46
+1644.250 /1710.375 /1727.958 /1869.625 us. Control work falls from about
+202 to 186 us. This is a 1.10–1.60% mean gain in one run, with stable
+73,172-byte free heap and unchanged measured stack margins. Late counts are
+4808 /5513 /5513 /5513: all cases still fail the unchanged deadline.
+No analog or sustained acceptance is claimed. Private target facts and raw
+capture are under scratch/devkit-20261023/lfo-narrow-v48-proof and its
+sibling capture. The rejected V47 flash-code placement is absent.
+
+[verified] Final linked `lfo_process` uses native `ftou` conversions and no
+`__fixunssfdi` calls (the helper still exists for other code). Actual WASM
+rebuild passes all 108 parity scenarios and the strict committed-source
+record check. This does not resolve the separately recorded Chromium
+underrun failure or establish device analog acceptance.
