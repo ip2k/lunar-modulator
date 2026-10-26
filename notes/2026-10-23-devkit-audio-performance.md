@@ -5510,3 +5510,37 @@ with profiling on/off and timeout lifetime checks. Initial local test attempts
 could not start because pytest was absent; a private scratch dependency directory
 was used. CI for the corrected source remains required. Pages40279373240 passed.
 No board traffic, image admission or hardware acceptance follows from this repair.
+
+### V31 queue region timing offline admission (2026-10-26)
+
+[verified, offline] The private exact V31 candidate
+`f9aa8f87f9895b46d71f59d267a8b16515f0a1d4b80c7296f8c2b2fdc4178612`
+is admitted for a bounded diagnostic experiment,139 sectors `[0x4000,0x8f000)`.
+Vendor ELF `973f0819…45226f`, app568732 bytes `ca23d276…82fca5` come from
+source b482bb76; the subsequent test-only arithmetic-policy repair changes no
+vendor build input. Independent vendor objcopy,636-file manifest, reference
+cipher/directory+app CRC and protected configuration checks pass. Offline NOR
+install/restore passes with metadata last and interruptions at pages7/1111/2199/
+2215; the installed V30's CURRENT139 restore also passes the model. No device
+commands are issued by these checks.
+
+[verified] Exact final-ELF review confirms worker sound1, caller0/2/3, worker
+sample before release ACK, CPU0 sample after acquire, and idle polling bypassing
+clocks. UART priority18 precedes success-only parent16;200 recovery ticks precede
+arithmetic, static8KiB CPU1 worker and renderer initialization. Startup copying,
+BSS, nonoverlapping queue/worker/arenas and pretask heap119724 pass. Full36-source/
+35-function Macro0/Drums/DX7 independence review passes the fixed workload;
+individual frames exclude SDK/IRQ overhead. SDK audit has0 failures; its one
+manual scheduling item is resolved by exact normalized vendor code/relocation,
+late_initcall and empty syscfg checks. This establishes no runtime race/cache or
+stack proof; TSAN remains unavailable.
+
+[verified, offline] Strict region parser requires24 records and checks counts,
+unique indices, nonnegative bounded values, additive CPU0 mean/worst consistency
+and separate worker overlap. It rejects27 fault fixtures and earlier V28/V30
+captures. All79 public transaction tests pass with the new exact-image plan and
+retained V30 restore plan. Detailed artifacts remain private in
+`scratch/devkit-20261023/build-renderer-queue-region-v31/` and Aeon exports.
+V31 is not staged or installed. The full protected WINDOW/RUN cycle, fresh target
+region/stack results and final uninstrumented deadline/analog acceptance remain
+required. PR155 remains draft and unmerged.
