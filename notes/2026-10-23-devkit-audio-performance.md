@@ -5339,3 +5339,32 @@ Rarefaction's named query could not reach IMAGE_PLANS in this worktree because
 its root/default bounded scan is the primary checkout; Serena resolved the
 actual worktree symbol, with direct source/tests and vendor outputs used for
 verification. Neither tool establishes pi32v2 ABI correctness.
+
+### V29 whole-engine queue target result (2026-10-26)
+
+[verified] V29 completed the protected UART-only cycle: two full CURRENT V28
+backups, byte-identical factory restore over 139 sectors, WINDOW install/full
+readback, sole verifier armed before one reset, fresh startup PING/ARM/ENTER
+acknowledgements in 79.4182 ms and responsive ROM, two full NEW V29 backups,
+second byte-identical factory restore, SAME RUN install/full readback, sole RX
+armed before one RUN reset. Both reset receipts are consumed and must never
+be retried. The receiver was closed after two exact argv checks and its capture
+session reached terminal before an ordinary PING was acknowledged. V29 is now
+healthy idle; future restore range remains `[0x4000, 0x8f000)` (139 sectors).
+No physical buttons, FM1 traffic or KA6 capture were used.
+
+[verified] The strict private parser passes all four arithmetic checks, four
+mixed PCM/control fingerprints, 22,052 queue jobs/completions with zero errors
+or wrong-core reports, finite worker exit and expected queue peaks. Heap stays
+77,844 bytes; unused parent stack is 2,748/8,192 bytes and unused worker stack
+7,452/8,192 bytes. The raw private UART SHA is
+`6fba467bfb9a1f0fe6f8b57a90870ed62b29d8e2e410b4b3efe975280fe7b7c3`.
+
+[verified] Deadline acceptance FAILS. At 24 MHz, mean ticks are
+46,550 / 48,029 / 48,853 / 52,684 (1,939.583 / 2,001.208 / 2,035.542 /
+2,195.167 microseconds); maxima are 55,406 / 56,154 / 60,304 / 66,459.
+Late counts are 5,512 / 5,513 / 5,513 / 5,513 of 5,513 per case, against the
+unchanged 34,829-tick deadline. Mean times improve approximately 21–26% over
+V28, but this does not establish dropout-free audio or analog acceptance.
+PR155 remains draft and unmerged. Actual DAC/underrun fault validation and
+representative 30-minute analog soaks remain outstanding.
