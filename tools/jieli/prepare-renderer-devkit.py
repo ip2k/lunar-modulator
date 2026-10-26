@@ -507,7 +507,7 @@ static int lunar_queue_dispatch(void) {
     return text
 
 def queue_micro_callbacks(text):
-    """CPU0 subsets: recording by command kind and DSP calls by app unit.
+    """CPU0 subsets: command recording, app DSP, and control hooks.
 
     Keep this bank independent of the enclosing detail bank: its intervals are
     mutually exclusive, but overlap the existing recording/inserts/masters.
@@ -532,11 +532,39 @@ def queue_micro_callbacks(text):
         raise ValueError("Unexpected queue micro support")
     text = text.replace(anchor, """#ifdef LUNAR_QUEUE_MICRO
 #define QUEUE_MICRO(region, entering) lunar_renderer_queue_micro_mark(region, entering)
-typedef char lunar_micro_units_match[FM1_APP_UNITS + 6 == LUNAR_QUEUE_MICROS ? 1 : -1];
+typedef char lunar_micro_units_match[FM1_APP_UNITS + 12 == LUNAR_QUEUE_MICROS ? 1 : -1];
 #else
 #define QUEUE_MICRO(region, entering) ((void)0)
 #endif
 """ + anchor, 1)
+    # Wrap the hook boundary rather than its implementation: every early return
+    # is paired, and the dispatcher still consumes exactly the original result.
+    hooks = [
+        ("begin", "uint32_t", "void *ctx, uint32_t frames, const fm1_engine_t *engine, uint32_t bpm, int playing", "ctx, frames, engine, bpm, playing"),
+        ("event", "void", "void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_engine", "ctx, frame, e, to_engine"),
+        ("lock", "float", "void *ctx, uint16_t index, float value", "ctx, index, value"),
+        ("tick", "uint32_t", "void *ctx, uint32_t frame, const fm1_seq_hook_write_t **w, uint32_t *next", "ctx, frame, w, next"),
+        ("lock_slot", "float", "void *ctx, unsigned slot, uint16_t index, float value", "ctx, slot, index, value"),
+        ("note_on", "uint32_t", "void *ctx, uint32_t frame, unsigned slot, uint8_t key, const fm1_seq_hook_write_t **w", "ctx, frame, slot, key, w"),
+    ]
+    wrappers = []
+    for region, (name, result, params, args) in enumerate(hooks, 20):
+        call = f"seq_auto_{name}({args})"
+        statement = f"{call};" if result == "void" else f"{result} result = {call};"
+        returned = "" if result == "void" else "  return result;\n"
+        wrappers.append(f"static {result} lunar_micro_{name}({params}) {{\n"
+                        f"  QUEUE_MICRO({region}, 1);\n  {statement}\n"
+                        f"  QUEUE_MICRO({region}, 0);\n{returned}}}\n")
+    anchor = "static void render_sounds("
+    if text.count(anchor) != 1:
+        raise ValueError("Unexpected queue control wrapper location")
+    text = text.replace(anchor, "\n".join(wrappers) + "\n" + anchor, 1)
+    original = ("const fm1_seq_hook_t hook = { a, seq_auto_begin, seq_auto_event, seq_auto_lock,\n"
+                "                                 seq_auto_tick, seq_auto_lock_slot, seq_auto_note_on };")
+    replacement = "const fm1_seq_hook_t hook = { a, " + ", ".join(f"lunar_micro_{name}" for name, *_ in hooks) + " };"
+    if text.count(original) != 1:
+        raise ValueError("Unexpected queue control hook table")
+    text = text.replace(original, replacement, 1)
     return text
 
 def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False):
@@ -1003,7 +1031,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "engine_queue_micro": engine_queue_micro,
         "engine_queue_micro_regions": (["record_render", "record_note_on", "record_note_off",
                                         "record_set_param", "record_bend", "record_set_note"] +
-                                       [f"fx_dsp_app_unit_{i}" for i in range(14)]
+                                       [f"fx_dsp_app_unit_{i}" for i in range(14)] +
+                                       ["control_begin", "control_event", "control_lock", "control_tick",
+                                        "control_lock_slot", "control_note_on"]
                                        if engine_queue_micro else []),
         "engine_queue_detail_regions": (["sequence_setup", "record_callbacks", "inserts_meters", "level_mix",
                                          "masters", "amp", "limiter", "scope", "ui", "conversion_hash"]

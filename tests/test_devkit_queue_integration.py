@@ -109,8 +109,10 @@ static Host host;
         assert(lunar_renderer_queue_micro_read(micro, calls));
         assert(calls[LUNAR_QUEUE_RENDER] >= 4);
         unsigned effects = 0;
-        for (unsigned i = 6; i < LUNAR_QUEUE_MICROS; ++i) effects += calls[i];
+        for (unsigned i = 6; i < 20; ++i) effects += calls[i];
         assert(effects >= 4);
+        assert(LUNAR_QUEUE_MICROS == 26 && calls[20] == 1 && calls[23] >= 1);
+        assert(calls[22] == 0 && calls[24] == 0); // No parameter-lock lanes in this arrangement.
         assert(!lunar_renderer_queue_micro_read(micro, calls));
 """)
         reference.write_text(text)
@@ -193,3 +195,15 @@ def test_queue_preparation_refuses_unsupported_combinations(tmp_path, options):
     with pytest.raises(ValueError):
         prepare.prepare_renderer(tmp_path / "absent-sdk", ROOT, out, **options)
     assert not out.exists()
+
+
+def test_micro_control_hook_transformation_is_exact_and_refuses_drift():
+    prepare = load("queue_control_preparer", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    original = prepare.queue_engine_callbacks((ROOT / "sim/web/src/fm1_app.c").read_text())
+    transformed = prepare.queue_micro_callbacks(original)
+    for region, name in enumerate(("begin", "event", "lock", "tick", "lock_slot", "note_on"), 20):
+        assert transformed.count(f"QUEUE_MICRO({region}, 1);") == 1
+        assert transformed.count(f"QUEUE_MICRO({region}, 0);") == 1
+        assert f"lunar_micro_{name}" in transformed
+    with pytest.raises(ValueError, match="hook table"):
+        prepare.queue_micro_callbacks(original.replace("a, seq_auto_begin,", "a, changed_begin,", 1))

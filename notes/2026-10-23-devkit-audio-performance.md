@@ -5779,3 +5779,35 @@ V34 remains NOT admitted: full final-ELF timer/caller/publication/UART-first/sta
 [verified] Strict target parser passes arithmetic4/mixedPCM-control4/24outer40DETAIL80MICRO and22052queue jobs zero errors, counts/peaks correct, finite worker exit. Means1920.750/1983.750/2017.708/2177.083us, late5510/5513/5513/5513 of5513: deadline FAIL34829ticks. Instrumented runs do not establish performance improvement or analog acceptance. Heap77300stable, parent unused1692/8192bytes, worker unused7452/8192bytes. Raw capture SHA3cd4f023896806a3b63971c966efc2f714d900b166d12dee22c2f55b46094148 and startup/facts saved privately localbuild-renderer-queue-micro-v34 and Aeon exports.
 
 [verified] New DSP mean measurements: Drive208.542..209.833us, Filter159.208..162.042us, Echo154.208..155.042us, Comp77.625..79.083us. Recording render/param callbacks total~8.5..8.7us inside DETAIL recording236.208..242.167us; note-on/off means round to0 with56calls each. Therefore callback recording alone does not explain the surrounding cost; remaining sequencer/control work needs tracing before another optimization. DETAIL insert385.208..387.375us and master246.417..248.667us largely contain these DSP calls. Banks overlap, never add MICRO+DETAIL+outer or worker to CPU0. NEXT trace dispatch/sequence advancement/control work outside recording callbacks, then select an exact-PCM change; preserve rates, quality, events and deadline. PR155 remains draft/unmerged; actual mixed deadline and analog/30minute soak acceptance unfinished. Actual FM1 remains nonbooting, research-only/no traffic.
+
+### V35 offline control-hook diagnostic, 2026-10-26
+
+[verified] V34's DETAIL1 starts after sequence flush/advance and queue-begin;
+those operations belong to DETAIL0. Its roughly 236–242 µs therefore cannot be
+attributed to sequence advancement. The six command-recording kinds account
+for only about 8.5–8.7 µs, leaving the dispatcher, MFX block preparation and
+control hooks to distinguish. Source tracing found modulation begin/tick,
+event and per-note hooks in that interval; this is a lead, not target-cost
+attribution.
+
+[verified] The opt-in micro diagnostic now adds regions 20–25 for begin,
+event, lock, tick, lock-slot and note-on. Exact-signature wrappers preserve
+arguments, return values and output pointers; each interval closes even when
+the original hook returns early. The independent bank has 26 non-nested
+regions, still subsets of outer/detail time. Default builds and worker1
+partition are unchanged. This format requires a new strict 26-region parser;
+V34's historical 20-region capture/parser remain unchanged.
+
+[verified] Bounded Aeon host run 24550 finished exit 0: all 36 focused queue,
+bridge, timer, preparation and integration cases pass, including eight full
+11,290,624-byte / 44,104-batch PCM comparisons, both worker partitions,
+normal/ASan+UBSan ownership, malformed intervals, one-consume and timeout
+lifetime refusal. Local non-PCM subset also passed (28 cases). No TSAN or
+target race/cache/ABI proof is claimed. Rarefaction's root remains the primary
+checkout and cannot select this external worktree; its fallback results were
+checked against Serena's actual-worktree symbol bodies and source inspection.
+
+No V35 image is admitted, staged or installed at this checkpoint. V34 remains
+CURRENT and idle; its deadline failure and all consumed reset receipts stand.
+Next: exact-source vendor link, strict new parser/fault fixtures and complete
+machine-code/layout/UART-first/SDK/cipher/NOR admission before any hardware use.
