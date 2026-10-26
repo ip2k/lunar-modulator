@@ -5936,3 +5936,25 @@ staging or installation at this source checkpoint. Next: exact-source vendor
 build and machine-code review, then all image admission gates before hardware.
 Actual mixed deadline, stack, fault-validation and analog soak acceptance are
 still incomplete. No actual FM1/Hera traffic or device operation was issued.
+
+[verified] V36 exact-source vendor build passed at b5a9fc35. ELF
+`8295eb3f41c1a85b151e2b9e945d02284b69d5477176b4a4d344d00b07f3779a`,
+571,676-byte app `ceaa33d7b14a91537db9544b58e6ec3739a96f70f70245af37c90a962677d1f3`.
+Both target non-crossing paths branch around native pi32 unsigned wide division;
+this is not a software divide-helper removal. Primitive local stack falls 8→4
+bytes; env_run remains16, env_process76, timing frame1320 incl saved registers.
+Heap before tasks remains118732. Full636-file manifest, UART18-before-parent16,
+200-tick recovery-before-workload, startup copies/BSS, queue acquire/release,
+26-region timer/aggregation, fixed-worker1 source/global independence and SDK
+normalized ROM-entry/keycheck checks pass. audit_link has0fail/1manual item,
+resolved by the exact normalized vendor routine comparison, not ignored.
+Independent vendor objcopy matches app bytes. Reference cipher/CRC/protected cfg
+checks pass; private candidate
+`3d00c962b8df3eca3a9ff1122b796cc7328980186498aec97f78a38ee74a8a62`
+changes140 sectors [0x4000,0x90000), app end0x8fa3c. Offline NOR model restores
+interruptions at pages7/1127/2215/2231 and independently restores CURRENT V35
+all140 sectors. No hardware commands. Exact-image admission added;83 transaction
+tests pass after explicitly classifying the new140-sector image in the range
+fixtures. Reports/hashes in private `build-renderer-env-fast-v36/offline-admission.json`.
+V36 OFFLINE_ADMITTED, not staged/installed; target speedup unknown. V35 remains
+CURRENT; deadline and analog acceptance remain incomplete.
