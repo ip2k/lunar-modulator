@@ -5388,3 +5388,46 @@ not completed target transitive-independence or race proof. TSAN is still
 unavailable. A fresh vendor build, complete independence/instruction/stack and
 layout/recovery/SDK/cipher/NOR reviews remain prerequisites to admission. No new
 image has been admitted, staged or installed; V29 remains healthy idle.
+
+
+### V30 Macro/Drums queue offline admission (2026-10-26)
+
+[verified, offline] Exact private candidate
+`14e39d30b7e01be23d5ecc9e9ab2bcb5cb5e5f4f86f6af57bf4402af34d786c2`
+is admitted for 139 sectors `[0x4000,0x8f000)`. Independent vendor objcopy
+matches ELF section concatenation (567836 bytes, app SHA `aa725189…f26270d2`).
+Reference cipher decoding, directory/app CRCs and protected boot/cfg/tail checks
+pass. All 636 preparation hashes match. Existing focused and broader tests
+passed 115 checks, with one unavailable-toolchain skip; TSAN remains unavailable.
+
+[verified, bounded review] CPU1 executes Macro model0 then Drums; CPU0 executes
+DX7 sounds 0 and 3. Thirty-six source files and 35 compiled functions were
+reviewed, including Drums voices, resampling, filters and transitive RNG use.
+Drums' global stmlib RNG is saved, per-pad seeded and restored serially on CPU1.
+The only direct RNG-address references in the final ELF are Drums RenderVoice,
+RenderBlock and the excluded Chiptune model. Concurrent DX7 sample-and-hold and
+modulation use instance RNG state; DX7 shared rate initialization precedes work.
+Sequencer/control recording precedes publication; effects/UI/mixing follow ACK.
+Macro model0's actual vtable matches its reviewed VCF implementation. These
+source/instruction checks do not establish runtime race or cache safety.
+
+[verified] Exact target code retains publication/acquisition csync fences and
+ACK after both worker streams. UART priority18 reservation precedes success-only
+CPU0 parent priority16 creation; its 200-tick recovery window precedes arithmetic,
+static 8 KiB CPU1 worker creation and renderer allocation. Static ranges do not
+overlap, startup copies/BSS match and pre-task heap is119788 bytes. Drums'
+individual Render/RenderBlock/RenderVoice frames are96/164/224 bytes; largest
+reviewed individual frame is1160 bytes. Dynamic target stack/IRQ headroom still
+requires measurement. SDK link audit has no failures; its manual scheduling item
+is resolved by exact normalized reviewed vendor-code/relocation comparison.
+
+[verified, offline] NOR model installs/restores exact V30, preserves metadata-last
+ordering and restores interruptions at pages7/1111/2199/2215. It independently
+restores all139 CURRENT V29 sectors and sends zero hardware commands. Strict
+parser self-test passes synthetic completion, distinguishes late deadlines,
+rejects17 fault mutations and rejects the actual V28 pair-only capture. UART
+records alone do not identify the image partition: exact transaction/readback
+and the reviewed preparation receipt must accompany any future V30 result.
+All scripts, binaries and detailed reports remain private and ignored.
+V30 has not been staged or installed. V29 remains healthy idle; its missed
+deadlines and outstanding fault-validated analog30-minute acceptance remain.
