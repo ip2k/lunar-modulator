@@ -423,3 +423,17 @@ Drums temporarily uses stmlib's global noise generator. Its worker-side calls
 must remain serialized, while concurrent caller paths must not touch that
 state. Host PCM and ownership tests cover both partitions; target transitive
 independence, generated instructions, stack and timing require a fresh review.
+
+`--engine-queue-profile` requires the same guarded `--engine-queue` experiment
+and adds only `LUNAR_QUEUE_PROFILE`, leaving the older internal profilers off.
+Each `LUNAR_QUEUE_REGION` reports per-case mean, maximum, and duration in the
+worst outer block. Regions0..4 partition that outer block: before queue Begin
+(including control/sequence advance), command recording, caller execution,
+waiting/acquiring worker ACK, and after dispatch (including effects/mix/UI and
+output conversion/hash). Region5 is overlapping worker execution; **do not add
+it to regions0..4**. Caller/publication/fence overhead belongs to those measured
+regions. Worker duration is stored before ACK and read only after acquisition;
+idle worker polling adds no timer reads. Failed or stale batches cannot emit a
+profile sample. Default builds contain none of these extra clocks or storage.
+These diagnostic measurements include observer overhead and do not establish
+race/cache safety or replace final uninstrumented deadline/analog acceptance.

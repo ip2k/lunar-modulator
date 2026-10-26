@@ -474,7 +474,9 @@ static int lunar_queue_dispatch(void) {
     text = text.replace(old, old + "\n  if (lunar_renderer_queue_error()) return NULL;", 1)
     return text
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False):
+    if engine_queue_profile and not engine_queue:
+        raise ValueError("Queue region timing requires the guarded whole-engine queue")
     if engine_queue_drums and not engine_queue:
         raise ValueError("Worker Drums partition requires the guarded whole-engine queue")
     if engine_queue and (fm6_pair or scheduling_probe):
@@ -886,6 +888,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     if engine_queue:
         renderer_flags += "CFLAGS += -DLUNAR_DEVKIT_ENGINE_QUEUE=1 -DLUNAR_DEVKIT_QUEUE_SDK=1\n"
         renderer_flags += f"CFLAGS += -I{staging / 'firmware/devkit'}\n"
+    if engine_queue_profile:
+        renderer_flags += "CFLAGS += -DLUNAR_QUEUE_PROFILE=1\n"
     if engine_queue_drums:
         renderer_flags += "CFLAGS += -DLUNAR_QUEUE_WORKER_DRUMS=1\n"
     if scheduling_probe:
@@ -920,6 +924,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "outer_timing_only": outer_timing_only,
         "engine_queue": engine_queue,
         "engine_queue_drums": engine_queue_drums,
+        "engine_queue_profile": engine_queue_profile,
+        "engine_queue_profile_regions": (["before", "recording", "caller", "wait", "after", "worker_overlap"]
+                                         if engine_queue_profile else []),
         "engine_queue_worker_sounds": ([1, 2] if engine_queue_drums else [1]) if engine_queue else [],
         "engine_queue_input_sha256": queue_input,
         "engine_queue_worker_priority": 16 if engine_queue else None,
@@ -1057,6 +1064,8 @@ if __name__ == "__main__":
                         help="Compare explicit 32-bit FM sums in private copies; timing-only hot code")
     parser.add_argument("--dispatch-ram", action="store_true",
                         help="Compare sequencer event walk and slot dispatch in SRAM; requires timing-only resident mixer")
+    parser.add_argument("--engine-queue-profile", action="store_true",
+                        help="Add queue critical-path timers; requires --engine-queue, remains diagnostic-only")
     parser.add_argument("--engine-queue-drums", action="store_true",
                         help="Serialize Macro model0 and Drums on CPU1; requires --engine-queue")
     parser.add_argument("--engine-queue", action="store_true",
@@ -1090,4 +1099,4 @@ if __name__ == "__main__":
     parser.add_argument("--external-pixels", action="store_true",
                         help="Caller-owned screen pixels; timing-only renderer does not draw or attach a framebuffer")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile)

@@ -5468,3 +5468,32 @@ wait measurements. The next experiment should measure those regions before
 another scheduling change, retain V29's default partition, and preserve all
 PCM/rates/filters/first blocks. Fault-validated DAC/KA6 and representative
 30-minute analog soaks remain undone. PR155 stays draft and unmerged.
+
+### Queue critical-path timing instrumentation (2026-10-26)
+
+[verified, host] Added explicit `--engine-queue-profile` to the existing guarded
+mixed timing-only resident O3 whole-engine queue. Default partition remains
+CPU1 sound1. The new define leaves all old internal profilers disabled. Five
+CPU0 regions partition the outer block: before Begin, recording, caller,
+wait/acquire, and after dispatch (effects/mix/UI/output conversion/hash).
+A sixth measures overlapping worker execution and must not be added to them.
+No timer reads occur in idle worker polling. The worker publishes its duration
+before the existing completion fence/ACK; CPU0 reads it after acquisition.
+Timeout/refusal or duplicate/missing samples cannot produce case completion.
+All extra storage/clocks compile out unless explicitly selected.
+
+[verified, host] Fresh tracked-source Aeon focused run passes21 tests (31.03s),
+including both partitions, normal+ASan/UBSan ownership, full11,290,624-byte PCM
+replay with profiling on/off, and fault lifetime. A separate aggregate test
+passes (0.09s), checking all22052 blocks, separate worker overlap, worst/max
+statistics and stopping before emit on missing data. The initial focused run
+used stale staging sources and failed on missing build rules; fresh source
+resolved it. The aggregate fixture initially omitted the engine include path;
+corrected before its passing run. TSAN remains unavailable; no race proof.
+
+[verified] No device traffic or new image admission/install occurred for this
+change. V30 remains CURRENT healthy idle, its measured deadline regression
+unchanged. Fresh vendor build, instruction/layout/UART-first/SDK/cipher/NOR
+review and protected installation remain prerequisites to target measurement.
+Final uninstrumented deadline and fault-validated analog30-minute acceptance
+remain required; PR155 stays draft and unmerged.

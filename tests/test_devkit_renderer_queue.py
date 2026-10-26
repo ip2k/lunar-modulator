@@ -328,3 +328,111 @@ int main(int argc,char **argv) {
                     str(source), "-o", str(exe)], check=True)
     for mode in range(8):
         subprocess.run([str(exe), str(mode)], check=True, timeout=10)
+
+
+@pytest.mark.parametrize("worker_drums", [False, True])
+def test_queue_region_timers_partition_and_refuse_stale_samples(tmp_path, worker_drums):
+    """Cooperative clock drives an ACK deterministically, including timer wrap."""
+    cxx = os.environ.get("FM1_SIM_CXX", "c++")
+    if not shutil.which(cxx):
+        pytest.skip("native C++ toolchain unavailable")
+    source = tmp_path / "profile.cc"
+    source.write_text(r'''
+#include "renderer_queue.h"
+#include <cassert>
+#include <cstring>
+struct Clock { unsigned calls; uint32_t base; LunarRendererQueue *queue; };
+static uint32_t now(void *p) {
+ Clock &c=*(Clock*)p;
+ unsigned call=++c.calls;
+ if(call==4) assert(c.queue->WorkerStep()==1);
+ return c.base+10u*call;
+}
+static void render(void *p,float *out,uint32_t) { ++*(unsigned*)p; *out=42; }
+static void run(uint32_t base, unsigned budget, bool success) {
+ Clock c={0,base,0};
+ LunarRendererQueue q(now,&c,budget); c.queue=&q;
+ uint32_t regions[6]; memset(regions,0x55,sizeof regions);
+ uint32_t untouched[6]; memcpy(untouched,regions,sizeof regions);
+ assert(!q.ProfileRead(base,base+80,regions));
+ assert(!memcmp(regions,untouched,sizeof regions));
+ assert(q.WorkerStep()==0 && c.calls==0); // No timer overhead in idle loop.
+ assert(q.Begin());
+ unsigned calls=0; float out=0;
+ fm1_engine_t e={}; e.kind=FM1_KIND_SOUND; e.render=render;
+ LunarRendererQueue::Op op={}; op.kind=LunarRendererQueue::Render;
+ op.output=&out; op.frames=1;
+ assert(q.Push(1,&e,&calls,op));
+ assert(q.Dispatch()==success && calls==1 && out==42);
+ if(success) {
+  assert(q.ProfileRead(base,base+80,regions));
+  const uint32_t expected[]={10,10,10,40,10,10};
+  assert(!memcmp(regions,expected,sizeof expected));
+  unsigned total=0; for(unsigned i=0;i<5;++i) total+=regions[i];
+  assert(total==80 && total+regions[5]!=80); // Worker overlaps caller/wait.
+  assert(!q.ProfileRead(base,base+80,regions)); // No duplicate sample.
+  assert(q.Begin() && !q.ProfileRead(base,base+80,regions));
+ } else {
+  assert(q.error()==LunarRendererQueue::Deadline);
+  assert(!q.ProfileRead(base,base+80,regions));
+  assert(!memcmp(regions,untouched,sizeof regions)); // ACK cannot clear refusal.
+  assert(!q.Begin());
+ }
+}
+int main() { run(0,100,true); run(0xfffffff0u,100,true); run(0,10,false); }
+''')
+    exe = tmp_path / "profile"
+    subprocess.run([cxx, "-std=c++11", "-O2", "-DLUNAR_QUEUE_HOST_TEST=1",
+                    "-DLUNAR_QUEUE_PROFILE=1",
+                    *(["-DLUNAR_QUEUE_WORKER_DRUMS=1"] if worker_drums else []),
+                    "-I" + str(ROOT / "firmware/devkit"), "-I" + str(ROOT / "engines/include"),
+                    str(source), str(ROOT / "firmware/devkit/renderer_queue.cc"),
+                    "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True, timeout=10)
+
+
+def test_queue_timing_aggregates_outer_partition_and_stops_on_missing_sample(tmp_path):
+    cc = os.environ.get("FM1_SIM_CC", "cc")
+    if not shutil.which(cc):
+        pytest.skip("native C toolchain unavailable")
+    source = tmp_path / "timing.c"
+    source.write_text(r'''
+#include "renderer_timing.h"
+#include <assert.h>
+#include <string.h>
+static unsigned ticks, emitted, samples, fault;
+static uint32_t now(void) { return ticks+=10; }
+static void yield(void) {}
+int lunar_devkit_renderer_init(void) { return 1; }
+void lunar_devkit_renderer_render(int16_t *out) { (void)out; ticks+=80; }
+void lunar_devkit_renderer_status(struct lunar_renderer_status *out) { memset(out,0,sizeof *out); }
+unsigned lunar_renderer_queue_error(void) { return 0; }
+int lunar_renderer_queue_profile_read(uint32_t start,uint32_t end,uint32_t out[6]) {
+ assert(end-start==90); ++samples;
+ if(fault) return 0;
+ for(unsigned i=0;i<5;++i) out[i]=18;
+ out[5]=42; return 1;
+}
+static void emit(const struct lunar_renderer_timing *r) {
+ assert(r->test_case==emitted++ && r->blocks==5513 && r->ticks==90ull*5513);
+ assert(r->min_ticks==90 && r->max_ticks==90 && !r->over_budget);
+ for(unsigned i=0;i<6;++i) {
+  unsigned duration=i<5?18:42;
+  assert(r->queue_ticks[i]==(uint64_t)duration*5513);
+  assert(r->queue_max[i]==duration && r->queue_worst[i]==duration);
+ }
+}
+int main(void) {
+ assert(lunar_devkit_renderer_timing(now,yield,emit));
+ assert(emitted==4 && samples==22052);
+ fault=1; assert(!lunar_devkit_renderer_timing(now,yield,emit));
+ assert(emitted==4 && samples==22053); // No false case completion.
+}
+''')
+    exe = tmp_path / "timing"
+    subprocess.run([cc, "-std=c99", "-O2", "-DLUNAR_DEVKIT_ENGINE_QUEUE=1",
+                    "-DLUNAR_QUEUE_PROFILE=1", "-I" + str(ROOT / "firmware/devkit"),
+                    "-I" + str(ROOT / "engines/include"),
+                    str(source), str(ROOT / "firmware/devkit/renderer_timing.c"),
+                    "-o", str(exe)], check=True)
+    subprocess.run([str(exe)], check=True, timeout=10)

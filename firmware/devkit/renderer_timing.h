@@ -2,10 +2,17 @@
 #ifndef LUNAR_DEVKIT_RENDERER_TIMING_H
 #define LUNAR_DEVKIT_RENDERER_TIMING_H
 #include "renderer_live.h"
+#if defined(LUNAR_QUEUE_PROFILE) && !defined(LUNAR_DEVKIT_ENGINE_QUEUE)
+#error Queue region profiling requires the whole-engine queue
+#endif
 struct lunar_renderer_timing {
     uint32_t test_case, blocks, min_ticks, max_ticks, over_budget;
     uint64_t ticks;
     struct lunar_renderer_status state;
+#ifdef LUNAR_QUEUE_PROFILE
+    uint64_t queue_ticks[6];
+    uint32_t queue_max[6], queue_worst[6];
+#endif
 #ifdef LUNAR_RENDERER_PROFILE
     uint32_t worst_block, worst_stages[LUNAR_RENDERER_PROFILE_STAGES];
     uint32_t worst_details[LUNAR_RENDERER_DETAIL_REGIONS];

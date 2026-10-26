@@ -49,3 +49,9 @@ extern "C" unsigned lunar_renderer_queue_error(void) {
 }
 extern "C" unsigned lunar_renderer_queue_peak(unsigned sound) { return queue ? queue->peak(sound) : 0; }
 extern "C" int lunar_renderer_queue_worker_step(void) { return queue ? queue->WorkerStep() : -1; }
+
+#ifdef LUNAR_QUEUE_PROFILE
+extern "C" int lunar_renderer_queue_profile_read(uint32_t start, uint32_t end, uint32_t ticks[6]) {
+  return queue && queue->ProfileRead(start, end, ticks);
+}
+#endif

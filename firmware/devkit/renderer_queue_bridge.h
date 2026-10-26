@@ -23,6 +23,11 @@ int lunar_renderer_queue_dispatch(void);
 unsigned lunar_renderer_queue_completed(void);
 unsigned lunar_renderer_queue_error(void);
 unsigned lunar_renderer_queue_peak(unsigned sound);
+#ifdef LUNAR_QUEUE_PROFILE
+/* Once per successful block, same clock domain as init. CPU0 only.
+ * before / recording / caller / wait / after; overlapping worker is sixth. */
+int lunar_renderer_queue_profile_read(uint32_t start, uint32_t end, uint32_t ticks[6]);
+#endif
 /* CPU1 only, after init/publication: -1 unavailable, 0 idle, 1 completed. */
 int lunar_renderer_queue_worker_step(void);
 #ifdef __cplusplus

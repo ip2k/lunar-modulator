@@ -41,7 +41,17 @@ int lunar_devkit_renderer_timing(uint32_t (*now)(void), void (*yield)(void),
             if (lunar_renderer_queue_error()) return 0;
 #endif
             /* Unsigned subtraction handles the 24 MHz timer wrap. */
-            uint32_t elapsed = now() - start;
+            uint32_t end = now();
+            uint32_t elapsed = end - start;
+#ifdef LUNAR_QUEUE_PROFILE
+            uint32_t regions[6];
+            if (!lunar_renderer_queue_profile_read(start, end, regions)) return 0;
+            for (unsigned i = 0; i < 6; ++i) {
+                result.queue_ticks[i] += regions[i];
+                if (regions[i] > result.queue_max[i]) result.queue_max[i] = regions[i];
+                if (elapsed > result.max_ticks) result.queue_worst[i] = regions[i];
+            }
+#endif
             result.ticks += elapsed;
             if (elapsed < result.min_ticks) result.min_ticks = elapsed;
             if (elapsed > result.max_ticks) {

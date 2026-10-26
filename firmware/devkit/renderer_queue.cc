@@ -20,6 +20,10 @@ static void queue_fence() {
 LunarRendererQueue::LunarRendererQueue(Clock clock, void *context, uint32_t budget)
     : requested_(0), done_(0), streams_(), clock_(clock), context_(context),
       budget_(budget), error_(None), recording_(false), completed_(0), peak_() {
+#ifdef LUNAR_QUEUE_PROFILE
+  record_start_ = publish_start_ = caller_end_ = dispatch_end_ = worker_ticks_ = 0;
+  profiled_completed_ = 0;
+#endif
   if (!clock || !budget || budget >= 0x80000000u) error_ = Configuration;
 }
 
@@ -39,6 +43,9 @@ bool LunarRendererQueue::Begin() {
     streams_[s].count = 0;
   }
   recording_ = true;
+#ifdef LUNAR_QUEUE_PROFILE
+  record_start_ = clock_(context_);
+#endif
   return true;
 }
 
@@ -81,10 +88,16 @@ bool LunarRendererQueue::Dispatch() {
   if (!recording_) return Refuse(State);
   recording_ = false;
   const uint32_t start = clock_(context_);
+#ifdef LUNAR_QUEUE_PROFILE
+  publish_start_ = start;
+#endif
   const uint32_t request = requested_ + 1u;
   queue_fence();
   requested_ = request;
   for (unsigned s = 0; s < kSounds; ++s) if (!worker_sound(s)) Execute(s);
+#ifdef LUNAR_QUEUE_PROFILE
+  caller_end_ = clock_(context_);
+#endif
   unsigned polls = 0;
   for (;;) {
     if ((uint32_t)(clock_(context_) - start) >= budget_) return Refuse(Deadline);
@@ -92,6 +105,9 @@ bool LunarRendererQueue::Dispatch() {
     if (done_ == request) break;
   }
   queue_fence();
+#ifdef LUNAR_QUEUE_PROFILE
+  dispatch_end_ = clock_(context_);
+#endif
   ++completed_;
   return true;
 }
@@ -100,9 +116,33 @@ int LunarRendererQueue::WorkerStep() {
   const uint32_t request = requested_;
   if (request == done_) return 0;
   queue_fence();
+#ifdef LUNAR_QUEUE_PROFILE
+  const uint32_t start = clock_(context_);
+#endif
   for (unsigned s = 0; s < kSounds; ++s) if (worker_sound(s)) Execute(s);
+#ifdef LUNAR_QUEUE_PROFILE
+  worker_ticks_ = clock_(context_) - start;
+#endif
   queue_fence();
   done_ = request;
   /* No stream or instance access after acknowledgement until next request. */
   return 1;
 }
+
+#ifdef LUNAR_QUEUE_PROFILE
+bool LunarRendererQueue::ProfileRead(uint32_t outer_start, uint32_t outer_end,
+                                     uint32_t ticks[6]) {
+  if (!ticks || disabled() || recording_ || !completed_ ||
+      completed_ != profiled_completed_ + 1u || requested_ != done_) return false;
+  /* Dispatch already acquired the worker ACK. CPU1 cannot write its next
+   * duration until CPU0 publishes another batch; no idle polling clock reads. */
+  ticks[0] = record_start_ - outer_start;
+  ticks[1] = publish_start_ - record_start_;
+  ticks[2] = caller_end_ - publish_start_;
+  ticks[3] = dispatch_end_ - caller_end_;
+  ticks[4] = outer_end - dispatch_end_;
+  ticks[5] = worker_ticks_;
+  profiled_completed_ = completed_;
+  return true;
+}
+#endif

@@ -37,6 +37,12 @@ class alignas(64) LunarRendererQueue {
   bool Push(unsigned sound, const fm1_engine_t *engine, void *instance, const Op &op);
   bool Dispatch();
   int WorkerStep();
+#ifdef LUNAR_QUEUE_PROFILE
+  /* CPU0 only, once after each successful Dispatch. Regions 0..4 partition
+   * the outer block; region 5 is overlapping CPU1 execution, not additive.
+   * No worker-owned value is read until its completion fence is acquired. */
+  bool ProfileRead(uint32_t outer_start, uint32_t outer_end, uint32_t ticks[6]);
+#endif
   bool disabled() const { return error_ != None; } // Caller only.
   Error error() const { return error_; }
   unsigned completed() const { return completed_; }
@@ -55,5 +61,9 @@ class alignas(64) LunarRendererQueue {
   Error error_;
   bool recording_;
   unsigned completed_, peak_[kSounds];
+#ifdef LUNAR_QUEUE_PROFILE
+  uint32_t record_start_, publish_start_, caller_end_, dispatch_end_, worker_ticks_;
+  unsigned profiled_completed_;
+#endif
 };
 #endif
