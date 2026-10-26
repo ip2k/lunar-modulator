@@ -6089,3 +6089,51 @@ Firmware/prepared C is unchanged by this test-only repair. All84 transaction
 checksPASS. Candidate5704ca9e is now OFFLINE ADMITTED, pinned to140 application
 sectors; NOT staged/installed/hardware accepted. Local/Aeon reports and
 offline-admission.json hash the exact reviewed artifacts. V36 remains CURRENT.
+
+### V37 target modulation-stage attribution (2026-10-26)
+
+[verified] Candidate5704ca9e632fde350cd10b4a5f2a0a7f54f92857e839a28c778fa55d8cc7e05e
+completed the protected dev-board WINDOW/RUN cycle. Fresh UART entry and actual
+WL82/UBOOT1.00 inquiry preceded two matching full8MiB CURRENT V36 backups.
+CURRENT140-sector factoryrestore29130 and V37WINDOWinstall76832 passed complete
+flash readback. Sole startup verifier20654/PID431516 was armed before unique
+WINDOWreset6022 (consumed at invocation, NEVER retry). Fresh ready-to-three-ACK
+latency78.700304ms; actual ROM responded afterwards. Two NEW full8MiB backups
+70356 matched V37; NEW140-sector factoryrestore10323 and SAME-image RUNinstall
+94033 passed full readback. Sole receive-only capture41538/PID432870 was armed
+before unique RUNreset16109 (consumed at invocation, NEVER retry). Both reset
+USB host7/resid16 results alone were not boot evidence. All older receipts
+remain consumed. After finite workload completion, exact capture argv was
+verified twice, one SIGTERM sent, capture terminal255 observed BEFORE ordinary
+PING ACK. No RX/build/KA6/device operation remains live; no physical FM1 traffic.
+
+[verified] Strict V37 parser passed4arithmetic/4mixedPCM+control/24outer/40DETAIL/
+104MICRO records and22052queuejobs with zero errors and finite worker exit.
+Parent unused1532/8192bytes, worker7452/8192bytes; heap77108bytes stable. Mean
+block times1953.583/2014.667/2049.792/2208.958us; max55841/57444/61342/68160ticks.
+ALL5513blocks late in EVERY case: deadline FAIL34829ticks. Instrumented timing
+is not final audio acceptance. No DAC/KA6 capture or30minute analog soak occurred.
+
+[verified] Per-block stage means (24ticks/us): system intake36.375..36.708us;
+global module loop145.708..146.875us; sinks17.292..17.417us; voices2.542us;
+global glue2.958..3.125us; voice glue2.792..2.833us. All six intervals have
+exact11025/11026/11026/11026calls. They are subsets of recording/outer regions,
+not additive to them; CPU1 outer5 overlaps CPU0 and must never be added. Markers
+include observer overhead and omit tick bookkeeping/plan rebuild. Attribution
+identifies the global-module loop, including parameter/gate/output work, as the
+largest measured modulation stage; individual module process cost remains
+unseparated. Its removal alone could not close the overall mixed-renderer gap.
+Next inspect module_params/module_gates/process/module_outputs and exact active
+module schedule before a bounded optimization or more granular instrumentation.
+Do not infer that envelope arithmetic or voice modulation is the dominant cost.
+
+[verified] Raw UART SHA2568e7ca2c8c6c3de59dd44aae4d11dfb6169a169f769d1d5102eb5bc34d7a8ac5e;
+target-facts SHA25624eae4d654b43e3d35ce896879e570d1813a7e5bcb45239e4a7efd09ce18db81.
+Private raw/facts/startup/events/transaction receipts saved locally under
+scratch/devkit-20261023/build-renderer-mod-micro-v37 and replicated to Aeon
+renderer-mod-micro-v37-exports. Historical offline-admission report remains an
+offline receipt; target facts establish deployment and correctness, not acceptance.
+Rarefaction remains rooted at the primary checkout with fallback flags and could
+not resolve this worktree's run_module position; Serena sessionf56a245f selects
+the actual absolute worktree and resolved run_module/module_params/module_outputs.
+Empty Rarefaction results are not evidence of absent callers or target ABI proof.
