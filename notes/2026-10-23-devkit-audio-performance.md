@@ -5293,3 +5293,49 @@ behavior changed. A fresh private V29 vendor build linked successfully
 staged, installed or hardware accepted. Exact machine code, independent app
 copy/cipher, layout, UART-first startup, engine-global independence, SDK guard
 and NOR restore reviews remain required before any device operation.
+
+### Whole-engine queue V29 offline admission (2026-10-26)
+
+[verified] The private V29 app is 567,804 bytes. Independent vendor objcopy
+and ELF section concatenation agree byte for byte. The full candidate passes
+independent reference-cipher decoding, directory/app CRCs, protected-byte and
+cfg preservation checks. Its exact SHA is
+`91f34e30db7ed5008628c98a6104a4269cd1746a2280b5e9b6d2167f05772768`;
+139 changed sectors occupy `[0x4000, 0x8f000)`. Its exact transaction entry is
+admitted for this experiment; no hardware installation or acceptance is implied.
+All 77 transaction tests pass. The offline NOR model checks exact install and
+restore, metadata-last ordering, four interrupted page positions and independent
+restoration of the currently installed V28 image; it sends no device commands.
+
+[verified] All 636 preparation input hashes and the prepared app-main, linker
+script and make fragment hashes match. Exact vendor instructions preserve UART
+priority18 reservation before success-only CPU0 parent priority16 creation,
+200 recovery ticks before arithmetic and the permanent 8 KiB CPU1 worker, and
+worker readiness before renderer allocation. Queue/app/pool/stack static ranges
+do not overlap; pre-task heap is 119,788 bytes. Request publication, worker
+completion and caller acquisition retain the reviewed csync ordering. SDK
+link checks pass with no forbidden writes; the manual scheduling item is
+covered by exact normalized vendor-code comparison with the reviewed baseline.
+
+[verified] Bounded model0 independence review covers 18 source files and 23
+compiled functions, including smoothing, glide, rate conversion, pitch tables,
+VCF oscillators/filter, envelopes and post-processing. Mutable DSP state belongs
+to the passed instance/voice/output; shared pitch/FIR/parameter tables are
+immutable. The actual model0 vtable resolves to the reviewed VCF implementation.
+Drums' global Random stays on CPU0, and other Macro models remain refused.
+This is source/instruction evidence, not a runtime race proof. Individual target
+frames include a largest 1,160-byte frame; SDK/IRQ overhead and dynamic high-water
+marks still require target validation. TSAN remains unavailable due to its
+mapping failure, so no TSAN pass is claimed.
+
+[verified] The private strict queue parser accepts a complete synthetic capture,
+reports late blocks separately as deadline failure, rejects 17 fault mutations
+and rejects the actual V28 pair-only capture. It requires final worker exit and
+exact completed/job counts, correct PCM/control/arithmetic, stable heap and
+positive stack headroom. A per-case job counter may lag one acknowledgement;
+final equality is mandatory. Synthetic fixtures are not hardware evidence.
+All private scripts, binaries and detailed reports remain in ignored storage.
+Rarefaction's named query could not reach IMAGE_PLANS in this worktree because
+its root/default bounded scan is the primary checkout; Serena resolved the
+actual worktree symbol, with direct source/tests and vendor outputs used for
+verification. Neither tool establishes pi32v2 ABI correctness.
