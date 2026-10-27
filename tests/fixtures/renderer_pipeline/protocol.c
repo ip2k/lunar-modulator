@@ -43,7 +43,13 @@ static int produce(uint32_t tag) {
     CHECK(w==&hw[tag%2]);
     if(tag>=2)CHECK(w->retired==1);
     w->tag=tag;w->cookie=tag^0x35aee781u;w->retired=0;
-    CHECK(lunar_pipeline_publish(tag,start,host_clock())==1);
+    int published=lunar_pipeline_publish(tag,start,host_clock());
+    /* An injected callback may poison the worker before publish returns. The
+     * slot was still published once; both schedules must retain its ownership. */
+    if(callback_failure || park_callback)
+        CHECK(published==1 || (published==-1 &&
+            lunar_pipeline_error()==(park_callback?700u:E_CALLBACK)));
+    else CHECK(published==1);
     lunar_pipeline_sdk_parent_block();return 1;
 }
 static int harvest_one(void) {
@@ -131,6 +137,7 @@ static void run_fault(const char *mode) {
         CHECK(outputs[0].state==LEASED && s.output_retired==0);
     } else if(!strcmp(mode,"callback_failure")) {
         callback_failure=1;CHECK(produce(0));wait_error();
+        CHECK(lunar_pipeline_error()==E_CALLBACK);
         CHECK(works[0].state==CONSUMING && outputs[0].state==RESERVED);
         CHECK(s.consumed==0 && s.harvested==0 && calls==1);
     } else if(!strcmp(mode,"retire_failure")) {

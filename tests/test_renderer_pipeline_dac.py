@@ -1,4 +1,5 @@
 """Exact native callback body under mock leases/DMA; no SDK IRQ timing claim."""
+# Keep the ASan leak-detection default: enabled on Linux, unsupported on macOS.
 from pathlib import Path
 import shutil
 import subprocess
@@ -33,7 +34,7 @@ typedef uint8_t u8;
     subprocess.run([cc,'-std=c11','-O2','-g',*flags,'-DLUNAR_PIPELINE_CYCLES=1',
                     '-I'+str(ROOT/'firmware/devkit'),str(source),'-o',str(exe)],check=True)
     subprocess.run([str(exe)],check=True,timeout=30,env=dict(os.environ,
-        ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1'))
+        ASAN_OPTIONS='halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1'))
 
 @pytest.mark.parametrize('backend',[False,True])
 def test_pipeline_dac_build_selector(backend):

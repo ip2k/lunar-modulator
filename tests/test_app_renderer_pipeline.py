@@ -1,4 +1,5 @@
 """App-level sealed-block PCM/ownership regression; no target timing claim."""
+# Keep the ASan leak-detection default: enabled on Linux, unsupported on macOS.
 import hashlib
 import os
 from pathlib import Path
@@ -33,7 +34,7 @@ def test_app_pipeline_pcm_and_refusal(tmp_path,sanitize):
                         f'DEVKIT={dev}',f'SIM={source_root / "sim/web"}',f'BUILD={build}',
                         'FM1_GPL_MODS=0',f'FM1_MODULES={MODULES}',f'CC={cc}',f'CXX={cxx}',
                         f'EXTRA={flags}','-j4',str(exe)],check=True,stdout=subprocess.DEVNULL)
-        env=dict(os.environ,ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1')
+        env=dict(os.environ,ASAN_OPTIONS='halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1')
         for mode in (('immediate','delayed') if pipeline else ('baseline',)):
             pcm=tmp_path/(mode+'.pcm')
             subprocess.run([str(exe),str(pcm),mode],check=True,env=env,timeout=90)

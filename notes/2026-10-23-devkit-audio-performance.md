@@ -8543,3 +8543,23 @@ CI resume failure. Astra's bounded independent review finds no V188 receipt
 contradiction or queue ownership blocker. Finished V188 SDK/replay/queue-test
 copies and PCM intermediates are removed after matching retained ELF and
 analysis receipts; private raw captures, source inputs, reports and logs remain.
+
+### macOS pipeline CI portability and fault-schedule repair (2026-10-27)
+
+[verified] Exact-head CI 40548255141 is terminal: 13 jobs PASS and macOS
+job 122345499960 FAIL. Its actual log identifies six sanitizer aborts from
+forcing unsupported `detect_leaks=1`, plus a protocol-fixture assertion that
+assumes callback failure cannot occur before publish returns. Pipeline tests
+now retain ASan/UBSan halt behavior and supported runtime leak defaults. Runtime
+help verified leak detection true on Linux and false on this Apple runtime.
+No memory sanitizer, PCM, state or ownership assertion is skipped.
+
+[verified] An injected callback may poison the pipeline after SEALED publication
+but before the publisher's final error read. The fixture accepts that exact
+E_CALLBACK/700 return only for its injected failures; both schedules require
+the exact error, retained CONSUMING/RESERVED buffers and permanent refusal.
+No production firmware changed. Astra's independent bounded review found no
+remaining blocker. Seven formerly failed Apple Silicon tests PASS in 76.67 s;
+final exact-error protocol normal+ASan/UBSan tests PASS on Apple (1.69 s) and
+Linux (1.33 s). Logs/review retained privately under the campaign scratch lane.
+New exact-head CI is still required before integration; V188 results unchanged.

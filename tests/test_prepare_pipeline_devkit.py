@@ -1,4 +1,5 @@
 """Offline full-source preparation with a tiny synthetic SDK, never hardware."""
+# Keep the ASan leak-detection default: enabled on Linux, unsupported on macOS.
 import hashlib
 import importlib.util
 import json
@@ -149,7 +150,7 @@ def test_vcf_main_full_output_and_state_exact(tmp_path, sanitize):
         str(tmp_path/'reference.cc'), str(tmp_path/'optimized.cc'), str(inc/'plaits/resources.cc'),
         str(inc/'stmlib/dsp/units.cc'), '-o', str(exe)], check=True)
     subprocess.run([str(exe)], check=True, timeout=30, env=dict(os.environ,
-        ASAN_OPTIONS='detect_leaks=1:halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1'))
+        ASAN_OPTIONS='halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1'))
 
 
 def test_pipeline_transforms_refuse_reapplication():

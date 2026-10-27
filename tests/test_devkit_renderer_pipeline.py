@@ -1,4 +1,5 @@
 """Native-derived protocol ownership/refusal proof; no target timing claim."""
+# Keep the ASan leak-detection default: enabled on Linux, unsupported on macOS.
 from pathlib import Path
 import os
 import shutil
@@ -35,7 +36,7 @@ def test_native_pipeline_protocol(tmp_path, sanitize):
     exe = tmp_path / 'protocol'
     subprocess.run([cc, '-std=c11', '-O1', '-g', '-pthread', '-Wall', '-Wextra', '-Werror',
                     *flags, str(tmp_path / 'protocol.c'), '-o', str(exe)], check=True)
-    env = dict(os.environ, ASAN_OPTIONS='detect_leaks=1:halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1')
+    env = dict(os.environ, ASAN_OPTIONS='halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1')
     for mode in MODES:
         subprocess.run([str(exe), mode], check=True, env=env, timeout=15)
 
