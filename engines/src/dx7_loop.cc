@@ -61,7 +61,8 @@ void OperatorPair(const fm1_msfa::FmOpParams *p, int shift, int32_t fb[2], int32
   int32_t gm=p[0].gain[0], gc=p[1].gain[0];
   const int32_t dm=(p[0].gain[1]-gm+32)>>6, dc=(p[1].gain[1]-gc+32)>>6;
   int32_t y0=fb[0], y=fb[1];
-  for (int i=0; i<64; ++i) {
+  int32_t *const end=out+64;
+  do {
     gm+=dm; gc+=dc;
     const int32_t input=feedback ? Wrap(y0,y)>>(shift+1) : 0;
     const int32_t mod=static_cast<int32_t>((static_cast<int64_t>(fm1_msfa::Sin::lookup(
@@ -69,8 +70,14 @@ void OperatorPair(const fm1_msfa::FmOpParams *p, int shift, int32_t fb[2], int32
     if (feedback) { y0=y; y=mod; }
     const int32_t sample=static_cast<int32_t>((static_cast<int64_t>(fm1_msfa::Sin::lookup(
         static_cast<int32_t>(pc+static_cast<uint32_t>(mod))))*gc)>>24);
-    out[i]=Wrap(out[i],sample); pm+=fm; pc+=fc;
-  }
+    *out=Wrap(*out,sample); ++out;
+#if defined(__PI32V2__)
+    // Keep LTO from rematerializing the output address from an index.
+    // This emits no instruction and leaves the pointer value unchanged.
+    __asm__ volatile("" : "+r"(out));
+#endif
+    pm+=fm; pc+=fc;
+  } while (out!=end);
   if (feedback) { fb[0]=y0; fb[1]=y; }
 }
 }
