@@ -7804,3 +7804,41 @@ initializers retain their behavior. All six normal/sanitizer policy variants
 pass, including full-queue pressure and recovery hysteresis. This names the
 private configuration in tracked source; it does not establish fixed-polyphony
 or sustained hardware acceptance.
+
+### 2026-10-27: continuous burst failure and endpoint isolation
+
+[verified: dev board] V160b completed 30.4 minutes of uninterrupted mixed work:
+1,256,964 blocks and 228 cases, adaptive twelve-to-four voices. Consumer timing,
+DAC accounting and fault counters pass, but 85 producer blocks exceed the
+unchanged 34,829-tick deadline. The eight retained late-event tags are repeated
+case transitions. This is a failed performance result, not sustained acceptance.
+Normal and sanitizer host replay match all 228 case hashes and the complete
+321,782,784 PCM bytes under the recorded adaptive decisions.
+
+[verified: analog screen] The frozen scanner aligned every block, with its 25
+flags confined to startup. Quiet and weak-template coverage remains unqualified.
+The recorder split at 2 GiB; preserved files concatenate without sample edits,
+but their boundary continuity is not independently established. No blanket
+analog acceptance follows. A subsequent whole-capture level check also found a
+shutdown transient that a music-interval-only scan would miss.
+
+[verified: experiments] V161 holds the initial eight output leases while the
+DAC plays zeros and ramps gain before releasing the first PCM block. V162 also
+ramps gain down only after every logical output drains. The complete 125-second
+V162 capture has zero near-fullscale samples on both measured output channels,
+including both endpoints. A level screen alone is not dropout detection.
+
+[verified: exact candidate] In-place pristine-envelope reuse preserves each
+NoteOn and avoids copying templates. Original state after individual events and
+PCM agree at four sample rates, including built-ins, user rewrites, repeated
+steals and partial blocks, normally and under ASan/UBSan. The directed test
+exercises 2,681 reuse hits. Three continuous native cycles still have three
+producer overruns, including the repeated eight/twelve-note transitions;
+consumer timing and DAC fault checks pass. This candidate does not solve the
+burst deadline. A separately labelled adaptive floor-two headroom experiment
+is next; no fixed-polyphony acceptance is claimed. Private artifacts remain in
+the named devkit scratch and Aeon lanes.
+
+[verified: CI] Exact source 3549c10f CI 40472027768 and Pages 40472027779 both
+completed successfully. PR155 remains draft and unmerged; hardware acceptance
+is incomplete.
