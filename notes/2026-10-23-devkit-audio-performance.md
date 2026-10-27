@@ -7625,3 +7625,46 @@ absence before ordinary PING ACK. Every invoked reset, including failed-startup
 V134, is consumed and must never be retried. No backup/restore/readback rehearsal
 was repeated. Private SDK artifacts and raw UART remain ignored and mirrored
 on Aeon. No physical FM-1 traffic occurred. PR155 remains draft and unmerged.
+
+[verified: V135 target] The relocated diagnostic started the DAC with 5,364
+free heap bytes before open and 3,796 afterward, unchanged task stacks and
+445 unused parent words. Its first three complete 5,513-block hashes are exact;
+the fourth ran 146 blocks before output starvation10304. Producer means were
+24,733 / 28,736 / 31,234 / 36,147 ticks. IRQ maximum1,073 ticks; zero callback
+lateness/gaps before starvation. This remains a deadline failure.
+
+[verified: CPU0 attribution] Heavy held inclusive dispatch averaged34,451ticks
+per block; first DX7 render15,074ticks/call, drums9,511, other DX7 1,639,
+filter inserts3,689 and UI997. The engine spans occurred150times over148blocks,
+so weighted engine/filter cost is30,267ticks/block and the non-render dispatch
+remainder about4,184ticks. The remainder includes setters/routing/recording and
+probe overhead. UI is approximately41.5us; it is not the dominant remaining
+path. Timer spans overlap inclusive dispatch and must not be added to it.
+
+[verified: private V136 host proof] A conversion-only Drums loop reuses already
+established resampler readiness instead of repeating generic push/pop guards.
+Coefficients, arithmetic order, ring updates and native rate are unchanged;
+non-conversion modes keep the generic loop. At six rates,720,000 output samples
+and complete resampler states match bit-for-bit with randomized partial pushes,
+both normally and under ASan/UBSan. The initial native duplication exceeded the
+existing app bound; sharing the identical conversion kernel reduced it to588,124
+bytes. Native build/link and SDK review pass. Its uninstrumented target run completed as described below; no production
+integration or acceptance is claimed.
+
+
+[verified: V136 target] The first three cases retain exact complete hashes. The
+heavy case reaches166blocks before output starvation10304. Producer means are
+24,627 /28,631 /31,089 /35,892ticks; worker means30,449 /32,085 /32,121 /32,181.
+The heavy mean remains1,063ticks above budget, before jitter allowance. Compared
+with clean V133, means decrease251/256/248/345ticks, but truncated heavy sample
+populations differ and this is one run. Backend errors0, IRQ maximum1,064ticks,
+callback gaps/lateness0 before starvation; heap3,732 after DAC and parent445
+unused words. Receiver70801 ended naturally with exit0 and no PID remained
+before ordinary PING ACK. Its reset and every older reset remain consumed.
+
+[verified: V137 private preparation] Astra's per-block DX7 common-control proof
+passes normal and ASan/UBSan:5,645,312PCM bytes and1,264,773,264compared CPU0
+state bytes exact, including per-note fallback probes. The native candidate is
+built independently on clean V133, without Drums specialization or profiling.
+Only per-block pure Env Time/brightness/feedback preparation is shared; every
+voice retains its state advancement and ordered mix. Native gain is unmeasured.
