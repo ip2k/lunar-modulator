@@ -8147,3 +8147,30 @@ with a different decision trace. The V176 adaptive two-voice-floor soak remains
 the bounded successful milestone. Final sources, ELF, UART and small reports
 are private in the existing lane; generated SDK copies are removed after the
 result is recorded. PR155 remains draft, open and unmerged.
+
+
+### Drums conversion dominates the troublesome transition (V181, 2026-10-27)
+
+[verified: private diagnostic] Reusing the spare V180 timer slot around Drums'
+native RenderBlock adds no profiler buffer. The actual native source differs
+only by the declaration and two timer calls; rates, filters, RNG, voice lifetime
+and arithmetic remain unchanged. At ordinal7/tag38591, the Drums sink takes
+9,709 ticks: 2,404 inside native generation (100.2us) and 7,305 outside it
+(304.4us), about75percent for output conversion, surrounding glue and hook overhead.
+These are nested spans, not additive work. This isolates a conversion-path lead;
+it does not identify which FIR stage or establish removable cost.
+
+[verified: target limits] All66,156blocks/12cases finish, with producer maxima
+32,910/32,626/33,735/35,718ticks. One producer deadline miss remains at38591
+against unchanged34,829ticks. Consumer late0; DAC fault/backend/late/gaps0,
+drain64, worker finite exit; unused parent435words/worker1322. Instrumentation
+changes timing/adaptive decisions, so no cross-trace PCM parity or analog
+acceptance is claimed. The V176 adaptive two-voice-floor soak remains separate.
+
+[inferred next step] Investigate exact conversion work without reducing filter
+quality or repeating failed shared-weight/paired-unroll prototypes. Earlier V136
+readiness specialization saved only about10..14us, insufficient by itself.
+The diagnostic receiver exited normally and was absent twice before PING ACK;
+the board is healthy idle. The one-shot reset is consumed. Final source, ELF,
+raw UART and reports are private; the reproducible SDK copy was removed after
+recording them. PR155 remains draft, open and unmerged.
