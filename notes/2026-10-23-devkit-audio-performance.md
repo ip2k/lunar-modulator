@@ -7265,3 +7265,39 @@ proof/model scripts and results are in `scratch/devkit-20261023/prefix-v52-proof
 [verified] Resetting only stream counts and copying only used Macro commands preserves all5,645,312 stereo int16 PCM bytes in the actual threaded adapter normally and with ASan/UBSan. Native producer means1021.083/1186.708/1288.833/1440.250us, consumer1267.458/1333.625/1334.000/1334.417us. The heaviest producer average is below budget, but8-output/8-block-latency optimistic scheduling still misses669 blocks, max lateness64480ticks. All four PCM/control cases,22052 jobs and finite exit pass; worker unused7312bytes. Board healthy idle ordinaryPINGACK after one application flash/reset and exact RX shutdown. This is not paced or analog acceptance.
 
 [verified] The V101 combination with previously proven per-frame guarded mono Ladder passes full threaded PCM equivalence normally and sanitized, and links natively, but exceeds the current application's0x91000 end boundary. Candidate generation refused before producing an image; nothing flashed. Astra identified a separate CPU0 cost: V98's sealed-layout check still falls through to repeated descriptor and pairwise arena proofs. V102 will keep full initial admission and all-five-field geometry comparisons on every subsequent block, plus live slot/model/UI guards. Its equivalence and mutation-refusal checks are pending; no performance gain claimed.
+
+## V102: sealed admission reaches the first zero-miss pipeline screen
+
+[verified: target UART and strict parser] Moving immutable descriptor and pairwise
+arena proofs to initial admission preserves all four PCM hashes, 746 controls,
+22,052 produced/consumed/harvested/retired jobs, arithmetic checks and finite exit.
+Every subsequent block still compares engine, instance, arena pointer, used bytes
+and capacity against the sealed layout. Ten host mutations refuse before second
+publication; full threaded normal and ASan/UBSan PCM comparisons remain exact.
+
+Producer means are 24,140 / 28,087 / 30,533 / 34,138 oscillator ticks; consumer
+means are 30,448 / 32,041 / 32,049 / 32,058. The eight-output, eight-block-latency
+optimistic capacity model reports **zero misses**, versus 669 for V100. Smaller
+latencies fail. This is the first successful capacity screen, not continuous
+playback: the test still drains every 16 blocks and excludes transport overhead.
+The heaviest producer averages 1,422.417 us against the unchanged 1,451.208 us
+budget. Worker stack has 7,312 unused bytes. Source, raw UART and strict facts
+remain private under `scratch/devkit-20261023/renderer-two-slot-v102-exports`.
+
+[verified: private adapter and host transport fixture] The next V103 diagnostic
+connects this pipeline to the existing dev-board internal DAC. DSP stays in task
+context; the audio IRQ solely copies completed immutable output leases, checks
+integer PCM hashes and retires those leases. Task context only harvests work.
+The continuous pump removes the service screen's 16-block pauses and model loops.
+It is initially a bounded busy-pump diagnostic, not scheduler or sustained acceptance.
+Normal and ASan/UBSan transport checks pass all 22,052 recorded PCM blocks, three
+startup prefills, end draining and eight permanent fault/silence cases.
+
+[verified: pinned SDK IR; physical ordering pending] The DAC start routine does
+not prefill the ring. V103 therefore checks the allocated three-window geometry,
+places exact tags 0..2 into those windows while stopped, publishes the prepared
+frame credits and hands sole output reading to the IRQ. Four silence refills
+follow the final tagged submission before task-context stop. The host callback
+mock is not proof of hardware pointer ordering or actual analog first samples.
+Actual continuous underruns, full IRQ cost, memory headroom and physical capture
+remain the next gates. No backup, factory-restore or full-readback cycle was used.
