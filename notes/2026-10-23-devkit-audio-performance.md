@@ -7449,3 +7449,38 @@ The native V107 wake experiment also matches the full 5,645,312 PCM bytes in
 normal and ASan/UBSan builds and links successfully; target wake latency and
 fairness remain untested. The V106 hardware soak is still running at this
 checkpoint, so no sustained hardware or analog acceptance is claimed here.
+
+### V106 sustained digital transport and V108 physical fault detection
+
+[verified: native dev board] The unchanged mixed workload completed 57
+uninterrupted cycles: 1,256,964 blocks, all 228 reference hashes checked,
+1,823,490 ms elapsed. Output fault, backend error, late callback and gap
+counters were all zero. Maximum measured full IRQ was 357 oscillator ticks
+(14.875 us); minimum ready depth was one. Parent stack retained 701 words;
+worker retained 1,834 words and exited cleanly. Producer bursts still exceeded
+a single block's compute budget in the heavier case; finite buffering absorbed
+them throughout this run. This is sustained digital transport evidence from
+the busy-pump diagnostic, not scheduler fairness or production acceptance.
+Private raw UART SHA-256:
+`9a29c35fa69f04e1bbde67aca0db7c46aa39a73377d3699d10be0451d07981d4`.
+
+[verified: physical capture] KA6 captured 1,860 seconds with exit zero and no
+reported recorder overrun. The earlier low-gain signal's detector sensitivity
+was inadequate. A separate higher-gain V108 probe deliberately erased four
+64-frame physical output blocks after validating the original PCM. All four
+were detected above 482 nearby comparison windows each. Fitted correlation
+was 0.99906; estimated playback rate was 44,116.87 Hz. Measured missing-block
+fractions were approximately 1.006, 0.909, 1.009 and 1.004. This validates
+observability at those four points, not every signal window or a clean soak.
+The probe is explicitly marked acceptance=0 and rejected by clean parsers.
+The full capture contains a near-full-scale transient; no clean startup or
+clipping-free analog acceptance is claimed.
+
+[verified: source review; inferred integration path] Astra found no existing
+small-buffer app display backend. External pixels still require 115,200 bytes,
+and banner erasure reads prior pixels. A compact immutable drawing-command
+frame plus scanlines is a candidate, with capacity, pixel equivalence, task
+stack, raster CPU and SPI lifetime still to prove. The existing quarter-rate
+visual cadence is preserved. The native semaphore/canary experiment is next;
+production display, live input ownership and final analog acceptance remain
+unfinished. No physical FM-1 traffic was issued.
