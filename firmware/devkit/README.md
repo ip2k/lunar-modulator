@@ -530,8 +530,10 @@ This mode conflicts with the Drums worker partition and queue detail/micro or
 legacy per-unit profiling. Queue outer-region profiling is permitted; worker
 execution overlaps CPU0 and must not be added to its totals. Host PCM and sanitizer
 checks do not establish target timing, memory ordering, cache behavior or stack
-sufficiency. A new vendor image still needs the full existing admission review and
-protected startup/recovery cycle before any device measurement.
+sufficiency. Routine dev-board measurements use the owner's streamlined process:
+acknowledged UART recovery entry, application-only flashing, an armed receiver,
+one unique reset attempt and fresh startup/performance results. Do not repeat
+full backups, factory-restore rehearsals or full-flash readbacks per iteration.
 
 ### Caller track post overlap (diagnostic only)
 
@@ -588,18 +590,18 @@ lease handoff require the reviewed pinned SDK IRQ path, not a generic ISR-safety
 assumption. The 100 ms guard
 bounds protocol failure, not the audio deadline. The backend reserves a static
 1536-word CPU1 task with a finite 35-minute lifetime and refuses nested SDK
-workers. The opt-in live adapter connects the app hooks, but no native DAC
-driver or preparer enables it yet. Default builds do not change.
+workers. The opt-in live adapter, continuous DAC driver and private-SDK preparer
+connect this backend as described below. Default builds do not change.
 
 The implementation follows the private V185 pipeline, whose scoped adaptive
 floor-three target run and preceding V184 soak are recorded in the dated notes.
 Host ownership/failure tests use a C11 atomic/pthread model, plus a separately
 compiled public-header client; they do not prove native cache, IRQ or stack
-behavior. Compiling the tracked backend with JieLi's compiler is not a linked
-image or new hardware acceptance. Integrate the producer/consumer adapter and
-continuous DAC drain before claiming the tracked runtime reproduces that soak.
+behavior. Compiling the tracked backend alone does not establish linked-image
+or hardware acceptance. The later tracked V187/V188 runs exercise the integrated
+path; their scoped results are summarized below and in the dated notes.
 
-### Sealed app blocks (opt-in, no runtime activation)
+### Sealed app blocks (opt-in)
 
 `FM1_APP_RENDER_PIPELINE=1` adds the fixed-arrangement interface in
 `sim/web/src/fm1_app_pipeline.h`. CPU0 records Macro model-0 callbacks, copies
@@ -615,7 +617,8 @@ fixture only. It rejects layout/arena alias changes and worker-state edits while
 pending. App initialization is single-lifetime once bound; draw calls require a
 drained barrier. Editor subscriptions and render observers are unsupported.
 Failure hooks must record permanent refusal and never return into partially
-advanced DSP. No preparer flag, task or DAC adapter activates this path yet.
+advanced DSP. Only explicit pipeline preparation activates this path; ordinary
+application rendering does not select it.
 
 Normal and ASAN/UBSAN host comparisons exercise 44,104 blocks of fixed-polyphony
 PCM with immediate and delayed consumers, plus refused ownership/UI mutations.
@@ -629,10 +632,10 @@ retire the backend PCM lease. Direct synchronous rendering refuses in this mode.
 Normal/sanitizer tests compare immediate and delayed transport with the original
 renderer over 44,104 blocks, requiring identical PCM and status metadata.
 
-The tracked runtime still needs SDK scheduling/placement and the continuous DAC
-adapter before it can replace the private V185 experiment. No budget controller
-is enabled by the live adapter: fixed-polyphony replay remains distinct from the
-scoped adaptive floor-three target and analog results.
+SDK scheduling/placement and the continuous DAC adapter are selected by the
+pipeline preparer below. The live adapter itself does not enable a budget
+controller: fixed-polyphony replay remains distinct from the explicitly selected
+adaptive floor-three target and analog results.
 
 ### Continuous dev-board DAC pipeline (opt-in)
 
@@ -680,8 +683,23 @@ The preset pins the known DSP transformations and hot paths, CPU0 parent
 priority16, UART18, and one finite CPU1 worker. It refuses an unknown scheduler
 archive before staging. Only the new SDK copy changes. Initialization, note
 allocation and budget helpers retain the successful lane's explicit DX7 flash
-placement; synthesis stays in SRAM. Default policy is fixed12. Add
+placement by default; synthesis stays in SRAM. `--burst-hot` instead moves
+NoteOn and allocation into SRAM with explicit noinline attributes. Linked code
+also changes (NoteOn grows from 348 to 992 bytes), so its gain is not attributed
+solely to memory latency. Default policy is fixed12. Add
 `--adaptive-three` for the labelled floor3 experiment and `--cycles 57` for the
 30.4-minute workload. Preparation is offline and does not establish native or
 analog acceptance. Export evidence, then remove only the generated lane after
 its build/test processes exit.
+
+[verified] The tracked burst-hot V188 image completes 57 cycles, 228 cases and
+1,256,964 blocks in 30.4 minutes with zero producer/consumer deadline misses and
+zero reported DAC underruns or transport faults. Producer maxima are
+32026/30667/31595/34167 ticks against the unchanged 34829-tick limit. Actual
+decision replay matches all 321,782,784 PCM bytes in normal and ASAN/UBSAN builds.
+The unchanged frozen stereo screen reports zero flags and the separate ending
+check passes both channels. This is adaptive polyphony settling at three voices,
+not fixed twelve-voice acceptance. Quiet/weak/unprobed analog sensitivity,
+arbitrary patches and the physical FM-1 remain outside this result. See the
+dated audio-performance notes for evidence and limits; private SDK material and
+raw captures are not distributed with the source.
