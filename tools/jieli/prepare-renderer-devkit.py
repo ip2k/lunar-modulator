@@ -619,6 +619,17 @@ static int lunar_queue_dispatch(void) {
     start = text.index(anchor)
     end = text.index("/* An effect over the block", start)
     block = text[start:end]
+    # These are alternative callback owners, never nested schedulers. Select the
+    # original sink branch before matching queue callbacks, retaining exact drift
+    # checks for both the pipeline wrappers and their direct-call fallbacks.
+    pipeline_calls = (
+        "if(!pipeline_record(c,PIPELINE_RENDER,lr,n,0,0,0,0)) ",
+        "if(!pipeline_record(c,PIPELINE_ON,0,0,0,note,velocity,0)) ",
+        "if(!pipeline_record(c,PIPELINE_OFF,0,0,0,note,0,0)) ",
+        "if(!pipeline_record(c,PIPELINE_PARAM,0,0,index,0,0,value)) ",
+        "if(!pipeline_record(c,PIPELINE_BEND,0,0,0,0,0,semitones) && u->e->pitch_bend) ",
+        "if(!pipeline_record(c,PIPELINE_NOTE,0,0,index,key,0,offset) && u->e->set_param_note) ",
+    )
     replacements = [
         ("u->e->render(u->self, lr, n);",
          "if (!lunar_queue_record(c,LUNAR_QUEUE_RENDER,lr,n,0,0,0,0)) u->e->render(u->self, lr, n);"),
@@ -632,11 +643,47 @@ static int lunar_queue_dispatch(void) {
          "if (!lunar_queue_record(c,LUNAR_QUEUE_BEND,0,0,0,0,0,semitones) && u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);"),
         ("if (u->e->set_param_note) u->e->set_param_note(u->self, key, index, offset);",
          "if (!lunar_queue_record(c,LUNAR_QUEUE_SET_NOTE,0,0,index,key,0,offset) && u->e->set_param_note) u->e->set_param_note(u->self, key, index, offset);")]
-    for old, new in replacements:
+    for (old, new), pipeline in zip(replacements, pipeline_calls):
+        direct = old
+        if old.startswith("if ("):
+            direct = old.split(") ", 1)[1]
+        wrapped = "#ifdef FM1_APP_RENDER_PIPELINE\n  " + pipeline + direct + "\n#else\n  " + old + "\n#endif"
+        if block.count(wrapped) != 1:
+            raise ValueError("Unexpected pipeline callback; review queue: " + old)
+        block = block.replace(wrapped, old, 1)
         if block.count(old) != 1:
             raise ValueError("Unexpected engine callback; review queue: " + old)
         block = block.replace(old, new, 1)
     text = text[:start] + block + text[end:]
+    # Retain the ordinary mutation guard when excluding the pipeline header.
+    header_start = text.index("#ifdef FM1_APP_RENDER_PIPELINE\n")
+    header_end = text.index("#endif\n\n#include <limits.h>", header_start) + len("#endif\n")
+    header = text[header_start:header_end]
+    if not header.endswith("#else\n#define PIPELINE_GUARD(x) ((void)0)\n#endif\n"):
+        raise ValueError("Unexpected pipeline guard; review queue")
+    text = text[:header_start] + "#define PIPELINE_GUARD(x) ((void)0)\n" + text[header_end:]
+    # Remove the three pipeline-only declarations/bodies too: they contain
+    # intentionally duplicated dispatch/profiling anchors that are not queue code.
+    lines, selected, depth, removed = text.splitlines(keepends=True), [], 0, 0
+    for line in lines:
+        directive = line.strip()
+        if not depth and directive == "#ifdef FM1_APP_RENDER_PIPELINE":
+            depth, removed = 1, removed + 1
+        elif depth:
+            if re.match(r"#if(?:def|ndef)?\b", directive):
+                depth += 1
+            elif directive == "#endif":
+                depth -= 1
+            elif depth == 1 and re.match(r"#(?:else|elif)\b", directive):
+                raise ValueError("Unexpected pipeline alternative; review queue")
+        else:
+            selected.append(line)
+    if depth or removed != 3:
+        raise ValueError("Unexpected pipeline bodies; review queue")
+    text = "".join(selected)
+    text = ("#ifdef FM1_APP_RENDER_PIPELINE\n"
+            "#error Whole-engine queue cannot share pipeline callback ownership\n"
+            "#endif\n" + text)
     old = "    fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS, &hook);"
     if text.count(old) != 1:
         raise ValueError("Unexpected dispatcher; review queue")

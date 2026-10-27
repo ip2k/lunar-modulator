@@ -357,6 +357,21 @@ def test_queue_preparation_refuses_unsupported_combinations(tmp_path, options):
     assert not out.exists()
 
 
+def test_queue_callbacks_select_one_owner_and_refuse_pipeline_drift():
+    prepare = load("queue_callback_preparer", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    source = (ROOT / "sim/web/src/fm1_app.c").read_text()
+    transformed = prepare.queue_engine_callbacks(source)
+    start = transformed.index("static void sink_render(")
+    end = transformed.index("/* An effect over the block", start)
+    assert "pipeline_record(" not in transformed[start:end]
+    assert "#error Whole-engine queue cannot share pipeline callback ownership" in transformed
+    for operation in ("RENDER", "ON", "OFF", "PARAM", "BEND", "NOTE"):
+        with pytest.raises(ValueError, match="Unexpected pipeline callback"):
+            prepare.queue_engine_callbacks(source.replace(
+                "pipeline_record(c,PIPELINE_" + operation + ",",
+                "changed_pipeline_record(c,PIPELINE_" + operation + ",", 1))
+
+
 def test_micro_control_hook_transformation_is_exact_and_refuses_drift():
     prepare = load("queue_control_preparer", ROOT / "tools/jieli/prepare-renderer-devkit.py")
     original = prepare.queue_engine_callbacks((ROOT / "sim/web/src/fm1_app.c").read_text())

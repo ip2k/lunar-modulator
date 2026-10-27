@@ -8499,3 +8499,37 @@ through acknowledgedUART recovery. SoleUART and1900s single-streamKA6capture are
 armed before one unique reset. Expected228cases/1,256,964blocks (~30.4min).
 Timing, actual-decision replay and frozen analog/endpoint analysis remain pending.
 No backups/fullreadbacks/restore rehearsals. PR155 draft/open/unmerged.
+
+### V188 tracked burst image: 30-minute adaptive soak completed
+
+[verified] V188 completes 1,256,964 blocks, 228 cases and 57 cycles in
+1,823,780 ms (30.4 minutes). Producer maxima 32,026 / 30,667 / 31,595 / 34,167
+stay below the unchanged 34,829-tick deadline; producer and consumer misses are
+zero. DAC fault/backend/late/gaps are zero, drain is 64, and the worker exits
+finitely while DAC zero idle continues (166 callbacks). Parent/worker unused
+stack is 689/1322 words. Both capture processes exit successfully and are absent
+before ordinary UART PING acknowledges. No full backups/readbacks/rehearsals.
+
+[verified] Actual-decision normal and ASAN/UBSAN replays match 321,782,784 PCM
+bytes exactly, all 228 case hashes, fold edcb4e91, 42,522 controls and voice
+statistics. This run uses explicitly labelled adaptive 65/60 polyphony: initial
+12, floor 3, final active/limit 3, nine decreases, shed 0, stolen 4597. It does
+not establish fixed twelve-voice, general-patch or physical FM-1 acceptance.
+
+[verified, bounded] The unchanged frozen stereo detector aligns and scores every
+block on each channel with zero flags. The separate unchanged endpoint check
+passes the final eight blocks on both channels. No coefficients or thresholds
+were refitted to this run. Quiet/weak/unprobed sensitivity limits remain;
+this supports no detected analog residual anomalies in this complete adaptive
+dev-board workload, not universal audio continuity. Raw capture, target facts,
+replay and digest-bound analysis reports remain private in the V188 lane.
+
+[verified CI limit] Exact-head CI 40540291294 fails Ubuntu/macOS queue preparation
+and WebKit transport resume; eleven other jobs pass. Pages 40540290956 succeeds.
+The older queue preparer sees duplicate anchors from the opt-in pipeline source.
+Its repair explicitly selects ordinary callback ownership and refuses combining
+the two schedulers. All 42 focused queue integration checks pass on bounded
+Aeon, including whole-app PCM, profiling variants and refusal paths. The WebKit
+failure remains unreproduced by a standalone exact-source toolbar control and
+twelve fresh-page transition probes; those passes are not a fix or CI acceptance.
+PR155 remains draft/open/unmerged pending required checks and review.
