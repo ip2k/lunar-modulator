@@ -8245,3 +8245,29 @@ receipts remain private. Reproducible SDK copies and replay source/PCM were
 removed after evidence was recorded. Next integrate the proven exact readiness
 transformation into tracked code/preparation, preserve fixed-polyphony checks,
 and follow required CI/review. PR155 remains draft, open and unmerged.
+
+
+### Tracked opt-in Drums readiness integration (2026-10-27)
+
+[verified source/host] The preparer now exposes `--drums-ready-convert`, gated
+on resident unrolled outer-only preparation without separate outlining. Only
+prepared Drums uses the unchecked conversion entry after supplying exactly its
+required inputs. Other translation units retain their original checked path;
+PASS/OFF fallback, FIR coefficients/grouping and engine rates remain unchanged.
+Both prepared input hashes and the selected option enter the manifest. A named
+`lunar_voice_budget_init_burst_safety_three` exposes the V18465/60 floor3 policy;
+existing initializers retain their policies. Neither option is enabled by default.
+
+[verified checks]31 focused tests passed on bounded Aeon, including the full
+11,290,624-byte shared-renderer PCM comparison and existing/new policy tests.
+The whole-renderer comparison also passed ASan/UBSan with the existing shift
+exception. Independent review found a source-drift risk in signature-only
+validation; exact reviewed Render/needed/push bodies and body-mutation tests
+now fail closed. Nine affected checks then passed. Converter tests compare
+720,000 outputs and complete states byte-for-byte against a separately compiled
+original implementation across six rates, normal and sanitizer builds, including
+checked unready and OFF behavior. An initial test applied FIR unrolling after
+specialization; it was corrected to the actual preparation order. Firmware
+preparation ordering did not change. These are source/host results: the named
+tracked integration has not been built or installed as a new target image.
+PR155 remains draft, open and unmerged pending CI/review and further integration.

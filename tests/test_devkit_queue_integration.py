@@ -20,9 +20,10 @@ def load(name, path):
 
 @pytest.mark.parametrize("queue_profile,worker_drums", [(p, d) for p in
     (False, True, "detail", "micro", "mod_micro", "module_micro") for d in (False, True)] +
-    [("insert", False), ("insert_profile", False), ("caller_post", False)])
+    [("insert", False), ("insert_profile", False), ("caller_post", False), ("caller_post_ready", False)])
 def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, queue_profile):
-    caller_post = queue_profile == "caller_post"
+    drums_ready = queue_profile == "caller_post_ready"
+    caller_post = drums_ready or queue_profile == "caller_post"
     insert = caller_post or queue_profile in ("insert", "insert_profile")
     profiling = bool(queue_profile) and queue_profile != "insert"
     renderer = load("queue_renderer_reference", ROOT / "tests/test_devkit_renderer.py")
@@ -50,6 +51,22 @@ def test_whole_engine_queue_prepared_pcm(tmp_path, monkeypatch, worker_drums, qu
                 destination.write_text(prepare.queue_modulation_micro(path.read_text(), unit, queue_profile == "module_micro"))
             else:
                 destination.symlink_to(path, target_is_directory=path.is_dir())
+    elif drums_ready:
+        # Only the prepared header and Drums TU are writable; other sources stay read-only links.
+        for directory in (ROOT / "engines").iterdir():
+            destination = shadow / "engines" / directory.name
+            if directory.name in ("include", "src"):
+                destination.mkdir(parents=True)
+                for item in directory.iterdir():
+                    if item.name not in ("fm1_resampler.h", "drums.cc"):
+                        (destination / item.name).symlink_to(item, target_is_directory=item.is_dir())
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.symlink_to(directory, target_is_directory=directory.is_dir())
+        header = prepare.unroll_resampler_lowpass((ROOT / "engines/include/fm1_resampler.h").read_text())
+        header, drums = prepare.drums_ready_conversion(header, (ROOT / "engines/src/drums.cc").read_text())
+        (shadow / "engines/include/fm1_resampler.h").write_text(header)
+        (shadow / "engines/src/drums.cc").write_text(drums)
     else:
         (shadow / "engines").symlink_to(ROOT / "engines", target_is_directory=True)
     shutil.copytree(ROOT / "firmware/devkit", shadow / "firmware/devkit")

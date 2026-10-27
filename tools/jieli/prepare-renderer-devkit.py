@@ -808,7 +808,115 @@ def queue_modulation_micro(text, unit, modules=False):
             "#else\n#define QUEUE_MOD_MICRO(r, e) ((void)0)\n#endif\n" + text)
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False, metadata_ram=False, msfa_sine_pair=False):
+def drums_ready_conversion(header, drums):
+    """Specialize only the prepared Drums conversion path; retain checked fallback.
+
+    The caller must satisfy need before the unchecked pop and may push only
+    min(need, pending) inputs. Keep the FIR body literally unchanged and share
+    its noinline kernel between the checked and ready entry in this TU.
+    """
+    begin = "static inline float fm1_resampler_pop(fm1_resampler_t *r) {"
+    end = "\n/* Array form:"
+    checks = ("  if (r->mode != FM1_RESAMPLER_CONVERT) {\n"
+              "    if (!r->held) return 0.0f;\n"
+              "    r->held = 0;\n"
+              "    return r->in[0];\n  }\n"
+              "  if (fm1_resampler_needed(r)) return 0.0f;\n")
+    anchor = "  void Render(float *out_lr, uint32_t frames) {\n"
+    reviewed_render = r"""  void Render(float *out_lr, uint32_t frames) {
+    for (uint32_t f = 0; f < frames; ++f) {
+      uint32_t need = fm1_resampler_needed(&resampler_);
+      while (need) {
+        if (!pending_) {
+          RenderBlock();
+          pending_ = kBlockSize;
+        }
+        const uint32_t took = fm1_resampler_push(
+            &resampler_, &mix_[kBlockSize - pending_],
+            need < pending_ ? need : static_cast<uint32_t>(pending_));
+        pending_ -= took;
+        need -= took;
+      }
+      out_lr[2 * f] = out_lr[2 * f + 1] = fm1_resampler_pop(&resampler_);
+    }
+  }"""
+    reviewed_input = r"""static inline uint32_t fm1_resampler_needed(const fm1_resampler_t *r) {
+  int64_t v;
+  if (r->mode != FM1_RESAMPLER_CONVERT) return r->mode == FM1_RESAMPLER_PASS && !r->held;
+  v = r->rel + r->lead;
+  return v > 0 ? (uint32_t)(((uint64_t)v + 0xFFFFFFFFu) >> 32) : 0u;
+}
+
+/* Takes up to n samples, never more than fm1_resampler_needed(r); returns
+ * how many it took. */
+static inline uint32_t fm1_resampler_push(fm1_resampler_t *r, const float *in, uint32_t n) {
+  uint32_t i, need = fm1_resampler_needed(r);
+  if (n > need) n = need;
+  if (r->mode != FM1_RESAMPLER_CONVERT) {
+    if (n) { r->in[0] = in[0]; r->held = 1; }
+    return n;
+  }
+  for (i = 0; i < n; ++i) {
+    r->in[r->in_w] = r->in[r->in_w + FM1_RESAMPLER_IN_CAP] = in[i];
+    if (++r->in_w == FM1_RESAMPLER_IN_CAP) r->in_w = 0;
+  }
+  r->rel -= (int64_t)n << 32;
+  return n;
+}
+"""
+    if drums.count(reviewed_render) != 1 or header.count(reviewed_input) != 1:
+        raise ValueError("Unexpected Drums readiness boundary; review input/render bodies")
+    if (header.count(begin) != 1 or header.count(end) != 1 or
+            header.count(checks) != 1 or drums.count(anchor) != 1 or
+            drums.count('#include "fm1_resampler.h"') != 1):
+        raise ValueError("Unexpected Drums readiness boundary; review specialization")
+    a, b = header.index(begin), header.index(end)
+    original = header[a:b]
+    if checks not in original:
+        raise ValueError("Unexpected resampler readiness checks")
+    ready_name = "fm1_resampler_ready_convert"
+    ready = original.replace(begin, "static __attribute__((noinline)) float " + ready_name +
+                             "(fm1_resampler_t *r) {", 1).replace(checks, "", 1)
+    checked = (begin + "\n" + checks + "  return " + ready_name + "(r);\n}\n")
+    helpers = r"""
+/* Conversion-only entries: caller established CONVERT and input readiness.
+ * Never call these with PASS/OFF, an overlong push, or an unready pop. */
+static inline uint32_t fm1_resampler_needed_convert(const fm1_resampler_t *r) {
+  const int64_t v = r->rel + r->lead;
+  return v > 0 ? (uint32_t)(((uint64_t)v + 0xFFFFFFFFu) >> 32) : 0u;
+}
+static inline void fm1_resampler_push_convert(fm1_resampler_t *r, const float *in, uint32_t n) {
+  for (uint32_t i = 0; i < n; ++i) {
+    r->in[r->in_w] = r->in[r->in_w + FM1_RESAMPLER_IN_CAP] = in[i];
+    if (++r->in_w == FM1_RESAMPLER_IN_CAP) r->in_w = 0;
+  }
+  r->rel -= (int64_t)n << 32;
+}
+"""
+    # Other translation units retain exactly the original checked implementation.
+    header = (header[:a] + "#ifdef FM1_DRUMS_READY_CONVERT\n" + helpers + ready + checked +
+              "#else\n" + original + "#endif\n" + header[b:])
+    loop = r"""    if (resampler_.mode == FM1_RESAMPLER_CONVERT) {
+      for (uint32_t f = 0; f < frames; ++f) {
+        uint32_t need = fm1_resampler_needed_convert(&resampler_);
+        while (need) {
+          if (!pending_) { RenderBlock(); pending_ = kBlockSize; }
+          const uint32_t took = need < pending_ ? need : static_cast<uint32_t>(pending_);
+          fm1_resampler_push_convert(&resampler_, &mix_[kBlockSize - pending_], took);
+          pending_ -= took;
+          need -= took;
+        }
+        out_lr[2 * f] = out_lr[2 * f + 1] = fm1_resampler_ready_convert(&resampler_);
+      }
+      return;
+    }
+"""
+    drums = drums.replace('#include "fm1_resampler.h"',
+                          '#define FM1_DRUMS_READY_CONVERT 1\n#include "fm1_resampler.h"', 1)
+    return header, drums.replace(anchor, anchor + loop, 1)
+
+
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False, metadata_ram=False, msfa_sine_pair=False, drums_ready_convert=False):
     if engine_queue_caller_post and not engine_queue_insert:
         raise ValueError("Caller post requires guarded queue inserts")
     if engine_queue_insert and (not engine_queue or engine_queue_drums or engine_queue_detail or engine_queue_micro or engine_queue_mod_micro or engine_queue_module_micro):
@@ -897,6 +1005,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         raise ValueError("Renderer O3 comparison requires timing-only profiled lowpass unrolling")
     if metadata_ram and not (timing_only and kind_ram and cache_tables):
         raise ValueError("Resident metadata requires timing-only resident control kinds and tables")
+    if drums_ready_convert and not (hot_ram and resampler_unroll and outer_timing_only and not resampler_outline):
+        raise ValueError("Drums readiness requires resident unrolled outer-only conversion without outlining")
     if resampler_stage1_schedule and not (resampler_slopes and mixer_ram):
         raise ValueError("Stage-one scheduling requires pre-scaled pairs and resident mixer")
     if resampler_schedule and not mixer_ram:
@@ -1197,6 +1307,15 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         p = staging / "engines/include/fm1_resampler.h"
         stage1_schedule_input = hashlib.sha256(p.read_bytes()).hexdigest()
         p.write_text(schedule_resampler_intermediate(p.read_text()))
+    drums_ready_inputs = {}
+    if drums_ready_convert:
+        header = staging / "engines/include/fm1_resampler.h"
+        drums = staging / "engines/src/drums.cc"
+        drums_ready_inputs = {str(p.relative_to(staging)): hashlib.sha256(p.read_bytes()).hexdigest()
+                              for p in (header, drums)}
+        changed_header, changed_drums = drums_ready_conversion(header.read_text(), drums.read_text())
+        header.write_text(changed_header)
+        drums.write_text(changed_drums)
     prep_profile_inputs = {}
     if prep_profile and not outer_timing_only:
         for name, planner in (("sim/web/src/fm1_app.c", False),
@@ -1381,6 +1500,8 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "vcf_profile": vcf_profile and not outer_timing_only,
         "vcf_profile_original_sha256": vcf_profile_input,
         "engine_profile": engine_profile and not outer_timing_only,
+        "drums_ready_convert": drums_ready_convert,
+        "drums_ready_convert_input_sha256": drums_ready_inputs,
         "resampler_unroll": resampler_unroll,
         "resampler_stage1_schedule": resampler_stage1_schedule,
         "resampler_stage1_schedule_original_sha256": stage1_schedule_input,
@@ -1539,5 +1660,7 @@ if __name__ == "__main__":
                         help="Replace six control-hook timers with internal modulation subsets; requires queue micro")
     parser.add_argument("--engine-queue-module-micro", action="store_true",
                         help="Split global module preparation/process/output; requires modulation micro")
+    parser.add_argument("--drums-ready-convert", action="store_true",
+                        help="Reuse established Drums conversion readiness; resident unrolled outer-only comparison")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post, args.resampler_stage1_schedule, args.metadata_ram, args.msfa_sine_pair)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post, args.resampler_stage1_schedule, args.metadata_ram, args.msfa_sine_pair, args.drums_ready_convert)

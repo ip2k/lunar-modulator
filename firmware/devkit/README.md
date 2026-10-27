@@ -9,6 +9,25 @@ link the pinned vendor SDK and remain in ignored/private storage.
 [18-case measured baseline](../../notes/2026-10-23-devkit-resampler-results.md)
 is not a full engine/mixer cost or audio-output result.
 
+## Drums conversion readiness comparison
+
+`prepare-renderer-devkit.py --drums-ready-convert` enables the conversion-only
+Drums path measured in the V183/V184 experiments. It requires resident code,
+unrolled resampling and outer-only timing, and rejects the separate outlining
+mode. The prepared Drums caller supplies exactly the required input before
+entering the shared FIR kernel. Other translation units, PASS/OFF behavior,
+coefficients, arithmetic grouping and native engine rates retain their original
+paths. The manifest records the option and both source input hashes.
+
+`lunar_voice_budget_init_burst_safety_three` is an explicit 65% pressure / 60%
+recovery experiment with a three-voice floor. The existing two-voice policy and
+all default initializers remain unchanged. Adaptive results must report their
+recorded voice decisions, admitted limit, steals, deadline misses and underruns;
+they do not establish fixed-twelve-voice acceptance. V184 completed a 30.4-minute
+dev-board soak without deadline misses or detected analog residual anomalies,
+subject to the documented quiet/weak-signal detection limits. This is a diagnostic
+milestone, not production-path or physical FM-1 acceptance.
+
 ## Internal-DAC reference probe
 
 An explicit preparation option replaces the benchmark with a quiet, ramped

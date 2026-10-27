@@ -8,7 +8,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.parametrize("headroom", [0, 1, 2, 3], ids=["original", "headroom85", "burst75", "burst65"])
+@pytest.mark.parametrize("headroom", [0, 1, 2, 3, 4], ids=["original", "headroom85", "burst75", "burst65", "burst65floor3"])
 @pytest.mark.parametrize("sanitize", [False, True])
 def test_render_owner_feedback(tmp_path, sanitize, headroom):
     cc = os.environ.get("CC", "cc")
@@ -19,7 +19,9 @@ def test_render_owner_feedback(tmp_path, sanitize, headroom):
 #include "voice_budget.h"
 #include <assert.h>
 #include <stdio.h>
-#if HEADROOM == 3
+#if HEADROOM == 4
+#define policy_init lunar_voice_budget_init_burst_safety_three
+#elif HEADROOM == 3
 #define policy_init lunar_voice_budget_init_burst_safety
 #elif HEADROOM == 2
 #define policy_init lunar_voice_budget_init_burst_reserve
@@ -28,9 +30,9 @@ def test_render_owner_feedback(tmp_path, sanitize, headroom):
 #else
 #define policy_init lunar_voice_budget_init
 #endif
-#define FLOOR (HEADROOM == 3 ? 2u : 4u)
+#define FLOOR (HEADROOM == 3 ? 2u : HEADROOM == 4 ? 3u : 4u)
 #define CHANGES (12u - FLOOR)
-#define RECOVERY_SAMPLES (HEADROOM == 3 ? 14000u : 10000u)
+#define RECOVERY_SAMPLES (HEADROOM >= 3 ? 14000u : 10000u)
 struct engine { unsigned limit, calls, refuse; };
 static int apply(void *ctx,unsigned n) {
     struct engine *e=(struct engine *)ctx;
@@ -87,7 +89,7 @@ int main(void) {
         }
         assert(s.limit==(HEADROOM ? FLOOR : 12u));
     }
-#if HEADROOM == 3
+#if HEADROOM >= 3
     /* Exact strict boundaries and 1024-observation recovery of the soak policy. */
     assert(policy_init(&s,10000));
     for(unsigned n=0;n<16;++n)assert(lunar_voice_budget_feedback(&s,tag++,6500,6,apply,&e)==0);
