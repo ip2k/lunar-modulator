@@ -7422,3 +7422,30 @@ fixture's recorded command path. The next bounded scheduler experiment uses
 latched wake predicates on the unchanged fixture before production input/UI
 integration. Busy-pump transport success does not establish task fairness or
 interactive product acceptance. Detailed SDK evidence and plans remain private.
+
+### Tracked Ladder mono reuse promotion
+
+[verified: source and independent review] Promoted the V95/V105 Ladder
+optimization into the tracked filter. It reuses one channel only when input,
+G, G4, sigma and all four history values match by bits; otherwise the original
+stereo calculation runs. Shared coefficient evaluation and sample arithmetic
+are unchanged. Complete Ladder history is copied after the reused calculation.
+Astra found no missing channel-dependent input in the guard.
+
+[verified: fresh bounded Aeon tests] All 80 filter tests pass, including the
+extended independent-channel oracle for both SVF and Ladder across mono,
+stereo history, return to mono, moving parameters and signed-zero inputs.
+The initial suite invocation failed because Make selected unavailable g++;
+setting CC=clang and CXX=clang++ resolved that environment error. The existing
+private V95 differential additionally checked complete state and exceptional
+input patterns; the tracked oracle does not claim internal-state coverage.
+
+[verified: actual rebuild] The normal GPL-enabled browser engine set rebuilt
+with 108 parity scenarios passing, all identical to JavaScript and musl.
+The 30-second edit-layer benchmark recorded zero late quanta; strict CI-mode
+build-record validation passed. This --no-screenshot rebuild does not establish
+Chromium playback acceptance or resolve the earlier browser underrun failure.
+The native V107 wake experiment also matches the full 5,645,312 PCM bytes in
+normal and ASan/UBSan builds and links successfully; target wake latency and
+fairness remain untested. The V106 hardware soak is still running at this
+checkpoint, so no sustained hardware or analog acceptance is claimed here.

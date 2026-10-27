@@ -93,13 +93,14 @@ def test_instance_size(renderer, tmp_path, tool):  # noqa: F811
     assert sizes == {"8000": 656, "44118": 656, "48000": 656, "96000": 656, "384000": 656}
 
 
-def test_svf_mono_shortcut_preserves_independent_channels(tmp_path):
+@pytest.mark.parametrize("filter_type", [0, 1], ids=["svf", "ladder"])
+def test_mono_shortcut_preserves_independent_channels(tmp_path, filter_type):
     """Other-channel input cannot affect this channel, even across old tails."""
     compiler = shutil.which("c++")
     if not compiler:
         pytest.skip("no C++ compiler")
     source = tmp_path / "channels.cc"
-    source.write_text(r'''
+    source.write_text((r'''
 #include "fm1_engine.h"
 #include <assert.h>
 #include <initializer_list>
@@ -113,7 +114,10 @@ int main() {
     fm1_host_t host = {FM1_ENGINE_API_VERSION, rate, 64};
     assert(e.instance_size(&host) <= sizeof memory[0]);
     void *state[3];
-    for (int i = 0; i < 3; ++i) state[i] = e.create(memory[i], &host);
+    for (int i = 0; i < 3; ++i) {
+      state[i] = e.create(memory[i], &host);
+      e.set_param(state[i], 0, FILTER_TYPE);
+    }
     uint32_t rng = 3;
     for (unsigned frame = 0; frame < 16384; ++frame) {
       if (frame % 127 == 0) {
@@ -127,11 +131,11 @@ int main() {
       }
       rng = rng * 1664525u + 1013904223u;
       float l = static_cast<int32_t>(rng) / 4294967296.f;
-      float r = frame < 4096 ? -l : l;  // old stereo histories, then mono
+      float r = frame >= 4096 && frame < 8192 ? -l : l;  // mono, stereo tails, then mono
       if (frame % 101 == 0) { l = 0.f; r = -0.f; }
       float actual[2] = {l, r};
       // Force different opposite inputs while keeping each oracle channel's
-      // input and parameters identical. No SVF equations are copied here.
+      // input and parameters identical. No filter equations are copied here.
       float left[2] = {l, l + .25f}, right[2] = {r - .25f, r};
       e.render(state[0], actual, 1);
       e.render(state[1], left, 1);
@@ -142,7 +146,7 @@ int main() {
     for (auto s : state) e.destroy(s);
   }
 }
-''')
+''').replace('FILTER_TYPE', str(filter_type)))
     binary = tmp_path / "channels"
     subprocess.run([compiler, "-std=c++11", "-O2", "-I", str(ENGINES / "include"),
                     str(source), str(ENGINES / "src/fx_filter.cc"), "-o", str(binary)],
