@@ -7597,3 +7597,31 @@ throughput gap or establish mixed-affinity scheduler fairness. The receiver
 was twice argument-verified, terminated once, reached terminal status and its
 PID was absent before ordinary PING ACK. No full backup/restore/readback cycle
 was repeated. All reset receipts are consumed; the board is responsive idle.
+
+### Wait-aware yield and bounded CPU0 attribution, 2026-10-27
+
+[verified: V133 target] Keeping every semaphore post and gating only explicit
+yield on a receiver's ordered wait flag did not materially improve throughput.
+The first three cases retained exact hashes; heavy case ran 135 blocks before
+output starvation 10304. Producer means were 24,878 / 28,887 / 31,337 / 36,237
+ticks, against the unchanged 34,829-tick budget. Maximum full IRQ was 1,111
+ticks with zero callback gaps/lateness before starvation. Finite host wait/notify
+schedules passed; two intentionally broken ordering variants became stuck.
+Neither that model nor this failed audio run establishes general SMP fairness.
+
+[verified: V134 startup] CPU0-only existing render hooks were added for inclusive
+dispatch, two DX7 tracks, drums, both first-track filter inserts and UI. Held
+and release buckets are separate. Their added SRAM footprint exposed another
+contiguous 1,536-byte DAC allocation failure before playback; no performance
+result exists for V134. V135 moves diagnostic counters to spare cache data and
+helper code to flash, preserving all task stacks and DSP source. Its native
+build and SDK audit passed; the residual dormant-key scheduling check was
+manually reviewed against vendor disassembly. The sole UART receiver was armed
+before its one unique reset; target results are pending. Probe overhead means
+these are attribution measurements, not clean acceptance timings.
+
+[verified: lifecycle] V133 and V134 receivers reached terminal status and PID
+absence before ordinary PING ACK. Every invoked reset, including failed-startup
+V134, is consumed and must never be retried. No backup/restore/readback rehearsal
+was repeated. Private SDK artifacts and raw UART remain ignored and mirrored
+on Aeon. No physical FM-1 traffic occurred. PR155 remains draft and unmerged.
