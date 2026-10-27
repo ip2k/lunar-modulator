@@ -8583,3 +8583,29 @@ are constant synthetic time in successful modes, not nonzero duration proof.
 Apple normal+ASan/UBSan protocol2PASS1.88s; complete Linux file9PASS1.38s.
 Independent Astra bounded review found no source blocker. New exact-head CI
 remains required before merge. Logs and review retained privately.
+
+### Fixed twelve-voice comparison fails under sustained load (V189)
+
+[verified] A short fixed12 run of merged e46b3619, same pipeline/PCM workload,
+--cycles3 --burst-hot without adaptive polyphony, fails. The first two cases
+complete5513 blocks each with producer maxima32671/33462 and zero misses. Case2
+completes5513 blocks with16producer misses (max37601); case3 reaches4988 measured
+blocks with1679misses (max40232). Consumer maxima33079/33136/33084/33202 remain
+below34829 with zero consumer misses. At21527 submitted outputs/31.29s the
+ready queue empties: fault10304, ready_min0, complete0. Only3of12expectedcases
+complete. This is failed fixed12 evidence, not fixed12 or analog acceptance.
+
+[verified] App-only flash uses acknowledged UART entry and one unique reset;
+no backups/readbacks/rehearsals. Sole RX is stopped after final failure output,
+terminal and absent twice before ordinary PING ACK. Board remains responsive.
+Unused parent stack689words; totalheap49836, afterinit7892, afterDAC6324.
+Private UART/facts/export in fixed-v189 lane. No analog capture was needed for
+this failed timing probe. AdaptiveV188 30.4min evidence remains valid and scoped
+separately. Remaining work is sustained CPU0 producer cost and burst tails;
+a larger queue alone cannot repair sustained production below playback rate.
+
+[verified integration] PR155 merged e46b3619 after all14 reviewed-head CI jobs
+passed. All14 postmerge CI jobs also pass. Pages deploy succeeds and served
+WASM/metadata match committed hashes. These are integration/deployment claims,
+not broader hardware acceptance. New fixed-polyphony performance branch starts
+from that merge; no firmware source changed for V189.
