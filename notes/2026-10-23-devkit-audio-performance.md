@@ -8563,3 +8563,23 @@ remaining blocker. Seven formerly failed Apple Silicon tests PASS in 76.67 s;
 final exact-error protocol normal+ASan/UBSan tests PASS on Apple (1.69 s) and
 Linux (1.33 s). Logs/review retained privately under the campaign scratch lane.
 New exact-head CI is still required before integration; V188 results unchanged.
+
+### Controlled protocol clock for host ownership fixtures (2026-10-27)
+
+[verified] CI40553408039 finished13PASS/macOSFAIL. Actual macOS job122362921534
+now passes the six formerly aborted sanitizer tests; its only two failures are
+protocol output_full/timeout_late. The former assumes a15ms host sleep cannot
+cross the100ms protocol deadline; the latter assumes a90ms sleep guarantees
+late-worker exit. These assumptions do not hold under CI scheduling.
+
+[verified] The host fixture now supplies a controlled atomic protocol clock.
+Output backpressure preserves its state even across an explicit200ms host delay;
+protocol expiry is tested at threshold-minus-one and exactly the threshold.
+The late callback is held explicitly, poisoned storage checked BEFORE release,
+and actual worker exit awaited afterward. Real wall-clock startup/lifetime/
+subprocess guards remain. All original ownership/refusal checks remain; no
+firmware, target deadline, PCM or tested V188 image changed. Service-time fields
+are constant synthetic time in successful modes, not nonzero duration proof.
+Apple normal+ASan/UBSan protocol2PASS1.88s; complete Linux file9PASS1.38s.
+Independent Astra bounded review found no source blocker. New exact-head CI
+remains required before merge. Logs and review retained privately.

@@ -22,7 +22,6 @@ static uint64_t host_ns(void) {
     return (uint64_t)(t.tv_sec-host_epoch.tv_sec)*UINT64_C(1000000000)+
         (uint64_t)t.tv_nsec-(uint64_t)host_epoch.tv_nsec;
 }
-static uint32_t host_clock(void) { return (uint32_t)(host_ns()*24u/1000u); }
 static unsigned timer_get_ms(void) { return (unsigned)(host_ns()/1000000u); }
 static unsigned current_cpu_id(void) { return host_cpu; }
 static void os_time_dly(unsigned ticks) {

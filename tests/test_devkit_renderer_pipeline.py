@@ -7,7 +7,7 @@ import subprocess
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-MODES = ('stream', 'output_full', 'reserve_twice', 'publish_wrong', 'acquire_twice',
+MODES = ('stream', 'output_full', 'output_full_descheduled', 'reserve_twice', 'publish_wrong', 'acquire_twice',
          'retire_wrong', 'callback_failure', 'retire_failure', 'timeout_late',
          'guard_park', 'finish_pending')
 

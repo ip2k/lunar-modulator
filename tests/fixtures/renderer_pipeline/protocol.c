@@ -6,7 +6,11 @@
 #define CHECK(x) do { if(!(x)){fprintf(stderr,"FAIL %s:%d: %s\n",__FILE__,__LINE__,#x);exit(2);} }while(0)
 typedef struct { uint32_t tag, cookie, retired; } HostWork;
 static HostWork hw[2];
-static _Atomic uint32_t calls, callback_entered;
+static _Atomic uint32_t calls, callback_entered, callback_release;
+/* Protocol time is controlled by the test, independently of host scheduling.
+ * Wall-clock guards still bound startup, waits and the test subprocess. */
+static _Atomic uint32_t protocol_ticks=1000u;
+static uint32_t protocol_clock(void) { return atomic_load(&protocol_ticks); }
 static _Atomic uint32_t seen[N], retired_count[N];
 static int callback_failure,retire_failure,slow_callback,park_callback;
 static uint32_t next_harvest,next_output;
@@ -17,7 +21,7 @@ static int consume(void *ptr,uint32_t tag,int16_t *pcm,lunar_pipeline_result_t *
     CHECK(tag<N && atomic_fetch_add(&seen[tag],1)==0);
     CHECK(atomic_fetch_add(&calls,1)==tag);atomic_store(&callback_entered,1);
     if(park_callback)lunar_pipeline_fail_park(700u);
-    if(slow_callback)os_time_dly(160);
+    if(slow_callback)while(!atomic_load(&callback_release))os_time_dly(1);
     if(callback_failure)return 0;
     for(unsigned i=0;i<LUNAR_PIPELINE_OUTPUT_SAMPLES;++i)pcm[i]=expected_sample(tag,i);
     r->case_index=tag/5513u;r->case_block=tag%5513u;r->hash=tag^0x12345678u;
@@ -33,17 +37,17 @@ static int retire(void *ptr) {
 }
 static void setup(void) {
     clock_gettime(CLOCK_MONOTONIC,&host_epoch);host_cpu=0;
-    CHECK(lunar_pipeline_sdk_start(host_clock)==1);
+    CHECK(lunar_pipeline_sdk_start(protocol_clock)==1);
     CHECK(lunar_pipeline_bind(&hw[0],&hw[1],consume,retire)==1);
 }
 static int produce(uint32_t tag) {
     void *p=NULL;int r=lunar_pipeline_reserve_work(tag,&p);
     CHECK(r>=0);if(!r){CHECK(!p);return 0;}
-    uint32_t start=host_clock();HostWork *w=p;
+    uint32_t start=protocol_clock();HostWork *w=p;
     CHECK(w==&hw[tag%2]);
     if(tag>=2)CHECK(w->retired==1);
     w->tag=tag;w->cookie=tag^0x35aee781u;w->retired=0;
-    int published=lunar_pipeline_publish(tag,start,host_clock());
+    int published=lunar_pipeline_publish(tag,start,protocol_clock());
     /* An injected callback may poison the worker before publish returns. The
      * slot was still published once; both schedules must retain its ownership. */
     if(callback_failure || park_callback)
@@ -94,7 +98,7 @@ static void run_stream(void) {
     for(unsigned i=0;i<N;++i)CHECK(seen[i]==1 && retired_count[i]==1);
     CHECK(lunar_pipeline_sdk_finish()==1);host_cleanup();
 }
-static void run_output_full(void) {
+static void run_output_full(unsigned host_delay_ms) {
     uint32_t ticket=0;const int16_t *held=NULL;
     for(unsigned tag=0;tag<8;++tag) {
         while(!produce(tag)){int p=harvest_one();wait_ok(&ticket,p);}
@@ -103,7 +107,10 @@ static void run_output_full(void) {
     }
     CHECK(held && outputs[0].state==LEASED && s.output_retired==0);
     CHECK(produce(8)==1 && produce(9)==1);
-    os_time_dly(15);CHECK(atomic_load(&calls)==8);
+    /* Simulate a host deschedule longer than the target protocol timeout.
+     * Test time has not advanced, so output backpressure must retain ownership. */
+    if(host_delay_ms)os_time_dly(host_delay_ms);
+    CHECK(atomic_load(&calls)==8);
     CHECK(works[0].state==SEALED && works[1].state==SEALED);
     CHECK(s.consumed==8 && s.harvested==8);
     /* Old output lease survives FOUR uses of the same work storage. */
@@ -146,10 +153,20 @@ static void run_fault(const char *mode) {
         CHECK(rc==-1 && works[0].state==DONE && s.harvested==0 && retired_count[0]==1);
     } else if(!strcmp(mode,"timeout_late")) {
         slow_callback=1;CHECK(produce(0));
-        while(!callback_entered)os_time_dly(1);
-        while(lunar_pipeline_wait_check(&ticket)>0)os_time_dly(1);
+        unsigned started=timer_get_ms();
+        while(!callback_entered && timer_get_ms()-started<500u)os_time_dly(1);
+        CHECK(callback_entered && works[0].state==CONSUMING);
+        CHECK(lunar_pipeline_wait_check(&ticket)==1);
+        atomic_fetch_add(&protocol_ticks,LUNAR_PIPELINE_PROTOCOL_TICKS-1u);
+        CHECK(lunar_pipeline_wait_check(&ticket)==1); /* One tick before expiry. */
+        atomic_fetch_add(&protocol_ticks,1u);
+        CHECK(lunar_pipeline_wait_check(&ticket)==-1);
         CHECK(lunar_pipeline_error()==E_TIMEOUT && works[0].state==CONSUMING);
-        expect_poison();os_time_dly(90);
+        expect_poison();
+        CHECK(!s.exited && outputs[0].state==RESERVED);
+        atomic_store(&callback_release,1);
+        started=timer_get_ms();
+        while(!s.exited && timer_get_ms()-started<500u)os_time_dly(1);
         CHECK(s.exited && works[0].state==CONSUMING && outputs[0].state==RESERVED);
         CHECK(s.consumed==0 && s.harvested==0 && s.output_retired==0 && hw[0].tag==0);
     } else if(!strcmp(mode,"guard_park")) {
@@ -169,7 +186,8 @@ static void run_fault(const char *mode) {
 int main(int argc,char **argv) {
     CHECK(argc==2);setup();
     if(!strcmp(argv[1],"stream"))run_stream();
-    else if(!strcmp(argv[1],"output_full"))run_output_full();
+    else if(!strcmp(argv[1],"output_full"))run_output_full(0);
+    else if(!strcmp(argv[1],"output_full_descheduled"))run_output_full(200);
     else run_fault(argv[1]);
     printf("LUNAR_PIPELINE_HOST PASS mode=%s calls=%u produced=%u consumed=%u harvested=%u retired=%u\n",argv[1],atomic_load(&calls),s.produced,s.consumed,s.harvested,s.output_retired);
     return 0;
