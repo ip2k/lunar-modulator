@@ -688,6 +688,7 @@ void mod_voices_drop(fm1_mod_t *m) {
 
 static int find_voice(const fm1_mod_t *m, unsigned sound, uint8_t key) {
   unsigned v;
+  if (!m->voice_ever_started) return -1;
   for (v = 0; v < FM1_MOD_VOICES; ++v) {
     const mod_voice_t *vc = &m->voice[v];
     if (vc->state != MOD_V_FREE && vc->sound == sound && vc->key == key) return (int)v;
@@ -741,6 +742,8 @@ static void voice_on(fm1_mod_t *m, uint64_t at, unsigned sound, uint8_t key, uin
     ++m->stats.voice_starts;
   }
   vc = &m->voice[v];
+  /* Never clear on release/reset/plan change: pending restoration may survive. */
+  m->voice_ever_started = 1;
   vc->state = MOD_V_HELD;
   vc->age = ++m->vage;
   vc->velocity = vel > 127 ? 127 : vel;
@@ -1514,6 +1517,7 @@ static void voice_zero(fm1_mod_t *m, mod_voice_t *vc) {
  * gate is down and whose instances stopped moving ends. */
 static void run_voices(fm1_mod_t *m, const fm1_mod_transport_t *tp) {
   unsigned v, k;
+  if (!m->voice_ever_started) return;
   for (v = 0; v < FM1_MOD_VOICES; ++v) {
     mod_voice_t *vc = &m->voice[v];
     int moved = 0;
@@ -1597,6 +1601,7 @@ static uint32_t voice_out(fm1_mod_t *m, unsigned v, fm1_mod_write_t *out, uint32
 uint32_t fm1_mod_voice_writes(fm1_mod_t *m, fm1_mod_write_t *out, uint32_t cap) {
   uint32_t n = 0;
   unsigned v;
+  if (!m->voice_ever_started) return 0;
   for (v = 0; v < FM1_MOD_VOICES && n < cap; ++v) {
     if (m->voice[v].changed || m->voice[v].restore) n = voice_out(m, v, out, n, cap);
   }

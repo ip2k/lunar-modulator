@@ -188,7 +188,8 @@ struct fm1_mod {
                                                   last tick's end, as the module saw it */
   uint8_t cur_sound;                           /* the current sound unit (PITCH_CUR) */
   uint8_t vctx;                                /* the voice being run, or NONE */
-  uint8_t reserved[1];
+  /* Monotonic since create: false proves no voice or pending restoration ever existed. */
+  uint8_t voice_ever_started;
 };
 
 /* ---- shared by the core, the planner and the kinds ---------------------- */

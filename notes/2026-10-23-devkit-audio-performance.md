@@ -7709,3 +7709,40 @@ current/next window comparison preserves20000fullstate comparisons normal+ASan/
 UBSan and complete22052block5645312byte PCM replay with recordedV147 adaptive
 limits (SHA5631008780acba42d7d62de877fe3b27f7b70adbd18c7a622c9024c949d54932).
 Gate edge offsets remain unchanged. V151 native timing pending; no analog soak.
+
+
+## 2026-10-27 note-on burst follow-up: empty modulation voice scans
+
+[verified] Added a monotonic internal `voice_ever_started` byte in the existing
+reserved byte. Until the first per-voice modulation activation, voice lookup,
+voice ticking and pending voice-write scans return immediately. The flag is
+never cleared by release, route removal, rebind or reset: pending restorations
+must still drain. Object size is unchanged. The directed regression compares
+original scans with the shortcut through actual activation, retirement, reset,
+steal, counter rollover and recreation, including at least four real zero
+restorations. Both normal and ASan/UBSan comparisons pass on the tracked source.
+A separate private baseline/new-source proof matches 3,145,488 state/write bytes
+per variant. Full mixed replay matches all 5,645,312 PCM bytes across 22,052
+blocks under the same recorded adaptive decisions, normal and sanitized.
+
+[verified] V152 plan sealing before the first block and labelled adaptive
+reserve75 (four-voice floor) leaves one producer miss. V153 initialized-envelope
+memo reduces note setup but leaves two producer misses; it is not promoted.
+V154 empty-voice scans improve the heavy first block to 34,976 ticks against the
+unchanged 34,829-tick budget; the initial block is 34,844. All 22,052 DAC blocks
+complete with zero transport faults/IRQ late/gaps. These small remaining producer
+misses still fail acceptance. Adaptive results are not fixed twelve-voice proof.
+
+[verified] V155 relocating four note helpers into SRAM cannot allocate the
+renderer parent stack; UART recovery remains responsive. No workload or analog
+acceptance is claimed. V156 narrows relocation to the voice-start helper only;
+target timing is pending. Fresh physical fault detection and a representative
+30-minute analog soak remain outstanding.
+
+[verified] Actual simulator rebuild after the CV/note changes passes all108
+parity scenarios; committed WASM/build record source and artifact hashes match.
+This repairs the observed stale-record CI failures, not the previously observed
+Chromium playback underruns. Private evidence stays in scratch/devkit-20261023
+and the matching bounded Aeon lane. Successful directed raw state/PCM traces are
+removed after exact comparisons and hash reports; logs and receipts remain.
+Mac free space at this checkpoint: 1,155 GiB (above the owner's500GiBfloor).
