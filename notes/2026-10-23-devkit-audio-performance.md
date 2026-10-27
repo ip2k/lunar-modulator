@@ -8007,3 +8007,46 @@ pending. These are explicitly adaptive65/60, initial12/floor2 experiments;
 every note-on executes or steals. They do not accept fixed-12 polyphony or the
 physical FM-1 external-codec path. Quiet/weak/unprobed analog sensitivity limits
 remain. No full backups, readbacks or factory rehearsals were repeated.
+
+
+### V176: complete 30.4-minute adaptive target and analog run (2026-10-27)
+
+[verified] The corrected lifecycle completed 1,256,964 blocks across 57 cycles
+and 228 cases in 1,823,800 ms. Producer and consumer deadline misses are both
+zero. Producer maxima are 32867/30383/30870/34212 ticks against 34829; consumer
+maxima are 32948/32965/32966/32963. DAC fault, backend error, late callback and
+gap counters are zero. The run drains all 64 zero callbacks and validates 167
+steady-idle callbacks without changing gain or closing the clock. The worker
+exits normally; unused stack is 435 parent words and 1322 worker words. Both
+UART and capture exit zero; both receiver PIDs are absent before ordinary PING
+acknowledges. The unique reset is consumed permanently. No backups, full-flash
+readbacks or restore rehearsals were performed.
+
+[verified] Actual-decision normal and ASan/UBSan host replay agree exactly over
+321,782,784 PCM bytes, all 228 case hashes, folded hash c9eec6cf and 42,522
+control events. The final voice statistics match: active2, limit2, shed0,
+stolen4779. Every requested note-on executes or steals; this is adaptive65/60,
+initial12/floor2, NOT fixed-12-voice acceptance.
+
+[verified] KA6 recorded one exact 1900-second, six-channel 48 kHz S32LE stream:
+91,200,000 frames, wrapped losslessly. The independently frozen stereo screen
+aligns and scores all 1,256,964 blocks per channel, with zero flags and no
+near-full-scale samples on either music channel. No coefficients or thresholds
+were changed for this capture. The unchanged final-eight-block endpoint check
+passes on both channels; 2 s versus 4 s IIR warmup agrees exactly and the prior
+89 ms gain transient is absent. Raw endpoint intervals through 350 ms are saved.
+
+[verified, bounded conclusion] No dropout was detected in this complete
+30.4-minute adaptive workload. Hardware counters, exact actual-decision replay,
+the calibrated stereo residual screen and endpoint evidence agree. This is not
+proof for every patch, fixed polyphony or the physical FM-1 external codec.
+The detector scores every block, but quiet, weak and unprobed missing-packet
+sensitivity remains unqualified; its generic analog_acceptance flag deliberately
+stays false. Four physical calibration holes establish local observability,
+not sample-perfect analog continuity. Preserve these limits with the result.
+
+Evidence is private under scratch/devkit-20261023 (v176 target/replay/analog/
+endpoint/capture receipts) and the corresponding Aeon lane. Exact tracked
+source64f2e2b7 and notes9125a371 CI runs both completed successfully, all14 jobs;
+Pages succeeded. PR155 remains draft/open/unmerged; this milestone does not
+complete the wider instrument and physical-unit review/acceptance work.
