@@ -571,3 +571,30 @@ The private V176 dev-board image used equivalent policy behavior during its
 initializer has host policy/equivalence tests; those do not establish new target
 code generation or fixed-polyphony acceptance. Log the selected policy, actual
 limit changes, steals, deadline misses and underruns when integrating it.
+
+### Finite producer/consumer pipeline backend
+
+`LUNAR_DEVKIT_RENDERER_PIPELINE=1` selects `renderer_pipeline_sdk.c` in the
+renderer make fragment. This opt-in backend separates two immutable work slots
+from eight leased PCM output slots. CPU0 retires completed work before reusing
+its arena; an acquired PCM buffer remains immutable until its matching output
+retirement. Callback failure, invalid ownership or a protocol timeout permanently
+refuses further work and retains storage for any late worker.
+
+Task wake notifications are hints: drain tokens before checking progress, then
+wait only when no progress is possible. The public header documents CPU0/CPU1
+task ownership; blocking wake calls are task-only. Native DAC notification and
+lease handoff require the reviewed pinned SDK IRQ path, not a generic ISR-safety
+assumption. The 100 ms guard
+bounds protocol failure, not the audio deadline. The backend reserves a static
+1536-word CPU1 task with a finite 35-minute lifetime and refuses nested SDK
+workers. This is backend selection only: no tracked application adapter or
+preparer enables it yet, and default builds do not change.
+
+The implementation follows the private V185 pipeline, whose scoped adaptive
+floor-three target run and preceding V184 soak are recorded in the dated notes.
+Host ownership/failure tests use a C11 atomic/pthread model, plus a separately
+compiled public-header client; they do not prove native cache, IRQ or stack
+behavior. Compiling the tracked backend with JieLi's compiler is not a linked
+image or new hardware acceptance. Integrate the producer/consumer adapter and
+continuous DAC drain before claiming the tracked runtime reproduces that soak.

@@ -15,6 +15,16 @@ DEVKIT_RENDERER_OBJ += $(BUILD)/devkit/fm6_pair_sdk.o
 $(BUILD)/devkit/fm6_pair_sdk.o: SIM_CFLAGS += -std=gnu99
 endif
 
+# The pipelined transport is selected explicitly by its future app adapter.
+# It owns CPU1; it cannot coexist with either older worker backend.
+ifneq ($(filter -DLUNAR_DEVKIT_RENDERER_PIPELINE=1,$(EXTRA)),)
+ifneq ($(filter -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_DEVKIT_FM6_SDK=1 -DLUNAR_DEVKIT_QUEUE_SDK=1,$(EXTRA)),)
+$(error Renderer pipeline must not nest another SDK worker)
+endif
+DEVKIT_RENDERER_OBJ += $(BUILD)/devkit/renderer_pipeline_sdk.o
+$(BUILD)/devkit/renderer_pipeline_sdk.o: SIM_CFLAGS += -std=gnu99
+endif
+
 ifneq ($(filter -DLUNAR_DEVKIT_ENGINE_QUEUE=1,$(EXTRA)),)
 ifneq ($(filter -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_DEVKIT_FM6_SDK=1,$(EXTRA)),)
 $(error Whole-engine queue must not nest the FM6 worker)

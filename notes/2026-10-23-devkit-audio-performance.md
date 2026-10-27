@@ -8299,3 +8299,27 @@ Source05fdf14a's CI40521857180 remains pending/inprogress, no failures observed;
 Pages40521857240 lastinprogress. No passing checks rerun. PR155 draft/open/unmerged.
 Next integrate proven runtime behavior into the tracked production preparation
 and exercise wider workloads without conflating adaptive and fixed-polyphony.
+
+## 2026-10-27: tracked pipeline backend extracted from V185
+
+[verified] Added opt-in `renderer_pipeline_sdk.{c,h}` and the renderer make
+selector, preserving the V185 work/output ownership, wake ordering, permanent
+refusal and retained-storage behavior. Removed experiment-only timing traces
+and canary tasks. No default build, application adapter or preparer enables the
+backend yet. The existing whole-engine/FM6 SDK workers conflict explicitly.
+
+[verified] Astra compared the native protocol with V185 and found no unintended
+protocol/lifetime changes. Its API review caught missing wake/ready declarations
+that an implementation-including fixture concealed. Namespaced declarations,
+task-only ownership and drain-before-predicate contracts now accompany separate
+C11/C++11 header-client compile checks. Eight focused tests passed on bounded
+Aeon (1.33 s): normal and ASAN/UBSAN protocol streams/faults, one-worker build
+selection/refusal and separate header clients. The exact tracked C compiled to a
+15324-byte pi32v2 object. No linked image, flash or new target measurement was
+performed; host atomics/pthreads do not establish native race/cache/IRQ/stack
+acceptance. Private logs and compiler receipt remain in the campaign lane.
+
+Next: move the proven producer/consumer application adapter and continuous DAC
+steady-idle/drain path into tracked preparation, preserving the scoped adaptive
+floor-three policy and fixed-polyphony comparison distinction. V185 remains the
+healthy idle installed image; all previous reset attempts remain consumed.
