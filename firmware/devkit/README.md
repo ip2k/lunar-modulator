@@ -642,9 +642,9 @@ must run `lunar_pipeline_dac_run` once on CPU0 after the UART recovery interval.
 It starts the finite CPU1 backend before allocating the renderer. The tracked
 SDK worker routes this mode after the 200-tick UART window and arithmetic
 preflight, then keeps its clock alive on both success and failure. UART recovery
-runs above the render tasks at priority 18. No preparer flag or default boot
-path activates this driver yet. Native integration still
-needs the reviewed SDK scheduler correction and whole-image SRAM placement.
+runs above the render tasks at priority 18. The offline pipeline preparer selects this path explicitly; default preparation
+stays unchanged. Native acceptance still requires linked SRAM placement and
+fresh target results.
 This drives the dev board's internal DAC, not the physical FM-1's I2S codec.
 
 Eight completed outputs remain queued during analog gain settling. Silence
@@ -666,3 +666,22 @@ idle and malformed/underrun/metadata/channel/hash/retirement failures. Normal an
 ASAN/UBSAN pass. Vendor non-LTO compilation produces native ELF objects for the
 fixed/adaptive driver and live adapter. These are not linked-image placement,
 SDK interrupt, whole-stack, deadline or analog acceptance.
+
+Prepare the tracked pipeline with the original pinned SDK and the independently
+reviewed private scheduler archive (neither artifact belongs in Git):
+
+```sh
+python3 tools/jieli/prepare-pipeline-devkit.py --sdk PRIVATE_SDK \
+  --source "$PWD" --out PRIVATE_NEW_BUILD \
+  --pipeline-system-archive PRIVATE_REVIEWED_SYSTEM_A
+```
+
+The preset pins the known DSP transformations and hot paths, CPU0 parent
+priority16, UART18, and one finite CPU1 worker. It refuses an unknown scheduler
+archive before staging. Only the new SDK copy changes. Initialization, note
+allocation and budget helpers retain the successful lane's explicit DX7 flash
+placement; synthesis stays in SRAM. Default policy is fixed12. Add
+`--adaptive-three` for the labelled floor3 experiment and `--cycles 57` for the
+30.4-minute workload. Preparation is offline and does not establish native or
+analog acceptance. Export evidence, then remove only the generated lane after
+its build/test processes exit.

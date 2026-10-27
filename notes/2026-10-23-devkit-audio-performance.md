@@ -8418,3 +8418,19 @@ startup/allocation faults at priority8, scheduling18 and pipeline18. Temporary
 harness files are removed after the result. These SDK mocks do not establish
 native scheduling, IRQ/cache/stack, linked placement or new analog acceptance.
 No preparer flag or board operation is activated by this checkpoint.
+
+### Reproducible tracked pipeline preparation (2026-10-27)
+
+[verified] Added a separate offline pipeline preset, avoiding the legacy
+experiment rewrite chain and nested engine queue. Original pinned SDK and
+explicit reviewed private scheduler archive hashes are required before staging;
+only the newly copied SDK changes. Vendor archive/IR remain private. Fixed12 is
+the default; floor3 and 1..57 cycles are explicit options recorded in the receipt.
+
+[verified] Six bounded full-source synthetic-SDK preparation tests pass for fixed
+and adaptive modes, original-input preservation, source manifest, pre-include
+build flags, CPU0 parent/UART priorities, hot paths, exact retained eight DX7 XIP
+functions and bad-input refusal. First native full link passed before final XIP
+placement correction. Broad historical cold-constructor experiments were checked
+and excluded because the retained successful pipeline did not use them. Final
+native placement/link and fresh target results remain pending; no board action.
