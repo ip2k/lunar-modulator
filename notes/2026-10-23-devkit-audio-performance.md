@@ -7966,3 +7966,44 @@ the header's 0..31/fade-option comments do not describe this implementation.
 This motivates inspecting the actual shutdown gain transition, rather than
 assuming that selecting a named fade option would smooth it. No physical FM-1
 or fixed-polyphony acceptance follows from these dev-board measurements.
+
+
+### Steady-zero endpoint and long-soak drain progress (2026-10-27)
+
+[verified] V172 endpoint timing moved the common transient from about 2 ms to
+89 ms when zero drain increased from four to 64 callbacks. Its location follows
+the physical gain transition; delaying shutdown did not remove it. V173 retains
+DAC gain, clock and the static ring on zero output after musical completion,
+with musical counters frozen and an independent idle timer. Short target and
+both-channel frozen analog checks pass; the final eight blocks pass and the
+previous gain transient is absent. This is steady-zero idle, not an off/close
+success claim.
+
+[verified] The V174 long run completed all 1,256,964 musical blocks (57 cycles,
+228 cases) with zero producer/consumer deadline misses and zero musical gaps.
+It nevertheless FAILED at completion: only 63 of 64 zero callbacks drained,
+the backend returned timeout6 and the transport reported fault10302. It is not
+accepted as a successful analog soak. The parent wait ticket can cover eight
+queued musical callbacks plus 64 zero callbacks, about 104.45 ms, while the
+unchanged watchdog is 100 ms and the final interrupt signals only at drain64.
+
+[verified] V175 credits strictly advancing zero-drain progress only after all
+music has been produced, harvested and submitted. It restarts the same local
+100 ms wait ticket; repeated identical reads cannot postpone a stalled drain.
+The DSP, deadline and permanent-error behavior are unchanged. Independent source
+review and the generated main loop confirm prefill is unaffected. Its short
+66,156-block target run has zero producer/consumer misses and DAC faults/gaps;
+producer maxima are 32738/29067/30616/32817 against the unchanged 34829 budget.
+It enters steady-zero idle for 168 callbacks, exits its worker and responds to
+ordinary UART PING after both receivers terminate. The musical projection
+matches the previously validated V173 normal/sanitizer replay exactly; no new
+replay is claimed for this unchanged trace. Both frozen analog channels have
+zero flags and the final-eight-block endpoint check passes.
+
+[verified: setup only] V176 repeats the same fix for 57 cycles with sole UART
+and 1900-second KA6 capture armed before one unique reset. Its fresh startup
+reports 1,256,964 blocks. Timing, replay, analog and endpoint results remain
+pending. These are explicitly adaptive65/60, initial12/floor2 experiments;
+every note-on executes or steals. They do not accept fixed-12 polyphony or the
+physical FM-1 external-codec path. Quiet/weak/unprobed analog sensitivity limits
+remain. No full backups, readbacks or factory rehearsals were repeated.
