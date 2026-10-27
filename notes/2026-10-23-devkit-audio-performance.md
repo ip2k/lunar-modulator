@@ -7682,3 +7682,19 @@ late0/gaps0, parent445unused. No additional common-cache layout variants planned
 The next substantial candidate is a bounded copied-state suffix-voice kernel
 assist on CPU1, with prepare/ordered mix still on CPU0; design/ownership review
 precedes implementation. No deadline/analog/soak acceptance is claimed.
+
+### Note-on transition attribution and predecoded built-in candidate
+
+[verified: V147 target] Producer misses remain at first-case blocks0/11026/16539:
+38273/35180/37114ticks against34829. Four note-on bursts cost5564/3342/5419/7434ticks.
+Transport fault/backend/late/gaps0 across22052blocks; adaptive finalcap6 is reduced
+polyphony, not fixed12 acceptance. Native LTO already hoists shared rate/velocity
+work and removes most intermediate envelope copies, rejecting that rewrite.
+[verified: V148 discriminator] SRAM NoteOn slightly reduces note setup to
+5333/3091/5058/7085ticks but still two producer misses; not a sufficient fix.
+[verified: host] Generated32x156 decoded built-ins match original FromPacked
+byte-for-byte in normal and ASan/UBSan tests. V149 copies those immutable bytes
+into the existing cache and skips ScaleLevel only when both depths zero. Full
+V147 decision replay22052blocks5645312PCMbytes is exact normal+ASan/UBSan,
+SHA5631008780acba42d7d62de877fe3b27f7b70adbd18c7a622c9024c949d54932.
+No extra instance/cache memory; native timing pending. Soak/analog not accepted.

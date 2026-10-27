@@ -405,7 +405,7 @@ class Instance {
   const uint8_t *Patch(int index) {
     if (index >= kBankSize) return user_[index - kBankSize];
     if (unpacked_ != index) {
-      FromPacked(kBank[index], unpacked_voice_);
+      memcpy(unpacked_voice_, kBankUnpacked[index], kVoiceBytes);
       unpacked_ = index;
     }
     return unpacked_voice_;
@@ -497,7 +497,9 @@ class Instance {
         levels[i] = o[OP_L1 + i];
       }
       int outlevel = Env::scaleoutlevel(o[OP_OL]);
-      outlevel += ScaleLevel(note, o[OP_BP], o[OP_LD], o[OP_RD], o[OP_LC], o[OP_RC]);
+      // A zero depth on both sides contributes exactly zero for every key.
+      if (o[OP_LD] || o[OP_RD])
+        outlevel += ScaleLevel(note, o[OP_BP], o[OP_LD], o[OP_RD], o[OP_LC], o[OP_RC]);
       outlevel = outlevel > 127 ? 127 : outlevel;
       outlevel <<= 5;
       outlevel += ScaleVelocity(velocity, o[OP_KVS]);
