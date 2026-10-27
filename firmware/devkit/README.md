@@ -633,3 +633,33 @@ The tracked runtime still needs SDK scheduling/placement and the continuous DAC
 adapter before it can replace the private V185 experiment. No budget controller
 is enabled by the live adapter: fixed-polyphony replay remains distinct from the
 scoped adaptive floor-three target and analog results.
+
+### Continuous dev-board DAC pipeline (opt-in)
+
+`LUNAR_DEVKIT_RENDERER_PIPELINE_DAC=1` selects `renderer_pipeline_dac.c`; it also
+requires the native backend and `FM1_APP_RENDER_PIPELINE=1`. The native caller
+must run `lunar_pipeline_dac_run` once on CPU0 after the UART recovery interval.
+It starts the finite CPU1 backend before allocating the renderer. No preparer
+flag or default boot path activates this driver yet. Native integration still
+needs the reviewed SDK scheduler correction and whole-image SRAM placement.
+This drives the dev board's internal DAC, not the physical FM-1's I2S codec.
+
+Eight completed outputs remain queued during analog gain settling. Silence
+consumes no music lease; an armed transition waits for DMA window zero. The IRQ
+then owns ordered output leases in the three-window ring. After the final block,
+64 zero refills precede continuous static zero-idle. Worker storage survives all
+failures; success finishes the finite backend without stopping the DAC clock.
+The driver checks producer/consumer deadlines as well as DAC transport faults.
+
+`LUNAR_PIPELINE_CYCLES` permits 1–57 four-case cycles (default three). Polyphony
+stays fixed at twelve unless `LUNAR_PIPELINE_ADAPTIVE_THREE=1` explicitly enables
+the measured 65/60 feedback policy with a three-voice floor. Adaptive results
+require an independent decision-trace replay and must not accept fixed voices.
+The task's advisory ready-count query excludes the local IRQ; it grants no lease.
+
+Host tests compile the actual callback body with mock DMA/leases: nine startup
+alignment offsets, 198,468 ordered blocks, exact copy/hash, final drain, stable
+idle and malformed/underrun/metadata/channel/hash/retirement failures. Normal and
+ASAN/UBSAN pass. Vendor non-LTO compilation produces native ELF objects for the
+fixed/adaptive driver and live adapter. These are not linked-image placement,
+SDK interrupt, whole-stack, deadline or analog acceptance.

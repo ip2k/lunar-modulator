@@ -26,6 +26,15 @@ DEVKIT_RENDERER_OBJ += $(BUILD)/devkit/renderer_pipeline_sdk.o
 $(BUILD)/devkit/renderer_pipeline_sdk.o: SIM_CFLAGS += -std=gnu99
 endif
 
+# Native DAC driver remains a separate opt-in from host app/backend replay.
+ifneq ($(filter -DLUNAR_DEVKIT_RENDERER_PIPELINE_DAC=1,$(EXTRA)),)
+ifeq ($(filter -DLUNAR_DEVKIT_RENDERER_PIPELINE=1,$(EXTRA)),)
+$(error Pipeline DAC requires the renderer pipeline backend)
+endif
+DEVKIT_RENDERER_OBJ += $(BUILD)/devkit/renderer_pipeline_dac.o
+$(BUILD)/devkit/renderer_pipeline_dac.o: SIM_CFLAGS += -std=gnu99
+endif
+
 ifneq ($(filter -DLUNAR_DEVKIT_ENGINE_QUEUE=1,$(EXTRA)),)
 ifneq ($(filter -DLUNAR_DEVKIT_FM6_PAIR=1 -DLUNAR_DEVKIT_FM6_SDK=1,$(EXTRA)),)
 $(error Whole-engine queue must not nest the FM6 worker)

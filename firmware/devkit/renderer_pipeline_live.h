@@ -17,6 +17,10 @@ int lunar_pipeline_live_produce(void *work, uint32_t tag);
  * Metadata only; does not release a PCM lease or invoke any engine. */
 int lunar_pipeline_live_output(uint32_t tag, const int16_t *pcm,
                                const lunar_pipeline_result_t *result);
+/* CPU0 producer owner only, after bind; never touches the CPU1 Macro instance.
+ * Explicit controller hook, not an automatic policy or fixed-polyphony result. */
+int lunar_pipeline_live_voice_limit(unsigned limit);
+int lunar_pipeline_live_voice_stats(unsigned out[4]);
 #ifdef __cplusplus
 }
 #endif

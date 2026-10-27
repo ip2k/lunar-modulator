@@ -8378,3 +8378,28 @@ enabled by this adapter; no DAC/preparer/runtime activation yet.
 [verified source review] Astra compared ordering/conversion/hash and ownership
 with V185; no blocking semantic difference. The continuous DAC adapter, reviewed
 SDK scheduler correction and native placement remain the next dependencies.
+
+## 2026-10-27: continuous DAC pipeline extracted into tracked source
+
+[verified] Added opt-in renderer_pipeline_dac and the exact startup window-zero
+helper. The tracked driver preserves held initial outputs, gain settling,
+three-window lease order, hash checks, 64-zero drain and continuous zero-idle.
+It starts/finishes its own finite backend; failures poison admission without
+freeing pending state. Direct activation remains absent from the preparer/default
+boot path. Fixed twelve voices is default; adaptive floor3 is a separate define
+using the existing measured controller. The success gate also rejects producer
+or consumer late blocks, without changing the 34829-tick deadline.
+
+[verified] Actual callback body under mock DMA/leases passes normal and
+ASAN/UBSAN: nine arm offsets / 198468 ordered blocks, exact PCM/hash, zero preroll
+retirement, drain/idle and malformed/queue/metadata/channel/hash/retirement faults.
+Both live adapter replay tests and the strict WASM record check pass. Two DAC
+make selectors pass. Vendor compilation with LTO disabled yields native ELF
+objects: fixed driver13248B, adaptive driver16036B, live adapter8696B. No image
+linked, installed or hardware tested this checkpoint. No new analog acceptance.
+
+[verified source review] Astra comparison found no functional source blocker.
+Its advisory-count ownership finding was resolved by excluding the local IRQ
+around the task's read-only count query. SDK scheduler correction, whole-image
+SRAM placement, startup/device timing and independent analog replay remain
+required. Private V184/V185 target results retain their exact-image scope.

@@ -6,6 +6,7 @@
 #include "fm1_dx7_kernel.h"
 #ifdef LUNAR_DEVKIT_RENDERER_PIPELINE
 #include "renderer_pipeline_live.h"
+#include "fm1_dx7_budget.h"
 #include "fm1_app_pipeline.h"
 #if !FM1_APP_RENDER_PIPELINE || LUNAR_RENDERER_WORKLOAD != 0
 #error Pipeline adapter requires the fixed mixed app pipeline
@@ -449,4 +450,16 @@ int lunar_pipeline_live_output(uint32_t tag, const int16_t *pcm,
     }
     return 1;
 }
+int lunar_pipeline_live_voice_limit(unsigned limit) {
+    return ready && pipeline_bound && !lunar_pipeline_error() &&
+        fm1_dx7_set_voice_limit(app.unit[fm1_app_sound_unit(0)].self,limit);
+}
+int lunar_pipeline_live_voice_stats(unsigned out[4]) {
+    fm1_dx7_budget_stats_t stats;
+    if(!out || !ready || !pipeline_bound ||
+       !fm1_dx7_get_budget_stats(app.unit[fm1_app_sound_unit(0)].self,&stats))return 0;
+    out[0]=stats.active;out[1]=stats.limit;out[2]=stats.retired;out[3]=stats.stolen;
+    return 1;
+}
+
 #endif
