@@ -8672,3 +8672,20 @@ logical blocks percase. Heaviest case has10746 refused voiceblocks, mainly mask4
 core already skips quiet modulators, so count alone does not establish cost.
 Next focused native PrepareVoice/kernel/mix attribution before another kernel
 transformation. Counter source/build/PCM cleaned after report; logs retained.
+
+[verified failure] V193 native timing observer links, but DACopen cannot allocate
+1536 bytes: heap46860, afterapp4916. Zero playback/producerblocks. Observer BSS
+and added code reduce heap/contiguous room vsV191; no performance result claimed.
+Receiver closed once after twiceargvverification, terminal/absence beforePINGACK.
+Next V194 keeps the observer context on existing parentstack and detaches on all
+return paths, preserving all audio arenas and workload. Prior parentunused2756B.
+
+[verified diagnostic failure] V194 stack-owned observer opens DAC successfully
+(heap47980/postapp6036/postDAC4468; parentunused411words=1644B). Instrumented
+fixed12 queue exhausts at16676 submitted/24260ms, after3completecases and137blocks
+ofcase3. Producer150late; consumer0late. No stage report because innerfailure
+returns before sdk_finish/report. Firstthree case hashes match V191. No speedup
+or acceptance claimed. Receiver1022050 twiceargvverified ONE SIGTERM; terminal
+runner33430/UART-15, PIDabsenttwice beforePINGACK. Reset1793145111.4682488 consumed
+forever. V195 moves report to wrapper after playback success/failure and before
+contextdetach, permitting explicitly partial diagnostic counts. No DSPchange.
