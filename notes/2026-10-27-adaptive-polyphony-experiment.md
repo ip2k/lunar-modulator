@@ -288,3 +288,31 @@ errors. No browser playback, target timing or sustained audio acceptance is
 claimed from `--no-screenshot`. Hera's offline jobs are terminal; its atomic
 handoff is saved and its task claim released. The owner authorization to use
 Hera remains in effect for future useful bounded jobs.
+
+
+## V144 reusable feedback controller
+
+[verified] `firmware/devkit/voice_budget.h` now contains the explicit opt-in,
+render-owner policy: the existing 34829-tick experiment uses a quarter-weight
+moving mean, four consecutive expensive blocks with limited queued headroom,
+an urgent one-block-ready deadline path, and 1024 low-load blocks before raising
+capacity. Limits remain 4..12. Startup tags below 16 are ignored. Failed engine
+updates latch refusal without advancing the admitted limit. Change counters
+saturate rather than wrap. There is no allocation, logging, IRQ access or
+finite trace buffer in the controller itself; replay still needs all decisions.
+
+[verified] Two Clang host tests (normal and ASan/UBSan) pass startup, isolated
+jitter, sustained load, slow recovery, floor/ceiling, full queues, urgent pressure,
+failed callbacks, invalid timing and 1616 transitions over more than a million
+feedback observations. This is not evidence of target deadline acceptance.
+
+A private V144 SDK preparation connects that header to the tracked DX7 API while
+preserving earlier native-only per-block control commoning and cold-function
+placement. The short-run trace keeps the first 32 events and counts overflow
+without stopping synthesis; an overflowed trace cannot support exact replay.
+That logger is not complete long-run trace integration. Initial SDK build failed
+before compilation because the toolchain mount was absent; corrected bounded
+build uses the documented read-only toolchain mount. No device operation yet.
+Rarefaction cannot resolve this external worktree's new devkit files from its
+main-checkout root; Serena resolves the exact worktree timing symbol. Neither
+index proves the pi32v2 ABI or target code generation.
