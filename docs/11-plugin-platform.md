@@ -30,7 +30,7 @@ Nothing was built or run, so every CPU figure for the FM-1 below is
 | Compile Schwung modules from *source*? | **Yes, for a subset.** Schwung's DSP contract is three plain C structs of function pointers, and it runs at 44.1 kHz like the FM-1. About 22 of the 100 sound generators and audio effects look likely to port; about 42 more would need work (§3). Their JavaScript UIs do not carry over. |
 | Mutable Instruments code? | **Yes, and it is the best fit found.** MIT licence, C++98 with no exceptions, RTTI or heap, single-precision float or fixed point, few ARM-specific lines, each with a C fallback. It has already been ported to an ESP32, a chip of the same class (§4). Polyphony is the constraint, not whether it runs. |
 | A plugin loader? | **Yes, in stages** (§5). Start with engines compiled into the firmware behind one stable C API. Then add units loaded into RAM at a fixed address over USB-MIDI, the Korg logue v1 / OWL model. Relocatable plugins depend on a toolchain question nobody has answered yet. |
-| What gates it? | The same things that gate the whole project: a firmware of our own on the device (docs/07 rule 1), and a first benchmark of pi32v2 DSP speed. The benchmark needs no FM-1 at all: a JieLi AC79 dev board will do (§8). |
+| What gates it? | The same things that gate the whole project: a firmware of our own on the device (staged under docs/07 §4; the old one rule is superseded), and a first benchmark of pi32v2 DSP speed. The benchmark needs no FM-1 at all: a JieLi AC79 dev board will do (§8). |
 
 ## 2. The FM-1's budget
 
@@ -356,7 +356,7 @@ problem with an online compiler.
 ## 6. Where the platform would run
 
 - **The open firmware** (docs/05 L1, the SDK). This is the clean home. It
-  needs the recovery path first (docs/07).
+  needs the recovery path first (docs/07; a stock-V15 recovery path via a Pico 2 W is proven, docs/17, while restoring the unit's own image is not).
 - **A patch on stock V15.** Like FM-1+VA (V15 plus 90 hooks plus 110 KB of
   appended code) and AL-255's demo (trampolines over `usr_app_task` and
   `midi_msg_dispatch`).
@@ -431,11 +431,10 @@ switch. docs/12 §6 has the full rules.
 | --- | --- | --- | --- |
 | A — desk | any computer, no hardware | `fm1_engine_t` API and a desktop host (the same source building for a simulator and for JACK/CoreAudio, as AL-255's branch does); port the Plaits light engines and Braids at 44.1 kHz and 64 frames; the Schwung v2 shim with `schwung-braids` and PSX Verb compiled through it; build with `-std=c++11 -fno-exceptions -fno-rtti` for a 32-bit target | renders match upstream MI (VCV or MI's own test harness) within tolerance; memory per voice measured |
 | B — bench | a JieLi AC79 dev board (docs/07 §3 already suggests one) with the Linux toolchain | build stage A for pi32v2; read the cycle counter per block for msfa, Plaits light and heavy engines, Braids, Rings and the MI reverb; try `-fPIC` and read the relocations | a cycles-per-block table, and a yes or no on Tier 2 |
-| C — FM-1 | staged owner-authorized work under docs/07 §4; full-image recovery remains untested | Tier 0 in the open firmware, or in a hook build if the owner chooses that route | engines selectable per preset, CPU meter on screen |
+| C — FM-1 | staged owner-authorized work under docs/07 §4; the dump-and-restore gate is met with stock V15 as the target (owner, 2026-10-26, docs/17), restoring the unit's own image is untested; next: first Lunar code, RAM-only first | Tier 0 in the open firmware, or in a hook build if the owner chooses that route | engines selectable per preset, CPU meter on screen |
 | D | FM-1 | Tier 1 RAM units over USB-MIDI; then flash-stored units and Berry scripts if wanted | a unit built outside the firmware tree loads, runs, and is refused cleanly when over budget |
 
-Stage A can start today and costs nothing. Stage B is the one purchase
-that turns every [inferred] CPU figure in this document into a measurement.
+Stage A is under way (below). Stage B's board is in hand (AC79 dev kit, UART bring-up 2026-10-22, docs/14) and will turn the [inferred] CPU figures in this document into measurements.
 
 **Progress (2026-09-30).** Stage A is well under way in
 [`engines/`](../engines/) [verified: desktop builds and tests, CI]:

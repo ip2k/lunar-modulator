@@ -532,8 +532,9 @@ loop algorithms are the dearest case here.
   from a DX7.
 - **AM depths** are a design (above), not a measurement of a DX7.
 - **The user bank on the FM-1:** the simulator's bank lasts until power
-  off. On the FM-1 it would live in a flash partition, which waits for the
-  dump-and-restore gate (CLAUDE.md, the one rule) and a SysEx path over
+  off. On the FM-1 it would live in a flash partition, which waits for Lunar
+  code on the FM-1 (the dump-and-restore gate was met on 2026-10-26 with
+  stock V15 as the target; next gate: docs/07 §4) and a SysEx path over
   USB-MIDI.
 - **Controllers:** the mod wheel and aftertouch routings and sustain need
   the engine API to carry controllers first (portamento is a parameter

@@ -9,6 +9,12 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- **The owner's FM-1 boots again, on stock V15.** An install interrupted on
+  2026-10-15 had left it with no display and no USB. The stock V15
+  application region was written back through FM-1-transporter on a Pico 2 W,
+  and the unit now identifies as `FM-1_015`. The transporter needed a small
+  patch to key reliably on a Pico 2; the details are in
+  `notes/2026-10-26-fm1-stock-v15-recovery.md`.
 - Live keyboard arpeggios keep their tempo while the song is paused, without
   advancing the song position. MIDI Learn highlights respect the viewport,
   closed menus and pinned toolbar. Escape dismisses native popovers before
@@ -35,9 +41,163 @@ history.
 - Sound imports no longer apply unavailable MIDI-effect settings to a previous
   slot; omitted effects load as the bypassed default used by preflight.
 - Reconciled technical recovery status with the verified bounded-sector
-  experiments; full-image recovery and Lunar installation remain untested.
+  experiments; restoring the unit's own full image and Lunar installation remain
+  untested (recovery to stock V15 was verified on 2026-10-26).
+- **The advanced editor: the v1 review's seven fixes.**
+  - Switching A and B no longer stops the transport: the sequencer's clock and
+    playheads go over a project load, so what was playing goes on playing from
+    the same place (a stopped transport stays stopped). Making B from the picks
+    and undoing it keep the transport too.
+  - A long list's filter (Shapes' 47 shapes, Six-Op's 96 patches, FM6's 64)
+    works in Safari, whose dropdown ignores hidden entries: the list itself
+    is rebuilt. The effect picker's filter did nothing in any browser (a style
+    rule kept the filtered-out choices on show); now it hides them, and the
+    choices the instrument says are not offered stay out.
+  - Semitones are read aloud as "semitones", not "st".
+  - A and B kept in the browser come back for the same project, not for any
+    project with the same title (two "Untitled" ones used to swap them).
+  - Storage no longer goes missing for a visit when an older tab of the page
+    is still open on the previous version of the database: the page says so,
+    works from memory meanwhile, saves what it kept when the old tab lets go,
+    and lets a newer tab upgrade.
+  - Stale text in the design note, DEVELOPERS.md and `sim/web/README.md`
+    (the editor was said to be unbuilt, and untested outside Chromium).
+- **A refusal for the wrong kind of file reads properly.** "A sound, not a effects chain was expected" is now "A sound, not an effects chain, was expected.": the article follows the word.
+- **Sound on iPhones and iPads** ([#53](https://github.com/ip2k/lunar-modulator/issues/53)).
+  The simulator now plays through Silent mode, as a music app does (where
+  Safari lets a page ask for that: iOS 18 does), and starts its sound again after a call, Siri or another
+  app took the audio: the status line asks for a tap, and the next tap or
+  key starts it. A browser that holds the sound back at power-on no longer
+  leaves the page at *Starting...*.
+- **Tests can no longer leave a tool running for days.** Every tool a test
+  starts now has a wall-clock timeout (20 minutes unless the test sets one)
+  and a CPU-time limit set inside the tool itself (30 minutes), so a tool
+  whose pytest run was killed dies on its own instead of spinning a core.
+  An `fm1-limit-test` left behind on 2026-10-02 had run for almost four
+  days. `FM1_TEST_TIMEOUT` and `FM1_TEST_CPU_SECONDS` change the limits
+  (0 turns one off); `tests/conftest.py` says how.
+- `fm1-render --load` read files through a 64 KiB stack buffer, which
+  overflowed its JavaScript build's stack.
+- The JieLi compile check now compiles the MIDI effects and their registry
+  (the arpeggiator), which it had left out.
+- **A refused modulation cable no longer marks its destination.** A cable
+  the matrix shows as refused (*!*), such as one per voice into an effect,
+  carries nothing, but the parameter it aimed at still had its name in the
+  modulation colour and a range bracket, as if it moved (M1's Drive on
+  Master Sat, for one). Now only cables that run mark a parameter, on the
+  sound's and effects' pages and in the rack, and a parameter reached by a
+  live and a refused cable shows the live one's range alone.
+- **Six-Op FM, Sophie and PSX Verb took a not-a-number setting as the
+  minimum;** it is now the parameter's default, as the engine API says and
+  every other engine does.
+- **The documentation:** the engine count in DEVELOPERS.md (seven sound
+  engines with Drums and FM6), and the Limiter's Round mode, whose 3 dB of
+  room over the ceiling for its rounding clip is by design (the output still
+  never passes the ceiling).
+- **The virtual FM-1 builds without compiler warnings under GCC 11 to 16.**
+  No change in what it does. For developers: four warnings in
+  `sim/web/src/fm1_app.c` (`-Wformat-truncation` on the DX7 load's
+  message and a list's place, `-Warray-bounds` on pitch bend and on the
+  parameter rows) are fixed at their causes: both buffers hold any `int`;
+  pitch bend checks the current sound before it indexes the bends; and the
+  parameter rows no longer test whether the modulation runtime binds a
+  row's parameter, which it always does (now a compile-time check), so no
+  path reads past a unit's values.
+- **Shapes stays inside what Braids' code handles.** At a few edges Braids
+  read past the end of a table or did arithmetic C++ leaves undefined, so
+  the same settings could sound different from one build to the next (the
+  desktop, the browser, the FM-1). Shapes now holds those settings at the
+  nearest one Braids handles; everything inside sounds byte for byte as
+  before.
+  - Wave Line: the last 1.6 % of Timbre plays the line's last wave, where
+    it had played a stray one.
+  - Comb: on keys 0–47 Timbre stops where the comb reaches its lowest
+    pitch. The sound is the same; only the comb's short glide up from the
+    bottom starts nearer.
+  - A note bent or offset above MIDI 127.99 plays as at 127.99, on every
+    shape. Flute, the four filter shapes and the two Sync shapes faulted up
+    there; the others had already stopped rising in pitch.
+  - Checked under the address and undefined-behaviour sanitizers over every
+    shape, key, Timbre and Color end and bend, and with knobs, bends,
+    per-note offsets and the shape changing while notes sound; and against
+    Braids itself at the held values.
+- docs/02 §5 and `tools/check_msfa_table.py` had rows 4 and 6 of msfa's
+  algorithm table the wrong way round: `0x41`, which the FM-1 carries, is
+  Google's original (there since its first commit, 2012), and `0xC1`, which
+  Felucca's port of Dexed's msfa carries, a later change. The FM-1's table is Google's, row for row; the tool
+  now reports 32 of 32 rows for an FM-1 image.
+- On the virtual FM-1, Sophie's pads followed Sound 1 rather than the
+  current sound: with Sophie as Sound 2 the white keys played notes she
+  ignores, and with Sophie as Sound 1 they played her pad notes on another
+  current sound. The white keys now play her pads whenever she is the
+  current sound.
+- The layout check drew FX mode's routed-parameter screens on an empty
+  insert instead of the effect under test; it now draws them on M1.
+- The simulator page's help credits every source of the modulation
+  modules, as the manual does: Braids and Music Thing Modular's Turing
+  Machine (Tom Whitwell) were missing.
+- For developers: `fm1-sim-render` frees what a run holds when it stops
+  part way, on a refused `--unit-route`, `--seq-reset` or `--seq-import`,
+  so CI's leak check sees only the refusal.
+- Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
+  notes 36–51 (its 16 pads), below the keys' range at the default octave.
+  With Sophie as the sound, the 16 white keys now play pads 1–16 at any
+  octave, and the black keys play nothing. MIDI IN keeps the drum map.
+- Macro Heavy: a parameter set to NaN now falls back to its default, as
+  the engine API says (`fm1_param_clamp`), instead of to its minimum.
+- **The second core is not idle.** The stock firmware renders its msfa
+  voices on cpu1, outside the OS, and runs the OS, the UI and the effects
+  on cpu0. The routine at V13 file `0x86AD6` polls `0x01C16EC0` and calls
+  the voice render, its only caller [verified: V13 disassembly]; that it
+  runs on cpu1 is inferred from the `cpu1_run_flag` and AL-255's symbol
+  names. `CPU_CORE_NUM 1` is the SDK's mode with the OS on one core, not
+  one core used. AL-255's docs, which this project followed, read cpu1 as
+  unused because their addresses assume `app.bin` runs from `0x02000000`;
+  it appears to run from `0x02000120`. Corrected in docs/01, 05, 06, 08
+  and 11, DEVELOPERS.md, the README roadmap, HANDOFF, `engines/plaits-heavy.md`,
+  `sim/web/README.md`, `sim/web/emulators.md` and a comment in
+  `sim/web/www/worklet.js`.
+- The `USB_KEY` dongle's two 2.2 kΩ pull-ups each get their own pin (GP16
+  for D+, GP19 for D−; docs/10 §3).
+  - On the one pin they shared, switching them off still joined D+ and D−
+    through 4.4 kΩ, so D− followed the chip's D+ pull-up.
+  - The SOF phase, which waits for D+ high and D− low, would have failed on
+    every attempt.
+  - The co-simulation modelled the pull-ups as independent and could not
+    see this; a test now reproduces it with the shared wiring.
+  - The pull-up pins' pad pull-downs are now disabled, so "off" is hi-Z as
+    the code says.
+  - Found by a review of the docs/10 update, before anyone built the
+    dongle.
+- docs/10 §1 credited the D−-clock reading to the diagram in kagaimiq's
+  `how-to-enter-uboot.md`. In fact that diagram clocks on D+; only the page's
+  prose says D−. The `USB_KEY` trap in CLAUDE.md, AGENTS.md, HANDOFF and
+  docs/07 now says D+ is the clock, as reported on two FM-1s.
+- Shapes crashed on 11 of its 47 shapes when rendered in blocks that were
+  not a multiple of 24 samples, and 22 shapes drifted from Braids (bells and
+  drums decayed too fast, some shapes glitched). It now always renders Braids
+  in its own 24-sample blocks.
+- The mix-bus limiter stopped limiting for good after one NaN sample; it
+  now treats non-finite samples as silence and clamps extreme ones.
+- A NaN parameter value could reach undefined float-to-int conversions in
+  Macro and Shapes, or silence Shapes, Test Sine and Test Gain.
+- The "unpopulated 3-pin header" (candidate UART) from the 2026-09-08 desk
+  review is the battery connector's through-hole leads, and `J14` carries the
+  electrolytics' leads. The board has no debug header (docs/01, 07, 09).
+- `U2`/`U3` are SOIC-16 `74HC595`, not SOIC-20; `U5` is a QFN, not a SOIC-8.
 
 ### Added
+- **A recovery guide for a Raspberry Pi Pico 2 W** (docs/17). It covers the
+  wiring (with a photo), building kurogedelic's FM-1-transporter with this
+  project's RP2350 patch (`tools/fm1-transporter/`), entering the mask ROM,
+  and reading, writing and verifying stock V15. It also covers the identity
+  check afterwards.
+- **CI builds the patched FM-1-transporter** (job `fm1-transporter`): it runs
+  `tools/fm1-transporter/build.sh`, writes the UF2 hashes to the job summary
+  and warns if the Pico 2 W image no longer matches the one used on
+  2026-10-26 (the base image is not pinned, so a drift is a warning).
+- **`fm1_uboot_read.py` accepts `FM-1_015`** in its entry log as well as
+  `FM-1_092`.
 - **Advanced editor shell and song navigation:** outside Panel layout, the
   page controls and file bar move into the app bar's Simulator and Files
   menus; those controls return to the page footer in Panel layout. Song Files
@@ -1867,6 +2027,33 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Owner decisions, 2026-10-26** (after the recovery in docs/17):
+  - Recovery of an unbootable FM-1 whose boot area `0x0`-`0x4000` is intact
+    is proven on the owner's unit; UBOOT enumeration alone is still not proof,
+    and a damaged boot area stays unproven.
+  - docs/17 (Pico 2 W, patched FM-1-transporter, V15-only research shim) is
+    the approved recovery route for this unit. Its push-pull wiring is an
+    exception to docs/10 E1/E2 for that route only; the dongle design stays
+    bound by them and is no longer on the critical path.
+  - The dump, restore and boot gate is met with stock V15 as the restore
+    target (not FM-1_092). The next milestone is the first Lunar code on the
+    FM-1, RAM-only first, under the staged policy (docs/07 §4).
+  - Ordinary MIDI (notes, CC, program change) may be sent to a unit on stock
+    V15; SysEx stays limited to the read-only identity query.
+- **Status text follows the 2026-10-26 recovery.** README, DEVELOPERS.md,
+  HANDOFF.md, CLAUDE.md, AGENTS.md, docs/01-05 and 07-16, `dongle/README.md`,
+  `assets/branding/README.md`, `engines/msfa.md`,
+  `firmware/diagnostic/README.md`, `sim/web/PALETTE.md`,
+  `sim/web/emulators.md`, the user manual (chapters 1, 2, 11, 14, the
+  glossary, its README, `manual.toml` and the cover), the comments of
+  `tools/fm1_identify.sh` (now verified on hardware) and
+  `tools/fm1_uboot_restore_test.py`, and the status strings of `tools/jieli/`
+  no longer call recovery of a nonbooting unit untested, no longer say the
+  unit runs FM-1_092 or that the AC79 dev kit is on order, and name the
+  staged policy where they cited the superseded one rule (two comments in
+  `sim/web/src/fm1_app.c`/`.h` still do; they are hashed into the module
+  record and wait for its next rebuild). The dev kit needs no
+  `USB_KEY` dongle (onboard UPDATE and RESET buttons, UART header).
 - **Parameter metadata is at level 1.3.** The export now says how a cable's ids
   are laid out and the shape of the chain (`mod.source_base`, `source_stride`,
   `unit_base`, `sounds`, `inserts`, `masters`), so an editor holds none of
@@ -2490,147 +2677,3 @@ history.
     pinned size or figure would move or they are documented API or tool
     options. They are listed in PR #74 with the 8 the re-check rejected
     and the bugs it found on the way.
-
-### Fixed
-- **The advanced editor: the v1 review's seven fixes.**
-  - Switching A and B no longer stops the transport: the sequencer's clock and
-    playheads go over a project load, so what was playing goes on playing from
-    the same place (a stopped transport stays stopped). Making B from the picks
-    and undoing it keep the transport too.
-  - A long list's filter (Shapes' 47 shapes, Six-Op's 96 patches, FM6's 64)
-    works in Safari, whose dropdown ignores hidden entries: the list itself
-    is rebuilt. The effect picker's filter did nothing in any browser (a style
-    rule kept the filtered-out choices on show); now it hides them, and the
-    choices the instrument says are not offered stay out.
-  - Semitones are read aloud as "semitones", not "st".
-  - A and B kept in the browser come back for the same project, not for any
-    project with the same title (two "Untitled" ones used to swap them).
-  - Storage no longer goes missing for a visit when an older tab of the page
-    is still open on the previous version of the database: the page says so,
-    works from memory meanwhile, saves what it kept when the old tab lets go,
-    and lets a newer tab upgrade.
-  - Stale text in the design note, DEVELOPERS.md and `sim/web/README.md`
-    (the editor was said to be unbuilt, and untested outside Chromium).
-- **A refusal for the wrong kind of file reads properly.** "A sound, not a effects chain was expected" is now "A sound, not an effects chain, was expected.": the article follows the word.
-- **Sound on iPhones and iPads** ([#53](https://github.com/ip2k/lunar-modulator/issues/53)).
-  The simulator now plays through Silent mode, as a music app does (where
-  Safari lets a page ask for that: iOS 18 does), and starts its sound again after a call, Siri or another
-  app took the audio: the status line asks for a tap, and the next tap or
-  key starts it. A browser that holds the sound back at power-on no longer
-  leaves the page at *Starting...*.
-- **Tests can no longer leave a tool running for days.** Every tool a test
-  starts now has a wall-clock timeout (20 minutes unless the test sets one)
-  and a CPU-time limit set inside the tool itself (30 minutes), so a tool
-  whose pytest run was killed dies on its own instead of spinning a core.
-  An `fm1-limit-test` left behind on 2026-10-02 had run for almost four
-  days. `FM1_TEST_TIMEOUT` and `FM1_TEST_CPU_SECONDS` change the limits
-  (0 turns one off); `tests/conftest.py` says how.
-- `fm1-render --load` read files through a 64 KiB stack buffer, which
-  overflowed its JavaScript build's stack.
-- The JieLi compile check now compiles the MIDI effects and their registry
-  (the arpeggiator), which it had left out.
-- **A refused modulation cable no longer marks its destination.** A cable
-  the matrix shows as refused (*!*), such as one per voice into an effect,
-  carries nothing, but the parameter it aimed at still had its name in the
-  modulation colour and a range bracket, as if it moved (M1's Drive on
-  Master Sat, for one). Now only cables that run mark a parameter, on the
-  sound's and effects' pages and in the rack, and a parameter reached by a
-  live and a refused cable shows the live one's range alone.
-- **Six-Op FM, Sophie and PSX Verb took a not-a-number setting as the
-  minimum;** it is now the parameter's default, as the engine API says and
-  every other engine does.
-- **The documentation:** the engine count in DEVELOPERS.md (seven sound
-  engines with Drums and FM6), and the Limiter's Round mode, whose 3 dB of
-  room over the ceiling for its rounding clip is by design (the output still
-  never passes the ceiling).
-- **The virtual FM-1 builds without compiler warnings under GCC 11 to 16.**
-  No change in what it does. For developers: four warnings in
-  `sim/web/src/fm1_app.c` (`-Wformat-truncation` on the DX7 load's
-  message and a list's place, `-Warray-bounds` on pitch bend and on the
-  parameter rows) are fixed at their causes: both buffers hold any `int`;
-  pitch bend checks the current sound before it indexes the bends; and the
-  parameter rows no longer test whether the modulation runtime binds a
-  row's parameter, which it always does (now a compile-time check), so no
-  path reads past a unit's values.
-- **Shapes stays inside what Braids' code handles.** At a few edges Braids
-  read past the end of a table or did arithmetic C++ leaves undefined, so
-  the same settings could sound different from one build to the next (the
-  desktop, the browser, the FM-1). Shapes now holds those settings at the
-  nearest one Braids handles; everything inside sounds byte for byte as
-  before.
-  - Wave Line: the last 1.6 % of Timbre plays the line's last wave, where
-    it had played a stray one.
-  - Comb: on keys 0–47 Timbre stops where the comb reaches its lowest
-    pitch. The sound is the same; only the comb's short glide up from the
-    bottom starts nearer.
-  - A note bent or offset above MIDI 127.99 plays as at 127.99, on every
-    shape. Flute, the four filter shapes and the two Sync shapes faulted up
-    there; the others had already stopped rising in pitch.
-  - Checked under the address and undefined-behaviour sanitizers over every
-    shape, key, Timbre and Color end and bend, and with knobs, bends,
-    per-note offsets and the shape changing while notes sound; and against
-    Braids itself at the held values.
-- docs/02 §5 and `tools/check_msfa_table.py` had rows 4 and 6 of msfa's
-  algorithm table the wrong way round: `0x41`, which the FM-1 carries, is
-  Google's original (there since its first commit, 2012), and `0xC1`, which
-  Felucca's port of Dexed's msfa carries, a later change. The FM-1's table is Google's, row for row; the tool
-  now reports 32 of 32 rows for an FM-1 image.
-- On the virtual FM-1, Sophie's pads followed Sound 1 rather than the
-  current sound: with Sophie as Sound 2 the white keys played notes she
-  ignores, and with Sophie as Sound 1 they played her pad notes on another
-  current sound. The white keys now play her pads whenever she is the
-  current sound.
-- The layout check drew FX mode's routed-parameter screens on an empty
-  insert instead of the effect under test; it now draws them on M1.
-- The simulator page's help credits every source of the modulation
-  modules, as the manual does: Braids and Music Thing Modular's Turing
-  Machine (Tom Whitwell) were missing.
-- For developers: `fm1-sim-render` frees what a run holds when it stops
-  part way, on a refused `--unit-route`, `--seq-reset` or `--seq-import`,
-  so CI's leak check sees only the refusal.
-- Sophie made no sound from the virtual FM-1's keys: it only plays MIDI
-  notes 36–51 (its 16 pads), below the keys' range at the default octave.
-  With Sophie as the sound, the 16 white keys now play pads 1–16 at any
-  octave, and the black keys play nothing. MIDI IN keeps the drum map.
-- Macro Heavy: a parameter set to NaN now falls back to its default, as
-  the engine API says (`fm1_param_clamp`), instead of to its minimum.
-- **The second core is not idle.** The stock firmware renders its msfa
-  voices on cpu1, outside the OS, and runs the OS, the UI and the effects
-  on cpu0. The routine at V13 file `0x86AD6` polls `0x01C16EC0` and calls
-  the voice render, its only caller [verified: V13 disassembly]; that it
-  runs on cpu1 is inferred from the `cpu1_run_flag` and AL-255's symbol
-  names. `CPU_CORE_NUM 1` is the SDK's mode with the OS on one core, not
-  one core used. AL-255's docs, which this project followed, read cpu1 as
-  unused because their addresses assume `app.bin` runs from `0x02000000`;
-  it appears to run from `0x02000120`. Corrected in docs/01, 05, 06, 08
-  and 11, DEVELOPERS.md, the README roadmap, HANDOFF, `engines/plaits-heavy.md`,
-  `sim/web/README.md`, `sim/web/emulators.md` and a comment in
-  `sim/web/www/worklet.js`.
-- The `USB_KEY` dongle's two 2.2 kΩ pull-ups each get their own pin (GP16
-  for D+, GP19 for D−; docs/10 §3).
-  - On the one pin they shared, switching them off still joined D+ and D−
-    through 4.4 kΩ, so D− followed the chip's D+ pull-up.
-  - The SOF phase, which waits for D+ high and D− low, would have failed on
-    every attempt.
-  - The co-simulation modelled the pull-ups as independent and could not
-    see this; a test now reproduces it with the shared wiring.
-  - The pull-up pins' pad pull-downs are now disabled, so "off" is hi-Z as
-    the code says.
-  - Found by a review of the docs/10 update, before anyone built the
-    dongle.
-- docs/10 §1 credited the D−-clock reading to the diagram in kagaimiq's
-  `how-to-enter-uboot.md`. In fact that diagram clocks on D+; only the page's
-  prose says D−. The `USB_KEY` trap in CLAUDE.md, AGENTS.md, HANDOFF and
-  docs/07 now says D+ is the clock, as reported on two FM-1s.
-- Shapes crashed on 11 of its 47 shapes when rendered in blocks that were
-  not a multiple of 24 samples, and 22 shapes drifted from Braids (bells and
-  drums decayed too fast, some shapes glitched). It now always renders Braids
-  in its own 24-sample blocks.
-- The mix-bus limiter stopped limiting for good after one NaN sample; it
-  now treats non-finite samples as silence and clamps extreme ones.
-- A NaN parameter value could reach undefined float-to-int conversions in
-  Macro and Shapes, or silence Shapes, Test Sine and Test Gain.
-- The "unpopulated 3-pin header" (candidate UART) from the 2026-09-08 desk
-  review is the battery connector's through-hole leads, and `J14` carries the
-  electrolytics' leads. The board has no debug header (docs/01, 07, 09).
-- `U2`/`U3` are SOIC-16 `74HC595`, not SOIC-20; `U5` is a QFN, not a SOIC-8.

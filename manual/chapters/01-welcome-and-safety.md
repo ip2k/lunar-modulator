@@ -50,19 +50,23 @@ this manual carries a status that says where it works today:
 
 ## Device work and recovery {#the-one-rule}
 
-The owner has authorized staged bench work. On the owner's FM-1_092, the
-project has entered USB recovery mode, taken matching private full-flash
-backups, and programmed, read back and restored one bounded unused sector;
-the complete image matched the backups afterward. This proves that bounded
-sector operation on that unit worked. It does not prove a full-image rewrite,
-recovery from a nonbooting application or a Lunar installation.
+The owner has authorized staged bench work on their own FM-1. In October 2026
+an interrupted install left that unit unable to start. On 26 October 2026 the
+project brought it back to M-VAVE's firmware V15 through the processor's USB
+recovery mode, with a Raspberry Pi Pico 2 W: two matching full backups, a
+rewrite that was read back and checked, and a unit that starts again and
+identifies as `FM-1_015`. So an FM-1 that will not start can be returned to
+M-VAVE's firmware, as long as the small boot area at the start of its memory
+is intact. A damaged boot area, putting back a unit's own earlier firmware,
+and installing Lunar remain untested.
 
 The FM-1's own updater runs inside the installed firmware, so it cannot rescue
-an application that no longer starts. Before any further erase or program
-operation, the staged plan requires private backups to be compared, the exact
-image and ranges to be reviewed, and a recovery plan and route to USB update
-mode to be retained. UBOOT entry alone is not proof of recovery. The current
-limits and safeguards are in [chapter 11](11-updating-and-recovery.md).
+an application that no longer starts; the recovery route can. Before any
+further erase or program operation, the staged plan requires private backups
+to be compared, the exact image and ranges to be reviewed, and a recovery plan
+and a way back to recovery mode to be kept. Reaching recovery mode alone does
+not prove that a unit can be recovered. The route, its limits and the
+safeguards are in [chapter 11](11-updating-and-recovery.md).
 
 !!! warning "There is nothing to install on your FM-1 yet"
     There is no installable Lunar Modulator release for the FM-1 yet. Offline
@@ -90,9 +94,8 @@ follow M-VAVE's manual for them.
     still applies on top of both.
 
 !!! warning "Do not open the case"
-    Nothing in this manual asks you to open your FM-1. The recovery dongle
-    described in chapter 11 is designed to plug into the USB socket from
-    outside.
+    Nothing in this manual asks you to open your FM-1. The recovery route
+    described in chapter 11 connects to the USB socket from outside.
 
 !!! note "Your FM-1 is unchanged"
     Using the simulator or the desktop tools sends nothing to an FM-1, even

@@ -244,7 +244,7 @@ def _inspect_nested(raw, stock, replacement=None):
                 pending=['modified-image repack/CRC/address rules not implemented' if replacement is None
                          else 'replacement inspected only; emitting/version/allocation changes are outside this verifier',
                          'auxiliary metadata/trailer/version and runtime XIP behavior require explanation',
-                         'SPL handover/observable runtime and candidate/range recovery review unresolved; full-image/broken-app recovery unproven'])
+                         'SPL handover/observable runtime and candidate/range review unresolved; broken-app recovery by USB_KEY entry and a verified stock-V15 write is proven on the owner unit (2026-10-26, docs/17); restore of the unit\'s own earlier image and recovery from a modified image remain unproven'])
 
 
 def main():

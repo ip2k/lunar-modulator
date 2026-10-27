@@ -1,14 +1,32 @@
 # 08 — Roadmap
 
-Phases with exit criteria. Current hardware status (2026-10-08): soft-key
+Phases with exit criteria.
+
+**Current hardware status (2026-10-26).** A stage-7 install was interrupted
+on 2026-10-15 and left the unit with no display and no USB. On 2026-10-26 it
+was keyed into mask-ROM `UBOOT1.00` with a Pico 2 W running a patched
+FM-1-transporter, dumped twice (identical), and the stock V15 application
+region was written and read back equal [verified] and booted [reported:
+owner]; it identifies as `FM-1_015`
+[verified: docs/17, [recovery note](../notes/2026-10-26-fm1-stock-v15-recovery.md)].
+The unit's own FM-1+VA (`FM-1_092`) image was not restored; the two 092
+backups are its only copy. The owner's decisions of that day (docs/07 §4,
+D1–D4): recovery of an unbootable unit with an intact boot area is proven;
+docs/17 is the approved recovery route; the dump, restore and boot gate (DEVELOPERS.md's
+I9) is met with stock V15 as the target; ordinary MIDI may be sent into the
+unit. The AC79 dev kit (`JL_AC79_DevKitBoard V1.2`) is in hand, with a UART
+bring-up on 2026-10-22 (docs/14). **Next milestone:** the first Lunar code on
+the FM-1, RAM-only first, under docs/07 §4, with docs/17 as the fallback.
+
+Earlier status (2026-10-08): soft-key
 UBOOT entry, a RAM recovery loader, matching full backups and bounded sector
 restoration succeeded [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)].
 The complete post-test dump matched the backups; the owner confirmed normal
 boots after the read-only session and after restoration [verified: bench note].
 An offline diagnostic variant has been linked, but no full-DSP Lunar
 application is linked for installation and none has run on or been installed
-on the FM-1. Full-image restoration and broken-app recovery remain untested.
-The owner authorized firmware preparation and audit remediation; see the
+on the FM-1. Broken-app recovery was then untested; it was done on
+2026-10-26 (above). The owner authorized firmware preparation and audit remediation; see the
 [current work record](../notes/2026-10-08-audit-remediation.md) and docs/07 §4.
 
 The following 2026-10-01 checkpoint and original phase order are historical;
@@ -16,7 +34,9 @@ their prior blanket recovery prerequisite is superseded by docs/07 §4:
 - Phase 0 is done.
 - Phase 1 has had one read-only bench session (`notes/2026-09-06-bench.md`).
 - Phase 2's dongle is built and simulated (docs/10), and an AC79 dev kit and
-  JieLi's USB updater are on order (docs/14).
+  JieLi's USB updater were on order (docs/14). The kit has since arrived
+  (V1.2, UART bring-up 2026-10-22); it enters download mode with its own
+  UPDATE (K1) and RESET (K2) buttons, so it needs no `USB_KEY` dongle.
 - Parts of Phase 4 and Phase 5 exist on the desktop and in a browser: the
   engine platform (`engines/`), the sequencer core (`engines/seq.md`) and the
   virtual FM-1 (`sim/web/`).
@@ -42,42 +62,60 @@ Detailed commands in docs/09.
 - **Exit:** notes/ contains descriptors, identity, V15 analysis, photos; the
   knob/encoder question is answered.
 
-## Phase 2 — Recovery
+## Phase 2 — Recovery (gate met, 2026-10-26)
 
-The soft-key path has completed matching full backups and one bounded 4 KiB
+**Status:** the exit gate (dump, restore, boot; I9) is met with stock V15 as
+the restore target (owner, 2026-10-26, D3; docs/07 §4). The approved
+recovery route is docs/17, not this project's dongle (D2). What now gates
+Phase 3 is docs/07 §4 itself: a reviewed, RAM-only first experiment with its
+recovery plan, and docs/17 ready as the fallback.
+
+Earlier: the soft-key path has completed matching full backups and one bounded 4 KiB
 unused-sector write/readback/restore, followed by a byte-identical complete
 flash comparison and an owner-confirmed normal boot [verified:
-[bench note](../notes/2026-10-07-fm1-softkey-bench.md)]. The physical dongle,
-whole-image restoration and recovery from a nonbooting app remain untested.
-The remaining recovery work below follows docs/07 §4; a prior whole-image
+[bench note](../notes/2026-10-07-fm1-softkey-bench.md)]. Recovery of a
+nonbooting unit through mask ROM, two identical full dumps and a verified
+stock V15 application write followed on 2026-10-26 with a Pico 2 W and
+FM-1-transporter (docs/17) [verified]. This project's own dongle, recovery
+from a damaged boot area `0x0`–`0x4000`, and a restore of the unit's own
+`FM-1_092` image remain untested. The remaining recovery work below follows
+docs/07 §4; a prior whole-image
 restore is not a blanket prerequisite for firmware preparation or evaluating
 a concrete prototype experiment.
 
-- Build the RP2040 `USB_KEY` dongle from docs/10 (firmware in `dongle/`, UF2
-  from CI, logic tested against a ROM model); rehearse on an AC791N dev board
-  if one can be bought (JL_AC79_DevKit V1.0 on Taobao), otherwise proceed
-  carefully on the FM-1 following docs/10 §6.
+- Optional, off the critical path (D2): build the RP2040 `USB_KEY` dongle
+  from docs/10 (firmware in `dongle/`, UF2 from CI, logic tested against a
+  ROM model). It is the open-drain design that docs/10 E1/E2 require, and is
+  useful for other owners. The dev kit needs no dongle (UPDATE/RESET
+  buttons, UART), so there is no kit rehearsal of the key.
   - czietz's MicroPython dongle, reported working on two FM-1s (issue #2),
-    can also run on our dongle board as a second implementation for that
-    rehearsal: SPI1 on GP14/GP15 instead of GP10/GP11, relay energised,
-    pull-ups off.
-  - It drives push-pull, so it is not for this project's FM-1 (docs/10
-    §1.1).
-- Reach `UBOOT1.00`; record VID:PID, the SCSI inquiry string, the exact key
-  polarity and timing that worked, the power-switch sequence.
-- Extend `jl-uboot-tool` for wl82 if needed (read-only first): chip ID, flash
-  JEDEC ID, full 1 MB dump ×2 (must match), compare to the stock package.
+    can also run on our dongle board as a second implementation: SPI1 on
+    GP14/GP15 instead of GP10/GP11, relay energised, pull-ups off.
+  - It drives push-pull, so E1/E2 rule it out for this project's FM-1
+    (docs/10 §1.1); the only approved push-pull exception is docs/17's
+    route (D2).
+- Done 2026-10-26: reach `UBOOT1.00` (D+ clock, FM-1 off while keying, then
+  switched on; `WL82`/`UBOOT1.00`), read `key=980F type=3 id=856014`, two
+  identical full 1 MB dumps, compare to the stock package, write and verify
+  [verified: docs/17, recovery note].
 - Evaluate further restoration tests with exact reviewed images/ranges and a
   recovery plan. Take and compare full backups before every erase/program
   operation, then compare complete flash and confirm normal boot afterward.
-  The bounded unused-sector result does not close the whole-image or
-  broken-app recovery questions.
-- Write `docs/10-recovery-procedure.md` with photos and exact commands.
-- **Current milestone:** the bounded-sector restoration passed. Whole-image
-  restoration and recovery entry without a running app remain open; use
-  docs/07 §4 to evaluate the next concrete experiment.
+  Broken-app recovery for an intact boot area is closed (D1); a damaged
+  boot area is not.
+- Done 2026-10-26: the procedure with exact commands is
+  `docs/17-pico2w-recovery.md`. A dongle-based variant would follow docs/10
+  §6 if the dongle is ever run.
+- **Milestone passed (2026-10-26):** recovery of an unbootable unit and the
+  I9 gate, with stock V15 as the restore target (D1, D3). **Current
+  milestone:** the first Lunar code on the FM-1, RAM-only first (Phase 3),
+  under docs/07 §4 with docs/17 as the fallback.
 
-## Phase 3 — First custom code
+## Phase 3 — First custom code (current)
+
+Unblocked by the Phase 2 gate (met 2026-10-26). The first step on the FM-1
+runs from RAM only; flash writes come after that, each under docs/07 §4 with
+its image, ranges and docs/17 as the recovery plan (owner, 2026-10-26, D3).
 
 - Install the JieLi Linux toolchain and post-build tools; build the SDK's
   `demo_hello` for AC791N (`make ac791n_demo_demo_hello`).
@@ -86,7 +124,8 @@ a concrete prototype experiment.
   display pins, key matrix ports, the matrix encoders and the MASTER ADC,
   the ALNK0 I2S audio path. The TRS jack is UART RX only, so log over USB
   CDC or on the TFT.
-- Flash via mask-ROM USB; confirm the log; blink the key LEDs; draw on the TFT.
+- Run from RAM first, then flash via mask-ROM USB; confirm the log; blink
+  the key LEDs; draw on the TFT.
 - Add the fail-open boot path (key combo held at power-up → USB update mode)
   and a watchdog failure counter. Test both.
 - **Exit:** "hello" firmware runs, logs, and can always be replaced.
@@ -161,7 +200,8 @@ a concrete prototype experiment.
   (e.g. `PluginFx`, compressor) is present in the stock app.
 - Read fm1-editor.com's JavaScript for the exact patch SysEx and any vendor
   extensions beyond DX7.
-- Confirm flash size and whether it is in-package (JEDEC ID from UBOOT mode).
+- Confirm whether the flash is in-package. The JEDEC ID from UBOOT mode is
+  `856014` (1 MB) [verified 2026-10-26, docs/17].
 - Identify the AC791N variant and pinout; document the FM-1 pin assignment.
 - Understand how the syscmd callback table (`ENG+1336`/`ENG+1400`) is populated.
 - Ask aroum and AL-255 whether they want to pool efforts; both repos were

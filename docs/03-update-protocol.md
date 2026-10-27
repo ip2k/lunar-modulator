@@ -50,8 +50,12 @@ also appear and must be skipped, because updates run over USB only.
    away: stock V15 answers that by rebooting into mask-ROM `UBOOT1.00`
    [reported: FM-1-transporter `docs/DEVLOG.md`; AL-255 flagged a `7D`/`7F`
    trailer calling mask ROM `0xFFC02532`, `FM-1-RE/docs/io/05-midi.md:97`].
-   FM-1_092 is unchecked. Neither is sent to this project's unit before the
-   gate (CLAUDE.md trap 9).
+   On the owner's FM-1_092 the vetted soft key entered UBOOT on 2026-10-07
+   [verified: `notes/2026-10-07-fm1-softkey-bench.md`]. The unit runs V15 again
+   since 2026-10-26, so it reboots into UBOOT on this key too [inferred].
+   Only authorised sessions send it (CLAUDE.md trap 9; docs/07 §4); ordinary
+   MIDI (notes, CC, program change) may be sent to a unit on stock V15
+   (owner, 2026-10-26).
 4. **Step 1 — verification.** The running app pulls parts of the package with
    read requests, checks them, writes a boot record (`FM-1_0xx` + `ota-`, a
    JieLi `UPDATA_PARM`), and soft-resets into the OTA loader, which
@@ -174,8 +178,8 @@ correct JLFS entries) and probed the step-1 verifier on hardware
   `FM-1_092` differs from V15 only inside `flash.bin`: its `app.bin` is V15's
   with 90 small patches and 110 KB appended, and its directory moves `VM`
   from `0x93000` (344 KB) to `0xD9000` (64 KB) and grows `PRCT` to match.
-  The head, `ota.bin` and `cfg` are byte-identical to V15. It is running on
-  the owner's unit, so the step-1 gate does not compare reserved-partition
+  The head, `ota.bin` and `cfg` are byte-identical to V15. It ran on
+  the owner's unit until 2026-10-15 (it runs stock V15 since 2026-10-26), so the step-1 gate does not compare reserved-partition
   entries against the installed ones.
 - **Stock step 1 accepts a loader that is not M-VAVE's [reported: Felucca,
   SLOOP, 2026-10-03 on; source verified, `notes/2026-10-05-community-repos.md`
@@ -193,7 +197,8 @@ correct JLFS entries) and probed the step-1 verifier on hardware
 - Therefore the stock update path is a working **install** path for non-stock
   applications. It is **not a recovery mechanism**: it has no way to help a
   device whose application no longer boots or no longer runs the update
-  service.
+  service. For such a unit the mask-ROM route worked on 2026-10-26 (USB_KEY
+  from a Pico 2 W, docs/17).
 
 - **Stock packages change the layout.** V15 shrinks the app area by 0x1000 and
   grows VM (docs/01 §2) while keeping `uboot.boot`, `ota.bin`, `cfg` and
