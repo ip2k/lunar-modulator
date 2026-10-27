@@ -7698,3 +7698,14 @@ into the existing cache and skips ScaleLevel only when both depths zero. Full
 V147 decision replay22052blocks5645312PCMbytes is exact normal+ASan/UBSan,
 SHA5631008780acba42d7d62de877fe3b27f7b70adbd18c7a622c9024c949d54932.
 No extra instance/cache memory; native timing pending. Soak/analog not accepted.
+
+[verified: V150 nested target timing] All22052blocks complete with transport
+fault/backend/IRQlate/gaps0. Engine note-on callbacks cost1104/1731/2575/4251ticks;
+whole note setup4910/3545/5245/7193ticks. Producer first blocks37722/34608/35717/
+37800ticks, three misses. This separates engine initialization from app/modulation
+cost; it is not dropout-free acceptance. V149 predecode alone also retains3misses.
+[verified: CV window optimization] feed_cv discards window_of's offset. Direct
+current/next window comparison preserves20000fullstate comparisons normal+ASan/
+UBSan and complete22052block5645312byte PCM replay with recordedV147 adaptive
+limits (SHA5631008780acba42d7d62de877fe3b27f7b70adbd18c7a622c9024c949d54932).
+Gate edge offsets remain unchanged. V151 native timing pending; no analog soak.

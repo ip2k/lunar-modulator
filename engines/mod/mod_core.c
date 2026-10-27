@@ -611,8 +611,8 @@ static void feed_trigger(fm1_mod_t *m, unsigned g, uint64_t at) {
 }
 
 static void feed_cv(fm1_mod_t *m, unsigned id, uint64_t at, float v) {
-  unsigned off;
-  const unsigned w = window_of(m, at, &off);
+  /* CV values select a window; only gate edges need a sub-frame offset. */
+  const unsigned w = at < m->next_tick ? 0u : 1u;
   m->pend_cv[w][id] = v;
   m->cv_has[w] |= 1ull << id;
 }
