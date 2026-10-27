@@ -7382,3 +7382,43 @@ The next experiment preserves state across 57 complete workload cycles, derives
 228 expected hashes from uninterrupted host rendering, and pairs sustained DAC
 operation with KA6 capture. It must use a millisecond duration guard because the
 24 MHz timer wraps repeatedly during a 30-minute run.
+
+### V106 sustained reference proof and physical-capture limits
+
+[verified: uninterrupted host rendering] The 57-cycle extension carries all
+engine, sequencer, resampler and shared-effect history through 228 cases. Both
+normal and ASan/UBSan candidates match the original serial reference across
+321,782,784 PCM bytes (1,256,964 blocks), SHA-256
+`49dc016876b695ba960c8c6aeed3b485f88c3025a0eaf691875f3e94e3f6acb4`.
+The native build passes. The finite watchdog uses elapsed milliseconds; the
+24 MHz timer wraps repeatedly during this duration. The strict receipt parser
+requires all 228 checked hashes, full tag counts, at least 30 minutes elapsed,
+zero transport errors and clean exit. Missing/short/malformed/fault receipts
+are rejected. These host/parser checks do not establish sustained hardware
+acceptance.
+
+[verified: capture in progress; not accepted] One application-only flash and
+one unique reset started the continuous dev-board run with paired UART and
+KA6 capture. Startup/control/arithmetic/worker initialization passed. The first
+captured minute correlates with the reference; the fitted effective playback
+rate is about 44,116.9 Hz. Initial analog correlation is about 0.68 after a
+small fitted transfer filter. A conservative synthetic-fault observability
+probe misses many missing/repeated 64-frame blocks, especially in quiet
+passages, so this capture cannot yet establish dropout-free analog output.
+The actual sustained terminal result is pending at this checkpoint.
+
+[verified: pinned SDK IR; inferred capture cause] The diagnostic's
+`dac_set_gain(54)` selects combined-volume index 17 / analog gain code 8;
+`100` selects index 32 / code 30. Digital volume is already 100. This explains
+a likely substantial attenuation before the capture interface. A subsequent
+capture can raise analog gain without changing any PCM calculation; this
+running soak remains unchanged. Physical injected-fault validation is still
+required before claiming the analog detector is adequate.
+
+[verified: source review] Astra's production integration review identifies a
+real ownership boundary: drawing clears the peak accumulator that the split
+consumer updates, and several live MIDI/parameter operations bypass the fixed
+fixture's recorded command path. The next bounded scheduler experiment uses
+latched wake predicates on the unchanged fixture before production input/UI
+integration. Busy-pump transport success does not establish task fairness or
+interactive product acceptance. Detailed SDK evidence and plans remain private.
