@@ -8107,3 +8107,43 @@ Next investigate the remaining app cost at that transition before claiming more
 polyphony. Small receipts/replay logs and final build inputs are private in the
 existing devkit lane; generated SDK/replay source copies are removed after the
 result is recorded. No full backups/readbacks or restore rehearsals were used.
+
+
+### Transition-only profiling points to Drums work (V179/V180, 2026-10-27)
+
+[verified: diagnostic only] The first profiler added 768 bytes of RAM and
+prevented a 1,536-byte allocation during DAC open. It never ran the workload.
+UART remained responsive after its receiver exited. A new, unique attempt
+retained counters for transition 7 only, saving 484 bytes; DAC startup then
+succeeded with 3,540 bytes of heap remaining. No backups, restore rehearsals or
+full readbacks were performed. Both reset receipts are permanently consumed.
+
+[verified] The reduced profiler completed all 66,156 blocks and again missed
+one producer deadline at tag 38,591: 35,424 ticks versus 34,829. Consumer misses
+and DAC fault/backend/late/gap counters were zero; drain was 64, steady idle
+169 callbacks, and the worker exited. Unused stack was 435 parent words and
+1,322 worker words. UART exited zero, its PID was absent before ordinary PING
+acknowledged, and no device operation remains live. No timing acceptance.
+
+[verified, instrumented] At that transition, producer app time was 29,468 ticks.
+Measured phases were preflight 56, setup/advance 1,281, dispatch 21,870,
+inserts/mix 4,245, capture 471 and UI 1,501 ticks. The phase sum is 29,424;
+timer hooks and surrounding glue account for the remaining interval. Inside
+dispatch, CPU0 DX7 took 5,081 ticks (about 212 us), Drums 9,662 (about 403 us),
+and the fourth sink 284; Macro recording took 81. These sink times overlap
+dispatch and must not be added to it. They do not measure CPU1 Macro rendering.
+
+[inferred next experiment] Drums is the largest measured CPU0 sink here. Split
+its internal block generation from output resampling before choosing an exact
+PCM optimization. The source generates native-rate drum blocks lazily inside
+the output resampling loop; whether block-boundary alignment causes the spike
+is not yet measured. Preserve its native rate, filter quality, RNG order and
+voice lifetime. Do not assume the remaining issue is solely DX7 note setup.
+
+This diagnostic changes code layout and adds hooks, so it also changes adaptive
+decision timing: final active/limit 4, shed 3, stolen 176. No host replay or
+analog acceptance is claimed for it, and its hashes are not compared directly
+with a different decision trace. The V176 adaptive two-voice-floor soak remains
+the bounded successful milestone. Final sources, ELF, UART and small reports
+are private in the existing lane; generated SDK copies are removed after the
+result is recorded. PR155 remains draft, open and unmerged.
