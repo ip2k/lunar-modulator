@@ -246,7 +246,7 @@ Sharma, Wu and Dalal's CIEDE2000 test data.
 
 - The figures are for sRGB displays. The FM-1's ST7789V panel has not been
   measured; its gamma and gamut may shift every colour [inferred]. Nothing
-  here has run on an FM-1 (CLAUDE.md, the one rule).
+  here has run on an FM-1 (CLAUDE.md, hardware experimentation policy).
 - Contrast is WCAG 2's ratio, the one the audit and the page already use;
   no perceptual-contrast model (APCA) was tried.
 - Machado's matrices are applied to linear RGB, as DaltonLens recommends

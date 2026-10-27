@@ -232,17 +232,25 @@ printed under its table in chapters [5](05-sound-engines.md) and
   safety review whose rules this project follows.
 - **Echomatter**: showed that the FM-1's own update method accepts a rebuilt
   firmware package with a new version number, and rolled it back again.
+- **kurogedelic**: **FM-1-transporter** (MIT licence), the open tool that
+  brought the owner's FM-1 back to M-VAVE's firmware on a Raspberry Pi
+  Pico 2 W. Its design for entering the recovery mode, reading the memory
+  and writing it safely is theirs; this project added a small fix for the
+  Pico 2's chip.
+- **sekigon-gonnoc**: **Pico-PIO-USB** (MIT licence), the USB host that
+  FM-1-transporter uses to talk to the FM-1 in recovery mode.
 - **kagaimiq**: documentation and tools for JieLi chips, including the
-  recovery mode the dongle uses.
-- **czietz** and **masanaohayashi**: reports of reaching that recovery mode on
-  FM-1s with a small USB dongle, and czietz's tool for it.
+  recovery mode, and the distribution of the chip maker's loader that the
+  recovery runs in the FM-1's working memory.
+- **czietz** and **masanaohayashi**: the first reports of reaching that
+  recovery mode on FM-1s with a small USB dongle, and czietz's tool for it.
 - **probonopd**: notes on a sibling keyboard built on the same platform.
 - **benny-sparra**: an editor and librarian for the FM-1, and observations of
   its MIDI.
 - **Baud Girl**, whose third-party FM-1 firmware showed how firmware reaches
   users through the FM-1's own update method.
 - **hugelton** (Felucca), **isod89** (SLOOP), **Keitark** (fm1-nes) and
-  **kurogedelic** (FM-1-transporter): open firmware and tools that run on
+  **kurogedelic** (FM-1-transporter, above): open firmware and tools that run on
   FM-1s. Their reports of how the board reads its keys and knobs, where its
   audio goes and how its recovery mode is reached inform this project's
   plans.

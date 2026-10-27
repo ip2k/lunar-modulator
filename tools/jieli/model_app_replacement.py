@@ -153,7 +153,7 @@ def verify_replacement(raw, modeled, stock, app):
                 modified_nested_check=after,
                 next_gates=['identity/version and remaining trailer semantics before emitting a container',
                             'observable startup and explicit clock/core/IRQ/watchdog/exception policy',
-                            'reviewed device range/candidate and fresh backups; full-image/broken-app recovery unproven'])
+                            'reviewed device range/candidate and fresh backups; stock-V15 broken-app recovery proven on the owner unit 2026-10-26 (docs/17), own-image (FM-1_092) restore and recovery from a modified image unproven'])
 
 
 def model(raw, stock, elf, app):

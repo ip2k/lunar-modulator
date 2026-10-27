@@ -83,6 +83,12 @@ FM synthesis
 :   Making sound by letting oscillators (operators) change each other's
     frequency, which gives bright, bell-like and metallic tones.
 
+FM-1-transporter
+:   kurogedelic's open tool for a Raspberry Pi Pico board that puts an FM-1
+    into recovery mode and reads or writes its flash. With a small fix from
+    this project, it brought the owner's FM-1 back to M-VAVE's firmware
+    ([chapter 11](11-updating-and-recovery.md#back-to-stock-firmware)).
+
 Focused track
 :   The sequencer track you work on: steps, recording, Capture and the keys
     go to it ([chapter 7](07-sequencer.md#tracks-and-routing)).
@@ -166,14 +172,6 @@ Nudge
 :   Moving a note a little earlier or later than its step, in ticks, up to a
     step either way.
 
-Staged recovery policy
-:   The current safeguards for device work: compare private backups, review
-    the exact image and ranges, record a recovery plan and retain a route to
-    USB update mode before any further flash erase or program. A bounded
-    sector restore is verified; full-image restore and recovery from a
-    nonbooting application remain untested ([chapter
-    11](11-updating-and-recovery.md#the-staged-recovery-policy)).
-
 Operator
 :   In FM synthesis, one oscillator with its own envelope. Six-Op FM and FM6
     have six.
@@ -211,7 +209,8 @@ Rack
 
 Recovery dongle
 :   A small device between a computer and the FM-1's USB-C socket that
-    starts the processor's recovery mode
+    starts the processor's recovery mode. The project has not used one on an
+    FM-1; its recovery route is FM-1-transporter on a Pico 2 W
     ([chapter 11](11-updating-and-recovery.md#the-recovery-dongle)).
 
 Recovery mode
@@ -257,6 +256,15 @@ Simulator
 
 Song
 :   A list of scenes played in order.
+
+Staged recovery policy
+:   The current safeguards for device work: compare private backups, review
+    the exact image and ranges, record a recovery plan and keep a way back
+    to recovery mode before any further flash erase or program. One FM-1
+    that would not start has been brought back to M-VAVE's firmware; a
+    damaged boot area and putting back a unit's own earlier firmware remain
+    untested ([chapter
+    11](11-updating-and-recovery.md#the-staged-recovery-policy)).
 
 Step
 :   One sixteenth note of a bar in the sequencer; 16 steps make a bar.

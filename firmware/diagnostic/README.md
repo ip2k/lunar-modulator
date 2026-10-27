@@ -53,7 +53,7 @@ key-check/initcall machinery and no mailbox/IRQ/eFuse exemptions. The SDK
 policy remains the default and still requires its dormant check unchanged.
 `diagnostic_report.py` rejects unresolved symbols, wrong entry, out-of-budget
 or unexpected sections, writable code, stack overlap and ELF/flat-image
-differences. It does not prove runtime execution or recovery.
+differences. It does not prove runtime execution of this image or recovery from it; the hardware recovery path itself (USB_KEY entry, dump, verified stock write) was proven on the owner's unit on 2026-10-26 (docs/17).
 
 ## Stage beside stock components
 

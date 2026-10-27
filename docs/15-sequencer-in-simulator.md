@@ -67,8 +67,9 @@ that S1 changes except CHANGELOG.md [verified: `git diff --stat 0b74b3d
 0511a31`]. PRs #22 (HANDOFF) and #23 (README as the product page,
 DEVELOPERS.md) are open.
 
-**The one rule.** Nothing in this plan runs on, writes to, or sends anything
-to an FM-1 (CLAUDE.md). Web MIDI stays input only unless the owner opts in
+**Scope.** Nothing in this plan runs on, writes to, or sends anything
+to an FM-1. The old "one rule" is superseded by the staged hardware policy
+(CLAUDE.md, docs/07 §4); this plan stays desktop and browser only. Web MIDI stays input only unless the owner opts in
 (O18).
 
 **Public since 2026-10-05.** Stages S3 to S8 were built behind a runtime
@@ -2171,7 +2172,7 @@ documentation.
   `fm1w_seq_realtime` [O18].
 - Jitter of up to one 128-frame quantum is noted for the clock-follow EMA.
 - MIDI out is built only if O18 says so. If it is, it is opt-in, off by
-  default, and refuses any port named FM-1 or M-VAVE (the one rule).
+  default, and refuses any port named FM-1 or M-VAVE (the hardware policy, docs/07 §4).
 
 **Worklet.** Sequencer info is still batched once per quantum, and nothing is
 posted per event.
@@ -2407,7 +2408,7 @@ strict mode, for PRs that touch `engines/`, `sim/web/`, `manual/` or
 | **Movy UI facts are [reported]:** LEN units, the Shift+step list, page memory and the automation traces | Re-read at `9190e79` into `reference/` before pinning tests in S4 and S8 |
 | **Merge friction.** Every stage touches CHANGELOG.md, the sim/web README figures (screens, scenarios, the `fm1_app_t` size), `fm1.wasm.json` and the manual. PRs #22 and #23 change HANDOFF.md, README.md and DEVELOPERS.md | Expect rebases; S7a developed in parallel serialises its merge |
 | **Everything merged goes public.** Since PR #24, Pages deploys `sim/web/www` from main on every push that touches `engines/` or `sim/web/` [verified: main .github/workflows/pages.yml] | O24; each UI stage updates manual chapter 07 in the same PR |
-| **The one rule.** Web MIDI output could reach an FM-1 plugged into the same computer | No MIDI out unless O18 opts in, with a port-name guard; sets stay in browser storage or files |
+| **Hardware policy** (docs/07 §4; the old one rule is superseded). Web MIDI output could reach an FM-1 plugged into the same computer | No MIDI out unless O18 opts in, with a port-name guard; sets stay in browser storage or files |
 
 ## 8. Owner decisions
 
