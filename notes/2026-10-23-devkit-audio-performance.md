@@ -7797,3 +7797,10 @@ including all three browsers, native32bit and sanitizers. macOS and Ubuntu each
 failed only the generated metadata example's stale ID. A fresh renderer export
 regenerated the example (only meta_id changed); all23 schema tests pass on
 bounded Aeon. No assertion, timing deadline or zero-underrun gate was relaxed.
+
+[verified: policy source] Added an explicit burst-reserve initializer for the
+measured75% pressure /70% recovery experiment. Existing original and85/80
+initializers retain their behavior. All six normal/sanitizer policy variants
+pass, including full-queue pressure and recovery hysteresis. This names the
+private configuration in tracked source; it does not establish fixed-polyphony
+or sustained hardware acceptance.

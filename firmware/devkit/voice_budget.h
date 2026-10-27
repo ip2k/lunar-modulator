@@ -38,6 +38,17 @@ static inline int lunar_voice_budget_init_headroom(lunar_voice_budget_t *s,
     return 1;
 }
 
+/* Labelled burst-reserve experiment: 75% pressure / 70% recovery. It keeps
+ * the same four-voice floor, fades and 1024-observation recovery hysteresis.
+ * Existing initializers retain their original policy; no default enables it.
+ */
+static inline int lunar_voice_budget_init_burst_reserve(lunar_voice_budget_t *s,
+                                                       uint32_t deadline) {
+    if (!lunar_voice_budget_init_headroom(s, deadline)) return 0;
+    s->headroom = 2;
+    return 1;
+}
+
 /* Call after publishing block tag, before rendering the next block. Tags
  * below 16 are startup/prefill observations, intentionally ignored. The
  * owner supplies monotonically increasing tags starting at zero or one.
@@ -65,8 +76,9 @@ static inline int lunar_voice_budget_feedback(lunar_voice_budget_t *s,
                      ((int32_t)ticks - (int32_t)s->mean) / 4);
     if (s->cooldown) --s->cooldown;
     next = s->limit;
-    pressure_ticks = s->headroom ? s->deadline * 85u / 100u
-                                 : s->deadline * 9u / 10u;
+    pressure_ticks = s->headroom == 2 ? s->deadline * 75u / 100u :
+                    s->headroom ? s->deadline * 85u / 100u
+                                : s->deadline * 9u / 10u;
     if (ticks > pressure_ticks && s->mean > pressure_ticks &&
         (s->headroom || ready <= 5u)) {
         if (s->pressure < 4u) ++s->pressure;
@@ -76,7 +88,7 @@ static inline int lunar_voice_budget_feedback(lunar_voice_budget_t *s,
         s->pressure = 0;
         s->recover = 0;
         if (next > 4u) --next;
-    } else if (s->mean < s->deadline * 8u / 10u && ready >= 3u) {
+    } else if (s->mean < s->deadline * (s->headroom == 2 ? 7u : 8u) / 10u && ready >= 3u) {
         if (++s->recover >= 1024u) {
             if (next < 12u) ++next;
             s->recover = 0;

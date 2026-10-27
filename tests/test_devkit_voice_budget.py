@@ -8,7 +8,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.parametrize("headroom", [False, True])
+@pytest.mark.parametrize("headroom", [0, 1, 2], ids=["original", "headroom85", "burst75"])
 @pytest.mark.parametrize("sanitize", [False, True])
 def test_render_owner_feedback(tmp_path, sanitize, headroom):
     cc = os.environ.get("CC", "cc")
@@ -19,7 +19,9 @@ def test_render_owner_feedback(tmp_path, sanitize, headroom):
 #include "voice_budget.h"
 #include <assert.h>
 #include <stdio.h>
-#if HEADROOM
+#if HEADROOM == 2
+#define policy_init lunar_voice_budget_init_burst_reserve
+#elif HEADROOM
 #define policy_init lunar_voice_budget_init_headroom
 #else
 #define policy_init lunar_voice_budget_init
@@ -58,6 +60,17 @@ int main(void) {
         assert(s.limit==12);
     }
     assert(s.decreases==808 && s.increases==808 && e.calls==1616);
+    /* The burst profile reserves time even when a full queue masks pressure.
+       A 75% load is above its recovery threshold, so it cannot oscillate back. */
+    assert(policy_init(&s,34829));
+    for(unsigned n=0;n<128;++n)assert(lunar_voice_budget_feedback(&s,tag++,28000,6,apply,&e)>=0);
+    assert(s.limit==(HEADROOM==2 ? 4u : 12u));
+    if(HEADROOM==2) {
+        for(unsigned n=0;n<4096;++n)assert(lunar_voice_budget_feedback(&s,tag++,26000,6,apply,&e)==0);
+        assert(s.limit==4 && s.increases==0);
+        for(unsigned n=0;n<10000;++n)assert(lunar_voice_budget_feedback(&s,tag++,20000,6,apply,&e)>=0);
+        assert(s.limit==12 && s.increases==8);
+    }
     /* A full queue masks headroom pressure only in the original mode. */
     const uint32_t full_queue_loads[]={30000,40000};
     for(unsigned load=0;load<2;++load) {
