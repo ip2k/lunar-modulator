@@ -356,3 +356,38 @@ Private evidence: `scratch/devkit-20261023/v144c-target-facts.json`,
 Next: measure an earlier headroom response separately from this conservative
 queue-pressure policy, retaining explicit polyphony and deadline accounting;
 complete trace logging and fault-validated analog/30-minute runs remain open.
+
+### V145: reserve headroom before the queue shrinks
+
+[verified] The previous policy let a full playback queue suppress sustained-load
+shedding. The opt-in V145 experiment instead reacts after four consecutive
+samples and their EWMA exceed 85% of the unchanged deadline, regardless of queue
+depth. Recovery remains 1024 observations below 80%, with floor4 and ceiling12.
+
+[verified] A fresh app-only target run produced/harvested/submitted all 22,052
+blocks with zero transport faults, late IRQs or gaps. Producer deadline misses
+fell from V144c's 118 to 3 (1/0/1/1 by case), a single-run 97.46% reduction. Means
+were 1048.79/1168.13/1167.83/1167.88 microseconds. Maxima still exceeded the
+34,829-tick deadline in three cases: this is not zero-miss acceptance.
+
+[verified] The cost was lower polyphony: limits11/10/9/8/7/6 at tags5520/5524/
+5532/5536/5540/5544; final active6, one active retirement and 50 voice steals.
+These are cumulative engine counters, not a count of refused note events. No
+trace overflow occurred. Heap46796 total, free4308 after DAC, parent445 unused
+words and worker1834 unused words; UART recovery remained responsive afterward.
+
+[verified] Independent normal and ASan/UBSan host replay reproduced all six
+decisions, all four PCM hashes and final voice accounting over 5,645,312 bytes.
+PCM SHA256546687a84c3fd0f5a338d14494f665d5ad450130d7806169392b6075f7007d72.
+Private raw SHA2562cc09fef7a27174dcb3afd815d45a7dd2431c52d697d73843a7f5ded97a3af23;
+facts in scratch/devkit-20261023/v145-target-facts.json, scripts and replay summary
+in the matching private build directory/Aeon exports. Reset receipt consumed; RX
+closed, terminal255, PID absent before ordinary PING ACK. No physical FM1 traffic.
+
+The tracked `lunar_voice_budget_init_headroom` exposes the policy as a named
+opt-in; the original initializer and product's fixed12 default remain unchanged.
+Four focused host checks cover both policies normal+ASan/UBSan. The generalized
+initializer has not itself been installed; V145 used the equivalent private
+fixed-policy prototype. Next record the three overrun block positions before
+changing polyphony further. Analog/listening, fault validation and sustained
+30-minute acceptance remain open.

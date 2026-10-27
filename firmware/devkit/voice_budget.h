@@ -8,7 +8,7 @@
 typedef struct lunar_voice_budget {
     uint32_t deadline, mean, pressure, recover, cooldown;
     uint32_t decreases, increases;
-    unsigned limit, failed;
+    unsigned limit, failed, headroom;
 } lunar_voice_budget_t;
 
 typedef int (*lunar_voice_budget_apply_t)(void *context, unsigned limit);
@@ -23,6 +23,18 @@ static inline int lunar_voice_budget_init(lunar_voice_budget_t *s,
     *s = (lunar_voice_budget_t){0};
     s->deadline = deadline;
     s->limit = 12;
+    return 1;
+}
+
+/* Explicit adaptive-polyphony experiment: reserve headroom after four samples
+ * and EWMA above 85%, even with a full playback queue. Recovery remains below
+ * 80% for 1024 observations. This may sacrifice voices before an actual underrun.
+ * It is not fixed-polyphony acceptance or a predictive deadline guarantee.
+ */
+static inline int lunar_voice_budget_init_headroom(lunar_voice_budget_t *s,
+                                                  uint32_t deadline) {
+    if (!lunar_voice_budget_init(s, deadline)) return 0;
+    s->headroom = 1;
     return 1;
 }
 
@@ -41,6 +53,7 @@ static inline int lunar_voice_budget_feedback(lunar_voice_budget_t *s,
         uint32_t tag, uint32_t ticks, unsigned ready,
         lunar_voice_budget_apply_t apply, void *context) {
     unsigned next;
+    uint32_t pressure_ticks;
     if (!s || s->failed) return -1;
     if (!s->deadline || s->deadline >= 24000000u || ticks >= 24000000u || !apply) {
         s->failed = 1;
@@ -52,8 +65,10 @@ static inline int lunar_voice_budget_feedback(lunar_voice_budget_t *s,
                      ((int32_t)ticks - (int32_t)s->mean) / 4);
     if (s->cooldown) --s->cooldown;
     next = s->limit;
-    if (ticks > s->deadline * 9u / 10u &&
-        s->mean > s->deadline * 9u / 10u && ready <= 5u) {
+    pressure_ticks = s->headroom ? s->deadline * 85u / 100u
+                                 : s->deadline * 9u / 10u;
+    if (ticks > pressure_ticks && s->mean > pressure_ticks &&
+        (s->headroom || ready <= 5u)) {
         if (s->pressure < 4u) ++s->pressure;
     } else s->pressure = 0;
     if ((ready <= 1u && ticks >= s->deadline) ||
