@@ -7781,3 +7781,19 @@ scan are required before claiming sustained acceptance. No fixed-polyphony,
 physical FM-1, merge or release acceptance is implied. Evidence and one-shot
 reset receipts remain private in scratch/devkit-20261023 and the Aeon lane.
 Mac free space at this checkpoint:1,150GiB.
+
+[verified: recording-window correction] The first V160 soak recording began
+76 seconds before reset. Its analog recording ended before the30.4-minute music
+sequence finished, and the UART receiver ended before final counters. It cannot
+establish sustained acceptance; missing counters do not establish a crash.
+The board subsequently acknowledged PING. V160b repeats the same installed image
+with capture arming and a new one-shot reset coordinated in one runner. Reset
+followed capture start by0.236seconds; analog1900seconds and UART1980seconds
+cover the intended workload with margin. No application flash write was needed.
+The previous reset receipt remains consumed. V160b acceptance is pending.
+
+[verified: CI] Exact e7dea38b CI40467083871 completed with12 passing jobs,
+including all three browsers, native32bit and sanitizers. macOS and Ubuntu each
+failed only the generated metadata example's stale ID. A fresh renderer export
+regenerated the example (only meta_id changed); all23 schema tests pass on
+bounded Aeon. No assertion, timing deadline or zero-underrun gate was relaxed.
