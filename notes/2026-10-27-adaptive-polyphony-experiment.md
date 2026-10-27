@@ -260,3 +260,31 @@ The owner explicitly authorized Hera heavy/parallel work up to 64 threads and
 changes. Mac retains all device operations. No device action accompanied this
 API change. Current V142c producer misses and missing analog/soak acceptance
 remain unchanged.
+
+
+[verified] V143 API full mixed replay now passes normal and Clang ASan/UBSan:
+22,052 blocks, 5,645,312 PCM bytes, all four native hashes, and final active8 /
+retired4 / stolen9 match the recorded four limit decisions. PCM SHA256 remains
+`a2cb0131a556d702a8cb24f395beb92a1dbb7e4a217b41fb8b7c0e6f96dc7300`.
+The private fixture needed its original tracing hook preserved when replacing
+the engine source; initial missing-hook/include build errors were corrected,
+not counted as test passes.
+
+[verified] Hera ran independent GCC and Clang normal builds at all four rates,
+and GCC ASan/UBSan at all four rates. A clean selective-build test exposed a
+missing object prerequisite in the new test target; `6d465f06` fixes that
+prerequisite and the clean GCC sanitizer job passes. Hera's existing Clang image
+lacks its sanitizer runtime, so no Hera Clang sanitizer pass is claimed; Clang
+sanitizer coverage is from Aeon. Peak planned aggregate Hera use was 16 threads /
+24 GiB, with explicit per-container limits, not a host configuration change.
+Private receipts are under `scratch/devkit-20261023/hera-voice-budget-v143-*` and
+Hera's coordination artifacts. No firmware flash or new target speedup occurred.
+
+
+[verified] Final actual WASM refresh from the API plus selective-build fix passes
+all 108 parity scenarios, identical to JavaScript and musl in all 108. The strict
+committed module/source-record test passes with `CI=true` and UserWarnings as
+errors. No browser playback, target timing or sustained audio acceptance is
+claimed from `--no-screenshot`. Hera's offline jobs are terminal; its atomic
+handoff is saved and its task claim released. The owner authorization to use
+Hera remains in effect for future useful bounded jobs.
