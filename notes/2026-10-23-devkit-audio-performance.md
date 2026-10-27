@@ -7935,3 +7935,34 @@ subset equality passes. The focused pytest invocation in the analysis image
 could not collect because jsonschema is absent; this is not a pytest pass.
 No test expectation or underrun gate was weakened. Native build and generated
 example correction do not alter the running V171 image or its PCM.
+
+[verified: analog discriminator] A separate, single-pass prediction-anchor check
+preserves the frozen right-channel MIMO coefficients and thresholds. It passes
+all four physical packet-hole cases with zero clean-control flags; held-out
+correlation is 0.994291 and correlation outside anchor windows is 0.994205 over
+23,591 samples. On V171 it leaves exactly the three final-block flags: 712
+original internal flags are absent, with no new flags, after at most 0.255542
+analysis-sample correction. Exact source/model/receipt bindings were independently
+reviewed. This supports timing-template bias as the internal-flag explanation;
+it is a post-discovery discriminator, not blanket weak/silent-interval acceptance.
+The original frozen flags and reports remain preserved.
+
+[verified: endpoint experiment] V172 changes only the zero-only drain from four
+to 64 callbacks before gain-down and adds final submission/drain/gain timestamps.
+Its three continuous cycles (66,156 blocks) have zero producer/consumer misses
+and zero DAC faults/gaps; producer maxima are 32606/28205/30375/32921 ticks.
+Normal and sanitizer actual-decision replay agree exactly. The gain ramp begins
+2,228,047 timer ticks (92.8353 ms) after the final logical PCM submission. A
+125-second six-channel capture completed normally; endpoint comparison is pending.
+An initial runner permissions error occurred after install but before any reset;
+the resumed run used the completed install and one unique reset. Both receivers
+exited normally, their PIDs were absent, and ordinary PING acknowledged afterward.
+No repeat flash, full backup, readback or factory rehearsal was performed.
+
+[verified: pinned SDK binary] The linked dac_set_gain implementation maps its
+argument as a percentage through combined_vol_list and directly changes analog
+gain registers. Its second argument is overwritten before use in this binary;
+the header's 0..31/fade-option comments do not describe this implementation.
+This motivates inspecting the actual shutdown gain transition, rather than
+assuming that selecting a named fade option would smooth it. No physical FM-1
+or fixed-polyphony acceptance follows from these dev-board measurements.
