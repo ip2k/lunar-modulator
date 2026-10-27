@@ -183,3 +183,53 @@ Private reproduction scripts: `voice-limit-v142-transform.py`,
 Target facts `v142b-target-facts.json`, replay `v142b-replay-summary.json`.
 UART SHA256 `9e4f820bef9e54537e1712069b30516eb5c2b142fecaf1dcff1c1be337c690ed`.
 Candidate SHA256 `53b30ef0adf63bb1f5e4563410a9fd05d65e8b10c29e6fdcf65c087c059b0480`.
+
+
+## Earlier-pressure policy: V142c
+
+[verified] The second dynamic controller ignores the first sixteen prefill/
+warmup blocks. Sustained pressure requires both the actual current block and
+the moving average above90 percent of budget for four consecutive checks,
+with at most five ready buffers (previously three). This prevents an isolated
+slow block from sustaining the pressure counter and leaves more runway for
+retirement. Urgent pressure, fade/DSP source, recovery hysteresis and limits
+remain unchanged. Normal and sanitizer tests cover sixteen startup blocks
+at200000 ticks with ready1 and no reduction, isolated jitter, sustained
+expensive rendering with ready5, floor/ceiling, recovery and trace refusal.
+
+[verified] All22052 target blocks complete, transport faults/underruns/gaps0,
+IRQ late0/max956 ticks, ready minimum1 and parent unused445 words. The first
+three hashes remain original twelve-slot output; heavy hash is `724a262f`.
+There is no startup reduction: the only limit changes are at block16581 to11,
+16585 to10,16589 to9,16593 to8. Final active8, retired4, stolen9, overflow0.
+
+| Mixed case | Producer mean ticks | Mean microseconds | Producer deadline misses |
+| --- | ---: | ---: | ---: |
+| 0 | 24945 | 1039.38 | 1 |
+| 1 | 28832 | 1201.33 | 2 |
+| 2 | 31260 | 1302.50 | 52 |
+| 3 | 30265 | 1261.04 | 57 |
+
+[verified] Heavy-case misses decrease100 to57 versus V142b in these single
+runs, but maximum45238 ticks still fails34829. Consumer deadline misses0 in
+all four cases. These measurements do not prove sustained or analog acceptance,
+and counts across cases need individual assessment rather than declaring a
+zero-miss gate passed. Reacting sooner helps, while remaining work includes
+predictable worst-case cost and production integration/listening validation.
+
+[verified] Independent replay of the four exact target decisions completes
+all5645312 PCM bytes in both normal and ASan/UBSan builds. All four target
+hashes and active/shed/stolen counts agree; PCM SHA256
+`a2cb0131a556d702a8cb24f395beb92a1dbb7e4a217b41fb8b7c0e6f96dc7300`.
+The native receiver was closed with one SIGTERM after two exact argv checks,
+terminal255/PID absence before ordinary PING ACK. The board is healthy idle;
+V142c and all earlier reset receipts are consumed, never to be retried.
+No RX/KA6/build/test/device operation remains live. No physical FM-1 traffic.
+
+Private scripts `prepare-voice-budget-v142c.py`,
+`test-voice-budget-v142c-startup.py`, `replay-voice-budget-v142c.py` and target
+facts/replay summaries are saved locally and on Aeon. Candidate SHA256
+`79d52d7be3c825e38e3ce77f751e788a615f2d70b67887ae02778b5254c9a801`;
+raw UART SHA256 `6aaee4447e8f255b0c265656c34d0295c960506ed5524f4c5e0f3881c7f893e2`.
+The original production engine remains unchanged; adaptive capacity remains
+an explicit experiment pending opt-in integration and sustained acceptance.
