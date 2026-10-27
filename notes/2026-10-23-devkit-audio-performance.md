@@ -8081,3 +8081,29 @@ Evidence and lifecycle: v177-policy-integration under the existing private Aeon
 lane retains small test/equivalence logs and the comparison inputs; temporary
 compiler executables and pytest outputs clean themselves on exit. This is an
 integration checkpoint toward reproducible experiments, not a new soak result.
+
+
+### Four-voice floor comparison after burst fixes (V178, 2026-10-27)
+
+[verified: failed timing trial] Restored the existing75% pressure/70% recovery
+policy with initial12/floor4, retaining the same DSP, note order, three-cycle
+workload, drain fix, steady idle and34829-tick deadline. All66156blocks and12
+cases complete; producer maxima32584/31296/33171/37636. One producer deadline
+miss occurs at tag38591, a heavy note-on transition. Its note/control/app/total
+costs are4990/842/31764/37636ticks. Consumer misses and DAC fault/backend/late/
+gap counters remain zero, drain64, steadyidle168 and worker finite exit. No
+four-voice promotion: transport buffering completing without a gap does not
+excuse a failed producer deadline. Board is healthy idle with ordinary PING ACK;
+receivers both exited0 and exact PIDs are absent. Unique reset consumed forever.
+
+[verified] Actual-decision normal and ASan/UBSan replay match all16935936PCM
+bytes,12hashes,fold63171342 and2238controls. Finalactive4/limit4/shed0/stolen179.
+This establishes exact replay, not timing or analog acceptance. Private125-second
+KA6 capture is retained with equal Bench/Aeon hashes; no residual screen is run
+for this already-disqualified timing trial. The successful V176 two-voice-floor
+30.4-minute result is unchanged and must not be extended to four voices.
+
+Next investigate the remaining app cost at that transition before claiming more
+polyphony. Small receipts/replay logs and final build inputs are private in the
+existing devkit lane; generated SDK/replay source copies are removed after the
+result is recorded. No full backups/readbacks or restore rehearsals were used.
