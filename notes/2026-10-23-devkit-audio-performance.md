@@ -8220,3 +8220,28 @@ analysis remain pending. No backups, full readbacks or restore rehearsals were
 performed. Reset receipts are consumed and cannot be retried. Private handoff
 contains exact paths, process IDs and continuation steps. PR155 remains draft,
 open and unmerged; no sustained or physical FM-1 acceptance is claimed.
+
+
+### Sustained adaptive three-voice-floor pass (V184, 2026-10-27)
+
+[verified] The57-cycle run completed228cases and1,256,964blocks in30.4minutes.
+Producer maxima were32,694/31,636/34,080/34,523ticks, below the unchanged34,829
+budget; producer and consumer deadline misses were zero. DAC fault/backend/late/
+gap counters were zero, drain64 and worker finite exit. Unused parent435words
+and worker1322. Adaptive65/60 started at12 and finished active3/limit3, with
+nine limit decreases, shed0 and stolen4597. This is not fixed12 acceptance.
+
+[verified] Normal and ASan/UBSan actual-decision replay match321,782,784PCMbytes,
+all228 hashes, fold3989524113 and42,522controls. The1900s KA6 capture was scored
+with the unchanged frozen stereo model/thresholds: every block aligned and zero
+residual flags on either channel. Both final-eight-block endpoint checks pass.
+Quiet and weak-signal detection sensitivity remains unqualified, so the bounded
+claim is no detected analog residual anomalies for this adaptive dev-board
+workload. This does not accept the physical FM-1 or every possible workload.
+
+[verified lifecycle] Both receivers exited normally and were absent twice before
+ordinary PING ACK. Final native ELF/source, raw captures, reports and reset
+receipts remain private. Reproducible SDK copies and replay source/PCM were
+removed after evidence was recorded. Next integrate the proven exact readiness
+transformation into tracked code/preparation, preserve fixed-polyphony checks,
+and follow required CI/review. PR155 remains draft, open and unmerged.
