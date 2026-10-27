@@ -249,6 +249,10 @@ class Instance {
   void Init(const fm1_host_t *host) {
     const uint32_t hz = RateHz(host->sample_rate);
     voice_limit_ = kNumVoices;
+    // A voice is reusable only until its first envelope/lifecycle mutation.
+    pristine_mask_ = 0;
+    memset(init_velocity_, 0, sizeof(init_velocity_));
+    memset(init_patch_, 0, sizeof(init_patch_));
     own_lut_ = OwnLut(host);
     if (own_lut_) fm1_msfa::FillFreqLut(*Lut(), hz);
     env_rate_q24_ = static_cast<uint32_t>((static_cast<uint64_t>(44118u) << 24) / hz);
@@ -286,6 +290,7 @@ class Instance {
     held_.Push(key);
     const glide::Plan<Voice> plan = glide::PlanNoteOn(voice_, kNumVoices, GlideConfig());
     if (plan.legato) {         // Legato over a held note: a new key, nothing restarts
+      pristine_mask_ = 0;
       Retune(plan.mono, key);
       glide::StartFor(plan.mono, plan, key);
       return;
@@ -302,12 +307,13 @@ class Instance {
       lfo_patch_ = index;
     }
     lfo_.keydown();
-    Start(v, p, pitch_[index], key, velocity);
+    Start(v, p, pitch_[index], key, velocity, index);
     v->glide.Begin();
     glide::StartFor(v, plan, key);
   }
 
   void NoteOff(uint8_t key) {
+    pristine_mask_ = 0;
     if (key > 127) key = 127;  // as NoteOn clamps it, or the voice and held_ keep it
     held_.Remove(key);
     if (glide::ToMode(value_[P_VOICE_MODE]) != glide::MODE_POLY) ReturnToHeld(key);
@@ -382,6 +388,7 @@ class Instance {
  private:
   static void Store(void *ctx, unsigned slot, const uint8_t v[kVoiceBytes]) {
     Instance *self = static_cast<Instance *>(ctx);
+    self->pristine_mask_ = 0;
     for (int i = 0; i < kVoiceBytes; ++i) self->user_[slot][i] = v[i];
     Pitches(v, self->pitch_[kBankSize + slot]);
   }
@@ -423,6 +430,7 @@ class Instance {
     const glide::Plan<Voice> plan =
         glide::PlanNoteOff(voice_, kNumVoices, held_, key, GlideConfig(), &top);
     if (!plan.mono) return;
+    pristine_mask_ = 0;
     Retune(plan.mono, top);
     glide::StartFor(plan.mono, plan, top);
   }
@@ -478,7 +486,7 @@ class Instance {
   // its operators' pitches (Pitches). A voice that was silent starts from
   // phase 0 with its feedback cleared; a retriggered or stolen one keeps its
   // phases and its last gains, so its first block glides from where it was.
-  void Start(Voice *v, const uint8_t *p, const int32_t *pitch, uint8_t key, uint8_t velocity) {
+  void Start(Voice *v, const uint8_t *p, const int32_t *pitch, uint8_t key, uint8_t velocity, int patch_index) {
     using fm1_msfa::ScaleLevel;
     using fm1_msfa::ScaleRate;
     using fm1_msfa::ScaleVelocity;
@@ -489,6 +497,43 @@ class Instance {
     int note = static_cast<int>(key) + static_cast<int>(p[V_TRNSP]) - 24;
     note = note < 0 ? 0 : (note > 127 ? 127 : note);
     const int32_t key_pitch = fm1_msfa::midinote_to_logfreq(note);
+    const unsigned slot = static_cast<unsigned>(v - voice_);
+    const uint16_t bit = static_cast<uint16_t>(1u << slot);
+    bool can_reuse = (pristine_mask_ & bit) && init_patch_[slot] == patch_index &&
+                     init_velocity_[slot] == velocity;
+    if (can_reuse) {
+      /* The bit certifies zero level depths for this unchanged patch. Store,
+       * Retune, NoteOff and RenderBlock invalidate it before mutation. */
+      int old_note = static_cast<int>(v->key) + static_cast<int>(v->transpose) - 24;
+      old_note = old_note < 0 ? 0 : (old_note > 127 ? 127 : old_note);
+      if (note != old_note) {
+        for (int op = 0; op < 6; ++op) {
+          const unsigned rs = p[op * kOpBytes + OP_RS];
+          if (rs && ScaleRate(note, rs) != ScaleRate(old_note, rs)) {
+            can_reuse = false;
+            break;
+          }
+        }
+      }
+      if (can_reuse) {
+        /* All other Start fields already equal their post-initialization
+         * values. Preserve exact original pitch expression, never a delta. */
+        for (int op = 0; op < 6; ++op) {
+          if ((v->ratio_ops >> op) & 1u) v->basepitch[op] = pitch[op] + key_pitch;
+        }
+        v->key_pitch = key_pitch;
+        v->key = key;
+        v->age = ++clock_;
+        v->note.Clear();
+        return;  /* NoteOn still calls glide.Begin and glide.StartFor. */
+      }
+    }
+    bool eligible = true;
+    for (int op = 0; op < 6; ++op) {
+      const uint8_t *o = p + op * kOpBytes;
+      if (o[OP_LD] || o[OP_RD]) eligible = false;
+    }
+
     for (int op = 0; op < 6; ++op) {
       const uint8_t *o = p + op * kOpBytes;
       int rates[4], levels[4];
@@ -552,6 +597,9 @@ class Instance {
     v->gate = true;
     v->active = true;
     v->note.Clear();   // a new note, a retrigger or a steal starts at no offset
+    init_patch_[slot] = static_cast<uint16_t>(patch_index);
+    init_velocity_[slot] = velocity;
+    pristine_mask_ = static_cast<uint16_t>((pristine_mask_ & ~bit) | (eligible ? bit : 0));
   }
 
   // Whether an envelope level (msfa's, Q24 doublings) plays an operator
@@ -637,6 +685,7 @@ class Instance {
   }
 
   void RenderBlock() {
+    pristine_mask_ = 0;
     EnforceVoiceLimit();
     fm1_msfa::fm1_freqlut = Lut();               // what Freqlut::lookup reads
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
@@ -826,6 +875,10 @@ class Instance {
   float out_[kN];                 // the current block
   uint32_t pending_;              // samples of out_ not yet delivered
   bool own_lut_;                  // a frequency table of its own follows (Lut)
+  // Same-slot envelope reuse is valid only until the next envelope mutation.
+  uint16_t pristine_mask_;
+  uint16_t init_patch_[kNumVoices];
+  uint8_t init_velocity_[kNumVoices];
 };
 
 // At a rate other than 44,118 Hz the instance's frequency table follows it

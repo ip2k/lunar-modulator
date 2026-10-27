@@ -7842,3 +7842,33 @@ the named devkit scratch and Aeon lanes.
 [verified: CI] Exact source 3549c10f CI 40472027768 and Pages 40472027779 both
 completed successfully. PR155 remains draft and unmerged; hardware acceptance
 is incomplete.
+
+
+## Repeated note bursts: exact reuse and rejected allocator, 2026-10-27
+
+[verified: host] The pristine-envelope shortcut now returns immediately when
+an already-initialized voice slot has unchanged patch, velocity, level scaling
+and effective rate scaling. Every NoteOn still executes; phase, gain, glide,
+key/age and note-offset semantics stay intact. NoteOff, retuning, patch writes
+and rendering invalidate reuse before mutation. Original state and PCM match
+at four sample rates across built-ins, user writes, repeated steals, voice
+limits, bend/offset setters and partial blocks, normally and under sanitizers.
+The polyphonic glide planner also avoids a source search when the selected
+mode cannot consume its result; held-key removal skips an unchanged prefix.
+A differential compaction test includes inactive trailing bytes and bounds.
+
+[verified: dev board] These are explicitly adaptive65/60, floor-two tests,
+not fixed-twelve-voice acceptance. V164 and V165 completed three continuous
+cycles (66,156 blocks each), with one producer miss at tag38,591. V165 maxima
+were34,618/29,157/33,190/35,454 ticks against the unchanged34,829-tick budget;
+consumer deadlines and DAC accounting/fault checks passed. The remaining miss
+prevents sustained acceptance. Last-cycle note timers cannot be attributed to
+an earlier worst-case transition because those timers are overwritten.
+
+[verified: rejected experiment] A single-pass allocator was exact in expanded
+host state/PCM proofs but increased native means from about22,900 to23,700
+ticks/block and still missed35,463 ticks. Its allocator change was reverted;
+no cache/layout cause is established. V167 instead tests sharing bookkeeping
+for the original ordered fall/rise trigger pair. Extracted full-state fixtures
+and complete modulation-state traces pass normally and under sanitizers; its
+native speed is pending. No new30-minute or blanket analog acceptance is claimed.
