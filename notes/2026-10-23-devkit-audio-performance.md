@@ -8174,3 +8174,28 @@ The diagnostic receiver exited normally and was absent twice before PING ACK;
 the board is healthy idle. The one-shot reset is consumed. Final source, ELF,
 raw UART and reports are private; the reproducible SDK copy was removed after
 recording them. PR155 remains draft, open and unmerged.
+
+
+### Three-voice adaptive floor still narrowly misses (V182, 2026-10-27)
+
+[verified] A private65/60 policy trial raises only the V176 floor from2 to3,
+initial limit12, with the same DSP, native rates, event order and34,829-tick
+budget. Its66,156-block run finishes with maxima32,596/30,300/32,195/34,896:
+one producer miss at tag38591 by67ticks (2.792us). Consumer late0 and DAC
+fault/backend/late/gaps0, drain64, worker finite exit. Actual final active3,
+limit3, shed0, stolen246; nine limit reductions are recorded. This fails the
+short timing gate and is not advanced to a long soak. The125s analog capture
+is retained privately but no analog acceptance is claimed. Both receiver and
+capture exited normally and were absent twice before ordinary PING ACK.
+
+[verified review] Astra found no supported large exact scalar converter shortcut:
+the actual native low-pass already has its61 symmetric terms unrolled into
+four chains. A copied FIR tile would need a new bounded service and timing
+proof. Its report remains private. The smaller next trial reuses V136's
+conversion-readiness specialization, which previously saved about10..14us but
+could not close the much larger old gap. Current-header normal and ASan/UBSan
+proofs match720,000 outputs and complete states across six rates. The first
+proof harness omitted the now-shared coefficient definitions; adding the actual
+native definitions fixed that harness link error. Native V183 app grows128bytes
+and fits the existing range. These offline results do not establish target gain.
+No production/default policy change or fixed-polyphony acceptance is implied.
