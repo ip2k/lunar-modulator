@@ -330,3 +330,29 @@ RenderBlock grew by 398 SRAM bytes with the new 64-bit ranking implementation.
 V144c moves block-boundary ranking and the typed control API to flash while
 preserving the DSP kernels and policy semantics; native build is in progress.
 Target allocation and timing remain unverified. No backups or readbacks repeated.
+
+### V144c: controller integrated on the dev board
+
+[verified] Moving block-boundary voice ranking and the typed budget API to flash
+recovered 896 bytes relative to V144, yielding 46,796 bytes of heap capacity. DAC
+open succeeded with 4,308 bytes free. The app-only iteration used one fresh reset;
+the UART receiver was subsequently closed and ordinary PING acknowledged.
+
+[verified] All 22,052 blocks were produced, harvested and submitted. Transport
+faults, late IRQs and gaps were zero. Producer means were 1,046.29 / 1,207.00 /
+1,306.17 / 1,264.88 microseconds, with 1 / 2 / 59 / 56 producer deadline misses
+respectively. Thus the unchanged 34,829-tick producer gate still fails.
+
+[verified] The controller changed the limit 12→11→10→9→8 at tags 16581, 16585,
+16589 and 16593. Final active=8, retired=4, stolen=9, trace overflow=0. All four
+PCM hashes, the complete decision sequence and final accounting match V142c's
+previous normal/ASan full host replay. That replay was not rerun; the new target
+evidence was compared with its recorded inputs and results. This is adaptive
+short-run buffered playback evidence, not fixed-polyphony or analog/soak acceptance.
+
+Private evidence: `scratch/devkit-20261023/v144c-target-facts.json`,
+`parse-v144c.py` and `build-renderer-voice-budget-api-v144c/`. Raw capture SHA256
+`b4878b1e45824e81a47d58a6bb001e1f6baa0913d0499eb97672fc35351e243f`.
+Next: measure an earlier headroom response separately from this conservative
+queue-pressure policy, retaining explicit polyphony and deadline accounting;
+complete trace logging and fault-validated analog/30-minute runs remain open.
