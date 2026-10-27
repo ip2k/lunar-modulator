@@ -391,3 +391,31 @@ initializer has not itself been installed; V145 used the equivalent private
 fixed-policy prototype. Next record the three overrun block positions before
 changing polyphony further. Analog/listening, fault validation and sustained
 30-minute acceptance remain open.
+
+### V146: remaining overruns occur at note-on bursts
+
+[verified] The tracked headroom initializer now ran on the dev board. A bounded
+eight-record diagnostic collected overrun positions without UART logging during
+playback. All 22,052 blocks completed; transport faults, late IRQs and gaps stayed
+zero. Three producer overruns remained, at zero-based tags0/11026/16539, taking
+38567/34927/37423 ticks respectively. Each tag is exactly the first block of its
+case (`tag % 5513 == 0`), where `lunar_v99_live_produce` submits its note-on burst.
+All other blocks met the producer deadline in this single run. This localizes the
+remaining problem to transition blocks; it does not isolate note initialization
+from the following first DSP render or establish a sustained worst-case bound.
+
+[verified] Mean producer times were 1032.04/1152.17/1152.00/1152.13 microseconds.
+The cap again reached6, with active6, retired1 and stolen50, no trace overflow.
+Decision timing changed slightly, so a fresh complete normal/ASan/UBSan host
+replay was run: all four PCM hashes and final accounting matched over5,645,312
+bytes, SHA2569622560727e533aa241f92e15d46561fbccb7cd240277519ed512451d1a8564d.
+Heap46700 total,4212 free after DAC; parent445 and worker1834 unused words.
+
+[verified] App-only install and one unique reset completed. Receive-only capture
+expired naturally, terminal0; exact capture process absent before ordinary PING
+ACK. All reset receipts remain consumed. Private capture SHA256
+fead2c7862100994cb0e6f51808a1d96ff02128b3273e3da707c68d941491df5; facts/script/
+replay in matching scratch and Aeon exports. No analog or sustained acceptance.
+Next separate note-on initialization time from the first render in these three
+blocks before applying an exact-PCM optimization. Pitches already precomputes
+operator log-frequency terms; do not rediscover or remove that existing cache.
