@@ -65,6 +65,7 @@ def place_pipeline_xip(staging, burst_hot=False):
     attribute = '__attribute__((noinline, section(".text"))) '
     for anchor in PIPELINE_XIP:
         if burst_hot and anchor in ('  void NoteOn(uint8_t key, uint8_t velocity)', '  Voice *Allocate(uint8_t key)'):
+            text = checked_replace(text, anchor, '  __attribute__((noinline, section(".volatile_ram_code"))) ' + anchor.lstrip())
             continue
         if anchor.startswith('extern "C" '):
             replacement = 'extern "C" ' + attribute + anchor[len('extern "C" '):]

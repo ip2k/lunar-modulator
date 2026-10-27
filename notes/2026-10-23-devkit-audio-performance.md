@@ -8472,3 +8472,8 @@ before ordinary PING ACK. Reset1793117270.0738947 consumed forever.
 default placement remains retained baseline. Three actual preparation tests pass
 0.63s, including separate receipt and selected XIP list. Native timing benefit is
 unknown until the new image runs. Bounded native build is the next dependency.
+
+[verified] The burst-hot experiment explicitly retains noinline on both moved
+methods, isolating placement from LTO inlining/code-growth changes. Three updated
+preparation tests pass0.63s; incremental vendor rebuild passes. No new target
+result yet. The earlier no-noinline intermediate link was not admitted or flashed.

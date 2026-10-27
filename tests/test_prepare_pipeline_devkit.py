@@ -83,6 +83,9 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
     assert 'extern "C" __attribute__((noinline, section(".text"))) int fm1_dx7_set_voice_limit(' in dx7
     assert dx7.count('__attribute__((noinline, section(".text")))') == (6 if burst_hot else 8)
     assert receipt['pipeline_burst_hot'] == burst_hot
+    if burst_hot:
+        assert '  __attribute__((noinline, section(".volatile_ram_code"))) void NoteOn(' in dx7
+        assert '  __attribute__((noinline, section(".volatile_ram_code"))) Voice *Allocate(' in dx7
     assert len(receipt['pipeline_xip_functions']) == (6 if burst_hot else 8)
     assert 'BlockControls common = {};' in dx7
     assert receipt['pipeline_dx7_block_controls']
