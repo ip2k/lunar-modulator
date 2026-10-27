@@ -8323,3 +8323,36 @@ Next: move the proven producer/consumer application adapter and continuous DAC
 steady-idle/drain path into tracked preparation, preserving the scoped adaptive
 floor-three policy and fixed-polyphony comparison distinction. V185 remains the
 healthy idle installed image; all previous reset attempts remain consumed.
+
+## 2026-10-27: sealed app pipeline interface integrated
+
+[verified] Extracted V185's app-level producer/consumer ownership into opt-in
+`FM1_APP_RENDER_PIPELINE`, with a public header and permanent-refusal hooks.
+Removed private file-trace/edge-test instrumentation and phase observers. Default
+rendering remains the original path. No task, preparer or DAC adapter enables the
+new interface. The fixed Macro-model-0/Drive ownership and ordered summation,
+copied control/events, master/amp/click/limiter destinations remain explicit.
+
+[verified] The extraction required the private metronome-snapshot helper:
+`fm1_seq_click_mix_on` now accepts the sealed block setting, preserving click
+history/arithmetic without reading an advanced live sequencer. The original
+`fm1_seq_click_mix` is unchanged. Astra identified reinitialization and UI draw
+entry points that could touch worker-owned state before refusal; initialization
+now refuses once bound, and draw/draw_checked require a drained barrier. Observer
+builds refuse rather than sharing unproven observer state across cores.
+
+[verified] Bounded Aeon normal and ASAN/UBSAN tests pass. Each compares the
+original renderer with immediate and one-block-delayed consumers across 44,104
+blocks (22,581,248 float PCM bytes per run), including metronome/master/modulation
+edits. All three PCM outputs match exactly in each build. Seven negative cases
+refuse: alias, duplicate production, early retirement, worker parameter edit,
+reinitialization, draw and checked draw. Sanitizers retain the existing known
+shift exception; these host tests do not establish native cache/IRQ/stack/timing
+or new analog acceptance. V185 remains the installed healthy idle image.
+
+[verified] Final Astra review found no remaining source blocker for this bounded
+opt-in arrangement. Actual default WASM rebuild passed all 108 parity scenarios;
+module bytes are unchanged and the generated source record is updated. Strict
+CI-mode committed-WASM record check passes. No screenshot/Chromium acceptance
+was requested or claimed. Next dependency is the native live/DAC adapter and
+platform hook integration, with the reviewed SDK scheduler correction retained.

@@ -688,6 +688,26 @@ void fm1_seq_click_mix(fm1_seq_click_t *c, const fm1_seq_t *s, const fm1_seq_ev_
   click_run(c, lr, cur, frames);
 }
 
+/* Sealed block metadata variant: never reads the live sequencer. */
+void fm1_seq_click_mix_on(fm1_seq_click_t *c, int on, const fm1_seq_ev_t *ev, uint32_t n,
+                       uint32_t frames, float *lr) {
+  uint32_t k, cur = 0;
+  for (k = 0; k < n; ++k) {
+    uint32_t f;
+    if (ev[k].kind != FM1_SEQ_EV_CLICK) continue;
+    if (!on) break;
+    f = ev[k].frame < frames ? ev[k].frame : frames;
+    if (f > cur) {
+      click_run(c, lr, cur, f);
+      cur = f;
+    }
+    c->pos = 0;
+    c->accent = ev[k].a != 0;
+    ++c->clicks;
+  }
+  click_run(c, lr, cur, frames);
+}
+
 int fm1_seq_lane_param(const fm1_engine_t *e, const char *label) {
   const char *name;
   uint16_t q;

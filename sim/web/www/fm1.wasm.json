@@ -3,11 +3,11 @@
   "wasm_sha256": "0e7b7cea596de2c648219f5d717d03c4cbe6ceede4a99f38be5ab6706525619b",
   "wasm_bytes": 1597107,
   "sources_sha256": {
-    "engines": "1cb273c57a11f09f60b11a357bdd5baf47fa16d8b0ba20fd72ab3c0961963fd9",
-    "sim": "117828d4cec3ec70f0ed2ad5a3b32cd9c99bf350cf5a3738b10b8fa410f3193e"
+    "engines": "37a6faba746204b246e10621b42665867eb8ab1ff7f585859c01d55e6b64d584",
+    "sim": "a584a1e50758163a7518b9a0c6545ce6326c82dffa6c04cd06a5db56c562e8a1"
   },
   "engines": "working tree",
-  "built": "2026-10-27T09:53:10Z",
+  "built": "2026-10-27T15:06:25Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -180,10 +180,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.061978000000010525,
-      "p99_ms": 0.09318799999999783,
-      "max_ms": 0.2818269999999998,
-      "edit_us_per_quantum": 7.990926892950692
+      "p50_ms": 0.062148999999976695,
+      "p99_ms": 0.09573299999999563,
+      "max_ms": 0.9554550000000006,
+      "edit_us_per_quantum": 8.243428005028894
     },
     "check": {
       "params": 474,

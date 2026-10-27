@@ -598,3 +598,27 @@ compiled public-header client; they do not prove native cache, IRQ or stack
 behavior. Compiling the tracked backend with JieLi's compiler is not a linked
 image or new hardware acceptance. Integrate the producer/consumer adapter and
 continuous DAC drain before claiming the tracked runtime reproduces that soak.
+
+### Sealed app blocks (opt-in, no runtime activation)
+
+`FM1_APP_RENDER_PIPELINE=1` adds the fixed-arrangement interface in
+`sim/web/src/fm1_app_pipeline.h`. CPU0 records Macro model-0 callbacks, copies
+frame-tagged writes/events and captures the metronome setting. CPU1 executes
+that stream, its instance-owned Drive inserts, ordered summation and the sealed
+master/amp/click/limiter work. Other sounds retain their original producer order.
+The captured metronome helper leaves the ordinary sequencer click API unchanged.
+Two static app slots remain owned until explicit retirement; the SDK backend's
+separate output lease can outlive that retirement.
+
+This lane permits the reviewed DX7/Macro/Drums/DX7, Filter/Drive and Echo/Comp
+fixture only. It rejects layout/arena alias changes and worker-state edits while
+pending. App initialization is single-lifetime once bound; draw calls require a
+drained barrier. Editor subscriptions and render observers are unsupported.
+Failure hooks must record permanent refusal and never return into partially
+advanced DSP. No preparer flag, task or DAC adapter activates this path yet.
+
+Normal and ASAN/UBSAN host comparisons exercise 44,104 blocks of fixed-polyphony
+PCM with immediate and delayed consumers, plus refused ownership/UI mutations.
+That is an exact-PCM regression, not a native deadline or analog acceptance test.
+The tracked runtime still needs platform hooks, SDK scheduling/placement and the
+continuous DAC adapter before it can replace the private V185 experiment.
