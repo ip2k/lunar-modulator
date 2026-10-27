@@ -233,3 +233,30 @@ facts/replay summaries are saved locally and on Aeon. Candidate SHA256
 raw UART SHA256 `6aaee4447e8f255b0c265656c34d0295c960506ed5524f4c5e0f3881c7f893e2`.
 The original production engine remains unchanged; adaptive capacity remains
 an explicit experiment pending opt-in integration and sustained acceptance.
+
+
+## V143 render-owned engine API promotion
+
+[verified] The tracked DX7 engine now exposes optional render-owned voice limits
+through `fm1_dx7_budget.h`. Default twelve remains unchanged, with no automatic
+controller enabled. Limits apply at the next internal 64-frame boundary;
+released voices rank before held voices, then lower summed carrier gain, then
+older age. Ranking uses a 64-bit sum to avoid overflowing six carrier gains.
+Retirement renders one final fade block; increasing the limit does not resurrect
+notes. Pending output remains immutable. Active, retired and stolen counts are
+observable, with no locking or allocation in this API.
+
+[verified] Aeon focused API/kernel checks pass all 20 cases, including four host
+rates, explicit-default PCM equality, released-voice retirement against an
+independent eight-voice instance, partially delivered blocks, invalid requests,
+retriggering and future admission. Full mixed replay and independent Hera
+compiler/sanitizer checks are next. This is an API checkpoint, not a production
+adaptive controller or new target timing result. WASM parity must be rebuilt
+from the new source before claiming current-source CI acceptance.
+
+The owner explicitly authorized Hera heavy/parallel work up to 64 threads and
+128 GB RAM. Hera is reachable. Its existing batch slice has an approximately
+82 GiB cap; current jobs use smaller explicit budgets without infrastructure
+changes. Mac retains all device operations. No device action accompanied this
+API change. Current V142c producer misses and missing analog/soak acceptance
+remain unchanged.

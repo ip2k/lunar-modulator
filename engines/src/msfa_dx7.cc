@@ -58,6 +58,7 @@
 
 #include "fm1_engine.h"
 #include "fm1_dx7.h"
+#include "fm1_dx7_budget.h"
 #include "fm1_dx7_kernel.h"
 #include "fm1_smooth.h"
 #include "glide.h"
@@ -247,6 +248,7 @@ class Instance {
   // Create, so every member starts at zero; Init sets the rest.
   void Init(const fm1_host_t *host) {
     const uint32_t hz = RateHz(host->sample_rate);
+    voice_limit_ = kNumVoices;
     own_lut_ = OwnLut(host);
     if (own_lut_) fm1_msfa::FillFreqLut(*Lut(), hz);
     env_rate_q24_ = static_cast<uint32_t>((static_cast<uint64_t>(44118u) << 24) / hz);
@@ -453,20 +455,22 @@ class Instance {
   }
 
   Voice *Allocate(uint8_t key) {
-    Voice *best = NULL;
-    for (int i = 0; i < kNumVoices; ++i) {   // same key: retrigger in place
+    unsigned active = 0;
+    for (int i = 0; i < kNumVoices; ++i) {
       if (voice_[i].active && voice_[i].key == key) return &voice_[i];
+      active += voice_[i].active;
     }
-    for (int i = 0; i < kNumVoices; ++i) {   // a free voice
-      if (!voice_[i].active) return &voice_[i];
+    if (active < voice_limit_) {
+      for (int i = 0; i < kNumVoices; ++i) if (!voice_[i].active) return &voice_[i];
     }
-    for (int i = 0; i < kNumVoices; ++i) {   // else the oldest released, else the oldest
+    Voice *best = NULL;
+    for (int i = 0; i < kNumVoices; ++i) {
       Voice *v = &voice_[i];
+      if (!v->active) continue;
       if (!best || (!v->gate && best->gate) ||
-          (v->gate == best->gate && v->age < best->age)) {
-        best = v;
-      }
+          (v->gate == best->gate && v->age < best->age)) best = v;
     }
+    ++budget_stolen_;
     return best;
   }
 
@@ -587,7 +591,51 @@ class Instance {
         reinterpret_cast<unsigned char *>(this) + sizeof(Instance));
   }
 
+
+ public:
+  unsigned SetVoiceLimit(unsigned limit) {
+    if (!limit || limit > kNumVoices) return 0;
+    voice_limit_ = limit;
+    return 1;
+  }
+  void BudgetStats(fm1_dx7_budget_stats_t &out) const {
+    out.active = 0;
+    for (int i = 0; i < kNumVoices; ++i) out.active += voice_[i].active;
+    out.limit = voice_limit_;
+    out.retired = budget_shed_;
+    out.stolen = budget_stolen_;
+  }
+
+ private:
+  static uint64_t CarrierGain(const Voice &v) {
+    uint64_t gain = 0;
+    const uint8_t carriers = kCarriers[v.algorithm & 31];
+    for (int op = 0; op < 6; ++op) if ((carriers >> op) & 1)
+      gain += static_cast<uint32_t>(v.params[op].gain[1]);
+    return gain;
+  }
+  void EnforceVoiceLimit() {
+    retiring_ = 0;
+    if (voice_limit_ == kNumVoices) return;  // default twelve needs no ranking
+    unsigned active = 0;
+    for (int i = 0; i < kNumVoices; ++i) active += voice_[i].active;
+    while (active > voice_limit_) {
+      int best = -1;
+      for (int i = 0; i < kNumVoices; ++i) {
+        const Voice &v = voice_[i];
+        if (!v.active || (retiring_ & (1u << i))) continue;
+        if (best < 0 || (!v.gate && voice_[best].gate) ||
+            (v.gate == voice_[best].gate &&
+             (CarrierGain(v) < CarrierGain(voice_[best]) ||
+              (CarrierGain(v) == CarrierGain(voice_[best]) && v.age < voice_[best].age)))) best = i;
+      }
+      retiring_ |= static_cast<uint16_t>(1u << best);
+      --active;
+    }
+  }
+
   void RenderBlock() {
+    EnforceVoiceLimit();
     fm1_msfa::fm1_freqlut = Lut();               // what Freqlut::lookup reads
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     glide_step_ = glide::Step(glide_block_ms_, value_[P_GLIDE]);
@@ -619,7 +667,8 @@ class Instance {
       if (buffer[k]) { silent = false; break; }
     }
     const float vol = v.note.Value(kParams, P_VOLUME, value_[P_VOLUME]);
-    const int32_t g1 = static_cast<int32_t>(vol * 65536.0f);   // 0..65536
+    const bool retiring = (retiring_ & (1u << (&v - voice_))) != 0;
+    const int32_t g1 = retiring ? 0 : static_cast<int32_t>(vol * 65536.0f);   // 0..65536
     const int32_t g0 = v.gain_q16 < 0 ? g1 : v.gain_q16;
     v.gain_q16 = g1;
     if (!silent) {
@@ -630,7 +679,8 @@ class Instance {
       }
     }
     v.silent_blocks = (!v.gate && Quiet(v)) ? v.silent_blocks + 1 : 0;
-    if (v.silent_blocks > silent_after_release_) {
+    if (retiring) { ++budget_shed_; v.gate = false; }
+    if (retiring || v.silent_blocks > silent_after_release_) {
       v.active = false;
       v.note.Clear();
     }
@@ -748,6 +798,9 @@ class Instance {
     return x >= 0.0f ? static_cast<int>(x + 0.5f) : -static_cast<int>(0.5f - x);
   }
 
+  unsigned voice_limit_;
+  unsigned budget_shed_, budget_stolen_;
+  uint16_t retiring_;
   const fm1_dx7_kernel_adapter_t *kernel_adapter_;  // optional, host-owned
   FmCore core_;                   // msfa's algorithm runner (its buses are scratch)
   Lfo lfo_;                       // one LFO, as on the keyboards
@@ -863,5 +916,15 @@ extern "C" int fm1_dx7_compute_kernel(fm1_dx7_kernel_job_t *job) {
   else if (job->algorithm == 4 && fm1::dx7::RenderAlgorithmFive(params, job->feedback_shift, job->feedback, job->output)) {}
   else core.compute(job->output, params, job->algorithm, job->feedback, job->feedback_shift);
   for (int op = 0; op < 6; ++op) job->op[op].phase = params[op].phase;
+  return 1;
+}
+
+extern "C" int fm1_dx7_set_voice_limit(void *self, unsigned limit) {
+  return self ? static_cast<fm1::dx7::Instance *>(self)->SetVoiceLimit(limit) : 0;
+}
+
+extern "C" int fm1_dx7_get_budget_stats(const void *self, fm1_dx7_budget_stats_t *out) {
+  if (!self || !out) return 0;
+  static_cast<const fm1::dx7::Instance *>(self)->BudgetStats(*out);
   return 1;
 }
