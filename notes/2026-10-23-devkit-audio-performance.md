@@ -7906,3 +7906,32 @@ zeroes the label buffer; nonempty commands retain the original copy. The complet
 automation fixture passes ASan/UBSan after the fix, and the actual WebAssembly
 rebuild again passes all 108 parity cases. V171 was already running and does not
 issue label-clear commands; its exact image remains the earlier V170 DSP variant.
+
+### V171 continuous adaptive soak: timing pass, analog anomalies unresolved (2026-10-27)
+
+[verified] V170's empty-label lookup optimization completed 57 continuous cycles,
+228 cases and 1,256,964 blocks in 1,823,700 ms. Producer and consumer deadline
+misses were zero; producer maxima 32812/30189/31475/34721 ticks remain below
+34829. DAC fault/backend/off/close/late/gaps were zero. Exact actual-decision
+normal/ASan replay matched 321,782,784 PCM bytes, all 228 hashes, fold c9eec6cf,
+42,522 controls and final active2/limit2/shed0/stolen4779. This is adaptive65/60,
+initial12/floor2 evidence, not fixed12 acceptance. The board returned ordinary
+PING ACK after both capture processes exited normally and their PIDs were absent.
+
+[verified] KA6 recorded exactly 91,200,000 six-channel 48k PCM32 frames (1900s);
+whole-capture peaks .500870/.518541 had no near-full-scale samples. Frozen
+fault-calibrated left and separately calibrated MIMO right predictors scanned
+all logical blocks without long-data fitting or threshold relaxation. Left
+flagged the final three blocks; right flagged those three plus 712 blocks,
+all in case1, in 155 clusters overall. These are unresolved residual anomalies,
+not proven packet drops and not analog acceptance. Weak/silent/unprobed fault
+sensitivity remains explicitly limited. Private raw capture, frozen receipts,
+all flagged tags and replay are retained in the dated scratch lane/Aeon exports.
+
+[verified] CI40484318024 failed only the metadata-example fingerprint assertion
+on Ubuntu/macOS. Regenerated the existing subset using the actual current-source
+native build export: only meta_id changed 8d0cd839->aa95d5c8, and canonical
+subset equality passes. The focused pytest invocation in the analysis image
+could not collect because jsonschema is absent; this is not a pytest pass.
+No test expectation or underrun gate was weakened. Native build and generated
+example correction do not alter the running V171 image or its PCM.
