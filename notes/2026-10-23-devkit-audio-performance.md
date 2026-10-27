@@ -7484,3 +7484,31 @@ stack, raster CPU and SPI lifetime still to prove. The existing quarter-rate
 visual cadence is preserved. The native semaphore/canary experiment is next;
 production display, live input ownership and final analog acceptance remain
 unfinished. No physical FM-1 traffic was issued.
+
+### Interrupt and scheduler stall isolation
+
+[verified: native V119/V120 diagnostics] The failing mixed-render callback
+performs normal work: one final 32-frame Macro render executes three native
+12-sample blocks, pushes 33 samples and pops 32; pending input changes from
+three to four, satisfying 3 + 36 - 33 = 4. With normal interrupts, this render
+took about 40.12 ms. A tag-seven-only diagnostic masking CPU1 local interrupts
+reduced that render to 270.21 us, and the complete five-operation Macro batch
+took 546.13 us. Re-enabling interrupts then took another 9.45 ms. The callback
+subsequently stalled and the unchanged timeout still failed. Interrupt masking
+is a discriminator, not a production fix or fairness acceptance.
+
+[verified: native negative controls] A public system-sleep veto did not remove
+the stalls. Combining that veto with an effective CPU0 raw-idle bypass also
+failed. Both retained ordinary interrupt service, queue waits, sample arithmetic
+and the deadline. These results reject those particular interventions as
+sufficient fixes; they do not identify the responsible interrupt or exclude
+other SDK rendezvous paths.
+
+[verified: bounded read-only observations; inferred limit] CPU0 sampled CPU1
+ICFG, RETI, PCRS and execution-trace registers at wake boundaries. Paired ICFG
+reads matched, with a zero interrupt-context byte at the sampled instants;
+addresses varied within ordinary synthesis/resampling code. Raw upper ICFG
+bits have not been decoded. These samples cannot establish what CPU1 did
+while CPU0 slept, and unpaused PCRS is not a validated continuous PC trace.
+No physical FM-1 traffic was issued. Production integration, scheduler fairness
+and clean analog acceptance remain unfinished.
