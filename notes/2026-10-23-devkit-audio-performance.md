@@ -7582,3 +7582,18 @@ This exercises pinned list semantics and a bounded selected-node rotation repair
 not vendor ABI, concurrent SMP execution or native fairness. The native candidate
 is being compiled separately from the throughput investigation. SDK artifacts
 remain private; production integration and dropout-free acceptance are unfinished.
+
+[verified: native V132] The private selected-node rotation linked and started
+with unchanged application/DSP source. Final vendor machine code places both
+rotation calls before the original lock release/local interrupt enable; the
+existing list removal retains its enclosing critical section. The SDK audit
+has zero failures and its dormant key-check scheduling was manually reviewed.
+The first three 5,513-block case hashes remain exact. Producer means were
+24,878 / 28,883 / 31,329 / 36,266 ticks; worker means were 30,445 / 32,082 /
+32,120 / 32,179 ticks. The fourth case starved after 133 blocks, fault 10304.
+No backend error or callback gap/lateness occurred before starvation; maximum
+IRQ was 1,137 ticks and parent unused stack 445 words. This does not close the
+throughput gap or establish mixed-affinity scheduler fairness. The receiver
+was twice argument-verified, terminated once, reached terminal status and its
+PID was absent before ordinary PING ACK. No full backup/restore/readback cycle
+was repeated. All reset receipts are consumed; the board is responsive idle.
