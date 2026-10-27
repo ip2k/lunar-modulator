@@ -8664,3 +8664,11 @@ analog/fixed12 acceptance. Parentunused689words, worker1322; heap48556.
 Receiver960421 exits normally; runner88188 terminal0, PIDabsent twice before
 PINGACK. Board healthy idle; reset1793131112.6934278 consumed forever.
 Next larger producer bottleneck review, no more fusion/unroll sweep.
+
+[verified host attribution] V192 read-only counters preserve full22581248byte
+PCM replay. Algorithm5 fast-path refusal occurs in6385/7168/6296/5860 of11026
+logical blocks percase. Heaviest case has10746 refused voiceblocks, mainly mask42
+(7830: quiet modulators/active carriers), then34(1892),59(624),58(400). Generic
+core already skips quiet modulators, so count alone does not establish cost.
+Next focused native PrepareVoice/kernel/mix attribution before another kernel
+transformation. Counter source/build/PCM cleaned after report; logs retained.
