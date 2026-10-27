@@ -8533,3 +8533,13 @@ Aeon, including whole-app PCM, profiling variants and refusal paths. The WebKit
 failure remains unreproduced by a standalone exact-source toolbar control and
 twelve fresh-page transition probes; those passes are not a fix or CI acceptance.
 PR155 remains draft/open/unmerged pending required checks and review.
+
+[verified] A separate failure-only toolbar diagnostic now retains the last 32
+native transport updates, audio-context state, button/fieldset disabled state,
+phase and screenshot when an assertion fails. Existing assertions and timeouts
+are unchanged. The updated complete WebKit toolbar check passes on bounded Aeon;
+this validates the diagnostic's normal path, not resolution of the original
+CI resume failure. Astra's bounded independent review finds no V188 receipt
+contradiction or queue ownership blocker. Finished V188 SDK/replay/queue-test
+copies and PCM intermediates are removed after matching retained ELF and
+analysis receipts; private raw captures, source inputs, reports and logs remain.
