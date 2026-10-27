@@ -8271,3 +8271,31 @@ specialization; it was corrected to the actual preparation order. Firmware
 preparation ordering did not change. These are source/host results: the named
 tracked integration has not been built or installed as a new target image.
 PR155 remains draft, open and unmerged pending CI/review and further integration.
+
+
+### Tracked readiness native confirmation (V185, 2026-10-27)
+
+[verified] The tracked readiness helper and named three-voice-floor initializer
+were built natively, preserving V184's steady-idle/drain behavior, then installed
+with acknowledged UART recovery and an application-only flash. The short run
+completed 66,156 blocks and 12 cases: producer maxima 32,605/30,290/31,947/34,084
+against the unchanged 34,829 ticks, with zero producer or consumer deadline
+misses. DAC fault/backend/late/gaps were zero, drain64 and finite worker exit.
+Unused parent435words/worker1322words. Adaptive65/60 began at12, ended active3/
+limit3 with no rejected note-ons and246 steals. This is not fixed12 acceptance.
+
+[verified] Normal and ASan/UBSan actual-decision replay matched16,935,936PCMbytes,
+all12case hashes, fold3572433538 and2238controls. Frozen stereo analysis of the
+125s KA6 capture aligned all66,156blocks/channel with zero residual flags; both
+final-eight endpoint checks passed. Quiet/weak sensitivity remains unqualified;
+this confirms the tracked preparation on this workload, not universal continuity
+or production/physical-FM1 acceptance. The prior V18430.4min evidence is retained.
+
+[verified lifecycle] Sole UART/capture exited0 and were absent twice before
+ordinary PING ACK; no operation remains live. Private final sources/ELF, raw
+captures, logs/reports and reset receipt retained. Generated SDK/replay source/
+PCM and local candidate transit copy removed after results; Mac1145GiBfree.
+Source05fdf14a's CI40521857180 remains pending/inprogress, no failures observed;
+Pages40521857240 lastinprogress. No passing checks rerun. PR155 draft/open/unmerged.
+Next integrate proven runtime behavior into the tracked production preparation
+and exercise wider workloads without conflating adaptive and fixed-polyphony.
