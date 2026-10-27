@@ -91,7 +91,7 @@ $(BUILD)/fm1-dx7-pair-test: $(DX7_PAIR_TEST_OBJ) $(BUILD)/fm1-render
 # Render-owned, opt-in voice admission and block-boundary retirement.
 DX7_BUDGET_TEST_OBJ := $(BUILD)/our/test/dx7_budget_test.o
 all: $(BUILD)/fm1-dx7-budget-test
-$(BUILD)/fm1-dx7-budget-test: $(DX7_BUDGET_TEST_OBJ) $(BUILD)/fm1-render
+$(BUILD)/fm1-dx7-budget-test: $(DX7_BUDGET_TEST_OBJ) $(BUILD)/fm1-render $(FM1_DROP_OBJ)
 	$(CXX) $(OPT) $(EXTRA) -o $@ $(DX7_BUDGET_TEST_OBJ) \
 	  $(filter-out $(BUILD)/our/host/render.o,$(RENDER_OBJ)) -lm
 -include $(DX7_BUDGET_TEST_OBJ:.o=.d)
