@@ -7898,3 +7898,11 @@ about 30.4 minutes) with single-file six-channel analog capture. At this writing
 that run is live, not accepted. The frozen left-channel physical fault detector
 calibrates; an independent right-channel calibration currently refuses its
 held-out correlation, so stereo analog acceptance remains unqualified.
+
+[verified] The exhaustive label-mask fixture additionally exposed an existing
+`ALABEL` clear-path out-of-bounds read: a fixed-size `memcpy` used the one-byte
+empty-string literal when no label argument was supplied. Clearing now explicitly
+zeroes the label buffer; nonempty commands retain the original copy. The complete
+automation fixture passes ASan/UBSan after the fix, and the actual WebAssembly
+rebuild again passes all 108 parity cases. V171 was already running and does not
+issue label-clear commands; its exact image remains the earlier V170 DSP variant.
