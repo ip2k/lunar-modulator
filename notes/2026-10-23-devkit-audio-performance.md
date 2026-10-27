@@ -8356,3 +8356,25 @@ module bytes are unchanged and the generated source record is updated. Strict
 CI-mode committed-WASM record check passes. No screenshot/Chromium acceptance
 was requested or claimed. Next dependency is the native live/DAC adapter and
 platform hook integration, with the reviewed SDK scheduler correction retained.
+
+## 2026-10-27: tracked live producer/consumer adapter
+
+[verified] Opt-in renderer_pipeline_live connects the sealed app interface to
+backend callbacks, preserving V185 note/control order, startup fade, conversion,
+four-channel duplication, cumulative fault counts and per-case stereo hash.
+It bounds cycles to 1–57 and rejects repeated bind, out-of-order/duplicate output
+and malformed case metadata. Direct serial rendering permanently refuses in
+pipeline mode. SDK/error hooks now connect to permanent backend refusal.
+
+[verified] Bounded Aeon normal and ASAN/UBSAN replay both pass: 44,104 blocks,
+22,581,248 int16 PCM bytes each for original/immediate/delayed paths, identical
+PCM and final status in each build. Negative metadata, repeat-completion, cycle
+bounds and producer-tag guards run in both paths; direct serial entry refuses.
+The known shift sanitizer exception remains. Synchronous test transport is not
+native concurrency, IRQ, timing, cache or analog proof. No device operations.
+Default rendering and fixed polyphony remain intact. No adaptive controller is
+enabled by this adapter; no DAC/preparer/runtime activation yet.
+
+[verified source review] Astra compared ordering/conversion/hash and ownership
+with V185; no blocking semantic difference. The continuous DAC adapter, reviewed
+SDK scheduler correction and native placement remain the next dependencies.

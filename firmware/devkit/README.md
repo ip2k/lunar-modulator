@@ -588,8 +588,8 @@ lease handoff require the reviewed pinned SDK IRQ path, not a generic ISR-safety
 assumption. The 100 ms guard
 bounds protocol failure, not the audio deadline. The backend reserves a static
 1536-word CPU1 task with a finite 35-minute lifetime and refuses nested SDK
-workers. This is backend selection only: no tracked application adapter or
-preparer enables it yet, and default builds do not change.
+workers. The opt-in live adapter connects the app hooks, but no native DAC
+driver or preparer enables it yet. Default builds do not change.
 
 The implementation follows the private V185 pipeline, whose scoped adaptive
 floor-three target run and preceding V184 soak are recorded in the dated notes.
@@ -620,5 +620,16 @@ advanced DSP. No preparer flag, task or DAC adapter activates this path yet.
 Normal and ASAN/UBSAN host comparisons exercise 44,104 blocks of fixed-polyphony
 PCM with immediate and delayed consumers, plus refused ownership/UI mutations.
 That is an exact-PCM regression, not a native deadline or analog acceptance test.
-The tracked runtime still needs platform hooks, SDK scheduling/placement and the
-continuous DAC adapter before it can replace the private V185 experiment.
+`renderer_pipeline_live.h` connects the app to the backend with the original
+fixed mixed workload controls, startup fade, float-to-int16 conversion and
+per-case sample hashes. It binds once for 1–57 four-case cycles. The producer
+must reserve a slot before advancing any controls. The sole output owner
+validates ordered tag metadata before copying completion status; this does not
+retire the backend PCM lease. Direct synchronous rendering refuses in this mode.
+Normal/sanitizer tests compare immediate and delayed transport with the original
+renderer over 44,104 blocks, requiring identical PCM and status metadata.
+
+The tracked runtime still needs SDK scheduling/placement and the continuous DAC
+adapter before it can replace the private V185 experiment. No budget controller
+is enabled by the live adapter: fixed-polyphony replay remains distinct from the
+scoped adaptive floor-three target and analog results.

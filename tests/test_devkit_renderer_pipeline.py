@@ -39,7 +39,7 @@ def test_native_pipeline_protocol(tmp_path, sanitize):
     for mode in MODES:
         subprocess.run([str(exe), mode], check=True, env=env, timeout=15)
 
-@pytest.mark.parametrize('worker', ['', 'LUNAR_DEVKIT_FM6_PAIR', 'LUNAR_DEVKIT_FM6_SDK', 'LUNAR_DEVKIT_QUEUE_SDK'])
+@pytest.mark.parametrize('worker', ['', 'LUNAR_DEVKIT_FM6_PAIR', 'LUNAR_DEVKIT_FM6_SDK', 'LUNAR_DEVKIT_QUEUE_SDK', 'LUNAR_DEVKIT_ENGINE_QUEUE'])
 def test_pipeline_build_owns_one_worker(worker):
     make = shutil.which('make')
     if not make:

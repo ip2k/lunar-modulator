@@ -4,6 +4,13 @@
 #include "renderer_live.h"
 #include "fm1_app.h"
 #include "fm1_dx7_kernel.h"
+#ifdef LUNAR_DEVKIT_RENDERER_PIPELINE
+#include "renderer_pipeline_live.h"
+#include "fm1_app_pipeline.h"
+#if !FM1_APP_RENDER_PIPELINE || LUNAR_RENDERER_WORKLOAD != 0
+#error Pipeline adapter requires the fixed mixed app pipeline
+#endif
+#endif
 #ifdef LUNAR_DEVKIT_ENGINE_QUEUE
 #include "renderer_queue_bridge.h"
 #if LUNAR_RENDERER_WORKLOAD != 0
@@ -235,6 +242,12 @@ int lunar_devkit_renderer_init(void) {
 #endif
     fm1_app_button(&app, FM1_BTN_PLAY, 1);
     fm1_app_button(&app, FM1_BTN_PLAY, 0);
+#ifdef LUNAR_DEVKIT_RENDERER_PIPELINE
+    /* Build the immutable control plan before live voices and the first block. */
+    if (fm1_mod_voice_count(app.mod)) return 0;
+    fm1_mod_plan_info_t plan;
+    fm1_mod_get_plan(app.mod, &plan);
+#endif
     case_block = startup_frames = 0;
     hash = 2166136261u;
     ready = 1;
@@ -242,6 +255,10 @@ int lunar_devkit_renderer_init(void) {
 }
 
 void lunar_devkit_renderer_render(int16_t *out) {
+#ifdef LUNAR_DEVKIT_RENDERER_PIPELINE
+    (void)out;
+    lunar_pipeline_fail_park(9902u);
+#else
 #ifdef LUNAR_DEVKIT_ENGINE_QUEUE
     if (lunar_renderer_queue_error()) return;
 #endif
@@ -342,6 +359,94 @@ void lunar_devkit_renderer_render(int16_t *out) {
         case_block = 0;
         if (++state.test_case == 4) { state.test_case = 0; ++state.cycles; }
     }
+#endif
 }
 
 void lunar_devkit_renderer_status(struct lunar_renderer_status *out) { *out = state; }
+
+#ifdef LUNAR_DEVKIT_RENDERER_PIPELINE
+/* Consumer-only counters. Producer controls never read these while CPU1 runs. */
+static uint32_t pipeline_next, pipeline_fade, pipeline_hash = 2166136261u;
+static uint32_t pipeline_invalid, pipeline_clipped;
+static uint32_t pipeline_total, pipeline_output_next;
+static int pipeline_bound;
+uint32_t fm1_app_pipeline_error(void) { return lunar_pipeline_error(); }
+void fm1_app_pipeline_fail(uint32_t code) { lunar_pipeline_fail_park(code); }
+
+static int pipeline_convert(void *work, uint32_t tag, int16_t out[256],
+                            lunar_pipeline_result_t *result) {
+    if (!out || !result || tag != pipeline_next) return 0;
+    const float *samples = fm1_app_pipeline_consume(work);
+    if (!samples) return 0;
+    for (unsigned i = 0; i < BLOCK; ++i) for (unsigned ch = 0; ch < 2; ++ch) {
+        float x = samples[2 * i + ch];
+        uint32_t bits; memcpy(&bits, &x, sizeof bits);
+        if ((bits & 0x7f800000u) == 0x7f800000u) { ++pipeline_invalid; x = 0; }
+        x *= 4096.f;
+        if (pipeline_fade + i < 2205u) x *= (pipeline_fade + i + 1) / 2205.f;
+        if (x > 32767.f) { ++pipeline_clipped; x = 32767.f; }
+        if (x < -32768.f) { ++pipeline_clipped; x = -32768.f; }
+        out[4 * i + ch] = out[4 * i + ch + 2] = (int16_t)x;
+        uint16_t word = (uint16_t)out[4 * i + ch];
+        pipeline_hash = (pipeline_hash ^ (word & 255u)) * 16777619u;
+        pipeline_hash = (pipeline_hash ^ (word >> 8)) * 16777619u;
+    }
+    if (pipeline_fade < 2205u) pipeline_fade += BLOCK;
+    result->case_index = (tag / CASE_BLOCKS) % 4u;
+    result->case_block = tag % CASE_BLOCKS;
+    result->invalid = pipeline_invalid; result->clipped = pipeline_clipped;
+    result->hash = pipeline_hash; result->case_total = tag + 1u;
+    if (result->case_block + 1u == CASE_BLOCKS) pipeline_hash = 2166136261u;
+    ++pipeline_next;
+    return 1;
+}
+int lunar_pipeline_live_bind(unsigned cycles) {
+    if (!ready || pipeline_bound || !cycles || cycles > 57u) return 0;
+    pipeline_total = cycles * 4u * CASE_BLOCKS;
+    if (lunar_pipeline_bind(fm1_app_pipeline_work(0), fm1_app_pipeline_work(1),
+                           pipeline_convert, fm1_app_pipeline_retire) != 1) return 0;
+    pipeline_bound = 1;
+    return 1;
+}
+int lunar_pipeline_live_produce(void *work, uint32_t tag) {
+    /* Caller must first reserve this work slot. No controls on failed reserve. */
+    if (!pipeline_bound || lunar_pipeline_error() || tag != state.blocks || tag >= pipeline_total) return 0;
+    unsigned c = (tag / CASE_BLOCKS) % 4u, b = tag % CASE_BLOCKS;
+    if (!b) {
+        for (unsigned n = 0; n < voices[c]; ++n)
+            fm1_app_unit_note_on(&app, 0, 48 + (int)n, 90);
+        state.controls += voices[c];
+    }
+    if (b == 6u * RATE / BLOCK) {
+        for (unsigned n = 0; n < voices[c]; ++n)
+            fm1_app_unit_note_off(&app, 0, 48 + (int)n);
+        state.controls += voices[c];
+    }
+    if (!(b % 64u)) {
+        fm1_app_unit_set_level(&app, 1, (b & 64u) ? 45.f : 55.f);
+        fm1_app_set_param(&app, fm1_app_insert_unit(0, 0), 1,
+                          (b & 64u) ? 1200.f : 2400.f);
+        state.controls += 2;
+    }
+    if (!fm1_app_pipeline_produce(&app, work)) return 0;
+    ++state.blocks;
+    state.test_case = ((tag + 1u) / CASE_BLOCKS) % 4u;
+    if ((tag + 1u) % (4u * CASE_BLOCKS) == 0u) ++state.cycles;
+    return 1;
+}
+int lunar_pipeline_live_output(uint32_t tag, const int16_t *pcm,
+                               const lunar_pipeline_result_t *result) {
+    if (!pipeline_bound || !pcm || !result || tag >= pipeline_total ||
+        tag != pipeline_output_next || result->tag != tag || result->case_index != (tag / CASE_BLOCKS) % 4u ||
+        result->case_block != tag % CASE_BLOCKS || result->case_total != tag + 1u)
+        return 0;
+    ++pipeline_output_next;
+    state.invalid = result->invalid; state.clipped = result->clipped;
+    if (result->case_block + 1u == CASE_BLOCKS) {
+        state.completed_case = result->case_index;
+        state.completed_hash = result->hash;
+        ++state.completed_cases;
+    }
+    return 1;
+}
+#endif
