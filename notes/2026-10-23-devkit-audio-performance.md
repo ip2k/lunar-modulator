@@ -7549,3 +7549,36 @@ V128 and all older reset receipts are consumed and must never be retried. Raw
 UART and SDK artifacts stay private and are mirrored on Aeon. Next is a run
 without per-sample timer probes and with the original low-priority canaries
 restored. No physical FM-1 traffic occurred; PR155 remains draft and unmerged.
+
+### Clean native timing and remaining scheduler fairness, 2026-10-27
+
+[verified: V131 target] Removing per-sample Macro timer probes and restoring
+both low-priority canaries preserves the first three complete case hashes.
+Producer means were 24,935 / 28,937 / 31,392 / 36,349 oscillator ticks. The
+heavy case starved the output after 127 blocks, fault 10304; its 36,349-tick
+producer mean still exceeds the unchanged 34,829-tick deadline. Worker means
+were 30,445 / 32,081 / 32,115 / 32,168 ticks. Maximum complete IRQ was 1,414
+ticks with zero callback lateness/gaps before starvation. This is still a
+performance failure, not clean playback acceptance.
+
+[verified: V129–131 startup] Restoring the two original diagnostic canaries
+exposed allocation pressure. V129 failed parent creation; V130 started tasks
+but failed a 1,536-byte DAC allocation. Using 128-word canary stacks and a
+1,792-word parent stack allowed V131 DAC startup; the parent retained 445
+unused words. Aggregate free heap alone did not establish allocation viability.
+The worker stack was unchanged. No canary completion report followed the output
+fault, so this run does not establish scheduler fairness. Each receiver ended
+and its PID was absent before ordinary PING ACK. All reset attempts are consumed.
+
+[verified: current source inspection] The count-only command-stream reset and
+active-prefix immutable copy proposed again during continuation already survived
+from V100 into V131. An older V98 snapshot initially obscured that fact. No
+duplicate native optimization or speedup is claimed.
+
+[verified: private host fixture] Astra's independent intrusive-list execution
+passed 65,601 differential selections, 2,400 removal/reinsertion transitions and
+112 primitive cursor cases; all six intentional corruptions were detected.
+This exercises pinned list semantics and a bounded selected-node rotation repair,
+not vendor ABI, concurrent SMP execution or native fairness. The native candidate
+is being compiled separately from the throughput investigation. SDK artifacts
+remain private; production integration and dropout-free acceptance are unfinished.
