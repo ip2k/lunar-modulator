@@ -7330,3 +7330,55 @@ insert/level boundaries, immutable work slots and ordered shared mixing. Normal
 and ASan/UBSan threaded tests match all 5,645,312 PCM bytes exactly. Additional
 source-grounded engine-state comparison precedes target testing. No timing gain
 is claimed from the host proof.
+
+[verified: bounded threaded host state test] V104 also matches 1,087,869,264 bytes
+of CPU0 engine and Filter state across all 22,052 producer boundaries, in each
+of the normal and ASan/UBSan runs. The comparison streams records through bounded
+pipes and discards them; it does not save gigabytes of private state. DX7's unused
+kernel adapter must be null and its instance must have matching alignment. Drums
+normalizes only its known voicing pointer and compares the pointed-to state,
+including RNG and native/resampler history. This is host evidence, not target
+cache, race or analog proof. The native image builds and retains the same DAC
+transport for the causal hardware comparison.
+
+### V104 direct CPU0 dispatch and V105 mono-filter combination
+
+[verified: fresh dev-board continuous DAC] V104 still underruns in the heaviest
+case, after 843 blocks. Its first three cases retain exact PCM hashes. Producer
+means for those complete cases are 24,452 / 28,441 / 30,850 ticks. The incomplete
+heavy-case mean is 35,015 ticks (1,458.958 us), with consumer 32,158 ticks and
+full IRQ maximum 352 ticks. Comparing this partial heavy-case average directly
+with V103's shorter 200-block failure would overstate the saving. The remaining
+observed deficit is 186 ticks (7.75 us), but sustained margin is unproven.
+
+[verified: host combined proof; target result pending] V105 combines direct
+CPU0 dispatch with V95's per-frame mono Ladder reuse. Inputs, both coefficients,
+and all five channel history values must be bit-identical before reusing one
+channel's calculation; all other frames retain the original stereo path. The
+combined normal and ASan/UBSan runs match all 5,645,312 PCM bytes and all
+1,087,869,264 compared DX7/Drums/Filter state bytes per run. The native build
+passes. V105's target result is not yet known; neither a deadline pass nor analog
+acceptance follows from these host results.
+
+### V105 first continuous digital transport pass
+
+[verified: fresh dev-board DAC run and strict receipt parser] V105 completes all
+22,052 blocks continuously, with all four exact PCM hashes, zero unavailable
+outputs, zero backend errors, no recorded IRQ cadence-gap faults, and clean worker
+exit. All produced, consumed, harvested and retired tags agree. The full IRQ
+maximum is 366 ticks (15.25 us). Producer case means are 24,196 / 28,192 /
+30,608 / 34,210 ticks; consumer means 30,527 / 32,217 / 32,179 / 32,157.
+The heavy producer still has 2,056 individual blocks above the nominal block
+budget, but the pipeline absorbs those bursts in this finite run. Minimum ready
+outputs is only one, so the sustained margin remains thin. This is the first
+32-second **continuous digital transport pass**, not a 30-minute, scheduler,
+physical-output or analog acceptance result.
+
+[verified: lifecycle] Application-only install and one unique reset were used;
+the sole receiver was closed before a successful ordinary PING. No backup,
+factory restore or full-flash readback was performed. Private raw UART SHA-256
+is `58d652dca0f3748793a13a5d985da8ae3ed8229a110d76bee165b6f5d318e533`.
+The next experiment preserves state across 57 complete workload cycles, derives
+228 expected hashes from uninterrupted host rendering, and pairs sustained DAC
+operation with KA6 capture. It must use a millisecond duration guard because the
+24 MHz timer wraps repeatedly during a 30-minute run.
