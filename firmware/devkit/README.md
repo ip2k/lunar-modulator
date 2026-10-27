@@ -639,8 +639,11 @@ scoped adaptive floor-three target and analog results.
 `LUNAR_DEVKIT_RENDERER_PIPELINE_DAC=1` selects `renderer_pipeline_dac.c`; it also
 requires the native backend and `FM1_APP_RENDER_PIPELINE=1`. The native caller
 must run `lunar_pipeline_dac_run` once on CPU0 after the UART recovery interval.
-It starts the finite CPU1 backend before allocating the renderer. No preparer
-flag or default boot path activates this driver yet. Native integration still
+It starts the finite CPU1 backend before allocating the renderer. The tracked
+SDK worker routes this mode after the 200-tick UART window and arithmetic
+preflight, then keeps its clock alive on both success and failure. UART recovery
+runs above the render tasks at priority 18. No preparer flag or default boot
+path activates this driver yet. Native integration still
 needs the reviewed SDK scheduler correction and whole-image SRAM placement.
 This drives the dev board's internal DAC, not the physical FM-1's I2S codec.
 

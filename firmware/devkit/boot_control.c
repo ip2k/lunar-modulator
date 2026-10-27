@@ -19,7 +19,7 @@ static void __attribute__((section(".volatile_ram_code"), noinline)) enter_rom(v
 }
 
 /* The finite scheduling comparison keeps recovery above both render tasks. */
-#if defined(LUNAR_DEVKIT_SCHEDULING_PROBE) || defined(LUNAR_DEVKIT_ENGINE_QUEUE)
+#if defined(LUNAR_DEVKIT_SCHEDULING_PROBE) || defined(LUNAR_DEVKIT_ENGINE_QUEUE) || defined(LUNAR_DEVKIT_RENDERER_PIPELINE)
 #define CONTROL_PRIORITY 18
 #else
 #define CONTROL_PRIORITY 8

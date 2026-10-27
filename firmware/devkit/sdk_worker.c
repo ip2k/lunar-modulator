@@ -13,7 +13,7 @@
 #if defined(LUNAR_DEVKIT_RENDERER_TIMING) || defined(LUNAR_DEVKIT_RENDERER_AUDIO)
 #include "renderer_live.h"
 #endif
-#ifdef LUNAR_DEVKIT_RENDERER_TIMING
+#if defined(LUNAR_DEVKIT_RENDERER_TIMING) || defined(LUNAR_DEVKIT_RENDERER_PIPELINE_DAC)
 #include "renderer_timing.h"
 #include "arithmetic_probe.h"
 static void emit_arithmetic(const struct lunar_arithmetic_result *r)
@@ -25,6 +25,7 @@ static void emit_arithmetic(const struct lunar_arithmetic_result *r)
 /* SDK allocator diagnostics, emitted only outside timed render blocks. */
 extern void malloc_stats(void);
 static void renderer_yield(void) { os_time_dly(1); }
+#ifdef LUNAR_DEVKIT_RENDERER_TIMING
 static void emit_renderer(const struct lunar_renderer_timing *r)
 {
 #ifdef LUNAR_DEVKIT_FM6_SDK
@@ -109,6 +110,16 @@ static void emit_renderer(const struct lunar_renderer_timing *r)
 #endif
 }
 #endif
+#endif /* timing or pipeline arithmetic preflight */
+#ifdef LUNAR_DEVKIT_RENDERER_PIPELINE_DAC
+#include "renderer_pipeline_dac.h"
+#if !defined(LUNAR_DEVKIT_RENDERER_PIPELINE) || !defined(FM1_APP_RENDER_PIPELINE)
+#error Pipeline DAC worker requires the tracked backend and app
+#endif
+#if defined(LUNAR_DEVKIT_RENDERER_TIMING) || defined(LUNAR_DEVKIT_AUDIO_PROBE) || defined(LUNAR_DEVKIT_FM6_BENCHMARK)
+#error Pipeline DAC worker must not run another workload
+#endif
+#endif
 #ifdef LUNAR_DEVKIT_BOOT_CONTROL
 #include "boot_command.h"
 #endif
@@ -130,7 +141,7 @@ static void emit_fm6(const struct lunar_fm6_result *r)
            r->checksum, r->invalid_samples, r->nonzero_samples);
     os_time_dly(2);
 }
-#elif !defined(LUNAR_DEVKIT_AUDIO_PROBE)
+#elif !defined(LUNAR_DEVKIT_AUDIO_PROBE) && !defined(LUNAR_DEVKIT_RENDERER_PIPELINE_DAC)
 static void emit(const struct lunar_devkit_result *r)
 {
     printf("\nLUNAR_BENCH rate=%u producer=%u signal=%u blocks=%u ticks=%u min=%u max=%u inputs=%u hash=%08x\n",
@@ -147,7 +158,9 @@ void lunar_devkit_worker(void *unused)
     uint32_t before;
     (void)unused;
     os_time_dly(100);
-#ifdef LUNAR_DEVKIT_RENDERER_TIMING
+#if defined(LUNAR_DEVKIT_RENDERER_PIPELINE_DAC)
+    printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=tracked-pipeline-internal-dac\n", clk_get("sys"));
+#elif defined(LUNAR_DEVKIT_RENDERER_TIMING)
     printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=shared-renderer-no-dac workload=" LUNAR_RENDERER_WORKLOAD_NAME "\n", clk_get("sys"));
 #elif defined(LUNAR_DEVKIT_AUDIO_PROBE)
 #ifdef LUNAR_DEVKIT_RENDERER_AUDIO
@@ -183,13 +196,20 @@ void lunar_devkit_worker(void *unused)
     puts("LUNAR_CONTROL recovery_window_ticks=200\n");
     os_time_dly(200);
 #endif
-#ifdef LUNAR_DEVKIT_RENDERER_TIMING
+#if defined(LUNAR_DEVKIT_RENDERER_TIMING) || defined(LUNAR_DEVKIT_RENDERER_PIPELINE_DAC)
     /* Preflight validation is independent of optional render observers. */
     if (!lunar_devkit_arithmetic_probe(now, renderer_yield, emit_arithmetic)) {
         puts("LUNAR_DEVKIT ERROR arithmetic_probe\n");
         JL_TIMER4->CON = (1u << 14);
         return;
     }
+#ifdef LUNAR_DEVKIT_RENDERER_PIPELINE_DAC
+    /* Driver alone owns backend start/finish. Keep TIMER4 and the static DAC
+     * ring alive after either completion or failure; no late context is freed. */
+    int complete = lunar_pipeline_dac_run(now);
+    printf("LUNAR_DEVKIT complete=%d idle=%d\n", complete, lunar_pipeline_dac_idle());
+    for (;;) os_time_dly(100);
+#else
     puts("LUNAR_RENDERER_HEAP before_init=1\n");
     malloc_stats();
 #ifdef LUNAR_DEVKIT_FM6_SDK
@@ -220,6 +240,7 @@ void lunar_devkit_worker(void *unused)
     }
 #endif
     printf("LUNAR_DEVKIT complete=%d\n", complete);
+#endif /* pipeline or legacy timing */
 #elif defined(LUNAR_DEVKIT_AUDIO_PROBE)
     lunar_devkit_audio_probe();
 #elif defined(LUNAR_DEVKIT_FM6_BENCHMARK)

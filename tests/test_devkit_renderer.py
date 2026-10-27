@@ -658,8 +658,9 @@ int main(void) {
     subprocess.run([str(exe)], check=True, capture_output=True)
 
 
-@pytest.mark.parametrize("priority", [8, 18])
-def test_recovery_is_reserved_before_workload_and_fails_closed(tmp_path, priority):
+@pytest.mark.parametrize("priority,mode", [(8, None), (18, "LUNAR_DEVKIT_SCHEDULING_PROBE"),
+                                           (18, "LUNAR_DEVKIT_RENDERER_PIPELINE")])
+def test_recovery_is_reserved_before_workload_and_fails_closed(tmp_path, priority, mode):
     # Execute actual receiver startup against allocation/UART fault injection.
     # The prepared app_main contract only allocates work on a zero result.
     for name in ('app_config.h', 'system/includes.h', 'device/includes.h',
@@ -740,7 +741,7 @@ int main(void) {
     exe = tmp_path / 'startup'
     subprocess.run([os.environ.get('FM1_SIM_CC', 'cc'), '-std=c99', '-O2',
                     '-DEXPECTED_CONTROL_PRIORITY=' + str(priority),
-                    *(['-DLUNAR_DEVKIT_SCHEDULING_PROBE=1'] if priority == 18 else []),
+                    *(['-D'+mode+'=1'] if mode else []),
                     '-I' + str(tmp_path), '-I' + str(ROOT / 'firmware/devkit'),
                     str(harness), str(control),
                     str(ROOT / 'firmware/devkit/boot_command.c'), '-o', str(exe)], check=True)

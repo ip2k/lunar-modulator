@@ -8403,3 +8403,18 @@ Its advisory-count ownership finding was resolved by excluding the local IRQ
 around the task's read-only count query. SDK scheduler correction, whole-image
 SRAM placement, startup/device timing and independent analog replay remain
 required. Private V184/V185 target results retain their exact-image scope.
+
+### Tracked SDK worker pipeline routing (2026-10-27)
+
+[verified] The opt-in DAC pipeline now has a tracked SDK-worker entry. The
+200-tick UART recovery window and arithmetic preflight precede its sole driver
+invocation. The driver owns backend start/finish; the worker retains TIMER4 and
+parks after either return, preserving continuous DAC idle and late-worker storage.
+Conflicting workload flags fail compilation. Pipeline recovery priority is 18.
+
+[verified] Five bounded Aeon tests pass: actual worker success/failure/arithmetic
+failure routing, existing recovery-before-crashing-init handshake, receiver
+startup/allocation faults at priority8, scheduling18 and pipeline18. Temporary
+harness files are removed after the result. These SDK mocks do not establish
+native scheduling, IRQ/cache/stack, linked placement or new analog acceptance.
+No preparer flag or board operation is activated by this checkpoint.
