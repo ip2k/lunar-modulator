@@ -8689,3 +8689,17 @@ or acceptance claimed. Receiver1022050 twiceargvverified ONE SIGTERM; terminal
 runner33430/UART-15, PIDabsenttwice beforePINGACK. Reset1793145111.4682488 consumed
 forever. V195 moves report to wrapper after playback success/failure and before
 contextdetach, permitting explicitly partial diagnostic counts. No DSPchange.
+
+[verified native attribution, diagnostic only] V195 report-on-return preserves
+valid stage counters after instrumented queue failure:16659produced/16657submitted,
+3fullcases+120producedcase3blocks,142producerlate/0consumerlate. InclusiveDX7
+means215.58/381.18/479.60/690.58us; producer1047.82/1212.76/1313.90/1514.92us.
+The same-run non-DX7 remainder stays832.24/831.57/834.30/824.33us (lastcasepartial),
+including observer/control/otherproducerwork, not an uninstrumented cost proof.
+Fallback algorithm5 kernel+mix only14.00/22.21/23.33us perblock in completedcases;
+partialcase3 none. Do not implement partialmaskfusion on frequency alone. Next
+attribute remaining producer/control/otherengine work; no more smallDX7fusion
+sweep. Parentunused410words, startup/DACalloc pass. Firstthreehashes unchanged.
+Stage7 inclusive, neveraddto0..6; no fixed12/analog acceptance. RX1022613 closed
+with twiceargvverify/oneSIGTERM; runner28099 terminal0/UART-15, PIDabsenttwice
+beforePINGACK. Reset1793145229.235222 consumed forever. Board healthyidle.
