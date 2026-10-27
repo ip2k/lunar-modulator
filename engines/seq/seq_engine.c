@@ -2246,6 +2246,50 @@ int fm1_seq_get_track(const fm1_seq_t *s, uint8_t t, fm1_seq_track_info_t *o) {
   return 1;
 }
 
+int fm1_seq_get_route(const fm1_seq_t *s, uint8_t t, fm1_seq_route_info_t *o) {
+  const sq_track_t *tr;
+  if (t >= s->n_tracks) return 0;
+  tr = &sq_ctracks(s)[t];
+  o->route_kind = tr->route_kind;
+  o->route_index = tr->route_index;
+  return 1;
+}
+
+int fm1_seq_get_session_track(const fm1_seq_t *s, uint8_t t,
+                              fm1_seq_session_track_info_t *o) {
+  const sq_track_t *tr;
+  const sq_clip_t *clips;
+  if (t >= s->n_tracks) return 0;
+  tr = &sq_ctracks(s)[t];
+  clips = sq_cclip(s, t, 0);
+  o->pos_tick = tr->pos_tick;
+  o->active = tr->active;
+  o->playing = tr->playing;
+  o->queued = tr->queued;
+  o->pending_stop = tr->pending_stop;
+  o->playing_length = 0;
+  o->playing_loop_start = 0;
+  o->clips = 0;
+  for (unsigned k = 0; k < FM1_SEQ_SLOTS; ++k) {
+    if (!clips[k].length_steps) continue;
+    o->clips = (uint8_t)(o->clips | (1u << k));
+    if (k == tr->playing) {
+      o->playing_length = clips[k].length_steps;
+      o->playing_loop_start = clips[k].loop_start;
+    }
+  }
+  return 1;
+}
+
+uint8_t fm1_seq_labeled_lanes(const fm1_seq_t *s, uint8_t t) {
+  uint8_t mask = 0;
+  if (t >= s->n_tracks) return 0;
+  const sq_track_t *track = &sq_ctracks(s)[t];
+  for (unsigned lane = 0; lane < FM1_SEQ_LANES; ++lane)
+    if (track->label[lane][0]) mask = (uint8_t)(mask | (1u << lane));
+  return mask;
+}
+
 const char *fm1_seq_lane_label(const fm1_seq_t *s, uint8_t t, uint8_t lane) {
   if (t >= s->n_tracks || lane >= FM1_SEQ_LANES) return "";
   return sq_ctracks(s)[t].label[lane];

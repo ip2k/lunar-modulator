@@ -452,6 +452,7 @@ int fm1_mod_set_param(fm1_mod_t *m, unsigned pos, unsigned index, float value) {
   const fm1_mod_kind_t *kd = mod_kind_at(m, pos);
   if (!kd || index >= kd->n_params) return 0;
   m->base[pos][index] = fm1_param_clamp(&kd->params[index], value);
+  m->param_dirty[pos] |= 1u << index;
   return 1;
 }
 
@@ -610,8 +611,8 @@ static void feed_trigger(fm1_mod_t *m, unsigned g, uint64_t at) {
 }
 
 static void feed_cv(fm1_mod_t *m, unsigned id, uint64_t at, float v) {
-  unsigned off;
-  const unsigned w = window_of(m, at, &off);
+  /* CV values select a window; only gate edges need a sub-frame offset. */
+  const unsigned w = at < m->next_tick ? 0u : 1u;
   m->pend_cv[w][id] = v;
   m->cv_has[w] |= 1ull << id;
 }
@@ -687,6 +688,7 @@ void mod_voices_drop(fm1_mod_t *m) {
 
 static int find_voice(const fm1_mod_t *m, unsigned sound, uint8_t key) {
   unsigned v;
+  if (!m->voice_ever_started) return -1;
   for (v = 0; v < FM1_MOD_VOICES; ++v) {
     const mod_voice_t *vc = &m->voice[v];
     if (vc->state != MOD_V_FREE && vc->sound == sound && vc->key == key) return (int)v;
@@ -740,6 +742,8 @@ static void voice_on(fm1_mod_t *m, uint64_t at, unsigned sound, uint8_t key, uin
     ++m->stats.voice_starts;
   }
   vc = &m->voice[v];
+  /* Never clear on release/reset/plan change: pending restoration may survive. */
+  m->voice_ever_started = 1;
   vc->state = MOD_V_HELD;
   vc->age = ++m->vage;
   vc->velocity = vel > 127 ? 127 : vel;
@@ -773,26 +777,64 @@ static void voice_off(fm1_mod_t *m, uint64_t at, unsigned sound, uint8_t key) {
   vc->state = MOD_V_RELEASED;
 }
 
+/* Resolve each note-on timestamp once. Pending trigger falls keep their own
+ * timestamps; their edges still use the generic path. Keep the append body
+ * shared: duplicating it in every gate helper exhausts target SRAM. */
+static __attribute__((noinline)) void note_window_edge(
+    fm1_mod_t *m, unsigned g, unsigned w, unsigned off, unsigned high) {
+  fm1_mod_gate_t *pg = &m->pend_g[w][g];
+  if (w == 1 && pg->n == 0) pg->start = (uint8_t)fm1_mod_gate_end(&m->pend_g[0][g]);
+  mod_gate_edge(pg, off, high, &m->stats.edges_dropped);
+  m->glvl_fed[g] = (uint8_t)(high != 0);
+}
+
+static inline __attribute__((always_inline)) void note_window_level(fm1_mod_t *m, unsigned g, uint64_t at, unsigned high, unsigned w, unsigned off) {
+  if ((m->glvl_fed[g] != 0) != (high != 0)) note_window_edge(m, g, w, off, high);
+}
+
+static inline __attribute__((always_inline)) void note_window_rtrg(fm1_mod_t *m, unsigned g, uint64_t *last, uint64_t at, unsigned w, unsigned off) {
+  if (m->glvl_fed[g] && *last != at) note_window_edge(m, g, w, off, 0);
+  if (*last != at || !m->glvl_fed[g]) note_window_edge(m, g, w, off, 1);
+  *last = at;
+}
+
+static inline __attribute__((always_inline)) void note_window_trigger(fm1_mod_t *m, unsigned g, uint64_t at, unsigned w, unsigned off) {
+  if (m->trig_fall[g] != MOD_NO_FRAME && m->trig_fall[g] <= at) {
+    feed_edge(m, g, m->trig_fall[g], 0);
+  }
+  m->trig_fall[g] = MOD_NO_FRAME;
+  if (m->glvl_fed[g]) note_window_edge(m, g, w, off, 0);
+  note_window_edge(m, g, w, off, 1);
+  m->trig_fall[g] = at + FM1_MOD_TICK;
+}
+
+static inline __attribute__((always_inline)) void note_window_cv(fm1_mod_t *m, unsigned id, unsigned w, float v) {
+  m->pend_cv[w][id] = v;
+  m->cv_has[w] |= 1ull << id;
+}
+
 static void note_at(fm1_mod_t *m, uint64_t at, unsigned sound, uint8_t key, uint8_t vel) {
   uint32_t *keys;
   if (key > 127 || sound >= FM1_MOD_SOUNDS) return;
   keys = m->keys[sound];
   if (vel) {
+    unsigned off;
+    const unsigned w = window_of(m, at, &off);
     const float v = (float)(vel > 127 ? 127 : vel) * (1.0f / 127.0f);
     const float n = (float)((int)key - 60) * (1.0f / 60.0f);
     keys[key >> 5] |= 1u << (key & 31u);
-    feed_level(m, G_KEY, at, 1);
-    feed_rtrg(m, G_RTRG, &m->rtrg_at, at);
-    feed_trigger(m, G_TRIG, at);
-    feed_cv(m, FM1_MOD_SRC_VEL, at, v);
-    feed_cv(m, FM1_MOD_SRC_NOTE, at, n);
-    feed_cv(m, FM1_MOD_SRC_RAND, at, fm1_mp_rng_bipolar(&m->note_rng));
+    note_window_level(m, G_KEY, at, 1, w, off);
+    note_window_rtrg(m, G_RTRG, &m->rtrg_at, at, w, off);
+    note_window_trigger(m, G_TRIG, at, w, off);
+    note_window_cv(m, FM1_MOD_SRC_VEL, w, v);
+    note_window_cv(m, FM1_MOD_SRC_NOTE, w, n);
+    note_window_cv(m, FM1_MOD_SRC_RAND, w, fm1_mp_rng_bipolar(&m->note_rng));
     /* This sound unit's own (MG9). */
-    feed_level(m, G_SKEY + sound, at, 1);
-    feed_rtrg(m, G_SRTRG + sound, &m->rtrg_at_s[sound], at);
-    feed_trigger(m, G_STRIG + sound, at);
-    feed_cv(m, FM1_MOD_SRC_S_VEL + sound, at, v);
-    feed_cv(m, FM1_MOD_SRC_S_NOTE + sound, at, n);
+    note_window_level(m, G_SKEY + sound, at, 1, w, off);
+    note_window_rtrg(m, G_SRTRG + sound, &m->rtrg_at_s[sound], at, w, off);
+    note_window_trigger(m, G_STRIG + sound, at, w, off);
+    note_window_cv(m, FM1_MOD_SRC_S_VEL + sound, w, v);
+    note_window_cv(m, FM1_MOD_SRC_S_NOTE + sound, w, n);
     voice_on(m, at, sound, key, vel);
   } else if (key_bit(keys, key)) {
     keys[key >> 5] &= ~(1u << (key & 31u));
@@ -1032,7 +1074,10 @@ static float contribution(fm1_mod_t *m, unsigned i, float min, float max, uint16
     c = a * c;
   } else if (log) {
     c = a * x;
-    c = c * fm1_log2f(max / min);
+    /* Optimizers may hoist this divide above the log branch. On pi32v2
+     * that traps for linear ranges starting at zero. Neutralize the unused
+     * denominator before division, preserving every logarithmic result. */
+    c = c * fm1_log2f(max / (min == 0.0f ? 1.0f : min));
   } else {
     c = a * x * (max - min);
   }
@@ -1171,8 +1216,20 @@ static void gate_merge(fm1_mod_t *m, uint32_t slots, fm1_mod_gate_t *g) {
  * ENUMs rounded. In a voice (MG9) the global slots, read globally (mono to
  * poly), and then the VOICE ones, read in the voice. */
 static void module_params(fm1_mod_t *m, unsigned pos, const fm1_mod_kind_t *kd, float *peff) {
-  unsigned i;
-  for (i = 0; i < kd->n_params; ++i) {
+  uint32_t pending = m->plan.routed[pos];
+  if (m->vctx != MOD_NONE) {
+    /* The global instance already refreshed unchanged and global parameters.
+     * Re-evaluate routed values in the original global-then-voice order. */
+    memcpy(peff, m->peff[pos], kd->n_params * sizeof(*peff));
+    pending |= m->plan.vrouted[pos];
+  } else {
+    const uint32_t valid = kd->n_params == 32u ? UINT32_MAX : (1u << kd->n_params) - 1u;
+    pending |= m->param_dirty[pos] & valid;
+    m->param_dirty[pos] = 0;
+  }
+  while (pending) {
+    const unsigned i = (unsigned)__builtin_ctz(pending);
+    pending &= pending - 1u;
     const fm1_param_t *p = &kd->params[i];
     const uint8_t d = m->plan.pdest[pos][i];
     const uint8_t vd = m->vctx != MOD_NONE && ((m->plan.vrouted[pos] >> i) & 1u)
@@ -1349,13 +1406,26 @@ static void take_system(fm1_mod_t *m) {
     m->pend_g[0][g].start = (uint8_t)fm1_mod_gate_end(&m->sys_gate[g]);
     mod_gate_clear(&m->pend_g[1][g], (unsigned)fm1_mod_gate_end(&m->pend_g[0][g]));
   }
-  for (id = 0; id < FM1_MOD_SRC_SYSTEM; ++id) {
-    if ((m->cv_has[0] >> id) & 1u) {
-      const float v = m->pend_cv[0][id];
-      if (mod_finite(v)) m->sys_cv[id] = v;
-      else ++m->stats.nonfinite;
+  /* Visit pending CVs in the original ascending order. Use 32-bit halves
+   * so the 32-bit target does not shift two 64-bit masks for every source.
+   * ctz is only defined for nonzero inputs; pending guards every call. */
+  for (unsigned half = 0; half < 2; ++half) {
+    const unsigned shift = half * 32u;
+    const uint32_t now = (uint32_t)(m->cv_has[0] >> shift);
+    const uint32_t next = (uint32_t)(m->cv_has[1] >> shift);
+    uint32_t pending = now | next;
+    while (pending) {
+      const unsigned bit = (unsigned)__builtin_ctz(pending);
+      const uint32_t mask = (uint32_t)1u << bit;
+      id = shift + bit;
+      if (now & mask) {
+        const float v = m->pend_cv[0][id];
+        if (mod_finite(v)) m->sys_cv[id] = v;
+        else ++m->stats.nonfinite;
+      }
+      if (next & mask) m->pend_cv[0][id] = m->pend_cv[1][id];
+      pending &= pending - 1u;
     }
-    if ((m->cv_has[1] >> id) & 1u) m->pend_cv[0][id] = m->pend_cv[1][id];
   }
   m->cv_has[0] = m->cv_has[1];
   m->cv_has[1] = 0;
@@ -1485,6 +1555,7 @@ static void voice_zero(fm1_mod_t *m, mod_voice_t *vc) {
  * gate is down and whose instances stopped moving ends. */
 static void run_voices(fm1_mod_t *m, const fm1_mod_transport_t *tp) {
   unsigned v, k;
+  if (!m->voice_ever_started) return;
   for (v = 0; v < FM1_MOD_VOICES; ++v) {
     mod_voice_t *vc = &m->voice[v];
     int moved = 0;
@@ -1568,6 +1639,7 @@ static uint32_t voice_out(fm1_mod_t *m, unsigned v, fm1_mod_write_t *out, uint32
 uint32_t fm1_mod_voice_writes(fm1_mod_t *m, fm1_mod_write_t *out, uint32_t cap) {
   uint32_t n = 0;
   unsigned v;
+  if (!m->voice_ever_started) return 0;
   for (v = 0; v < FM1_MOD_VOICES && n < cap; ++v) {
     if (m->voice[v].changed || m->voice[v].restore) n = voice_out(m, v, out, n, cap);
   }

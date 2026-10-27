@@ -491,9 +491,24 @@ static void FiltStartType(FilterInstance *self, int type) {
 /* The types, one frame (both channels) each                               */
 /* ---------------------------------------------------------------------- */
 
+FILT_INLINE uint32_t FiltBits(float x) {
+  uint32_t bits;
+  memcpy(&bits, &x, sizeof bits);
+  return bits;
+}
+
 FILT_INLINE void FiltSvf(FilterInstance *self, const float xin[2], float y[2]) {
   const FilterCoefs *k = &self->co;
-  for (int c = 0; c < 2; ++c) {
+  /* Equal input alone is insufficient: a previous stereo frame or spread
+   * can leave different histories. Compare representations, including -0. */
+  const SvfCh *h0 = &self->svf[0], *h1 = &self->svf[1];
+  const int mono = FiltBits(xin[0]) == FiltBits(xin[1]) &&
+                   FiltBits(k->g[0]) == FiltBits(k->g[1]) &&
+                   FiltBits(h0->ic1) == FiltBits(h1->ic1) &&
+                   FiltBits(h0->ic2) == FiltBits(h1->ic2) &&
+                   FiltBits(h0->v1) == FiltBits(h1->v1) &&
+                   FiltBits(h0->v2) == FiltBits(h1->v2);
+  for (int c = 0; c < (mono ? 1 : 2); ++c) {
     SvfCh *h = &self->svf[c];
     const float x = FiltPresat(xin[c], k->drv);
     const float g = k->g[c];
@@ -510,12 +525,26 @@ FILT_INLINE void FiltSvf(FilterInstance *self, const float xin[2], float y[2]) {
     const float hp = x - ke * v1 - v2;
     y[c] = (k->svf_w[0] * v2 + k->svf_w[1] * kSqrt2 * v1 + k->svf_w[2] * hp) * k->svf_comp;
   }
+  if (mono) {
+    self->svf[1] = self->svf[0];
+    y[1] = y[0];
+  }
 }
 
 FILT_INLINE void FiltLadder(FilterInstance *self, const float xin[2], float y[2]) {
   const FilterCoefs *k = &self->co;
   const float kf = k->lad_k;
-  for (int c = 0; c < 2; ++c) {
+  /* Reuse only bit-identical inputs, coefficients and complete histories. */
+  const LadderCh *h0 = &self->lad[0], *h1 = &self->lad[1];
+  const int mono = FiltBits(xin[0]) == FiltBits(xin[1]) &&
+                   FiltBits(k->G[0]) == FiltBits(k->G[1]) &&
+                   FiltBits(k->G4[0]) == FiltBits(k->G4[1]) &&
+                   FiltBits(h0->sigma) == FiltBits(h1->sigma) &&
+                   FiltBits(h0->s[0]) == FiltBits(h1->s[0]) &&
+                   FiltBits(h0->s[1]) == FiltBits(h1->s[1]) &&
+                   FiltBits(h0->s[2]) == FiltBits(h1->s[2]) &&
+                   FiltBits(h0->s[3]) == FiltBits(h1->s[3]);
+  for (int c = 0; c < (mono ? 1 : 2); ++c) {
     LadderCh *h = &self->lad[c];
     const float G = k->G[c];
     const float x = xin[c] * k->lad_cin;
@@ -531,6 +560,10 @@ FILT_INLINE void FiltLadder(FilterInstance *self, const float xin[2], float y[2]
       in = o;
     }
     y[c] = k->lad_w[0] * st[3] + k->lad_w[1] * st[2] + k->lad_w[2] * st[1] + k->lad_w[3] * st[0];
+  }
+  if (mono) {
+    self->lad[1] = self->lad[0];
+    y[1] = y[0];
   }
 }
 

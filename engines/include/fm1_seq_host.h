@@ -319,6 +319,9 @@ void fm1_seq_click_init(fm1_seq_click_t *c, uint32_t rate);
  * them. A NULL s sounds no new click. */
 void fm1_seq_click_mix(fm1_seq_click_t *c, const fm1_seq_t *s, const fm1_seq_ev_t *ev, uint32_t n,
                        uint32_t frames, float *lr);
+/* Same click history/arithmetic, with the metronome value sealed for this block. */
+void fm1_seq_click_mix_on(fm1_seq_click_t *c, int on, const fm1_seq_ev_t *ev, uint32_t n,
+                          uint32_t frames, float *lr);
 
 /* The parameter a lane label names: the part after the last ':' ("synth:
  * Timbre" names Timbre), compared without ASCII case, with '_' standing for

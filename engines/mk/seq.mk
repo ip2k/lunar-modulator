@@ -30,7 +30,7 @@ $(BUILD)/c-check/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(SEQ_CFLAGS) -DSQ_CHECK_INDEX -c $< -o $@
 
-all: $(BUILD)/fm1-seq $(BUILD)/fm1-seq-check $(BUILD)/fm1-seq-host-test $(BUILD)/fm1-mfx-pause-test
+all: $(BUILD)/fm1-seq $(BUILD)/fm1-seq-check $(BUILD)/fm1-seq-host-test $(BUILD)/fm1-mfx-pause-test $(BUILD)/fm1-seq-session-test
 
 $(BUILD)/fm1-seq: $(SEQ_TOOL_OBJ) $(SEQ_HOST_OBJ) $(SEQ_OBJ)
 	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm
@@ -60,3 +60,8 @@ $(BUILD)/fm1-mfx-pause-test: $(BUILD)/c/test/mfx_pause_test.o $(SEQ_OBJ) \
 	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm
 
 -include $(BUILD)/c/test/mfx_pause_test.d
+
+$(BUILD)/fm1-seq-session-test: $(BUILD)/c/test/seq_session_test.o $(SEQ_OBJ)
+	$(CC) $(OPT) $(EXTRA) -o $@ $^ -lm
+
+-include $(BUILD)/c/test/seq_session_test.d

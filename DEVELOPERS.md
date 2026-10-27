@@ -1214,6 +1214,10 @@ which lands with the plan PR; its stages S0–S7 are named below.
   - the kit's application-sector install/restore rehearsal passed with an
     exact full-flash comparison, and a UART resampler benchmark ran all
     eighteen cases [verified: [bench results](notes/2026-10-22-devkit-uart-bringup.md)];
+  - an opt-in [dev-kit internal-DAC probe](firmware/devkit/README.md) is
+    built with capture screening; installation, real instrument/effect audio
+    and sustained dropout acceptance are still pending
+    ([active campaign](notes/2026-10-23-devkit-audio-performance.md));
   - the gate on the owner's unit (I9): met on 2026-10-26 with stock V15 as
     the restore target, with [docs/17](docs/17-pico2w-recovery.md) as the
     fallback (owner, 2026-10-26); the next step, first Lunar code in RAM,

@@ -216,6 +216,9 @@ void mod_plan_build(fm1_mod_t *m) {
   uint32_t voice_ok = 0, live = 0, to_module = 0;
   unsigned i, u, pos;
 
+  /* A removed or moved cable must restore the base on the next tick. */
+  memset(m->param_dirty, 0xff, sizeof(m->param_dirty));
+
   memcpy(old_routed, p->sink_routed, sizeof(old_routed));
   memcpy(old_vd, p->vd, sizeof(old_vd));
   memcpy(old_voff, p->voff, sizeof(old_voff));
