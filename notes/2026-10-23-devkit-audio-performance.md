@@ -7668,3 +7668,17 @@ state bytes exact, including per-note fallback probes. The native candidate is
 built independently on clean V133, without Drums specialization or profiling.
 Only per-block pure Env Time/brightness/feedback preparation is shared; every
 voice retains its state advancement and ordered mix. Native gain is unmeasured.
+
+
+[verified: V137/V138 native falsification] The initial DX7 block-control build
+failed the DAC1536-byte allocation before audio (heap4980, fragmented), so it has
+no timing result. Moving only cold DX7 Init to flash freed512SRAM bytes; native
+Init is at0x203d18a, RenderBlock remains at0x1c1cdf2, with task stacks unchanged.
+V138 starts DAC successfully with3924heap bytes afterward. First3complete PCM
+hashes remain exact; heavy139blocks starve10304, backend0. Producer means are
+24643/28638/31118/36181ticks vsV13324878/28887/31337/36237. Heavy gain56ticks
+(~2.3us) is insufficient and truncated sample populations differ. IRQmax1014,
+late0/gaps0, parent445unused. No additional common-cache layout variants planned.
+The next substantial candidate is a bounded copied-state suffix-voice kernel
+assist on CPU1, with prepare/ordered mix still on CPU0; design/ownership review
+precedes implementation. No deadline/analog/soak acceptance is claimed.
