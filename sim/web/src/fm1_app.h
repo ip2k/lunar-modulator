@@ -834,7 +834,8 @@ size_t fm1_app_ram_of(const fm1_engine_t *e);
  * the host saves the project and calls fm1_app_saved with the result:
  * `ok` shows the L1 banner "SAVED" with the RAM figure, else the refusal
  * "NOT SAVED" and `why`. Without a store the press says there is none.
- * Nothing is ever written to a device (CLAUDE.md, the one rule). */
+ * Nothing is ever written to a device (CLAUDE.md, hardware experimentation
+ * policy). */
 void fm1_app_saved(fm1_app_t *a, int ok, const char *why);
 
 /* For the state layer (fm1_app_state.c): a message popup (`tone`
