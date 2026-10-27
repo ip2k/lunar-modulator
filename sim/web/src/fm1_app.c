@@ -976,7 +976,9 @@ static uint32_t seq_auto_note_on(void *ctx, uint32_t frame, unsigned slot, uint8
 static void seq_auto_base(fm1_app_t *a, unsigned unit, unsigned index, unsigned v7) {
   if (!a->seq) return;
   for (unsigned t = 0; t < FM1_APP_SEQ_TRACKS; ++t) {
+    const uint8_t labeled = fm1_seq_labeled_lanes(a->seq, (uint8_t)t);
     for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
+      if (!(labeled & (1u << l))) continue;
       fm1_app_seq_target_t target;
       if (seq_auto_target(a, t, l, &target) && target.unit == unit && target.index == index &&
           target.base != v7) {

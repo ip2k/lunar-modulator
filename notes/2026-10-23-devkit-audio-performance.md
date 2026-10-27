@@ -7872,3 +7872,29 @@ no cache/layout cause is established. V167 instead tests sharing bookkeeping
 for the original ordered fall/rise trigger pair. Extracted full-state fixtures
 and complete modulation-state traces pass normally and under sanitizers; its
 native speed is pending. No new30-minute or blanket analog acceptance is claimed.
+
+### 2026-10-27: empty automation lanes remove the remaining short burst miss
+
+[verified] The three-cycle V170 adaptive65/60 floor2 run completed 66,156 blocks
+with zero producer deadline misses, zero consumer misses and zero DAC faults or
+gaps. Producer maxima were 32,646 / 28,846 / 31,148 / 33,835 ticks against the
+unchanged 34,829-tick budget. All requested note-ons still execute; this is
+adaptive-polyphony evidence, not fixed-12-voice acceptance. V169 helper placement
+alone did not solve the miss and was rejected.
+
+The retained change computes a fresh mask of nonempty sequencer lane labels in
+`seq_auto_base`, skipping only empty-label target resolution. Populated lanes
+retain their original resolver, ascending order and base-update commands. No
+cached label state, PCM transformation or note-admission cap is introduced.
+The automation fixture checks all 256 label masks across every app track,
+including clearing and unrelated labels. Normal host automation and the actual
+recorded-decision replay pass: 16,935,936 PCM bytes, case hashes, fold, controls,
+voice statistics and captured state agree under normal and ASan/UBSan builds.
+The actual browser rebuild passes 108 JavaScript/musl PCM parity cases; no new
+Chromium playback acceptance is claimed.
+
+V171 extends the same diagnostic to 57 continuous cycles (1,256,964 blocks,
+about 30.4 minutes) with single-file six-channel analog capture. At this writing
+that run is live, not accepted. The frozen left-channel physical fault detector
+calibrates; an independent right-channel calibration currently refuses its
+held-out correlation, so stereo analog acceptance remains unqualified.

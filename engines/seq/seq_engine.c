@@ -2281,6 +2281,15 @@ int fm1_seq_get_session_track(const fm1_seq_t *s, uint8_t t,
   return 1;
 }
 
+uint8_t fm1_seq_labeled_lanes(const fm1_seq_t *s, uint8_t t) {
+  uint8_t mask = 0;
+  if (t >= s->n_tracks) return 0;
+  const sq_track_t *track = &sq_ctracks(s)[t];
+  for (unsigned lane = 0; lane < FM1_SEQ_LANES; ++lane)
+    if (track->label[lane][0]) mask = (uint8_t)(mask | (1u << lane));
+  return mask;
+}
+
 const char *fm1_seq_lane_label(const fm1_seq_t *s, uint8_t t, uint8_t lane) {
   if (t >= s->n_tracks || lane >= FM1_SEQ_LANES) return "";
   return sq_ctracks(s)[t].label[lane];

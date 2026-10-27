@@ -452,6 +452,8 @@ int fm1_seq_get_track(const fm1_seq_t *s, uint8_t track, fm1_seq_track_info_t *o
 int fm1_seq_get_route(const fm1_seq_t *s, uint8_t track, fm1_seq_route_info_t *out);
 int fm1_seq_get_session_track(const fm1_seq_t *s, uint8_t track,
                               fm1_seq_session_track_info_t *out);
+/* Fresh mask of nonempty lane labels; no cached state or mutation. */
+uint8_t fm1_seq_labeled_lanes(const fm1_seq_t *s, uint8_t track);
 const char *fm1_seq_lane_label(const fm1_seq_t *s, uint8_t track, uint8_t lane);
 int fm1_seq_get_clip(const fm1_seq_t *s, uint8_t track, uint8_t slot, fm1_seq_clip_info_t *out);
 int fm1_seq_get_note(const fm1_seq_t *s, uint8_t track, uint8_t slot, uint16_t i,
