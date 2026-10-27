@@ -8609,3 +8609,31 @@ passed. All14 postmerge CI jobs also pass. Pages deploy succeeds and served
 WASM/metadata match committed hashes. These are integration/deployment claims,
 not broader hardware acceptance. New fixed-polyphony performance branch starts
 from that merge; no firmware source changed for V189.
+
+### First-pair overwrite improves fixed12 transport, deadline still fails (V190)
+
+[verified] A private algorithm-five candidate writes the first carrier pair into
+its fresh voice buffer, then accumulates the remaining pairs in the original
+order. Original accumulating API and all refusal fallbacks remain. Full44104
+block host differential produces22581248 identical PCM bytes in original,
+changed and ASan/UBSan variants. Directed19456kernelcases include5584refusals,
+all operator/feedback state and poisoned-output preservation; original nonzero
+accumulation remains exact. Existing shift-sanitizer exclusion is explicit.
+
+[verified] The native fixed12 run completes all66156blocks/12cases in96330ms,
+with zero DACfault/backend/consumer misses/transportlate/gaps,64drain callbacks,
+steady idle and finite worker exit. V189 exhausted the ready queue after21527
+outputs/31.29s. This is useful transport improvement, NOT deadline acceptance:
+V190 producer misses3337blocks; percase means24751/28167/30535/33807ticks and
+maxima35865/34985/39750/45704 exceed the unchanged34829tick budget. Case totals
+are16539 each; V189 partial/first-cycle aggregates are not a clean speedup ratio.
+No analog capture or fixed12 acceptance. Target-matched full replay pending.
+
+[verified] App-only install after acknowledged UARTentry/freshROM58, one unique
+reset, no backups/fullreadbacks/rehearsals. SoleRX955703 exits normally; runner
+terminal0, PIDabsent twice before ordinaryPINGACK. Parentunused689words,
+worker1322words; heap49708/afterinit7764/afterDAC6196. Raw/facts/ELF retained
+privately in overwrite-v190 lanes. Native firstpair stores directly without old
+outputload/add. Candidate not promoted to tracked firmware yet. Next bounded
+experiment fuses finalcarrier/mix pass with exact gain/lifecycle semantics;
+extra register pressure must be measured, not assumed beneficial.
