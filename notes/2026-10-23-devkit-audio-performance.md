@@ -7301,3 +7301,32 @@ follow the final tagged submission before task-context stop. The host callback
 mock is not proof of hardware pointer ordering or actual analog first samples.
 Actual continuous underruns, full IRQ cost, memory headroom and physical capture
 remain the next gates. No backup, factory-restore or full-readback cycle was used.
+
+### V103 continuous DAC: underrun isolated to sustained producer capacity
+
+[verified: fresh dev-board UART] The first actual continuous DAC run fails after
+24.3 seconds of playback, during the held twelve-voice case. The first three
+cases each complete 5,513 blocks with exact expected PCM hashes. The fourth
+stops after 200 blocks when the completed-output ring becomes empty. Its
+producer averages 35,968 OSC24M ticks (1,498.667 us), above the unchanged
+34,829-tick (1,451.208 us) block budget. Consumer average is 32,162 ticks.
+The full audio IRQ maximum is only 351 ticks (14.625 us), with no recorded
+cadence-gap faults. Buffering and copying therefore do not resolve the remaining
+producer deficit. The segmented V102 capacity screen hid this sustained held-note
+cost by including its release period and periodic pauses.
+
+[verified: diagnostic lifecycle] The transport reports permanent fault 10304
+(unavailable completed output), emits silence, and stops the DAC. Both backend
+error words remain zero. UART remains responsive after closing the sole receiver;
+no crash, backup, restore rehearsal or full-flash readback occurred. The reset
+receipt is consumed and will not be retried. This is a failed hardware performance
+test, not analog or sustained acceptance. Raw UART and strict failure facts stay
+private under `scratch/devkit-20261023/renderer-two-slot-v103-exports`.
+
+[verified: host tests; target gain unknown] Astra identified redundant recording
+and replay of CPU0's own engine commands. V104 executes sound0/2/3 directly in
+the original sequencer dispatcher and records only deferred Macro sound1, retaining
+insert/level boundaries, immutable work slots and ordered shared mixing. Normal
+and ASan/UBSan threaded tests match all 5,645,312 PCM bytes exactly. Additional
+source-grounded engine-state comparison precedes target testing. No timing gain
+is claimed from the host proof.
