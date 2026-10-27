@@ -7512,3 +7512,40 @@ bits have not been decoded. These samples cannot establish what CPU1 did
 while CPU0 slept, and unpaused PCRS is not a validated continuous PC trace.
 No physical FM-1 traffic was issued. Production integration, scheduler fairness
 and clean analog acceptance remain unfinished.
+
+### CPU1 affinity loss isolated; first native correction
+
+[verified: native V125/V126] Bounded read-only observations taken before the
+SDK tick scheduler showed CPU1 in the idle hook during the long Macro callback.
+V126 independently captured both current-task and selected-task arrays: the first
+eleven rows contained the two idle tasks, even though the worker callback was
+unfinished. The probe cost five to six oscillator ticks. These observations
+resolve the earlier post-wake sampling blind spot without pausing either CPU.
+
+[verified: pinned SDK IR and bounded model] Astra identified a matching selector
+path: the shared descending-priority traversal initially consumes a CPU1-pinned
+candidate for CPU0, then loses that candidate after affinity rejection. A late
+copy repair was rejected offline because it can exhaust the candidate mask on
+an idle-task migration edge. It was never installed. Early interception retains
+the first CPU1-pinned candidate before consuming a lower CPU1 candidate. The
+model reproduces the original failure, the rejected repair's exhaustion, and
+the early correction's valid selection. General equal-priority mixed-affinity
+round-robin fairness remains unproven; this is a bounded diagnostic correction.
+
+[verified: native V128] With that early interception in a private build-copy SDK,
+original worker priority 16 and ordinary interrupts, the traced final 32-frame
+Macro render took 12,042 oscillator ticks (501.75 us), versus about 40.12 ms in
+V126. Work remained three native blocks, 33 pushes and 32 pops. The first three
+mixed cases completed all 5,513 blocks with expected hashes 6bcab227, 46c02687
+and 1e2f305d. The fourth case ran 123 blocks before output starvation fault
+10304. No backend error or callback timeout was recorded. Producer means were
+24,544 / 28,460 / 30,936 / 36,388 ticks; the last exceeds the unchanged 34,829
+budget. Maximum full IRQ was 1,325 ticks (55.21 us). This removes the observed
+large scheduling stalls but does not establish dropout-free playback.
+
+[verified: lifecycle] The sole receiver was closed once after two exact argument
+checks, reached terminal status and its PID was absent before ordinary PING ACK.
+V128 and all older reset receipts are consumed and must never be retried. Raw
+UART and SDK artifacts stay private and are mirrored on Aeon. Next is a run
+without per-sample timer probes and with the original low-priority canaries
+restored. No physical FM-1 traffic occurred; PR155 remains draft and unmerged.
