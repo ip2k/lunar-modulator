@@ -316,3 +316,17 @@ build uses the documented read-only toolchain mount. No device operation yet.
 Rarefaction cannot resolve this external worktree's new devkit files from its
 main-checkout root; Serena resolves the exact worktree timing symbol. Neither
 index proves the pi32v2 ABI or target code generation.
+
+### Native controller integration: allocation regression
+
+[verified] V144 booted with UART recovery and arithmetic intact, but DAC open
+failed allocating its 1,536-byte ring. Heap capacity fell from 46,316 to 45,900
+bytes; no audio workload ran, so this image has no performance result. The
+receive-only process was closed and ordinary PING acknowledged.
+
+[verified] Moving only the feedback wrapper to flash in V144b built successfully
+but left heap capacity unchanged; it was not installed. Linker comparison found
+RenderBlock grew by 398 SRAM bytes with the new 64-bit ranking implementation.
+V144c moves block-boundary ranking and the typed control API to flash while
+preserving the DSP kernels and policy semantics; native build is in progress.
+Target allocation and timing remain unverified. No backups or readbacks repeated.
