@@ -92,3 +92,94 @@ No tracked engine default or hardware acceptance gate changed. The heartbeat
 now explicitly preserves this opt-in adaptive-polyphony exception and remains
 active. Dynamic retiring/fades, controller hysteresis and representative
 30-minute analog soaks remain future work.
+
+
+## Dynamic render-owned budget: V142b
+
+[verified] A private opt-in runtime limit prototype starts with twelve slots.
+Only the CPU0 producer changes its DX7 instance's limit, for the next block;
+CPU1 and the DAC interrupt do not mutate voice allocation. New-note admission
+retains same-key retrigger and released/oldest stealing. When lowering the
+limit, retirement prefers released voices, then lower previous carrier gain,
+then age. A retiring voice renders one final 64-frame gain-to-zero block.
+Raising the limit admits future notes rather than resurrecting retired notes.
+The fade still costs a full rendering block and has not been listening-tested.
+
+[verified] Normal and ASan/UBSan host tests cover unchanged default twelve,
+repeated setting to twelve, and changes twelve/eight/twelve/four/twelve.
+Default/no-op twelve is byte identical over all 5645312 PCM bytes; dynamic
+normal and sanitizer output agrees, with active-count bounds and released-key
+retirement checks. The controller has separate normal/sanitizer checks for
+sustained load, queue headroom, isolated jitter, slow recovery, limits four to
+twelve, invalid elapsed time and bounded trace overflow refusal. This does
+not establish target race/cache/whole-stack or listening acceptance.
+
+The measured policy uses a quarter-weight moving render-time average. Four
+consecutive checks above 90 percent of budget with at most three ready output
+buffers reduce the limit one step; a missed block with at most one ready
+buffer triggers an urgent reduction. Capacity recovers one step after 1024
+consecutive low-load blocks below 80 percent of budget with at least three
+ready buffers. There is a two-block cooldown and a diagnostic 32-decision cap.
+The latter is intentionally finite and is not a production/30-minute policy.
+
+### Memory failure and correction
+
+[verified] V142 linked and booted but could not open the DAC: a 1536-byte
+allocation failed with total heap45548 and free4628. No audio was produced;
+this was not a controller performance result. V142b moves DX7 NoteOn,
+Allocate, SetVoiceLimit, BudgetStats and the end-of-run budget report to
+non-inlined flash `.text`; hot sample arithmetic stays unchanged. It also
+corrects inherited absolute build include roots to the exact copied source.
+Native symbol placement was checked. The linked heap increases768 bytes to
+46316; target free5396 before DAC and3828 after. The DAC then opens normally.
+SDK link audit has zero failures; its dormant SDK scheduling item remains a
+manual review caveat. No full backup, restore rehearsal or readback was run.
+
+### Target and independent decision replay
+
+[verified] V142b completes all 22052 produced/harvested/submitted blocks with
+transport fault0, backend0, off0, close0, interrupt late0, gaps0 and drain35.
+IRQ maximum977 ticks; ready minimum1. Parent unused445 words and worker
+unused1834 words. Ordinary PING acknowledges after the owned receiver is
+closed, terminal and absent. The V142 and V142b reset receipts are consumed.
+
+| Mixed case | Producer mean ticks | Mean microseconds | Producer deadline misses | Consumer deadline misses |
+| --- | ---: | ---: | ---: | ---: |
+| 0 | 24957 | 1039.88 | 1 | 0 |
+| 1 | 28853 | 1202.21 | 3 | 0 |
+| 2 | 31268 | 1302.83 | 47 | 0 |
+| 3 | 30313 | 1263.04 | 100 | 0 |
+
+[verified] The six limit changes are block1 to11, block1029 to12,
+block16624 to11, block16628 to10, block16632 to9 and block16636 to8.
+Final active8, limit8, retired4, stolen9, trace overflow0. The initial
+reduction before the light case is unnecessary startup sensitivity to fix.
+The first three cases retain the original twelve-slot PCM hashes
+`6bcab227`, `46c02687`, `1e2f305d`; the heavy case changes to `2b958a05`.
+
+The native dynamic fixture cannot know timing-dependent decisions in advance,
+so its static twelve-slot hash expectation is replaced only in the private
+experiment by mandatory independent recorded-decision replay. Per-buffer
+producer/consumer hash equality, transport, counts, invalid/clipped, and
+underrun checks remain intact. The original production gate is unchanged.
+Normal and ASan/UBSan host replay each complete22052 blocks/5645312 bytes;
+all four target case hashes and active/shed/stolen statistics match exactly.
+Host PCM SHA256 `00edab1af5cb621be04ab02b292ddcdc0c6102f01e38f1c5ec3825d7845f0b6c`.
+
+[verified] Short buffered mixed playback survives with adaptive retirement;
+this is not a zero-producer-deadline-miss result. Heavy maximum44699 ticks
+still exceeds34829 (1451.21 us). There is no KA6/analog or sustained30-minute
+acceptance yet. The runtime API/controller remain private experimental copies;
+tracked default twelve-slot behavior is unchanged. Next: ignore startup-only
+pressure, react earlier to sustained overload, replace the finite diagnostic
+trace for production, then integrate an explicit opt-in render-owned API with
+reproducible tests and assess perceptual retirement plus sustained output.
+
+Private reproduction scripts: `voice-limit-v142-transform.py`,
+`voice-limit-v142-proof.py`, `prepare-voice-budget-v142.py`,
+`refine-voice-budget-v142.py`, `prepare-voice-budget-v142b.py`,
+`test-voice-budget-v142.py`, `replay-voice-budget-v142.py` under
+`scratch/devkit-20261023`, mirrored on Aeon with source trees and logs.
+Target facts `v142b-target-facts.json`, replay `v142b-replay-summary.json`.
+UART SHA256 `9e4f820bef9e54537e1712069b30516eb5c2b142fecaf1dcff1c1be337c690ed`.
+Candidate SHA256 `53b30ef0adf63bb1f5e4563410a9fd05d65e8b10c29e6fdcf65c087c059b0480`.
