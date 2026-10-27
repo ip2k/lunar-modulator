@@ -8453,3 +8453,22 @@ An initial isolated whole-app replay without extra offset probes also passed bot
 builds. No target timing/race/cache/whole-stack proof is implied; TSAN unavailable.
 Astra's bounded source review found no further semantic delta in the compared
 engine paths. Final native build and fresh target acceptance remain pending.
+
+### V186 tracked native confirmation: one note-on burst miss (2026-10-27)
+
+[verified] New tracked image boots through recovery/arithmetic and completes66156
+blocks /12cases with finite CPU1 exit and continuous zero idle. Consumer deadline
+misses0; DACfault/backend/late/gaps0,64zero drain. Producer has ONE deadline miss:
+tag38591, the eighth case's first note-on burst,35539ticks versus34829limit.
+The firmware correctly reports complete0, so this is NOT timing acceptance.
+Adaptive floor3, nine decreases, finalactive3/limit3/shed0/stolen246.
+Normal+ASAN target-decision replay has16935936exact PCMbytes, all12hashes/fold/
+2238controls/statistics match target and retained V185 replay. Analog captured;
+no new analog acceptance claimed. Both capture processes exited0/absent twice
+before ordinary PING ACK. Reset1793117270.0738947 consumed forever.
+
+[verified] New opt-in --burst-hot placement experiment keeps NoteOn/Allocate
+(348B/620B in V186) in SRAM instead of XIP. No arithmetic/voice/event transformation;
+default placement remains retained baseline. Three actual preparation tests pass
+0.63s, including separate receipt and selected XIP list. Native timing benefit is
+unknown until the new image runs. Bounded native build is the next dependency.

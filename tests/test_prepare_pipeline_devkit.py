@@ -42,15 +42,15 @@ def sdk_fixture(tmp_path):
     return sdk, correction
 
 
-@pytest.mark.parametrize('adaptive,cycles', [(False, 3), (True, 57)])
-def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptive, cycles):
+@pytest.mark.parametrize('adaptive,cycles,burst_hot', [(False, 3, False), (True, 57, False), (True, 3, True)])
+def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptive, cycles, burst_hot):
     module = load_prepare()
     sdk, correction = sdk_fixture(tmp_path)
     # Substitute only private input identities in this synthetic SDK test.
     monkeypatch.setattr(module, 'ORIGINAL_SYSTEM_SHA256', module.sha256(sdk/module.SYSTEM))
     monkeypatch.setattr(module, 'PIPELINE_SYSTEM_SHA256', module.sha256(correction))
     out = tmp_path/'prepared'
-    module.prepare_pipeline(sdk, ROOT, out, correction, adaptive, cycles)
+    module.prepare_pipeline(sdk, ROOT, out, correction, adaptive, cycles, burst_hot)
     assert (sdk/module.SYSTEM).read_bytes() == b'original fixture archive'
     assert (out/module.SYSTEM).read_bytes() == correction.read_bytes()
     app = out/'apps/demo/demo_hello'
@@ -79,9 +79,11 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
         if path.exists():
             assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
     dx7 = (out/'lunar-source/engines/src/msfa_dx7.cc').read_text()
-    assert '  __attribute__((noinline, section(".text"))) void NoteOn(uint8_t key, uint8_t velocity)' in dx7
+    assert ('  __attribute__((noinline, section(".text"))) void NoteOn(uint8_t key, uint8_t velocity)' in dx7) != burst_hot
     assert 'extern "C" __attribute__((noinline, section(".text"))) int fm1_dx7_set_voice_limit(' in dx7
-    assert dx7.count('__attribute__((noinline, section(".text")))') == 8
+    assert dx7.count('__attribute__((noinline, section(".text")))') == (6 if burst_hot else 8)
+    assert receipt['pipeline_burst_hot'] == burst_hot
+    assert len(receipt['pipeline_xip_functions']) == (6 if burst_hot else 8)
     assert 'BlockControls common = {};' in dx7
     assert receipt['pipeline_dx7_block_controls']
     assert receipt['pipeline_sound1_frontier_frames'] == 8

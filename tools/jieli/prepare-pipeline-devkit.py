@@ -59,11 +59,13 @@ PIPELINE_XIP = (
 )
 
 
-def place_pipeline_xip(staging):
+def place_pipeline_xip(staging, burst_hot=False):
     path = staging / 'engines/src/msfa_dx7.cc'
     text = path.read_text()
     attribute = '__attribute__((noinline, section(".text"))) '
     for anchor in PIPELINE_XIP:
+        if burst_hot and anchor in ('  void NoteOn(uint8_t key, uint8_t velocity)', '  Voice *Allocate(uint8_t key)'):
+            continue
         if anchor.startswith('extern "C" '):
             replacement = 'extern "C" ' + attribute + anchor[len('extern "C" '):]
         else:
@@ -224,7 +226,7 @@ def checked_replace(text, before, after):
     return text.replace(before, after, 1)
 
 
-def adapt_pipeline(out, source, renderer, adaptive_three, cycles):
+def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=False):
     """Replace legacy worker mode, never its recovery or lifecycle bodies."""
     app = out / 'apps/demo/demo_hello'
     main = app / 'app_main.c'
@@ -243,7 +245,7 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles):
         'CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n', flags))
     # The pinned compiler's code_seg pragma is retained only in private copies.
     # Original functions remain unchanged; newly split hot paths need placement.
-    place_pipeline_xip(staging)
+    place_pipeline_xip(staging, burst_hot)
     prepare_vcf_main(staging)
     dx7 = staging / 'engines/src/msfa_dx7.cc'
     dx7.write_text(dx7_block_controls(dx7.read_text()))
@@ -271,7 +273,8 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles):
         'pipeline_system_correction': SELECTOR_CORRECTION,
         'pipeline_system_original_sha256': ORIGINAL_SYSTEM_SHA256,
         'pipeline_system_sha256': PIPELINE_SYSTEM_SHA256,
-        'pipeline_xip_functions': PIPELINE_XIP,
+        'pipeline_xip_functions': [x for x in PIPELINE_XIP if not (burst_hot and ('NoteOn(' in x or 'Allocate(' in x))],
+        'pipeline_burst_hot': burst_hot,
         'pipeline_vcf_main_output': True,
         'pipeline_dx7_block_controls': True,
         'pipeline_sound1_frontier_frames': 8,
@@ -289,7 +292,7 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles):
     receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
 
 
-def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3):
+def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3, burst_hot=False):
     if isinstance(cycles, bool) or not 1 <= cycles <= 57:
         raise ValueError('Pipeline cycles must be 1..57')
     if out.exists() or out.is_symlink():
@@ -311,7 +314,7 @@ def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cyc
     target.write_bytes(corrected_bytes)
     if sha256(target) != PIPELINE_SYSTEM_SHA256:
         raise ValueError('Prepared scheduler copy mismatch')
-    adapt_pipeline(out, source, renderer, adaptive_three, cycles)
+    adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot)
 
 
 if __name__ == '__main__':
@@ -323,6 +326,7 @@ if __name__ == '__main__':
                         help='Private reviewed scheduler archive; copied only to output SDK')
     parser.add_argument('--adaptive-three', action='store_true', help='Explicit adaptive65/60 floor3 experiment; default fixed12')
     parser.add_argument('--cycles', type=int, default=3, help='Four-case cycles, 1..57; 57 is about 30.4 minutes')
+    parser.add_argument('--burst-hot', action='store_true', help='Experiment: move DX7 NoteOn/Allocate from XIP into SRAM; no DSP changes')
     args = parser.parse_args()
     prepare_pipeline(args.sdk.resolve(), args.source.resolve(), args.out.absolute(),
-                     args.pipeline_system_archive.resolve(), args.adaptive_three, args.cycles)
+                     args.pipeline_system_archive.resolve(), args.adaptive_three, args.cycles, args.burst_hot)
