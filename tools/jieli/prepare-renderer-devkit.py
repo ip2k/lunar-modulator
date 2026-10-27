@@ -421,7 +421,9 @@ EVENT_RAM_FUNCTIONS = {
                              b"void fm1_app_set_param", b"void fm1_app_unit_set_level",
                              b"static void play_on"),
     "engines/mod/mod_core.c": (b"static void feed_edge", b"static void feed_cv",
-                               b"static void note_at"),
+                               b"static void note_at",
+                               b"static __attribute__((noinline)) void note_window_edge",
+                               b"uint32_t fm1_mod_voice_start"),
 }
 
 

@@ -777,26 +777,64 @@ static void voice_off(fm1_mod_t *m, uint64_t at, unsigned sound, uint8_t key) {
   vc->state = MOD_V_RELEASED;
 }
 
+/* Resolve each note-on timestamp once. Pending trigger falls keep their own
+ * timestamps; their edges still use the generic path. Keep the append body
+ * shared: duplicating it in every gate helper exhausts target SRAM. */
+static __attribute__((noinline)) void note_window_edge(
+    fm1_mod_t *m, unsigned g, unsigned w, unsigned off, unsigned high) {
+  fm1_mod_gate_t *pg = &m->pend_g[w][g];
+  if (w == 1 && pg->n == 0) pg->start = (uint8_t)fm1_mod_gate_end(&m->pend_g[0][g]);
+  mod_gate_edge(pg, off, high, &m->stats.edges_dropped);
+  m->glvl_fed[g] = (uint8_t)(high != 0);
+}
+
+static inline __attribute__((always_inline)) void note_window_level(fm1_mod_t *m, unsigned g, uint64_t at, unsigned high, unsigned w, unsigned off) {
+  if ((m->glvl_fed[g] != 0) != (high != 0)) note_window_edge(m, g, w, off, high);
+}
+
+static inline __attribute__((always_inline)) void note_window_rtrg(fm1_mod_t *m, unsigned g, uint64_t *last, uint64_t at, unsigned w, unsigned off) {
+  if (m->glvl_fed[g] && *last != at) note_window_edge(m, g, w, off, 0);
+  if (*last != at || !m->glvl_fed[g]) note_window_edge(m, g, w, off, 1);
+  *last = at;
+}
+
+static inline __attribute__((always_inline)) void note_window_trigger(fm1_mod_t *m, unsigned g, uint64_t at, unsigned w, unsigned off) {
+  if (m->trig_fall[g] != MOD_NO_FRAME && m->trig_fall[g] <= at) {
+    feed_edge(m, g, m->trig_fall[g], 0);
+  }
+  m->trig_fall[g] = MOD_NO_FRAME;
+  if (m->glvl_fed[g]) note_window_edge(m, g, w, off, 0);
+  note_window_edge(m, g, w, off, 1);
+  m->trig_fall[g] = at + FM1_MOD_TICK;
+}
+
+static inline __attribute__((always_inline)) void note_window_cv(fm1_mod_t *m, unsigned id, unsigned w, float v) {
+  m->pend_cv[w][id] = v;
+  m->cv_has[w] |= 1ull << id;
+}
+
 static void note_at(fm1_mod_t *m, uint64_t at, unsigned sound, uint8_t key, uint8_t vel) {
   uint32_t *keys;
   if (key > 127 || sound >= FM1_MOD_SOUNDS) return;
   keys = m->keys[sound];
   if (vel) {
+    unsigned off;
+    const unsigned w = window_of(m, at, &off);
     const float v = (float)(vel > 127 ? 127 : vel) * (1.0f / 127.0f);
     const float n = (float)((int)key - 60) * (1.0f / 60.0f);
     keys[key >> 5] |= 1u << (key & 31u);
-    feed_level(m, G_KEY, at, 1);
-    feed_rtrg(m, G_RTRG, &m->rtrg_at, at);
-    feed_trigger(m, G_TRIG, at);
-    feed_cv(m, FM1_MOD_SRC_VEL, at, v);
-    feed_cv(m, FM1_MOD_SRC_NOTE, at, n);
-    feed_cv(m, FM1_MOD_SRC_RAND, at, fm1_mp_rng_bipolar(&m->note_rng));
+    note_window_level(m, G_KEY, at, 1, w, off);
+    note_window_rtrg(m, G_RTRG, &m->rtrg_at, at, w, off);
+    note_window_trigger(m, G_TRIG, at, w, off);
+    note_window_cv(m, FM1_MOD_SRC_VEL, w, v);
+    note_window_cv(m, FM1_MOD_SRC_NOTE, w, n);
+    note_window_cv(m, FM1_MOD_SRC_RAND, w, fm1_mp_rng_bipolar(&m->note_rng));
     /* This sound unit's own (MG9). */
-    feed_level(m, G_SKEY + sound, at, 1);
-    feed_rtrg(m, G_SRTRG + sound, &m->rtrg_at_s[sound], at);
-    feed_trigger(m, G_STRIG + sound, at);
-    feed_cv(m, FM1_MOD_SRC_S_VEL + sound, at, v);
-    feed_cv(m, FM1_MOD_SRC_S_NOTE + sound, at, n);
+    note_window_level(m, G_SKEY + sound, at, 1, w, off);
+    note_window_rtrg(m, G_SRTRG + sound, &m->rtrg_at_s[sound], at, w, off);
+    note_window_trigger(m, G_STRIG + sound, at, w, off);
+    note_window_cv(m, FM1_MOD_SRC_S_VEL + sound, w, v);
+    note_window_cv(m, FM1_MOD_SRC_S_NOTE + sound, w, n);
     voice_on(m, at, sound, key, vel);
   } else if (key_bit(keys, key)) {
     keys[key >> 5] &= ~(1u << (key & 31u));

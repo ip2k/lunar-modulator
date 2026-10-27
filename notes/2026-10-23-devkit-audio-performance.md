@@ -7746,3 +7746,38 @@ Chromium playback underruns. Private evidence stays in scratch/devkit-20261023
 and the matching bounded Aeon lane. Successful directed raw state/PCM traces are
 removed after exact comparisons and hash reports; logs and receipts remain.
 Mac free space at this checkpoint: 1,155 GiB (above the owner's500GiBfloor).
+
+## 2026-10-27 note-on window sharing and continuous soak
+
+[verified: host] Note-on routing now computes its current/next modulation window
+and offset once, reusing those coordinates for current-note gate and CV writes.
+Pending trigger falls retain their independently classified timestamps. Directed
+normal and ASan/UBSan comparisons preserve all runtime/write bytes, including
+boundary/wrap, retrigger, overflow and per-voice lifecycle cases. The tracked
+note-window and voice-lifecycle tests pass (four variants); five SRAM-placement
+source-preservation tests pass on a fresh source archive. An older transformed
+proof staging tree initially failed placement assertions; fresh tracked source
+resolves that staging error without changing the assertions.
+
+[verified: target] V158 shares the edge append body in SRAM and puts voice-start
+there too. All22,052 producer and consumer blocks meet the unchanged34,829-tick
+budget; worst producer34,607. DAC transport faults, backend errors, interrupt
+lateness and gaps are zero. This uses labelled adaptive12-to4 voice admission,
+not fixed twelve-voice acceptance. Inlining every append copy instead exhausted
+SRAM and failed DAC allocation; the shared body avoids that regression.
+
+[verified: physical probe] V159 repeats the passing short timing run with a
+6KiB worker stack and four intentional missing64-frame outputs. All four are
+detected in the channel0 analog capture above482 nearby controls each. The
+calibrated analog correlation is0.9922. This fault-injected run is not clean
+audio acceptance, and those local controls alone do not establish sensitivity
+for the entire signal. Worker unused stack is5,288bytes; post-DAC heap5,588.
+
+[in progress] V160 removes fault injection and runs57 continuous four-case
+cycles,1,256,964blocks (about30.4minutes), without DSP reset. A1,860-second KA6
+capture and sole1,900-second UART receiver are running. Final target counters,
+actual adaptive-decision host replay, and a calibrated full-recording analog
+scan are required before claiming sustained acceptance. No fixed-polyphony,
+physical FM-1, merge or release acceptance is implied. Evidence and one-shot
+reset receipts remain private in scratch/devkit-20261023 and the Aeon lane.
+Mac free space at this checkpoint:1,150GiB.
