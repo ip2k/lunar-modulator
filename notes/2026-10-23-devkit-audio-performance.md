@@ -8477,3 +8477,25 @@ unknown until the new image runs. Bounded native build is the next dependency.
 methods, isolating placement from LTO inlining/code-growth changes. Three updated
 preparation tests pass0.63s; incremental vendor rebuild passes. No new target
 result yet. The earlier no-noinline intermediate link was not admitted or flashed.
+
+### Tracked burst placement passes short run; long soak live (V187/V188)
+
+[verified] Opt-in SRAM NoteOn/Allocate trial V187 completes66,156blocks12cases
+with producer maxima32,010/29,482/31,023/34,037ticks below unchanged34,829;
+producer/consumer misses0, DACfault/backend/late/gaps0, drain64, finite exit.
+Normal and ASAN/UBSAN actual-decision replay matches16,935,936PCMbytes, all12
+hashes,fold and2238controls. Adaptive65/60 starts12, endsactive3/limit3,
+nine decreases,shed0/stolen246; this is not fixed12 acceptance. No short analog
+acceptance yet. Both capture processes exit0 and are absent before ordinaryPING.
+
+[verified limit] Allocate remains620B; NoteOn expands348->992B despite explicit
+noinline, so the comparison does not isolate memory latency from generated-code
+changes. SRAM heap49,516B with6,004B afterDAC; native placement/SDK bounded review
+has no blocker. Arithmetic/event/voice-selection source stays unchanged.
+
+[verified start only] V188 changes only run length3->57cycles: all645staged source
+files matchV187; native function sizes unchanged. It is installed application-only
+through acknowledgedUART recovery. SoleUART and1900s single-streamKA6capture are
+armed before one unique reset. Expected228cases/1,256,964blocks (~30.4min).
+Timing, actual-decision replay and frozen analog/endpoint analysis remain pending.
+No backups/fullreadbacks/restore rehearsals. PR155 draft/open/unmerged.
