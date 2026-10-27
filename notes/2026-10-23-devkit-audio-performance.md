@@ -8199,3 +8199,24 @@ proof harness omitted the now-shared coefficient definitions; adding the actual
 native definitions fixed that harness link error. Native V183 app grows128bytes
 and fits the existing range. These offline results do not establish target gain.
 No production/default policy change or fixed-polyphony acceptance is implied.
+
+
+### Three-voice adaptive trial passes; sustained test started (V183/V184, 2026-10-27)
+
+[verified] Reusing the exact Drums readiness specialization with adaptive65/60,
+initial12 and floor3 completes66,156blocks with producer maxima32,264/29,755/
+32,129/34,379ticks and zero misses against34,829ticks. Consumer misses and DAC
+fault/backend/late/gaps are zero; drain64 and finite exit. Normal and ASan/UBSan
+replay of the recorded decisions match all12 hashes,2238 controls and16,935,936
+PCM bytes. Final active3/limit3/shed0/stolen246. This is adaptive evidence, not
+fixed12 acceptance. The earlier floor3 run without this specialization missed
+once by67ticks; these single runs do not establish a sustained gain.
+
+[verified start only] V184 changes only the run length from3 to57cycles, about
+30.4minutes. After acknowledged UART recovery entry and application-only flash,
+sole UART and KA6 capture were armed before one unique reset. The1900s analog
+capture and1980s UART receiver are running; timing, replay and frozen analog
+analysis remain pending. No backups, full readbacks or restore rehearsals were
+performed. Reset receipts are consumed and cannot be retried. Private handoff
+contains exact paths, process IDs and continuation steps. PR155 remains draft,
+open and unmerged; no sustained or physical FM-1 acceptance is claimed.
