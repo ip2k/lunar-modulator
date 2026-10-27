@@ -8637,3 +8637,30 @@ privately in overwrite-v190 lanes. Native firstpair stores directly without old
 outputload/add. Candidate not promoted to tracked firmware yet. Next bounded
 experiment fuses finalcarrier/mix pass with exact gain/lifecycle semantics;
 extra register pressure must be measured, not assumed beneficial.
+
+### Final-pair/mix fusion state proof (V191)
+
+[verified] A separate private variant fuses the final carrier sum with the
+original voice gain ramp and integer mixing loop, retaining the complete voice
+buffer and unchanged lifecycle/fallback state. Full app differential normal and
+ASan/UBSan preserves 22581248 PCM bytes over 44104 blocks. Directed kernel tests
+cover 38912 cases including 11134 refusals and four invalid gain refusals.
+Complete Instance/owned-LUT/PCM streamed comparison also passes at 44118/96000Hz:
+108146096/135091296 compared bytes per build, 96 retirement, 64 adapter and
+11 prepared lifecycle cases. Existing legacy shift sanitizer exclusion remains.
+
+[verified] Native fusion is inlined in SRAM; local RenderBlock frame grows by
+88 bytes (288 to 376). This is a measured code-generation tradeoff, not target
+speed or whole-stack proof. Native test is running using fixed12 and the same
+three-cycle burst-hot workload as V190. No analog acceptance or promotion yet.
+
+[verified target] V191 completes all66156 blocks/12cases in96330ms, with zero
+DAC/backend/consumer/transport faults and finite exit. Producer deadline still
+fails:2971 misses, cases1/1/18/2951. Means24736/28106/30440/33688 ticks;
+maxima35799/34837/39562/45385 against34829. Equal-length V190 means improve
+only0.061/0.217/0.311/0.352 percent; misses3337 ->2971. All four case hashes
+and full12case fold match the prior exact replay. Single run, not sustained or
+analog/fixed12 acceptance. Parentunused689words, worker1322; heap48556.
+Receiver960421 exits normally; runner88188 terminal0, PIDabsent twice before
+PINGACK. Board healthy idle; reset1793131112.6934278 consumed forever.
+Next larger producer bottleneck review, no more fusion/unroll sweep.
