@@ -8434,3 +8434,22 @@ functions and bad-input refusal. First native full link passed before final XIP
 placement correction. Broad historical cold-constructor experiments were checked
 and excluded because the retained successful pipeline did not use them. Final
 native placement/link and fresh target results remain pending; no board action.
+
+### Retained pipeline source parity (2026-10-27)
+
+[verified] The separate pipeline preparer now carries three retained private-build
+optimizations previously missing: VCF main-only finishing/shared zero-Q coefficients,
+DX7 block-local common controls with independent per-note fallback, and the fixed
+sound1 first-eight-frame frontier before later tick/event hooks. Only prepared
+pipeline copies change; generic/default sequencer and browser source remain intact.
+The frontier is fixed-workload geometry, not a general hook-ordering guarantee.
+
+[verified] Eleven bounded Aeon tests pass (35.80s): full-source preparation/refusal,
+40000-call VCF full-state/main-output checks, and whole-app original baseline versus
+transformed immediate/delayed pipeline, normal plus ASAN/UBSAN. Each whole-app path
+has 44104 blocks / 22581248 float PCM bytes exact, with all eight per-note offset
+combinations and changing global controls, plus ownership/lifetime refusals.
+An initial isolated whole-app replay without extra offset probes also passed both
+builds. No target timing/race/cache/whole-stack proof is implied; TSAN unavailable.
+Astra's bounded source review found no further semantic delta in the compared
+engine paths. Final native build and fresh target acceptance remain pending.

@@ -72,6 +72,148 @@ def place_pipeline_xip(staging):
     path.write_text(text)
 
 
+def vcf_main_output(header, body, macro):
+    """Keep full VCF API; omit only discarded aux finishing in Macro model0.
+
+    Identical zero-resonance coefficients share their original rounded g/r/h.
+    Both filters still advance. Nonzero or transitioning resonance uses the
+    original independent coefficient path. Main-only leaves aux workspace live
+    for the sub oscillator/input, skipping only its final unused SoftClip/store.
+    """
+    header = checked_replace(header, ' private:\n  stmlib::Svf svf_[2];',
+        '  void RenderMain(const EngineParameters& parameters, float* out, float* aux,\n'
+        '      size_t size, bool* already_enveloped);\n private:\n'
+        '  void RenderImpl(const EngineParameters& parameters, float* out, float* aux,\n'
+        '      size_t size, bool* already_enveloped, bool main_only);\n  stmlib::Svf svf_[2];')
+    body = checked_replace(body, 'void VirtualAnalogVCFEngine::Render(\n',
+        'void VirtualAnalogVCFEngine::Render(\n'
+        '    const EngineParameters& p, float* out, float* aux, size_t n, bool* enveloped) {\n'
+        '  RenderImpl(p, out, aux, n, enveloped, false);\n}\n'
+        'void VirtualAnalogVCFEngine::RenderMain(\n'
+        '    const EngineParameters& p, float* out, float* aux, size_t n, bool* enveloped) {\n'
+        '  RenderImpl(p, out, aux, n, enveloped, true);\n}\n\n'
+        'void VirtualAnalogVCFEngine::RenderImpl(\n')
+    body = checked_replace(body, '    bool* already_enveloped) {',
+        '    bool* already_enveloped, bool main_only) {')
+    q = '  const float q = resonance_sqr * resonance_sqr * 48.0f;'
+    body = checked_replace(body, q, q + '\n  const bool shared_coefficients = previous_q_ == 0.0f && q == 0.0f;')
+    body = checked_replace(body,
+        '    svf_[0].set_f_q<FREQUENCY_FAST>(cutoff, 0.5f + q);\n'
+        '    svf_[1].set_f_q<FREQUENCY_FAST>(cutoff, 0.5f + 0.025f * q);',
+        '    if (shared_coefficients) {\n'
+        '      const float g = OnePole::tan<FREQUENCY_FAST>(cutoff);\n'
+        '      const float r = 2.0f;\n'
+        '      const float h = 1.0f / (1.0f + r * g + g * g);\n'
+        '      svf_[0].set_g_r_h(g, r, h);\n'
+        '      svf_[1].set_g_r_h(g, r, h);\n'
+        '    } else {\n'
+        '      svf_[0].set_f_q<FREQUENCY_FAST>(cutoff, 0.5f + q);\n'
+        '      svf_[1].set_f_q<FREQUENCY_FAST>(cutoff, 0.5f + 0.025f * q);\n    }')
+    body = checked_replace(body, '    aux[i] = SoftClip(hp * gain);',
+        '    if (!main_only) aux[i] = SoftClip(hp * gain);')
+    macro = checked_replace(macro,
+        '      v.engine->Render(p, v.out, v.aux, kBlockSize, &already_enveloped);',
+        '      if (model_ == MODEL_VA_VCF) {\n'
+        '        static_cast<VirtualAnalogVCFEngine *>(v.engine)->RenderMain(\n'
+        '            p, v.out, v.aux, kBlockSize, &already_enveloped);\n'
+        '      } else {\n'
+        '        v.engine->Render(p, v.out, v.aux, kBlockSize, &already_enveloped);\n      }')
+    return header, body, macro
+
+
+def prepare_vcf_main(staging):
+    base = staging / 'engines/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine'
+    paths = (base.with_suffix('.h'), base.with_suffix('.cc'), staging/'engines/src/mi_macro.cc')
+    result = vcf_main_output(*(path.read_text() for path in paths))
+    for path, text in zip(paths, result):
+        path.write_text(text)
+
+
+def dx7_block_controls(s):
+    """Cache only identical global controls within one native render block."""
+    def once(a,b):
+        nonlocal s
+        s=checked_replace(s,a,b)
+    if 'BlockControls' in s:
+        raise ValueError('DX7 block controls already prepared')
+    once('  void RenderBlock() {', '''  struct BlockControls {
+    unsigned valid;
+    uint32_t speed, env_speed;
+    int32_t bright;
+    int feedback;
+  };
+
+  void RenderBlock() {
+    BlockControls common = {};''')
+    once('RenderPair(v, voice_[next], lfo_val, lfo_delay, mix);','RenderPair(v, voice_[next], lfo_val, lfo_delay, mix, common);')
+    once('RenderVoice(&v, lfo_val, lfo_delay);','RenderVoice(&v, lfo_val, lfo_delay, common);')
+    once('int32_t lfo_delay, int32_t *mix) {','int32_t lfo_delay, int32_t *mix, BlockControls &common) {')
+    once('PrepareVoice(&first, lfo_val, lfo_delay),','PrepareVoice(&first, lfo_val, lfo_delay, common),')
+    once('PrepareVoice(&second, lfo_val, lfo_delay) };','PrepareVoice(&second, lfo_val, lfo_delay, common) };')
+    once('void RenderVoice(Voice *v, int32_t lfo_val, int32_t lfo_delay) {','void RenderVoice(Voice *v, int32_t lfo_val, int32_t lfo_delay, BlockControls &common) {')
+    once('PrepareVoice(v, lfo_val, lfo_delay));','PrepareVoice(v, lfo_val, lfo_delay, common));')
+    once('int PrepareVoice(Voice *v, int32_t lfo_val, int32_t lfo_delay) {','int PrepareVoice(Voice *v, int32_t lfo_val, int32_t lfo_delay, BlockControls &common) {')
+    once('''    const float bright = v->note.Value(kParams, P_BRIGHTNESS, value_[P_BRIGHTNESS]);
+    const float env_time = v->note.Value(kParams, P_ENV_TIME, value_[P_ENV_TIME]);
+    const float fb_offset = v->note.Value(kParams, P_FEEDBACK, value_[P_FEEDBACK]);
+''','')
+    once('''    const uint32_t speed = static_cast<uint32_t>(Exp2::lookup(ToQ24(0.5f - env_time, kEnvTimeQ24)));
+    const uint32_t env_speed =
+        static_cast<uint32_t>((static_cast<uint64_t>(speed) * env_rate_q24_) >> 24);''','''    uint32_t speed, env_speed;
+    if (v->note.has(P_ENV_TIME)) {
+      const float env_time = v->note.Value(kParams, P_ENV_TIME, value_[P_ENV_TIME]);
+      speed = static_cast<uint32_t>(Exp2::lookup(ToQ24(0.5f - env_time, kEnvTimeQ24)));
+      env_speed = static_cast<uint32_t>((static_cast<uint64_t>(speed) * env_rate_q24_) >> 24);
+    } else {
+      if (!(common.valid & 1u)) {
+        common.speed = static_cast<uint32_t>(Exp2::lookup(ToQ24(0.5f - value_[P_ENV_TIME], kEnvTimeQ24)));
+        common.env_speed = static_cast<uint32_t>((static_cast<uint64_t>(common.speed) * env_rate_q24_) >> 24);
+        common.valid |= 1u;
+      }
+      speed = common.speed; env_speed = common.env_speed;
+    }''')
+    once('''    const int32_t bright_q24 = ToQ24(bright - 0.5f, kBrightnessQ24);''','''    int32_t bright_q24;
+    if (v->note.has(P_BRIGHTNESS)) {
+      const float bright = v->note.Value(kParams, P_BRIGHTNESS, value_[P_BRIGHTNESS]);
+      bright_q24 = ToQ24(bright - 0.5f, kBrightnessQ24);
+    } else {
+      if (!(common.valid & 2u)) {
+        common.bright = ToQ24(value_[P_BRIGHTNESS] - 0.5f, kBrightnessQ24);
+        common.valid |= 2u;
+      }
+      bright_q24 = common.bright;
+    }''')
+    once('''    int fb = v->feedback + Round(fb_offset);''','''    int fb_offset;
+    if (v->note.has(P_FEEDBACK)) {
+      fb_offset = Round(v->note.Value(kParams, P_FEEDBACK, value_[P_FEEDBACK]));
+    } else {
+      if (!(common.valid & 4u)) {
+        common.feedback = Round(value_[P_FEEDBACK]);
+        common.valid |= 4u;
+      }
+      fb_offset = common.feedback;
+    }
+    int fb = v->feedback + fb_offset;''')
+    return s
+
+
+def pipeline_sound_frontier(text):
+    """Fixed sound1 geometry only; never move insert or master processing."""
+    if 'cur[1] < 8' in text:
+        raise ValueError('Pipeline frontier already prepared')
+    text = checked_replace(text,
+        '  const uint32_t nw = hk->tick(hk->ctx, tf, &w, &next);',
+        '  /* Publish sound1 first eight frames before later control hooks. */\n'
+        '  if (n > 1 && slots[1].sink && cur[1] < 8 && tf >= 8)\n'
+        '    slot_upto(h, &slots[1], &cur[1], 8);\n'
+        '  const uint32_t nw = hk->tick(hk->ctx, tf, &w, &next);')
+    return checked_replace(text,
+        '    hk->event(hk->ctx, f, e, sl ? 1 + (int)(sl - slots) : 0);',
+        '    if (n > 1 && slots[1].sink && cur[1] < 8 && f >= 8)\n'
+        '      slot_upto(h, &slots[1], &cur[1], 8);\n'
+        '    hk->event(hk->ctx, f, e, sl ? 1 + (int)(sl - slots) : 0);')
+
+
 def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -102,6 +244,11 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles):
     # The pinned compiler's code_seg pragma is retained only in private copies.
     # Original functions remain unchanged; newly split hot paths need placement.
     place_pipeline_xip(staging)
+    prepare_vcf_main(staging)
+    dx7 = staging / 'engines/src/msfa_dx7.cc'
+    dx7.write_text(dx7_block_controls(dx7.read_text()))
+    seq = staging / 'engines/seq/seq_host.c'
+    seq.write_text(pipeline_sound_frontier(seq.read_text()))
     app_source = staging / 'sim/web/src/fm1_app.c'
     app_source.write_bytes(renderer.place_hook_ram(app_source.read_bytes(), PIPELINE_APP_HOT))
     live = staging / 'firmware/devkit/renderer_live.c'
@@ -125,6 +272,9 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles):
         'pipeline_system_original_sha256': ORIGINAL_SYSTEM_SHA256,
         'pipeline_system_sha256': PIPELINE_SYSTEM_SHA256,
         'pipeline_xip_functions': PIPELINE_XIP,
+        'pipeline_vcf_main_output': True,
+        'pipeline_dx7_block_controls': True,
+        'pipeline_sound1_frontier_frames': 8,
         'pipeline_hot_functions': [x.decode() for x in PIPELINE_APP_HOT] + ['static int pipeline_convert'],
         'prepared_app_main_sha256': sha256(main),
         'prepared_board_makefile_sha256': sha256(makefile),

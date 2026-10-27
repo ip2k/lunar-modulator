@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import pytest
 ROOT=Path(__file__).resolve().parents[1]
+BASELINE_ROOT=ROOT
+REPLAY_SOURCE=ROOT/'tests/fixtures/renderer_pipeline/app_replay.c'
 MODULES='dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance'
 
 @pytest.mark.parametrize('sanitize',[False,True])
@@ -15,19 +17,20 @@ def test_app_pipeline_pcm_and_refusal(tmp_path,sanitize):
         pytest.skip('native clang toolchain unavailable')
     dev=tmp_path/'devkit';shutil.copytree(ROOT/'firmware/devkit',dev)
     live=dev/'renderer_live.c'
-    live.write_text(live.read_text()+'\n'+(ROOT/'tests/fixtures/renderer_pipeline/app_replay.c').read_text())
+    live.write_text(live.read_text()+'\n'+REPLAY_SOURCE.read_text())
     # The fixture owns main; leave the normal renderer object list intact.
     (dev/'renderer_reference.c').write_text('/* main supplied by app_replay.c */\n')
     results=[]
     for pipeline in (False,True):
+        source_root = ROOT if pipeline else BASELINE_ROOT
         build=tmp_path/('pipeline' if pipeline else 'baseline')
         flags='-O2 -ffp-contract=off -DFM1_APP_EXTERNAL_ARENAS=1'
         if pipeline:flags+=' -DFM1_APP_RENDER_PIPELINE=1'
         if sanitize:flags+=' -fsanitize=address,undefined -fno-sanitize=shift -fno-omit-frame-pointer'
         exe=build/'fm1-devkit-renderer-ref'
-        subprocess.run(['make','-s','-C',str(ROOT/'engines'),'-f','Makefile','-f',
-                        str(ROOT/'sim/web/mk/sim.mk'),'-f',str(ROOT/'tools/jieli/renderer.mk'),
-                        f'DEVKIT={dev}',f'SIM={ROOT / "sim/web"}',f'BUILD={build}',
+        subprocess.run(['make','-s','-C',str(source_root/'engines'),'-f','Makefile','-f',
+                        str(source_root/'sim/web/mk/sim.mk'),'-f',str(source_root/'tools/jieli/renderer.mk'),
+                        f'DEVKIT={dev}',f'SIM={source_root / "sim/web"}',f'BUILD={build}',
                         'FM1_GPL_MODS=0',f'FM1_MODULES={MODULES}',f'CC={cc}',f'CXX={cxx}',
                         f'EXTRA={flags}','-j4',str(exe)],check=True,stdout=subprocess.DEVNULL)
         env=dict(os.environ,ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1')
