@@ -536,3 +536,19 @@ unchanged. The preparer records the input-header hash and rejects layout drift;
 vendored files in the checkout stay unchanged. V58's heavy mixed mean improved
 from 1732.500 to 1714.125 us in one run, but the 34829-tick deadline still fails.
 This is an optimization result, not sustained or physical audio acceptance.
+
+
+### Opt-in adaptive burst policy
+
+`voice_budget.h` exposes `lunar_voice_budget_init_burst_safety()` for the
+explicitly reduced-polyphony 65% pressure / 60% recovery experiment. It starts
+at twelve voices, has a two-voice floor and retains the existing four-sample
+pressure and 1024-observation recovery hysteresis. Every note-on still executes
+or steals; it is not an admission cap. Existing initializers keep their original
+thresholds and four-voice floor, and inclusion alone enables no policy.
+
+The private V176 dev-board image used equivalent policy behavior during its
+30.4-minute soak; see `notes/2026-10-23-devkit-audio-performance.md`. The new named
+initializer has host policy/equivalence tests; those do not establish new target
+code generation or fixed-polyphony acceptance. Log the selected policy, actual
+limit changes, steals, deadline misses and underruns when integrating it.

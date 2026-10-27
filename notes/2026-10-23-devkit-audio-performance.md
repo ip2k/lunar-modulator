@@ -8050,3 +8050,34 @@ endpoint/capture receipts) and the corresponding Aeon lane. Exact tracked
 source64f2e2b7 and notes9125a371 CI runs both completed successfully, all14 jobs;
 Pages succeeded. PR155 remains draft/open/unmerged; this milestone does not
 complete the wider instrument and physical-unit review/acceptance work.
+
+
+### Reproducible named adaptive policy (2026-10-27)
+
+[verified: host integration only] The 65% pressure / 60% recovery / two-voice
+floor behavior used privately since V163 is now exposed by the explicit opt-in
+`lunar_voice_budget_init_burst_safety()`. Existing original, 85% headroom and
+75% burst initializers retain their thresholds and four-voice floor. No default
+call site or running dev-board image changes. The new headroom selector is3;
+the private soak policy had patched selector2, so this is behavior equivalence,
+not a claim of identical new native instructions.
+
+[verified] Eight focused policy cases pass normally and with ASan/UBSan on
+bounded Aeon (4 CPUs, 2 GiB). The original three policies retain their previous
+10,000-observation recovery bounds; the new two-voice policy permits enough
+observations for all ten increases. Exact boundary tests exercise strict65%
+pressure, strict60% recovery and the1024-observation recovery delay. Refusal,
+startup, saturation and repeated load/recovery ownership tests remain intact.
+A separate private differential compares the legacy V163 transform and the new
+named policy across1,800,000 observations in each normal/sanitizer run: every
+state field except the intentionally distinct selector, cap decision and callback
+cap agrees, with1210 decreases/1200 increases. There is no new hardware timing,
+analog or fixed-polyphony acceptance. V176 remains the installed accepted test
+image. Rarefaction cannot reach this external worktree from its main-checkout
+root; Serena locates the new symbol in the actual worktree; file inspection and
+bounded compiled proofs cover this change.
+
+Evidence and lifecycle: v177-policy-integration under the existing private Aeon
+lane retains small test/equivalence logs and the comparison inputs; temporary
+compiler executables and pytest outputs clean themselves on exit. This is an
+integration checkpoint toward reproducible experiments, not a new soak result.
