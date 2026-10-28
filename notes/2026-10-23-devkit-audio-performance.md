@@ -8756,3 +8756,17 @@ UART0; PID absent twice before PING ACK. Reset1793147293.0247676 consumed foreve
 No analog soak on a failing fixed12 candidate. Existing adaptive soak acceptance
 remains separate. Evidence/raw/ELF/source retained privately; reproducible own
 SDK/proof builds removed after mount/process checks. Mac free1185GiB.
+
+
+[verified sampled attribution, V199] Probes now reach the actual conversion
+branch and its early return. Across three complete cases, whole drums means
+414.16–416.80 µs and native RenderBlock100.10–100.92 µs, with observer overhead.
+First output of each render segment samples interpolation pair2.353–2.396 µs
+and final FIR2.476–2.553 µs. FIR timing includes the prior stage's observer add;
+sample counts are retained, and these are not a full-stream/pristine projection.
+The instrumented fixed12 run stops with queue10304 after16,694produced/
+16,692submitted blocks; last case155produced blocks is partial. No acceptance.
+Receiver1034964 twice argv verified/oneSIGTERM, terminal runner/UART-15 and PID
+absence twice before PING ACK. Reset1793148010.0566008 consumed forever.
+Next exact-integer candidate uses one phase product to derive both complementary
+tap offsets, preserving all floating-point arithmetic and filter coefficients.
