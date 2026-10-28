@@ -9009,3 +9009,47 @@ change, native image, reset or hardware acceptance claim. V209 terminal0; own
 source/build/PCM removed automatically, logs/report/counted source retained
 privately in this lane. Mac1196GiB free. Current board remains V204 idle;
 fixed12 still fails, while adaptive V188's completed30min soak remains separate.
+
+
+[verified V211/V212 Drums zero-step experiment, 2026-10-28; rejected]
+The retained V191 Drums mix evaluates a gain ramp over12 native samples even
+when its computed step is exactly zero. Private V211 compares the original
+and specialized loop's complete mix/peak bits inside every voice block:
+273625 zero-step voice blocks, zero nonzero ramps in the full fixture.
+Both normal and ASan/UBSan preserve22581248 PCM bytes /44104 blocks at the
+existing SHA86d325255cf4a4918d8c18f7f011b5692b8cd1e38fcdb0b731e8e17bdd475436.
+A separate100000-case directed normal/sanitizer arithmetic test passes with
+signed zeros, subnormals, nonfinite operands and nonzero ramp fallback. Its
+initial fixture incorrectly forced NaN gain with zero step; corrected it to
+compute the original step=(g1-g0)/12. Specialization hoists g0+step, preserving
+signed-zero addition; no persistent state, rate, event or voice change.
+
+V212 native combines only this loop specialization with already-proven V201
+filter source on the retained V191 baseline. Initial build attempts used empty
+toolchain mounts and failed before compilation; actual readonly toolchain is
+sdk-v1213-gpl-int/toolchain/current. Final native build and link audit pass
+(the usual unchanged SDK scheduling note remains). Application-only candidate
+ends0x95c9c. No backups, full-flash readbacks or factory rehearsals performed.
+Acknowledged UART entry and fresh ROM USB71 preceded app-only install; sole
+RX1083200 armed before the one reset1793158962.5983536, consumed forever.
+Fresh startup completes all66156 blocks /12 cases in96330ms, all four PCM
+hashes match V201, four arithmetic operation/count/result-bit records match
+V191. Producer means24140/27587/29919/33262ticks; misses0/0/1/1865, still FAIL
+unchanged34829 deadline. Consumer late, transport/backend/DAC faults and gaps0.
+Parent unused689words, worker1322words; no whole-stack/concurrency proof claim.
+
+Versus V201 means24145/27596/29923/33263, gain is only0.003..0.033percent in
+one run. Heavy maximum44061 versus43818 is slightly worse. Reject this change
+as immaterial; do not promote it or claim fixed12 acceptance. The completed
+adaptive V18830min soak remains separate; no fixed12 analog soak on failure.
+Parser adaptation first assumed a nonexistent V201 arithmetic field, then
+compared variable timing statistics; corrected to exact operation/count/result
+bits from V191, retaining all timing values and the original deadline gate.
+
+RX1083200 twice exact-argv verified, ONE SIGTERM, runner30763 terminal0/UART-15;
+PID absent twice before ordinary PING ACK. Board V212 now healthy idle.
+Private source/scripts/reports/ELF/disassembly/raw capture retained in this
+lane and Aeon renderer-drums-zero-v212-exports. Own V211 source/build/PCM and
+V212 SDK removed after evidence export; baseline dependencies kept. No tracked
+DSP change. Mac1196GiB free. Next inspect correctly-covered Drums conversion
+stage costs rather than repeat blind loop rewrites or this rejected gain loop.
