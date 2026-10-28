@@ -8787,3 +8787,40 @@ runner terminal0/UART-15, PID absence twice before PING ACK. Private SDK/proof
 source cleaned after evidence retention. No fixed12 or analog acceptance, and no
 firmware source promotion. Astra follow-up is auditing larger exact opportunities
 instead of another blind resampler micro-optimization.
+
+
+[verified host and target, V201] Stable-Ladder cutoff-only updates retain Drive,
+resonance and mode coefficients whose inputs did not change. All original glides,
+pitch prewarp, channel G/G4 arithmetic, sample DSP and transition fallbacks remain.
+Astra's exact-source follow-up identified this bounded opportunity; its report
+also rejects any claim that it can alone close the fixed-12 deficit. Host replay
+counted 300,054 eligible updates out of 352,832 control steps. A differential
+harness compared all 656 state bytes and output bits after 540,960 API operations
+across five sample rates, six types, seven Ladder modes, control/type transitions,
+irregular partitions, counter wrap and guarded nonfinite input. Normal and
+ASan/UBSan passed; both full 44,104-block / 22,581,248-byte mixed replays match
+the unchanged reference. Initial harness compile lacked its private DSP header
+include path; corrected before running, with no relaxed checks.
+
+The uninstrumented dev-board trial completed 66,156 blocks in 12 cases and
+96,330 ms. Producer means 24,145 / 27,596 / 29,923 / 33,263 ticks are 1.26–2.39%
+lower than V191 in this single comparison. Deadline misses fell from 2,971 to
+1,883 (36.62%); case counts are 0 / 0 / 2 / 1,881. Maxima 34,587 / 32,551 /
+38,259 / 43,818 still exceed the unchanged 34,829-tick deadline in the heavy
+cases. This is a partial gain, NOT fixed-polyphony acceptance. All four complete
+PCM hashes match V191. Consumer deadline misses, transport/backend faults and
+callback gap flags are zero; all blocks submitted, drain 64, idle 170, finite
+worker exit. Parent unused 689 words; worker 1,322 words. Heap unchanged.
+No failing fixed-12 analog soak; the earlier adaptive V188 soak remains separate.
+
+Current V201 is healthy idle with ordinary PING ACK. Receiver 1039804 exited
+naturally (UART 0, runner 0) before the attempted ownership check; no SIGTERM was
+sent. PID absence was verified twice before PING. Reset 1793149096.5759914 is
+consumed forever. Private source, proof harness, reports, ELF, raw UART and install
+receipts are retained; own reproducible SDK/build/PCM data is cleaned after export.
+No tracked firmware promotion yet. Next measure correlated same-tag producer and
+consumer maxima using existing completion timings, with bounded records replacing
+the first-eight-overrun list. This avoids guessing available CPU1 headroom from
+independent maxima. The existing first late event already totals 72,101 ticks,
+above the two-core 69,658-tick service budget; same-block transfer alone cannot
+fix that observed event without also removing work or legally rescheduling it.
