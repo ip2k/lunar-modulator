@@ -8962,3 +8962,24 @@ unchanged. Push this correction, cancel superseded CI and request exact-head
 CI; no merge or fixed12 acceptance yet. All three browser jobs on V206 passed.
 Own V207 source/build/test-dependency/output products are removed after terminal
 jobs and evidence export, keeping only logs and the committed correction.
+
+
+[verified V206/V207 integration, 2026-10-28] All14 required exact-head CI jobs
+in40617746926 passed at63e57fd49d4e9afdbd3beb538e60856eddd7ff88, including
+macOS, 32-bit, ASan/UBSan, MIT/BSD and all three browser engines. Astra approved
+the exact filter source and corrected equivalence-test hashes; the transport
+assertion repair follows the adjacent test convention and passed pytest9.2.0.
+No checks bypassed. Merged the completed partial source change into main as
+948c88861a6900ae6cca68c3736a2f6dd52bd364, remote SHA verified, preserving the
+feature backup. The two-parent merge has previous remote main e46b3619 first,
+reviewed63e57fd4 second, and exactly the reviewed tree4b3b2856. Created the merge
+without changing the owner's independently advanced primary checkout/local main;
+fast-forwarded only this performance worktree's feature branch to the merge.
+
+Automatic post-merge CI40621982980 is queued and Pages40621982674 in progress
+at the merge head. These are pending, not deployment or post-merge acceptance.
+No new firmware flash or analog test. Fixed12 still misses the unchanged timing
+budget; the completed adaptive V188 soak is separate. Current board remains
+V204 idle with the previous consumed reset, no receiver/device operation live.
+Keep optimization campaign and heartbeat active. Own build products cleaned;
+small integration/CI/review evidence retained privately. No new worktree made.
