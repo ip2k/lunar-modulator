@@ -8770,3 +8770,20 @@ Receiver1034964 twice argv verified/oneSIGTERM, terminal runner/UART-15 and PID
 absence twice before PING ACK. Reset1793148010.0566008 consumed forever.
 Next exact-integer candidate uses one phase product to derive both complementary
 tap offsets, preserving all floating-point arithmetic and filter coefficients.
+
+
+[verified target rejection, V200] Complementary phase offsets derive from one
+unsigned product instead of two, using high word and fractional carry. Full
+44,104block/22,581,248byte replay is exact normally and with ASan/UBSan; native
+SRAM code confirms one multiply and unchanged28byte local frame. Nevertheless,
+the uninstrumented66,156block/12case target run is slower: producer means25,008/
+28,381/30,714/33,929ticks,0.72–1.10% above V191. Late0/0/34/3848=3882, maxima
+34,611/34,803/39,707/45,346 against34,829deadline. Reject; fewer operations did
+not deliver a speedup. No cause attribution to allocation/placement from this
+comparison. All four full PCM hashes match V191, transport/backend/consumer
+late/gaps0, drain64/idle1/finite worker exit. Parent689words/worker1322words unused.
+Reset1793148192.61183 consumed forever. RX1035804 twice argv verified, oneSIGTERM,
+runner terminal0/UART-15, PID absence twice before PING ACK. Private SDK/proof
+source cleaned after evidence retention. No fixed12 or analog acceptance, and no
+firmware source promotion. Astra follow-up is auditing larger exact opportunities
+instead of another blind resampler micro-optimization.
