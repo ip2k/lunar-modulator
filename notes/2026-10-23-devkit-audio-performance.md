@@ -8824,3 +8824,41 @@ the first-eight-overrun list. This avoids guessing available CPU1 headroom from
 independent maxima. The existing first late event already totals 72,101 ticks,
 above the two-core 69,658-tick service budget; same-block transfer alone cannot
 fix that observed event without also removing work or legally rescheduling it.
+
+
+[verified paired diagnostic, V202] Same-tag completion fields retain producer and
+consumer duration under the existing publication/acquire protocol. Replaced the
+first-eight-overrun history (100 bytes) with maximum producer, maximum consumer,
+maximum combined service records and per-case combined-budget counts (64 bytes).
+No per-sample timers, synthesis changes, rate changes or voice reduction. Added
+harvest work and code layout can perturb timing; this is a diagnostic, not a
+speed comparison against V201. All 66,156 blocks across 12 cases completed with
+four full PCM hashes equal V201, finite exit, zero transport/backend/consumer
+late/gap flags, drain 64 and idle 170. Parent/worker unused 689/1,322 words.
+
+Across all paired completions, 95 heavy-case blocks exceed the combined two-core
+budget of 69,658 ticks. Maximum producer and combined service occur at tag 38,591,
+the first block of the heavy case in cycle two: producer 44,128, consumer 32,818,
+sum 76,946 ticks. The excess is 7,288 ticks (303.67 microseconds). The maximum
+consumer event is a different block (tag 36,056): 29,451 + 33,256 = 62,707 ticks.
+These paired records avoid adding unrelated maxima. They show that transferring
+work within the observed same-block budget is insufficient at the worst event;
+operation removal or legal work across periods is needed. They do not prove all
+possible schedules or implementations impossible. Added observer overhead and
+interrupt time remain included in the measured service intervals.
+
+Producer deadline misses remain 1 / 0 / 6 / 2,375 against the unchanged 34,829
+ticks; this diagnostic does not establish fixed-12 acceptance. No failing
+fixed-12 analog soak was run. Board V202 is healthy idle with PING ACK after
+runner/UART natural exit (both 0), receiver 1041640 absent twice, no signal sent.
+Reset 1793149504.1635437 is consumed forever. Private raw hash
+404c6f33682784e2a3d953a746e0b662207b9831ed34db15459533038c059644,
+source/ELF/receipts/results retained; own SDK removed after export and no live
+container mount check. Mac free 1,184 GiB. No physical FM-1 operation.
+
+Next bounded Astra follow-up audits cross-voice initialization reuse within a
+note-on burst. Existing pristine reuse checks only the destination slot; the
+question is whether another untouched initialized slot can supply exact envelope
+fields under identical patch/velocity/effective scaling. This is an unproven
+candidate, not permission to copy a whole Voice or relax event semantics. Review
+prior template work and lifecycle invalidation before any host proof or image.
