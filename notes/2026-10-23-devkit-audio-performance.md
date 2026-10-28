@@ -9233,3 +9233,22 @@ The board is healthy idle after closing its sole receiver before PING. Its reset
 receipt is consumed forever. Private evidence and native source/ELF exports stay
 in the V225 lane; own reproducible SDK/proof/build/PCM inputs were removed.
 Mac free space remains 1,195 GiB. Adaptive V188's earlier soak stays separate.
+
+
+## 2026-10-28 owner pause and V226 host checkpoint [verified]
+
+At the owner's request, stopped at a completed host proof and paused the
+performance automation until the usage window is available again. No test,
+build, capture or device operation remains live. Dev board stays healthy on
+V225; no V226 image was built or installed.
+
+The private V226 trial fuses algorithm 1's four-operator chain and remaining
+pair only when all operators are active. It retains carrier addition order,
+feedback, phases and the final scratch bus; other cases use the original path.
+Normal and ASan/UBSan full-app replays each preserved all 22,581,248 PCM bytes
+across 44,104 blocks. Directed complete-state proof and native timing are still
+pending, so this is neither a demonstrated speedup nor a source promotion.
+Scripts and logs remain private under scratch/devkit-20261023 and the matching
+Aeon task root; generated source/build/PCM were cleaned. The authoritative
+handoff lists the resume steps. Fixed12 deadline acceptance remains unfinished;
+the earlier adaptive-polyphony analog soak is separate. Mac free: 1,195 GiB.
