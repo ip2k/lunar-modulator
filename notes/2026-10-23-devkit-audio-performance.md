@@ -8583,3 +8583,382 @@ are constant synthetic time in successful modes, not nonzero duration proof.
 Apple normal+ASan/UBSan protocol2PASS1.88s; complete Linux file9PASS1.38s.
 Independent Astra bounded review found no source blocker. New exact-head CI
 remains required before merge. Logs and review retained privately.
+
+### Fixed twelve-voice comparison fails under sustained load (V189)
+
+[verified] A short fixed12 run of merged e46b3619, same pipeline/PCM workload,
+--cycles3 --burst-hot without adaptive polyphony, fails. The first two cases
+complete5513 blocks each with producer maxima32671/33462 and zero misses. Case2
+completes5513 blocks with16producer misses (max37601); case3 reaches4988 measured
+blocks with1679misses (max40232). Consumer maxima33079/33136/33084/33202 remain
+below34829 with zero consumer misses. At21527 submitted outputs/31.29s the
+ready queue empties: fault10304, ready_min0, complete0. Only3of12expectedcases
+complete. This is failed fixed12 evidence, not fixed12 or analog acceptance.
+
+[verified] App-only flash uses acknowledged UART entry and one unique reset;
+no backups/readbacks/rehearsals. Sole RX is stopped after final failure output,
+terminal and absent twice before ordinary PING ACK. Board remains responsive.
+Unused parent stack689words; totalheap49836, afterinit7892, afterDAC6324.
+Private UART/facts/export in fixed-v189 lane. No analog capture was needed for
+this failed timing probe. AdaptiveV188 30.4min evidence remains valid and scoped
+separately. Remaining work is sustained CPU0 producer cost and burst tails;
+a larger queue alone cannot repair sustained production below playback rate.
+
+[verified integration] PR155 merged e46b3619 after all14 reviewed-head CI jobs
+passed. All14 postmerge CI jobs also pass. Pages deploy succeeds and served
+WASM/metadata match committed hashes. These are integration/deployment claims,
+not broader hardware acceptance. New fixed-polyphony performance branch starts
+from that merge; no firmware source changed for V189.
+
+### First-pair overwrite improves fixed12 transport, deadline still fails (V190)
+
+[verified] A private algorithm-five candidate writes the first carrier pair into
+its fresh voice buffer, then accumulates the remaining pairs in the original
+order. Original accumulating API and all refusal fallbacks remain. Full44104
+block host differential produces22581248 identical PCM bytes in original,
+changed and ASan/UBSan variants. Directed19456kernelcases include5584refusals,
+all operator/feedback state and poisoned-output preservation; original nonzero
+accumulation remains exact. Existing shift-sanitizer exclusion is explicit.
+
+[verified] The native fixed12 run completes all66156blocks/12cases in96330ms,
+with zero DACfault/backend/consumer misses/transportlate/gaps,64drain callbacks,
+steady idle and finite worker exit. V189 exhausted the ready queue after21527
+outputs/31.29s. This is useful transport improvement, NOT deadline acceptance:
+V190 producer misses3337blocks; percase means24751/28167/30535/33807ticks and
+maxima35865/34985/39750/45704 exceed the unchanged34829tick budget. Case totals
+are16539 each; V189 partial/first-cycle aggregates are not a clean speedup ratio.
+No analog capture or fixed12 acceptance. Target-matched full replay pending.
+
+[verified] App-only install after acknowledged UARTentry/freshROM58, one unique
+reset, no backups/fullreadbacks/rehearsals. SoleRX955703 exits normally; runner
+terminal0, PIDabsent twice before ordinaryPINGACK. Parentunused689words,
+worker1322words; heap49708/afterinit7764/afterDAC6196. Raw/facts/ELF retained
+privately in overwrite-v190 lanes. Native firstpair stores directly without old
+outputload/add. Candidate not promoted to tracked firmware yet. Next bounded
+experiment fuses finalcarrier/mix pass with exact gain/lifecycle semantics;
+extra register pressure must be measured, not assumed beneficial.
+
+### Final-pair/mix fusion state proof (V191)
+
+[verified] A separate private variant fuses the final carrier sum with the
+original voice gain ramp and integer mixing loop, retaining the complete voice
+buffer and unchanged lifecycle/fallback state. Full app differential normal and
+ASan/UBSan preserves 22581248 PCM bytes over 44104 blocks. Directed kernel tests
+cover 38912 cases including 11134 refusals and four invalid gain refusals.
+Complete Instance/owned-LUT/PCM streamed comparison also passes at 44118/96000Hz:
+108146096/135091296 compared bytes per build, 96 retirement, 64 adapter and
+11 prepared lifecycle cases. Existing legacy shift sanitizer exclusion remains.
+
+[verified] Native fusion is inlined in SRAM; local RenderBlock frame grows by
+88 bytes (288 to 376). This is a measured code-generation tradeoff, not target
+speed or whole-stack proof. Native test is running using fixed12 and the same
+three-cycle burst-hot workload as V190. No analog acceptance or promotion yet.
+
+[verified target] V191 completes all66156 blocks/12cases in96330ms, with zero
+DAC/backend/consumer/transport faults and finite exit. Producer deadline still
+fails:2971 misses, cases1/1/18/2951. Means24736/28106/30440/33688 ticks;
+maxima35799/34837/39562/45385 against34829. Equal-length V190 means improve
+only0.061/0.217/0.311/0.352 percent; misses3337 ->2971. All four case hashes
+and full12case fold match the prior exact replay. Single run, not sustained or
+analog/fixed12 acceptance. Parentunused689words, worker1322; heap48556.
+Receiver960421 exits normally; runner88188 terminal0, PIDabsent twice before
+PINGACK. Board healthy idle; reset1793131112.6934278 consumed forever.
+Next larger producer bottleneck review, no more fusion/unroll sweep.
+
+[verified host attribution] V192 read-only counters preserve full22581248byte
+PCM replay. Algorithm5 fast-path refusal occurs in6385/7168/6296/5860 of11026
+logical blocks percase. Heaviest case has10746 refused voiceblocks, mainly mask42
+(7830: quiet modulators/active carriers), then34(1892),59(624),58(400). Generic
+core already skips quiet modulators, so count alone does not establish cost.
+Next focused native PrepareVoice/kernel/mix attribution before another kernel
+transformation. Counter source/build/PCM cleaned after report; logs retained.
+
+[verified failure] V193 native timing observer links, but DACopen cannot allocate
+1536 bytes: heap46860, afterapp4916. Zero playback/producerblocks. Observer BSS
+and added code reduce heap/contiguous room vsV191; no performance result claimed.
+Receiver closed once after twiceargvverification, terminal/absence beforePINGACK.
+Next V194 keeps the observer context on existing parentstack and detaches on all
+return paths, preserving all audio arenas and workload. Prior parentunused2756B.
+
+[verified diagnostic failure] V194 stack-owned observer opens DAC successfully
+(heap47980/postapp6036/postDAC4468; parentunused411words=1644B). Instrumented
+fixed12 queue exhausts at16676 submitted/24260ms, after3completecases and137blocks
+ofcase3. Producer150late; consumer0late. No stage report because innerfailure
+returns before sdk_finish/report. Firstthree case hashes match V191. No speedup
+or acceptance claimed. Receiver1022050 twiceargvverified ONE SIGTERM; terminal
+runner33430/UART-15, PIDabsenttwice beforePINGACK. Reset1793145111.4682488 consumed
+forever. V195 moves report to wrapper after playback success/failure and before
+contextdetach, permitting explicitly partial diagnostic counts. No DSPchange.
+
+[verified native attribution, diagnostic only] V195 report-on-return preserves
+valid stage counters after instrumented queue failure:16659produced/16657submitted,
+3fullcases+120producedcase3blocks,142producerlate/0consumerlate. InclusiveDX7
+means215.58/381.18/479.60/690.58us; producer1047.82/1212.76/1313.90/1514.92us.
+The same-run non-DX7 remainder stays832.24/831.57/834.30/824.33us (lastcasepartial),
+including observer/control/otherproducerwork, not an uninstrumented cost proof.
+Fallback algorithm5 kernel+mix only14.00/22.21/23.33us perblock in completedcases;
+partialcase3 none. Do not implement partialmaskfusion on frequency alone. Next
+attribute remaining producer/control/otherengine work; no more smallDX7fusion
+sweep. Parentunused410words, startup/DACalloc pass. Firstthreehashes unchanged.
+Stage7 inclusive, neveraddto0..6; no fixed12/analog acceptance. RX1022613 closed
+with twiceargvverify/oneSIGTERM; runner28099 terminal0/UART-15, PIDabsenttwice
+beforePINGACK. Reset1793145229.235222 consumed forever. Board healthyidle.
+
+[verified native attribution, V196] Low-frequency outer timers leave engine
+source unchanged. Three complete5513blockcases plus780producedcase3blocks,
+17319produced/17317submitted before queuefault10304. Fixed12 remains FAIL:
+328producerlate, consumer0late. Firstthreehashes unchanged. Producermeans
+1041.56/1195.38/1289.60/1438.91us; lastcasepartial, notcomparable steadycase3.
+Drumsrender392.71..395.46us is largest constant component. Inserts/levels
+174.66..181.53us, dispatchcontrol (subtract nesteddrums+DX7 only)150.96..171.38us,
+UI46.35..47.39us, sealing20.86..21.24us, seqadvance10.59..11us, preflight2.42..2.55us.
+Timersperturb, no pristinecost/acceptance claim. BothDrums RenderVoice/RenderBlock
+already SRAM; placementalone notnewfix. Next inspect drumblock control/voiceDSP/
+resampler costs and exact coefficient/control reuse opportunities; native rates,
+quality, noise and retirement unchanged. Current filter already skips settled
+coefficient recomputation, so do not repeat that optimization. Tool index misses
+pipeline symbols; exact worktree files inspected, no deviceABItool claim.
+Reset1793146091.1874902 consumed forever; RX1026421 twiceargvverified/ONESIGTERM,
+runner61022terminal0/UART-15/PIDabsenttwice BEFOREPINGACK. Parentunused410words.
+
+
+[verified diagnostic limits, V197] Drums native-block timing is 116.74–117.85 µs
+per logical block across the three complete cases; model DSP 56.04–56.67 µs,
+voice controls 10.61–10.72 µs. These include observer overhead. Two probes missed
+the optimized conversion branch's early return, so their zero counts mean
+unmeasured, not zero cost; no direct resampler timing claim. The instrumented
+fixed12 run stopped after 16,687 produced / 16,685 submitted blocks with queue
+fault10304,158 producer late and zero consumer late. First three full PCM hashes
+match. Reset1793146896.259892 consumed forever. Receiver exited naturally;
+runner terminal0/UART0 and PID absent twice before ordinary PING ACK.
+
+[verified host equivalence, V198 experiment] Drums-only rate-conversion loop
+counts the common interpolation-tap run once instead of checking both table
+positions each iteration. Tap math, accumulation order and tail loops remain
+unchanged. Fresh baseline/changed/ASan+UBSan replays each produce 22,581,248
+identical PCM bytes over44,104blocks (SHA86d325255cf4a4918d8c18f7f011b5692b8cd1e38fcdb0b731e8e17bdd475436).
+Initial copied-object native build ignored the header change; identical app hash
+caught this before flashing. Forced drums source recompilation produced a changed
+application. No header-only speedup claim from stale objects. Native build/export
+pass; app ends0x9597c. App-only target timing experiment underway, no source
+promotion or fixed12/analog acceptance. No backups/readback/factory rehearsals.
+
+
+[verified target rejection, V198] Uninstrumented three-cycle fixed12 trial
+completes66,156blocks/12cases/96,330ms with all four full case PCM hashes equal
+V191. Producer means24,849/28,205/30,529/33,757ticks; maxima34,394/34,922/39,779/
+45,086ticks against unchanged34,829deadline. Late0/1/19/3118=3138 vs prior2971;
+means0.20–0.46% slower in this single comparison. Reject counted-loop change;
+no source promotion or fixed12 acceptance. Transport/backend faults, consumer
+late and gaps all zero; drain64, idle1, finite worker exit. Parent unused689words,
+worker1322words, heap48492. Receiver1031785 exited naturally, runner terminal0/
+UART0; PID absent twice before PING ACK. Reset1793147293.0247676 consumed forever.
+No analog soak on a failing fixed12 candidate. Existing adaptive soak acceptance
+remains separate. Evidence/raw/ELF/source retained privately; reproducible own
+SDK/proof builds removed after mount/process checks. Mac free1185GiB.
+
+
+[verified sampled attribution, V199] Probes now reach the actual conversion
+branch and its early return. Across three complete cases, whole drums means
+414.16–416.80 µs and native RenderBlock100.10–100.92 µs, with observer overhead.
+First output of each render segment samples interpolation pair2.353–2.396 µs
+and final FIR2.476–2.553 µs. FIR timing includes the prior stage's observer add;
+sample counts are retained, and these are not a full-stream/pristine projection.
+The instrumented fixed12 run stops with queue10304 after16,694produced/
+16,692submitted blocks; last case155produced blocks is partial. No acceptance.
+Receiver1034964 twice argv verified/oneSIGTERM, terminal runner/UART-15 and PID
+absence twice before PING ACK. Reset1793148010.0566008 consumed forever.
+Next exact-integer candidate uses one phase product to derive both complementary
+tap offsets, preserving all floating-point arithmetic and filter coefficients.
+
+
+[verified target rejection, V200] Complementary phase offsets derive from one
+unsigned product instead of two, using high word and fractional carry. Full
+44,104block/22,581,248byte replay is exact normally and with ASan/UBSan; native
+SRAM code confirms one multiply and unchanged28byte local frame. Nevertheless,
+the uninstrumented66,156block/12case target run is slower: producer means25,008/
+28,381/30,714/33,929ticks,0.72–1.10% above V191. Late0/0/34/3848=3882, maxima
+34,611/34,803/39,707/45,346 against34,829deadline. Reject; fewer operations did
+not deliver a speedup. No cause attribution to allocation/placement from this
+comparison. All four full PCM hashes match V191, transport/backend/consumer
+late/gaps0, drain64/idle1/finite worker exit. Parent689words/worker1322words unused.
+Reset1793148192.61183 consumed forever. RX1035804 twice argv verified, oneSIGTERM,
+runner terminal0/UART-15, PID absence twice before PING ACK. Private SDK/proof
+source cleaned after evidence retention. No fixed12 or analog acceptance, and no
+firmware source promotion. Astra follow-up is auditing larger exact opportunities
+instead of another blind resampler micro-optimization.
+
+
+[verified host and target, V201] Stable-Ladder cutoff-only updates retain Drive,
+resonance and mode coefficients whose inputs did not change. All original glides,
+pitch prewarp, channel G/G4 arithmetic, sample DSP and transition fallbacks remain.
+Astra's exact-source follow-up identified this bounded opportunity; its report
+also rejects any claim that it can alone close the fixed-12 deficit. Host replay
+counted 300,054 eligible updates out of 352,832 control steps. A differential
+harness compared all 656 state bytes and output bits after 540,960 API operations
+across five sample rates, six types, seven Ladder modes, control/type transitions,
+irregular partitions, counter wrap and guarded nonfinite input. Normal and
+ASan/UBSan passed; both full 44,104-block / 22,581,248-byte mixed replays match
+the unchanged reference. Initial harness compile lacked its private DSP header
+include path; corrected before running, with no relaxed checks.
+
+The uninstrumented dev-board trial completed 66,156 blocks in 12 cases and
+96,330 ms. Producer means 24,145 / 27,596 / 29,923 / 33,263 ticks are 1.26–2.39%
+lower than V191 in this single comparison. Deadline misses fell from 2,971 to
+1,883 (36.62%); case counts are 0 / 0 / 2 / 1,881. Maxima 34,587 / 32,551 /
+38,259 / 43,818 still exceed the unchanged 34,829-tick deadline in the heavy
+cases. This is a partial gain, NOT fixed-polyphony acceptance. All four complete
+PCM hashes match V191. Consumer deadline misses, transport/backend faults and
+callback gap flags are zero; all blocks submitted, drain 64, idle 170, finite
+worker exit. Parent unused 689 words; worker 1,322 words. Heap unchanged.
+No failing fixed-12 analog soak; the earlier adaptive V188 soak remains separate.
+
+Current V201 is healthy idle with ordinary PING ACK. Receiver 1039804 exited
+naturally (UART 0, runner 0) before the attempted ownership check; no SIGTERM was
+sent. PID absence was verified twice before PING. Reset 1793149096.5759914 is
+consumed forever. Private source, proof harness, reports, ELF, raw UART and install
+receipts are retained; own reproducible SDK/build/PCM data is cleaned after export.
+No tracked firmware promotion yet. Next measure correlated same-tag producer and
+consumer maxima using existing completion timings, with bounded records replacing
+the first-eight-overrun list. This avoids guessing available CPU1 headroom from
+independent maxima. The existing first late event already totals 72,101 ticks,
+above the two-core 69,658-tick service budget; same-block transfer alone cannot
+fix that observed event without also removing work or legally rescheduling it.
+
+
+[verified paired diagnostic, V202] Same-tag completion fields retain producer and
+consumer duration under the existing publication/acquire protocol. Replaced the
+first-eight-overrun history (100 bytes) with maximum producer, maximum consumer,
+maximum combined service records and per-case combined-budget counts (64 bytes).
+No per-sample timers, synthesis changes, rate changes or voice reduction. Added
+harvest work and code layout can perturb timing; this is a diagnostic, not a
+speed comparison against V201. All 66,156 blocks across 12 cases completed with
+four full PCM hashes equal V201, finite exit, zero transport/backend/consumer
+late/gap flags, drain 64 and idle 170. Parent/worker unused 689/1,322 words.
+
+Across all paired completions, 95 heavy-case blocks exceed the combined two-core
+budget of 69,658 ticks. Maximum producer and combined service occur at tag 38,591,
+the first block of the heavy case in cycle two: producer 44,128, consumer 32,818,
+sum 76,946 ticks. The excess is 7,288 ticks (303.67 microseconds). The maximum
+consumer event is a different block (tag 36,056): 29,451 + 33,256 = 62,707 ticks.
+These paired records avoid adding unrelated maxima. They show that transferring
+work within the observed same-block budget is insufficient at the worst event;
+operation removal or legal work across periods is needed. They do not prove all
+possible schedules or implementations impossible. Added observer overhead and
+interrupt time remain included in the measured service intervals.
+
+Producer deadline misses remain 1 / 0 / 6 / 2,375 against the unchanged 34,829
+ticks; this diagnostic does not establish fixed-12 acceptance. No failing
+fixed-12 analog soak was run. Board V202 is healthy idle with PING ACK after
+runner/UART natural exit (both 0), receiver 1041640 absent twice, no signal sent.
+Reset 1793149504.1635437 is consumed forever. Private raw hash
+404c6f33682784e2a3d953a746e0b662207b9831ed34db15459533038c059644,
+source/ELF/receipts/results retained; own SDK removed after export and no live
+container mount check. Mac free 1,184 GiB. No physical FM-1 operation.
+
+Next bounded Astra follow-up audits cross-voice initialization reuse within a
+note-on burst. Existing pristine reuse checks only the destination slot; the
+question is whether another untouched initialized slot can supply exact envelope
+fields under identical patch/velocity/effective scaling. This is an unproven
+candidate, not permission to copy a whole Voice or relax event semantics. Review
+prior template work and lifecycle invalidation before any host proof or image.
+
+
+[verified distribution and host eligibility, V203–V205] Astra's cross-voice
+initialization audit found a source-valid envelope-only donor path, but the
+older V153 template-copy experiment saved only about 9.5 microseconds of heavy
+note initialization and regressed total producer time. No donor implementation
+was promoted. V204 keeps V201 synthesis unchanged and bins the existing paired
+completion records by case block: onset, blocks 1–63, and blocks 64–5512.
+All 66,156 blocks / 12 cases completed with four full PCM hashes unchanged,
+finite exit, zero consumer deadline misses / transport / backend / gap flags.
+Producer means 24,222 / 27,662 / 29,986 / 33,225 ticks and misses
+0 / 0 / 7 / 1,954 still FAIL the unchanged 34,829-tick deadline. Diagnostic
+harvest/layout overhead prevents treating these as a speed comparison.
+
+There are 86 heavy-case paired service sums above 69,658 ticks: three onset,
+two in blocks 1–63, and 81 in the remaining blocks. The maximum at tag 38,591
+is 44,199 + 32,764 = 76,963 ticks, exceeding the combined budget by 7,305 ticks
+(304.375 microseconds). The sequencer also generates notes later, so block
+position alone does not rule out note-on work. V205 then counted the specific
+proposed cross-voice shortcut in an unchanged host replay: 244 Starts, zero
+existing same-slot hits, 244 full initializations and 42 eligible donor hits.
+Those 42 are accounted for exactly by the two cycles' external 1/4/8/12-voice
+chords (same patch, velocity and effective rate scaling). Aggregate counting
+plus source accounting is not native per-tag correlation, but provides no
+remaining donor opportunity for the other sequencer Starts in this fixture.
+The unchanged 44,104-block / 22,581,248-byte replay matches the established
+reference hash. Skip another donor-copy implementation and flash: it would not
+address the 81 later combined-budget failures in this fixture.
+
+V204 is healthy idle after owned receiver 1045769 was verified twice, sent one
+SIGTERM, runner 0 / UART -15, PID absent twice before ordinary PING ACK.
+Reset 1793150434.583537 is consumed forever. No physical FM-1 operation or
+fixed-12 analog soak. Private raw SHA
+776606a0690aab34432f6e66bf25813764a7e68fe566dc85ea10720d92b77a07,
+source, ELF, receipts and reports retained. Own V204 SDK and V205 source,
+build and PCM products removed after evidence export and live-use checks.
+Mac free 1,184 GiB.
+
+[source integration in progress, V206] Promote the independently proven V201
+stable-Ladder pitch-only coefficient update into engines/src/fx_filter.cc.
+It uses a transient moved-control mask, preserves the original g/G/G4 arithmetic
+and leaves non-pitch coefficients alone only while primed, settled in Ladder,
+not warming and not fading. Other paths retain the full original update.
+No persistent state, rate, voice count, sample or event change. Added a durable
+full-state comparison against the original unspecialized control step across
+five rates, all six types, glides, type transitions, stereo spread, drive,
+resonance, mode, irregular render sizes, nonfinite input and counter wrap.
+Prior V201 native and normal/sanitized full-state/replay evidence applies to
+the same transformation; tracked-source focused checks and actual WASM rebuild
+are running before CI. Initial focused runner lacked g++; rerun explicitly
+selects the image's clang/clang++ (environment correction, no relaxed tests).
+Code tools are selected on the primary checkout rather than this external
+worktree; bounded source inspection used here, no shared-project switch or
+pi32 ABI claim.
+
+
+[verified V206 integration checks] All 81 focused filter tests pass on the exact
+tracked source staged on Aeon (clang/clang++, GPL off), including the new
+54,000-state control comparison with both fast and fallback paths exercised.
+An actual bounded browser build with the normal GPL engine set passes all
+108 parity scenarios (JS and musl exact), 18 SysEx checks, metadata and edit
+parity. The Node edit storm runs 30 seconds with zero late quanta, not a Chrome
+playback acceptance claim. Generated fm1.wasm and its real source-hash/build
+record are refreshed; the strict committed-record test passes. No manual hash
+edit or gate relaxation. The same source transformation already has the V201
+normal/ASan full-state and complete mixed-PCM proof plus native partial gain;
+no redundant device flash for source promotion. Independent Astra review pending.
+
+
+[V206 review correction] Astra found no coefficient/lifecycle correctness issue
+in the source, and caught a regression-test coverage defect: step zero overrode
+all six selected initial types with SVF. Guarded that transition so each initial
+type is retained, then reran the changed test: one PASS in 0.30 seconds with
+fast/fallback coverage assertions active. The small staged retry initially
+omitted fx_filter_dsp.h; corrected its input before the passing run. Firmware
+and generated WASM are unchanged by this test correction. Exact-head CI is
+required after this commit; cancel the superseded branch dispatch rather than
+leaving duplicate full runs active. No current native device/capture job.
+
+
+[verified CI blocker and repair, V207] Exact-head V206 CI40615857431 at83b7267d
+failed MIT/BSD job122578388897 and 32-bit job122578389318 on the same pre-existing
+transport assertion, tests/test_engine_api_v3.py:140. CI installs pytest9.2.0;
+it rejects pytest.approx on nested (frame, amplitude) tuples with TypeError.
+The test's byte-identical block-size comparison already passed. Split the
+assertion into exact frame-index equality and approximate amplitude-list
+equality, matching the adjacent transport test. Exact frame positions and event
+count are now explicit; no output, DSP, tolerance or expected event changed.
+
+All15 transport API tests pass in the bounded Aeon MIT test image (pytest7.4.4,
+clang). The affected test also passes in an isolated pytest9.2.0 install in
+the bounded emsdk image, 0.23s. Initial version-match attempt used the existing
+ASan image, which lacks pip; moved the isolated dependency install to emsdk,
+without host package changes. Private actual CI logs and both local-run logs
+are retained. No WASM rebuild needed for a Python assertion-only edit; source
+and generated-module hashes unchanged. Astra's approved filter source remains
+unchanged. Push this correction, cancel superseded CI and request exact-head
+CI; no merge or fixed12 acceptance yet. All three browser jobs on V206 passed.
+Own V207 source/build/test-dependency/output products are removed after terminal
+jobs and evidence export, keeping only logs and the committed correction.
