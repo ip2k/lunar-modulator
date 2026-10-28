@@ -8720,3 +8720,25 @@ coefficient recomputation, so do not repeat that optimization. Tool index misses
 pipeline symbols; exact worktree files inspected, no deviceABItool claim.
 Reset1793146091.1874902 consumed forever; RX1026421 twiceargvverified/ONESIGTERM,
 runner61022terminal0/UART-15/PIDabsenttwice BEFOREPINGACK. Parentunused410words.
+
+
+[verified diagnostic limits, V197] Drums native-block timing is 116.74–117.85 µs
+per logical block across the three complete cases; model DSP 56.04–56.67 µs,
+voice controls 10.61–10.72 µs. These include observer overhead. Two probes missed
+the optimized conversion branch's early return, so their zero counts mean
+unmeasured, not zero cost; no direct resampler timing claim. The instrumented
+fixed12 run stopped after 16,687 produced / 16,685 submitted blocks with queue
+fault10304,158 producer late and zero consumer late. First three full PCM hashes
+match. Reset1793146896.259892 consumed forever. Receiver exited naturally;
+runner terminal0/UART0 and PID absent twice before ordinary PING ACK.
+
+[verified host equivalence, V198 experiment] Drums-only rate-conversion loop
+counts the common interpolation-tap run once instead of checking both table
+positions each iteration. Tap math, accumulation order and tail loops remain
+unchanged. Fresh baseline/changed/ASan+UBSan replays each produce 22,581,248
+identical PCM bytes over44,104blocks (SHA86d325255cf4a4918d8c18f7f011b5692b8cd1e38fcdb0b731e8e17bdd475436).
+Initial copied-object native build ignored the header change; identical app hash
+caught this before flashing. Forced drums source recompilation produced a changed
+application. No header-only speedup claim from stale objects. Native build/export
+pass; app ends0x9597c. App-only target timing experiment underway, no source
+promotion or fixed12/analog acceptance. No backups/readback/factory rehearsals.
