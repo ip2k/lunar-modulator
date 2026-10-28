@@ -8742,3 +8742,17 @@ caught this before flashing. Forced drums source recompilation produced a change
 application. No header-only speedup claim from stale objects. Native build/export
 pass; app ends0x9597c. App-only target timing experiment underway, no source
 promotion or fixed12/analog acceptance. No backups/readback/factory rehearsals.
+
+
+[verified target rejection, V198] Uninstrumented three-cycle fixed12 trial
+completes66,156blocks/12cases/96,330ms with all four full case PCM hashes equal
+V191. Producer means24,849/28,205/30,529/33,757ticks; maxima34,394/34,922/39,779/
+45,086ticks against unchanged34,829deadline. Late0/1/19/3118=3138 vs prior2971;
+means0.20–0.46% slower in this single comparison. Reject counted-loop change;
+no source promotion or fixed12 acceptance. Transport/backend faults, consumer
+late and gaps all zero; drain64, idle1, finite worker exit. Parent unused689words,
+worker1322words, heap48492. Receiver1031785 exited naturally, runner terminal0/
+UART0; PID absent twice before PING ACK. Reset1793147293.0247676 consumed forever.
+No analog soak on a failing fixed12 candidate. Existing adaptive soak acceptance
+remains separate. Evidence/raw/ELF/source retained privately; reproducible own
+SDK/proof builds removed after mount/process checks. Mac free1185GiB.
