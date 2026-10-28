@@ -47,7 +47,7 @@ int main() {
     for (unsigned step = 0; step < 1800; ++step) {
       if (step % 61 == 0) FilterSet(&s, 1, step % 122 ? 20.f : 18000.f);
       if (step == 200) FilterSet(&s, 0, 1.f);
-      if (step % 307 == 0) FilterSet(&s, 0, float((step / 307) % 6));
+      if (step && step % 307 == 0) FilterSet(&s, 0, float((step / 307) % 6));
       if (step % 307 == 150) FilterSet(&s, 0, 1.f);
       if (step % 173 == 0) {
         FilterSet(&s, 2, .7f); FilterSet(&s, 3, .4f);

@@ -8929,3 +8929,14 @@ record are refreshed; the strict committed-record test passes. No manual hash
 edit or gate relaxation. The same source transformation already has the V201
 normal/ASan full-state and complete mixed-PCM proof plus native partial gain;
 no redundant device flash for source promotion. Independent Astra review pending.
+
+
+[V206 review correction] Astra found no coefficient/lifecycle correctness issue
+in the source, and caught a regression-test coverage defect: step zero overrode
+all six selected initial types with SVF. Guarded that transition so each initial
+type is retained, then reran the changed test: one PASS in 0.30 seconds with
+fast/fallback coverage assertions active. The small staged retry initially
+omitted fx_filter_dsp.h; corrected its input before the passing run. Firmware
+and generated WASM are unchanged by this test correction. Exact-head CI is
+required after this commit; cancel the superseded branch dispatch rather than
+leaving duplicate full runs active. No current native device/capture job.
