@@ -9087,3 +9087,33 @@ Next inspect native scheduling/load costs; do not repeat the already rejected
 paired-tap-count or complementary-product experiments, or change tap count,
 rates or floating-point accumulation order. Retain reports and remove these
 experiments' reproducible SDK trees after export.
+
+## 2026-10-28: reject forced FIR coefficient loads (V215/V216)
+
+[verified] A bounded code-generation trial replaced immediate FIR coefficients
+with explicit reads of the unchanged coefficient table. The first native build
+(V215) hoisted loads and used 516 bytes of local stack; it was not installed.
+An empty assembly scheduling barrier after each four original accumulator
+updates reduced V216 local stack to 28 bytes, with the actual table in cache
+RAM. No taps, coefficients, rates or floating-point sum order changed.
+
+[verified] V215 full application replay matched all 22,581,248 PCM bytes in
+normal and ASan/UBSan builds. V216's actual prepared resampler header, with
+the barrier enabled, matched 720,000 samples and complete states at six rates
+in both builds. These checks do not prove the native ABI or whole stack.
+
+[verified] V216 completed all 66,156 fixed12 target blocks with four matching
+PCM hashes and unchanged arithmetic results. Producer means were
+24,185/27,628/29,960/33,312 ticks, 0.116–0.166% worse than V201 in this
+comparison. There were 0/0/3/1,982 producer misses; the heaviest maximum
+was 44,278 versus V201's 43,818 ticks. Consumer means also increased, while
+consumer deadline misses, DAC/backend/transport faults and gaps remained zero.
+**Reject this trial; no source promotion or demonstrated performance gain.**
+
+The dev board is responsive and idle. The single V216 reset is consumed;
+its sole UART reader was closed before PING. Private facts and artifacts live
+in scratch/devkit-20261023/v216-target-facts.json and Aeon's
+renderer-fir-table-v216-exports. Reproducible SDK trees and host source/build/PCM
+are removed after export; small evidence remains. No fixed12 acceptance or
+new analog/physical-FM1 acceptance is claimed. Move on from coefficient-load
+rewrites; the original immediate constants already compete well here.
