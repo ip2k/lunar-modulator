@@ -9180,3 +9180,30 @@ The reset receipt is consumed forever. Evidence, scripts and source/ELF exports
 remain private in the V220 lane. Own SDK/proof/build/PCM intermediates and the
 Mac's candidate image were removed; the remote current image is retained.
 Mac free space: 1,195 GiB. The heartbeat remains active for the unfinished goal.
+
+
+## 2026-10-28 V222–V224: fuse pure-carrier release blocks [verified]
+
+Counters found 33,562 algorithm-five fallback voice blocks with only carriers
+active (masks 32/34/42). V224 renders those carriers and applies the original
+voice-gain ramp in one pass, retaining every phase update and leaving skipped
+feedback untouched. Other masks retain the original path. It includes V220's
+shared-modulator optimization. No voices, events, rates or coefficients change.
+
+Full-app normal and sanitizer replay preserved all 22,581,248 PCM bytes.
+Internal state/PCM comparisons passed at 44,118 and 96,000 Hz, including six
+new prepared cases with cutoff endpoints, dirty feedback and changing gains.
+These host results do not establish native concurrency, ABI or whole-stack safety.
+
+The native 66,156-block run produced means 23,810 / 27,254 / 29,611 / 33,012
+ticks, 0.16–0.46% below V220 in one comparison, roughly 2–5 microseconds per
+block. Producer misses fell from 1,622 to 1,603, still failing the unchanged
+34,829-tick deadline. The heavy-case maximum was 42,904 versus 43,842 ticks.
+Consumer misses, DAC/backend faults and transport gaps remained zero; all four
+PCM hashes and arithmetic records matched. This is another modest private gain,
+not fixed12 acceptance. No analog soak or product-source promotion is claimed.
+
+The board is healthy idle after its one-shot reset and closing the sole receiver
+before PING. Private scripts, source/native exports, host reports and raw UART
+are retained in the V224 lane. Own reproducible SDK/proof/build/PCM intermediates
+were removed; Mac free space remains 1,195 GiB. Seek larger savings next.
