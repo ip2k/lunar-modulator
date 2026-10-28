@@ -9053,3 +9053,37 @@ lane and Aeon renderer-drums-zero-v212-exports. Own V211 source/build/PCM and
 V212 SDK removed after evidence export; baseline dependencies kept. No tracked
 DSP change. Mac1196GiB free. Next inspect correctly-covered Drums conversion
 stage costs rather than repeat blind loop rewrites or this rejected gain loop.
+
+## 2026-10-28: active Drums resampler sampled attribution (V213/V214)
+
+[verified] V213 failed before playback: a duplicate SRAM converter reduced heap
+headroom enough for DAC allocation to fail. Its zero counters are unmeasured,
+not evidence of a free resampler. V214 uses one converter body with sparse
+conditional timing and recovered 2,144 bytes; the DAC opened successfully.
+Both fully timed and alternating timed/untimed host paths matched all 720,000
+output samples and complete resampler states at six rates in normal and
+ASan/UBSan builds. This is a private diagnostic, not a product change.
+
+[verified] V214 completed 66,156 fixed12 blocks over 96.33 seconds, with all
+four PCM hashes matching V201 and arithmetic result/count records matching
+V191. The roughly 8,250 selected outputs per case measured interpolation plus
+ring writes at 2.308–2.330 us and the final 123-tap FIR at 2.282–2.291 us.
+Their combined interval was 4.597–4.621 us per selected output, including timer
+overhead. The combined interval overlaps its two components. Sparse sampling
+does not establish a whole-block saving or worst-case bound.
+
+[verified] Producer misses remained 0/0/6/2,989 against the unchanged
+34,829-tick budget. Consumer misses, DAC/backend/transport faults and gaps
+were zero. Diagnostic overhead precludes a clean speed comparison. Parent
+unused stack was 410 words; this is not whole-stack or race proof. No fixed12
+acceptance, new analog acceptance, or physical FM1 acceptance is claimed.
+The earlier adaptive V188 30-minute soak remains a separate result.
+
+Evidence is private in scratch/devkit-20261023/v214-target-facts.json and
+Aeon's renderer-resampler-sample-v214-exports. Both resets are consumed
+forever. Each sole receiver was closed with twice-checked exact argv and one
+SIGTERM, followed by terminal/PID-absence checks before an acknowledged PING.
+Next inspect native scheduling/load costs; do not repeat the already rejected
+paired-tap-count or complementary-product experiments, or change tap count,
+rates or floating-point accumulation order. Retain reports and remove these
+experiments' reproducible SDK trees after export.
