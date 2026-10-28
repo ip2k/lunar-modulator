@@ -9117,3 +9117,30 @@ renderer-fir-table-v216-exports. Reproducible SDK trees and host source/build/PC
 are removed after export; small evidence remains. No fixed12 acceptance or
 new analog/physical-FM1 acceptance is claimed. Move on from coefficient-load
 rewrites; the original immediate constants already compete well here.
+
+
+## 2026-10-28 V217/V218: constant DX7 voice gain rejected [verified]
+
+A private replay counted 351,464 mixed-entry calls whose voice-mix gain was
+constant across the block. Specializing that case removed per-sample ramp
+arithmetic while retaining the original path for changing gain. Full-app
+normal and ASan/UBSan replays kept all 22,581,248 PCM bytes identical. Directed
+state/PCM comparison also passed at 44,118 and 96,000 Hz, including changing
+gains, retirement, rejection and adapter paths. These are host checks, not
+native concurrency, cache, ABI or whole-stack proof.
+
+The dev-board result did not justify promotion. Across 66,156 blocks, producer
+means were 24,205 / 27,708 / 30,070 / 33,441 ticks: 0.25–0.54% slower than V201.
+Misses were 0 / 0 / 4 / 2,241 against the unchanged 34,829-tick deadline, versus
+1,883 total for V201. All four PCM hashes and arithmetic records matched;
+consumer misses, DAC/backend faults and transport gaps remained zero. This
+single run rejects the trial; it does not claim each producer miss was audible.
+
+No product source change. Only application flashing was used, with no full
+backup or readback cycle. The receiver was closed and its PID checked absent
+before ordinary PING confirmed healthy idle. The reset receipt is consumed
+forever. Private scripts, source/ELF/disassembly, proof summaries and raw UART
+remain under scratch/devkit-20261023 and the matching private Aeon export.
+Reproducible proof/build intermediates and the Mac's candidate image were
+removed; the remote current candidate is retained. Mac free space: 1,195 GiB.
+Fixed12 acceptance remains unfinished; the earlier adaptive soak is separate.
