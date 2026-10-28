@@ -2,6 +2,26 @@
  * MIT licence, like the rest of this repository.
  */
 #include "fm1_app.h"
+#ifdef FM1_APP_RENDER_PIPELINE
+#include "fm1_app_pipeline.h"
+#if defined(FM1_APP_RENDER_PROFILE)
+#error App pipeline requires observers to be disabled
+#endif
+/* Failure retains pending storage; never continue partially advanced DSP. */
+#define PIPELINE_REQUIRE(x) do { if (!(x)) fm1_app_pipeline_fail(__LINE__); } while (0)
+static fm1_app_t *pipeline_owner;
+static unsigned pipeline_pending, pipeline_producing;
+static uint64_t pipeline_next_produce, pipeline_next_consume, pipeline_next_retire;
+static int pipeline_owned_unit(int unit) {
+  return unit==1 || unit==2 || unit==fm1_app_sound_unit(1) ||
+    unit==fm1_app_insert_unit(1,0) || unit==fm1_app_insert_unit(1,1);
+}
+static int pipeline_busy(void) { return pipeline_pending || pipeline_producing; }
+
+#define PIPELINE_GUARD(x) PIPELINE_REQUIRE(x)
+#else
+#define PIPELINE_GUARD(x) ((void)0)
+#endif
 
 #include <limits.h>
 #include <math.h>
@@ -20,6 +40,16 @@
 #include "fm1_seq_view.h"
 #include "fm1_state.h"     /* FM1_VIEW_*: the view verb (fm1_app_show) */
 #include "mod_script.h"
+
+/* Opt-in worker diagnostic, absent from ordinary render builds. The observer
+ * must not allocate, log, mutate the app, or recursively render. */
+#ifdef FM1_APP_RENDER_PROFILE
+extern void fm1_app_render_profile(unsigned unit, uint32_t frames, int entering);
+#define PROFILE_UNIT(unit, frames, entering) fm1_app_render_profile(unit, frames, entering)
+#else
+#define PROFILE_UNIT(unit, frames, entering) ((void)0)
+#endif
+#define PROFILE_STAGE(stage, frames, entering) PROFILE_UNIT(FM1_APP_UNITS + (stage), frames, entering)
 
 /* Compile-time checks of the sequencer's fixed sizes (docs/15 §2.6; C99 has
  * no static_assert): the event buffer is 3,264 B, the pending record one
@@ -424,8 +454,20 @@ static int lock_target_context(fm1_app_t *a, int kind, fm1_seq_ui_sound_t *snd) 
   return k;
 }
 
-/* Held SELECT walks synth, inserts, global masters and the routed level.
- * Contexts are stack-only; no persistent model or RAM budget grows. */
+/* Layouts are fixed for a loaded engine (FM6 bank names do not change pages).
+ * Avoid scanning every parameter on every audio block. Keying by engine also
+ * handles replacement; swapping units carries their cached layout with them. */
+static int lock_target_pages(fm1_app_t *a, const fm1_seq_ui_sound_t *snd) {
+  if (snd->unit < 0 || snd->unit >= FM1_APP_UNITS) return fm1_seq_ui_pages(snd->e);
+  fm1_app_unit_t *u = &a->unit[snd->unit];
+  if (u->lock_pages_engine != snd->e) {
+    u->lock_pages = fm1_seq_ui_pages(snd->e);
+    u->lock_pages_engine = snd->e;
+  }
+  return u->lock_pages;
+}
+
+/* Held SELECT walks synth, inserts, global masters and the routed level. */
 static int lock_sound(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
   int total = 0, chosen = 0;
   const int wanted = a->ui.step_page >= FM1_SEQ_UI_STEP_PAGES ? a->ui.step_page - FM1_SEQ_UI_STEP_PAGES : 0;
@@ -433,7 +475,7 @@ static int lock_sound(fm1_app_t *a, fm1_seq_ui_sound_t *snd) {
   for (int kind = FM1_SEQ_TARGET_SOUND; kind <= FM1_SEQ_TARGET_MIX; ++kind) {
     fm1_seq_ui_sound_t next;
     lock_target_context(a, kind, &next);
-    const int pages = fm1_seq_ui_pages(next.e);
+    const int pages = lock_target_pages(a, &next);
     if (wanted >= total && wanted < total + pages) {
       *snd = next;
       snd->page = wanted - total;
@@ -469,6 +511,7 @@ static const char *lock_param_name(fm1_app_t *a, int param) {
  * the 7-bit grid, to the value the lane's base gives (fm1_seq_lock_value of
  * fm1_seq_value7), so a stop's D6 revert sends the engine exactly value[]. */
 static void ui_snap(fm1_app_t *a) {
+  PIPELINE_GUARD(!pipeline_busy());
   fm1_seq_ui_sound_t snd;
   const int param = a->ui.snap;
   knob_lock_context(a, &snd);
@@ -683,8 +726,10 @@ static void dx7_give(const fm1_app_t *a, const fm1_app_unit_t *u) {
 
 /* Everything fm1_app_init sets up but modulation, which needs the sinks
  * and the runtime's code below. */
-static void app_init(fm1_app_t *a, float sample_rate) {
+static void app_init(fm1_app_t *a, float sample_rate, const fm1_app_arena_t *arenas) {
+  PIPELINE_GUARD(!pipeline_owner);
   memset(a, 0, offsetof(fm1_app_t, tft));
+  a->external_arenas = arenas != NULL;
   a->host.api_version = FM1_ENGINE_API_VERSION;
   a->host.sample_rate = sample_rate;
   a->host.max_frames = FM1_APP_MAX_FRAMES;
@@ -692,19 +737,31 @@ static void app_init(fm1_app_t *a, float sample_rate) {
   a->ram_host.sample_rate = FM1_APP_RAM_RATE;
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
     a->unit[u].index = -1;
-    a->unit[u].cap = FM1_APP_FX_BYTES;
+    a->unit[u].cap = 0;
+  }
+#if !FM1_APP_EXTERNAL_ARENAS
+  if (!arenas) {
+    for (int u = 0; u < FM1_APP_UNITS; ++u) a->unit[u].cap = FM1_APP_FX_BYTES;
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+      a->unit[fm1_app_sound_unit(k)].mem = a->sound_mem[k];
+      a->unit[fm1_app_sound_unit(k)].cap = FM1_APP_SOUND_BYTES;
+      for (int j = 0; j < FM1_APP_INSERTS; ++j)
+        a->unit[fm1_app_insert_unit(k, j)].mem = a->fx_mem[FM1_APP_FX_SLOTS + FM1_APP_INSERTS * k + j];
+    }
+    for (int k = 0; k < FM1_APP_FX_SLOTS; ++k) a->unit[1 + k].mem = a->fx_mem[k];
+  }
+#endif
+  if (arenas) {
+    for (int u = 0; u < FM1_APP_UNITS; ++u) {
+      a->unit[u].mem = arenas[u].mem;
+      a->unit[u].cap = arenas[u].bytes;
+    }
   }
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) {         /* each sound unit its own arena */
-    a->unit[fm1_app_sound_unit(k)].mem = a->sound_mem[k];
-    a->unit[fm1_app_sound_unit(k)].cap = FM1_APP_SOUND_BYTES;
     a->level[k] = a->seq_level[k] = FM1_APP_LEVEL_MAX;
     a->sink_ctx[k].a = a;
     a->sink_ctx[k].sound = k;
-    for (int j = 0; j < FM1_APP_INSERTS; ++j) {
-      a->unit[fm1_app_insert_unit(k, j)].mem = a->fx_mem[FM1_APP_FX_SLOTS + FM1_APP_INSERTS * k + j];
-    }
   }
-  for (int k = 0; k < FM1_APP_FX_SLOTS; ++k) a->unit[1 + k].mem = a->fx_mem[k];
   fm1_mix_limiter_init(&a->limiter, sample_rate);
   a->master = 1.0f;
   a->export_sound_mask = (1u << FM1_APP_SOUNDS) - 1u;
@@ -729,9 +786,34 @@ static void arp_poll(fm1_app_t *a);
 static int arp_latched(const fm1_app_t *a, int sound);
 
 void fm1_app_init(fm1_app_t *a, float sample_rate) {
-  app_init(a, sample_rate);
+  app_init(a, sample_rate, NULL);
   arp_init(a);                         /* a bypassed arpeggiator on every sound */
   mod_start(a, FM1_APP_MOD_SEED, 1);   /* modulation from the default rack (docs/16 MG3) */
+}
+
+int fm1_app_init_arenas(fm1_app_t *a, float sample_rate,
+                        const fm1_app_arena_t arenas[FM1_APP_UNITS]) {
+  uintptr_t app = (uintptr_t)a, desc = (uintptr_t)arenas;
+  if (!a || !arenas || !isfinite(sample_rate) || sample_rate <= 0 ||
+      app > UINTPTR_MAX - sizeof *a ||
+      desc > UINTPTR_MAX - sizeof(*arenas) * FM1_APP_UNITS ||
+      (app < desc + sizeof(*arenas) * FM1_APP_UNITS && desc < app + sizeof *a)) return -1;
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    uintptr_t p = (uintptr_t)arenas[u].mem;
+    size_t n = arenas[u].bytes;
+    if ((!p != !n) || (p & 15u) || n > UINTPTR_MAX - p) return -1;
+    if (!n) continue;
+    if ((p < app + sizeof *a && app < p + n) ||
+        (p < desc + sizeof(*arenas) * FM1_APP_UNITS && desc < p + n)) return -1;
+    for (int v = 0; v < u; ++v) {
+      uintptr_t q = (uintptr_t)arenas[v].mem;
+      if (arenas[v].bytes && p < q + arenas[v].bytes && q < p + n) return -1;
+    }
+  }
+  app_init(a, sample_rate, arenas);
+  arp_init(a);
+  mod_start(a, FM1_APP_MOD_SEED, 1);
+  return 0;
 }
 
 /* ---- modulation: the runtime on the bridge (docs/16 MG3) ------------------------ */
@@ -801,10 +883,12 @@ static int seq_auto_target(fm1_app_t *a, unsigned track, unsigned lane,
   fm1_seq_track_info_t ti;
   const char *name;
   int kind, unit, index;
-  if (!a->seq || track >= FM1_APP_SEQ_TRACKS || lane >= FM1_SEQ_LANES ||
-      !fm1_seq_get_track(a->seq, (uint8_t)track, &ti)) return 0;
+  if (!a->seq || track >= FM1_APP_SEQ_TRACKS || lane >= FM1_SEQ_LANES) return 0;
   kind = fm1_seq_lane_target(fm1_seq_lane_label(a->seq, (uint8_t)track, (uint8_t)lane), &name);
   if (kind <= FM1_SEQ_TARGET_SOUND) return 0;
+  /* Most lanes have no app target. Copy track state only for accepted labels;
+   * fm1_seq_lane_label already bounds-checks the sequencer's track count. */
+  if (!fm1_seq_get_track(a->seq, (uint8_t)track, &ti)) return 0;
   if (kind == FM1_SEQ_TARGET_MASTER1 || kind == FM1_SEQ_TARGET_MASTER2) {
     unit = kind - FM1_SEQ_TARGET_MASTER1 + 1;
   } else {
@@ -914,7 +998,9 @@ static uint32_t seq_auto_note_on(void *ctx, uint32_t frame, unsigned slot, uint8
 static void seq_auto_base(fm1_app_t *a, unsigned unit, unsigned index, unsigned v7) {
   if (!a->seq) return;
   for (unsigned t = 0; t < FM1_APP_SEQ_TRACKS; ++t) {
+    const uint8_t labeled = fm1_seq_labeled_lanes(a->seq, (uint8_t)t);
     for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
+      if (!(labeled & (1u << l))) continue;
       fm1_app_seq_target_t target;
       if (seq_auto_target(a, t, l, &target) && target.unit == unit && target.index == index &&
           target.base != v7) {
@@ -930,6 +1016,7 @@ static void seq_auto_base(fm1_app_t *a, unsigned unit, unsigned index, unsigned 
 /* Discarding the set restores configured knobs, rather than retaining any
  * transient lock base from that set. Called before reset/import. */
 static void seq_auto_release(fm1_app_t *a) {
+  PIPELINE_GUARD(!pipeline_busy());
   for (unsigned t = 0; t < FM1_APP_SEQ_TRACKS; ++t) {
     for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
       fm1_app_seq_target_t *x = &a->seq_target[t][l];
@@ -964,6 +1051,7 @@ static void mod_bind(fm1_app_t *a, int unit) {
 /* The runtime goes; every parameter it moved goes back to its base, so a
  * runtime that follows (or none) starts from what the knobs say. */
 static void mod_release(fm1_app_t *a) {
+  PIPELINE_GUARD(!pipeline_busy());
   if (!a->mod) return;
   for (int u = 0; u < FM1_APP_UNITS; ++u) {
     const fm1_app_unit_t *x = &a->unit[u];
@@ -998,6 +1086,7 @@ static void mod_release(fm1_app_t *a) {
 /* A new runtime with `seed`, bound to the chain; with `deflt`, the default
  * rack and its cables (fm1_app_init's). */
 static void mod_start(fm1_app_t *a, uint32_t seed, int deflt) {
+  PIPELINE_GUARD(!pipeline_busy());
   mod_release(a);                      /* a script's reset after the default runtime ran */
   if (fm1_mod_size() > sizeof a->mod_mem) return;
   a->mod = fm1_mod_create(a->mod_mem, &a->host, seed);
@@ -1033,6 +1122,7 @@ static int is_mod_mode(int mode) {
 void fm1_app_mod_reset(fm1_app_t *a, uint32_t seed) { mod_start(a, seed, 0); }
 
 int fm1_app_mod_line(fm1_app_t *a, const char *line, char *err, size_t cap) {
+  PIPELINE_GUARD(!pipeline_busy());
   const fm1_engine_t *units[FM1_MOD_SINKS];
   uint32_t seed;
   if (!a->mod) {
@@ -1126,6 +1216,7 @@ static void mod_rebind(fm1_app_t *a, int unit, const fm1_engine_t *from) {
 }
 
 int fm1_app_select(fm1_app_t *a, int unit, int index) {
+  PIPELINE_GUARD(!pipeline_busy());
   if (unit < 0 || unit >= FM1_APP_UNITS) return FM1_APP_SELECT_BAD;
   fm1_app_unit_t *u = &a->unit[unit];
   const fm1_engine_t *e = entry(index);
@@ -1160,7 +1251,7 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
     }
   }
   size_t bytes = e->instance_size(&a->host);
-  if (bytes > u->cap) return FM1_APP_SELECT_ARENA;
+  if (!u->mem || bytes > u->cap) return FM1_APP_SELECT_ARENA;
   {
     /* The RAM meter: refuse what would take the chain past the FM-1's
      * budget, unless it does not grow (a chain already past it, after a
@@ -1374,6 +1465,7 @@ int fm1_app_param_index(const fm1_app_t *a, int unit, const char *name) {
 }
 
 void fm1_app_set_param(fm1_app_t *a, int unit, int index, float value) {
+  PIPELINE_GUARD(!pipeline_busy() || !pipeline_owned_unit(unit));
   if (unit < 0 || unit >= FM1_APP_UNITS) return;
   fm1_app_unit_t *u = &a->unit[unit];
   if (!u->e || index < 0 || index >= u->e->n_params) return;
@@ -1537,8 +1629,8 @@ int fm1_app_unit_route(fm1_app_t *a, int track, int sound) {
 }
 
 int fm1_app_unit_of_track(const fm1_app_t *a, int track) {
-  fm1_seq_track_info_t ti;
-  if (!a->seq || track < 0 || track > 255 || !fm1_seq_get_track(a->seq, (uint8_t)track, &ti) ||
+  fm1_seq_route_info_t ti;
+  if (!a->seq || track < 0 || track > 255 || !fm1_seq_get_route(a->seq, (uint8_t)track, &ti) ||
       ti.route_kind != FM1_SEQ_ROUTE_ENGINE) {
     return -1;
   }
@@ -1555,6 +1647,7 @@ int fm1_app_unit_of_track(const fm1_app_t *a, int track) {
  * its release; what the arp plays reaches the sound through the bridge, as
  * the sequencer's notes do (fm1_mfx_host.h). */
 static void play_on(fm1_app_t *a, int sound, int note, int velocity) {
+  PIPELINE_GUARD(!pipeline_busy() || sound!=1);
   fm1_app_unit_t *s = sound_of(a, sound);
   if (!fm1_mfx_live_note(&a->mfx, (unsigned)sound, (uint8_t)note, (uint8_t)velocity)) {
     if (s->e && s->e->note_on) s->e->note_on(s->self, (uint8_t)note, (uint8_t)velocity);
@@ -1573,6 +1666,7 @@ static void play_on(fm1_app_t *a, int sound, int note, int velocity) {
 }
 
 static void play_off(fm1_app_t *a, int sound, int note) {
+  PIPELINE_GUARD(!pipeline_busy() || sound!=1);
   fm1_app_unit_t *s = sound_of(a, sound);
   if (!fm1_mfx_live_note(&a->mfx, (unsigned)sound, (uint8_t)note, 0)) {
     if (s->e && s->e->note_off) s->e->note_off(s->self, (uint8_t)note);
@@ -1586,6 +1680,7 @@ static void play_off(fm1_app_t *a, int sound, int note) {
  * among the sequencer's), and the modulation's note sources, as fm1-render's
  * flush does (MfxNoteOff in engines/host/render.cc). */
 static void mfx_off(void *ctx, unsigned chain, uint8_t key) {
+  PIPELINE_GUARD(!pipeline_busy() || chain!=1);
   fm1_app_t *a = (fm1_app_t *)ctx;
   fm1_app_unit_t *s;
   if (chain >= FM1_APP_SOUNDS || key > 127) return;
@@ -1604,11 +1699,13 @@ static fm1_mfx_sink_t mfx_sink(fm1_app_t *a) {
 }
 
 void fm1_app_unit_note_on(fm1_app_t *a, int sound, int note, int velocity) {
+  PIPELINE_GUARD(!pipeline_busy() || sound!=1);
   if (sound < 0 || sound >= FM1_APP_SOUNDS || note < 0 || note > 127) return;
   play_on(a, sound, note, clampi(velocity, 1, 127));
 }
 
 void fm1_app_unit_note_off(fm1_app_t *a, int sound, int note) {
+  PIPELINE_GUARD(!pipeline_busy() || sound!=1);
   if (sound < 0 || sound >= FM1_APP_SOUNDS || note < 0 || note > 127) return;
   play_off(a, sound, note);
 }
@@ -1665,6 +1762,7 @@ void fm1_app_note_off(fm1_app_t *a, int note) {
 }
 
 void fm1_app_pitch_bend(fm1_app_t *a, float semitones) {
+  PIPELINE_GUARD(!pipeline_busy());
   if (!(semitones == semitones)) return;
   if (semitones > 48.0f) semitones = 48.0f;
   if (semitones < -48.0f) semitones = -48.0f;
@@ -1728,6 +1826,7 @@ static void release_sound(fm1_app_t *a, int sound) {
 }
 
 void fm1_app_all_notes_off(fm1_app_t *a) {
+  PIPELINE_GUARD(!pipeline_busy());
   const fm1_mfx_sink_t sink = mfx_sink(a);
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) fm1_mfx_flush(&a->mfx, (unsigned)k, 1, &sink);
   for (int k = 0; k < FM1_APP_SOUNDS; ++k) notes_release_sound(a, k);
@@ -1852,6 +1951,7 @@ static void mod_swap_units(fm1_app_t *a, int ua, int ub) {
 
 /* A waiting picker's choice, now; its popup goes with it. */
 static void mod_commit(fm1_app_t *a) {
+  PIPELINE_GUARD(!pipeline_busy());
   fm1_mod_ui_env_t env;
   if (!a->mod || !a->mui.picker) return;
   mod_env(a, &env);
@@ -2433,6 +2533,7 @@ static void fx_swap(fm1_app_t *a, int delta) {
 /* The editor's swap verb (fm1_edit.h): the same trade, the panel's view
  * left where it is but for a page past the new effect's last. */
 int fm1_app_swap_units(fm1_app_t *a, int ua, int ub) {
+  PIPELINE_GUARD(!pipeline_busy());
   const int ra = ua >= 1 && ua < FM1_APP_UNITS && unit_sound(ua) < 0;
   const int rb = ub >= 1 && ub < FM1_APP_UNITS && unit_sound(ub) < 0;
   if (!ra || !rb || ua == ub) return FM1_APP_SELECT_BAD;
@@ -2864,6 +2965,7 @@ static void arp_tap(fm1_app_t *a) {
 /* A hold: Latch on (the arp on with it) or off, on the current sound. An
  * arp that is off comes on latched, whatever its Latch was left at. */
 static void arp_hold(fm1_app_t *a) {
+  PIPELINE_GUARD(!pipeline_busy());
   const int latch = fm1_app_mfx_param_index(a, a->sound, "Latch");
   const int to = !fm1_app_arp_on(a, a->sound) || !arp_latched(a, a->sound);
   char state[32];
@@ -3097,18 +3199,21 @@ static void encoder_in(fm1_app_t *a, int encoder, int delta) {
 /* The panel's input, as the edit layer's source PANEL (fm1_edit.h): every
  * change a key, a button or an encoder makes enters the change ring so. */
 void fm1_app_key(fm1_app_t *a, int key, int down, int velocity) {
+  PIPELINE_GUARD(!pipeline_busy());
   const int was = fm1_edit_enter(a, FM1_EDIT_PANEL);
   key_in(a, key, down, velocity);
   fm1_edit_leave(a, was);
 }
 
 void fm1_app_button(fm1_app_t *a, int button, int down) {
+  PIPELINE_GUARD(!pipeline_busy());
   const int was = fm1_edit_enter(a, FM1_EDIT_PANEL);
   button_in(a, button, down);
   fm1_edit_leave(a, was);
 }
 
 void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
+  PIPELINE_GUARD(!pipeline_busy());
   const int was = fm1_edit_enter(a, FM1_EDIT_PANEL);
   encoder_in(a, encoder, delta);
   fm1_edit_leave(a, was);
@@ -3117,6 +3222,7 @@ void fm1_app_encoder(fm1_app_t *a, int encoder, int delta) {
 /* ---- for the edit layer (fm1_edit.h) ------------------------------------------- */
 
 int fm1_app_mod_edit_kind(fm1_app_t *a, unsigned pos, int kind) {
+  PIPELINE_GUARD(!pipeline_busy());
   fm1_mod_ui_env_t env;
   int r;
   if (!a->mod) return -1;
@@ -3127,6 +3233,7 @@ int fm1_app_mod_edit_kind(fm1_app_t *a, unsigned pos, int kind) {
 }
 
 int fm1_app_mod_edit_param(fm1_app_t *a, unsigned pos, unsigned index, float value) {
+  PIPELINE_GUARD(!pipeline_busy());
   fm1_mod_ui_env_t env;
   int r;
   if (!a->mod) return 0;
@@ -3137,6 +3244,7 @@ int fm1_app_mod_edit_param(fm1_app_t *a, unsigned pos, unsigned index, float val
 }
 
 int fm1_app_mod_edit_slot(fm1_app_t *a, unsigned i, const fm1_mod_slot_t *s) {
+  PIPELINE_GUARD(!pipeline_busy());
   fm1_mod_ui_env_t env;
   int r;
   if (!a->mod) return 0;
@@ -3147,6 +3255,7 @@ int fm1_app_mod_edit_slot(fm1_app_t *a, unsigned i, const fm1_mod_slot_t *s) {
 }
 
 int fm1_app_mod_edit_move(fm1_app_t *a, unsigned from, unsigned to) {
+  PIPELINE_GUARD(!pipeline_busy());
   fm1_mod_ui_env_t env;
   int r;
   if (!a->mod) return 0;
@@ -3294,9 +3403,9 @@ void fm1_app_master(fm1_app_t *a, float position, int show) {
 
 /* The stock octave LED: off at 0, slow blink at 1, fast at 2, solid at 3. */
 static int octave_led(const fm1_app_t *a, int magnitude) {
-  double t = seconds(a);
   if (magnitude <= 0) return 0;
   if (magnitude >= 3) return 1;
+  double t = seconds(a);
   double period = magnitude == 1 ? 1.0 : 0.25;
   return fmod(t, period) < period * 0.5;
 }
@@ -3367,17 +3476,99 @@ static void seq_flush(fm1_app_t *a);
  * velocities are 1..127 already). The app counts the notes, to release
  * them, and mirrors each lock for the screen without touching value[], the
  * knob's own value. */
+#ifdef FM1_APP_RENDER_PIPELINE
+/* Sealed sound1 operations; other sounds execute in original dispatch order. */
+enum { PIPELINE_RENDER, PIPELINE_ON, PIPELINE_OFF, PIPELINE_PARAM, PIPELINE_BEND, PIPELINE_NOTE };
+enum { PIPELINE_CAPACITY = 128 };
+typedef struct {
+  float *out; uint32_t frames; float value;
+  uint16_t index; uint8_t key, velocity; unsigned kind;
+} PIPELINEOp;
+typedef struct {
+  const fm1_engine_t *engine; void *instance; unsigned count;
+  PIPELINEOp op[PIPELINE_CAPACITY];
+} PIPELINEStream;
+/* Producer scratch only; pending slots retain just their Macro stream. */
+static PIPELINEStream pipeline_recorded[FM1_APP_SOUNDS];
+static int pipeline_recording;
+static int pipeline_record(const fm1_app_sink_ctx_t *c,unsigned kind,float *out,
+    uint32_t frames,unsigned index,unsigned key,unsigned velocity,float value) {
+  if(!pipeline_recording) return 0;
+  if(c->sound!=1) return 0;
+  PIPELINE_REQUIRE(c->a==pipeline_owner && c->sound<FM1_APP_SOUNDS);
+  const fm1_app_unit_t *u=sound_of(c->a,c->sound);
+  PIPELINEStream *s=&pipeline_recorded[c->sound];
+  PIPELINE_REQUIRE(u->e && u->self && s->count<PIPELINE_CAPACITY && kind<=PIPELINE_NOTE);
+  PIPELINE_REQUIRE(!s->count || (s->engine==u->e && s->instance==u->self));
+  PIPELINE_REQUIRE(!(c->sound==1 && kind==PIPELINE_PARAM && index==0 && value!=0.0f));
+  s->engine=u->e;s->instance=u->self;
+  PIPELINEOp *op=&s->op[s->count++];
+  memset(op,0,sizeof *op);
+  op->kind=kind;op->out=out;op->frames=frames;op->index=(uint16_t)index;
+  op->key=(uint8_t)key;op->velocity=(uint8_t)velocity;op->value=value;
+  return 1;
+}
+
+static void pipeline_validate_stream(const PIPELINEStream *s,float *pcm,uint32_t n) {
+  PIPELINE_REQUIRE(s->engine && s->instance && s->count && s->count<=PIPELINE_CAPACITY);
+  uint32_t cur=0;
+  for(unsigned i=0;i<s->count;++i) {
+    const PIPELINEOp *o=&s->op[i];
+    PIPELINE_REQUIRE(o->kind<=PIPELINE_NOTE);
+    switch(o->kind) {
+      case PIPELINE_RENDER:
+        PIPELINE_REQUIRE(s->engine->render && o->frames && o->frames<=n-cur);
+        PIPELINE_REQUIRE(o->out==pcm+2u*cur);cur+=o->frames;break;
+      case PIPELINE_ON: PIPELINE_REQUIRE(s->engine->note_on);break;
+      case PIPELINE_OFF: PIPELINE_REQUIRE(s->engine->note_off);break;
+      case PIPELINE_PARAM: PIPELINE_REQUIRE(s->engine->set_param);break;
+      default: break; /* optional Bend/SetNote callbacks retain original no-op */
+    }
+  }
+  PIPELINE_REQUIRE(cur==n);
+}
+
+static void pipeline_execute(const PIPELINEStream *s) {
+  const fm1_engine_t *e=s->engine;
+  for(unsigned i=0;i<s->count;++i) {
+    const PIPELINEOp *o=&s->op[i];
+
+    switch(o->kind) {
+      case PIPELINE_RENDER:e->render(s->instance,o->out,o->frames);break;
+      case PIPELINE_ON:e->note_on(s->instance,o->key,o->velocity);break;
+      case PIPELINE_OFF:e->note_off(s->instance,o->key);break;
+      case PIPELINE_PARAM:e->set_param(s->instance,o->index,o->value);break;
+      case PIPELINE_BEND:if(e->pitch_bend)e->pitch_bend(s->instance,o->value);break;
+      case PIPELINE_NOTE:if(e->set_param_note)e->set_param_note(s->instance,o->key,o->index,o->value);break;
+      default:PIPELINE_REQUIRE(0);
+    }
+
+  }
+}
+
+#endif
+
 static void sink_render(void *ctx, float *lr, uint32_t n) {
   const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
   const fm1_app_unit_t *u = sound_of(c->a, c->sound);
+  PROFILE_UNIT((unsigned)fm1_app_sound_unit(c->sound), n, 1);
+#ifdef FM1_APP_RENDER_PIPELINE
+  if(!pipeline_record(c,PIPELINE_RENDER,lr,n,0,0,0,0)) u->e->render(u->self, lr, n);
+#else
   u->e->render(u->self, lr, n);
+#endif
+  PROFILE_UNIT((unsigned)fm1_app_sound_unit(c->sound), n, 0);
 }
 
 static void sink_note_on(void *ctx, uint8_t note, uint8_t velocity) {
   const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
   const fm1_app_unit_t *u = sound_of(c->a, c->sound);
   uint8_t *count = c->a->seq_note_count[c->sound];
+#ifdef FM1_APP_RENDER_PIPELINE
+  if(!pipeline_record(c,PIPELINE_ON,0,0,0,note,velocity,0)) u->e->note_on(u->self, note, velocity);
+#else
   u->e->note_on(u->self, note, velocity);
+#endif
   if (note < 128 && count[note] < 255) ++count[note];
 }
 
@@ -3385,14 +3576,22 @@ static void sink_note_off(void *ctx, uint8_t note) {
   const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
   const fm1_app_unit_t *u = sound_of(c->a, c->sound);
   uint8_t *count = c->a->seq_note_count[c->sound];
+#ifdef FM1_APP_RENDER_PIPELINE
+  if(!pipeline_record(c,PIPELINE_OFF,0,0,0,note,0,0)) u->e->note_off(u->self, note);
+#else
   u->e->note_off(u->self, note);
+#endif
   if (note < 128 && count[note]) --count[note];
 }
 
 static void sink_set_param(void *ctx, uint16_t index, float value) {
   const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
   const fm1_app_unit_t *u = sound_of(c->a, c->sound);
+#ifdef FM1_APP_RENDER_PIPELINE
+  if(!pipeline_record(c,PIPELINE_PARAM,0,0,index,0,0,value)) u->e->set_param(u->self, index, value);
+#else
   u->e->set_param(u->self, index, value);
+#endif
   if (index < FM1_APP_MAX_PARAMS) {
     c->a->lock_shown[c->sound][index] = value;
     c->a->lock_mask[c->sound] |= 1u << index;
@@ -3403,14 +3602,22 @@ static void sink_set_param(void *ctx, uint16_t index, float value) {
 static void sink_bend(void *ctx, float semitones) {
   const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
   const fm1_app_unit_t *u = sound_of(c->a, c->sound);
+#ifdef FM1_APP_RENDER_PIPELINE
+  if(!pipeline_record(c,PIPELINE_BEND,0,0,0,0,0,semitones) && u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);
+#else
   if (u->e->pitch_bend) u->e->pitch_bend(u->self, semitones);
+#endif
 }
 
 /* A voice's per-note offset (modulation per voice, docs/16 MG9). */
 static void sink_set_param_note(void *ctx, uint8_t key, uint16_t index, float offset) {
   const fm1_app_sink_ctx_t *c = (const fm1_app_sink_ctx_t *)ctx;
   const fm1_app_unit_t *u = sound_of(c->a, c->sound);
+#ifdef FM1_APP_RENDER_PIPELINE
+  if(!pipeline_record(c,PIPELINE_NOTE,0,0,index,key,0,offset) && u->e->set_param_note) u->e->set_param_note(u->self, key, index, offset);
+#else
   if (u->e->set_param_note) u->e->set_param_note(u->self, key, index, offset);
+#endif
 }
 
 /* An effect over the block, split at its own writes from the ticks, as
@@ -3421,6 +3628,7 @@ static void sink_set_param_note(void *ctx, uint8_t key, uint16_t index, float of
  * one with an idle path never idles under it. Active sequencer locks and
  * frame-tagged lock/base writes also keep the effect driven. */
 static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
+  PROFILE_UNIT((unsigned)unit, n, 1);
   fm1_app_unit_t *u = &a->unit[unit];
   const int code = fm1_app_mod_unit(unit);
   int driven = a->mod && code >= 0 ? fm1_mod_unit_routed(a->mod, (unsigned)code) : 0;
@@ -3455,6 +3663,7 @@ static void render_fx(fm1_app_t *a, int unit, float *out, uint32_t n) {
     if (w->index < u->e->n_params) u->e->set_param(u->self, w->index, w->value);
   }
   if (cur < n) fm1_fx_render(u->e, u->self, out, cur, n, &b);
+  PROFILE_UNIT((unsigned)unit, n, 0);
 }
 
 /* Mixer gain is piecewise constant on the lock's sample frames. The
@@ -3563,7 +3772,346 @@ static void render_sounds(fm1_app_t *a, uint32_t n, float *out) {
   }
 }
 
+#ifdef FM1_APP_RENDER_PIPELINE
+/* Block metadata is sealed by CPU0; only these owned destinations reach CPU1. */
+typedef struct {
+  const fm1_engine_t *engine;
+  void *instance;
+  int code, desired_driven;
+  int *driven;
+} PostFxView;
+typedef struct {
+  uint32_t frames, write_count, event_count;
+  uint64_t frame_origin;
+  const fm1_app_mod_write_t *writes;
+  const fm1_seq_ev_t *events;
+  fm1_seq_clock_t clock;
+  int has_seq, has_mod, metronome;
+  float gain;
+  PostFxView fx[FM1_APP_FX_SLOTS];
+} PostBlockView;
+typedef struct {
+  fm1_mod_ramp_t *amp;
+  int *amp_used;
+  fm1_seq_click_t *click;
+  fm1_mix_limiter_t *limiter;
+  float *scope, *peak;
+  int *scope_pos;
+  unsigned *scope_block;
+} PostWork;
+
+static void post_capture(fm1_app_t *a, uint32_t n,
+                         PostBlockView *v, PostWork *w) {
+  v->frames=n; v->frame_origin=a->frames;
+  v->writes=a->mod_wr; v->write_count=a->mod_nwr;
+  v->has_seq=a->seq!=NULL; v->has_mod=a->mod!=NULL;
+  v->events=v->has_seq ? a->seq_ev : NULL;
+  v->event_count=v->has_seq ? a->seq_last_n : 0;
+  if(v->has_seq) v->clock=a->seq_host.clock;
+  v->gain=a->gain; v->metronome=0;
+  for(uint32_t k=0;k<v->event_count;++k) {
+    if(v->events[k].kind==FM1_SEQ_EV_CLICK) {
+      fm1_seq_info_t info;
+      fm1_seq_get_info(a->seq,&info);
+      v->metronome=info.metronome!=0;
+      break;
+    }
+  }
+  for(int j=0;j<FM1_APP_FX_SLOTS;++j) {
+    const int unit=j+1;
+    fm1_app_unit_t *u=&a->unit[unit];
+    PostFxView *f=&v->fx[j];
+    f->engine=u->e; f->instance=u->self;
+    f->driven=&u->driven;
+    f->code=fm1_app_mod_unit(unit); f->desired_driven=0;
+    if(!u->e) continue;
+    int driven=a->mod && f->code>=0 ? fm1_mod_unit_routed(a->mod,(unsigned)f->code) : 0;
+    for(unsigned t=0;!driven && t<FM1_APP_SEQ_TRACKS;++t)
+      for(unsigned l=0;l<FM1_SEQ_LANES;++l) {
+        const fm1_app_seq_target_t *x=&a->seq_target[t][l];
+        if(x->active && x->unit==unit && x->engine==u->e) driven=1;
+      }
+    for(uint32_t k=0;!driven && k<a->mod_nwr;++k)
+      if(a->mod_wr[k].w.unit==f->code) driven=1;
+    f->desired_driven=driven;
+  }
+  /* Explicit owned destinations; the execution functions never read app. */
+  w->amp=&a->mod_amp; w->amp_used=&a->mod_amp_used;
+  w->click=&a->click; w->limiter=&a->limiter;
+  w->scope=a->scope; w->scope_pos=&a->scope_pos;
+  w->scope_block=&a->scope_block; w->peak=&a->peak;
+}
+
+static void post_fx_run(const PostBlockView *v, const PostFxView *f, float *out) {
+  const fm1_engine_t *e=f->engine;
+  uint32_t cur=0;
+  fm1_fx_block_t b;
+  if(f->desired_driven!=*f->driven) {
+    e->set_param(f->instance,FM1_PARAM_DRIVEN,(float)f->desired_driven);
+    *f->driven=f->desired_driven;
+  }
+  b.clock=v->has_seq ? &v->clock : NULL;
+  b.ev=v->events; b.n_ev=v->event_count; b.frames=v->frames; b.bpm=120.0f;
+  for(uint32_t k=0;f->code>=0 && k<v->write_count;++k) {
+    const uint32_t at=v->writes[k].frame;
+    const fm1_mod_write_t *wr=&v->writes[k].w;
+    if(wr->unit!=f->code) continue;
+    if(at>cur) { fm1_fx_render(e,f->instance,out,cur,at,&b); cur=at; }
+    if(wr->index<e->n_params) e->set_param(f->instance,wr->index,wr->value);
+  }
+  if(cur<v->frames) fm1_fx_render(e,f->instance,out,cur,v->frames,&b);
+}
+
+static void post_amp_run(const PostBlockView *v, PostWork *w, float *out) {
+  uint32_t cur=0;
+  for(uint32_t k=0;k<v->write_count;++k) {
+    const fm1_mod_write_t *wr=&v->writes[k].w;
+    const uint32_t at=v->writes[k].frame;
+    if(wr->unit!=FM1_MOD_HOST || wr->index!=FM1_MOD_HOST_AMP) continue;
+    if(*w->amp_used && at>cur) fm1_mod_ramp_apply(w->amp,v->frame_origin+cur,out+2u*cur,at-cur);
+    fm1_mod_ramp_set(w->amp,v->frame_origin+at,wr->value);
+    *w->amp_used=1;cur=at;
+  }
+  if(*w->amp_used && cur<v->frames)
+    fm1_mod_ramp_apply(w->amp,v->frame_origin+cur,out+2u*cur,v->frames-cur);
+}
+
+static void post_run(const PostBlockView *v, PostWork *w, float *out) {
+  const uint32_t n=v->frames;
+  PROFILE_STAGE(FM1_APP_PROFILE_MASTERS,n,1);
+  for(int j=0;j<FM1_APP_FX_SLOTS;++j) {
+    if(v->fx[j].engine) {
+      PROFILE_UNIT((unsigned)(j+1),n,1);
+      post_fx_run(v,&v->fx[j],out);
+      PROFILE_UNIT((unsigned)(j+1),n,0);
+    }
+  }
+  PROFILE_STAGE(FM1_APP_PROFILE_MASTERS,n,0);
+  PROFILE_STAGE(FM1_APP_PROFILE_AMP,n,1);
+  if(v->has_mod) post_amp_run(v,w,out);
+  PROFILE_STAGE(FM1_APP_PROFILE_AMP,n,0);
+  PROFILE_STAGE(FM1_APP_PROFILE_LIMITER,n,1);
+  if(v->has_seq) fm1_seq_click_mix_on(w->click,v->metronome,v->events,v->event_count,n,out);
+  fm1_mix_limiter_process(w->limiter,out,n);
+  PROFILE_STAGE(FM1_APP_PROFILE_LIMITER,n,0);
+  PROFILE_STAGE(FM1_APP_PROFILE_SCOPE,n,1);
+  if((*w->scope_block)++ % FM1_APP_VISUAL_DIVISOR==0) {
+    for(uint32_t i=0;i<n;++i) {
+      float m=0.5f*(out[2*i]+out[2*i+1]);
+      w->scope[*w->scope_pos]=m;
+      *w->scope_pos=(*w->scope_pos+1)%FM1_APP_SCOPE;
+      float p=fabsf(out[2*i])>fabsf(out[2*i+1]) ? fabsf(out[2*i]) : fabsf(out[2*i+1]);
+      if(p>*w->peak) *w->peak=p;
+    }
+  }
+  if(v->gain!=1.0f) for(uint32_t i=0;i<2*n;++i) out[i]*=v->gain;
+  PROFILE_STAGE(FM1_APP_PROFILE_SCOPE,n,0);
+}
+
+#include <stdio.h>
+typedef struct {
+  PostBlockView view; PostWork work;
+  fm1_app_mod_write_t writes[FM1_APP_MOD_WRITES];
+  fm1_seq_ev_t events[FM1_APP_SEQ_EVENTS];
+  float pcm[128]; int live;
+  fm1_app_t *owner; uint64_t generation;
+  PIPELINEStream macro;
+  float sound[FM1_APP_SOUNDS][128];
+  PostFxView drive[FM1_APP_INSERTS];
+  float macro_level; uint32_t mix_count; unsigned export_mask;
+  fm1_app_mix_write_t mix_writes[FM1_APP_SEQ_EVENTS + FM1_APP_SEQ_TRACKS * FM1_SEQ_LANES];
+} PipelineSlot;
+/* Private serial proof, after V88 definitions and extended PipelineSlot. */
+static struct {
+  const fm1_engine_t *e; void *self; unsigned char *mem; size_t bytes,cap;
+} pipeline_geometry[FM1_APP_UNITS];
+static int pipeline_geometry_sealed;
+static void pipeline_preflight(fm1_app_t *a,PipelineSlot *s,uint32_t n) {
+  PIPELINE_REQUIRE(!s->live && n==64 && !a->edit && a->seq && !pipeline_producing);
+  PIPELINE_REQUIRE(!pipeline_owner || pipeline_owner==a);
+  PIPELINE_REQUIRE(pipeline_pending<2);
+  PIPELINE_REQUIRE(a->unit[fm1_app_sound_unit(1)].value[0]==0.0f);
+  if(pipeline_geometry_sealed) {
+    for(unsigned u=0;u<FM1_APP_UNITS;++u) {
+      const fm1_app_unit_t *x=&a->unit[u];
+      PIPELINE_REQUIRE(x->e==pipeline_geometry[u].e && x->self==pipeline_geometry[u].self &&
+        x->mem==pipeline_geometry[u].mem && x->bytes==pipeline_geometry[u].bytes && x->cap==pipeline_geometry[u].cap);
+    }
+  } else {
+  static const char *const ids[4]={"dx7","macro","drums","dx7"};
+  for(int k=0;k<4;++k) {
+    const fm1_app_unit_t *u=sound_of(a,k);
+    PIPELINE_REQUIRE(u->e && u->e->id && !strcmp(u->e->id,ids[k]) && u->e->kind==FM1_KIND_SOUND);
+    for(int j=0;j<FM1_APP_INSERTS;++j) {
+      const fm1_app_unit_t *f=&a->unit[fm1_app_insert_unit(k,j)];
+      if(!f->e) continue;
+      PIPELINE_REQUIRE(k<2 && f->e->id && !strcmp(f->e->id,k?"drive":"filter"));
+      PIPELINE_REQUIRE(f->e->kind==FM1_KIND_AUDIO_FX && f->e->render && f->e->set_param && !f->e->render_ext);
+    }
+  }
+  PIPELINE_REQUIRE(a->unit[1].e && !strcmp(a->unit[1].e->id,"echo"));
+  PIPELINE_REQUIRE(a->unit[2].e && !strcmp(a->unit[2].e->id,"comp"));
+  for(unsigned u=0;u<FM1_APP_UNITS;++u) {
+    const fm1_app_unit_t *x=&a->unit[u];
+    if(x->e) {
+      uintptr_t p=(uintptr_t)x->self;
+      PIPELINE_REQUIRE(p && x->self==x->mem && x->bytes && x->bytes<=x->cap && x->cap<=UINTPTR_MAX-p);
+      for(unsigned v=0;v<u;++v) {
+        const fm1_app_unit_t *y=&a->unit[v];if(!y->e)continue;
+        uintptr_t q=(uintptr_t)y->self;
+        PIPELINE_REQUIRE(!(p<q+y->cap && q<p+x->cap));
+      }
+    }
+  }
+  }
+  /* Unsupported UI mutation paths are fenced before production starts. */
+  PIPELINE_REQUIRE(!a->arp_down && !a->popup_lines && a->ui.snap<0 && !a->ui.toast && !a->ui.follow);
+  if(!pipeline_geometry_sealed) {
+    for(unsigned u=0;u<FM1_APP_UNITS;++u) {
+      const fm1_app_unit_t *x=&a->unit[u];
+      pipeline_geometry[u].e=x->e;pipeline_geometry[u].self=x->self;pipeline_geometry[u].mem=x->mem;
+      pipeline_geometry[u].bytes=x->bytes;pipeline_geometry[u].cap=x->cap;
+    }
+    pipeline_geometry_sealed=1;
+  }
+  if(!pipeline_owner)pipeline_owner=a; /* Stable after first publication. */
+  pipeline_producing=1;s->owner=a;s->generation=pipeline_next_produce;
+}
+
+static void pipeline_capture_drive(fm1_app_t *a,PipelineSlot *s) {
+  for(int j=0;j<FM1_APP_INSERTS;++j) {
+    const int unit=fm1_app_insert_unit(1,j);
+    fm1_app_unit_t *u=&a->unit[unit];PostFxView *f=&s->drive[j];
+    f->engine=u->e;f->instance=u->self;f->driven=&u->driven;
+    f->code=fm1_app_mod_unit(unit);f->desired_driven=0;
+    if(!u->e)continue;
+    int driven=a->mod && f->code>=0 ? fm1_mod_unit_routed(a->mod,(unsigned)f->code):0;
+    for(unsigned t=0;!driven && t<FM1_APP_SEQ_TRACKS;++t)
+      for(unsigned l=0;l<FM1_SEQ_LANES;++l) {
+        const fm1_app_seq_target_t *x=&a->seq_target[t][l];
+        if(x->active && x->unit==unit && x->engine==u->e)driven=1;
+      }
+    for(uint32_t k=0;!driven && k<s->view.write_count;++k)
+      if(s->writes[k].w.unit==f->code)driven=1;
+    f->desired_driven=driven;
+  }
+}
+
+static void pipeline_level_apply(const PipelineSlot *s,float *out,uint32_t n) {
+  float level=s->macro_level;uint32_t cur=0;
+  for(uint32_t k=0;k<=s->mix_count;++k) {
+    const fm1_app_mix_write_t *w=k<s->mix_count?&s->mix_writes[k]:NULL;
+    if(w && w->sound!=1)continue;
+    const uint32_t f=w && w->frame<n?w->frame:n;
+    if(level!=FM1_APP_LEVEL_MAX) {
+      const float g=level/FM1_APP_LEVEL_MAX;
+      for(uint32_t i=2u*cur;i<2u*f;++i)out[i]*=g;
+    }
+    cur=f;if(w)level=w->level;
+  }
+}
+
+static void pipeline_finish_sound_slot(PipelineSlot *s) {
+  PIPELINE_REQUIRE(s->owner==pipeline_owner && s->generation==pipeline_next_consume && s->view.frames==64);
+  pipeline_validate_stream(&s->macro,s->sound[1],64);
+  pipeline_execute(&s->macro);
+  for(int j=0;j<FM1_APP_INSERTS;++j)
+    if(s->drive[j].engine)post_fx_run(&s->view,&s->drive[j],s->sound[1]);
+  pipeline_level_apply(s,s->sound[1],64);
+  int first=1;
+  for(unsigned k=0;k<4;++k) {
+    if(!(s->export_mask&(1u<<k)))continue;
+    if(first)memcpy(s->pcm,s->sound[k],sizeof s->pcm);
+    else for(unsigned i=0;i<128;++i)s->pcm[i]+=s->sound[k][i];
+    first=0;
+  }
+  if(first)for(unsigned i=0;i<128;++i)s->pcm[i]=0.0f;
+}
+
+static void pipeline_render_sounds(fm1_app_t *a, uint32_t n, PipelineSlot *owned) {
+  fm1_seq_sink_t sink[FM1_APP_SOUNDS];
+  fm1_seq_slot_t slot[FM1_APP_SOUNDS];
+  for(unsigned k=0;k<FM1_APP_SOUNDS;++k)pipeline_recorded[k].count=0;
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    const fm1_app_unit_t *u = sound_of(a, k);
+    sink[k].ctx = &a->sink_ctx[k];
+    sink[k].engine = u->e;
+    sink[k].render = sink_render;
+    sink[k].note_on = sink_note_on;
+    sink[k].note_off = sink_note_off;
+    sink[k].set_param = sink_set_param;
+    sink[k].pitch_bend = sink_bend;
+    sink[k].set_param_note = sink_set_param_note;
+    slot[k].sink = u->e ? &sink[k] : NULL;
+    slot[k].block = owned->sound[k];
+  }
+  if (a->seq) {
+    /* With modulation the runtime's ticks run inside the block at their
+     * own frames, each sound unit split where a tick writes to it. */
+    seq_flush(a);
+    a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);
+    /* The event hook also applies insert/master/mixer locks without a mod
+     * runtime. With modulation it forwards every existing hook operation. */
+    const fm1_seq_hook_t hook = { a, seq_auto_begin, seq_auto_event, seq_auto_lock,
+                                 seq_auto_tick, seq_auto_lock_slot, seq_auto_note_on };
+    pipeline_recording=1;
+    fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS, &hook);
+    pipeline_recording=0;
+  } else {
+    for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+      if (slot[k].sink) sound_of(a, k)->e->render(sound_of(a, k)->self, a->mix[k], n);
+    }
+  }
+
+  /* CPU0 executes its sinks in original dispatch order; only Macro is deferred. */
+  pipeline_validate_stream(&pipeline_recorded[1],owned->sound[1],n);
+  owned->macro.engine=pipeline_recorded[1].engine;
+  owned->macro.instance=pipeline_recorded[1].instance;
+  owned->macro.count=pipeline_recorded[1].count;
+  memcpy(owned->macro.op,pipeline_recorded[1].op,
+         owned->macro.count*sizeof owned->macro.op[0]);
+
+  PIPELINE_REQUIRE(a->seq_nmix<=sizeof owned->mix_writes/sizeof owned->mix_writes[0]);
+  owned->mix_count=a->seq_nmix;
+  memcpy(owned->mix_writes,a->seq_mix,a->seq_nmix*sizeof a->seq_mix[0]);
+  owned->macro_level=a->seq_level[1];owned->export_mask=a->export_sound_mask;
+  for(unsigned k=0;k<FM1_APP_SOUNDS;++k) {
+    if(k==1) {
+      /* Commit only final control carry; deferred PCM scaling never writes app. */
+      float final=owned->macro_level;
+      for(uint32_t i=0;i<owned->mix_count;++i)
+        if(owned->mix_writes[i].sound==1)final=owned->mix_writes[i].level;
+      a->seq_level[1]=final;
+      continue;
+    }
+    for(int j=0;j<FM1_APP_INSERTS;++j) {
+      const int unit=fm1_app_insert_unit((int)k,j);
+      if(a->unit[unit].e)render_fx(a,unit,owned->sound[k],n);
+    }
+    apply_mix_level(a,k,owned->sound[k],n);
+  }
+}
+
+static const float *pipeline_consume_block(void *storage) {
+  PipelineSlot *slot=(PipelineSlot *)storage;
+  PIPELINE_REQUIRE(slot->live==1);
+  pipeline_finish_sound_slot(slot);
+  post_run(&slot->view,&slot->work,slot->pcm);
+  ++pipeline_next_consume;
+  slot->live=2; /* OUTPUT_READY: the reader still owns PCM. */
+  return slot->pcm;
+}
+
+static void pipeline_retire_block(void *storage) {
+  PipelineSlot *slot=(PipelineSlot *)storage;
+  PIPELINE_REQUIRE(slot->live==2 && slot->owner==pipeline_owner && slot->generation==pipeline_next_retire);
+  PIPELINE_REQUIRE(pipeline_pending);++pipeline_next_retire;--pipeline_pending;slot->live=0;
+}
+
+#endif
+
 const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
+  PIPELINE_GUARD(!pipeline_busy());
   uint32_t n = frames > FM1_APP_MAX_FRAMES ? FM1_APP_MAX_FRAMES : frames;
   float *out = a->out;
   a->mod_nwr = 0;
@@ -3572,31 +4120,44 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
    * every sound unit split at each one it takes, its inserts and its level;
    * the runtime's ticks run inside the block at their own frames
    * (fm1_mod_host.h). */
+  PROFILE_STAGE(FM1_APP_PROFILE_SOUNDS, n, 1);
   render_sounds(a, n, out);
+  PROFILE_STAGE(FM1_APP_PROFILE_SOUNDS, n, 0);
   if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS, out, n);   /* the Mix */
+  PROFILE_STAGE(FM1_APP_PROFILE_MASTERS, n, 1);
   for (int u = 1; u <= FM1_APP_FX_SLOTS; ++u) {   /* the master bus, after the mix */
     if (a->unit[u].e) {
       render_fx(a, u, out, n);
     }
     if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + (unsigned)u, out, n);
   }
+  PROFILE_STAGE(FM1_APP_PROFILE_MASTERS, n, 0);
+  PROFILE_STAGE(FM1_APP_PROFILE_AMP, n, 1);
   if (a->mod) apply_amp(a, out, n);
+  PROFILE_STAGE(FM1_APP_PROFILE_AMP, n, 0);
+  PROFILE_STAGE(FM1_APP_PROFILE_LIMITER, n, 1);
   /* The metronome's click (O11), from the block's events, as fm1-render
    * adds it: after the effects, before the limiter. */
   if (a->seq) fm1_seq_click_mix(&a->click, a->seq, a->seq_ev, a->seq_last_n, n, out);
   fm1_mix_limiter_process(&a->limiter, out, n);
+  PROFILE_STAGE(FM1_APP_PROFILE_LIMITER, n, 0);
+  PROFILE_STAGE(FM1_APP_PROFILE_SCOPE, n, 1);
   if (a->edit) fm1_edit_meter(a, 3u * FM1_APP_SOUNDS + FM1_APP_FX_SLOTS + 1u, out, n);   /* the output */
-  for (uint32_t i = 0; i < n; ++i) {
-    float m = 0.5f * (out[2 * i] + out[2 * i + 1]);
-    a->scope[a->scope_pos] = m;
-    a->scope_pos = (a->scope_pos + 1) % FM1_APP_SCOPE;
-    float p = fabsf(out[2 * i]) > fabsf(out[2 * i + 1]) ? fabsf(out[2 * i]) : fabsf(out[2 * i + 1]);
-    if (p > a->peak) a->peak = p;
+  if (a->scope_block++ % FM1_APP_VISUAL_DIVISOR == 0) {
+    for (uint32_t i = 0; i < n; ++i) {
+      float m = 0.5f * (out[2 * i] + out[2 * i + 1]);
+      a->scope[a->scope_pos] = m;
+      a->scope_pos = (a->scope_pos + 1) % FM1_APP_SCOPE;
+      float p = fabsf(out[2 * i]) > fabsf(out[2 * i + 1]) ? fabsf(out[2 * i]) : fabsf(out[2 * i + 1]);
+      if (p > a->peak) a->peak = p;
+    }
   }
   if (a->gain != 1.0f) {
     for (uint32_t i = 0; i < 2 * n; ++i) out[i] *= a->gain;
   }
   if (a->edit) fm1_edit_meter(a, FM1_TELE_POINTS + FM1_APP_SOUNDS, out, n);
+  PROFILE_STAGE(FM1_APP_PROFILE_SCOPE, n, 0);
+  PROFILE_STAGE(FM1_APP_PROFILE_UI, n, 1);
   a->frames += n;
   if (a->edit) {                         /* ARP held: Latch, for the next block: the panel's */
     const uint8_t src = a->edit->src;
@@ -3634,8 +4195,94 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames) {
   }
   update_leds(a);
   if (a->edit) fm1_edit_block_end(a);    /* module outputs' extremes, when subscribed */
+  PROFILE_STAGE(FM1_APP_PROFILE_UI, n, 0);
   return out;
 }
+
+#ifdef FM1_APP_RENDER_PIPELINE
+static void pipeline_produce_block(fm1_app_t *a, uint32_t frames, void *storage) {
+  uint32_t n = frames > FM1_APP_MAX_FRAMES ? FM1_APP_MAX_FRAMES : frames;
+  PipelineSlot *slot=(PipelineSlot *)storage;
+  pipeline_preflight(a,slot,n);
+  a->mod_nwr = 0;
+  a->seq_nmix = 0;
+  /* docs/15 §2.4, steps 2-6: what was held, the block's own events, then
+   * every sound unit split at each one it takes, its inserts and its level;
+   * the runtime's ticks run inside the block at their own frames
+   * (fm1_mod_host.h). */
+  PROFILE_STAGE(FM1_APP_PROFILE_SOUNDS, n, 1);
+  pipeline_render_sounds(a,n,slot);
+  PROFILE_STAGE(FM1_APP_PROFILE_SOUNDS, n, 0);
+  post_capture(a,n,&slot->view,&slot->work);
+  PIPELINE_REQUIRE(slot->view.write_count<=FM1_APP_MOD_WRITES);
+  PIPELINE_REQUIRE(slot->view.event_count<=FM1_APP_SEQ_EVENTS);
+  memcpy(slot->writes,slot->view.writes,slot->view.write_count*sizeof slot->writes[0]);
+  if(slot->view.event_count) memcpy(slot->events,slot->view.events,slot->view.event_count*sizeof slot->events[0]);
+  slot->view.writes=slot->writes;
+  slot->view.events=slot->view.has_seq?slot->events:NULL;
+  pipeline_capture_drive(a,slot);
+  slot->live=1;++pipeline_pending;++pipeline_next_produce;
+  PROFILE_STAGE(FM1_APP_PROFILE_UI, n, 1);
+  a->frames += n;
+  if (a->edit) {                         /* ARP held: Latch, for the next block: the panel's */
+    const uint8_t src = a->edit->src;
+    a->edit->src = FM1_EDIT_PANEL;
+    arp_poll(a);
+    a->edit->src = src;
+  } else {
+    arp_poll(a);
+  }
+  if (a->popup_lines && a->frames >= a->popup_until) {
+    const int was = fm1_edit_enter(a, FM1_EDIT_PANEL);
+    mod_commit(a);                       /* a picker commits a second after its last turn */
+    fm1_edit_leave(a, was);
+    a->popup_lines = 0;
+    a->dirty = 1;
+  }
+  if (a->mod && n >= FM1_MOD_TICK) {
+    /* A block of a tick or more ran the plan the last edits asked for, so
+     * reading it now builds nothing (a build here could change what a knob
+     * sends before the next tick, which fm1-render would not). */
+    fm1_mod_get_plan(a->mod, &a->mui.plan);
+  }
+  if (a->seq) {
+    fm1_seq_ui_sound_t snd;
+    const uint8_t page_was = a->ui.step_page;
+    const int changed = fm1_seq_ui_sync(&a->ui, a->seq, a->seq_gen, a->frames);
+    lock_sound(a, &snd);
+    fm1_seq_ui_lock_pages(&a->ui, snd.pages);   /* the lock pages there are now */
+    if (a->ui.step_page != page_was && a->mode == FM1_MODE_SEQ) a->dirty = 1;
+    if (((changed & FM1_SEQ_UI_SYNC_SEQ) && a->mode == FM1_MODE_SEQ) ||
+        (changed & FM1_SEQ_UI_SYNC_OVERLAY)) {
+      a->dirty = 1;
+    }
+    if (a->ui.toast || a->ui.follow) ui_after(a);   /* what a Capture did */
+  }
+  update_leds(a);
+  if (a->edit) fm1_edit_block_end(a);    /* module outputs' extremes, when subscribed */
+  PROFILE_STAGE(FM1_APP_PROFILE_UI, n, 0);
+  pipeline_producing=0;
+}
+
+static PipelineSlot pipeline_work_storage[2] FM1_APP_ALIGN16;
+void *fm1_app_pipeline_work(unsigned index) {
+  return index < 2u ? &pipeline_work_storage[index] : NULL;
+}
+int fm1_app_pipeline_produce(fm1_app_t *a, void *work) {
+  if (fm1_app_pipeline_error()) return 0;
+  pipeline_produce_block(a, 64u, work);
+  return !fm1_app_pipeline_error();
+}
+const float *fm1_app_pipeline_consume(void *work) {
+  if (fm1_app_pipeline_error()) return NULL;
+  return pipeline_consume_block(work);
+}
+int fm1_app_pipeline_retire(void *work) {
+  if (fm1_app_pipeline_error()) return 0;
+  pipeline_retire_block(work);
+  return !fm1_app_pipeline_error();
+}
+#endif
 
 /* ---- the sequencer ------------------------------------------------------------- */
 
@@ -3668,6 +4315,7 @@ static void seq_flush(fm1_app_t *a) {
 static int is_blank(char c) { return c == ' ' || c == '\t'; }
 
 size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len) {
+  PIPELINE_GUARD(!pipeline_busy() || (len==7 && (!memcmp(ops,"metro 0",7) || !memcmp(ops,"metro 1",7))));
   if (!a->seq) return 0;
   ++a->seq_gen;
   seq_flush(a);
@@ -3703,6 +4351,7 @@ size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len) {
 }
 
 int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
+  PIPELINE_GUARD(!pipeline_busy() || c->verb==FM1_SEQ_V_METRO);
   if (!a->seq) return FM1_APP_SEQ_REFUSED;
   seq_flush(a);
   if (a->seq_pending) {
@@ -3746,6 +4395,7 @@ static void seq_drop(fm1_app_t *a) {
 }
 
 int fm1_app_seq_reset(fm1_app_t *a, int tracks) {
+  PIPELINE_GUARD(!pipeline_busy());
   fm1_seq_limits_t lim;
   fm1_seq_stats_t st;
   if (tracks < 1 || tracks > FM1_APP_SEQ_TRACKS) return -1;
@@ -3771,6 +4421,7 @@ int fm1_app_seq_reset(fm1_app_t *a, int tracks) {
 }
 
 int fm1_app_seq_import(fm1_app_t *a, const char *txt, size_t len) {
+  PIPELINE_GUARD(!pipeline_busy());
   if (!a->seq) return 0;
   seq_drop(a);
   return fm1_seq_host_import(&a->seq_host, txt, len);   /* resolves the lanes' uids once */
@@ -4577,10 +5228,18 @@ static void draw(fm1_app_t *a) {
 }
 
 int fm1_app_draw(fm1_app_t *a, uint32_t min_frames) {
+  PIPELINE_GUARD(!pipeline_busy());
+  /* An unattached target screen is not a completed redraw. Retain dirty,
+   * meters and last_draw so attaching storage can render the actual state. */
+  if (!fm1_tft_ready(&a->tft)) return 0;
+  /* Keep animation and dirty-screen refreshes at the same visual cadence.
+   * A zero interval remains an explicit immediate draw for offline callers. */
+  const uint64_t interval = (uint64_t)min_frames * FM1_APP_VISUAL_DIVISOR;
+  if (min_frames && a->last_draw && a->frames - a->last_draw < interval) return 0;
   /* With modulation the rack's cells, the live ticks and MATRIX's hint line
    * move without input: redraw like the scope. */
   int live = a->peak > 0.0f || a->meter > 0.0f || a->mod != NULL;
-  if (!a->dirty && !(live && a->frames - a->last_draw >= min_frames)) return 0;
+  if (!a->dirty && !(live && a->frames - a->last_draw >= interval)) return 0;
   a->meter = a->peak > a->meter * 0.6f ? a->peak : a->meter * 0.6f;
   if (a->meter < 1e-4f) a->meter = 0.0f;
   a->peak = 0.0f;
@@ -4591,6 +5250,8 @@ int fm1_app_draw(fm1_app_t *a, uint32_t min_frames) {
 }
 
 void fm1_app_draw_checked(fm1_app_t *a) {
+  PIPELINE_GUARD(!pipeline_busy());
+  if (!fm1_tft_ready(&a->tft)) return;
   a->tft.record = 1;
   draw(a);
   a->tft.record = 0;

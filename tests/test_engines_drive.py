@@ -634,3 +634,7 @@ def test_host_rates(tool):
 if __name__ == "__main__":
     print(c_curves())
     print(c_quad())
+
+
+def test_mono_matches_independent_stereo_channel(tool):
+    assert tool["mono_equivalent"] == {"calls": 10000, "failures": 0}

@@ -243,7 +243,7 @@ static int lock_target(fm1_seq_host_t *h, const fm1_engine_t *e, const fm1_seq_e
 
 /* A track's route as a destination: its engine slot, or 0x80 | its MIDI
  * channel. */
-static uint8_t dest_of(const fm1_seq_track_info_t *ti) {
+static uint8_t dest_of(const fm1_seq_route_info_t *ti) {
   return ti->route_kind == FM1_SEQ_ROUTE_ENGINE ? ti->route_index
                                                 : (uint8_t)(0x80u | ti->route_index);
 }
@@ -253,8 +253,8 @@ static uint8_t dest_of(const fm1_seq_track_info_t *ti) {
  * dispatch (Rerouting, fm1_seq_host.h). 0xFF: nowhere (no such track). */
 static uint8_t dest_of_event(const fm1_seq_host_t *h, uint32_t k) {
   const fm1_seq_ev_t *e = &h->ev[k];
-  fm1_seq_track_info_t ti;
-  if (!fm1_seq_get_track(h->seq, e->track, &ti)) return FM1_SEQ_HOST_NO_DEST;
+  fm1_seq_route_info_t ti;
+  if (!fm1_seq_get_route(h->seq, e->track, &ti)) return FM1_SEQ_HOST_NO_DEST;
   if (e->kind == FM1_SEQ_EV_NOTE_OFF && k < h->cmd_n && e->track < FM1_SEQ_MAX_TRACKS &&
       h->dest[e->track] != FM1_SEQ_HOST_NO_DEST) {
     return h->dest[e->track];
@@ -370,8 +370,8 @@ static void dispatched(fm1_seq_host_t *h) {
   uint32_t k;
   for (k = 0; h->mfx && k < h->n; ++k) h->ev[k].kind &= (uint8_t)~FM1_MFX_TAKEN;
   for (t = 0; t < FM1_SEQ_MAX_TRACKS; ++t) {
-    fm1_seq_track_info_t ti;
-    h->dest[t] = h->seq && fm1_seq_get_track(h->seq, (uint8_t)t, &ti) ? dest_of(&ti)
+    fm1_seq_route_info_t ti;
+    h->dest[t] = h->seq && fm1_seq_get_route(h->seq, (uint8_t)t, &ti) ? dest_of(&ti)
                                                                       : FM1_SEQ_HOST_NO_DEST;
   }
   h->cmd_n = 0;
@@ -435,10 +435,10 @@ static void play_sink(fm1_seq_host_t *h, uint32_t frames, float *block, const fm
     uint32_t bpm = 0;
     int playing = 0;
     if (h->seq) {
-      fm1_seq_info_t info;
-      fm1_seq_get_info(h->seq, &info);
-      bpm = info.bpm_x100;
-      playing = info.playing;
+      fm1_seq_clock_t clock;
+      fm1_seq_get_clock(h->seq, &clock);
+      bpm = clock.bpm_x100;
+      playing = clock.playing;
     }
     tf = hk->begin(hk->ctx, frames, sink ? sink->engine : NULL, bpm, playing);
   }
@@ -556,10 +556,10 @@ static void play_slots_hook(fm1_seq_host_t *h, uint32_t frames, const fm1_seq_sl
   if (n > FM1_SEQ_HOST_HOOK_SLOTS) n = FM1_SEQ_HOST_HOOK_SLOTS;
   for (s = 0; s < FM1_SEQ_HOST_HOOK_SLOTS; ++s) cur[s] = 0;
   if (h->seq) {
-    fm1_seq_info_t info;
-    fm1_seq_get_info(h->seq, &info);
-    bpm = info.bpm_x100;
-    playing = info.playing;
+    fm1_seq_clock_t clock;
+    fm1_seq_get_clock(h->seq, &clock);
+    bpm = clock.bpm_x100;
+    playing = clock.playing;
   }
   tf = hk->begin(hk->ctx, frames, n && slots[0].sink ? slots[0].sink->engine : NULL, bpm, playing);
   walk_init(&w, h, frames);
@@ -675,6 +675,26 @@ void fm1_seq_click_mix(fm1_seq_click_t *c, const fm1_seq_t *s, const fm1_seq_ev_
         on = info.metronome != 0;
       }
     }
+    if (!on) break;
+    f = ev[k].frame < frames ? ev[k].frame : frames;
+    if (f > cur) {
+      click_run(c, lr, cur, f);
+      cur = f;
+    }
+    c->pos = 0;
+    c->accent = ev[k].a != 0;
+    ++c->clicks;
+  }
+  click_run(c, lr, cur, frames);
+}
+
+/* Sealed block metadata variant: never reads the live sequencer. */
+void fm1_seq_click_mix_on(fm1_seq_click_t *c, int on, const fm1_seq_ev_t *ev, uint32_t n,
+                       uint32_t frames, float *lr) {
+  uint32_t k, cur = 0;
+  for (k = 0; k < n; ++k) {
+    uint32_t f;
+    if (ev[k].kind != FM1_SEQ_EV_CLICK) continue;
     if (!on) break;
     f = ev[k].frame < frames ? ev[k].frame : frames;
     if (f > cur) {

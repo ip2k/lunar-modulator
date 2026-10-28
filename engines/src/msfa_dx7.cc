@@ -58,6 +58,8 @@
 
 #include "fm1_engine.h"
 #include "fm1_dx7.h"
+#include "fm1_dx7_budget.h"
+#include "fm1_dx7_kernel.h"
 #include "fm1_smooth.h"
 #include "glide.h"
 #include "note_offsets.h"
@@ -238,10 +240,19 @@ int32_t Clamp32(int64_t x, int32_t lo, int32_t hi) {
 
 class Instance {
  public:
+  void SetKernelAdapter(const fm1_dx7_kernel_adapter_t *adapter) {
+    kernel_adapter_ = adapter && adapter->render_pair ? adapter : NULL;
+  }
+
   // Called right after the instance is value-initialised (zeroed) in
   // Create, so every member starts at zero; Init sets the rest.
   void Init(const fm1_host_t *host) {
     const uint32_t hz = RateHz(host->sample_rate);
+    voice_limit_ = kNumVoices;
+    // A voice is reusable only until its first envelope/lifecycle mutation.
+    pristine_mask_ = 0;
+    memset(init_velocity_, 0, sizeof(init_velocity_));
+    memset(init_patch_, 0, sizeof(init_patch_));
     own_lut_ = OwnLut(host);
     if (own_lut_) fm1_msfa::FillFreqLut(*Lut(), hz);
     env_rate_q24_ = static_cast<uint32_t>((static_cast<uint64_t>(44118u) << 24) / hz);
@@ -279,6 +290,7 @@ class Instance {
     held_.Push(key);
     const glide::Plan<Voice> plan = glide::PlanNoteOn(voice_, kNumVoices, GlideConfig());
     if (plan.legato) {         // Legato over a held note: a new key, nothing restarts
+      pristine_mask_ = 0;
       Retune(plan.mono, key);
       glide::StartFor(plan.mono, plan, key);
       return;
@@ -295,12 +307,13 @@ class Instance {
       lfo_patch_ = index;
     }
     lfo_.keydown();
-    Start(v, p, pitch_[index], key, velocity);
+    Start(v, p, pitch_[index], key, velocity, index);
     v->glide.Begin();
     glide::StartFor(v, plan, key);
   }
 
   void NoteOff(uint8_t key) {
+    pristine_mask_ = 0;
     if (key > 127) key = 127;  // as NoteOn clamps it, or the voice and held_ keep it
     held_.Remove(key);
     if (glide::ToMode(value_[P_VOICE_MODE]) != glide::MODE_POLY) ReturnToHeld(key);
@@ -375,6 +388,7 @@ class Instance {
  private:
   static void Store(void *ctx, unsigned slot, const uint8_t v[kVoiceBytes]) {
     Instance *self = static_cast<Instance *>(ctx);
+    self->pristine_mask_ = 0;
     for (int i = 0; i < kVoiceBytes; ++i) self->user_[slot][i] = v[i];
     Pitches(v, self->pitch_[kBankSize + slot]);
   }
@@ -398,7 +412,7 @@ class Instance {
   const uint8_t *Patch(int index) {
     if (index >= kBankSize) return user_[index - kBankSize];
     if (unpacked_ != index) {
-      FromPacked(kBank[index], unpacked_voice_);
+      memcpy(unpacked_voice_, kBankUnpacked[index], kVoiceBytes);
       unpacked_ = index;
     }
     return unpacked_voice_;
@@ -416,6 +430,7 @@ class Instance {
     const glide::Plan<Voice> plan =
         glide::PlanNoteOff(voice_, kNumVoices, held_, key, GlideConfig(), &top);
     if (!plan.mono) return;
+    pristine_mask_ = 0;
     Retune(plan.mono, top);
     glide::StartFor(plan.mono, plan, top);
   }
@@ -448,20 +463,22 @@ class Instance {
   }
 
   Voice *Allocate(uint8_t key) {
-    Voice *best = NULL;
-    for (int i = 0; i < kNumVoices; ++i) {   // same key: retrigger in place
+    unsigned active = 0;
+    for (int i = 0; i < kNumVoices; ++i) {
       if (voice_[i].active && voice_[i].key == key) return &voice_[i];
+      active += voice_[i].active;
     }
-    for (int i = 0; i < kNumVoices; ++i) {   // a free voice
-      if (!voice_[i].active) return &voice_[i];
+    if (active < voice_limit_) {
+      for (int i = 0; i < kNumVoices; ++i) if (!voice_[i].active) return &voice_[i];
     }
-    for (int i = 0; i < kNumVoices; ++i) {   // else the oldest released, else the oldest
+    Voice *best = NULL;
+    for (int i = 0; i < kNumVoices; ++i) {
       Voice *v = &voice_[i];
+      if (!v->active) continue;
       if (!best || (!v->gate && best->gate) ||
-          (v->gate == best->gate && v->age < best->age)) {
-        best = v;
-      }
+          (v->gate == best->gate && v->age < best->age)) best = v;
     }
+    ++budget_stolen_;
     return best;
   }
 
@@ -469,7 +486,7 @@ class Instance {
   // its operators' pitches (Pitches). A voice that was silent starts from
   // phase 0 with its feedback cleared; a retriggered or stolen one keeps its
   // phases and its last gains, so its first block glides from where it was.
-  void Start(Voice *v, const uint8_t *p, const int32_t *pitch, uint8_t key, uint8_t velocity) {
+  void Start(Voice *v, const uint8_t *p, const int32_t *pitch, uint8_t key, uint8_t velocity, int patch_index) {
     using fm1_msfa::ScaleLevel;
     using fm1_msfa::ScaleRate;
     using fm1_msfa::ScaleVelocity;
@@ -480,6 +497,43 @@ class Instance {
     int note = static_cast<int>(key) + static_cast<int>(p[V_TRNSP]) - 24;
     note = note < 0 ? 0 : (note > 127 ? 127 : note);
     const int32_t key_pitch = fm1_msfa::midinote_to_logfreq(note);
+    const unsigned slot = static_cast<unsigned>(v - voice_);
+    const uint16_t bit = static_cast<uint16_t>(1u << slot);
+    bool can_reuse = (pristine_mask_ & bit) && init_patch_[slot] == patch_index &&
+                     init_velocity_[slot] == velocity;
+    if (can_reuse) {
+      /* The bit certifies zero level depths for this unchanged patch. Store,
+       * Retune, NoteOff and RenderBlock invalidate it before mutation. */
+      int old_note = static_cast<int>(v->key) + static_cast<int>(v->transpose) - 24;
+      old_note = old_note < 0 ? 0 : (old_note > 127 ? 127 : old_note);
+      if (note != old_note) {
+        for (int op = 0; op < 6; ++op) {
+          const unsigned rs = p[op * kOpBytes + OP_RS];
+          if (rs && ScaleRate(note, rs) != ScaleRate(old_note, rs)) {
+            can_reuse = false;
+            break;
+          }
+        }
+      }
+      if (can_reuse) {
+        /* All other Start fields already equal their post-initialization
+         * values. Preserve exact original pitch expression, never a delta. */
+        for (int op = 0; op < 6; ++op) {
+          if ((v->ratio_ops >> op) & 1u) v->basepitch[op] = pitch[op] + key_pitch;
+        }
+        v->key_pitch = key_pitch;
+        v->key = key;
+        v->age = ++clock_;
+        v->note.Clear();
+        return;  /* NoteOn still calls glide.Begin and glide.StartFor. */
+      }
+    }
+    bool eligible = true;
+    for (int op = 0; op < 6; ++op) {
+      const uint8_t *o = p + op * kOpBytes;
+      if (o[OP_LD] || o[OP_RD]) eligible = false;
+    }
+
     for (int op = 0; op < 6; ++op) {
       const uint8_t *o = p + op * kOpBytes;
       int rates[4], levels[4];
@@ -488,7 +542,9 @@ class Instance {
         levels[i] = o[OP_L1 + i];
       }
       int outlevel = Env::scaleoutlevel(o[OP_OL]);
-      outlevel += ScaleLevel(note, o[OP_BP], o[OP_LD], o[OP_RD], o[OP_LC], o[OP_RC]);
+      // A zero depth on both sides contributes exactly zero for every key.
+      if (o[OP_LD] || o[OP_RD])
+        outlevel += ScaleLevel(note, o[OP_BP], o[OP_LD], o[OP_RD], o[OP_LC], o[OP_RC]);
       outlevel = outlevel > 127 ? 127 : outlevel;
       outlevel <<= 5;
       outlevel += ScaleVelocity(velocity, o[OP_KVS]);
@@ -541,6 +597,9 @@ class Instance {
     v->gate = true;
     v->active = true;
     v->note.Clear();   // a new note, a retrigger or a steal starts at no offset
+    init_patch_[slot] = static_cast<uint16_t>(patch_index);
+    init_velocity_[slot] = velocity;
+    pristine_mask_ = static_cast<uint16_t>((pristine_mask_ & ~bit) | (eligible ? bit : 0));
   }
 
   // Whether an envelope level (msfa's, Q24 doublings) plays an operator
@@ -582,7 +641,52 @@ class Instance {
         reinterpret_cast<unsigned char *>(this) + sizeof(Instance));
   }
 
+
+ public:
+  unsigned SetVoiceLimit(unsigned limit) {
+    if (!limit || limit > kNumVoices) return 0;
+    voice_limit_ = limit;
+    return 1;
+  }
+  void BudgetStats(fm1_dx7_budget_stats_t &out) const {
+    out.active = 0;
+    for (int i = 0; i < kNumVoices; ++i) out.active += voice_[i].active;
+    out.limit = voice_limit_;
+    out.retired = budget_shed_;
+    out.stolen = budget_stolen_;
+  }
+
+ private:
+  static uint64_t CarrierGain(const Voice &v) {
+    uint64_t gain = 0;
+    const uint8_t carriers = kCarriers[v.algorithm & 31];
+    for (int op = 0; op < 6; ++op) if ((carriers >> op) & 1)
+      gain += static_cast<uint32_t>(v.params[op].gain[1]);
+    return gain;
+  }
+  void EnforceVoiceLimit() {
+    retiring_ = 0;
+    if (voice_limit_ == kNumVoices) return;  // default twelve needs no ranking
+    unsigned active = 0;
+    for (int i = 0; i < kNumVoices; ++i) active += voice_[i].active;
+    while (active > voice_limit_) {
+      int best = -1;
+      for (int i = 0; i < kNumVoices; ++i) {
+        const Voice &v = voice_[i];
+        if (!v.active || (retiring_ & (1u << i))) continue;
+        if (best < 0 || (!v.gate && voice_[best].gate) ||
+            (v.gate == voice_[best].gate &&
+             (CarrierGain(v) < CarrierGain(voice_[best]) ||
+              (CarrierGain(v) == CarrierGain(voice_[best]) && v.age < voice_[best].age)))) best = i;
+      }
+      retiring_ |= static_cast<uint16_t>(1u << best);
+      --active;
+    }
+  }
+
   void RenderBlock() {
+    pristine_mask_ = 0;
+    EnforceVoiceLimit();
     fm1_msfa::fm1_freqlut = Lut();               // what Freqlut::lookup reads
     fm1_smooth_tick(smooth_, value_, P_COUNT);   // this block's step of any ramp
     glide_step_ = glide::Step(glide_block_ms_, value_[P_GLIDE]);
@@ -593,34 +697,89 @@ class Instance {
     for (int i = 0; i < kNumVoices; ++i) {
       Voice &v = voice_[i];
       if (!v.active) continue;
-      RenderVoice(&v, lfo_val, lfo_delay);
-      bool silent = true;
-      for (int k = 0; k < kN; ++k) {
-        if (vbuf_[k]) { silent = false; break; }
-      }
-      const float vol = v.note.Value(kParams, P_VOLUME, value_[P_VOLUME]);
-      const int32_t g1 = static_cast<int32_t>(vol * 65536.0f);   // 0..65536
-      const int32_t g0 = v.gain_q16 < 0 ? g1 : v.gain_q16;
-      v.gain_q16 = g1;
-      if (!silent) {
-        const int32_t dg = g1 - g0;
-        for (int k = 0; k < kN; ++k) {
-          const int32_t g = g0 + ((dg * (k + 1)) >> kLgN);
-          mix[k] += static_cast<int32_t>((static_cast<int64_t>(vbuf_[k]) * g) >> kVoiceShift);
+      if (kernel_adapter_) {
+        int next = i + 1;
+        while (next < kNumVoices && !voice_[next].active) ++next;
+        if (next < kNumVoices) {
+          RenderPair(v, voice_[next], lfo_val, lfo_delay, mix);
+          i = next;
+          continue;
         }
       }
-      v.silent_blocks = (!v.gate && Quiet(v)) ? v.silent_blocks + 1 : 0;
-      if (v.silent_blocks > silent_after_release_) {
-        v.active = false;
-        v.note.Clear();
-      }
+      RenderVoice(&v, lfo_val, lfo_delay);
+      MixVoice(v, vbuf_, mix);
     }
     for (int k = 0; k < kN; ++k) out_[k] = static_cast<float>(mix[k]) * kOutScale;
+  }
+
+  void MixVoice(Voice &v, const int32_t *buffer, int32_t *mix) {
+    bool silent = true;
+    for (int k = 0; k < kN; ++k) {
+      if (buffer[k]) { silent = false; break; }
+    }
+    const float vol = v.note.Value(kParams, P_VOLUME, value_[P_VOLUME]);
+    const bool retiring = (retiring_ & (1u << (&v - voice_))) != 0;
+    const int32_t g1 = retiring ? 0 : static_cast<int32_t>(vol * 65536.0f);   // 0..65536
+    const int32_t g0 = v.gain_q16 < 0 ? g1 : v.gain_q16;
+    v.gain_q16 = g1;
+    if (!silent) {
+      const int32_t dg = g1 - g0;
+      for (int k = 0; k < kN; ++k) {
+        const int32_t g = g0 + ((dg * (k + 1)) >> kLgN);
+        mix[k] += static_cast<int32_t>((static_cast<int64_t>(buffer[k]) * g) >> kVoiceShift);
+      }
+    }
+    v.silent_blocks = (!v.gate && Quiet(v)) ? v.silent_blocks + 1 : 0;
+    if (retiring) { ++budget_shed_; v.gate = false; }
+    if (retiring || v.silent_blocks > silent_after_release_) {
+      v.active = false;
+      v.note.Clear();
+    }
+  }
+
+  static void ExportKernel(const Voice &v, int shift, fm1_dx7_kernel_job_t &job) {
+    for (int op = 0; op < 6; ++op) {
+      job.op[op].gain[0] = v.params[op].gain[0];
+      job.op[op].gain[1] = v.params[op].gain[1];
+      job.op[op].freq = v.params[op].freq;
+      job.op[op].phase = v.params[op].phase;
+    }
+    job.feedback[0] = v.fb_buf[0]; job.feedback[1] = v.fb_buf[1];
+    job.algorithm = v.algorithm & 31; job.feedback_shift = shift;
+    for (int k = 0; k < kN; ++k) job.output[k] = 0;
+  }
+
+  static void ImportKernel(Voice &v, const fm1_dx7_kernel_job_t &job) {
+    // Only kernel-owned state is committed; preparation and note state stay here.
+    for (int op = 0; op < 6; ++op) v.params[op].phase = job.op[op].phase;
+    v.fb_buf[0] = job.feedback[0]; v.fb_buf[1] = job.feedback[1];
+  }
+
+  void RenderPair(Voice &first, Voice &second, int32_t lfo_val,
+                  int32_t lfo_delay, int32_t *mix) {
+    const int shifts[2] = { PrepareVoice(&first, lfo_val, lfo_delay),
+                            PrepareVoice(&second, lfo_val, lfo_delay) };
+    fm1_dx7_kernel_job_t jobs[2];
+    ExportKernel(first, shifts[0], jobs[0]);
+    ExportKernel(second, shifts[1], jobs[1]);
+    if (kernel_adapter_->render_pair(kernel_adapter_->ctx, jobs)) {
+      ImportKernel(first, jobs[0]); ImportKernel(second, jobs[1]);
+      MixVoice(first, jobs[0].output, mix);
+      MixVoice(second, jobs[1].output, mix);
+    } else {
+      // Callback output is untrusted on rejection; envelopes already advanced.
+      RunVoiceKernel(&first, shifts[0]); MixVoice(first, vbuf_, mix);
+      RunVoiceKernel(&second, shifts[1]); MixVoice(second, vbuf_, mix);
+    }
   }
 
   // One msfa block of voice v into vbuf_, as Dx7Note::compute, plus the
   // amplitude modulation, the macros and the loops of algorithms 4 and 6.
   void RenderVoice(Voice *v, int32_t lfo_val, int32_t lfo_delay) {
+    RunVoiceKernel(v, PrepareVoice(v, lfo_val, lfo_delay));
+  }
+
+  int PrepareVoice(Voice *v, int32_t lfo_val, int32_t lfo_delay) {
     const float bright = v->note.Value(kParams, P_BRIGHTNESS, value_[P_BRIGHTNESS]);
     const float env_time = v->note.Value(kParams, P_ENV_TIME, value_[P_ENV_TIME]);
     const float fb_offset = v->note.Value(kParams, P_FEEDBACK, value_[P_FEEDBACK]);
@@ -670,10 +829,15 @@ class Instance {
 
     int fb = v->feedback + Round(fb_offset);
     fb = fb < 0 ? 0 : (fb > 7 ? 7 : fb);
-    const int fb_shift = fb ? 8 - fb : 16;
+    return fb ? 8 - fb : 16;
+  }
+
+  void RunVoiceKernel(Voice *v, int fb_shift) {
     for (int k = 0; k < kN; ++k) vbuf_[k] = 0;
     const int alg = v->algorithm & 31;
-    if (fb && (alg == 3 || alg == 5)) {
+    if (alg == 4 && RenderAlgorithmFive(v->params, fb_shift, v->fb_buf, vbuf_)) {
+      // Fully rendered by the exact two-operator stacks.
+    } else if (fb_shift < 16 && (alg == 3 || alg == 5)) {
       RenderWithLoop(&core_, v->params, alg, alg == 3 ? 3 : 2, fb_shift, v->fb_buf, vbuf_);
     } else {
       core_.compute(vbuf_, v->params, alg, v->fb_buf, fb_shift);
@@ -685,6 +849,10 @@ class Instance {
     return x >= 0.0f ? static_cast<int>(x + 0.5f) : -static_cast<int>(0.5f - x);
   }
 
+  unsigned voice_limit_;
+  unsigned budget_shed_, budget_stolen_;
+  uint16_t retiring_;
+  const fm1_dx7_kernel_adapter_t *kernel_adapter_;  // optional, host-owned
   FmCore core_;                   // msfa's algorithm runner (its buses are scratch)
   Lfo lfo_;                       // one LFO, as on the keyboards
   Voice voice_[kNumVoices];
@@ -707,6 +875,10 @@ class Instance {
   float out_[kN];                 // the current block
   uint32_t pending_;              // samples of out_ not yet delivered
   bool own_lut_;                  // a frequency table of its own follows (Lut)
+  // Same-slot envelope reuse is valid only until the next envelope mutation.
+  uint16_t pristine_mask_;
+  uint16_t init_patch_[kNumVoices];
+  uint8_t init_velocity_[kNumVoices];
 };
 
 // At a rate other than 44,118 Hz the instance's frequency table follows it
@@ -774,4 +946,40 @@ extern "C" int fm1_dx7_get_user_voice(const void *self, unsigned slot,
 extern "C" int fm1_dx7_set_user_voice(void *self, unsigned slot,
                                       const uint8_t vced[FM1_DX7_VCED_BYTES]) {
   return static_cast<fm1::dx7::Instance *>(self)->SetUserVoice(slot, vced);
+}
+
+extern "C" void fm1_dx7_set_kernel_adapter(void *self,
+    const fm1_dx7_kernel_adapter_t *adapter) {
+  static_cast<fm1::dx7::Instance *>(self)->SetKernelAdapter(adapter);
+}
+
+extern "C" int fm1_dx7_compute_kernel(fm1_dx7_kernel_job_t *job) {
+  if (!job || job->algorithm < 0 || job->algorithm > 31 ||
+      job->feedback_shift < 1 || job->feedback_shift > 16) return 0;
+  fm1_msfa::FmCore core;
+  fm1_msfa::FmOpParams params[6];
+  for (int op = 0; op < 6; ++op) {
+    params[op].gain[0] = job->op[op].gain[0];
+    params[op].gain[1] = job->op[op].gain[1];
+    params[op].freq = job->op[op].freq;
+    params[op].phase = job->op[op].phase;
+  }
+  for (int k = 0; k < 64; ++k) job->output[k] = 0;
+  if (job->feedback_shift < 16 && (job->algorithm == 3 || job->algorithm == 5))
+    fm1::dx7::RenderWithLoop(&core, params, job->algorithm,
+        job->algorithm == 3 ? 3 : 2, job->feedback_shift, job->feedback, job->output);
+  else if (job->algorithm == 4 && fm1::dx7::RenderAlgorithmFive(params, job->feedback_shift, job->feedback, job->output)) {}
+  else core.compute(job->output, params, job->algorithm, job->feedback, job->feedback_shift);
+  for (int op = 0; op < 6; ++op) job->op[op].phase = params[op].phase;
+  return 1;
+}
+
+extern "C" int fm1_dx7_set_voice_limit(void *self, unsigned limit) {
+  return self ? static_cast<fm1::dx7::Instance *>(self)->SetVoiceLimit(limit) : 0;
+}
+
+extern "C" int fm1_dx7_get_budget_stats(const void *self, fm1_dx7_budget_stats_t *out) {
+  if (!self || !out) return 0;
+  static_cast<const fm1::dx7::Instance *>(self)->BudgetStats(*out);
+  return 1;
 }

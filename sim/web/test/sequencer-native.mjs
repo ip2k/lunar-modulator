@@ -225,7 +225,13 @@ try {
     await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
     const clipTab = page.getByRole('tab', { name: 'Clip', exact: true });
     await clipTab.scrollIntoViewIfNeeded();
-    const tabBox = await clipTab.boundingBox();
+    // Unlike pointer actions, boundingBox does not wait through a resize draw.
+    // Acquire visible geometry before starting the held-pointer regression.
+    let tabBox;
+    await until(async () => {
+      tabBox = await clipTab.boundingBox();
+      return tabBox && tabBox.width > 0 && tabBox.height > 0;
+    }, 'clip tab geometry after resize');
     await page.mouse.move(tabBox.x + tabBox.width / 2, tabBox.y + tabBox.height / 2);
     await page.mouse.down();
     await page.evaluate(() => fm1.editor.sequencer.refresh(true));

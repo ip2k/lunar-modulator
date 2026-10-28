@@ -9,6 +9,7 @@ import json
 import math
 import random
 import shutil
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -106,6 +107,27 @@ def test_lfo_ranges_and_extremes(mod_tool):
     out = run(mod_tool, ["lfo a", "shape a square", "hz a 50", "pw a 0", "render a 2000",
                          "pw a 1", "render a 2000"])
     assert set(out[0]["r"]) == {-1.0} and set(out[1]["r"]) == {1.0}
+
+
+
+def test_lfo_width_and_start_float_boundaries(mod_tool):
+    # Exercise the inclusive width endpoint, wrapped phase endpoint, unsigned
+    # conversion boundary, adjacent binary32 values, and the public NaN guards.
+    inputs = ["-inf", "-1", "-0", "0", "1e-45", "0.4999999701976776",
+              "0.5", "0.5000000596046448", "0.9999999403953552", "1", "inf", "nan"]
+    def clamped(token, default):
+        v = struct.unpack("f", struct.pack("f", float(token)))[0]
+        return default if math.isnan(v) else max(0.0, min(1.0, v))
+    lines = ["lfo a", "shape a square"]
+    expected = []
+    for width in inputs:
+        for start in inputs:
+            lines += [f"pw a {width}", f"start a {start}", "reset a", "state a"]
+            phase = int(clamped(start, 0.0) * TWO32) % TWO32
+            threshold = int(clamped(width, 0.5) * TWO32)
+            expected.append((phase, 1.0 if phase < threshold else -1.0))
+    actual = run(mod_tool, lines)
+    assert [(s["phase"], s["v"]) for s in actual] == expected
 
 
 def lfo_setup(name, shape, mode, hz, seed=5):

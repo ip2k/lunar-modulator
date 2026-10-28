@@ -63,16 +63,18 @@ static void step(fm1_mp_env_t *e) {
  * overflow, so the state is exactly that of n calls to step(). */
 static void advance(fm1_mp_env_t *e, uint32_t n) {
   while (n) {
-    uint64_t left, steps;
+    uint64_t left, steps, delta;
     uint32_t inc;
     if (frozen(e)) return;
     inc = e->inc[e->seg];
     left = 0x100000000ull - e->phase;
-    steps = (left + inc - 1u) / inc;
-    if ((uint64_t)n < steps) {
-      e->phase += (uint32_t)((uint64_t)inc * n);
+    delta = (uint64_t)inc * n;
+    /* Most blocks stay in this segment. Equality still ends the segment. */
+    if (delta < left) {
+      e->phase += (uint32_t)delta;
       return;
     }
+    steps = (left + inc - 1u) / inc;
     n -= (uint32_t)steps;
     next_segment(e);
   }

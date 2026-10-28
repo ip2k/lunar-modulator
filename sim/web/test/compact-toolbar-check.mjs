@@ -11,10 +11,19 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 const report = [];
+let phase = 'startup';
 try {
   await page.goto(url + '?view=sequencer');
   await page.getByRole('button', { name: 'Power on', exact: true }).click();
   await page.waitForFunction(() => fm1?.editor?.state?.mirror && document.querySelector('.sq-transport'));
+  await page.evaluate(() => {
+    window.toolbarTransportTrace = [];
+    fm1.seqListeners.add(t => {
+      toolbarTransportTrace.push({ at: performance.now(), playing: t.playing,
+        paused: t.paused, tick: t.master_tick });
+      if (toolbarTransportTrace.length > 32) toolbarTransportTrace.shift();
+    });
+  });
   const keys = page.locator('.ed-keys');
   const initialKeys = await keys.getAttribute('aria-pressed');
   await keys.click();
@@ -23,14 +32,19 @@ try {
   assert.equal(await keys.getAttribute('aria-pressed'), initialKeys);
   const playPause = page.locator('[data-transport-play-pause]');
   assert.equal(await playPause.getAttribute('aria-label'), 'Play');
+  phase = 'play';
   await playPause.click();
   await page.waitForFunction(() => document.querySelector('[data-transport-play-pause]')?.getAttribute('aria-label') === 'Pause');
+  phase = 'pause';
   await playPause.click();
   await page.waitForFunction(() => document.querySelector('[data-transport-play-pause]')?.getAttribute('aria-label') === 'Resume');
+  phase = 'resume';
   await playPause.click();
   await page.waitForFunction(() => document.querySelector('[data-transport-play-pause]')?.getAttribute('aria-label') === 'Pause');
+  phase = 'stop';
   await page.getByRole('button', { name: 'Stop', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('[data-transport-play-pause]')?.getAttribute('aria-label') === 'Play');
+  phase = 'toolbar geometry';
   for (const [width, height] of [[1440, 900], [1024, 768], [844, 390], [667, 375], [390, 844], [375, 812], [320, 812]]) {
     for (const layout of width <= 640 ? ['editor'] : ['editor', 'workbench']) {
       await page.locator(`button[data-layout="${layout}"]`).click();
@@ -103,4 +117,14 @@ try {
   await writeFile(`${out}/report.json`, JSON.stringify({ report, errors }, null, 2));
   assert.deepEqual(errors, []);
   console.log(`Compact toolbar checks passed at ${report.map(({layout,view,width,height}) => `${layout}/${view} ${width}x${height}`).join(', ')}`);
+} catch (error) {
+  const state = await page.evaluate(() => {
+    const button = document.querySelector('[data-transport-play-pause]');
+    return { trace: window.toolbarTransportTrace, transport: window.fm1?.seq,
+      audioContext: window.fm1?.ctx?.state, label: button?.getAttribute('aria-label'),
+      disabled: button?.matches(':disabled'), busy: document.querySelector('.sq')?.getAttribute('aria-busy') };
+  }).catch(e => ({ unavailable: String(e) }));
+  await writeFile(`${out}/compact-toolbar-failure.json`, JSON.stringify({ phase, state, errors, error: String(error) }, null, 2));
+  await page.screenshot({ path: `${out}/compact-toolbar-failure.png` }).catch(() => {});
+  throw error;
 } finally { await browser.close(); server.close(); }

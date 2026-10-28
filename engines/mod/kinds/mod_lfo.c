@@ -53,6 +53,8 @@ typedef struct lfo {
   fm1_mp_lfo_t lfo;
   float base_hz, ratio;        /* the rate last applied (the setter divides in double) */
   float held;                  /* Hold's sample */
+  float free_hz;               /* pure rate conversion, keyed by raw knob bits */
+  uint32_t rate_bits;
   mod_trig_t wrap;
   uint8_t mode, armed, reserved[2];
 } lfo_t;
@@ -68,6 +70,8 @@ static void *lfo_create(void *mem, const fm1_host_t *host, uint32_t seed) {
   s->base_hz = 1.0f;
   s->ratio = 1.0f;
   s->held = 0.0f;
+  s->free_hz = 1.0f;
+  s->rate_bits = 0;
   mod_trig_init(&s->wrap);
   s->mode = M_FREE;
   s->armed = 0;
@@ -119,7 +123,13 @@ static void lfo_process(void *self, const fm1_mod_io_t *io) {
     base_hz = (float)io->tp->bpm_x100 * (1.0f / 6000.0f);
     ratio = kSyncRatio[sync];
   } else {
-    base_hz = mod_rate_hz(p[P_RATE]);
+    const uint32_t bits = mod_bits(p[P_RATE]);
+    if (!s->reserved[0] || bits != s->rate_bits) {
+      s->free_hz = mod_rate_hz(p[P_RATE]);
+      s->rate_bits = bits;
+      s->reserved[0] = 1;
+    }
+    base_hz = s->free_hz;
   }
   if (mod_bits(base_hz) != mod_bits(s->base_hz) || mod_bits(ratio) != mod_bits(s->ratio)) {
     fm1_mp_lfo_set_rate(&s->lfo, base_hz, ratio);

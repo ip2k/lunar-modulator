@@ -1197,7 +1197,7 @@
       "per_note": true,
       "pads": null,
       "fx_wants": [],
-      "ram": 16188,
+      "ram": 16244,
       "page_names": [
         null,
         null,
@@ -8044,7 +8044,7 @@
           "transport",
           "poly_ok"
         ],
-        "ram": 112,
+        "ram": 120,
         "data": null,
         "page_names": [
           null,
@@ -11990,5 +11990,5 @@
       }
     ]
   },
-  "meta_id": "fbd3d320"
+  "meta_id": "e48ad411"
 }

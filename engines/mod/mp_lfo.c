@@ -144,7 +144,9 @@ void fm1_mp_lfo_set_rate(fm1_mp_lfo_t *l, float base_hz, float ratio) {
 
 void fm1_mp_lfo_set_pulse_width(fm1_mp_lfo_t *l, float pw) {
   pw = mp_clampf(pw, 0.0f, 1.0f, 0.5f);
-  l->pw = (uint64_t)(pw * TWO32F);
+  /* The largest float below 1 scales to 4294967040, within uint32.
+   * Keep the inclusive endpoint separately: a full-width pulse is 2^32. */
+  l->pw = pw == 1.0f ? 0x100000000ull : (uint32_t)(pw * TWO32F);
 }
 
 void fm1_mp_lfo_set_walk(fm1_mp_lfo_t *l, float walk) {
@@ -153,7 +155,8 @@ void fm1_mp_lfo_set_walk(fm1_mp_lfo_t *l, float walk) {
 
 void fm1_mp_lfo_set_start_phase(fm1_mp_lfo_t *l, float turns) {
   turns = mp_clampf(turns, 0.0f, 1.0f, 0.0f);
-  l->start = (uint32_t)((uint64_t)(turns * TWO32F) & 0xFFFFFFFFull);
+  /* One turn wraps to zero; every smaller clamped float fits uint32. */
+  l->start = turns == 1.0f ? 0u : (uint32_t)(turns * TWO32F);
 }
 
 void fm1_mp_lfo_reset(fm1_mp_lfo_t *l) {

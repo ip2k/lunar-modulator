@@ -271,7 +271,8 @@ async function inputChecks(browser) {
   for (let i = 0; i < 5; ++i) { await page.mouse.wheel(0, -100); await wait(page, 60); }
   r.wheel_five_fast_notches = await encoderTurns(page, 3);
 
-  // Screens keep coming on the two recycled buffers while a note plays.
+  // Quarter-rate visualization keeps recycling both screen buffers (~7.5 Hz).
+  // Allow scheduling jitter while rejecting a frozen or old full-rate redraw.
   await page.keyboard.down('KeyG');
   const s0 = await page.evaluate(() => window.fm1.screens);
   await wait(page, 1000);
@@ -289,7 +290,7 @@ async function inputChecks(browser) {
     r.enter_release_reaches_its_button && r.fx_press_after_that_works && r.select_gives_keys_back &&
     r.wheel_horizontal === 0 && r.wheel_trackpad_80px >= 1 && r.wheel_trackpad_80px <= 3 &&
     r.wheel_five_slow_notches === -5 && r.wheel_five_fast_notches === 5 &&
-    r.screens_per_second_playing >= 10;
+    r.screens_per_second_playing >= 5 && r.screens_per_second_playing <= 10;
   return r;
 }
 

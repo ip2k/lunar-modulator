@@ -119,6 +119,14 @@ try {
     await linked.goto(`${url}?load=examples/afterglow-relay.lunar&view=edit&sel=s1`);
     await linked.getByRole('button', { name: 'Power on and load', exact: true }).click();
     await linked.waitForFunction(() => fm1.editor?.state.view === 'flow' && fm1.editor.state.selected === 's1' && !fm1.editor.state.loading);
+    // Selection is immediate; openOnPanel sends its native edit after a
+    // debounce. Refresh only after that edit is acknowledged, otherwise the
+    // atomic expectedHash check correctly rejects the overlapping panel edit.
+    await linked.waitForFunction(() => {
+      const st = fm1.editor.state, panel = st.panelView;
+      return panel?.mode === 'home' && panel.sound === 0 && panel.page === 0 &&
+        !panel.arp && !st.inflight && !st.loading;
+    });
     await linked.evaluate(async () => {
       const host = fm1.editor.sequencerHost;
       await host.applyProject(await host.fetchProject(), 'Linked same-project refresh');

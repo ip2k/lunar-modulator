@@ -36,6 +36,12 @@ const int32_t kLevelThresh = 1120;
 // FmOpKernel::compute_fb; without, nothing, and fb_buf is left alone. An
 // operator whose gains are both under msfa's threshold is silent, as FmCore
 // skips it. Phases are not advanced (FmCore advances them).
+// Fully active algorithm 5 (zero-based index 4), with modulator self-
+// feedback on its first pair. Returns false without mutation if any operator
+// is silent or the feedback shift is unsupported; use FmCore in that case.
+// On success advances all phases exactly once and adds carriers in order.
+bool RenderAlgorithmFive(fm1_msfa::FmOpParams *params, int fb_shift, int32_t fb_buf[2], int32_t *out);
+
 void RenderChain(const fm1_msfa::FmOpParams *params, int n, bool feedback, int fb_shift,
                  int32_t fb_buf[2], int32_t *out);
 

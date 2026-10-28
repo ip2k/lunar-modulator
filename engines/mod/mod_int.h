@@ -152,6 +152,8 @@ struct fm1_mod {
   uint32_t seq_keys[8][4];                     /* notes sounding per track */
   float base[FM1_MOD_POSITIONS][FM1_MOD_MAX_PARAMS];
   float peff[FM1_MOD_POSITIONS][FM1_MOD_MAX_PARAMS];
+  /* Effective base edits waiting for the next tick; routed values always run. */
+  uint32_t param_dirty[FM1_MOD_POSITIONS];
   float out[2][FM1_MOD_POSITIONS][FM1_MOD_MAX_OUTS];
   float sys_cv[FM1_MOD_SRC_SYSTEM];
   float pend_cv[2][FM1_MOD_SRC_SYSTEM];
@@ -186,7 +188,8 @@ struct fm1_mod {
                                                   last tick's end, as the module saw it */
   uint8_t cur_sound;                           /* the current sound unit (PITCH_CUR) */
   uint8_t vctx;                                /* the voice being run, or NONE */
-  uint8_t reserved[1];
+  /* Monotonic since create: false proves no voice or pending restoration ever existed. */
+  uint8_t voice_ever_started;
 };
 
 /* ---- shared by the core, the planner and the kinds ---------------------- */

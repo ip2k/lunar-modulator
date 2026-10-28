@@ -27,7 +27,11 @@ git -C "$WORK/src" reset -q --hard "$COMMIT"
 git -C "$WORK/src" submodule update -q --init lib/Pico-PIO-USB
 git -C "$WORK/src" apply "$HERE/0001-pico2-reject-false-d-pullups.patch"
 
-docker run --rm -v "$WORK:/w" -w /w ubuntu:24.04 bash -c "
+# The firmware embeds __DATE__ (pico binary info), so pin it to the upstream
+# commit's date; otherwise the UF2 hash changes with the UTC day.
+EPOCH=$(git -C "$WORK/src" log -1 --format=%ct "$COMMIT")
+
+docker run --rm -e SOURCE_DATE_EPOCH="$EPOCH" -v "$WORK:/w" -w /w ubuntu:24.04 bash -c "
 set -e
 trap 'chown -R $(id -u):$(id -g) /w' EXIT
 export DEBIAN_FRONTEND=noninteractive

@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "761b18d3e9a676494a02e2d87867aa0eeab45bad6ab82062fad385a2f8bc2ebc",
-  "wasm_bytes": 1584573,
+  "wasm_sha256": "e8bd1dc6ca8e272d29ed0d47d1e6777e539b914d1c2a32fc6fc98eaf3628a69b",
+  "wasm_bytes": 1597239,
   "sources_sha256": {
-    "engines": "1d4a8474ed97cdf99bbbdd810cf873de63db04130a6383d88431315c0eb87ab1",
-    "sim": "8563af37476c8faf4bfe803d5687bc708b004d1e73c8dcd77fba317ff4437acd"
+    "engines": "6bf6fc9228c59eb2f44d8d752e62ac86a9293b5b975cef9d2a258e36b8dd0698",
+    "sim": "85a85d96b660fb9fea29edb3e93c91c73740ef49eb3839e50213b7ad6bfcdc70"
   },
   "engines": "working tree",
-  "built": "2026-10-27T04:05:41Z",
+  "built": "2026-10-28T17:13:13Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -84,12 +84,12 @@
     "max_lsb_vs_glibc_exact_scenarios": 1
   },
   "meta": {
-    "meta_id": "fbd3d320",
-    "module_meta_id": "fbd3d320",
+    "meta_id": "e48ad411",
+    "module_meta_id": "e48ad411",
     "bytes": 255480,
     "lunar": "1.3",
-    "native_meta_id": "7b8200b9",
-    "ram_differ_at_64_bits": 9,
+    "native_meta_id": "aa95d5c8",
+    "ram_differ_at_64_bits": 10,
     "passed": true
   },
   "dx7_sysex": {
@@ -181,10 +181,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.0639319999999941,
-      "p99_ms": 0.09390899999999647,
-      "max_ms": 0.2410819999999987,
-      "edit_us_per_quantum": 9.063011217483957
+      "p50_ms": 0.06181799999998816,
+      "p99_ms": 0.09362899999999286,
+      "max_ms": 0.2850749999999991,
+      "edit_us_per_quantum": 7.869940914805068
     },
     "check": {
       "params": 474,
@@ -237,8 +237,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 165672,
-        "native64": 179064
+        "wasm32": 165704,
+        "native64": 179096
       }
     },
     {
@@ -265,8 +265,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95208,
-        "native64": 108584
+        "wasm32": 95240,
+        "native64": 108616
       }
     },
     {
@@ -293,8 +293,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 114120,
-        "native64": 127496
+        "wasm32": 114152,
+        "native64": 127528
       }
     },
     {
@@ -321,8 +321,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 282248,
-        "native64": 283576
+        "wasm32": 282280,
+        "native64": 283608
       }
     },
     {
@@ -349,8 +349,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 347976,
-        "native64": 349304
+        "wasm32": 348008,
+        "native64": 349336
       }
     },
     {
@@ -377,8 +377,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 298712,
-        "native64": 300040
+        "wasm32": 298744,
+        "native64": 300072
       }
     },
     {
@@ -405,8 +405,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 146728,
-        "native64": 147448
+        "wasm32": 146760,
+        "native64": 147480
       }
     },
     {
@@ -433,8 +433,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 281112,
-        "native64": 281880
+        "wasm32": 281144,
+        "native64": 281912
       }
     },
     {
@@ -461,8 +461,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 91296,
-        "native64": 93592
+        "wasm32": 91328,
+        "native64": 93624
       }
     },
     {
@@ -489,8 +489,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 96260,
-        "native64": 96788
+        "wasm32": 96348,
+        "native64": 96880
       }
     },
     {
@@ -517,8 +517,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 91524,
-        "native64": 92036
+        "wasm32": 91612,
+        "native64": 92128
       }
     },
     {
@@ -545,8 +545,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 157252,
-        "native64": 157764
+        "wasm32": 157340,
+        "native64": 157856
       }
     },
     {
@@ -573,8 +573,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 91524,
-        "native64": 92036
+        "wasm32": 91612,
+        "native64": 92128
       }
     },
     {
@@ -596,7 +596,7 @@
       "screen_reference": "musl",
       "screen_px_differing": 0,
       "screen_glibc": {
-        "differing": 34,
+        "differing": 70,
         "max_lsb": 30036
       },
       "screen_musl": {
@@ -604,8 +604,8 @@
         "max_lsb": 0
       },
       "ram_bytes": {
-        "wasm32": 289016,
-        "native64": 289624
+        "wasm32": 289048,
+        "native64": 289656
       }
     },
     {
@@ -635,8 +635,8 @@
         "max_lsb": 0
       },
       "ram_bytes": {
-        "wasm32": 154632,
-        "native64": 155192
+        "wasm32": 154664,
+        "native64": 155224
       }
     },
     {
@@ -663,8 +663,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 83192,
-        "native64": 83704
+        "wasm32": 83224,
+        "native64": 83736
       }
     },
     {
@@ -691,8 +691,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 148712,
-        "native64": 149224
+        "wasm32": 148744,
+        "native64": 149256
       }
     },
     {
@@ -719,8 +719,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 82984,
-        "native64": 83496
+        "wasm32": 83016,
+        "native64": 83528
       }
     },
     {
@@ -747,8 +747,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 142328,
-        "native64": 142840
+        "wasm32": 142360,
+        "native64": 142872
       }
     },
     {
@@ -775,8 +775,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 76584,
-        "native64": 77096
+        "wasm32": 76616,
+        "native64": 77128
       }
     },
     {
@@ -803,8 +803,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 81528,
-        "native64": 82040
+        "wasm32": 81560,
+        "native64": 82072
       }
     },
     {
@@ -831,8 +831,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 81320,
-        "native64": 81832
+        "wasm32": 81352,
+        "native64": 81864
       }
     },
     {
@@ -859,8 +859,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 76824,
-        "native64": 77336
+        "wasm32": 76856,
+        "native64": 77368
       }
     },
     {
@@ -887,8 +887,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 84704,
-        "native64": 85408
+        "wasm32": 84736,
+        "native64": 85440
       },
       "cmd": "arp/acid-gen-run.verbs",
       "seq": {
@@ -924,8 +924,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 126760,
-        "native64": 127304
+        "wasm32": 126792,
+        "native64": 127336
       }
     },
     {
@@ -952,8 +952,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 85576,
-        "native64": 86104
+        "wasm32": 85608,
+        "native64": 86136
       }
     },
     {
@@ -980,8 +980,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 94592,
-        "native64": 95104
+        "wasm32": 94624,
+        "native64": 95136
       }
     },
     {
@@ -1008,8 +1008,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 160936,
-        "native64": 174312
+        "wasm32": 160968,
+        "native64": 174344
       }
     },
     {
@@ -1036,8 +1036,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 51352,
-        "native64": 51864
+        "wasm32": 51384,
+        "native64": 51896
       },
       "cmd": "seq/sine-volume-locks.verbs",
       "seq": {
@@ -1073,8 +1073,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 70464,
-        "native64": 72760
+        "wasm32": 70496,
+        "native64": 72792
       },
       "cmd": "seq/sixop-two-tracks-swing.verbs",
       "seq": {
@@ -1110,8 +1110,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 62256,
-        "native64": 64536
+        "wasm32": 62288,
+        "native64": 64568
       },
       "cmd": "seq/sixop-patch-enum-lock.verbs",
       "seq": {
@@ -1147,8 +1147,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 136632,
-        "native64": 150008
+        "wasm32": 136664,
+        "native64": 150040
       },
       "cmd": "seq/capture-while-playing.verbs",
       "seq": {
@@ -1187,8 +1187,8 @@
         "max_lsb": 0
       },
       "ram_bytes": {
-        "wasm32": 257944,
-        "native64": 259272
+        "wasm32": 257976,
+        "native64": 259304
       },
       "cmd": "seq/capture-stopped-capsel.verbs",
       "seq": {
@@ -1224,8 +1224,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 69208,
-        "native64": 69720
+        "wasm32": 69240,
+        "native64": 69752
       },
       "cmd": "seq/ext-transport.verbs",
       "seq": {
@@ -1261,8 +1261,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 117000,
-        "native64": 117512
+        "wasm32": 117032,
+        "native64": 117544
       },
       "cmd": "seq/repeat-hold.verbs",
       "seq": {
@@ -1298,8 +1298,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 161608,
-        "native64": 174984
+        "wasm32": 161640,
+        "native64": 175016
       },
       "mod": "mod/log-keytrack.mod"
     },
@@ -1327,8 +1327,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 76424,
-        "native64": 76936
+        "wasm32": 76456,
+        "native64": 76968
       },
       "mod": "mod/idle-driven.mod"
     },
@@ -1356,8 +1356,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 226680,
-        "native64": 240056
+        "wasm32": 226712,
+        "native64": 240088
       },
       "mod": "mod/routes.mod"
     },
@@ -1385,8 +1385,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 160936,
-        "native64": 174312
+        "wasm32": 160968,
+        "native64": 174344
       },
       "cmd": "mod/panel-gestures.verbs",
       "seq": {
@@ -1423,8 +1423,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 160936,
-        "native64": 174312
+        "wasm32": 160968,
+        "native64": 174344
       },
       "cmd": "seq/panel-play-stop.verbs",
       "seq": {
@@ -1461,8 +1461,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 160936,
-        "native64": 174312
+        "wasm32": 160968,
+        "native64": 174344
       },
       "cmd": "seq/panel-step-entry.verbs",
       "seq": {
@@ -1499,8 +1499,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 160936,
-        "native64": 174312
+        "wasm32": 160968,
+        "native64": 174344
       },
       "cmd": "seq/panel-record.verbs",
       "seq": {
@@ -1540,8 +1540,8 @@
         "max_lsb": 0
       },
       "ram_bytes": {
-        "wasm32": 282248,
-        "native64": 283576
+        "wasm32": 282280,
+        "native64": 283608
       },
       "cmd": "seq/panel-capture-stopped.verbs",
       "seq": {
@@ -1578,8 +1578,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 147048,
-        "native64": 160424
+        "wasm32": 147080,
+        "native64": 160456
       },
       "cmd": "seq/metro-click.verbs",
       "seq": {
@@ -1615,8 +1615,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 368360,
-        "native64": 382552
+        "wasm32": 368392,
+        "native64": 382584
       },
       "cmd": "seq/panel-tracks.verbs",
       "seq": {
@@ -1653,8 +1653,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 160936,
-        "native64": 174312
+        "wasm32": 160968,
+        "native64": 174344
       },
       "cmd": "seq/panel-session-song.verbs",
       "seq": {
@@ -1691,8 +1691,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 160936,
-        "native64": 174312
+        "wasm32": 160968,
+        "native64": 174344
       },
       "cmd": "seq/panel-locks.verbs",
       "seq": {
@@ -1729,8 +1729,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95384,
-        "native64": 108760
+        "wasm32": 95416,
+        "native64": 108792
       }
     },
     {
@@ -1757,8 +1757,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 287144,
-        "native64": 288488
+        "wasm32": 287176,
+        "native64": 288520
       }
     },
     {
@@ -1785,8 +1785,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 348216,
-        "native64": 349544
+        "wasm32": 348248,
+        "native64": 349576
       }
     },
     {
@@ -1813,8 +1813,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95448,
-        "native64": 108824
+        "wasm32": 95480,
+        "native64": 108856
       }
     },
     {
@@ -1841,8 +1841,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 348168,
-        "native64": 349496
+        "wasm32": 348200,
+        "native64": 349528
       }
     },
     {
@@ -1869,8 +1869,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 161112,
-        "native64": 174488
+        "wasm32": 161144,
+        "native64": 174520
       }
     },
     {
@@ -1897,8 +1897,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 96520,
-        "native64": 109896
+        "wasm32": 96552,
+        "native64": 109928
       }
     },
     {
@@ -1925,8 +1925,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 113704,
-        "native64": 127080
+        "wasm32": 113736,
+        "native64": 127112
       }
     },
     {
@@ -1953,8 +1953,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 283560,
-        "native64": 284888
+        "wasm32": 283592,
+        "native64": 284920
       }
     },
     {
@@ -1981,8 +1981,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95864,
-        "native64": 109240
+        "wasm32": 95896,
+        "native64": 109272
       }
     },
     {
@@ -2009,8 +2009,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 96104,
-        "native64": 109480
+        "wasm32": 96136,
+        "native64": 109512
       }
     },
     {
@@ -2037,8 +2037,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 107368,
-        "native64": 120744
+        "wasm32": 107400,
+        "native64": 120776
       }
     },
     {
@@ -2065,8 +2065,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 161144,
-        "native64": 174520
+        "wasm32": 161176,
+        "native64": 174552
       }
     },
     {
@@ -2093,8 +2093,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 119112,
-        "native64": 132488
+        "wasm32": 119144,
+        "native64": 132520
       }
     },
     {
@@ -2121,8 +2121,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 163080,
-        "native64": 176456
+        "wasm32": 163112,
+        "native64": 176488
       }
     },
     {
@@ -2149,8 +2149,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 97352,
-        "native64": 110728
+        "wasm32": 97384,
+        "native64": 110760
       }
     },
     {
@@ -2177,8 +2177,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 282584,
-        "native64": 283912
+        "wasm32": 282616,
+        "native64": 283944
       }
     },
     {
@@ -2205,8 +2205,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 348016,
-        "native64": 349344
+        "wasm32": 348048,
+        "native64": 349376
       }
     },
     {
@@ -2233,8 +2233,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 165672,
-        "native64": 179064
+        "wasm32": 165704,
+        "native64": 179096
       }
     },
     {
@@ -2261,8 +2261,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 248504,
-        "native64": 261928
+        "wasm32": 248536,
+        "native64": 261960
       }
     },
     {
@@ -2289,8 +2289,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 136392,
-        "native64": 149784
+        "wasm32": 136424,
+        "native64": 149816
       }
     },
     {
@@ -2317,8 +2317,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 149832,
-        "native64": 163224
+        "wasm32": 149864,
+        "native64": 163256
       }
     },
     {
@@ -2345,8 +2345,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 202120,
-        "native64": 215512
+        "wasm32": 202152,
+        "native64": 215544
       }
     },
     {
@@ -2373,8 +2373,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 210824,
-        "native64": 224200
+        "wasm32": 210856,
+        "native64": 224232
       }
     },
     {
@@ -2401,8 +2401,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 161160,
-        "native64": 174536
+        "wasm32": 161192,
+        "native64": 174568
       }
     },
     {
@@ -2429,8 +2429,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 348136,
-        "native64": 349464
+        "wasm32": 348168,
+        "native64": 349496
       }
     },
     {
@@ -2457,8 +2457,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 161288,
-        "native64": 174664
+        "wasm32": 161320,
+        "native64": 174696
       }
     },
     {
@@ -2485,8 +2485,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95464,
-        "native64": 108840
+        "wasm32": 95496,
+        "native64": 108872
       }
     },
     {
@@ -2513,8 +2513,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 161352,
-        "native64": 174728
+        "wasm32": 161384,
+        "native64": 174760
       }
     },
     {
@@ -2541,8 +2541,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95976,
-        "native64": 109352
+        "wasm32": 96008,
+        "native64": 109384
       }
     },
     {
@@ -2569,8 +2569,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 348232,
-        "native64": 349560
+        "wasm32": 348264,
+        "native64": 349592
       }
     },
     {
@@ -2597,8 +2597,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95576,
-        "native64": 108952
+        "wasm32": 95608,
+        "native64": 108984
       }
     },
     {
@@ -2625,8 +2625,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95816,
-        "native64": 109192
+        "wasm32": 95848,
+        "native64": 109224
       }
     },
     {
@@ -2653,8 +2653,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95208,
-        "native64": 108584
+        "wasm32": 95240,
+        "native64": 108616
       }
     },
     {
@@ -2681,8 +2681,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 212456,
-        "native64": 213176
+        "wasm32": 212488,
+        "native64": 213208
       }
     },
     {
@@ -2709,8 +2709,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95208,
-        "native64": 108584
+        "wasm32": 95240,
+        "native64": 108616
       }
     },
     {
@@ -2737,8 +2737,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 146728,
-        "native64": 147448
+        "wasm32": 146760,
+        "native64": 147480
       }
     },
     {
@@ -2765,8 +2765,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 91524,
-        "native64": 92036
+        "wasm32": 91612,
+        "native64": 92128
       }
     },
     {
@@ -2793,8 +2793,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 282248,
-        "native64": 283576
+        "wasm32": 282280,
+        "native64": 283608
       }
     },
     {
@@ -2821,8 +2821,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 86560,
-        "native64": 88840
+        "wasm32": 86592,
+        "native64": 88872
       }
     },
     {
@@ -2849,8 +2849,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 356304,
-        "native64": 372280
+        "wasm32": 356336,
+        "native64": 372312
       },
       "mod": "mod/multi-routes.mod"
     },
@@ -2878,8 +2878,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 373096,
-        "native64": 387304
+        "wasm32": 373128,
+        "native64": 387336
       },
       "cmd": "mod/multi-panel.verbs",
       "seq": {
@@ -2916,8 +2916,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 368360,
-        "native64": 382552
+        "wasm32": 368392,
+        "native64": 382584
       },
       "mod": "mod/voice-routes.mod"
     },
@@ -2945,8 +2945,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 326664,
-        "native64": 340872
+        "wasm32": 326696,
+        "native64": 340904
       }
     },
     {
@@ -2973,8 +2973,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 329200,
-        "native64": 345192
+        "wasm32": 329232,
+        "native64": 345224
       },
       "cmd": "seq/multi-four-sounds.verbs",
       "seq": {
@@ -3010,8 +3010,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95768,
-        "native64": 109144
+        "wasm32": 95800,
+        "native64": 109176
       }
     },
     {
@@ -3038,8 +3038,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 107368,
-        "native64": 120744
+        "wasm32": 107400,
+        "native64": 120776
       }
     },
     {
@@ -3066,8 +3066,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 352264,
-        "native64": 366472
+        "wasm32": 352296,
+        "native64": 366504
       },
       "cmd": "seq/panel-multi-sound.verbs",
       "seq": {
@@ -3104,8 +3104,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 160936,
-        "native64": 174312
+        "wasm32": 160968,
+        "native64": 174344
       }
     },
     {
@@ -3132,8 +3132,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 86560,
-        "native64": 88840
+        "wasm32": 86592,
+        "native64": 88872
       },
       "cmd": "arp/arp-sequencer.verbs",
       "seq": {
@@ -3169,8 +3169,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 311232,
-        "native64": 325616
+        "wasm32": 311264,
+        "native64": 325648
       }
     },
     {
@@ -3197,8 +3197,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 290848,
-        "native64": 292368
+        "wasm32": 290880,
+        "native64": 292400
       },
       "cmd": "arp/arp-trg.verbs",
       "seq": {
@@ -3234,8 +3234,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 160936,
-        "native64": 174312
+        "wasm32": 160968,
+        "native64": 174344
       },
       "cmd": "arp/panel-arp.verbs",
       "seq": {
@@ -3272,8 +3272,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 95208,
-        "native64": 108584
+        "wasm32": 95240,
+        "native64": 108616
       },
       "cmd": "arp/arp-latch-stop.verbs",
       "seq": {
@@ -3309,8 +3309,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 160936,
-        "native64": 174312
+        "wasm32": 160968,
+        "native64": 174344
       },
       "cmd": "arp/panel-arp-stop.verbs",
       "seq": {
@@ -3347,8 +3347,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 146136,
-        "native64": 146648
+        "wasm32": 146168,
+        "native64": 146680
       }
     },
     {
@@ -3375,8 +3375,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 79576,
-        "native64": 80088
+        "wasm32": 79608,
+        "native64": 80120
       }
     },
     {
@@ -3403,8 +3403,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 145320,
-        "native64": 145832
+        "wasm32": 145352,
+        "native64": 145864
       }
     },
     {
@@ -3431,8 +3431,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 197836,
-        "native64": 212980
+        "wasm32": 197924,
+        "native64": 213072
       }
     },
     {
@@ -3459,8 +3459,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 189788,
-        "native64": 204932
+        "wasm32": 189876,
+        "native64": 205024
       },
       "cmd": "seq/repeat-hold.verbs",
       "seq": {
@@ -3496,8 +3496,8 @@
       },
       "screen_musl": null,
       "ram_bytes": {
-        "wasm32": 277532,
-        "native64": 303964
+        "wasm32": 277620,
+        "native64": 304056
       },
       "cmd": "state/play.verbs",
       "seq": {

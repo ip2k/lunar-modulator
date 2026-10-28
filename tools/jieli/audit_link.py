@@ -452,11 +452,36 @@ def audit(elves, flat_images, linked, sources=None, runtime="sdk"):
         record("irq123_unused_in_sources", "fail" if src_hits else "pass",
                src_hits or "only proven literal non-123 IRQ arguments; no IRQ-123 vector address")
 
-    # 8. eFuse controller never touched (the application never reads or writes
-    #    JL_EFUSE; only the never-linked download loader does). No exceptions.
+    # 8. eFuse controller never touched. A pi32v2 long relative-call operand
+    # can coincidentally equal an SFR address. This byte scan is not an
+    # instruction decoder: keep that ambiguity PENDING for vendor objdump
+    # sign-off, never silently pass it or exempt a whole vendor function.
     efuse = imm_hits(range(EFUSE_SFR_LO, EFUSE_SFR_HI + 1, 4))
-    record("no_efuse_controller_access", "fail" if efuse else "pass",
-           [fmt(h) for h in efuse] or f"no reference to eFuse SFRs 0x{EFUSE_SFR_LO:05X}-0x{EFUSE_SFR_HI:05X}")
+    call_candidates = []
+    for hit in efuse:
+        src, off, value, fn = hit
+        for label, e, addr, blob in scan_sources:
+            if (label != src or not linked or e is None or e.e_type != ET_EXEC
+                    or e.e_machine != 0xf1 or not addr or not fn or off < 2
+                    or (addr + off) % 2 or blob[off-2:off] != b'\x80\xff'
+                    or e.function_at(addr + off - 2) != fn):
+                continue
+            # Six-byte call: signed byte displacement from the following PC.
+            target = (addr + off + 4 + value) & 0xffffffff
+            # Vendor assembly helpers (e.g. strcmp) have STT_FUNC symbols
+            # with zero size: accept only their exact entry, not an inferred
+            # span up to the next symbol.
+            entry = any(s['type'] == 2 and s['shndx'] and s['value'] == target
+                        for s in e.symbols)
+            if entry or e.function_at(target):
+                call_candidates.append(hit)
+                break
+    bad = [h for h in efuse if h not in call_candidates]
+    record("no_efuse_controller_access", "fail" if bad else "pending" if efuse else "pass",
+           ([fmt(h) for h in bad] if bad else
+            ["possible relative-call operands; confirm every instruction and destination with vendor objdump"]
+            + [fmt(h) for h in call_candidates] if efuse else
+            f"no reference to eFuse SFRs 0x{EFUSE_SFR_LO:05X}-0x{EFUSE_SFR_HI:05X}"))
 
     # 9. The late_initcall group is exactly [sdk_meky_check] (fm1-nes
     #    audit_boot.py:251-264): the dormant check is linked, not stubbed or

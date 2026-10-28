@@ -539,6 +539,14 @@ def header(voices: list[Voice]) -> str:
         for k in range(0, 128, 16):
             lines.append("    " + ", ".join(str(b) for b in p[k:k + 16]) + ",")
         lines.append("  },")
+    lines += ["};", "", "// Decoded built-ins: avoid unpack/sanitize work on the audio note-on path.",
+              "const uint8_t kBankUnpacked[kBankSize][156] = {"]
+    for i, x in enumerate(voices):
+        data = vced(x) + [0x3F]
+        lines.append(f"  {{  // {i}: {x.name}")
+        for k in range(0, 156, 16):
+            lines.append("    " + ", ".join(str(b) for b in data[k:k + 16]) + ",")
+        lines.append("  },")
     lines += [
         "};",
         "",

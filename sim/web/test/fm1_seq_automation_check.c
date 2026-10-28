@@ -72,6 +72,26 @@ static void render(unsigned n) {
   render_sounds(&app,n,app.out);
   render_fx(&app,1,app.out,n); render_fx(&app,2,app.out,n);
 }
+static int labeled_lanes(void) {
+  setup();
+  CHECK(fm1_seq_labeled_lanes(app.seq, FM1_APP_SEQ_TRACKS) == 0);
+  for (unsigned t = 0; t < FM1_APP_SEQ_TRACKS; ++t) {
+    for (unsigned mask = 0; mask < 256; ++mask) {
+      for (unsigned lane = 0; lane < FM1_SEQ_LANES; ++lane) {
+        fm1_seq_cmd_t cmd;
+        const int64_t args[3] = { t, lane, 0 };
+        fm1_seq_cmd_make(&cmd, FM1_SEQ_V_ALABEL,
+                         mask & (1u << lane) ? 3u : 2u, args);
+        /* Both app targets and unrelated labels must remain discoverable. */
+        if (mask & (1u << lane))
+          strcpy(cmd.text, lane & 1u ? "unrelated" : "in1:Mix");
+        fm1_app_seq_cmd(&app, &cmd);
+      }
+      CHECK(fm1_seq_labeled_lanes(app.seq, (uint8_t)t) == mask);
+    }
+  }
+  return 0;
+}
 static int timing(void) {
   setup();
   CHECK(line("route 0 1 0;alabel 0 0 in1:Mix;abaseq 0 0 127;alabel 0 1 in2:Mix;abaseq 0 1 127;alabel 0 2 m1:Mix;abaseq 0 2 127;alabel 0 3 m2:Mix;abaseq 0 3 127;alabel 0 4 mix:Level;abaseq 0 4 127"));
@@ -347,9 +367,35 @@ static int meter_bench(void) {
   }
   return 0;
 }
+static int lock_page_replacement(void) {
+  setup();
+  CHECK(line("route 0 1 0;clen 0 16"));
+  fm1_app_render(&app,64);
+  CHECK(app.ui.lock_pages == 6);
+  /* A replacement has a different page layout; the next audio block must
+   * expose it, including after a swap and an empty-slot transition. */
+  fm1_param_t wide_params[5];
+  memcpy(wide_params,params,sizeof wide_params);
+  wide_params[0].page=3;
+  fm1_engine_t wide=fx;
+  wide.params=wide_params;
+  app.unit[6].e=&wide;
+  fm1_app_render(&app,64);
+  CHECK(app.ui.lock_pages == 9);
+  swap_units(&app,6,7);
+  fm1_app_render(&app,64);
+  CHECK(app.ui.lock_pages == 9);
+  app.unit[7].e=NULL;
+  fm1_app_render(&app,64);
+  CHECK(app.ui.lock_pages == 5);
+  app.unit[7].e=&fx;
+  fm1_app_render(&app,64);
+  CHECK(app.ui.lock_pages == 6);
+  return 0;
+}
 int main(int argc, char **argv) {
   if(argc>1 && !strcmp(argv[1],"--meter-bench")) return meter_bench();
-  if(timing() || stop_reset() || routes_types_mask() || release_and_legacy() || modulation() || panel_targets() || meters()) return 1;
+  if(labeled_lanes() || timing() || stop_reset() || routes_types_mask() || release_and_legacy() || modulation() || panel_targets() || meters() || lock_page_replacement()) return 1;
   puts("PASS sample frames, isolation, inserts/master/mix, D6, knob bases, reset, routes, enum/log, NOLOCK/PER_FOCUS, masks and modulation precedence");
   return 0;
 }

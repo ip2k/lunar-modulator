@@ -538,6 +538,39 @@ void Hash() {
   printf("}\n");
 }
 
+// Compare the mono path with one channel of a deliberately stereo render.
+// The other channel cannot affect shared controls or the reference left state.
+void MonoEquivalent() {
+  Lcg rng = {81};
+  unsigned failures = 0;
+  const float rates[] = {8000, 44118, 48000, 96000, 384000};
+  for (float rate : rates) {
+    fm1_host_t host = { FM1_ENGINE_API_VERSION, rate, 64 };
+    DriveInstance mono, stereo;
+    E.create(&mono, &host); E.create(&stereo, &host);
+    for (unsigned block = 0; block < 2000; ++block) {
+      if (block % 7 == 0) {
+        const uint16_t p = rng.Next() % E.n_params;
+        const float v = E.params[p].min + rng.Unit() * (E.params[p].max - E.params[p].min);
+        E.set_param(&mono, p, v); E.set_param(&stereo, p, v);
+      }
+      const unsigned frames = rng.Next() % 130;
+      float a[260], b[260];
+      for (unsigned f = 0; f < frames; ++f) {
+        a[2*f] = a[2*f+1] = b[2*f] = rng.Bipolar() * 4;
+        b[2*f+1] = a[2*f] + 0.25f;
+      }
+      E.render(&mono, a, frames); E.render(&stereo, b, frames);
+      for (unsigned f = 0; f < frames; ++f)
+        failures += memcmp(a+2*f, b+2*f, sizeof(float)) != 0 ||
+                    memcmp(a+2*f, a+2*f+1, sizeof(float)) != 0;
+      stereo.ch[1] = stereo.ch[0];
+      failures += memcmp(&mono, &stereo, sizeof mono) != 0;
+    }
+  }
+  printf("\"mono_equivalent\":{\"calls\":10000,\"failures\":%u}", failures);
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
@@ -557,7 +590,8 @@ int main(int argc, char **argv) {
   Glide(); printf(",");
   Switch(); printf(",");
   Silence(); printf(",");
-  Rates();
+  Rates(); printf(",");
+  MonoEquivalent();
   printf("}\n");
   return 0;
 }
