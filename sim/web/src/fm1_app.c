@@ -2232,7 +2232,8 @@ static void button_in(fm1_app_t *a, int button, int down) {
       /* Stage A1: a request for the host's store (the page's browser
        * storage, stage W1), which answers with fm1_app_saved; without one,
        * nothing is kept, and the screen says so. Never the FM-1's flash:
-       * that waits for the gate (CLAUDE.md, the one rule). */
+       * that waits for Lunar code on the FM-1 (CLAUDE.md, hardware
+       * experimentation policy; docs/07 §4). */
       ++a->save_gen;
       if (!a->store_ready) refuse(a, FM1_APP_TONE_REFUSE, "SAVE", "no store in", "this host");
       break;

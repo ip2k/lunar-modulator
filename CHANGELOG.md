@@ -2055,9 +2055,9 @@ history.
   `tools/fm1_uboot_restore_test.py`, and the status strings of `tools/jieli/`
   no longer call recovery of a nonbooting unit untested, no longer say the
   unit runs FM-1_092 or that the AC79 dev kit is on order, and name the
-  staged policy where they cited the superseded one rule (two comments in
-  `sim/web/src/fm1_app.c`/`.h` still do; they are hashed into the module
-  record and wait for its next rebuild). The dev kit needs no
+  staged policy where they cited the superseded one rule; so do two comments
+  in `sim/web/src/fm1_app.c`/`.h`, whose module record was rebuilt for them
+  (the WebAssembly module itself is unchanged). The dev kit needs no
   `USB_KEY` dongle (onboard UPDATE and RESET buttons, UART header).
 - **Parameter metadata is at level 1.3.** The export now says how a cable's ids
   are laid out and the shape of the chain (`mod.source_base`, `source_stride`,
