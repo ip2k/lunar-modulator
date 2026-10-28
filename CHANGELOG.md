@@ -9,6 +9,11 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- **The FM-1-transporter build is reproducible across days.** The firmware
+  embeds its build date, so the CI job's UF2 hash changed at the next UTC day
+  and its drift warning fired on `main`. `build.sh` now pins the date to the
+  upstream commit's (`SOURCE_DATE_EPOCH`) and again yields the flashed Pico 2 W
+  image, `4f5fab3f…f482`.
 - **The owner's FM-1 boots again, on stock V15.** An install interrupted on
   2026-10-15 had left it with no display and no USB. The stock V15
   application region was written back through FM-1-transporter on a Pico 2 W,
