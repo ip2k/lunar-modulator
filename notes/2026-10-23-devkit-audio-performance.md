@@ -8983,3 +8983,29 @@ budget; the completed adaptive V188 soak is separate. Current board remains
 V204 idle with the previous consumed reset, no receiver/device operation live.
 Keep optimization campaign and heartbeat active. Own build products cleaned;
 small integration/CI/review evidence retained privately. No new worktree made.
+
+
+[verified post-merge checks and V208/V209 discriminator, 2026-10-28]
+Exact main948c8886 CI40621982980 completed with all14 jobs successful.
+Pages40621982674 and deployment7375694800 succeeded at the same main commit.
+The partial filter optimization is integrated and the website deployed; this
+is not a new board flash or fixed12 timing acceptance.
+
+Astra completed the dispatch/control audit. Dirty/sparse parameter evaluation,
+LFO rate caching and changed-sink callbacks already remove the obvious repeated
+work. The earlier LOG-span cache experiment was negligible; do not repeat it.
+One source-valid small lead remains: record Macro commands directly into the
+acquired unpublished slot, avoiding the scratch-to-owned command copy without
+coalescing commands or changing callback/order/lifetime semantics.
+
+A bounded host-only V209 counter measured44104 blocks and221021 copied commands:
+43846 blocks contain5 commands,12 contain6,245 contain7 and1 contains4. At the
+host's24 bytes/command this copies5304504 bytes total, typically120 bytes/block.
+Native ABI size and copy timing were not measured. Full22581248-byte replay
+retains SHA86d325255cf4a4918d8c18f7f011b5692b8cd1e38fcdb0b731e8e17bdd475436.
+The proposed copy removal is deferred: no evidence that this small copy warrants
+a native experiment against the remaining measured timing deficit. No synthesis
+change, native image, reset or hardware acceptance claim. V209 terminal0; own
+source/build/PCM removed automatically, logs/report/counted source retained
+privately in this lane. Mac1196GiB free. Current board remains V204 idle;
+fixed12 still fails, while adaptive V188's completed30min soak remains separate.
