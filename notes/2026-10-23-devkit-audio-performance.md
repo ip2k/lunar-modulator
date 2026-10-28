@@ -8940,3 +8940,25 @@ omitted fx_filter_dsp.h; corrected its input before the passing run. Firmware
 and generated WASM are unchanged by this test correction. Exact-head CI is
 required after this commit; cancel the superseded branch dispatch rather than
 leaving duplicate full runs active. No current native device/capture job.
+
+
+[verified CI blocker and repair, V207] Exact-head V206 CI40615857431 at83b7267d
+failed MIT/BSD job122578388897 and 32-bit job122578389318 on the same pre-existing
+transport assertion, tests/test_engine_api_v3.py:140. CI installs pytest9.2.0;
+it rejects pytest.approx on nested (frame, amplitude) tuples with TypeError.
+The test's byte-identical block-size comparison already passed. Split the
+assertion into exact frame-index equality and approximate amplitude-list
+equality, matching the adjacent transport test. Exact frame positions and event
+count are now explicit; no output, DSP, tolerance or expected event changed.
+
+All15 transport API tests pass in the bounded Aeon MIT test image (pytest7.4.4,
+clang). The affected test also passes in an isolated pytest9.2.0 install in
+the bounded emsdk image, 0.23s. Initial version-match attempt used the existing
+ASan image, which lacks pip; moved the isolated dependency install to emsdk,
+without host package changes. Private actual CI logs and both local-run logs
+are retained. No WASM rebuild needed for a Python assertion-only edit; source
+and generated-module hashes unchanged. Astra's approved filter source remains
+unchanged. Push this correction, cancel superseded CI and request exact-head
+CI; no merge or fixed12 acceptance yet. All three browser jobs on V206 passed.
+Own V207 source/build/test-dependency/output products are removed after terminal
+jobs and evidence export, keeping only logs and the committed correction.

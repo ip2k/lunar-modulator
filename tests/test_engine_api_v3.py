@@ -137,7 +137,9 @@ def test_fm1_render_gives_an_effect_the_transport(renderer, tmp_path):  # noqa: 
     q = round(0.8 * 32767) / 32767.0
     h = round(0.4 * 32767) / 32767.0
     want = [(0, q)] + [(f, q if k % 4 == 0 else h) for k, f in enumerate(beats)] + [(99008, -q)]
-    assert nonzero(left) == pytest.approx(want)
+    actual = nonzero(left)
+    assert [frame for frame, _ in actual] == [frame for frame, _ in want]
+    assert [value for _, value in actual] == pytest.approx([value for _, value in want])
 
 
 def test_fm1_render_gives_its_tempo_without_a_sequencer(renderer, tmp_path):  # noqa: F811
