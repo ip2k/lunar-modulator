@@ -9207,3 +9207,29 @@ The board is healthy idle after its one-shot reset and closing the sole receiver
 before PING. Private scripts, source/native exports, host reports and raw UART
 are retained in the V224 lane. Own reproducible SDK/proof/build/PCM intermediates
 were removed; Mac free space remains 1,195 GiB. Seek larger savings next.
+
+
+## 2026-10-28 V225: selective UI snapshot is not a material solution [verified]
+
+The UI sync function copied its complete state before comparing a subset of
+fields. A private trial snapshots only the fields actually compared, retaining
+every sync operation and its cadence. Complete UI state and return values were
+compared against the original through the golden/action suite; normal and
+sanitizer app replay retained all 22,581,248 PCM bytes. Native code grew by
+156 bytes and its local stack frame by 32 bytes; host equivalence alone did not
+predict a useful device gain.
+
+The native 66,156-block run produced means 23,779 / 27,227 / 29,583 / 32,986
+ticks, only 0.079–0.130% below V224 in this single comparison, about 1.1–1.3
+microseconds per block. Producer misses were 0 / 0 / 2 / 1,587, still failing
+the unchanged 34,829-tick deadline. All four PCM hashes and arithmetic records
+matched. Consumer misses, DAC/backend faults and transport gaps stayed zero.
+This does not establish fixed12 or analog acceptance. No tracked source change
+is promoted; prioritize onset-critical FM work over further tiny UI changes.
+Functional sync cannot simply follow the visual refresh cadence because it also
+performs recording, follow and timeout actions.
+
+The board is healthy idle after closing its sole receiver before PING. Its reset
+receipt is consumed forever. Private evidence and native source/ELF exports stay
+in the V225 lane; own reproducible SDK/proof/build/PCM inputs were removed.
+Mac free space remains 1,195 GiB. Adaptive V188's earlier soak stays separate.
