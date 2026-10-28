@@ -8862,3 +8862,70 @@ question is whether another untouched initialized slot can supply exact envelope
 fields under identical patch/velocity/effective scaling. This is an unproven
 candidate, not permission to copy a whole Voice or relax event semantics. Review
 prior template work and lifecycle invalidation before any host proof or image.
+
+
+[verified distribution and host eligibility, V203–V205] Astra's cross-voice
+initialization audit found a source-valid envelope-only donor path, but the
+older V153 template-copy experiment saved only about 9.5 microseconds of heavy
+note initialization and regressed total producer time. No donor implementation
+was promoted. V204 keeps V201 synthesis unchanged and bins the existing paired
+completion records by case block: onset, blocks 1–63, and blocks 64–5512.
+All 66,156 blocks / 12 cases completed with four full PCM hashes unchanged,
+finite exit, zero consumer deadline misses / transport / backend / gap flags.
+Producer means 24,222 / 27,662 / 29,986 / 33,225 ticks and misses
+0 / 0 / 7 / 1,954 still FAIL the unchanged 34,829-tick deadline. Diagnostic
+harvest/layout overhead prevents treating these as a speed comparison.
+
+There are 86 heavy-case paired service sums above 69,658 ticks: three onset,
+two in blocks 1–63, and 81 in the remaining blocks. The maximum at tag 38,591
+is 44,199 + 32,764 = 76,963 ticks, exceeding the combined budget by 7,305 ticks
+(304.375 microseconds). The sequencer also generates notes later, so block
+position alone does not rule out note-on work. V205 then counted the specific
+proposed cross-voice shortcut in an unchanged host replay: 244 Starts, zero
+existing same-slot hits, 244 full initializations and 42 eligible donor hits.
+Those 42 are accounted for exactly by the two cycles' external 1/4/8/12-voice
+chords (same patch, velocity and effective rate scaling). Aggregate counting
+plus source accounting is not native per-tag correlation, but provides no
+remaining donor opportunity for the other sequencer Starts in this fixture.
+The unchanged 44,104-block / 22,581,248-byte replay matches the established
+reference hash. Skip another donor-copy implementation and flash: it would not
+address the 81 later combined-budget failures in this fixture.
+
+V204 is healthy idle after owned receiver 1045769 was verified twice, sent one
+SIGTERM, runner 0 / UART -15, PID absent twice before ordinary PING ACK.
+Reset 1793150434.583537 is consumed forever. No physical FM-1 operation or
+fixed-12 analog soak. Private raw SHA
+776606a0690aab34432f6e66bf25813764a7e68fe566dc85ea10720d92b77a07,
+source, ELF, receipts and reports retained. Own V204 SDK and V205 source,
+build and PCM products removed after evidence export and live-use checks.
+Mac free 1,184 GiB.
+
+[source integration in progress, V206] Promote the independently proven V201
+stable-Ladder pitch-only coefficient update into engines/src/fx_filter.cc.
+It uses a transient moved-control mask, preserves the original g/G/G4 arithmetic
+and leaves non-pitch coefficients alone only while primed, settled in Ladder,
+not warming and not fading. Other paths retain the full original update.
+No persistent state, rate, voice count, sample or event change. Added a durable
+full-state comparison against the original unspecialized control step across
+five rates, all six types, glides, type transitions, stereo spread, drive,
+resonance, mode, irregular render sizes, nonfinite input and counter wrap.
+Prior V201 native and normal/sanitized full-state/replay evidence applies to
+the same transformation; tracked-source focused checks and actual WASM rebuild
+are running before CI. Initial focused runner lacked g++; rerun explicitly
+selects the image's clang/clang++ (environment correction, no relaxed tests).
+Code tools are selected on the primary checkout rather than this external
+worktree; bounded source inspection used here, no shared-project switch or
+pi32 ABI claim.
+
+
+[verified V206 integration checks] All 81 focused filter tests pass on the exact
+tracked source staged on Aeon (clang/clang++, GPL off), including the new
+54,000-state control comparison with both fast and fallback paths exercised.
+An actual bounded browser build with the normal GPL engine set passes all
+108 parity scenarios (JS and musl exact), 18 SysEx checks, metadata and edit
+parity. The Node edit storm runs 30 seconds with zero late quanta, not a Chrome
+playback acceptance claim. Generated fm1.wasm and its real source-hash/build
+record are refreshed; the strict committed-record test passes. No manual hash
+edit or gate relaxation. The same source transformation already has the V201
+normal/ASan full-state and complete mixed-PCM proof plus native partial gain;
+no redundant device flash for source promotion. Independent Astra review pending.

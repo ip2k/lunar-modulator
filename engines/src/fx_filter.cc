@@ -749,15 +749,30 @@ static void FiltPrime(FilterInstance *self) {
 
 /* A control step: glide the filter controls and recompute what moved. */
 static void FiltControl(FilterInstance *self) {
-  int moved = 0;
+  unsigned moved = 0;
   for (int i = 0; i < C_COUNT; ++i) {
     if (self->value[i] != self->target[i]) {
       self->value[i] = FiltGlide(self->value[i], self->target[i], self->glide_ctrl);
-      moved = 1;
+      moved |= 1u << i;
     }
   }
   if (!moved) return;
   self->g_done = 0;
+  /* In a settled Ladder, cutoff alone changes g/G/G4. Keep the original
+   * arithmetic order; drive, resonance and tap weights are still current.
+   * Warm-up and type fades need the full path for both filter states. */
+  if (moved == (1u << C_PITCH) && self->primed &&
+      self->cur == T_LADDER && self->want == T_LADDER &&
+      !self->fade && !self->warm) {
+    FiltComputeG(self);
+    FilterCoefs *k = &self->co;
+    for (int c = 0; c < 2; ++c) {
+      const float G = k->g[c] / (1.0f + k->g[c]), G2 = G * G;
+      k->G[c] = G;
+      k->G4[c] = G2 * G2;
+    }
+    return;
+  }
   FiltUpdateShared(self);
   FiltUpdateCoefs(self, self->cur);
   if (self->fade) FiltUpdateCoefs(self, self->prev);
