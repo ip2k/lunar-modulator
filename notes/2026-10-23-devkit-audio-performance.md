@@ -9144,3 +9144,39 @@ remain under scratch/devkit-20261023 and the matching private Aeon export.
 Reproducible proof/build intermediates and the Mac's candidate image were
 removed; the remote current candidate is retained. Mac free space: 1,195 GiB.
 Fixed12 acceptance remains unfinished; the earlier adaptive soak is separate.
+
+
+## 2026-10-28 V219/V220: shared FM modulator waveform [verified]
+
+The private algorithm-five counter found identical second/third-stack
+modulators in 146,446 of 315,574 admitted voice blocks (46.4%). Equality requires
+phase, frequency and both gain endpoints to match; no feedback-bearing stack
+is shared. V220 computes that waveform once into a local 64-sample buffer,
+then applies the two original carriers and summation order. All envelopes,
+phases, validation, voice counts and event timing remain unchanged.
+
+Normal and ASan/UBSan full-app replay kept all 22,581,248 PCM bytes identical.
+Directed internal-state/PCM comparison at 44,118 and 96,000 Hz also passed,
+including equal-modulator fixtures with partial renders, gain, brightness and
+bend changes, plus rejection, retirement and adapters. These checks do not
+establish target concurrency, cache, ABI or whole-stack correctness.
+
+The native 66,156-block run completed with producer means 23,921 / 27,355 /
+29,684 / 33,065 ticks, 0.60–0.93% below V201 in this single comparison (about
+8–10 microseconds per block). Miss counts were 0 / 0 / 2 / 1,620, down from
+1,883 total, but still failing the unchanged 34,829-tick deadline. The heaviest
+maximum was slightly worse, 43,842 versus 43,818 ticks. All four PCM hashes and
+arithmetic records matched. Consumer misses, DAC/backend faults and transport
+gaps were zero. This is a modest private gain, not fixed12 or analog acceptance.
+
+A followup host counter (V221) found zero identical complete FM pairs, so no
+full-pair specialization was implemented or flashed. V220 depends on the
+private V191 overwrite/fused-mix implementation; tracked integration needs
+those prerequisites or a separately proved adaptation to the tracked kernel.
+No product source promotion is claimed here.
+
+The board is healthy idle after closing its sole receiver and ordinary PING.
+The reset receipt is consumed forever. Evidence, scripts and source/ELF exports
+remain private in the V220 lane. Own SDK/proof/build/PCM intermediates and the
+Mac's candidate image were removed; the remote current image is retained.
+Mac free space: 1,195 GiB. The heartbeat remains active for the unfinished goal.
