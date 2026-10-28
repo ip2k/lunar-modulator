@@ -8703,3 +8703,20 @@ sweep. Parentunused410words, startup/DACalloc pass. Firstthreehashes unchanged.
 Stage7 inclusive, neveraddto0..6; no fixed12/analog acceptance. RX1022613 closed
 with twiceargvverify/oneSIGTERM; runner28099 terminal0/UART-15, PIDabsenttwice
 beforePINGACK. Reset1793145229.235222 consumed forever. Board healthyidle.
+
+[verified native attribution, V196] Low-frequency outer timers leave engine
+source unchanged. Three complete5513blockcases plus780producedcase3blocks,
+17319produced/17317submitted before queuefault10304. Fixed12 remains FAIL:
+328producerlate, consumer0late. Firstthreehashes unchanged. Producermeans
+1041.56/1195.38/1289.60/1438.91us; lastcasepartial, notcomparable steadycase3.
+Drumsrender392.71..395.46us is largest constant component. Inserts/levels
+174.66..181.53us, dispatchcontrol (subtract nesteddrums+DX7 only)150.96..171.38us,
+UI46.35..47.39us, sealing20.86..21.24us, seqadvance10.59..11us, preflight2.42..2.55us.
+Timersperturb, no pristinecost/acceptance claim. BothDrums RenderVoice/RenderBlock
+already SRAM; placementalone notnewfix. Next inspect drumblock control/voiceDSP/
+resampler costs and exact coefficient/control reuse opportunities; native rates,
+quality, noise and retirement unchanged. Current filter already skips settled
+coefficient recomputation, so do not repeat that optimization. Tool index misses
+pipeline symbols; exact worktree files inspected, no deviceABItool claim.
+Reset1793146091.1874902 consumed forever; RX1026421 twiceargvverified/ONESIGTERM,
+runner61022terminal0/UART-15/PIDabsenttwice BEFOREPINGACK. Parentunused410words.
