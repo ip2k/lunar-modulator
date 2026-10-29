@@ -289,7 +289,7 @@ const fm1_param_t kParams[P_COUNT] = {
 // voices take ~67 KB of the ~387 KB the stock layout leaves free (docs/11 §2).
 // CPU is the unknown [inferred until stage B measures pi32v2]: Plaits runs ONE
 // voice of these engines on a 72 MHz Cortex-M4F built to use most of that
-// chip, and the FM-1 has ~5,440 cycles per output sample at 240 MHz for
+// chip, and the FM-1 has ~8,160 cycles per output sample at 360 MHz for
 // everything. On the desktop four voices cost about half of Macro's twelve
 // (plaits-heavy.md), so the cap can rise if the chip allows.
 const int kNumVoices = 4;

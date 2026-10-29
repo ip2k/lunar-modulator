@@ -11,7 +11,7 @@ means the work of others who have studied the FM-1, credited in
 
 | Item | Specification | Source |
 | --- | --- | --- |
-| Processor | JieLi AC791N, with a 32-bit pi32v2 core. M-VAVE's firmware runs it at 240 MHz of a possible 320 MHz | Chip checked on a unit; clock from published analysis |
+| Processor | JieLi AC791N, with a 32-bit pi32v2 core. M-VAVE's firmware runs it at 360 MHz | Chip checked on a unit; clock decoded from the firmware's configuration and measured by another project |
 | Memory | 578 KB of RAM on the chip, of which about 514 KB is usable; 1 MB of flash memory, probably inside the chip's package | RAM from the chip maker's documentation; flash from published analysis |
 | Display | 1.54-inch colour screen, 240 × 240 pixels | Published analysis and M-VAVE |
 | Keys | 27, from F3 to G5, each with a light | Count checked on a unit; range from M-VAVE |

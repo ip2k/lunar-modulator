@@ -221,11 +221,11 @@ tap and 6.25 per low-pass pair, about 800 per output with the loop overhead
 [verified: `fm1-resampler-test bench`, best of three runs of each build.]
 The loops keep two accumulators in the kernel and four in the low-pass so
 that the desktop's multiply-add chains overlap [inferred: the code; not
-timed separately]. On pi32v2 the FM-1 has about 5,440 cycles per output
-sample for everything (240 MHz / 44,118 Hz); if it needs about as many
+timed separately]. On pi32v2 the FM-1 has about 8,160 cycles per output
+sample for everything (360 MHz / 44,118 Hz); if it needs about as many
 instructions as arm64 and retires one per cycle, the resampler takes about
-800 cycles, 15 % of that (the half-band version, about 520 instructions on
-arm64, 10 %) [inferred: no pi32v2 cycle counts exist yet; stage B
+800 cycles, 10 % of that (the half-band version, about 520 instructions on
+arm64, 6 %) [inferred: no pi32v2 cycle counts exist yet; stage B
 measures; the arm64 counts verified from the assembly]. Two ways to
 cut it if stage B needs to [inferred]: store the kernel as pre-scaled
 (value, difference × 2⁻¹⁶) pairs, which drops the subtraction and the scale

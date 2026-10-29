@@ -14,7 +14,7 @@ this project (photos, binaries, SDK files), **[reported]** from a named source,
 | Package | LQFP48, leads exposed | [reported] AL-255 `01-hardware-map.md`; photo is consistent (gull-wing leads, not a QFN). The sibling SMK-37 Pro keyboard was identified as AC7911BA in QFN48 by its community |
 | CPU | JieLi **pi32v2**: 32-bit, little-endian, Blackfin-derived custom ISA, 16 GPRs, 16/32/48-bit instruction words, algebraic assembly, ELF machine `0xF1` | [reported] kagaimiq `cpu/pi32v2.md`, AL-255 `04-toolchain-and-vendoring.md` |
 | Cores | Two pi32v2 "DSP" cores, and **stock uses both**: JieLi's OS runs on cpu0 in the SDK's `CPU_CORE_NUM 1` mode, and the msfa voice render runs on cpu1, outside the OS (docs/11 §2). `CPU_CORE_NUM 1` means one core for the OS, not one core used | [verified] string `SYSTEM-*modified #define CPU_CORE_NUM 1 *-…-@20220920` in the V13, V15 and FM-1_092 `app.bin`; the render loop and its call [verified: V13 disassembly, file `0x86AD6`]; that it runs on cpu1 [reported: AL-255's symbol names; inferred from the `cpu1_run_flag`]; the mode [reported: JieLi AC79 doc 7.40]; family spec from the AC79 SDK README |
-| Clock | Family max 320 MHz; stock app runs at **240 MHz** from a 24 MHz crystal | [reported] AL-255 `architecture.md`; SDK README for the family max |
+| Clock | **360 MHz** from a 24 MHz crystal; HSB 180 MHz, LSB 60 MHz. The SDK's table tops out at 320 MHz (396 MHz as a test-only overclock), so stock runs above it, and the dev kit runs 320 MHz | [verified] V15 `isd_config` `SYS_CLK`, `HSB_DIV`, `LSB_DIV` (docs/02 §2); [reported] fm1-x0x measured 360 MHz on an FM-1 (`notes/2026-10-06-fm1-x0x.md`); SDK README for the family max. Earlier versions of this page said 240 MHz, from AL-255's `architecture.md`; that figure belongs to an unused SDK routine [inferred] |
 | FPU / accel | Single-precision FPU, hardware FFT/matrix, AES-128/256, SHA, CRC16, RNG | [verified] AC79 SDK README |
 | SRAM | **578 KB** on chip, of which 32 KB I-cache and 32 KB D-cache (8-way each) are carved out, so about 514 KB is usable | [verified] AC79 SDK README (`片上集成了共578K字节SRAM`); caches [reported] JL-AC79-DevKit V1.0 listing, 2026-09-30 (docs/07 §3) |
 | SDRAM | Some AC79 packages carry 2 or 8 MB SDRAM; **the FM-1 has none** | [verified] `SDRAM_SIZE = 0` in the FM-1's `isd_config.ini`; LQFP48 packages are the SDRAM-less ones [inferred] |
@@ -184,7 +184,7 @@ checks each row against V15 with the vendor `objdump`.
 
 ## 5. What the SoC gives an open firmware
 
-- Compute headroom: the stock app runs at 240 MHz of a possible 320. It
+- Compute headroom: the stock app runs at 360 MHz [verified: `isd_config`], above the SDK's 320 MHz table. It
   renders its 12 msfa voices on the second core and everything else,
   effects included, on the first (docs/11 §2). How loaded either core is has
   not been measured.

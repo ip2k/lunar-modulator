@@ -295,7 +295,7 @@ CPU is unknown until stage B measures it:
 
 - Plaits was built to use most of a 72 MHz Cortex-M4F for one voice
   [reported: docs/11 §2, from MI's notes].
-- The FM-1 has about 5,440 cycles per output sample for everything
+- The FM-1 has about 8,160 cycles per output sample for everything (360 MHz)
   [inferred: arithmetic].
 
 Desktop cost, for scale only. These are Apple M1 Max figures at 44,118 Hz

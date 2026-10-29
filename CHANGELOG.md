@@ -8,6 +8,17 @@ history.
 
 ## [Unreleased]
 
+### Changed
+- **The stock FM-1 runs at 360 MHz, not 240 MHz.** The SPL sets the clock from
+  V15's `isd_config` (`SYS_CLK` 360,000,000, HSB 180 MHz, LSB 60 MHz), and the
+  stock app keeps it; fm1-x0x measured the same on an FM-1. docs/02 now has the
+  decoded `[SYS_CFG_PARAM]` table, and every "240 MHz used of 320" (CLAUDE.md,
+  DEVELOPERS.md, docs 01, 02, 05, 06, 11, 12, 13, 14, 16, the engine notes, the
+  simulator notes, the manual) now says 360 MHz, with the per-sample and
+  per-block budgets recomputed (8,160 and 522,236 cycles). The dev kit still
+  runs 320 MHz. The stock power profile behind it (SYSVDD 1.38 V, VDC14 1.60 V)
+  is recorded as above the SDK's table.
+
 ### Fixed
 - **The FM-1-transporter build is reproducible across days.** The firmware
   embeds its build date, so the CI job's UF2 hash changed at the next UTC day

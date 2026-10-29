@@ -35,10 +35,10 @@ What it would have to model [inferred unless marked]:
   and an FPU. Sources: jielie's opcode tables, the SLEIGH modules, and JieLi's
   `objdump` as the decoding oracle (CLAUDE.md trap 4). Thousands of lines and
   a test corpus of decoded instructions.
-- **Speed.** The stock app clocks its two cores at 240 MHz of a possible
-  320, and renders its voices on the second (docs/01 §1, §5; docs/11 §2);
+- **Speed.** The stock app clocks its two cores at 360 MHz (the SDK table stops
+  at 320), and renders its voices on the second (docs/01 §1, §5; docs/11 §2);
   nothing has measured how much of that it uses. An emulator that keeps up
-  in the worst case must therefore run up to 240 million guest cycles a
+  in the worst case must therefore run up to 360 million guest cycles a
   second per core, fewer if it skips the idle loop, which a
   worst-case estimate cannot count on. An interpreter in WebAssembly manages
   perhaps 50–300 million guest instructions a second on a fast desktop, so

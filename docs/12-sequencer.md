@@ -404,7 +404,7 @@ and 11 accidentals.
   Importing stock or FM-1+VA patterns needs their flash formats, which only
   a dump will show.
 - **CPU.** Each step costs about 300–800 cycles per track. Four tracks at
-  300 BPM come to about 64,000 cycles/s, 0.03 % of a 240 MHz core. MCL and
+  300 BPM come to about 64,000 cycles/s, 0.02 % of a 360 MHz core. MCL and
   the NAVA firmware run this kind of logic on 8-bit AVRs [verified:
   READMEs].
 

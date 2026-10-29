@@ -37,9 +37,9 @@ Nothing was built or run, so every CPU figure for the FM-1 below is
 | Resource | Figure | Confidence |
 | --- | --- | --- |
 | Audio clock | 44,118 Hz, 64-sample blocks, i.e. 1.451 ms per block | [reported] AL-255 `04-synth-engine.md` §2 |
-| Cycles per output sample, one core | 5,440 at 240 MHz (the stock clock), 7,250 at 320 MHz (the family maximum) | arithmetic |
+| Cycles per output sample, one core | 8,160 at 360 MHz (the stock clock, docs/02 §2), 7,253 at 320 MHz (the dev kit's clock; the SDK table's maximum) | arithmetic |
 | Same figure on CTAG TBD's ESP32 | 5,442 (`CPU_MAX_ALLOWED_CYCLES 174150` per 32-frame block at 240 MHz, 44.1 kHz) | [verified] CTAG `SPManager.cpp` |
-| Stock load | **Not measured.** msfa renders its 12 voices on cpu1; the 6 FX slots, the fade and the output run in a task on cpu0 (next row). "240 of 320 MHz" in older docs is clock speed, not load | — |
+| Stock load | **Not measured.** msfa renders its 12 voices on cpu1; the 6 FX slots, the fade and the output run in a task on cpu0 (next row). "240 of 320 MHz" in older docs was wrong (stock runs 360 MHz) and was clock speed, not load | — |
 | Second core | **Stock uses both cores**: JieLi's OS on cpu0, and the msfa voice render on cpu1, outside the OS. The routine at V13 file `0x86AD6` (AL-255's "engine task pump loop") writes 1 to `0x01C1FF08`, busy-polls a state byte at `0x01C16EC0` and, on value 2, calls `dx7note_compute_block` (`0x862FA`), its only call site. That routine is cpu1's: AL-255's `cpu1_boot_start` writes `0x020001B8` to the cpu1 mailbox `0x01C7FFF8`, clears `0x01C1FF08` and waits for it to turn non-zero, and the vector at file `0x98` returns into this routine, which has the shape of the SDK's `cpu1_main` (`cpu1_run_flag = 1` first). The interrupt table is the SDK's `CPU_CORE_NUM 1` table: SOFT5 on cpu0, SOFT4 on cpu1. In that mode the OS runs on cpu0 only and `cpu1_main` runs bare-metal; it needs a single-core `system.a` that JieLi supplies on request. cpu0 runs the UI, MIDI, USB and BLE, and the audio task with the fade, the six FX slots and the output. **AL-255's docs are partly wrong here.** `reversing/01-hardware-map.md` reads `CPU_CORE_NUM 1` as a single core, and `io/01-boot.md` takes cpu1's entry `0x01C023D6` for the cross-core IPC path. With `app.bin` running from `0x02000120` (docs/01 §2), that address is the render loop above | the loop and call [verified: V13 disassembly]; that it runs on cpu1 [reported: AL-255's symbol names; inferred from the `cpu1_run_flag`]; the mailbox write, the wait and the vector [verified: V13 disassembly, file `0x5A0C8` and `0x98`]; the interrupt table [verified: bytes at V13 file `0x4DD48` and V15 and FM-1_092 file `0x4D4A0`, against the SDK's `demo_hello`]; the mode and its library [reported: JieLi AC79 doc 7.40; the SDK's `init.c` verified]; cpu0's audio task [reported: AL-255 `io/03-audio-dac.md` §7.2; its core inferred] |
 | Code in RAM | Stock copies msfa's hot kernels from flash to SRAM at boot and runs them there | [reported] AL-255 `04-synth-engine.md` §2 |
 | Free SRAM in the stock layout | Stock `.bss` ends at `0x01C211FC` and the boot info struct sits at `0x01C7FD50`: a gap of about 387 KB, part of it used by stock's heap. AL-255's demo used 192 KB of it; FM-1+VA uses the top | [inferred] from AL-255 addresses and `link.ld` |
@@ -59,13 +59,13 @@ What that buys, in round numbers [inferred]:
   - Rings, Elements and Clouds: a 168 MHz Cortex-M4F with 128 + 64 KB of
     RAM.
 - **Plaits on the FM-1:** if a pi32v2 cycle is worth roughly a Cortex-M4F
-  cycle, one core at 240 MHz holds about three worst-case Plaits voices, or
+  cycle, one core at 360 MHz holds about four worst-case Plaits voices, or
   one Rings instance. The light engines (VA, waveshaping, 2-op FM,
   wavetable) cost far less than the heavy ones (string, modal, particle).
   That per-cycle parity is the big unknown.
 - **One weak data point:** Synth_Dexed on a Teensy 3.6 (Cortex-M4F) plays
   12 notes with effects at 180 MHz [verified: MicroDexed `config.h`], and
-  the FM-1 plays 12 msfa notes at 240 MHz on one core, with its effects on
+  the FM-1 plays 12 msfa notes at 360 MHz on one core, with its effects on
   the other. That fits "M4F-class per clock" but does not prove it, because
   the FM-1's headroom is unknown.
 - **The second core** is the largest lever if the SDK lets us use it. Stock
