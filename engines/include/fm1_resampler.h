@@ -71,6 +71,14 @@
 #ifndef FM1_RESAMPLER_POLY47
 #define FM1_RESAMPLER_POLY47 1         /* the 51/47 fast path; 0 keeps every ratio on the two stages */
 #endif
+/* How far in_rate / out_rate may sit from 51/47 for the fast path: 10 ppm
+ * admits Plaits' 47,872.34 Hz to the FM-1's 44,118 Hz (-7.9 ppm). The dev
+ * board's 44,100 Hz host is +400 ppm off, so a dev-kit timing build widens
+ * it to 5e-4 (tools/jieli/prepare-pipeline-devkit.py --poly47-at-44100);
+ * Plaits-rate engines then sound 0.69 cent flat there. Never for the FM-1. */
+#ifndef FM1_RESAMPLER_POLY47_TOLERANCE
+#define FM1_RESAMPLER_POLY47_TOLERANCE 1e-5
+#endif
 
 #define FM1_RESAMPLER_SPAN 12          /* stage-1 kernel width, intermediate samples */
 #define FM1_RESAMPLER_PHASES 128       /* kernel table entries per intermediate sample */
@@ -553,7 +561,7 @@ static inline int fm1_resampler_init(fm1_resampler_t *r, float in_rate, float ou
   {
     /* 51/47 within 10 ppm: Plaits' 47,872.34 Hz to 44,118 Hz is -7.9 ppm. */
     const double off = ratio * FM1_RESAMPLER_POLY47_PHASES / FM1_RESAMPLER_POLY47_STEP - 1.0;
-    if (off < 1e-5 && off > -1e-5) {
+    if (off < FM1_RESAMPLER_POLY47_TOLERANCE && off > -(FM1_RESAMPLER_POLY47_TOLERANCE)) {
       r->mode = FM1_RESAMPLER_CONVERT;
       r->poly = 1;
       r->gain = 1.0f;

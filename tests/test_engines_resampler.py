@@ -358,6 +358,34 @@ def test_poly47_is_chosen_only_at_51_47(tool, generic_tool, in_rate, poly):
                     "--out-rate", HOST_RATE)["poly"] == 0
 
 
+@pytest.mark.parametrize("tolerance,expected", [
+    (None, "poly=1 0 0 0"),        # default 10 ppm: only 44,118 Hz takes the fast path
+    ("5e-4", "poly=1 1 0 0"),      # dev-kit timing build: 44,100 Hz (+400 ppm) too
+])
+def test_poly47_tolerance_widens_only_for_the_dev_kit(tmp_path, tolerance, expected):
+    # tools/jieli/prepare-pipeline-devkit.py --poly47-at-44100 widens the gate
+    # so a dev-board run times the fast path at its 44,100 Hz host rate. It
+    # must not admit any other ratio (Braids at 96 kHz, Rings' 48 kHz).
+    compiler = shutil.which("cc")
+    if not compiler:
+        pytest.skip("no C compiler")
+    src = tmp_path / "gate.c"
+    src.write_text('#include <stdio.h>\n#include "fm1_resampler.h"\n'
+                   "static unsigned poly(float in, float out) {\n"
+                   "  static fm1_resampler_t r;\n"
+                   "  return fm1_resampler_init(&r, in, out) ? r.poly : 9u;\n}\n"
+                   "int main(void) {\n"
+                   '  printf("poly=%u %u %u %u\\n", poly(47872.34f, 44118.0f), poly(47872.34f, 44100.0f),\n'
+                   "         poly(96000.0f, 44100.0f), poly(48000.0f, 44100.0f));\n"
+                   "  return 0;\n}\n")
+    exe = tmp_path / "gate"
+    defines = [] if tolerance is None else [f"-DFM1_RESAMPLER_POLY47_TOLERANCE={tolerance}"]
+    subprocess.run([compiler, "-std=c99", "-O1", *defines, "-I", str(HEADER.parent), str(src),
+                    "-o", str(exe)], check=True)
+    assert subprocess.run([str(exe)], check=True, capture_output=True,
+                          text=True).stdout.strip() == expected
+
+
 def test_poly47_table_is_the_design(tool):
     # The header's table is what tools/resampler_poly47_design.py writes:
     # 24 rows of 48, each the float32 rounding of a row that sums to 1, and

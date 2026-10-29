@@ -253,6 +253,16 @@ inputs from ⌊51*k*/47⌋ − 23 on with that phase's row of a fixed table.
   `test_poly47_is_chosen_only_at_51_47`, which also checks ±11 ppm, Braids'
   96 kHz, 48 kHz and 2:1 keep the two-stage converter]. Everything else
   (Shapes at 96 kHz included) is unchanged.
+- **The dev board's 44,100 Hz.** The dev kit runs its host at 44,100 Hz,
+  where Plaits' rate is +400 ppm from 51/47, so the 10 ppm gate keeps the
+  two-stage converter there and a dev-board run would not time the fast
+  path [verified: arithmetic; the consumer-cost lane's host replay,
+  2026-10-28, gave PCM identical to the two-stage build at 44,100 Hz]. The
+  gate is `FM1_RESAMPLER_POLY47_TOLERANCE` (default `1e-5`). The dev-kit
+  pipeline preparer's timing-only `--poly47-at-44100` sets it to `5e-4`,
+  which admits 44,100 Hz and nothing else in use. Plaits-rate engines then
+  sound 0.69 cent flat on the dev board. It is never for the FM-1
+  [verified: `test_poly47_tolerance_widens_only_for_the_dev_kit`].
 - **The table.** A Kaiser-windowed sinc, β 10, cut off at 20,800 Hz at the
   output rate, 48 inputs wide; each row is normalised to sum to exactly 1
   and rounded to float32. Row 47 − *q* is row *q* reversed, so only rows

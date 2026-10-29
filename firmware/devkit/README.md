@@ -739,6 +739,12 @@ call; `lunar_worst_begin`/`mark` are forced inline so the hook never calls into
 flash. The recorder header leaves `printf` to its includer, because newlib's
 `<stdio.h>` collides with the SDK's `fs.h` `FILE`. This is not a linked-image
 placement or timing result.
+`--dx7-sine trunc12` builds FM6 with the trunc12 sine (engines/msfa.md; the
+msfa-only sine patches drop out). `--poly47-at-44100` is timing-only: the
+board's host runs at 44,100 Hz, where the 51/47 resampler fast path's 10 ppm
+gate does not engage, so this widens it (`FM1_RESAMPLER_POLY47_TOLERANCE=5e-4`)
+and Plaits-rate engines sound 0.69 cent flat on the board (engines/resampler.md).
+Host replays that predict such an image's PCM hashes need the same define.
 `python3 tools/devkit_pipeline_result.py capture.log` parses a run's UART log
 into JSON. It refuses missing or duplicate receipts, an inconsistent policy and
 stage vectors that do not sum. It reports timing only; PCM replay, the

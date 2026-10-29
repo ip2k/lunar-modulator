@@ -2061,6 +2061,10 @@ history.
   so the tests' block-timing cases, the metadata example and the
   virtual FM-1's module (parity 108 of 108) were brought up to date. Other rates,
   Shapes' 96 kHz among them, use the existing converter unchanged.
+  The dev board runs at 44,100 Hz, which the 10 ppm gate excludes, so its
+  pipeline preparer has a timing-only `--poly47-at-44100` that widens the
+  gate (`FM1_RESAMPLER_POLY47_TOLERANCE`) and leaves those engines 0.69 cent
+  flat there; never for the FM-1.
   Details: `engines/resampler.md`, "The 51/47 fast path".
 - **Owner decisions, 2026-10-26** (after the recovery in docs/17):
   - Recovery of an unbootable FM-1 whose boot area `0x0`-`0x4000` is intact

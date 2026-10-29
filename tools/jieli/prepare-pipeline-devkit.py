@@ -19,6 +19,13 @@ SELECTOR_CORRECTION = 'ac79-e30b1ee-affinity-early-selected-tail-v132'
 # Named fixed-polyphony workload policies; adaptive-three stays a separate flag.
 POLICIES = {'fixed12': '', 'cap8': 'CFLAGS += -DLUNAR_RENDERER_POLICY_CAP8=1\n'}
 WORST_BLOCK_FLAGS = 'CFLAGS += -DLUNAR_PIPELINE_WORST_BLOCK=1 -DFM1_APP_PIPELINE_MARKS=1\n'
+# Timing-only: the dev board runs its host at 44,100 Hz, where Plaits'
+# 47,872.34 Hz is +400 ppm off 51/47, so the 51/47 fast path's 10 ppm gate
+# (engines/include/fm1_resampler.h) never engages and a board run would time
+# the two-stage converter. 5e-4 admits it; Plaits-rate engines then sound
+# 0.69 cent flat on the dev board. Never for the FM-1 (44,118 Hz is -7.9 ppm).
+POLY47_AT_44100_TOLERANCE = '5e-4'
+POLY47_AT_44100_FLAGS = 'CFLAGS += -DFM1_RESAMPLER_POLY47_TOLERANCE=' + POLY47_AT_44100_TOLERANCE + '\n'
 
 # Exact-PCM transformations/placement used by the successful private pipeline.
 # Internal timing-only setup suppresses the old DAC demo and all observers;
@@ -243,7 +250,7 @@ def checked_replace(text, before, after):
 
 
 def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=False,
-                   policy='fixed12', worst_block=False):
+                   policy='fixed12', worst_block=False, poly47_at_44100=False):
     """Replace legacy worker mode, never its recovery or lifecycle bodies."""
     app = out / 'apps/demo/demo_hello'
     main = app / 'app_main.c'
@@ -260,6 +267,8 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
     flags += POLICIES[policy]
     if worst_block:
         flags += WORST_BLOCK_FLAGS
+    if poly47_at_44100:
+        flags += POLY47_AT_44100_FLAGS
     makefile = app / 'board/wl82/Makefile'
     makefile.write_text(checked_replace(makefile.read_text(),
         'CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n', flags))
@@ -285,6 +294,8 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
         'pipeline_cycles': cycles,
         'pipeline_polyphony': 'adaptive65/60-floor3' if adaptive_three else policy,
         'pipeline_worst_block': worst_block,
+        'pipeline_poly47_at_44100': poly47_at_44100,
+        'pipeline_poly47_tolerance': POLY47_AT_44100_TOLERANCE if poly47_at_44100 else '1e-5',
         'parent_task_priority': 16, 'uart_task_priority': 18,
         'worker_stack_words': 2048, 'worker_stack_bytes': 8192,
         'pipeline_worker_stack_words': 1536, 'pipeline_worker_priority': 16,
@@ -314,7 +325,7 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
 
 
 def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3, burst_hot=False,
-                     dx7_sine='msfa', policy='fixed12', worst_block=False):
+                     policy='fixed12', worst_block=False, *, dx7_sine='msfa', poly47_at_44100=False):
     preset = renderer_preset(dx7_sine)
     if isinstance(cycles, bool) or not 1 <= cycles <= 57:
         raise ValueError('Pipeline cycles must be 1..57')
@@ -341,7 +352,8 @@ def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cyc
     target.write_bytes(corrected_bytes)
     if sha256(target) != PIPELINE_SYSTEM_SHA256:
         raise ValueError('Prepared scheduler copy mismatch')
-    adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot, policy, worst_block)
+    adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot, policy, worst_block,
+                   poly47_at_44100)
 
 
 if __name__ == '__main__':
@@ -360,7 +372,11 @@ if __name__ == '__main__':
     parser.add_argument('--burst-hot', action='store_true', help='Experiment: move DX7 NoteOn/Allocate from XIP into SRAM; no DSP changes')
     parser.add_argument('--dx7-sine', choices=('msfa', 'trunc12'), default='msfa',
                         help="FM6 sine (engines/Makefile FM1_DX7_SINE); trunc12 drops the msfa-only sine32/sine-pair entries")
+    parser.add_argument('--poly47-at-44100', action='store_true',
+                        help='Timing-only: let the 51/47 resampler fast path engage at the dev board\'s 44,100 Hz '
+                             '(+400 ppm; Plaits-rate engines 0.69 cent flat). Never for the FM-1')
     args = parser.parse_args()
     prepare_pipeline(args.sdk.resolve(), args.source.resolve(), args.out.absolute(),
                      args.pipeline_system_archive.resolve(), args.adaptive_three, args.cycles, args.burst_hot,
-                     args.dx7_sine, args.policy, args.worst_block)
+                     args.policy, args.worst_block, dx7_sine=args.dx7_sine,
+                     poly47_at_44100=args.poly47_at_44100)
