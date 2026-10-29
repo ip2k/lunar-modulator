@@ -458,8 +458,9 @@ exact and Six-Op criteria count a null as a failure.
   `test_fm1_rate_envelope_timing_matches_upstream`). This is what a wrong
   ratio, a missing resampler or a pitch offset left in a wrapper would move
   even if a reference made the same mistake.
-  - Aligned in time: fm1 less the resampler's 30-sample group delay (its
-    first 30 frames cropped), and the reference's note-off on the
+  - Aligned in time: fm1 less the resampler's group delay (0 since the
+    51/47 fast path of 2026-10-28; with the two-stage converter, 30 frames
+    were cropped), and the reference's note-off on the
     12-sample block the wrapper's lands on (Six-Op: the first at or after
     its 16-sample block).
   - **Pitch** 0 within ±0.1 cent, every slot. A pitch offset left in a
@@ -479,11 +480,12 @@ exact and Six-Op criteria count a null as a failure.
   per call byte-identical over 13,235 frames with a second note and a
   note-off mid-render, for an LPG model, the string machine, Noise, String
   and Six-Op. A note at 0.0503 s starts on the 12-sample block at
-  47,872.34 Hz sample 2,436, as the resampler's arithmetic predicts, with
+  47,872.34 Hz sample 2,460, as the resampler's arithmetic predicts, with
   exact silence before the first output that reads it; a note arriving
-  before host sample 704, when the pulls have just used up a block (768
-  samples), starts on sample 768 itself (`test_note_lands_on_the_next_native_block`,
-  VA and bass drum).
+  before host sample 1,792, when the pulls have just used up a block (1,968
+  samples), starts on sample 1,968 itself (`test_note_lands_on_the_next_native_block`,
+  VA and bass drum). These are the 51/47 fast path's pulls (2026-10-28); with
+  the two-stage converter they were 2,436, and 704 and 768.
 - **At the FM-1's rate, against the wrapper itself**
   (`test_fm1_rate_output_is_the_native_output_resampled`). Upstream cannot
   stand in for everything: Six-Op renders its own 16-sample blocks, not
@@ -650,7 +652,10 @@ floating-point choices; the limit allows one LSB elsewhere ("Criteria").
 ### At 44,118 Hz, against upstream at its own rate (A2 / A4)
 
 fm1 at 44,118 Hz less the resampler's 30-sample delay, against the native
-reference unresampled, at the rate points [verified: `--report`]:
+reference unresampled, at the rate points [verified: `--report`, with the
+two-stage converter. Since 2026-10-28 the 51/47 fast path has no delay and
+nothing is cropped; the tests' bounds (pitch ±0.1 cent, stretch 1 ± 0.02)
+pass unchanged, but this table was not re-run]:
 
 | # | Upstream | Pitch cents | Stretch (method) | Level dB | LSD dB |
 | --- | --- | --- | --- | --- | --- |

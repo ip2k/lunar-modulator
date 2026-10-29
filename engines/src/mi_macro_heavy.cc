@@ -573,6 +573,7 @@ class Instance {
   // from the other) holding the same samples, bit for bit.
   static bool SameState(const fm1_resampler_t &a, const fm1_resampler_t &b) {
     return a.rel == b.rel && a.held == b.held && a.in_w == b.in_w && a.mid_w == b.mid_w &&
+           a.poly_q == b.poly_q &&
            memcmp(a.in, b.in, sizeof(a.in)) == 0 && memcmp(a.mid, b.mid, sizeof(a.mid)) == 0;
   }
 

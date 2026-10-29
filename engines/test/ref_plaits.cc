@@ -400,8 +400,9 @@ int RenderMain(int argc, char **argv) {
            host_rate, host_frames, host_gain, host_total, blocks, on_block);
     if (off_block == LONG_MAX) printf("\"off_block\":null,");
     else printf("\"off_block\":%ld,", off_block);
-    printf("\"resampler_delay\":%d},", host_rate == static_cast<float>(rate) ? 0
-                                                                            : FM1_RESAMPLER_DELAY);
+    fm1_resampler_t probe;   // the delay the wrappers' resampler has at this rate pair
+    fm1_resampler_init(&probe, plaits::kCorrectedSampleRate, host_rate);
+    printf("\"resampler_delay\":%g},", static_cast<double>(fm1_resampler_delay(&probe)));
   }
   if (engine >= 2 && engine <= 4) {
     const int index = SixOpPatchIndex(harmonics);
