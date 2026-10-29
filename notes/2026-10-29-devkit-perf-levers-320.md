@@ -60,3 +60,8 @@ usb_com2=4 sdr_con0=f01` and `result=FAIL reason=10` as designed: PLL2 is
 is PLL2/2 [inferred]. The owner chose (2026-10-29) to estimate 360 MHz
 timing by scaling these 320 MHz results rather than switch the kit's clock.
 Receipts: `scratch/bench-2026-10-29/clk360-r3-probe/` (not tracked).
+
+**Voice count.** On these numbers the owner settled (2026-10-29): eight
+voices guaranteed for the release, twelve a stretch goal. Scaled to the
+FM-1's 360 MHz, cap8-trunc12's heaviest case would be about 21,500 ticks
+(62%) [inferred: 320/360 scaling, flash clock not scaled].

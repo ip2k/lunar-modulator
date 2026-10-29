@@ -219,7 +219,7 @@ stock SPL/OTA/cfg package guards, and never ship a V1.2.x uboot or loader
 | USB | normal `4C4A:C755` (USB-MIDI + UAC1, full-speed, product string `FM-1`), OTA loader `4D4A:4155`, mask ROM `4C4A:8057` `UBOOT1.00` [reported] |
 | Display | 240×240 RGB565 ST7789V TFT on SPI1 (`0x11D00`): CS PC7, D/C PC8, SCK PC9, MOSI PC10; backlight PA2, active low [reported] |
 | Controls | 27 keys + 14 buttons in an 11×6 matrix behind two 74HC595s (PA4/PA3/PA1), read on PA0, PA5–PA8, PB7; all 7 encoders scanned in the matrix; MASTER is a pot on PB6 (ADC 4); ADC 3 is the battery on PB1 [reported: Felucca `727f272`, fm1-nes `870f305`] |
-| Audio | ALNK0 (I2S) to an external codec, not the internal DAC, IRQ 11 [reported: Felucca/SLOOP and fm1-nes, two code lineages]; 64-frame halves as in stock [reported: fm1-nes]; about 44,118 Hz (Felucca times 44,117.6 Hz; AL-255 reads stock's as 44,118) [reported]; 12 msfa voices |
+| Audio | ALNK0 (I2S) to an external codec, not the internal DAC, IRQ 11 [reported: Felucca/SLOOP and fm1-nes, two code lineages]; 64-frame halves as in stock [reported: fm1-nes]; about 44,118 Hz (Felucca times 44,117.6 Hz; AL-255 reads stock's as 44,118) [reported]; stock renders 12 msfa voices; Lunar guarantees 8 voices, 12 a stretch goal (owner, 2026-10-29) |
 | MIDI jack | TRS, input only: UART1 RX on PH8 [reported: Felucca] |
 | Update | USB-MIDI SysEx, CRC16 only; step 1 refuses only the running version, so rebuilt packages with a new version install, and it accepts a non-M-VAVE `ota.bin` [reported: Felucca, SLOOP]; the OTA loader can rewrite `uboot.boot` |
 
