@@ -213,6 +213,17 @@ history.
 - `U2`/`U3` are SOIC-16 `74HC595`, not SOIC-20; `U5` is a QFN, not a SOIC-8.
 
 ### Added
+- **The dev kit can run at the FM-1's clock and power profile, for timing.**
+  `prepare-pipeline-devkit.py --sys-clk 360 --stock-power` (off by default)
+  switches the kit at run time from 320 to 360 MHz. HSB becomes 180 MHz and
+  LSB 60 MHz, and flash runs at 60 MHz unless `--sfc-mhz 90` is given. The
+  rails are raised first, to M-VAVE's levels: core 1.38 V, VDC14 1.60 V with
+  DCDC, I/O 3.2 V, LVD 2.6 V.
+  - The kit prints every clock and rail it reads back before and after the
+    switch, and checks the OS tick.
+  - It checks the DAC's 44,100 Hz rate during preroll and the soak.
+  - On any mismatch it goes back to 320 MHz and halts audio.
+  - Nothing has been run on the board yet.
 - **A cheaper DX7 sine, behind a switch, for an A/B listening test.**
   `FM1_DX7_SINE=trunc12` gives FM6 a 4,096-point sine read with the phase's
   top 12 bits and no interpolation, as the DX7's chip does, in place of
