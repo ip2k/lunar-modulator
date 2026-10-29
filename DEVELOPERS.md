@@ -115,6 +115,7 @@ python -m pytest                                               # tools, PIO emul
 make -C engines && engines/build/fm1-render --list             # engine platform, desktop build (docs/11, engines/README.md)
 engines/build/fm1-state canon FILE                             # saved state: canonical JSON, pack/unpack binary, check (engines/state/README.md)
 FM1_GPL_MODS=0 make -C engines                                 # the same without the GPL modules: the MIT/BSD build (Licences, below)
+make -C engines BUILD=build/dx7-trunc12 FM1_DX7_SINE=trunc12   # FM6 with the 12-bit non-interpolated sine, pending the owner's A/B (engines/msfa.md)
 python3 -m http.server 8000 -d sim/web/www                     # the virtual FM-1 at http://localhost:8000/ (sim/web/README.md)
 FM1_SIM_HOST=user@host sim/web/build-on-aeon.sh                # rebuild and check its WebAssembly module in containers on a Docker host
 tools/fm1_identify.sh                                          # Linux, ALSA raw MIDI, read-only (verified on hardware 2026-10-26)

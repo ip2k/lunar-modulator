@@ -4712,6 +4712,17 @@ only the registries include it, so a turn rebuilds them and relinks.
   their objects' dependencies, any symbol a GPL object defines, or any GPL
   module in their lists.
 
+**The DX7 sine** (`FM1_DX7_SINE`; [msfa.md](msfa.md), "The trunc12
+sine"). `FM1_DX7_SINE ?= msfa` keeps msfa's interpolated sine in FM6;
+`trunc12` reads a 4,096-point table with the phase's top 12 bits and no
+interpolation, compiled from a staged copy of msfa whose `sin.h` is
+generated (`mk/msfa.mk`; the vendored files stay untouched). Any other
+value stops make. Its value is written to `build/gen/fm1_dx7_sine.h` the
+way the GPL switch is, `--build-info` names it (`dx7_sine`), and
+`tests/test_dx7_sine.py` checks both values (the signal-to-error oracle
+`fm1-dx7-sine-oracle`, replays, the dev kit preparation). `msfa` stays the
+default until the owner's A/B listening test passes.
+
 **The module list** (`FM1_MODULES`; `modules/catalogue.mk`; DEVELOPERS.md,
 "Choosing the modules"). `FM1_MODULES ?= all` builds every module the GPL
 switch allows; `default` (`modules/default.list`), any other list file, or

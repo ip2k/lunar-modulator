@@ -192,6 +192,16 @@ history.
 - `U2`/`U3` are SOIC-16 `74HC595`, not SOIC-20; `U5` is a QFN, not a SOIC-8.
 
 ### Added
+- **A cheaper DX7 sine, behind a switch, for an A/B listening test.**
+  `FM1_DX7_SINE=trunc12` gives FM6 a 4,096-point sine read with the phase's
+  top 12 bits and no interpolation, as the DX7's chip does, in place of
+  msfa's interpolated one. It renders about 30 % faster on a desktop and
+  costs no memory. It stays 50 dB or more above its own error except at
+  the heaviest modulation (42 to 48 dB at 2 to 4 cycles), and whole voices
+  differ from today's by about 60 to 66 dB. The default is still msfa's
+  sine until the owner's A/B decides. The switch reaches the desktop
+  renderer, the browser build (its record names the sine) and the dev kit
+  preparation scripts (`--dx7-sine`); engines/msfa.md, "The trunc12 sine".
 - **A recovery guide for a Raspberry Pi Pico 2 W** (docs/17). It covers the
   wiring (with a photo), building kurogedelic's FM-1-transporter with this
   project's RP2350 patch (`tools/fm1-transporter/`), entering the mask ROM,

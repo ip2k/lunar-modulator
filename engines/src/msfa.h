@@ -35,6 +35,15 @@ namespace fm1_msfa {
 #include "pitchenv.h"
 #include "sin.h"
 
+// The sin.h found must be the one the switch names (src/msfa_prelude.h):
+// msfa's own, or src/msfa_sin_trunc12.h staged as sin.h by mk/msfa.mk.
+#if FM1_DX7_SINE_TRUNC12 && !defined(FM1_MSFA_SIN_TRUNC12)
+#error "FM1_DX7_SINE=trunc12 but msfa's own sin.h was included: build msfa from $(BUILD)/gen/msfa-trunc12 (mk/msfa.mk)"
+#endif
+#if !FM1_DX7_SINE_TRUNC12 && defined(FM1_MSFA_SIN_TRUNC12)
+#error "FM1_DX7_SINE=msfa but the trunc12 sin.h was included (mk/msfa.mk)"
+#endif
+
 // dx7note.cc's note set-up, which it defines without a header.
 int32_t midinote_to_logfreq(int midinote);
 int32_t osc_freq(int midinote, int mode, int coarse, int fine, int detune);
@@ -52,7 +61,14 @@ const int kN = N;
 // src/msfa_tables.cc points at the first two.
 const int kFreqLutSize = 1025;               // freqlut.cc's N_SAMPLES + 1
 const uint32_t kFreqLutRateHz = 44118;      // the rate kFreqLut44118 is for
+// One of the two sine tables, as FM1_DX7_SINE says: kSinTab is msfa's
+// (SIN_DELTA layout), kSinTab12 the trunc12 sine's (src/msfa_sin_trunc12.h
+// declares it too).
+#if !FM1_DX7_SINE_TRUNC12
 extern const int32_t kSinTab[SIN_N_SAMPLES << 1];
+#else
+extern const int16_t kSinTab12[1 << 12];
+#endif
 extern const int32_t kExp2Tab[EXP2_N_SAMPLES << 1];
 extern const int32_t kFreqLut44118[kFreqLutSize];
 

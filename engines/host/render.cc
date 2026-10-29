@@ -18,7 +18,8 @@
 // it reads its values back (get_param, API v4), and the licence of the code
 // it links (licence: an SPDX expression, MIT unless the licence table says
 // otherwise; source: where its vendored code is, or null). --build-info prints the build's engine API version and the GPL
-// switch it was built with (gpl_mods: FM1_GPL_MODS, engines/Makefile).
+// switch it was built with (gpl_mods: FM1_GPL_MODS, engines/Makefile), and the DX7 sine
+// (dx7_sine: FM1_DX7_SINE, "msfa" or "trunc12", engines/Makefile).
 //
 // Renders in max_frames blocks at the FM-1's rate (44,118 Hz, 64 frames),
 // passes the mix through the host's bus limiter (fm1_mix_limiter.h), writes
@@ -154,6 +155,7 @@
 // MIT licence.
 
 #include "fm1_dx7.h"
+#include "fm1_dx7_sine.h"   // FM1_DX7_SINE_TRUNC12: the DX7 sine switch (engines/Makefile)
 #include "fm1_engine.h"
 #include "fm1_fx_host.h"
 #include "fm1_mfx_host.h"
@@ -921,9 +923,10 @@ int main(int argc, char **argv) {
       size_t gpl = 0;
       for (size_t k = 0; k < fm1_licence_count; ++k) gpl += fm1_licence_is_gpl(fm1_licences[k].spdx);
       printf("{\"engine_api\":%u,\"gpl_mods\":%d,\"engines\":%zu,\"midi_fx\":%zu,\"gpl_modules\":%zu,"
-             "\"mod_kinds\":%zu,\"modules\":\"%s\",\"left_out\":%zu}\n",
+             "\"mod_kinds\":%zu,\"modules\":\"%s\",\"left_out\":%zu,\"dx7_sine\":\"%s\"}\n",
              FM1_ENGINE_API_VERSION, fm1_gpl_mods, fm1_engine_count, fm1_midi_fx_count, gpl,
-             fm1_mod_kind_count, fm1_modules_name, fm1_left_out_count);
+             fm1_mod_kind_count, fm1_modules_name, fm1_left_out_count,
+             FM1_DX7_SINE_TRUNC12 ? "trunc12" : "msfa");
       return 0;
     }
     if (a == "--list-mod") { ListMod(); return 0; }

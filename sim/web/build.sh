@@ -29,7 +29,10 @@
 #      only if all of that passed. The record names the GPL switch the module was built with
 #      (FM1_GPL_MODS, engines/Makefile; on unless the environment says 0) and
 #      every module whose code is not all MIT, with its licence, so the page
-#      can offer a module with GPL code in it under the GPL (docs/12 §6).
+#      can offer a module with GPL code in it under the GPL (docs/12 §6),
+#      and the DX7 sine it was built with (FM1_DX7_SINE, engines/Makefile:
+#      msfa unless the environment says trunc12; engines/msfa.md), which
+#      must be the firmware's.
 #
 # Needs: gcc, make, python3, node and emcc (all in emscripten/emsdk:6.0.10).
 # MIT licence, like the rest of this repository.
@@ -110,6 +113,10 @@ record = {
     # The GPL switch (engines/Makefile) and the modules whose code is not all
     # MIT: the page offers the module under the GPL while any is GPL.
     "gpl_mods": info["gpl_mods"],
+    # The DX7 sine switch (engines/Makefile FM1_DX7_SINE): the browser plays
+    # the sine the firmware is built with. Engines older than the switch
+    # (--engines-ref) have only msfa's.
+    "dx7_sine": info.get("dx7_sine", "msfa"),
     "licences": [{"id": e["id"], "name": e["name"], "kind": e["kind"], "licence": e["licence"],
                   "source": e["source"]} for e in listed if e["licence"] != "MIT"],
     "parity": {k: v for k, v in parity.items() if k not in ("scenarios", "imports")},
