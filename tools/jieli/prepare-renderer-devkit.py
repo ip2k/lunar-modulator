@@ -963,7 +963,13 @@ static inline void fm1_resampler_push_convert(fm1_resampler_t *r, const float *i
     return header, drums.replace(anchor, anchor + loop, 1)
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False, metadata_ram=False, msfa_sine_pair=False, drums_ready_convert=False):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False, metadata_ram=False, msfa_sine_pair=False, drums_ready_convert=False, dx7_sine="msfa"):
+    if dx7_sine not in ("msfa", "trunc12"):
+        raise ValueError("Unknown DX7 sine; choose msfa or trunc12 (engines/Makefile FM1_DX7_SINE)")
+    if dx7_sine == "trunc12" and (msfa_sine32 or msfa_sine_pair):
+        # Both patch msfa's interpolated lookup; the trunc12 build compiles
+        # its own sin.h (engines/mk/msfa.mk), which has no interpolation.
+        raise ValueError("Signed32 and paired sine loads patch msfa's interpolated sine; trunc12 has none")
     if engine_queue_caller_post and not engine_queue_insert:
         raise ValueError("Caller post requires guarded queue inserts")
     if engine_queue_insert and (not engine_queue or engine_queue_drums or engine_queue_detail or engine_queue_micro or engine_queue_mod_micro or engine_queue_module_micro):
@@ -1099,7 +1105,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
                         ignore=shutil.ignore_patterns("build", "build-*", ".git", "__pycache__", ".DS_Store", "._*"))
     narrow_inputs = {}
     if msfa_narrow_adds:
-        for name in ("sin.h", "fm_op_kernel.cc"):
+        # trunc12 replaces msfa's sin.h in the build (engines/mk/msfa.mk), so
+        # only the operator kernels' additions apply to it.
+        for name in (("sin.h", "fm_op_kernel.cc") if dx7_sine == "msfa" else ("fm_op_kernel.cc",)):
             p = staging / "engines/third_party/msfa" / name
             original = p.read_bytes()
             narrow_inputs[name] = hashlib.sha256(original).hexdigest()
@@ -1137,12 +1145,15 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     if sine_ram:
         p = staging / "engines/src/msfa_rom.cc"
         original = p.read_bytes()
-        anchor = b'extern const int32_t kSinTab[2048] = {'
+        # The table the build's sine reads: msfa's 2,048-word delta table or
+        # trunc12's 4,096 int16 points, both 8 KiB (engines/src/msfa_rom.cc).
+        anchor = (b'extern const int32_t kSinTab[2048] = {' if dx7_sine == "msfa"
+                  else b'extern const int16_t kSinTab12[4096] = {')
         if original.count(anchor) != 1:
             raise ValueError("Unexpected sine table definition; review placement")
         sine_input = hashlib.sha256(original).hexdigest()
         p.write_bytes(original.replace(anchor,
-            b'extern const int32_t kSinTab[2048] __attribute__((section(".volatile_ram"))) = {', 1))
+            anchor[:-4] + b' __attribute__((section(".volatile_ram"))) = {', 1))
     resampler_input = None
     if resampler_ram:
         # A single external copy avoids spending SRAM once per header user.
@@ -1443,6 +1454,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         if fragment_text.count("OPT=-O2") != 1:
             raise ValueError("Unexpected renderer optimization flags; review O3 comparison")
         fragment_text = fragment_text.replace("OPT=-O2", "OPT=-O3", 1)
+    if fragment_text.count("FM1_DX7_SINE=msfa") != 1:
+        raise ValueError("Unexpected renderer DX7 sine switch; review the fragment")
+    fragment_text = fragment_text.replace("FM1_DX7_SINE=msfa", "FM1_DX7_SINE=" + dx7_sine, 1)
     fragment.write_text(fragment_text)
     makefile = app / "board/wl82/Makefile"
     text = makefile.read_text()
@@ -1547,6 +1561,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         "hot_ram_sources": hot_inputs,
         "msfa_pure_unroll": msfa_pure_unroll,
         "msfa_pure_unroll_original_sha256": pure_unroll_input,
+        "dx7_sine": dx7_sine,
         "msfa_sine32": msfa_sine32,
         "msfa_sine_pair": msfa_sine_pair,
         "msfa_sine_pair_input_sha256": sine_pair_input,
@@ -1729,5 +1744,8 @@ if __name__ == "__main__":
                         help="Split global module preparation/process/output; requires modulation micro")
     parser.add_argument("--drums-ready-convert", action="store_true",
                         help="Reuse established Drums conversion readiness; resident unrolled outer-only comparison")
+    parser.add_argument("--dx7-sine", choices=("msfa", "trunc12"), default="msfa",
+                        help="FM6 sine (engines/Makefile FM1_DX7_SINE): msfa's interpolated table, or "
+                             "trunc12's 12-bit non-interpolated one pending the owner's A/B (engines/msfa.md)")
     args = parser.parse_args()
-    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post, args.resampler_stage1_schedule, args.metadata_ram, args.msfa_sine_pair, args.drums_ready_convert)
+    prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post, args.resampler_stage1_schedule, args.metadata_ram, args.msfa_sine_pair, args.drums_ready_convert, args.dx7_sine)

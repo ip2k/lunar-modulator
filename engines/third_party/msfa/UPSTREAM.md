@@ -80,6 +80,14 @@ python3 engines/third_party/msfa/vendor.py reference/msfa --check
   negative values left (`pitchenv.cc`, `ScaleVelocity`). Under `-fwrapv`
   UBSan reports neither, with Apple's clang or with clang 18 on Linux, so
   `engines/sanitizers/` has no entry for msfa [verified, 2026-10-05].
+- **The trunc12 sine is a build-time copy, not a change here** (since
+  2026-10-28; engines/msfa.md, "The trunc12 sine"). With
+  `FM1_DX7_SINE=trunc12`, `mk/msfa.mk` copies these files into
+  `$(BUILD)/gen/msfa-trunc12/` and replaces that copy's `sin.h` with
+  `engines/src/msfa_sin_trunc12.h`, which `tools/msfa_tables.py` generates
+  from this `sin.h` (its text up to the table declaration kept, the lookup
+  replaced; Apache-2.0, marked as modified). The files in this directory
+  stay byte-identical in every build.
 - **Not vendored:** `synth_unit.cc` (the Android synth: MIDI parsing, a
   ring buffer, its resonant filter), `ringbuffer`, `resofilter`, `fir`,
   `sawtooth`, `log2`, `module.h`, `wavout`, the NEON assembly and the test

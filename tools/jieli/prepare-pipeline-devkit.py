@@ -31,6 +31,18 @@ PRESET = dict(timing_only=True, profile=True, hot_ram=True, sine_ram=True,
               oscillator_slopes=True, outer_timing_only=True, metadata_ram=True,
               msfa_sine_pair=True, drums_ready_convert=True)
 
+# The FM6 sine switch (engines/Makefile FM1_DX7_SINE). trunc12 compiles its
+# own sin.h, which has no interpolation for the signed32 product and paired
+# loads to change, so those two preset entries are off with it; every other
+# entry, the sine table's SRAM placement included, stays as it is.
+TRUNC12_PRESET = dict(msfa_sine32=False, msfa_sine_pair=False)
+
+
+def renderer_preset(dx7_sine):
+    if dx7_sine not in ('msfa', 'trunc12'):
+        raise ValueError('Unknown DX7 sine; choose msfa or trunc12')
+    return dict(PRESET, dx7_sine=dx7_sine, **(TRUNC12_PRESET if dx7_sine == 'trunc12' else {}))
+
 PIPELINE_APP_HOT = (
     b'static int pipeline_record', b'static void pipeline_validate_stream',
     b'static void pipeline_execute', b'static void post_capture',
@@ -293,7 +305,9 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
     receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
 
 
-def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3, burst_hot=False):
+def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3, burst_hot=False,
+                     dx7_sine='msfa'):
+    preset = renderer_preset(dx7_sine)
     if isinstance(cycles, bool) or not 1 <= cycles <= 57:
         raise ValueError('Pipeline cycles must be 1..57')
     if out.exists() or out.is_symlink():
@@ -308,7 +322,7 @@ def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cyc
     spec = importlib.util.spec_from_file_location('renderer_prepare', source / 'tools/jieli/prepare-renderer-devkit.py')
     renderer = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(renderer)
-    renderer.prepare_renderer(sdk, source, out, **PRESET)
+    renderer.prepare_renderer(sdk, source, out, **preset)
     target = out / SYSTEM
     if target.is_symlink() or sha256(target) != ORIGINAL_SYSTEM_SHA256:
         raise ValueError('Prepared scheduler must be a separate original SDK file')
@@ -328,6 +342,9 @@ if __name__ == '__main__':
     parser.add_argument('--adaptive-three', action='store_true', help='Explicit adaptive65/60 floor3 experiment; default fixed12')
     parser.add_argument('--cycles', type=int, default=3, help='Four-case cycles, 1..57; 57 is about 30.4 minutes')
     parser.add_argument('--burst-hot', action='store_true', help='Experiment: move DX7 NoteOn/Allocate from XIP into SRAM; no DSP changes')
+    parser.add_argument('--dx7-sine', choices=('msfa', 'trunc12'), default='msfa',
+                        help="FM6 sine (engines/Makefile FM1_DX7_SINE); trunc12 drops the msfa-only sine32/sine-pair entries")
     args = parser.parse_args()
     prepare_pipeline(args.sdk.resolve(), args.source.resolve(), args.out.absolute(),
-                     args.pipeline_system_archive.resolve(), args.adaptive_three, args.cycles, args.burst_hot)
+                     args.pipeline_system_archive.resolve(), args.adaptive_three, args.cycles, args.burst_hot,
+                     args.dx7_sine)

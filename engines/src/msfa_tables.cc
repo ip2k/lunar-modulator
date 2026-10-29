@@ -15,8 +15,10 @@
 
 namespace fm1_msfa {
 
+#if !FM1_DX7_SINE_TRUNC12   // trunc12's Sin::lookup reads kSinTab12 by name
 int32_t (*fm1_sintab)[SIN_N_SAMPLES << 1] =
     const_cast<int32_t (*)[SIN_N_SAMPLES << 1]>(&kSinTab);
+#endif
 int32_t (*fm1_exp2tab)[EXP2_N_SAMPLES << 1] =
     const_cast<int32_t (*)[EXP2_N_SAMPLES << 1]>(&kExp2Tab);
 
