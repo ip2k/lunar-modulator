@@ -276,8 +276,8 @@ history.
   msfa's interpolated one. It renders about 30 % faster on a desktop and
   costs no memory. It stays 50 dB or more above its own error except at
   the heaviest modulation (42 to 48 dB at 2 to 4 cycles), and whole voices
-  differ from today's by about 60 to 66 dB. The default is still msfa's
-  sine until the owner's A/B decides. The switch reaches the desktop
+  differ from today's by about 60 to 66 dB. The owner's A/B made it the
+  default on 2026-10-29 (under Changed). The switch reaches the desktop
   renderer, the browser build (its record names the sine) and the dev kit
   preparation scripts (`--dx7-sine`); engines/msfa.md, "The trunc12 sine".
 - **An eight-voice DX7 policy and a worst-block recorder for the dev-board
@@ -2126,6 +2126,18 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **FM6 now uses the cheaper DX7 sine by default, in the browser and in the
+  firmware.** After listening to the dev board's recordings with each sine,
+  the owner heard no difference (2026-10-29), so the 12-bit sine without
+  interpolation (`FM1_DX7_SINE=trunc12`, as the DX7's own chip reads it)
+  replaces msfa's interpolated one everywhere. It costs about a third less
+  time per FM6 voice on a desktop and cut the eight-voice dev board images'
+  mean load by 4 to 7%. FM6 patches sound almost the same: whole voices
+  differ from before by about 60 to 66 dB. msfa's sine stays one switch
+  away (`FM1_DX7_SINE=msfa`, or `--dx7-sine msfa` for the dev board), and the
+  virtual FM-1 now plays the new sine. The recordings compared WARM PAD and
+  SAW LEAD in a mix; bell and brass voices have not been compared by ear yet
+  (engines/msfa.md, "The trunc12 sine").
 - **Drums, Macro, Macro Heavy and Six-Op reach the FM-1's rate for about
   half the work.** Their engines run at Plaits' 47,872 Hz, almost exactly
   51/47 of 44,118 Hz, and a fixed 48-tap polyphase converter now handles

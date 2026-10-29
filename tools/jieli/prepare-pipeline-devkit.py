@@ -476,7 +476,7 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
 
 
 def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3, burst_hot=False,
-                     policy='fixed12', worst_block=False, *, dx7_sine='msfa', poly47_at_44100=False,
+                     policy='fixed12', worst_block=False, *, dx7_sine='trunc12', poly47_at_44100=False,
                      sys_clk=320, stock_power=False, sfc_mhz=60):
     preset = renderer_preset(dx7_sine)
     if sys_clk not in SYS_CLOCKS:
@@ -530,8 +530,9 @@ if __name__ == '__main__':
     parser.add_argument('--worst-block', action='store_true',
                         help='Record each case\'s worst producer block stage vector (six extra timer reads per block)')
     parser.add_argument('--burst-hot', action='store_true', help='Experiment: move DX7 NoteOn/Allocate from XIP into SRAM; no DSP changes')
-    parser.add_argument('--dx7-sine', choices=('msfa', 'trunc12'), default='msfa',
-                        help="FM6 sine (engines/Makefile FM1_DX7_SINE); trunc12 drops the msfa-only sine32/sine-pair entries")
+    parser.add_argument('--dx7-sine', choices=('msfa', 'trunc12'), default='trunc12',
+                        help="FM6 sine (engines/Makefile FM1_DX7_SINE): trunc12, the default since the owner's A/B "
+                             "(2026-10-29), drops the msfa-only sine32/sine-pair entries; msfa keeps them")
     parser.add_argument('--poly47-at-44100', action='store_true',
                         help='Timing-only: let the 51/47 resampler fast path engage at the dev board\'s 44,100 Hz '
                              '(+400 ppm; Plaits-rate engines 0.69 cent flat). Never for the FM-1')

@@ -221,8 +221,10 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         section = b'.lunar_cache_tables' if mode in ('renderer-cache-profile', 'renderer-fx-profile') else b'.volatile_ram'
         if mode in ('renderer-sine-profile', 'renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'):
             assert receipt['sine_ram_original_sha256'] == hashlib.sha256(original).hexdigest()
-            expected = original.replace(b'extern const int32_t kSinTab[2048] = {',
-                b'extern const int32_t kSinTab[2048] __attribute__((section("' + section + b'"))) = {', 1)
+            # The default sine's table (engines/Makefile FM1_DX7_SINE=trunc12
+            # since the owner's A/B, 2026-10-29): trunc12's 4,096 int16 points.
+            expected = original.replace(b'extern const int16_t kSinTab12[4096] = {',
+                b'extern const int16_t kSinTab12[4096] __attribute__((section("' + section + b'"))) = {', 1)
             if mode in ('renderer-cache-profile', 'renderer-fx-profile'):
                 expected = expected.replace(b'extern const int32_t kExp2Tab[2048] = {',
                     b'extern const int32_t kExp2Tab[2048] __attribute__((section(".lunar_cache_tables"))) = {', 1)

@@ -31,7 +31,7 @@
 #      every module whose code is not all MIT, with its licence, so the page
 #      can offer a module with GPL code in it under the GPL (docs/12 §6),
 #      and the DX7 sine it was built with (FM1_DX7_SINE, engines/Makefile:
-#      msfa unless the environment says trunc12; engines/msfa.md), which
+#      trunc12 unless the environment says msfa; engines/msfa.md), which
 #      must be the firmware's.
 #
 # Needs: gcc, make, python3, node and emcc (all in emscripten/emsdk:6.0.10).

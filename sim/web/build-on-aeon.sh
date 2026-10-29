@@ -39,11 +39,11 @@
 # Docker), FM1_REMOTE_DIR (default ~/mvave-fm1/virtual on that host),
 # FM1_SESSION (the session label on the containers), FM1_GPL_MODS (the GPL
 # switch, engines/Makefile: 1, the default, builds the GPL modules in; 0 the
-# MIT/BSD build), FM1_DX7_SINE (the DX7 sine, engines/Makefile: msfa, the
-# default, or trunc12; engines/msfa.md). A trunc12 build is a trial until the
-# default changes: its module, record and results land in
-# sim/web/build/dx7-trunc12/, and www/ stays as it was. MIT licence, like the
-# rest of this repository.
+# MIT/BSD build), FM1_DX7_SINE (the DX7 sine, engines/Makefile: trunc12, the
+# default since the owner's A/B of 2026-10-29, or msfa; engines/msfa.md). A
+# build with the other sine is a trial: its module, record and results land
+# in sim/web/build/dx7-<sine>/ (dx7-msfa), and www/ stays as it was. MIT
+# licence, like the rest of this repository.
 set -euo pipefail
 # macOS tar would add AppleDouble ._* files (provenance attributes) to the
 # staged tree, and a scan of www/ then trips over them.
@@ -52,7 +52,9 @@ export COPYFILE_DISABLE=1
 SESSION=${FM1_SESSION:-virtual-fm1}
 GPL_MODS=${FM1_GPL_MODS:-1}
 case "$GPL_MODS" in 0|1) ;; *) echo "FM1_GPL_MODS is 0 or 1, not $GPL_MODS" >&2; exit 2 ;; esac
-DX7_SINE=${FM1_DX7_SINE:-msfa}
+# The default sine is engines/Makefile's, read here so the two cannot drift.
+DEFAULT_DX7_SINE=$(sed -n 's/^FM1_DX7_SINE ?= //p' "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/engines/Makefile")
+DX7_SINE=${FM1_DX7_SINE:-$DEFAULT_DX7_SINE}
 case "$DX7_SINE" in msfa|trunc12) ;; *) echo "FM1_DX7_SINE is msfa or trunc12, not $DX7_SINE" >&2; exit 2 ;; esac
 EMSDK_IMAGE=emscripten/emsdk:6.0.10
 ALPINE_IMAGE=alpine:3.22
@@ -146,13 +148,13 @@ echo "== fetching results"
 # A build of another ref's engines is a trial: its module and every result go
 # to build/ref-<ref>/, so www/fm1.wasm always matches this working tree and
 # build/ keeps this tree's parity and screenshots.
-# A trunc12 module is a trial too (until engines/Makefile's default changes):
-# www/ keeps the default sine's module.
+# A module with the other DX7 sine than engines/Makefile's default is a trial
+# too: www/ keeps the default sine's module.
 if [ -n "$ENGINES_REF" ]; then
   DEST=$SIM/build/ref-$(printf '%s' "$ENGINES_REF" | tr -c 'A-Za-z0-9._-' '_')
-  if [ "$DX7_SINE" != msfa ]; then DEST=$DEST-dx7-$DX7_SINE; fi
+  if [ "$DX7_SINE" != "$DEFAULT_DX7_SINE" ]; then DEST=$DEST-dx7-$DX7_SINE; fi
   RESULTS=$DEST
-elif [ "$DX7_SINE" != msfa ]; then
+elif [ "$DX7_SINE" != "$DEFAULT_DX7_SINE" ]; then
   DEST=$SIM/build/dx7-$DX7_SINE
   RESULTS=$DEST
 else

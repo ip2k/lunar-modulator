@@ -963,7 +963,7 @@ static inline void fm1_resampler_push_convert(fm1_resampler_t *r, const float *i
     return header, drums.replace(anchor, anchor + loop, 1)
 
 
-def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False, metadata_ram=False, msfa_sine_pair=False, drums_ready_convert=False, dx7_sine="msfa"):
+def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram=False, sine_ram=False, resampler_ram=False, cache_tables=False, fx_ram=False, resampler_outline=False, filter_process_ram=False, control_ram=False, plaits_cache=False, resampler_slopes=False, engine_profile=False, resampler_unroll=False, renderer_o3=False, mixer_ram=False, resampler_schedule=False, workload="mixed", dispatch_ram=False, msfa_narrow_adds=False, msfa_sine32=False, msfa_pure_unroll=False, fm6_pair=False, scheduling_probe=False, ui_ram=False, prep_profile=False, hook_ram=False, module_ram=False, kind_ram=False, event_ram=False, plan_ram=False, external_pixels=False, vcf_unroll=False, vcf_profile=False, oscillator_slopes=False, outer_timing_only=False, engine_queue=False, engine_queue_drums=False, engine_queue_profile=False, engine_queue_detail=False, engine_queue_micro=False, engine_queue_mod_micro=False, engine_queue_module_micro=False, engine_queue_insert=False, engine_queue_caller_post=False, resampler_stage1_schedule=False, metadata_ram=False, msfa_sine_pair=False, drums_ready_convert=False, dx7_sine="trunc12"):
     if dx7_sine not in ("msfa", "trunc12"):
         raise ValueError("Unknown DX7 sine; choose msfa or trunc12 (engines/Makefile FM1_DX7_SINE)")
     if dx7_sine == "trunc12" and (msfa_sine32 or msfa_sine_pair):
@@ -1464,9 +1464,11 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         if fragment_text.count("OPT=-O2") != 1:
             raise ValueError("Unexpected renderer optimization flags; review O3 comparison")
         fragment_text = fragment_text.replace("OPT=-O2", "OPT=-O3", 1)
-    if fragment_text.count("FM1_DX7_SINE=msfa") != 1:
+    # The fragment carries engines/Makefile's default (trunc12 since the
+    # owner's A/B, 2026-10-29); the chosen sine replaces it.
+    if fragment_text.count("FM1_DX7_SINE=trunc12") != 1 or fragment_text.count("FM1_DX7_SINE=") != 1:
         raise ValueError("Unexpected renderer DX7 sine switch; review the fragment")
-    fragment_text = fragment_text.replace("FM1_DX7_SINE=msfa", "FM1_DX7_SINE=" + dx7_sine, 1)
+    fragment_text = fragment_text.replace("FM1_DX7_SINE=trunc12", "FM1_DX7_SINE=" + dx7_sine, 1)
     fragment.write_text(fragment_text)
     makefile = app / "board/wl82/Makefile"
     text = makefile.read_text()
@@ -1754,8 +1756,9 @@ if __name__ == "__main__":
                         help="Split global module preparation/process/output; requires modulation micro")
     parser.add_argument("--drums-ready-convert", action="store_true",
                         help="Reuse established Drums conversion readiness; resident unrolled outer-only comparison")
-    parser.add_argument("--dx7-sine", choices=("msfa", "trunc12"), default="msfa",
-                        help="FM6 sine (engines/Makefile FM1_DX7_SINE): msfa's interpolated table, or "
-                             "trunc12's 12-bit non-interpolated one pending the owner's A/B (engines/msfa.md)")
+    parser.add_argument("--dx7-sine", choices=("msfa", "trunc12"), default="trunc12",
+                        help="FM6 sine (engines/Makefile FM1_DX7_SINE): trunc12's 12-bit non-interpolated table, "
+                             "the default since the owner's A/B (2026-10-29), or msfa's interpolated one, which "
+                             "--msfa-sine32 and --msfa-sine-pair need (engines/msfa.md)")
     args = parser.parse_args()
     prepare_renderer(args.sdk.resolve(), args.source.resolve(), args.out.resolve(), args.timing_only, args.profile, args.hot_ram, args.sine_ram, args.resampler_ram, args.cache_tables, args.fx_ram, args.resampler_outline, args.filter_process_ram, args.control_ram, args.plaits_cache, args.resampler_slopes, args.engine_profile, args.resampler_unroll, args.renderer_o3, args.mixer_ram, args.resampler_schedule, args.workload, args.dispatch_ram, args.msfa_narrow_adds, args.msfa_sine32, args.msfa_pure_unroll, args.fm6_pair, args.scheduling_probe, args.ui_ram, args.prep_profile, args.hook_ram, args.module_ram, args.kind_ram, args.event_ram, args.plan_ram, args.external_pixels, args.vcf_unroll, args.vcf_profile, args.oscillator_slopes, args.outer_timing_only, args.engine_queue, args.engine_queue_drums, args.engine_queue_profile, args.engine_queue_detail, args.engine_queue_micro, args.engine_queue_mod_micro, args.engine_queue_module_micro, args.engine_queue_insert, args.engine_queue_caller_post, args.resampler_stage1_schedule, args.metadata_ram, args.msfa_sine_pair, args.drums_ready_convert, args.dx7_sine)

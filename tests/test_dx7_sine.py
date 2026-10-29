@@ -1,10 +1,11 @@
 """The DX7 sine switch, FM1_DX7_SINE=msfa|trunc12 (engines/Makefile;
 engines/msfa.md, "The trunc12 sine").
 
-msfa (the default) keeps msfa's interpolated 1,024-point sine. trunc12 reads
+trunc12 (the default since the owner's A/B listening test, 2026-10-29) reads
 a 4,096-point Q15 table with the phase's top 12 bits and no interpolation,
 like the DX7's own sine ROM, and is compiled in place of msfa's Sin::lookup
-from a staged copy of msfa (mk/msfa.mk). These tests hold:
+from a staged copy of msfa (mk/msfa.mk). msfa keeps msfa's interpolated
+1,024-point sine and stays selectable. These tests hold:
 
   - the generated table and header to tools/msfa_tables.py and the vendored
     sin.h;
@@ -18,10 +19,14 @@ from a staged copy of msfa (mk/msfa.mk). These tests hold:
     the dev kit's renderer replay (with and without ASan/UBSan) and every
     built-in voice;
   - msfa's internal consistency checks (copied kernels, the voice budget,
-    the paired kernels) pass with trunc12 too.
+    the paired kernels) pass with either sine;
+  - the Makefile's default, the dev kit's fragment and preparers, and the
+    browser module's record name the same sine.
 
-trunc12 builds go to engines/build/dx7-trunc12 and the replay's to
-sim/web/build/, both ignored; the default build is not touched.
+Each sine has its own build, engines/build/dx7-trunc12 and
+engines/build/dx7-msfa, whatever FM1_DX7_SINE the environment sets, and the
+replay's goes to sim/web/build/, all ignored; the default build is not
+touched.
 """
 import hashlib
 import importlib.util
@@ -40,6 +45,7 @@ from tests.engine_helpers import ENGINES, GPL_MODS, RATE, ROOT, renderer  # noqa
 
 TOOLS = ROOT / "tools" / "msfa_tables.py"
 TRUNC_BUILD = ENGINES / "build" / "dx7-trunc12"
+MSFA_BUILD = ENGINES / "build" / "dx7-msfa"
 MODULES = "dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance"
 
 
@@ -56,12 +62,26 @@ def make_engines(build, sine, *targets):
                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def makefile_default():
+    m = re.search(r"^FM1_DX7_SINE \?= (\w+)$", (ENGINES / "Makefile").read_text(), re.M)
+    assert m, "engines/Makefile has no FM1_DX7_SINE default"
+    return m[1]
+
+
 @pytest.fixture(scope="module")
 def trunc12():
     if not shutil.which("make") or not (shutil.which("c++") or shutil.which("g++")):
         pytest.skip("no make / C++ compiler")
     make_engines(TRUNC_BUILD, "trunc12")
     return TRUNC_BUILD
+
+
+@pytest.fixture(scope="module")
+def msfa():
+    if not shutil.which("make") or not (shutil.which("c++") or shutil.which("g++")):
+        pytest.skip("no make / C++ compiler")
+    make_engines(MSFA_BUILD, "msfa")
+    return MSFA_BUILD
 
 
 def oracle(build):
@@ -108,18 +128,26 @@ def test_trunc12_table_shape():
 
 # ------------------------------------------------------------ the switch --
 
-def test_build_info_names_the_sine(renderer, trunc12):  # noqa: F811
-    info = json.loads(subprocess.run([str(renderer), "--build-info"], check=True,
+def build_info(path):
+    return json.loads(subprocess.run([str(path), "--build-info"], check=True,
                                      capture_output=True, text=True).stdout)
-    assert info["dx7_sine"] == "msfa"
-    info = json.loads(subprocess.run([str(trunc12 / "fm1-render"), "--build-info"], check=True,
-                                     capture_output=True, text=True).stdout)
+
+
+def test_build_info_names_the_sine(renderer, trunc12, msfa):  # noqa: F811
+    """The default build has the Makefile's default (trunc12) unless the
+    environment picks the other; each named build has its own."""
+    assert makefile_default() == "trunc12"
+    assert build_info(renderer)["dx7_sine"] == os.environ.get("FM1_DX7_SINE", "trunc12")
+    info = build_info(trunc12 / "fm1-render")
     assert info["dx7_sine"] == "trunc12" and info["gpl_mods"] == int(GPL_MODS)
     assert (trunc12 / "gen" / "msfa-trunc12" / "sin.h").read_text() == \
         (ENGINES / "src" / "msfa_sin_trunc12.h").read_text()
+    info = build_info(msfa / "fm1-render")
+    assert info["dx7_sine"] == "msfa" and info["gpl_mods"] == int(GPL_MODS)
+    assert not (msfa / "gen" / "msfa-trunc12").exists()
 
 
-def test_only_one_sine_table_is_linked(renderer, trunc12):  # noqa: F811
+def test_only_one_sine_table_is_linked(msfa, trunc12):
     """The switch is flash-neutral in kind: each build links one table."""
     nm = shutil.which("nm")
     if not nm:
@@ -128,8 +156,8 @@ def test_only_one_sine_table_is_linked(renderer, trunc12):  # noqa: F811
     def syms(path):
         return subprocess.run([nm, "-C", str(path)], check=True, capture_output=True,
                               text=True).stdout
-    msfa, t12 = syms(renderer), syms(trunc12 / "fm1-render")
-    assert "kSinTab12" not in msfa and re.search(r"\bkSinTab\b", msfa)
+    m, t12 = syms(msfa / "fm1-render"), syms(trunc12 / "fm1-render")
+    assert "kSinTab12" not in m and re.search(r"\bkSinTab\b", m)
     assert "kSinTab12" in t12 and not re.search(r"\bkSinTab\b(?!12)", t12)
 
 
@@ -181,8 +209,8 @@ INDEX_LE_1 = ("pure 110", "pure 440", "pure 1760.3", "pure 7040", "1:1 idx0.25 2
 HEAVY = ("1:2 idx2 110", "1:1 idx4 55")
 
 
-def test_msfa_sine_snr(renderer):  # noqa: F811
-    r = oracle(ENGINES / "build")
+def test_msfa_sine_snr(msfa):
+    r = oracle(msfa)
     assert r["dx7_sine"] == "msfa"
     snr = {s["name"]: s["snr_db"] for s in r["stacks"]}
     assert set(snr) == set(INDEX_LE_1 + HEAVY)
@@ -191,12 +219,22 @@ def test_msfa_sine_snr(renderer):  # noqa: F811
     assert r["lookup"]["peak"] <= 1 << 24 and r["lookup"]["max_err_db"] <= -100
 
 
-def test_trunc12_sine_snr(renderer, trunc12):  # noqa: F811
+def test_msfa_sine_table_is_exact(msfa):
+    """msfa's own sine table, now only in an msfa build: what
+    tools/msfa_tables.py computes, as tests/test_engines_dx7.py checks it
+    in the default build when that is msfa."""
+    sin = tables_module().sin_table()
+    got = json.loads(subprocess.run([str(msfa / "fm1-dx7-oracle"), "--tables", "--rate", str(RATE)],
+                                    check=True, capture_output=True, text=True).stdout)
+    assert got["sin_sum"] == sum(sin) and got["sin"] == [sin[1], sin[257], sin[2047]]
+
+
+def test_trunc12_sine_snr(msfa, trunc12):
     """At least 50 dB wherever the modulation index is a cycle or less, and in
     feedback; the heavy cases are held only above 40 dB (their error grows
     about 6 dB per doubling of the index; engines/msfa.md). Every case falls
     well below msfa's, which shows the kernels really switched."""
-    r, ref = oracle(trunc12), oracle(ENGINES / "build")
+    r, ref = oracle(trunc12), oracle(msfa)
     assert r["dx7_sine"] == "trunc12"
     snr = {s["name"]: s["snr_db"] for s in r["stacks"]}
     msfa = {s["name"]: s["snr_db"] for s in ref["stacks"]}
@@ -213,21 +251,23 @@ def test_trunc12_sine_snr(renderer, trunc12):  # noqa: F811
 
 # ------------------------------------------------------------- replays --
 
-def test_msfa_consistency_checks_pass_with_trunc12(trunc12):
+@pytest.mark.parametrize("sine", ["trunc12", "msfa"])
+def test_msfa_consistency_checks_pass_with_either_sine(request, sine):
     """The copied kernels, the voice budget and the paired kernels compare
     the engine with itself: they must hold whichever sine it reads."""
+    build = request.getfixturevalue(sine)
     for rate in (16385, 44118, 96000):
         for mode in range(4):
-            out = subprocess.run([str(trunc12 / "fm1-dx7-kernel-test"), str(rate), str(mode)],
+            out = subprocess.run([str(build / "fm1-dx7-kernel-test"), str(rate), str(mode)],
                                  check=True, capture_output=True, text=True, timeout=60).stdout
             assert out.startswith("PASS exact PCM"), out
-        out = subprocess.run([str(trunc12 / "fm1-dx7-budget-test"), str(rate)],
+        out = subprocess.run([str(build / "fm1-dx7-budget-test"), str(rate)],
                              check=True, capture_output=True, text=True, timeout=30).stdout
         assert out.startswith("PASS default12 exact PCM"), out
-    out = subprocess.run([str(trunc12 / "fm1-dx7-pair-test")], check=True,
+    out = subprocess.run([str(build / "fm1-dx7-pair-test")], check=True,
                          capture_output=True, text=True, timeout=60).stdout
     assert out.startswith("PASS"), out
-    r = subprocess.run([str(trunc12 / "fm1-dx7-oracle"), "--tables-vs-msfa"],
+    r = subprocess.run([str(build / "fm1-dx7-oracle"), "--tables-vs-msfa"],
                        capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
 
@@ -338,6 +378,10 @@ def test_renderer_preparation_refuses_msfa_sine_patches_with_trunc12(tmp_path):
     with pytest.raises(ValueError, match="trunc12 has none"):
         module.prepare_renderer(tmp_path, ROOT, tmp_path / "out", timing_only=True, hot_ram=True,
                                 msfa_narrow_adds=True, msfa_sine32=True, dx7_sine="trunc12")
+    # trunc12 is the default, so the msfa-only patches must name msfa.
+    with pytest.raises(ValueError, match="trunc12 has none"):
+        module.prepare_renderer(tmp_path, ROOT, tmp_path / "out", timing_only=True, hot_ram=True,
+                                msfa_narrow_adds=True, msfa_sine32=True)
     with pytest.raises(ValueError, match="Unknown DX7 sine"):
         module.prepare_renderer(tmp_path, ROOT, tmp_path / "out", dx7_sine="lerp")
     with pytest.raises(ValueError, match="Unknown DX7 sine"):
@@ -346,12 +390,25 @@ def test_renderer_preparation_refuses_msfa_sine_patches_with_trunc12(tmp_path):
 
 def test_browser_firmware_and_dev_kit_share_the_default():
     """The owner's rule (2026-10-28): the browser plays what the firmware
-    plays. The Makefile's default, the dev kit fragment's value and the
-    checked-in module's record agree (a record older than the switch was
-    built with msfa's sine, the only one there was)."""
-    default = re.search(r"^FM1_DX7_SINE \?= (\w+)$", (ENGINES / "Makefile").read_text(), re.M)
-    assert default and default[1] == "msfa"
+    plays. The Makefile's default (trunc12 since the owner's A/B,
+    2026-10-29), the dev kit fragment's value, both dev kit preparers'
+    defaults and the checked-in module's record agree (a record older than
+    the switch was built with msfa's sine, the only one there was)."""
+    import inspect
+    default = makefile_default()
+    assert default == "trunc12"
     fragment = (ROOT / "tools/jieli/devkit-renderer-sdk.mk").read_text()
-    assert re.findall(r"FM1_DX7_SINE=(\w+)", fragment) == [default[1]]
+    assert re.findall(r"FM1_DX7_SINE=(\w+)", fragment) == [default]
+    pipeline = load_pipeline_prepare()
+    assert inspect.signature(pipeline.prepare_pipeline).parameters["dx7_sine"].default == default
+    spec = importlib.util.spec_from_file_location(
+        "renderer_prepare", ROOT / "tools/jieli/prepare-renderer-devkit.py")
+    renderer_prepare = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(renderer_prepare)
+    assert inspect.signature(renderer_prepare.prepare_renderer).parameters["dx7_sine"].default == default
+    for script in ("prepare-pipeline-devkit.py", "prepare-renderer-devkit.py"):
+        text = (ROOT / "tools/jieli" / script).read_text()
+        assert re.findall(r"""--dx7-sine['"], choices=\(['"]msfa['"], ['"]trunc12['"]\), default=['"](\w+)['"]""",
+                          text) == [default], script
     record = json.loads((ROOT / "sim/web/www/fm1.wasm.json").read_text())
-    assert record.get("dx7_sine", "msfa") == default[1]
+    assert record.get("dx7_sine", "msfa") == default

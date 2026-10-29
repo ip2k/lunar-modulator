@@ -526,20 +526,37 @@ loop algorithms are the dearest case here.
 ## The trunc12 sine
 
 A build switch, `FM1_DX7_SINE` (`engines/Makefile`), picks the sine every
-operator and the LFO read (owner's decision, 2026-10-28: approved behind a
-switch, pending an A/B listening test; `scratch/perf-levers-2026-10-28.md`,
-item 2):
+operator and the LFO read. **`trunc12` is the default since 2026-10-29**;
+`msfa` stays selectable.
 
 | Value | `Sin::lookup` | Table |
 | --- | --- | --- |
-| `msfa` (default) | msfa's own: 1,024 points with their deltas, linear interpolation over the phase's low 14 bits, one 64-bit product | `kSinTab`, 2,048 `int32_t`, 8,192 bytes |
-| `trunc12` | the phase's top 12 bits pick one of 4,096 points, no interpolation, no product | `kSinTab12`, 4,096 `int16_t` (Q15), 8,192 bytes |
+| `trunc12` (default) | the phase's top 12 bits pick one of 4,096 points, no interpolation, no product | `kSinTab12`, 4,096 `int16_t` (Q15), 8,192 bytes |
+| `msfa` | msfa's own: 1,024 points with their deltas, linear interpolation over the phase's low 14 bits, one 64-bit product | `kSinTab`, 2,048 `int32_t`, 8,192 bytes |
 
 Only one table is compiled into a build, so the switch costs no flash or
 RAM either way [verified: `nm` of both `fm1-render` builds, 2026-10-28].
-The default stays `msfa` until the owner's A/B passes; the browser module,
-the firmware and the dev kit must be built with the same value (the
-module's record names it, below).
+The browser module, the firmware and the dev kit must be built with the
+same value (the module's record names it, below;
+`tests/test_dx7_sine.py` holds the defaults together).
+
+**The owner's decisions.**
+
+- 2026-10-28: trunc12 approved behind a switch, to become the default only
+  after an A/B listening test through the KA6, with the browser matching
+  the firmware (`scratch/perf-levers-2026-10-28.md`, item 2).
+- 2026-10-29: after listening to the dev kit's A/B captures (msfa against
+  trunc12, the eight-voice cap8 images at 320 MHz, cases 0 to 3, recorded
+  through the KA6; `scratch/bench-2026-10-29/ab/`, not tracked), the owner
+  said: "I can't hear a difference between the msfa and trunc12 files."
+  trunc12 became the default for every build: the desktop renderer, the
+  browser module and both dev kit preparers.
+- What that A/B covered [inferred: `firmware/devkit/renderer_live.c`]: the
+  pipeline's mixed workload, whose FM6 units play WARM PAD and SAW LEAD
+  beside Macro and the drums. TINE EP, the third phrase the 2026-10-28
+  decision named, is not in that workload, and no bell or brass voice near
+  full modulation was compared on its own (below, the index-2 and index-4
+  rows). An A/B of those would need a new capture.
 
 **The table.** Point *i* is the sine at the middle of its step,
 round(32,768 · sin(2π(*i* + ½)/4,096)), held to ±32,767; `Sin::lookup`
@@ -578,18 +595,22 @@ directory stays byte-identical (`engines/third_party/msfa/UPSTREAM.md`).
 
 - desktop and tests: `make -C engines FM1_DX7_SINE=trunc12` (any
   `BUILD=`); `fm1-render --build-info` says `"dx7_sine"`;
-- the browser: `FM1_DX7_SINE=trunc12 FM1_SIM_HOST=... sim/web/build-on-aeon.sh`;
-  `sim/web/build.sh` records `dx7_sine` in `www/fm1.wasm.json`. While
-  `msfa` is the default, a `trunc12` module lands in
-  `sim/web/build/dx7-trunc12/` and `www/` keeps the default's;
-- the dev kit: `prepare-renderer-devkit.py --dx7-sine trunc12` and
-  `prepare-pipeline-devkit.py --dx7-sine trunc12` pass it to the renderer's
-  nested build (`tools/jieli/devkit-renderer-sdk.mk`) and record it in
-  `lunar-devkit-input.json`. With `trunc12` the msfa-only sine patches
-  (`--msfa-sine32`, the paired sine loads, the `sin.h` half of the narrow
-  additions) do not apply: the renderer script refuses them and the
-  pipeline script leaves them out of its preset; `--sine-ram` places
-  `kSinTab12` instead of `kSinTab`.
+- the browser: `FM1_SIM_HOST=... sim/web/build-on-aeon.sh` builds the
+  default (trunc12) into `www/`; `FM1_DX7_SINE=msfa` builds a trial module
+  into `sim/web/build/dx7-msfa/` and leaves `www/` alone (the script reads
+  the default from `engines/Makefile`). `sim/web/build.sh` records
+  `dx7_sine` in `www/fm1.wasm.json`;
+- the dev kit: `prepare-renderer-devkit.py` and `prepare-pipeline-devkit.py`
+  default to `--dx7-sine trunc12`, pass the value to the renderer's nested
+  build (`tools/jieli/devkit-renderer-sdk.mk`, whose own value is the
+  default) and record it in `lunar-devkit-input.json`. With `trunc12` the
+  msfa-only sine patches (`--msfa-sine32`, the paired sine loads, the
+  `sin.h` half of the narrow additions) do not apply: the renderer script
+  refuses them unless `--dx7-sine msfa` is given, and the pipeline script
+  leaves them out of its preset; `--sine-ram` places `kSinTab12` instead of
+  `kSinTab`. Images built before 2026-10-29 named their sine explicitly
+  (`firmware/devkit/pipeline-image-sizes.json`), so the change of default
+  does not change any of them.
 
 **Checks** (`tests/test_dx7_sine.py`) [verified, 2026-10-28]:
 
@@ -643,8 +664,10 @@ target's figure waits for the dev kit (docs/14).
 ## Open questions
 
 - **A listening pass over the 32 built-in voices** (designed by numbers).
-- **The trunc12 A/B** (above): the owner's listening test decides whether
-  `FM1_DX7_SINE` defaults to `trunc12`; until then it is `msfa`.
+- **trunc12 on bell and brass voices** (above): the 2026-10-29 A/B that
+  made trunc12 the default compared WARM PAD and SAW LEAD in a mix; TINE EP
+  and voices near full modulation, where trunc12's error is largest, have
+  not been compared by ear.
 - **Envelope holds** (`ACCURATE_ENVELOPE`): adding them means an envelope
   of our own instead of msfa's `Env`. The stock FM-1 has none either
   [reported: Echomatter, PR #1], so FM6 matches stock here and differs

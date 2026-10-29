@@ -40,3 +40,11 @@ Not done: the 360 MHz images (`--sys-clk 360 --stock-power`). The msfa ones
 have 96 B of heap headroom against the 128 B gate, so they were not run; that
 is an owner decision. No A/B listening or 30-minute soak yet; the A/B excerpts
 are in `scratch/bench-2026-10-29/ab/` (not tracked).
+
+**A/B, later the same day.** The owner listened to the cap8 excerpts in
+`scratch/bench-2026-10-29/ab/` (cases 0 to 3, msfa against trunc12) and said:
+"I can't hear a difference between the msfa and trunc12 files." trunc12
+became the default DX7 sine for every build (engines/msfa.md, "The trunc12
+sine"). The excerpts are the pipeline's mixed workload, whose FM6 units play
+WARM PAD and SAW LEAD [inferred: `firmware/devkit/renderer_live.c`]; TINE EP
+was not in them. The 30-minute soak is still to do.
