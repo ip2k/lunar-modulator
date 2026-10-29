@@ -43,15 +43,17 @@ def sdk_fixture(tmp_path):
     return sdk, correction
 
 
-@pytest.mark.parametrize('adaptive,cycles,burst_hot', [(False, 3, False), (True, 57, False), (True, 3, True)])
-def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptive, cycles, burst_hot):
+@pytest.mark.parametrize('adaptive,cycles,burst_hot,policy,worst', [
+    (False, 3, False, 'fixed12', False), (True, 57, False, 'fixed12', False), (True, 3, True, 'fixed12', False),
+    (False, 3, False, 'cap8', True), (False, 3, True, 'fixed12', True)])
+def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptive, cycles, burst_hot, policy, worst):
     module = load_prepare()
     sdk, correction = sdk_fixture(tmp_path)
     # Substitute only private input identities in this synthetic SDK test.
     monkeypatch.setattr(module, 'ORIGINAL_SYSTEM_SHA256', module.sha256(sdk/module.SYSTEM))
     monkeypatch.setattr(module, 'PIPELINE_SYSTEM_SHA256', module.sha256(correction))
     out = tmp_path/'prepared'
-    module.prepare_pipeline(sdk, ROOT, out, correction, adaptive, cycles, burst_hot)
+    module.prepare_pipeline(sdk, ROOT, out, correction, adaptive, cycles, burst_hot, policy, worst)
     assert (sdk/module.SYSTEM).read_bytes() == b'original fixture archive'
     assert (out/module.SYSTEM).read_bytes() == correction.read_bytes()
     app = out/'apps/demo/demo_hello'
@@ -63,6 +65,8 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
     assert '-DFM1_APP_RENDER_PIPELINE=1' in flags
     assert ('-DLUNAR_PIPELINE_ADAPTIVE_THREE=1' in flags) == adaptive
     assert f'-DLUNAR_PIPELINE_CYCLES={cycles}' in flags
+    assert ('-DLUNAR_RENDERER_POLICY_CAP8=1' in flags) == (policy == 'cap8')
+    assert ('-DLUNAR_PIPELINE_WORST_BLOCK=1 -DFM1_APP_PIPELINE_MARKS=1' in flags) == worst
     for old in ('-DLUNAR_DEVKIT_ENGINE_QUEUE', '-DLUNAR_DEVKIT_RENDERER_TIMING',
                 '-DFM1_APP_RENDER_PROFILE', '-DLUNAR_DEVKIT_RENDERER_AUDIO'):
         assert old not in flags
@@ -71,7 +75,9 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
     assert (app/'renderer_pipeline_dac.h').exists()
     receipt = json.loads((out/'lunar-devkit-input.json').read_text())
     assert not receipt['timing_only'] and not receipt['render_profile']
-    assert receipt['pipeline_polyphony'] == ('adaptive65/60-floor3' if adaptive else 'fixed12')
+    assert receipt['pipeline_polyphony'] == ('adaptive65/60-floor3' if adaptive else policy)
+    assert receipt['pipeline_worst_block'] == worst
+    assert 'firmware/devkit/renderer_pipeline_worst.h' in receipt['inputs']
     assert receipt['pipeline_deadline_ticks'] == 34829
     assert receipt['uart_task_priority'] == 18
     assert not receipt['hardware_acceptance']
@@ -99,6 +105,15 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
     staged = (out/'lunar-source/sim/web/src/fm1_app.c').read_text()
     assert '#pragma code_seg(".volatile_ram_code")\nstatic void pipeline_produce_block(' in staged
     assert '#pragma code_seg(".volatile_ram_code")\nstatic const float *pipeline_consume_block(' in staged
+
+
+@pytest.mark.parametrize('policy,adaptive,message', [('cap12', False, 'Unknown polyphony'),
+                                                     ('cap8', True, 'own policy')])
+def test_bad_policy_refused_before_sdk_access(tmp_path, policy, adaptive, message):
+    with pytest.raises(ValueError, match=message):
+        load_prepare().prepare_pipeline(tmp_path/'missing', ROOT, tmp_path/'out', tmp_path/'missing.a',
+                                        adaptive_three=adaptive, policy=policy)
+    assert not (tmp_path/'out').exists()
 
 
 @pytest.mark.parametrize('cycles', [0, 58, True])

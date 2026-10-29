@@ -21,6 +21,8 @@ int lunar_pipeline_live_output(uint32_t tag, const int16_t *pcm,
  * Explicit controller hook, not an automatic policy or fixed-polyphony result. */
 int lunar_pipeline_live_voice_limit(unsigned limit);
 int lunar_pipeline_live_voice_stats(unsigned out[4]);
+/* Init-time DX7 voice limit of the named policy: 12 (fixed12) or 8 (cap8). */
+unsigned lunar_pipeline_live_dx7_voices(void);
 #ifdef __cplusplus
 }
 #endif

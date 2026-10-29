@@ -658,7 +658,8 @@ failures; success finishes the finite backend without stopping the DAC clock.
 The driver checks producer/consumer deadlines as well as DAC transport faults.
 
 `LUNAR_PIPELINE_CYCLES` permits 1–57 four-case cycles (default three). Polyphony
-stays fixed at twelve unless `LUNAR_PIPELINE_ADAPTIVE_THREE=1` explicitly enables
+stays fixed at twelve unless `LUNAR_RENDERER_POLICY_CAP8=1` caps it at eight (see
+below) or `LUNAR_PIPELINE_ADAPTIVE_THREE=1` explicitly enables
 the measured 65/60 feedback policy with a three-voice floor. Adaptive results
 require an independent decision-trace replay and must not accept fixed voices.
 The task's advisory ready-count query excludes the local IRQ; it grants no lease.
@@ -691,6 +692,57 @@ solely to memory latency. Default policy is fixed12. Add
 30.4-minute workload. Preparation is offline and does not establish native or
 analog acceptance. Export evidence, then remove only the generated lane after
 its build/test processes exit.
+
+**Polyphony policies and the worst-block recorder** (2026-10-28; owner's
+decision: eight voices guaranteed, twelve a stretch goal).
+`--policy fixed12` (the default) keeps twelve DX7 voices. `--policy cap8`
+(`LUNAR_RENDERER_POLICY_CAP8=1`) calls `fm1_dx7_set_voice_limit(8)` on every
+DX7 unit at init. The limit is enforced per 64-frame block by the existing
+steal/retire logic. The policy is reported as `LUNAR_POLYPHONY ... policy=cap8`,
+with `unit0_limit=8` at the end. cap8 cannot be combined with
+`--adaptive-three`; the preparer and the C build both refuse.
+[verified: host replay] cap8 serial and pipelined replays match sample for
+sample in immediate and delayed modes. The 1- and 4-note cases are bit-exact
+with fixed12. From the 8-note case on the cap steals (unit 0 ends with 46
+steals), so every later case differs. This is the expected sound change above
+eight voices; listening acceptance is a separate gate.
+
+`--worst-block` (`LUNAR_PIPELINE_WORST_BLOCK=1` with `FM1_APP_PIPELINE_MARKS=1`)
+records, for each of the four cases, only the producer block with the largest
+`p_ticks`. That block is split at six existing stage boundaries into seven
+deltas:
+
+| stage | ends at |
+| --- | --- |
+| `controls` | entry to `fm1_app_pipeline_produce` (adapter, controls) |
+| `preflight` | after `pipeline_preflight` |
+| `seq` | after the sequencer advance |
+| `dispatch` | after the sound dispatch |
+| `inserts` | after the SOUNDS stage (inserts) |
+| `capture` | after the slot is sealed |
+| `ui` | the producer's existing end read |
+
+Each case's record is 64 bytes (256 bytes for four cases), printed at the end as
+`LUNAR_WORST_BLOCK`, `LUNAR_WORST_CONSUMER` and `LUNAR_WORST_SUMMARY`. The
+stages telescope and must sum to `p_ticks`. A block missing a mark is reported
+`complete=0` with zero stages, never with invented stages. The recorder's
+cost is six extra timer reads plus calls per block, inside `p_ticks`, plus a
+max test after the end read, outside it. Before audio starts the firmware
+measures both cache-warm over 256 repetitions and prints them as
+`LUNAR_WORST_OVERHEAD`. The static estimate is up to about 1–2 us per block
+(under 0.15% of the 1,451-us budget) [inferred; unmeasured until a board run].
+[verified: vendor pi32v2 clang, non-LTO objects, 2026-10-28] The driver
+(fixed12, cap8, worst, cap8+worst), the live adapter and `fm1_app.c` with and
+without marks compile against the V1.2.13 headers. `fm1_app_pipeline_mark` sits in
+`.volatile_ram_code` as eight instructions plus the existing indirect timer
+call; `lunar_worst_begin`/`mark` are forced inline so the hook never calls into
+flash. The recorder header leaves `printf` to its includer, because newlib's
+`<stdio.h>` collides with the SDK's `fs.h` `FILE`. This is not a linked-image
+placement or timing result.
+`python3 tools/devkit_pipeline_result.py capture.log` parses a run's UART log
+into JSON. It refuses missing or duplicate receipts, an inconsistent policy and
+stage vectors that do not sum. It reports timing only; PCM replay, the
+buffered release rule and the physical FM-1 remain separate gates.
 
 [verified] The tracked burst-hot V188 image completes 57 cycles, 228 cases and
 1,256,964 blocks in 30.4 minutes with zero producer/consumer deadline misses and
