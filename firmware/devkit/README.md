@@ -754,9 +754,10 @@ cap8 + worst-block + poly47 images leave a predicted 948 (msfa) and 1,012
 run had. Their applications (608,380 and 608,316 bytes) also exceed the
 bounded writer's 601,824 [verified: link; the heap figure is inferred from
 the constant 43,512 bytes in use after open in five board logs].
-`benchmark.c` builds its own copy of the resampler header, so the arithmetic
-benchmark's 47,872 Hz case now takes the 51/47 path (it converts to 44,118),
-with a second, flash-resident copy of the table.
+Pipeline images never call `lunar_devkit_benchmark`, but the board Makefile
+still lists `benchmark.c`, which builds its own copy of the resampler header.
+That links a second, flash-resident copy of the 51/47 table (4,608 bytes)
+into the image as dead code [verified: link, 2026-10-28].
 `python3 tools/devkit_pipeline_result.py capture.log` parses a run's UART log
 into JSON. It refuses missing or duplicate receipts, an inconsistent policy and
 stage vectors that do not sum. It reports timing only; PCM replay, the
