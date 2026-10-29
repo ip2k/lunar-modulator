@@ -10,8 +10,13 @@
  * system clock from the kit's 320 MHz to 360 MHz, so that HSB is 180 MHz and
  * LSB 60 MHz, and prints one LUNAR_CLOCK360 receipt line before and one
  * after. Returns 1 only when every readback matches. Otherwise it prints
- * result=FAIL, puts back what it changed, and returns 0; the caller must
- * then not start audio.
+ * result=FAIL reason=N, puts back what it changed, and returns 0; the caller
+ * must then not start audio. Reasons, before any write: 1 not at 320 MHz /
+ * 160 MHz HSB, 2 PLL source not 6, 3 bus dividers not HSB /2 and LSB /3,
+ * 4 OS tick not 10 ms, 5 UART clock not 48 MHz, 6 DCDC off. After a write:
+ * 7 a rail did not read back at the stock level (rails restored, clock
+ * untouched), 8 a clock, rail or tick readback failed at 360 MHz (clock back
+ * to 320 MHz, then rails restored).
  *
  * Call it from a task, before the DAC is opened: the SDK refuses a clock
  * change while the DAC runs. now() is the 24 MHz TIMER4 counter, already

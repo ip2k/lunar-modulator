@@ -324,27 +324,33 @@ def clock360_dac(text):
     """Measure the DAC rate after the switch; the preroll window gates audio."""
     if 'clock360' in text:
         raise ValueError('DAC clock check already prepared')
-    snap = ('{unsigned f;local_irq_save(f);fence103();{cb}=transport.callbacks;{t}=transport.previous;'
-            'local_irq_restore(f);}')
     text = checked_replace(text, '#include "voice_budget.h"\n', '#include "voice_budget.h"\n#include "clock360.h"\n')
+    # Kept small: the 360 MHz image has under 1 KB to spare in the writer
+    # region. One outlined snapshot; one window, the preroll's (about 260 ms,
+    # some 180 callbacks timed by TIMER4 at 24 MHz, far finer than the 0.5 %
+    # gate). A rate tied to the system clock is off by 12.5 % from the first
+    # callback, so a second window at the end of the soak would add nothing the
+    # analog capture does not already show; it was also skipped on every soak
+    # longer than TIMER4's 178 s wrap.
+    run = 'int lunar_pipeline_dac_run(uint32_t (*now)(void)) {\n'
+    text = checked_replace(text, run,
+        '/* The callback count and the TIMER4 start stamp of the last callback, together. */\n'
+        'static __attribute__((noinline)) uint32_t clock360_snap(uint32_t *t)'
+        '{unsigned f;uint32_t cb;local_irq_save(f);fence103();cb=transport.callbacks;*t=transport.previous;'
+        'local_irq_restore(f);return cb;}\n\n' + run)
     wait = '    while((uint32_t)(timer_get_ms()-pre)<50u && !transport.fault && !lunar_pipeline_error())os_time_dly(1);\n'
     text = checked_replace(text, wait, wait +
         '    /* Callback start stamps (TIMER4) bracket whole 64-frame callbacks. */\n'
-        '    uint32_t clock360_cb0,clock360_t0,clock360_cb1,clock360_t1,clock360_ms1;int clock360_soak_ok=1;\n'
-        '    ' + snap.replace('{cb}', 'clock360_cb0').replace('{t}', 'clock360_t0') + '\n')
+        '    uint32_t clock360_t0,clock360_t1,clock360_cb0=clock360_snap(&clock360_t0);\n')
+    # A failed window raises transport fault 36001, so the driver's own fault
+    # check fails the run before the music starts. No new failure exit.
     preroll = '    preroll_ms=timer_get_ms()-pre;\n'
-    text = checked_replace(text, preroll, preroll +
-        '    ' + snap.replace('{cb}', 'clock360_cb1').replace('{t}', 'clock360_t1') + 'clock360_ms1=timer_get_ms();\n'
+    check = '    if(transport.fault||lunar_pipeline_error())return v110_failure(__LINE__);\n'
+    return checked_replace(text, preroll + check,
+        preroll +
+        '    uint32_t clock360_cb1=clock360_snap(&clock360_t1);\n'
         '    if(!lunar_clock360_audio_rate("preroll",clock360_cb1-clock360_cb0,clock360_t1-clock360_t0))'
-        '{task_fault103(36001);return v110_failure(__LINE__);}\n')
-    end = '    printf("LUNAR_DAC103 end=1 '
-    text = checked_replace(text, end,
-        '    {uint32_t cb,t;' + snap.replace('{cb}', 'cb').replace('{t}', 't') + '\n'
-        '     /* TIMER4 wraps after 178 s; longer soaks report the preroll window only. */\n'
-        '     if((uint32_t)(timer_get_ms()-clock360_ms1)<170000u)clock360_soak_ok=lunar_clock360_audio_rate("soak",cb-clock360_cb1,t-clock360_t1);\n'
-        '     else puts("LUNAR_CLOCK360 audio window=soak skipped=timer4_wrap");}\n' + end)
-    tail = '    return 1;\n}\n\nint lunar_pipeline_dac_idle(void)'
-    return checked_replace(text, tail, '    if(!clock360_soak_ok)return v110_failure(__LINE__);\n' + tail)
+        'task_fault103(36001);\n' + check)
 
 
 def adapt_clock360(out, source, sfc_mhz):

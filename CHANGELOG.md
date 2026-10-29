@@ -219,10 +219,13 @@ history.
   LSB 60 MHz, and flash runs at 60 MHz unless `--sfc-mhz 90` is given. The
   rails are raised first, to M-VAVE's levels: core 1.38 V, VDC14 1.60 V with
   DCDC, I/O 3.2 V, LVD 2.6 V.
-  - The kit prints every clock and rail it reads back before and after the
-    switch, and checks the OS tick.
-  - It checks the DAC's 44,100 Hz rate during preroll and the soak.
-  - On any mismatch it goes back to 320 MHz and halts audio.
+  - The kit prints one compact line before and one after the switch with the
+    clock registers and the raw P33 rail registers it reads back (the decode
+    is in `firmware/devkit/clock360.c`), and checks the OS tick.
+  - It checks the DAC's 44,100 Hz rate over the preroll. The soak window was
+    dropped to fit the app-only writer region.
+  - On any mismatch it prints a numbered reason (1 to 8, listed in
+    `clock360.h`), goes back to 320 MHz and halts audio.
   - Nothing has been run on the board yet.
 - **A cheaper DX7 sine, behind a switch, for an A/B listening test.**
   `FM1_DX7_SINE=trunc12` gives FM6 a 4,096-point sine read with the phase's

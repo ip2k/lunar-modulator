@@ -96,40 +96,32 @@ static uint32_t tick_ticks(uint32_t (*now)(void))
     return now() - before;
 }
 
-/* The core's tick timer TTMR counts the system clock up to TTMR_PRD
- * (= sys / 100) [inferred: port.c IR], so its advance over 2.4 ms of TIMER4
- * gives sys in MHz x 10. Informational: the gate is clk_get and the tick. */
-static uint32_t ttmr_mhz_x10(uint32_t (*now)(void))
-{
-    enum { WINDOW = 57600u };
-    unsigned flags;
-    local_irq_save(flags);
-    JL_TypeDef_q32DSP *q = q32DSP(current_cpu_id());
-    uint32_t prd = q->TTMR_PRD, t0 = now(), c0 = q->TTMR_CNT;
-    while ((uint32_t)(now() - t0) < WINDOW) {}
-    uint32_t c1 = q->TTMR_CNT, t1 = now();
-    local_irq_restore(flags);
-    uint32_t d = c1 >= c0 ? c1 - c0 : c1 + prd - c0;
-    return (uint32_t)((uint64_t)d * 240u / (t1 - t0));
-}
-
+/* One line per phase. The P33 bytes are printed raw, in the order
+ * ana_con0,ana_con5,ana_con6,ana_con9,vlvd_con; decode them with the field
+ * map at the top of this file (SYSVDD = con9 & 15, VDC14 = con6 & 7, VDDIOM =
+ * con5 & 7, VDDIOW = (con5 >> 4) & 3, LVD = (vlvd >> 3) & 7, LVD enable =
+ * vlvd & 1, DCDC13 = (con0 >> 3) & 1). tick is ten OS ticks in TIMER4
+ * counts (2,400,000 at 10 ms). Kept short: the kit's writer region has
+ * under 1 KB to spare at 360 MHz. */
 static void receipt(const char *phase, const char *result, const struct clocks *c,
-                    const struct rails *r, uint32_t ttmr, uint32_t ticks, int rc)
+                    const struct rails *r, uint32_t ticks, int rc)
 {
     printf("LUNAR_CLOCK360 phase=%s result=%s sys=%d hsb=%d lsb=%d sfc=%d uart=%d "
-           "clk_con2=%08x sys_div=%08x pll2_con0=%08x pll2_con1=%08x "
-           "sysvdd_sel=%u vdc14_sel=%u vddiom_sel=%u vddiow_sel=%u vlvd_sel=%u vlvd_en=%u "
-           "dcdc13=%u ldo13=%u ttmr_mhz_x10=%u tick_ticks=%u tick_os=10 timer4_con=%08x rc=%d\n",
+           "con2=%x div=%x pll=%x,%x p33=%x,%x,%x,%x,%x tick=%u t4=%x rc=%d\n",
            phase, result, c->sys, c->hsb, c->lsb, c->sfc, c->uart,
            (unsigned)c->con2, (unsigned)c->div, (unsigned)c->pll0, (unsigned)c->pll1,
-           r->con9 & 15u, r->con6 & 7u, r->con5 & 7u, (r->con5 >> 4) & 3u,
-           (r->vlvd >> 3) & 7u, r->vlvd & 1u, (r->con0 >> 3) & 1u, (r->con0 >> 2) & 1u,
-           (unsigned)ttmr, (unsigned)ticks, (unsigned)JL_TIMER4->CON, rc);
+           r->con0, r->con5, r->con6, r->con9, r->vlvd,
+           (unsigned)ticks, (unsigned)JL_TIMER4->CON, rc);
 }
 
-static int fail(const char *reason)
+/* Failure reasons, printed as numbers to keep the image inside the kit's
+ * writer region; clock360.h lists them. */
+enum { NOT_AT_320 = 1, PLL_SOURCE_NOT_6, BUS_DIVIDERS, TICK_BEFORE, UART_CLOCK, DCDC_OFF,
+       RAIL_READBACK, READBACK };
+
+static int fail(int reason)
 {
-    printf("LUNAR_CLOCK360 result=FAIL reason=%s audio=halted\n", reason);
+    printf("LUNAR_CLOCK360 result=FAIL reason=%d audio=halted\n", reason);
     return 0;
 }
 
@@ -184,26 +176,26 @@ int lunar_clock360_apply(uint32_t (*now)(void))
     struct rails r0, r1;
     clocks_read(&c0);
     rails_read(&r0);
-    uint32_t ticks0 = tick_ticks(now), ttmr0 = ttmr_mhz_x10(now);
-    receipt("before", "-", &c0, &r0, ttmr0, ticks0, 0);
-    printf("LUNAR_CLOCK360 target sys=%d hsb=%d lsb=%d sfc=%d stock_power=%d sfc_baud=%d\n",
-           FM1_SYS, FM1_HSB, FM1_LSB, SFC_EXPECTED, LUNAR_DEVKIT_STOCK_POWER, LUNAR_DEVKIT_SFC_BAUD);
+    uint32_t ticks0 = tick_ticks(now);
+    /* The targets (sys 360, HSB 180, LSB 60 MHz, SFC, rails) are in the
+     * build receipt, lunar-devkit-input.json, not printed here. */
+    receipt("before", "-", &c0, &r0, ticks0, 0);
     /* Preconditions: change nothing unless the kit is in the state the
      * analysis assumed: 320/160/53.3 MHz from PLL source 6 (PLL = 1.5 x sys,
      * so 540 MHz after), HSB /2, LSB /3, a 10 ms tick, the 48 MHz UART. */
-    if (!near(c0.sys, KIT_SYS) || !near(c0.hsb, KIT_HSB)) return fail("not_at_320");
-    if ((c0.con2 & 15u) != 6u) return fail("pll_source_not_6");
-    if (((c0.div >> 16) & 3u) != 1u || ((c0.div >> 8) & 7u) != 2u) return fail("bus_dividers");
-    if (ticks0 < TICK_LOW || ticks0 > TICK_HIGH) return fail("tick_before");
-    if (c0.uart != 48000000) return fail("uart_clock");
-    if (!((r0.con0 >> 3) & 1u)) return fail("dcdc_off");
+    if (!near(c0.sys, KIT_SYS) || !near(c0.hsb, KIT_HSB)) return fail(NOT_AT_320);
+    if ((c0.con2 & 15u) != 6u) return fail(PLL_SOURCE_NOT_6);
+    if (((c0.div >> 16) & 3u) != 1u || ((c0.div >> 8) & 7u) != 2u) return fail(BUS_DIVIDERS);
+    if (ticks0 < TICK_LOW || ticks0 > TICK_HIGH) return fail(TICK_BEFORE);
+    if (c0.uart != 48000000) return fail(UART_CLOCK);
+    if (!((r0.con0 >> 3) & 1u)) return fail(DCDC_OFF);
 #if LUNAR_DEVKIT_STOCK_POWER
     rails_stock();
     rails_read(&r1);
     if (!rails_are_stock(&r1)) {
         rails_restore(&r0);
-        receipt("rails", "FAIL", &c0, &r1, ttmr0, ticks0, 0);
-        return fail("rail_readback");
+        receipt("rails", "FAIL", &c0, &r1, ticks0, 0);
+        return fail(RAIL_READBACK);
     }
 #endif
     int rc = system_clock_set(FM1_SYS);
@@ -212,14 +204,14 @@ int lunar_clock360_apply(uint32_t (*now)(void))
 #endif
     clocks_read(&c1);
     rails_read(&r1);
-    uint32_t ticks1 = tick_ticks(now), ttmr1 = ttmr_mhz_x10(now);
+    uint32_t ticks1 = tick_ticks(now);
     int ok = !rc && near(c1.sys, FM1_SYS) && near(c1.hsb, FM1_HSB) && near(c1.lsb, FM1_LSB) &&
              near(c1.sfc, SFC_EXPECTED) && c1.uart == 48000000 && (c1.con2 & 15u) == 6u &&
              ticks1 >= TICK_LOW && ticks1 <= TICK_HIGH && (JL_TIMER4->CON & 15u) == 9u;
 #if LUNAR_DEVKIT_STOCK_POWER
     ok = ok && rails_are_stock(&r1);
 #endif
-    receipt("after", ok ? "PASS" : "FAIL", &c1, &r1, ttmr1, ticks1, rc);
+    receipt("after", ok ? "PASS" : "FAIL", &c1, &r1, ticks1, rc);
     if (ok) return 1;
     /* Fail closed: back to the kit's clock, then its rails, then halt audio. */
     int back = rc ? 0 : system_clock_set(KIT_SYS);
@@ -228,8 +220,8 @@ int lunar_clock360_apply(uint32_t (*now)(void))
 #endif
     clocks_read(&c1);
     rails_read(&r1);
-    receipt("restored", "FAIL", &c1, &r1, ttmr_mhz_x10(now), tick_ticks(now), back);
-    return fail("readback");
+    receipt("restored", "FAIL", &c1, &r1, tick_ticks(now), back);
+    return fail(READBACK);
 }
 
 int lunar_clock360_audio_rate(const char *window, uint32_t callbacks, uint32_t ticks)
@@ -238,7 +230,7 @@ int lunar_clock360_audio_rate(const char *window, uint32_t callbacks, uint32_t t
     uint32_t mhz = ticks ? (uint32_t)((uint64_t)callbacks * 64u * 24000000000ull / ticks) : 0;
     /* +-0.5 %: a rate tied to the system PLL would move by 360/320 (+12.5 %). */
     int ok = mhz >= 43879500u && mhz <= 44320500u;
-    printf("LUNAR_CLOCK360 audio window=%s callbacks=%u ticks=%u rate_mhz=%u expected_mhz=44100000 result=%s\n",
+    printf("LUNAR_CLOCK360 audio=%s cb=%u t4=%u rate_mhz=%u result=%s\n",
            window, (unsigned)callbacks, (unsigned)ticks, (unsigned)mhz, ok ? "PASS" : "FAIL");
     return ok;
 }
