@@ -234,8 +234,9 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
         if mode in ('renderer-resampler-profile', 'renderer-cache-profile', 'renderer-fx-profile'):
             import re
             assert receipt['resampler_ram_original_sha256'] == hashlib.sha256(original).hexdigest()
-            definitions = re.findall(rb'static const float fm1_resampler_\w+\[[^\]]+\] = \{.*?\n\};', original, re.S)
-            assert len(definitions) == 2
+            # Kernel, low-pass and the 51/47 fast path's two-dimensional table.
+            definitions = re.findall(rb'static const float fm1_resampler_\w+\[[^\]]+\](?:\[[^\]]+\])? = \{.*?\n\};', original, re.S)
+            assert len(definitions) == 3
             macro = (out/'lunar-source/engines/src/mi_macro.cc').read_bytes()
             for definition in definitions:
                 if slopes and b"fm1_resampler_kernel[" in definition:
@@ -247,6 +248,8 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
                 assert external.replace(b' = {', b' __attribute__((section("' + section + b'"))) = {', 1) in macro
                 declaration = definition.split(b' = {', 1)[0].replace(b'static const', b'extern const', 1) + b';'
                 assert declaration in prepared
+                if b"fm1_resampler_poly47[" in definition:
+                    assert b"#if FM1_RESAMPLER_POLY47\n" + external.split(b' = {', 1)[0] in macro
             assert b'static const float fm1_resampler_' not in prepared
         else:
             assert receipt['resampler_ram_original_sha256'] is None
@@ -458,7 +461,14 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
     assert not (tmp_path/'invalid-live').exists()
 
 
-def test_real_resampler_workload(tmp_path):
+@pytest.mark.parametrize('poly47', [0, 1], ids=['two-stage', 'poly47'])
+def test_real_resampler_workload(tmp_path, poly47):
+    # With FM1_RESAMPLER_POLY47=0 the 47,872 Hz row is the two-stage converter
+    # the dev board ran (notes/2026-10-23-devkit-resampler-results.md). With
+    # the 51/47 fast path (the default since 2026-10-28) that row is computed
+    # on the host only; the board has not run it yet.
+    row = ('{0xbcc31dc5u, 0xd1a8e8ebu, 0x60bcf761u}' if poly47
+           else '{0xbcc31dc5u, 0x0c28d304u, 0x18efc0bfu}')
     harness = tmp_path/'main.c'
     harness.write_text('''
 #include "benchmark.h"
@@ -471,7 +481,7 @@ static void emit(const struct lunar_devkit_result *r) {
      * hashes, not timing expectations or a complete sample-stream oracle. */
     static const unsigned expected[3][3] = {
         {0xbcc31dc5u, 0x80cf1dc5u, 0x4d7705c5u},
-        {0xbcc31dc5u, 0x0c28d304u, 0x18efc0bfu},
+        ROW_47872,
         {0xbcc31dc5u, 0x8d5cd591u, 0x0a82150fu}
     };
     unsigned rate_index = r->rate == 44118 ? 0 : r->rate == 47872 ? 1 : 2;
@@ -491,10 +501,10 @@ int main(void) {
     assert(count == 18 && active_hash);
     return 0;
 }
-''')
+'''.replace('ROW_47872', row))
     binary = tmp_path/'benchmark'
     subprocess.run(['cc', '-std=c99', '-O2', '-ffp-contract=off', '-Wall', '-Wextra', '-Werror',
-                    '-fsanitize=undefined,address',
+                    '-fsanitize=undefined,address', f'-DFM1_RESAMPLER_POLY47={poly47}',
                     '-I'+str(ROOT/'firmware/devkit'),
                     '-I'+str(ROOT/'engines/include'), str(harness),
                     str(ROOT/'firmware/devkit/benchmark.c'), '-o', str(binary)], check=True)

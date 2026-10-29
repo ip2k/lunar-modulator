@@ -1168,6 +1168,24 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
                                .replace(" = {", ' __attribute__((section(".volatile_ram"))) = {', 1))
             original = original.replace(original_definition,
                 "extern const float fm1_resampler_" + table_name + "[" + length + "];", 1)
+        # The 51/47 fast path's table (FM1_RESAMPLER_POLY47, engines/resampler.md)
+        # is the one Drums and Macro read at Plaits' rate, so it moves with the
+        # others: 4,608 bytes more of the same section. It sits under its switch
+        # in the header, so its external copy does too.
+        pattern = (r"static const float fm1_resampler_poly47\[FM1_RESAMPLER_POLY47_ROWS\]"
+                   r"\[FM1_RESAMPLER_POLY47_TAPS\] = \{.*?\n\};")
+        matches = list(re.finditer(pattern, original, flags=re.S))
+        if len(matches) > 1 or (not matches and "FM1_RESAMPLER_POLY47" in original):
+            raise ValueError("Unexpected 51/47 resampler table; review placement")
+        if matches:
+            definition = matches[0].group()
+            definitions.append("#if FM1_RESAMPLER_POLY47\n"
+                + definition.replace("static const float", "extern const float", 1)
+                .replace(" = {", ' __attribute__((section(".volatile_ram"))) = {', 1)
+                + "\n#endif")
+            original = original.replace(definition,
+                "extern const float fm1_resampler_poly47[FM1_RESAMPLER_POLY47_ROWS]"
+                "[FM1_RESAMPLER_POLY47_TAPS];", 1)
         if resampler_slopes:
             anchor = ("  const float *k = &fm1_resampler_kernel[t >> 16];\n"
                       "  return k[0] + (float)(t & 0xFFFFu) * (1.0f / 65536.0f) * (k[1] - k[0]);")
@@ -1194,7 +1212,9 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
         for name in ("mi_macro.cc", "msfa_rom.cc"):
             p = staging / "engines/src" / name
             original = p.read_text()
-            expected = 2 if name == "mi_macro.cc" else 1
+            expected = 1
+            if name == "mi_macro.cc":
+                expected = 3 if "fm1_resampler_poly47[" in original else 2
             attribute = '__attribute__((section(".volatile_ram")))'
             if original.count(attribute) != expected:
                 raise ValueError("Unexpected resident table definitions; review cache placement")

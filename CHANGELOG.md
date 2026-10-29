@@ -2032,6 +2032,20 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **Drums, Macro, Macro Heavy and Six-Op reach the FM-1's rate for about
+  half the work.** Their engines run at Plaits' 47,872 Hz, almost exactly
+  51/47 of 44,118 Hz, and a fixed 48-tap polyphase converter now handles
+  that ratio (`FM1_RESAMPLER_POLY47`, on by default; owner's approval,
+  2026-10-28). It is 2.1 times faster on a desktop, about 300 instead of
+  about 910 instructions per sample for the dev kit's compiler, and adds no
+  delay (the old converter added 0.68 ms). 0–18 kHz stays flat within
+  0.006 dB and its spurs below −102 dB. The cost: tones sit 0.014 cent
+  lower, and what an engine puts just above 22 kHz can fold back into
+  20–22 kHz, about 20 dB down instead of 93. Their output changes slightly,
+  so the tests' block-timing cases, the metadata example and the
+  virtual FM-1's module (parity 108 of 108) were brought up to date. Other rates,
+  Shapes' 96 kHz among them, use the existing converter unchanged.
+  Details: `engines/resampler.md`, "The 51/47 fast path".
 - **Owner decisions, 2026-10-26** (after the recovery in docs/17):
   - Recovery of an unbootable FM-1 whose boot area `0x0`-`0x4000` is intact
     is proven on the owner's unit; UBOOT enumeration alone is still not proof,
