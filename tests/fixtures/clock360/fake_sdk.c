@@ -134,7 +134,7 @@ int main(int argc, char **argv)
            p33[P3_ANA_CON9] & 15u, p33[P3_ANA_CON6] & 7u, p33[P3_ANA_CON5] & 7u,
            (p33[P3_ANA_CON5] >> 4) & 3u, (p33[P3_VLVD_CON] >> 3) & 7u);
     /* The audio-rate gate: 44,100 Hz and a PLL-tied +12.5 %. */
-    lunar_clock360_audio_rate("nominal", 10000, (uint32_t)(10000ull * 64u * 24000000u / 44100u));
-    lunar_clock360_audio_rate("shifted", 10000, (uint32_t)(10000ull * 64u * 24000000u / 49612u));
+    lunar_clock360_audio_rate(10000, (uint32_t)(10000ull * 64u * 24000000u / 44100u));
+    lunar_clock360_audio_rate(10000, (uint32_t)(10000ull * 64u * 24000000u / 49612u));
     return 0;
 }

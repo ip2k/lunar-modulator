@@ -17,8 +17,9 @@ recorder.
 Images built with --sys-clk 360 (firmware/devkit/clock360.c) also print
 LUNAR_CLOCK360 receipts. With --sys-clk 360, or whenever such lines appear, a
 run counts only with one before=- line, after=PASS, audio=preroll result=PASS
-and an end=PASS readback after the soak at 360/180/60 MHz with the after
-line's SFC clock; any result=FAIL or restored= line refuses it. Those images
+and an end=- readback after the run that still shows 360/180/60 MHz, the after
+line's SFC clock and rails and a 10 ms tick; any result=FAIL or restored= line
+refuses it. Those images
 run XIP code with the SFC at 60 MHz (80 MHz at 320, presumably 90 on the
 FM-1), so their numbers are not the FM-1's.
 """
@@ -31,6 +32,7 @@ TICKS_PER_US = 24
 BUDGET_TICKS = 34829
 STAGES = ('controls', 'preflight', 'seq', 'dispatch', 'inserts', 'capture', 'ui')
 HEX_FIELDS = ('hash', 'fold')
+TICK_RANGE = (2352000, 2424000)  # ten 10 ms OS ticks in TIMER4 counts, -2 %..+1 %
 FM1_CLOCKS = dict(sys=360000000, hsb=180000000, lsb=60000000)
 # Where each stage's code runs. Only the DX7 note path is placed in XIP by
 # name (tools/jieli/prepare-pipeline-devkit.py PIPELINE_XIP); the rest of each
@@ -124,8 +126,8 @@ def clock360(rows, sys_clk):
         return found[0]
     before, after, end = phase('before'), phase('after'), phase('end')
     audio = phase('audio')
-    if before['before'] != '-' or after['after'] != 'PASS' or end['end'] != 'PASS':
-        raise ValueError('LUNAR_CLOCK360 before/after/end not -/PASS/PASS')
+    if before['before'] != '-' or after['after'] != 'PASS' or end['end'] != '-':
+        raise ValueError('LUNAR_CLOCK360 before/after/end not -/PASS/-')
     if audio['audio'] != 'preroll' or audio.get('result') != 'PASS':
         raise ValueError('LUNAR_CLOCK360 audio=preroll did not PASS')
     for row in (after, end):
@@ -133,6 +135,8 @@ def clock360(rows, sys_clk):
             raise ValueError('LUNAR_CLOCK360 clocks not at 360/180/60 MHz')
     if end.get('sfc') != after.get('sfc') or end.get('p33') != after.get('p33'):
         raise ValueError('LUNAR_CLOCK360 SFC clock or rails moved during the run')
+    if not TICK_RANGE[0] <= end.get('tick', 0) <= TICK_RANGE[1]:
+        raise ValueError('LUNAR_CLOCK360 OS tick not 10 ms at the end')
     # JL_SFC->BAUD is write-only in WL82.h. Hold the end line to the after
     # line's value only where the before line shows it reads back (1, the
     # kit's boot divider: 160 MHz / 2 = 80); any other read says nothing.

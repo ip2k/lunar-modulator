@@ -246,7 +246,8 @@ history.
     passing run stays at 360 MHz until the board is reset, so every run
     starts from a reset.
   - `tools/devkit_pipeline_result.py --sys-clk 360` counts a run only when
-    the switch, the preroll rate and the end readback all passed.
+    the switch and the preroll rate passed and the end readback still
+    matches the after line.
   - Flash at 60 MHz is slower than the 320 MHz build's 80 MHz and,
     presumably, the FM-1's 90 MHz, so code run from flash is slower here than
     on either: these figures are not the FM-1's (firmware/devkit/README.md,

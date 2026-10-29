@@ -28,14 +28,16 @@
  * 360; clock360.c gives the evidence behind each register write. */
 int lunar_clock360_apply(uint32_t (*now)(void));
 
-/* Audio-rate check over a window of DAC callbacks (64 frames each), timed
- * by TIMER4. Prints the measured rate; returns 1 when it is within 0.5 % of
- * 44,100 Hz, else prints result=FAIL and returns 0. */
-int lunar_clock360_audio_rate(const char *window, uint32_t callbacks, uint32_t ticks);
+/* Audio-rate check over the preroll's DAC callbacks (64 frames each), timed
+ * by TIMER4. Prints the measured rate as one "audio=preroll" line; returns 1
+ * when it is within 0.5 % of 44,100 Hz, else prints result=FAIL and
+ * returns 0. */
+int lunar_clock360_audio_rate(uint32_t callbacks, uint32_t ticks);
 
-/* End-of-run readback, after the soak: clk_get sys/hsb/lsb/sfc, the raw SFC
- * BAUD, the rails and the OS tick, as one "end=PASS" or "end=FAIL" line
- * (PASS: still the FM-1's clock tree and rails). Prints only. */
+/* End-of-run readback, after the DAC run returns: clk_get sys/hsb/lsb/sfc,
+ * the raw SFC BAUD, the rails and the OS tick, as one "end=-" line in the
+ * receipt format. Prints only; tools/devkit_pipeline_result.py judges it
+ * against the after line. */
 void lunar_clock360_end(uint32_t (*now)(void));
 
 #endif

@@ -312,12 +312,20 @@ def clock360_worker(text):
     text = checked_replace(text, '#include "benchmark.h"\n', '#include "benchmark.h"\n#include "clock360.h"\n')
     anchor = ('    os_time_dly(200);\n#endif\n'
               '#if defined(LUNAR_DEVKIT_RENDERER_TIMING) || defined(LUNAR_DEVKIT_RENDERER_PIPELINE_DAC)\n')
-    return checked_replace(text, anchor, anchor.replace('#endif\n', '#endif\n'
+    text = checked_replace(text, anchor, anchor.replace('#endif\n', '#endif\n'
         '    /* FM-1 clock and power (prepare-pipeline-devkit.py --sys-clk 360).\n'
         '     * Fail closed: no arithmetic probe and no DAC after a FAIL. */\n'
         '    if (!lunar_clock360_apply(now)) {\n'
         '        for (;;) os_time_dly(100);\n'
         '    }\n', 1))
+    # After the DAC run returns (the soak done or failed): re-read the clocks,
+    # the raw SFC BAUD, the rails and the tick, so an SDK path that moved them
+    # during the run (a clock change, an SFC re-init) shows in the log. Prints
+    # only; tools/devkit_pipeline_result.py requires it for a 360 MHz image.
+    # Here rather than in the DAC driver: the same line there cost 62 more
+    # bytes of the driver's own code.
+    run = '    int complete = lunar_pipeline_dac_run(now);\n'
+    return checked_replace(text, run, run + '    lunar_clock360_end(now);\n')
 
 
 def clock360_dac(text):
@@ -346,17 +354,11 @@ def clock360_dac(text):
     # check fails the run before the music starts. No new failure exit.
     preroll = '    preroll_ms=timer_get_ms()-pre;\n'
     check = '    if(transport.fault||lunar_pipeline_error())return v110_failure(__LINE__);\n'
-    text = checked_replace(text, preroll + check,
+    return checked_replace(text, preroll + check,
         preroll +
         '    uint32_t clock360_cb1=clock360_snap(&clock360_t1);\n'
-        '    if(!lunar_clock360_audio_rate("preroll",clock360_cb1-clock360_cb0,clock360_t1-clock360_t0))'
+        '    if(!lunar_clock360_audio_rate(clock360_cb1-clock360_cb0,clock360_t1-clock360_t0))'
         'task_fault103(36001);\n' + check)
-    # After the soak, before the driver's own end checks: re-read the clocks,
-    # the raw SFC BAUD, the rails and the tick, so a later SDK path that moved
-    # them (a clock change, an SFC re-init) shows in the log. Prints only;
-    # tools/devkit_pipeline_result.py requires end=PASS for a 360 MHz image.
-    finish = '    if(!lunar_pipeline_sdk_finish())return v110_failure(__LINE__);\n'
-    return checked_replace(text, finish, '    lunar_clock360_end(now);\n' + finish)
 
 
 def adapt_clock360(out, source, sfc_mhz):

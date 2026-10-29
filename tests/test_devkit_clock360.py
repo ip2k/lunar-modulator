@@ -79,7 +79,7 @@ def test_pass_raises_rails_before_the_clock_then_slows_sfc_held(fakes):
     assert text.index('system_clock_set 360000000') < text.index('sfc_flash_baud_div 2')
     after = receipt(text, 'after')
     for field in ('after=PASS', 'sys=360000000', 'hsb=180000000', 'lsb=60000000', 'sfc=60000000',
-                  'uart=48000000', 'baud=2', 'tick=2400311', 't4=9', 'rc=0'):
+                  'baud=2', 'tick=2400311', 'rc=0'):
         assert field in after.split()
     assert p33_rails(after) == dict(STOCK_RAILS, vlvd_en=1, dcdc13=1)
     before = receipt(text, 'before')
@@ -87,7 +87,7 @@ def test_pass_raises_rails_before_the_clock_then_slows_sfc_held(fakes):
     assert p33_rails(before) == dict(KIT_RAILS, vlvd_en=1, dcdc13=1)
     # The end-of-run readback repeats the after line's clocks, BAUD and rails.
     end = receipt(text, 'end')
-    assert end.replace('end=PASS', 'after=PASS') == after
+    assert end.replace('end=-', 'after=PASS') == after
     assert 'FAIL' not in text.split('LUNAR_CLOCK360 audio')[0]
     assert 'restored=' not in text and 'reason=' not in text
 
@@ -102,7 +102,7 @@ def test_end_readback_catches_an_sdk_path_that_moved_the_sfc_baud(fakes):
     text, final = run(fakes, 'end_drift')
     assert final['result'] == 1 and final['sfc'] == 90000000
     end = receipt(text, 'end')
-    for field in ('end=FAIL', 'sys=360000000', 'sfc=90000000', 'baud=1'):
+    for field in ('end=-', 'sys=360000000', 'sfc=90000000', 'baud=1'):
         assert field in end.split()
 
 
@@ -169,8 +169,8 @@ def test_clock_not_back_keeps_the_stock_rails(fakes, scenario):
 
 def test_audio_rate_gate(fakes):
     text, _ = run(fakes, 'pass')
-    assert 'LUNAR_CLOCK360 audio=nominal cb=10000 t4=348299319 rate_mhz=44100000 result=PASS' in text
-    assert 'audio=shifted' in text and 'rate_mhz=49612000 result=FAIL' in text
+    assert 'LUNAR_CLOCK360 audio=preroll cb=10000 t4=348299319 rate_mhz=44100000 result=PASS' in text
+    assert 'audio=preroll cb=10000 t4=309602515 rate_mhz=49612000 result=FAIL' in text
 
 
 def test_module_refuses_other_clocks():
@@ -264,11 +264,11 @@ def test_on_changes_only_the_clock_files(tmp_path, monkeypatch, sfc_mhz, baud):
     assert preroll < dac.index('if(transport.fault||lunar_pipeline_error())return v110_failure(__LINE__);', preroll) \
         < dac.index('preroll_phase=PRE_ARM;')
     assert dac.count('return v110_failure(') == (ROOT/'firmware/devkit/renderer_pipeline_dac.c').read_text().count('return v110_failure(')
-    # The end-of-run readback: after the soak receipt, before the driver's own
-    # end checks, once.
-    end = dac.index('    lunar_clock360_end(now);\n')
-    assert dac.count('lunar_clock360_end(') == 1
-    assert dac.index('printf("LUNAR_PIPELINE_SOAK ') < end < dac.index('if(!lunar_pipeline_sdk_finish())')
+    # The end-of-run readback: in the worker, once, right after the DAC run
+    # returns and before its completion line; none in the driver.
+    assert 'lunar_clock360_end' not in dac and worker.count('lunar_clock360_end(') == 1
+    assert worker.index('    int complete = lunar_pipeline_dac_run(now);\n    lunar_clock360_end(now);\n'
+                        '    printf("LUNAR_DEVKIT complete=') > call
     receipt = module.json.loads((on/'lunar-devkit-input.json').read_text())
     assert receipt['sys_clk_hz'] == 360000000 and receipt['hsb_hz'] == 180000000
     assert receipt['lsb_hz'] == 60000000 and receipt['sfc_hz'] == sfc_mhz*1000000
@@ -323,7 +323,7 @@ def test_the_result_parser_reads_the_module_s_own_receipts(fakes):
                          if l.startswith('LUNAR_CLOCK360 ') and ' audio=' not in l) + '\n' + preroll
     parsed = worst.result_parser.parse(receipts('pass') + worst.dac_receipts(), 360)
     assert parsed['clock360']['after']['sfc'] == 60000000 and parsed['clock360']['before']['baud'] == 1
-    for scenario, message in (('end_drift', 'before/after/end'), ('refuse', 'failed'),
+    for scenario, message in (('end_drift', 'SFC clock'), ('refuse', 'failed'),
                               ('restore_refuse', 'failed')):
         with pytest.raises(ValueError, match=message):
             worst.result_parser.parse(receipts(scenario) + worst.dac_receipts(), 360)

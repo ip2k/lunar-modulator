@@ -77,23 +77,25 @@ extern int sfc_flash_baud_div(u8 div);
 /* Ten OS ticks of 10 ms in TIMER4 counts, -2 %..+1 % (wake-up latency). */
 #define TICK_LOW 2352000u
 #define TICK_HIGH 2424000u
+static __attribute__((noinline)) int tick_ok(uint32_t t) { return t - TICK_LOW <= TICK_HIGH - TICK_LOW; }
 
-struct clocks { int sys, hsb, lsb, sfc, uart; u32 con2, div, pll0, pll1; };
-struct rails { u8 con0, con5, con6, con9, vlvd; };
+struct clocks { int sys, hsb, lsb, sfc, uart; u32 con2, div; };
+/* The five P33 bytes, in receipt order. */
+enum { CON0, CON5, CON6, CON9, VLVD };
+struct rails { u8 b[5]; };
 
 static void clocks_read(struct clocks *c)
 {
     c->sys = clk_get("sys"); c->hsb = clk_get("hsb"); c->lsb = clk_get("lsb");
     c->sfc = clk_get("sfc"); c->uart = clk_get("uart");
     c->con2 = JL_CLOCK->CLK_CON2; c->div = JL_CLOCK->SYS_DIV;
-    c->pll0 = JL_ANA->PLL2_CON0; c->pll1 = JL_ANA->PLL2_CON1;
 }
 
 static void rails_read(struct rails *r)
 {
-    r->con0 = P33_CON_GET(P3_ANA_CON0); r->con5 = P33_CON_GET(P3_ANA_CON5);
-    r->con6 = P33_CON_GET(P3_ANA_CON6); r->con9 = P33_CON_GET(P3_ANA_CON9);
-    r->vlvd = P33_CON_GET(P3_VLVD_CON);
+    r->b[CON0] = P33_CON_GET(P3_ANA_CON0); r->b[CON5] = P33_CON_GET(P3_ANA_CON5);
+    r->b[CON6] = P33_CON_GET(P3_ANA_CON6); r->b[CON9] = P33_CON_GET(P3_ANA_CON9);
+    r->b[VLVD] = P33_CON_GET(P3_VLVD_CON);
 }
 
 /* Ten OS ticks, aligned to a tick edge first, in TIMER4 counts. */
@@ -106,23 +108,25 @@ static uint32_t tick_ticks(uint32_t (*now)(void))
 }
 
 /* One line per phase, "<phase>=<result>": before=-, after=PASS|FAIL,
- * restored=OK rails=kit or restored=FAIL rails=kept, end=PASS|FAIL. The P33
+ * restored=OK rails=kit or restored=FAIL rails=kept, end=- (judged by
+ * tools/devkit_pipeline_result.py against the after line). The P33
  * bytes are printed raw, in the order ana_con0,ana_con5,ana_con6,ana_con9,
  * vlvd_con; decode them with the field map at the top of this file (SYSVDD =
  * con9 & 15, VDC14 = con6 & 7, VDDIOM = con5 & 7, VDDIOW = (con5 >> 4) & 3,
  * LVD = (vlvd >> 3) & 7, LVD enable = vlvd & 1, DCDC13 = (con0 >> 3) & 1).
  * baud is the raw JL_SFC->BAUD read. tick is ten OS ticks in TIMER4 counts
  * (2,400,000 at 10 ms; 0 on the restored line). Kept short: the kit's writer
- * region has little to spare at 360 MHz. */
+ * region has little to spare at 360 MHz, so the UART clock and TIMER4's
+ * CON are checked (before and after) but not printed. */
 static void receipt(const char *phase, const char *result, const struct clocks *c,
                     const struct rails *r, uint32_t ticks, int rc)
 {
-    printf("LUNAR_CLOCK360 %s=%s sys=%d hsb=%d lsb=%d sfc=%d uart=%d baud=%x "
-           "con2=%x div=%x pll=%x,%x p33=%x,%x,%x,%x,%x tick=%u t4=%x rc=%d\n",
-           phase, result, c->sys, c->hsb, c->lsb, c->sfc, c->uart, (unsigned)JL_SFC->BAUD,
-           (unsigned)c->con2, (unsigned)c->div, (unsigned)c->pll0, (unsigned)c->pll1,
-           r->con0, r->con5, r->con6, r->con9, r->vlvd,
-           (unsigned)ticks, (unsigned)JL_TIMER4->CON, rc);
+    printf("LUNAR_CLOCK360 %s=%s sys=%d hsb=%d lsb=%d sfc=%d baud=%x "
+           "con2=%x div=%x p33=%x,%x,%x,%x,%x tick=%u rc=%d\n",
+           phase, result, c->sys, c->hsb, c->lsb, c->sfc, (unsigned)JL_SFC->BAUD,
+           (unsigned)c->con2, (unsigned)c->div,
+           r->b[CON0], r->b[CON5], r->b[CON6], r->b[CON9], r->b[VLVD],
+           (unsigned)ticks, rc);
 }
 
 /* Failure reasons, printed as numbers to keep the image inside the kit's
@@ -138,42 +142,60 @@ static int fail(int reason)
 
 static int near(int value, int expected) { return value >= expected - 1000 && value <= expected + 1000; }
 
-/* Stock order (power_init): VDDIOM, VDC14, VDDIOW, then SYSVDD; LVD level
- * last, its enable untouched. Raise before the clock goes up. */
-static void rails_stock(void)
+/* sys, and HSB at sys / 2, each within 1 kHz. Outlined, like at_fm1, so
+ * the 32-bit clock constants are loaded once per check, not once per
+ * comparison: the kit's writer region has little to spare at 360 MHz. */
+static __attribute__((noinline)) int tree(const struct clocks *c, int sys)
 {
-    VDDIOM_VOL_SEL(VDDIOM_VOL_32V); os_time_dly(2);
-    VDC14_VOL_SEL(VDC14_VOL_SEL_160V); os_time_dly(2);
-    VDDIOW_VOL_SEL(VDDIOW_VOL_32V); os_time_dly(2);
-    SYSVDD_VOL_SEL(SYSVDD_VOL_SEL_138V); os_time_dly(2);
-    VLVD_SEL(VLVD_SEL_26V); os_time_dly(2);
+    return near(c->sys, sys) && near(c->hsb, sys >> 1);
 }
 
-/* Lower only after the clock is back down; reverse order. */
-static void rails_restore(const struct rails *r)
+/* The rails in stock order (power_init): VDDIOM, VDC14, VDDIOW, SYSVDD,
+ * then the LVD level, its enable untouched. Each row is one of the SDK's
+ * macros, spelled out so one loop can raise them (this order, before the
+ * clock goes up) and put them back (reverse order, only after the clock is
+ * back down); a table keeps the image inside the kit's writer region:
+ * VDDIOM_VOL_SEL, VDC14_VOL_SEL, VDDIOW_VOL_SEL, SYSVDD_VOL_SEL and
+ * VLVD_SEL are each P33_CON_SET(addr, start, len, level) [verified:
+ * asm/p33.h]. */
+static const struct { u16 addr; u8 start, len, byte, stock; } RAIL[5] = {
+    { P3_ANA_CON5, 0, 3, CON5, VDDIOM_VOL_32V },
+    { P3_ANA_CON6, 0, 3, CON6, VDC14_VOL_SEL_160V },
+    { P3_ANA_CON5, 4, 2, CON5, VDDIOW_VOL_32V },
+    { P3_ANA_CON9, 0, 4, CON9, SYSVDD_VOL_SEL_138V },
+    { P3_VLVD_CON, 3, 3, VLVD, VLVD_SEL_26V },
+};
+
+static u8 rail_level(const struct rails *r, int i)
 {
-    VLVD_SEL((r->vlvd >> 3) & 7u); os_time_dly(2);
-    SYSVDD_VOL_SEL(r->con9 & 15u); os_time_dly(2);
-    VDDIOW_VOL_SEL((r->con5 >> 4) & 3u); os_time_dly(2);
-    VDC14_VOL_SEL(r->con6 & 7u); os_time_dly(2);
-    VDDIOM_VOL_SEL(r->con5 & 7u); os_time_dly(2);
+    return (r->b[RAIL[i].byte] >> RAIL[i].start) & ((1u << RAIL[i].len) - 1u);
 }
 
+/* saved NULL: raise to the stock levels; else lower back to saved's. */
+static void rails_write(const struct rails *saved)
+{
+    for (int k = 0; k < 5; k++) {
+        int i = saved ? 4 - k : k;
+        P33_CON_SET(RAIL[i].addr, RAIL[i].start, RAIL[i].len, saved ? rail_level(saved, i) : RAIL[i].stock);
+        os_time_dly(2);
+    }
+}
+
+/* Every level stock, LVD enabled, DCDC13 on. */
 static int rails_are_stock(const struct rails *r)
 {
-    return (r->con9 & 15u) == SYSVDD_VOL_SEL_138V && (r->con6 & 7u) == VDC14_VOL_SEL_160V &&
-           (r->con5 & 7u) == VDDIOM_VOL_32V && ((r->con5 >> 4) & 3u) == VDDIOW_VOL_32V &&
-           ((r->vlvd >> 3) & 7u) == VLVD_SEL_26V && (r->vlvd & 1u) &&
-           ((r->con0 >> 3) & 1u);
+    for (int i = 0; i < 5; i++)
+        if (rail_level(r, i) != RAIL[i].stock) return 0;
+    return (r->b[VLVD] & 1u) && ((r->b[CON0] >> 3) & 1u);
 }
 
 /* The FM-1's clock tree, the OS tick, and (with stock power) its rails. */
-static int at_fm1(const struct clocks *c, const struct rails *r, uint32_t ticks)
+static __attribute__((noinline)) int at_fm1(const struct clocks *c, const struct rails *r, uint32_t ticks)
 {
     (void)r;
-    return near(c->sys, FM1_SYS) && near(c->hsb, FM1_HSB) && near(c->lsb, FM1_LSB) &&
+    return tree(c, FM1_SYS) && near(c->lsb, FM1_LSB) &&
            near(c->sfc, SFC_EXPECTED) && c->uart == 48000000 && (c->con2 & 15u) == 6u &&
-           ticks >= TICK_LOW && ticks <= TICK_HIGH && (JL_TIMER4->CON & 15u) == 9u
+           tick_ok(ticks) && (JL_TIMER4->CON & 15u) == 9u
 #if LUNAR_DEVKIT_STOCK_POWER
            && rails_are_stock(r)
 #endif
@@ -185,7 +207,12 @@ static int at_fm1(const struct clocks *c, const struct rails *r, uint32_t ticks)
  * change, which is 90 MHz at HSB 180. Set BAUD 2 with the other core held
  * and this core's interrupts off, running from SRAM as the SDK's own
  * sfc_flash_baud_div does [verified: vm_sfc.c IR: a NULL callback holds the
- * other core]. noinline keeps LTO from folding it back into XIP code. */
+ * other core]. noinline keeps LTO from folding it back into XIP code.
+ * Heap: the option's SRAM code ends exactly on a 32-byte boundary, and 20
+ * bytes less would give 64 B more heap. These 14 bytes and the SDK's 36-byte
+ * sfc_flash_baud_div are the only SRAM code here that could go (the rest is
+ * the SDK's clock-change path); see firmware/devkit/README.md, "The 360 MHz
+ * option". */
 static __attribute__((noinline)) AT_VOLATILE_RAM_CODE void sfc_baud_held(u8 div)
 {
     cpu_enter_sfc_critical(NULL, NULL);
@@ -207,18 +234,18 @@ int lunar_clock360_apply(uint32_t (*now)(void))
     /* Preconditions: change nothing unless the kit is in the state the
      * analysis assumed: 320/160/53.3 MHz from PLL source 6 (PLL = 1.5 x sys,
      * so 540 MHz after), HSB /2, LSB /3, a 10 ms tick, the 48 MHz UART. */
-    if (!near(c0.sys, KIT_SYS) || !near(c0.hsb, KIT_HSB)) return fail(NOT_AT_320);
+    if (!tree(&c0, KIT_SYS)) return fail(NOT_AT_320);
     if ((c0.con2 & 15u) != 6u) return fail(PLL_SOURCE_NOT_6);
     if (((c0.div >> 16) & 3u) != 1u || ((c0.div >> 8) & 7u) != 2u) return fail(BUS_DIVIDERS);
-    if (ticks0 < TICK_LOW || ticks0 > TICK_HIGH) return fail(TICK_BEFORE);
+    if (!tick_ok(ticks0)) return fail(TICK_BEFORE);
     if (c0.uart != 48000000) return fail(UART_CLOCK);
-    if (!((r0.con0 >> 3) & 1u)) return fail(DCDC_OFF);
+    if (!((r0.b[CON0] >> 3) & 1u)) return fail(DCDC_OFF);
 #if LUNAR_DEVKIT_STOCK_POWER
-    rails_stock();
+    rails_write(NULL);
     rails_read(&r1);
     if (!rails_are_stock(&r1)) {
         /* The clock has not been touched: the kit's rails are safe. */
-        rails_restore(&r0);
+        rails_write(&r0);
         return fail(RAIL_READBACK);
     }
 #endif
@@ -229,7 +256,8 @@ int lunar_clock360_apply(uint32_t (*now)(void))
     clocks_read(&c1);
     rails_read(&r1);
     uint32_t ticks1 = tick_ticks(now);
-    int ok = !rc && at_fm1(&c1, &r1, ticks1);
+    /* Bitwise, so the after receipt has one call site. */
+    int ok = at_fm1(&c1, &r1, ticks1) & !rc;
     receipt("after", ok ? "PASS" : "FAIL", &c1, &r1, ticks1, rc);
     if (ok) return 1;
     /* Fail closed. Back to the kit's clock if it moved (a refused switch may
@@ -240,9 +268,9 @@ int lunar_clock360_apply(uint32_t (*now)(void))
      * undervolt it. Either way audio stays halted until a reset. */
     int back = near(c1.sys, KIT_SYS) ? 0 : system_clock_set(KIT_SYS);
     clocks_read(&c1);
-    int down = !back && near(c1.sys, KIT_SYS) && near(c1.hsb, KIT_HSB);
+    int down = !back && tree(&c1, KIT_SYS);
 #if LUNAR_DEVKIT_STOCK_POWER
-    if (down) rails_restore(&r0);
+    if (down) rails_write(&r0);
 #endif
     rails_read(&r1);
     receipt("restored", down ? "OK rails=kit" : "FAIL rails=kept", &c1, &r1, 0, back);
@@ -256,16 +284,16 @@ void lunar_clock360_end(uint32_t (*now)(void))
     clocks_read(&c);
     rails_read(&r);
     uint32_t ticks = tick_ticks(now);
-    receipt("end", at_fm1(&c, &r, ticks) ? "PASS" : "FAIL", &c, &r, ticks, 0);
+    receipt("end", "-", &c, &r, ticks, 0);
 }
 
-int lunar_clock360_audio_rate(const char *window, uint32_t callbacks, uint32_t ticks)
+int lunar_clock360_audio_rate(uint32_t callbacks, uint32_t ticks)
 {
     /* 64 frames per callback, TIMER4 at 24 MHz; milli-hertz. */
     uint32_t mhz = ticks ? (uint32_t)((uint64_t)callbacks * 64u * 24000000000ull / ticks) : 0;
     /* +-0.5 %: a rate tied to the system PLL would move by 360/320 (+12.5 %). */
     int ok = mhz >= 43879500u && mhz <= 44320500u;
-    printf("LUNAR_CLOCK360 audio=%s cb=%u t4=%u rate_mhz=%u result=%s\n",
-           window, (unsigned)callbacks, (unsigned)ticks, (unsigned)mhz, ok ? "PASS" : "FAIL");
+    printf("LUNAR_CLOCK360 audio=preroll cb=%u t4=%u rate_mhz=%u result=%s\n",
+           (unsigned)callbacks, (unsigned)ticks, (unsigned)mhz, ok ? "PASS" : "FAIL");
     return ok;
 }

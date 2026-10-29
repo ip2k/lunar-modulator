@@ -807,14 +807,17 @@ clock from 320 to 360 MHz (HSB 180, LSB 60). The option off leaves the 320 MHz
 build inputs byte-identical. Its UART receipts:
 
 - `LUNAR_CLOCK360 before=- ...` and `after=PASS|FAIL ...`: clk_get sys, hsb,
-  lsb, sfc and uart, the raw SFC `baud`, the clock registers, the five P33
-  rail registers, ten OS ticks in TIMER4 counts and the SDK's return code.
-- `LUNAR_CLOCK360 audio=preroll ... result=PASS|FAIL`: the DAC callback rate
-  over the preroll, TIMER4-timed; a FAIL is a transport fault before the
-  music starts.
-- `LUNAR_CLOCK360 end=PASS|FAIL ...`: the same readback after the soak, so an
-  SDK path that moved the clock, the SFC divider or a rail during the run
-  shows.
+  lsb and sfc, the raw SFC `baud`, the clock registers (`con2`, `div`), the
+  five P33 rail registers (`p33=`), ten OS ticks in TIMER4 counts (`tick=`)
+  and the SDK's return code (`rc=`). The UART clock (48 MHz) and TIMER4's
+  CON are checked before and after but not printed, to save flash.
+- `LUNAR_CLOCK360 audio=preroll cb=N t4=N rate_mhz=N result=PASS|FAIL`: the
+  DAC callback rate over the preroll, TIMER4-timed; a FAIL is a transport
+  fault before the music starts.
+- `LUNAR_CLOCK360 end=- ...`: the same readback, printed by the worker after
+  the DAC run returns, so an SDK path that moved the clock, the SFC divider
+  or a rail during the run shows. It carries no verdict; the parser judges
+  it against the after line.
 - On failure `LUNAR_CLOCK360 result=FAIL reason=N` (1-6 before any write,
   7-9 after; `clock360.h`). Only 7 and 8 roll back: 7 puts the kit's rails
   back with the clock untouched; 8 brings the clock back to 320/160 MHz,
@@ -826,11 +829,12 @@ build inputs byte-identical. Its UART receipts:
 
 So every 360 MHz run starts from a reset (power-on or the ROM's entry), never
 from a board a previous run left at 360 MHz. `tools/devkit_pipeline_result.py
---sys-clk 360` counts a run only with `before=-`, `after=PASS`,
-`audio=preroll result=PASS` and `end=PASS` at 360/180/60 MHz with the after
-line's SFC clock and rails (and its BAUD, where the before line shows the
-register reads back); any `result=FAIL` or `restored=` line refuses it, and
-`--sys-clk 320` refuses a log that has such lines.
+--sys-clk 360` counts a run only with one each of `before=-`, `after=PASS`,
+`audio=preroll result=PASS` and `end=-`, where the end line reads 360/180/60
+MHz with `rc=0`, the after line's SFC clock and rails, ten OS ticks of 10 ms
+(2,352,000 to 2,424,000 TIMER4 counts) and the after line's BAUD, where the
+before line shows the register reads back; any `result=FAIL` or `restored=`
+line refuses it, and `--sys-clk 320` refuses a log that has such lines.
 
 **The SFC confound.** SFC = HSB / (BAUD + 1). The 360 MHz images keep BAUD 2,
 so the flash runs at 60 MHz, against 80 MHz in the 320 MHz images (HSB 160,
