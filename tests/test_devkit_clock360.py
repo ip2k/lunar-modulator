@@ -3,6 +3,12 @@
 Nothing here touches a board. The behavioural test runs firmware/devkit/clock360.c
 against a simulated SDK (tests/fixtures/clock360/fake_sdk.c); it checks the order
 of writes and the fail-closed paths, not the silicon.
+
+Two builds of the module. The kit build is what the preparer builds: since the
+bench run of 2026-10-29 showed the kit on a fixed 320 MHz tap (CLK_CON2 = 2), from
+which the SDK cannot reach 360 MHz, it reads, prints and refuses (reason 10)
+without a write. The switch model (LUNAR_DEVKIT_CLOCK360_SWITCH, host only) keeps
+the 2026-10-28 switch's decisions tested against that design's assumed source 6.
 """
 import filecmp
 import importlib.util
@@ -34,23 +40,29 @@ def compiler():
     return cc
 
 
+# The flags the preparer passes (prepare-pipeline-devkit.py adapt_clock360).
+KIT_FLAGS = ['-DLUNAR_DEVKIT_SYS_CLK=360000000', '-DLUNAR_DEVKIT_STOCK_POWER=1', '-DLUNAR_DEVKIT_SFC_BAUD=2']
+SWITCH_MODEL = ['-DLUNAR_DEVKIT_CLOCK360_SWITCH=1', '-DLUNAR_CLOCK360_HOST_MODEL']
+KIT_BENCH = ROOT/'tests/fixtures/clock360/kit-2026-10-29-uart.txt'
+
+
 @pytest.fixture(scope='module')
 def fakes(tmp_path_factory):
     cc = compiler()
     out = tmp_path_factory.mktemp('clock360')
     built = {}
-    for baud in (1, 2):
-        exe = out/f'fake{baud}'
-        subprocess.run([cc, '-std=gnu99', '-Wall', '-Wextra', '-Werror',
-                        '-DLUNAR_DEVKIT_SYS_CLK=360000000', '-DLUNAR_DEVKIT_STOCK_POWER=1',
-                        f'-DLUNAR_DEVKIT_SFC_BAUD={baud}', '-I'+str(FIXTURES/'sdk_stub'),
+    for key, flags in (('kit', KIT_FLAGS), (1, KIT_FLAGS[:2] + ['-DLUNAR_DEVKIT_SFC_BAUD=1'] + SWITCH_MODEL),
+                       (2, KIT_FLAGS + SWITCH_MODEL)):
+        exe = out/f'fake{key}'
+        subprocess.run([cc, '-std=gnu99', '-Wall', '-Wextra', '-Werror', *flags, '-I'+str(FIXTURES/'sdk_stub'),
                         '-I'+str(ROOT/'firmware/devkit'), str(FIXTURES/'fake_sdk.c'),
                         str(ROOT/'firmware/devkit/clock360.c'), '-o', str(exe)], check=True)
-        built[baud] = exe
+        built[key] = exe
     return built
 
 
 def run(fakes, scenario, baud=2):
+    """baud 1 or 2: the host switch model; 'kit': the kit build."""
     text = subprocess.run([str(fakes[baud]), scenario], check=True, capture_output=True, text=True).stdout
     final = dict(re.findall(r'(\w+)=(-?\d+)', next(l for l in text.splitlines() if l.startswith('FAKE result='))))
     return text, {k: int(v) for k, v in final.items()}
@@ -66,6 +78,83 @@ def p33_rails(line):
     con0, con5, con6, con9, vlvd = (int(v, 16) for v in re.search(r' p33=([0-9a-f,]+) ', line)[1].split(','))
     return dict(sysvdd=con9 & 15, vdc14=con6 & 7, vddiom=con5 & 7, vddiow=(con5 >> 4) & 3,
                 vlvd=(vlvd >> 3) & 7, vlvd_en=vlvd & 1, dcdc13=(con0 >> 3) & 1)
+
+
+def masked(line):
+    return re.sub(r' tick=\d+ ', ' tick=N ', line)
+
+
+def test_kit_build_reads_the_bench_state_and_refuses_without_a_write(fakes):
+    # The kit's own before line from the bench (2026-10-29): the fixed 320 MHz
+    # tap, con2=2. The kit build recognises it and refuses with reason 10.
+    text, final = run(fakes, 'kit', baud='kit')
+    bench = next(l.split(']', 1)[1] for l in KIT_BENCH.read_text().splitlines() if 'LUNAR_CLOCK360 before=' in l)
+    assert masked(receipt(text, 'before')) == masked(bench)
+    assert re.fullmatch(r'LUNAR_CLOCK360 pll=- pll_con0=[0-9a-f]+ pll2_con0=[0-9a-f]+ pll2_con1=[0-9a-f]+ '
+                        r'usb_com0=[0-9a-f]+ usb_com2=[0-9a-f]+ sdr_con0=[0-9a-f]+', receipt(text, 'pll'))
+    assert 'LUNAR_CLOCK360 result=FAIL reason=10' in text.splitlines() and text.count('reason=') == 1
+    assert final['result'] == 0 and final['clock_sets'] == 0 and final['p33_writes'] == 0
+    assert final['critical_max'] == 0 and final['sys'] == 320000000
+    assert {k: final[k] for k in KIT_RAILS} == KIT_RAILS
+    for phase in ('after=', 'restored=', 'end=', 'FAKE system_clock_set', 'sfc_flash_baud_div'):
+        assert phase not in text
+
+
+# 1 not at 320; 2 not the kit's tap 2 (here the FM-1's source 6); 6 DCDC off;
+# 10 every check passed (the fake's default kit state).
+@pytest.mark.parametrize('scenario,reason', [('at_240', 1), ('pll_source', 2), ('dcdc_off', 6), ('pass', 10)])
+def test_kit_build_never_writes(fakes, scenario, reason):
+    text, final = run(fakes, scenario, baud='kit')
+    assert final['result'] == 0 and final['clock_sets'] == 0 and final['p33_writes'] == 0
+    assert final['critical_max'] == 0
+    assert f'LUNAR_CLOCK360 result=FAIL reason={reason}' in text.splitlines() and text.count('reason=') == 1
+
+
+def test_sdk_model_refuses_360_from_a_fixed_tap():
+    # The fake's system_clock_set mirrors the SDK's fixed-tap search: 360 MHz is
+    # not tap x {1,3,5,7} x {1,2,4,8} [verified: clock.c IR clk_src/clk_div0/clk_div1].
+    taps = {s // a // b for s in (192, 137, 320, 480, 107) for a in (1, 3, 5, 7) for b in (1, 2, 4, 8)}
+    assert 320 in taps and 360 not in taps
+    assert 'tap_clock(clk)) return -22;' in (FIXTURES/'fake_sdk.c').read_text()
+
+
+def test_kit_build_links_no_writer(tmp_path):
+    # Structural: the kit object references no clock, rail or SFC writer.
+    cc = compiler()
+    obj = tmp_path/'clock360.o'
+    subprocess.run([cc, '-std=gnu99', '-Wall', '-Wextra', '-Werror', '-c', *KIT_FLAGS,
+                    '-I'+str(FIXTURES/'sdk_stub'), '-I'+str(ROOT/'firmware/devkit'),
+                    str(ROOT/'firmware/devkit/clock360.c'), '-o', str(obj)], check=True)
+    nm = shutil.which('nm') or shutil.which('llvm-nm')
+    if not nm:
+        pytest.skip('nm unavailable')
+    undefined = subprocess.run([nm, '-u', str(obj)], check=True, capture_output=True, text=True).stdout
+    for writer in ('system_clock_set', 'P33_CON_SET', 'sfc_flash_baud_div', 'cpu_enter_sfc_critical'):
+        assert writer not in undefined
+    assert 'P33_CON_GET' in undefined and 'clk_get' in undefined
+
+
+def test_switch_cannot_be_built_for_the_kit():
+    cc = compiler()
+    result = subprocess.run([cc, '-std=gnu99', '-fsyntax-only', *KIT_FLAGS, '-DLUNAR_DEVKIT_CLOCK360_SWITCH=1',
+                             '-I'+str(FIXTURES/'sdk_stub'), '-I'+str(ROOT/'firmware/devkit'),
+                             str(ROOT/'firmware/devkit/clock360.c')], capture_output=True, text=True)
+    assert result.returncode != 0 and 'No reviewed 360 MHz switch' in result.stderr
+
+
+def test_the_parser_names_the_bench_refusal_and_the_kit_build_s_refusal(fakes):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('pipeline_worst', ROOT/'tests/test_devkit_pipeline_worst.py')
+    worst = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(worst)
+    # The bench log itself (r2 image, no DAC receipts): refused on the clock
+    # lines first, with the reason named, not on the missing DAC receipts.
+    with pytest.raises(ValueError, match=r'reason 2 .*fixed 320 MHz tap'):
+        worst.result_parser.parse(KIT_BENCH.read_bytes(), 360)
+    text, _ = run(fakes, 'kit', baud='kit')
+    lines = '\n'.join(l for l in text.splitlines() if l.startswith('LUNAR_CLOCK360 ') and ' audio=' not in l)
+    with pytest.raises(ValueError, match=r'reason 10 .*no reviewed'):
+        worst.result_parser.parse(lines + '\n', 360)
 
 
 def test_pass_raises_rails_before_the_clock_then_slows_sfc_held(fakes):
@@ -112,8 +201,9 @@ def test_sfc_90_keeps_the_sdk_baud_and_takes_no_critical_section(fakes):
     assert 'sfc_flash_baud_div' not in text
 
 
-# Reason numbers as listed in clock360.h: 1 not at 320, 2 PLL source, 6 DCDC off.
-@pytest.mark.parametrize('scenario,reason', [('at_240', 1), ('pll_source', 2), ('dcdc_off', 6)])
+# Switch model. Reason numbers as listed in clock360.h: 1 not at 320, 2 PLL
+# source not 6, 6 DCDC off.
+@pytest.mark.parametrize('scenario,reason', [('at_240', 1), ('pll_source', 2), ('dcdc_off', 6), ('kit', 2)])
 def test_preconditions_fail_before_any_write(fakes, scenario, reason):
     text, final = run(fakes, scenario)
     assert final['result'] == 0 and final['clock_sets'] == 0 and final['critical_max'] == 0

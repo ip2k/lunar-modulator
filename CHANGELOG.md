@@ -264,7 +264,12 @@ history.
     228). The two msfa images keep only 96 bytes of heap, under the
     128-byte headroom, so the size check still fails them until that is
     settled (firmware/devkit/README.md, "Image sizes at 360 MHz").
-  - Nothing has been run on the board yet.
+  - **It does not switch the kit after all (2026-10-29).** On the first run
+    the kit reported a fixed 320 MHz clock source, from which the vendor
+    library cannot reach 360 MHz without reprogramming the PLL, which the
+    design ruled out. It wrote nothing and stopped. The option now only reads
+    and prints the kit's clock, PLL and power settings and stops with reason
+    10, so it produces no 360 MHz timing.
 - **A cheaper DX7 sine, behind a switch, for an A/B listening test.**
   `FM1_DX7_SINE=trunc12` gives FM6 a 4,096-point sine read with the phase's
   top 12 bits and no interpolation, as the DX7's chip does, in place of

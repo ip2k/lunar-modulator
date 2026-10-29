@@ -1,18 +1,35 @@
 /* Behavioural host model for firmware/devkit/clock360.c. One scenario per
  * run (argv[1]); prints the module's own lines plus FAKE lines for the test.
- * Models: the SDK clock change keeps PLL source and bus dividers and restores
- * the boot SFC BAUD; the OS tick period is TTMR_PRD system clocks; TIMER4
- * counts 24 MHz; P33 fields are plain bit fields. */
+ *
+ * Kit build (LUNAR_DEVKIT_CLOCK360_SWITCH 0, what the preparer builds): the
+ * board boots as the dev kit did on the bench, 2026-10-29: CLK_CON2 = 2
+ * (the fixed 320 MHz tap), and system_clock_set behaves as the SDK's does
+ * from a fixed tap: anything that is not tap x {1,3,5,7} x {1,2,4,8}
+ * returns -22 and changes nothing [verified: clock.c IR].
+ *
+ * Switch model (LUNAR_DEVKIT_CLOCK360_SWITCH 1, host only): the 2026-10-28
+ * design's assumption, CLK_CON2 = 6, and a clock change that keeps the
+ * source and bus dividers and restores the boot SFC BAUD. No kit boots
+ * like that; it keeps that path's decisions tested.
+ *
+ * Both: the OS tick period is TTMR_PRD system clocks; TIMER4 counts 24 MHz;
+ * P33 fields are plain bit fields. */
 #include <stdlib.h>
 #include <string.h>
 #include "clock360_sdk_stub.h"
 #include "clock360.h"
+
+#ifndef LUNAR_DEVKIT_CLOCK360_SWITCH
+#define LUNAR_DEVKIT_CLOCK360_SWITCH 0
+#endif
 
 fake_clock_t fake_clock;
 fake_ana_t fake_ana;
 fake_timer_t fake_timer4;
 JL_TypeDef_q32DSP fake_q32;
 fake_sfc_t fake_sfc;
+fake_sdr_t fake_sdr;
+volatile u32 fake_husb_com[3];
 static u8 p33[256];
 static uint64_t t24;          /* TIMER4 time, 24 MHz */
 static uint32_t sys = 320000000, hsb_div = 2, lsb_div = 3, baud = 1, boot_baud = 1;
@@ -30,10 +47,25 @@ int clk_get(const char *n)
     return 0;
 }
 
+/* Is clk one of the SDK's fixed-tap clocks [verified: sys_clock_update
+ * clk_src, clk_div0, clk_div1]? */
+static int tap_clock(u32 clk)
+{
+    static const u32 src[5] = { 192, 137, 320, 480, 107 };
+    static const u32 d0[4] = { 1, 3, 5, 7 }, d1[4] = { 1, 2, 4, 8 };
+    for (int i = 0; i < 5; i++)
+        for (int j = 0; j < 4; j++)
+            for (int k = 0; k < 4; k++)
+                if (src[i] / d0[j] / d1[k] * 1000000u == clk) return 1;
+    return 0;
+}
+
 int system_clock_set(u32 clk)
 {
     ++clock_sets;
     printf("FAKE system_clock_set %u rails_set_before=%u\n", (unsigned)clk, p33_writes);
+    /* From a fixed tap the SDK stays on the taps: 360 MHz is refused. */
+    if ((fake_clock.CLK_CON2 & 15u) < 5u && !tap_clock(clk)) return -22;
     if (moved && clk == 360000000u) {
         /* Refused, but the PLL moved anyway: a partial change. */
         sys = clk;
@@ -95,8 +127,20 @@ u8 P33_CON_GET(u16 a) { return p33[a]; }
 int main(int argc, char **argv)
 {
     const char *s = argc > 1 ? argv[1] : "pass";
+#if LUNAR_DEVKIT_CLOCK360_SWITCH
     fake_clock.CLK_CON2 = 6;
+#else
+    fake_clock.CLK_CON2 = 2;
+#endif
     fake_clock.SYS_DIV = (1u << 16) | (2u << 8);
+    /* PLL2 at 24 MHz / (10 + 2) x (190 + 2) = 384 MHz, the value the kit's
+     * SDRAM at 192 MHz implies [inferred]; arbitrary PLL3 and SDRAM words. */
+    fake_ana.PLL_CON0 = 0;
+    fake_ana.PLL2_CON0 = 10u << 2;
+    fake_ana.PLL2_CON1 = 190;
+    fake_husb_com[0] = 0x1234;
+    fake_husb_com[2] = 0x18;
+    fake_sdr.CON0 = 0xabcd;
     fake_q32.TTMR_PRD = sys / 100u;
     fake_timer4.CON = 9;
     fake_sfc.BAUD = baud;
@@ -112,7 +156,19 @@ int main(int argc, char **argv)
     else if (!strcmp(s, "stale_tick")) stale_tick = 1;
     else if (!strcmp(s, "rail_stuck")) rail_stuck = 1;
     else if (!strcmp(s, "at_240")) sys = 240000000;
-    else if (!strcmp(s, "pll_source")) fake_clock.CLK_CON2 = 5;
+    /* Not the kit's tap 2: the FM-1's source 6 in a kit build, source 5 in
+     * the switch model. */
+    else if (!strcmp(s, "pll_source")) fake_clock.CLK_CON2 = LUNAR_DEVKIT_CLOCK360_SWITCH ? 5 : 6;
+    /* The dev kit's own before line, bench 2026-10-29 (con2=2 div=10200
+     * p33=fb,44,b,1b,31). */
+    else if (!strcmp(s, "kit")) {
+        fake_clock.CLK_CON2 = 2;
+        p33[P3_ANA_CON0] = 0xfb;
+        p33[P3_ANA_CON5] = 0x44;
+        p33[P3_ANA_CON6] = 0x0b;
+        p33[P3_ANA_CON9] = 0x1b;
+        p33[P3_VLVD_CON] = 0x31;
+    }
     else if (!strcmp(s, "dcdc_off")) p33[P3_ANA_CON0] = 1u << 2;
     /* A readback fails at 360 MHz, then the SDK refuses the way back. */
     else if (!strcmp(s, "restore_refuse")) stale_tick = refuse_320 = 1;
@@ -129,8 +185,8 @@ int main(int argc, char **argv)
         lunar_clock360_end(now);
     }
     printf("FAKE result=%d sys=%u hsb=%d sfc=%d clock_sets=%u critical=%d critical_max=%d "
-           "sysvdd=%u vdc14=%u vddiom=%u vddiow=%u vlvd=%u\n",
-           ok, (unsigned)sys, clk_get("hsb"), clk_get("sfc"), clock_sets, critical, critical_max,
+           "p33_writes=%u sysvdd=%u vdc14=%u vddiom=%u vddiow=%u vlvd=%u\n",
+           ok, (unsigned)sys, clk_get("hsb"), clk_get("sfc"), clock_sets, critical, critical_max, p33_writes,
            p33[P3_ANA_CON9] & 15u, p33[P3_ANA_CON6] & 7u, p33[P3_ANA_CON5] & 7u,
            (p33[P3_ANA_CON5] >> 4) & 3u, (p33[P3_VLVD_CON] >> 3) & 7u);
     /* The audio-rate gate: 44,100 Hz and a PLL-tied +12.5 %. */

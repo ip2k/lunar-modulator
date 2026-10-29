@@ -797,6 +797,21 @@ known to run from XIP (`largest_stage_xip`): only `dispatch` is mapped, and
 only partly (the DX7 note path in `PIPELINE_XIP`); the others are "not
 mapped".
 
+**The 360 MHz option does not switch the kit (2026-10-29).** The first bench
+run printed `con2=2` and refused with reason 2, writing nothing. CLK_CON2[3:0]
+= 2 is a fixed 320 MHz tap, not PLL2 x 2/3 (source 6) as the design assumed;
+source 6 is the FM-1's tree [verified: SDK `clk_early_init`/`sys_clock_update`
+IR, stock V15 SPL; reported: fm1-x0x]. From a tap, `system_clock_set` only
+reaches tap x {1,3,5,7} x {1,2,4,8} and returns -22 for 360 MHz with no write;
+from a PLL2 source it rewrites PLL2_CON1. Every route to 360 MHz on the kit
+(the SDK's PLL3/SDRAM mode, or a 360 MHz `isd_config` head) writes PLL2 and
+CLK_CON2 or the flash head, which the design ruled out, so the kit build now
+reads and prints the state (`before=-`, plus a `pll=-` line with PLL_CON0,
+PLL2_CON0/1, HUSB_COM_CON0/2 and SDR CON0, all read by the SDK's own
+`clk_early_init`), checks it, and refuses with reason 10. The switch below is
+kept only as a host model (`LUNAR_DEVKIT_CLOCK360_SWITCH`, an `#error` for the
+kit) until the owner chooses a design. The text below describes that model.
+
 **The 360 MHz option** (`--sys-clk 360 --stock-power`, owner 2026-10-28;
 `clock360.c`, timing only). After boot and before the DAC opens, the app
 raises the rails to the FM-1's stock levels (SYSVDD 1.38 V, VDC14 1.60 V,

@@ -21,7 +21,8 @@ void os_time_dly(int ticks);
 static inline int current_cpu_id(void) { return 0; }
 
 typedef struct { volatile u32 CLK_CON2, SYS_DIV; } fake_clock_t;
-typedef struct { volatile u32 PLL2_CON0, PLL2_CON1; } fake_ana_t;
+typedef struct { volatile u32 PLL_CON0, PLL2_CON0, PLL2_CON1; } fake_ana_t;
+typedef struct { volatile u32 CON0; } fake_sdr_t;
 typedef struct { volatile u32 CON, CNT, PRD; } fake_timer_t;
 typedef struct { volatile u32 TTMR_CNT, TTMR_PRD; } JL_TypeDef_q32DSP;
 typedef struct { volatile u32 CON, BAUD; } fake_sfc_t;
@@ -30,10 +31,15 @@ extern fake_ana_t fake_ana;
 extern fake_timer_t fake_timer4;
 extern JL_TypeDef_q32DSP fake_q32;
 extern fake_sfc_t fake_sfc;
+extern fake_sdr_t fake_sdr;
+extern volatile u32 fake_husb_com[3];
 #define JL_CLOCK (&fake_clock)
 #define JL_ANA (&fake_ana)
 #define JL_TIMER4 (&fake_timer4)
 #define JL_SFC (&fake_sfc)
+#define JL_SDR (&fake_sdr)
+#define HUSB_COM_CON0 (fake_husb_com[0])
+#define HUSB_COM_CON2 (fake_husb_com[2])
 #define q32DSP(n) ((void)(n), &fake_q32)
 
 /* asm/p33.h */

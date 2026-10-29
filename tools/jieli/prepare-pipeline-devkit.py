@@ -29,9 +29,12 @@ POLY47_AT_44100_FLAGS = 'CFLAGS += -DFM1_RESAMPLER_POLY47_TOLERANCE=' + POLY47_A
 
 # Owner, 2026-10-28: time the dev board at the FM-1's stock clock tree and
 # power profile. App-only and at run time (firmware/devkit/clock360.c): the
-# kit's flash head, isd_config and SPL are unchanged. Rails go up to the
-# FM-1's levels [reported: fm1-nes board_power.c], then system_clock_set
-# moves 320 -> 360 MHz, keeping HSB /2 and LSB /3 (180 and 60 MHz). Default
+# kit's flash head, isd_config and SPL are unchanged. As designed, rails go
+# up to the FM-1's levels [reported: fm1-nes board_power.c], then
+# system_clock_set moves 320 -> 360 MHz. 2026-10-29: the kit boots on a fixed
+# 320 MHz tap (CLK_CON2 = 2), from which the SDK cannot reach 360 MHz without
+# PLL2 and CLK_CON2 writes the design ruled out, so the module now reads,
+# prints and refuses (reason 10) with no write; no 360 MHz run counts. Default
 # off: the 320 MHz build inputs are byte-identical when it is not asked for.
 SYS_CLOCKS = (320, 360)
 SFC_BAUD = {60: 2, 90: 1}  # SFC = HSB 180 MHz / (BAUD + 1)
@@ -458,8 +461,9 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
             'sys_clk_hz': 360000000, 'hsb_hz': 180000000, 'lsb_hz': 60000000,
             'sfc_hz': sfc_mhz * 1000000, 'sfc_baud': SFC_BAUD[sfc_mhz],
             'stock_power': stock_power, 'stock_power_levels': STOCK_POWER,
-            'clock_switch': 'app-only at run time: rails, then system_clock_set(360 MHz), then SFC; '
-                            'fail closed before the DAC opens',
+            'clock_switch': 'none: the kit build reads and prints the clock tree, rails and PLL/SDRAM '
+                            'registers and refuses (reason 10) with no write; the kit boots on a fixed '
+                            '320 MHz tap from which no reviewed 360 MHz switch exists (clock360.c, 2026-10-29)',
             'prepared_sdk_worker_sha256': sha256(app / 'sdk_worker.c'),
             'prepared_renderer_pipeline_dac_sha256': sha256(staging / 'firmware/devkit/renderer_pipeline_dac.c'),
         })

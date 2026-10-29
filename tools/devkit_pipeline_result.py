@@ -19,9 +19,12 @@ LUNAR_CLOCK360 receipts. With --sys-clk 360, or whenever such lines appear, a
 run counts only with one before=- line, after=PASS, audio=preroll result=PASS
 and an end=- readback after the run that still shows 360/180/60 MHz, the after
 line's SFC clock and rails and a 10 ms tick; any result=FAIL or restored= line
-refuses it. Those images
-run XIP code with the SFC at 60 MHz (80 MHz at 320, presumably 90 on the
-FM-1), so their numbers are not the FM-1's.
+refuses it, and the refusal names the clock360.h reason. Since 2026-10-29
+every kit build of clock360.c refuses by design (reason 10: the kit boots on a
+fixed 320 MHz tap, from which no reviewed switch to 360 MHz exists), so no
+360 MHz kit run counts. Such images would run XIP code with the SFC at 60 MHz
+(80 MHz at 320, presumably 90 on the FM-1), so their numbers would not be the
+FM-1's.
 """
 import argparse
 import json
@@ -45,6 +48,15 @@ OVERHEAD_NOTE = ('p_ticks include the recorder (about 6 marks per block plus LTO
                  'compare --worst-block images with each other, not with V225 or recorder-free builds')
 SFC_NOTE = ('360 MHz kit images run the SFC at 60 MHz against 80 at 320 and presumably 90 on the FM-1: '
             'XIP code is slower here than on either, so these numbers are not the FM-1\'s')
+# firmware/devkit/clock360.h. 7-9 come only from the host switch model.
+CLOCK360_REASONS = {
+    1: 'not at 320 MHz / 160 MHz HSB',
+    2: 'CLK_CON2[7:0] is not 2, the kit\'s fixed 320 MHz tap (an r2 image: PLL source not 6)',
+    3: 'bus dividers not HSB /2, LSB /3', 4: 'OS tick not 10 ms', 5: 'UART clock not 48 MHz',
+    6: 'DCDC off', 7: 'a rail did not read back', 8: 'readback failed at 360 MHz, back at 320',
+    9: 'readback failed at 360 MHz and the clock did not come back to 320',
+    10: 'kit in the analysed state; no reviewed 360 MHz switch from the fixed 320 MHz tap',
+}
 TIMESTAMP = re.compile(r'^\[\d{2}:\d{2}:\d{2}\.\d{3}\]')
 
 
@@ -116,7 +128,10 @@ def clock360(rows, sys_clk):
     if sys_clk == 320:
         raise ValueError('LUNAR_CLOCK360 receipts in a 320 MHz run')
     if any(r.get('result') == 'FAIL' or 'restored' in r for r in rows):
-        raise ValueError('LUNAR_CLOCK360 switch failed: ' + str(next(
+        failed = [r for r in rows if r.get('result') == 'FAIL' and 'reason' in r]
+        named = (f"reason {failed[0]['reason']} ({CLOCK360_REASONS.get(failed[0]['reason'], 'unknown')}): "
+                 if failed else '')
+        raise ValueError('LUNAR_CLOCK360 switch failed: ' + named + str(next(
             r for r in rows if r.get('result') == 'FAIL' or 'restored' in r)))
 
     def phase(name):
@@ -168,6 +183,9 @@ def parse(data, sys_clk=None):
             raise ValueError('Require exactly one ' + prefix + ' receipt')
         return found[0] if found else None
 
+    # The clock receipts first: a refused switch halts before the DAC opens,
+    # so its log has no DAC receipts and the reason is the useful refusal.
+    clock = clock360(rows('LUNAR_CLOCK360'), sys_clk)
     ends = [r for r in rows('LUNAR_DAC103') if r.get('end') == 1]
     if len(ends) != 1:
         raise ValueError('Require exactly one LUNAR_DAC103 end receipt')
@@ -195,7 +213,6 @@ def parse(data, sys_clk=None):
     else:
         raise ValueError('No polyphony policy receipt')
     soak = one('LUNAR_PIPELINE_SOAK', required=False)
-    clock = clock360(rows('LUNAR_CLOCK360'), sys_clk)
 
     service = []
     for row in cases:
