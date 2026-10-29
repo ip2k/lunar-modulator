@@ -234,3 +234,71 @@ def test_baud_is_only_compared_where_it_reads_back():
     zero = clock360_lines(before=clock360_lines().splitlines()[0].replace('baud=1', 'baud=0'),
                           end='LUNAR_CLOCK360 end=- ' + AFTER.replace('baud=2', 'baud=0'))
     assert result_parser.parse(zero + dac_receipts(), 360)['clock360']['end']['baud'] == 0
+
+
+def soak_receipts(cycles=57, p_late=(0, 0, 0, 3), fault=0, gaps=0, ready_min=1, c_mean=28870,
+                  failure_line='LUNAR_PIPELINE failure_line=370'):
+    """A whole-run receipt set as a cap8 soak prints it (bench01 3-cycle format)."""
+    total = cycles * 4 * 5513
+    lines = ['LUNAR_PIPELINE ready=1 lifetime_ms=2100000 stack_words=1536 priority=16 outputs=8',
+             f'LUNAR_DAC103 end=1 produced={total} harvested={total} submitted={total} callbacks={total + 238} '
+             f'drain=64 fault={fault} backend=0 off=-1 close=-1 cb_max=956 irq_max=973 gap_max=36250 late=0 '
+             f'gaps={gaps} ready_min={ready_min} parent_unused=667']
+    for c in range(4):
+        lines.append(f'LUNAR_DAC103_CASE case={c} blocks={cycles * 5513} hash=0a1b2c3{c} p_mean={20283 + 1300 * c} '
+                     f'p_max=35195 p_late={p_late[c]} c_mean={c_mean} c_max=30020 c_late=0')
+    lines += [f'LUNAR_LATE146 count={sum(p_late)} overflow=0',
+              'LUNAR_POLYPHONY fixed=8 adaptive=0 policy=cap8',
+              'LUNAR_POLYPHONY fixed=8 adaptive=0 policy=cap8 unit0_active=8 unit0_limit=8 unit0_retired=0 '
+              'unit0_stolen=79',
+              f'LUNAR_PIPELINE_SOAK cases={4 * cycles} expected_cases={4 * cycles} cycles={cycles} total={total} '
+              f'elapsed_ms={round(total * 64 / 44.1) + 340} fold=deadbeef replay_required=1',
+              f'LUNAR_PIPELINE case=4 produced={total} consumed={total} harvested={total} output_retired={total} '
+              f'error0=0 error1=0 parent_blocks={total} parent_wrong=0 exited=1',
+              'LUNAR_PIPELINE final=1 stack_unused_words=1316 word_bytes=4 backend_bytes=11076']
+    if failure_line:
+        lines.append(failure_line)
+    return '\n'.join(lines) + '\n'
+
+
+def test_buffered_summary_of_a_passing_soak():
+    b = result_parser.parse(soak_receipts(), 320)['buffered']
+    assert b['blocks'] == 1256964 and b['audio_min'] == 30.4 and b['soak_30_min']
+    assert b['zero_underruns'] and b['means_pass'] and b['within_cpu1_lifetime']
+    assert b['whole_p_mean'] == 22233 and b['whole_c_mean'] == 28870
+    assert b['queue_latency'] == dict(slots=8, frames=512, rate_hz=44100, queue_ms=11.61, dma_ring_frames=192,
+                                      queue_plus_ring_ms=15.96, min_ready_slots=1, min_margin_ms=1.45)
+    # Producer blocks over the old per-block deadline are not underruns.
+    assert b['producer_late_blocks'] == 3 and b['firmware_failure_line'] == 370
+    assert b['firmware_failure_is_per_block_deadline_only'] and b['pass_soak_receipts']
+    assert 43900 < b['rate_hz_estimate'] < 44300
+
+
+def test_buffered_summary_of_a_short_run_is_not_a_soak():
+    b = result_parser.parse(soak_receipts(cycles=3), 320)['buffered']
+    assert b['pass_timing'] and not b['soak_30_min'] and not b['pass_soak_receipts']
+
+
+@pytest.mark.parametrize('change,check', [
+    (dict(fault=10304), 'fault_zero'),
+    (dict(gaps=1), 'dac_gaps_zero'),
+    (dict(ready_min=0), 'queue_never_empty'),
+])
+def test_buffered_summary_fails_on_an_underrun(change, check):
+    b = result_parser.parse(soak_receipts(**change), 320)['buffered']
+    assert not b['underrun_checks'][check] and not b['zero_underruns'] and not b['pass_soak_receipts']
+    assert not b['firmware_failure_is_per_block_deadline_only']
+
+
+def test_buffered_summary_fails_on_a_mean_over_85_percent():
+    b = result_parser.parse(soak_receipts(c_mean=29605), 320)['buffered']
+    assert b['zero_underruns'] and not b['mean_checks']['case0_c'] and not b['means_pass']
+    assert not b['pass_soak_receipts']
+
+
+def test_buffered_summary_refuses_an_unexplained_firmware_failure():
+    # No block overran, so a failure_line has some other cause.
+    b = result_parser.parse(soak_receipts(p_late=(0, 0, 0, 0)), 320)['buffered']
+    assert not b['firmware_failure_is_per_block_deadline_only'] and not b['pass_soak_receipts']
+    clean = result_parser.parse(soak_receipts(p_late=(0, 0, 0, 0), failure_line=''), 320)['buffered']
+    assert clean['firmware_failure_line'] is None and clean['pass_soak_receipts']

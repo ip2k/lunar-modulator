@@ -4,6 +4,10 @@
 Reads the receipts printed by firmware/devkit/renderer_pipeline_dac.c:
 LUNAR_DAC103 end/case lines, LUNAR_LATE146, LUNAR_POLYPHONY (policy fixed12
 or cap8), LUNAR_PIPELINE_SOAK and, in --worst-block builds, LUNAR_WORST_*.
+With a LUNAR_PIPELINE_SOAK line it adds a 'buffered' summary for the owner's
+release rule (2026-10-28): the whole run's underrun counters, both cores'
+means per case and over the run against 29,604 ticks (85 %), and the queue
+latency from the LUNAR_PIPELINE ready line's slots (x 64 frames at 44,100 Hz).
 Ticks are the 24 MHz timer: 34,829 ticks (1,451 us) per 64-frame block.
 
 The worst-block vector is each case's maximum producer block split at the
@@ -58,6 +62,73 @@ CLOCK360_REASONS = {
     10: 'kit in the analysed state; no reviewed 360 MHz switch from the fixed 320 MHz tap',
 }
 TIMESTAMP = re.compile(r'^\[\d{2}:\d{2}:\d{2}\.\d{3}\]')
+# The owner's buffered release rule (2026-10-28): zero underruns over a
+# 30-minute analog soak, both cores' mean <= 85 % of the block budget, the
+# worst block explained, the queue latency stated.
+RULE_MEAN_TICKS = BUDGET_TICKS * 85 // 100  # 29,604
+FRAMES_PER_BLOCK = 64
+DAC_RATE_HZ = 44100  # renderer_pipeline_dac.c: dac_set_sample_rate(44100)
+DMA_WINDOWS = 3  # the DAC ring the driver checks: DAC_LEN 192 frames
+IDLE_QUIET_MS = 250  # zero-idle wait inside elapsed_ms, after the last block
+
+
+def buffered_rule(end, cases, soak, ready, final_lines):
+    """Whole-run summary under the buffered rule; the analog capture is separate.
+
+    The receipts are cumulative over the run, so one end-of-run set covers the
+    whole soak. An empty queue at a DAC callback faults the transport (10304)
+    and stops the run, so fault=0 with every block submitted means no
+    underrun; gaps counts DAC callbacks more than 1.5 blocks apart and late
+    those that ran a whole block. A per-block producer or consumer overrun is
+    not an underrun while the queue covers it: the firmware's own end check
+    still applies the old per-block deadline and prints failure_line and
+    complete=0 for it, which this summary reports but does not count.
+    """
+    total = soak['total']
+    blocks = sum(c['blocks'] for c in cases)
+    p_mean = sum(c['p_mean'] * c['blocks'] for c in cases) / blocks if blocks else 0
+    c_mean = sum(c['c_mean'] * c['blocks'] for c in cases) / blocks if blocks else 0
+    underrun_checks = dict(
+        fault_zero=end['fault'] == 0, backend_zero=end['backend'] == 0,
+        all_blocks_submitted=end['submitted'] == end['produced'] == end['harvested'] == total == blocks,
+        all_cases_checked=soak['cases'] == soak['expected_cases'],
+        drain_complete=end['drain'] >= 64, dac_gaps_zero=end['gaps'] == 0, dac_late_zero=end['late'] == 0,
+        irq_within_block=end['irq_max'] < BUDGET_TICKS, queue_never_empty=end['ready_min'] >= 1)
+    mean_checks = {f'case{c["case"]}_{core}': c[f'{core}_mean'] <= RULE_MEAN_TICKS
+                   for c in cases for core in ('p', 'c')}
+    mean_checks.update(whole_p=p_mean <= RULE_MEAN_TICKS, whole_c=c_mean <= RULE_MEAN_TICKS)
+    slots = ready.get('outputs') if ready else None
+    audio_s = total * FRAMES_PER_BLOCK / DAC_RATE_HZ
+    queue = None
+    if slots:
+        queue = dict(slots=slots, frames=slots * FRAMES_PER_BLOCK, rate_hz=DAC_RATE_HZ,
+                     queue_ms=round(1000.0 * slots * FRAMES_PER_BLOCK / DAC_RATE_HZ, 2),
+                     dma_ring_frames=DMA_WINDOWS * FRAMES_PER_BLOCK,
+                     queue_plus_ring_ms=round(1000.0 * (slots + DMA_WINDOWS) * FRAMES_PER_BLOCK / DAC_RATE_HZ, 2),
+                     min_ready_slots=end['ready_min'],
+                     min_margin_ms=round(1000.0 * end['ready_min'] * FRAMES_PER_BLOCK / DAC_RATE_HZ, 2))
+    run_ms = soak['elapsed_ms'] - IDLE_QUIET_MS
+    lifetime = ready.get('lifetime_ms') if ready else None
+    fail_line = [r['failure_line'] for r in final_lines if 'failure_line' in r]
+    late_only = bool(fail_line) and all(underrun_checks.values()) and any(c['p_late'] or c['c_late'] for c in cases)
+    return dict(
+        rule_mean_ticks=RULE_MEAN_TICKS, blocks=total, audio_s=round(audio_s, 1),
+        audio_min=round(audio_s / 60, 2), elapsed_ms=soak['elapsed_ms'],
+        rate_hz_estimate=round((total + end['drain']) * FRAMES_PER_BLOCK * 1000 / run_ms) if run_ms > 0 else None,
+        within_cpu1_lifetime=None if lifetime is None else soak['elapsed_ms'] < lifetime,
+        whole_p_mean=round(p_mean), whole_p_mean_pct=pct(p_mean),
+        whole_c_mean=round(c_mean), whole_c_mean_pct=pct(c_mean),
+        producer_late_blocks=sum(c['p_late'] for c in cases), consumer_late_blocks=sum(c['c_late'] for c in cases),
+        underrun_checks=underrun_checks, zero_underruns=all(underrun_checks.values()),
+        mean_checks=mean_checks, means_pass=all(mean_checks.values()), queue_latency=queue,
+        firmware_failure_line=fail_line[0] if fail_line else None,
+        firmware_failure_is_per_block_deadline_only=late_only if fail_line else None,
+        soak_30_min=audio_s >= 1800,
+        pass_timing=all(underrun_checks.values()) and all(mean_checks.values()) and (not fail_line or late_only),
+        pass_soak_receipts=(audio_s >= 1800 and all(underrun_checks.values()) and all(mean_checks.values())
+                            and (not fail_line or late_only)),
+        note='Receipts only: the KA6 analog capture, the host replay of the case hashes and fold, '
+             'and the worst-block explanation remain separate gates')
 
 
 def fields(line):
@@ -223,6 +294,12 @@ def parse(data, sys_clk=None):
             c_max=row['c_max'], c_max_pct=pct(row['c_max']), c_late=row['c_late']))
     result = dict(policy=policy, end=end, cases=service, late_events=late,
                   late_count=late_count[0], polyphony=poly, soak=soak)
+    if soak:
+        pipeline = rows('LUNAR_PIPELINE')
+        ready = [r for r in pipeline if r.get('ready') == 1]
+        if len(ready) > 1:
+            raise ValueError('Require at most one LUNAR_PIPELINE ready receipt')
+        result['buffered'] = buffered_rule(end, service, soak, ready[0] if ready else None, pipeline)
     if clock:
         result['clock360'] = clock
 

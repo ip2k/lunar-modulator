@@ -689,7 +689,18 @@ NoteOn and allocation into SRAM with explicit noinline attributes. Linked code
 also changes (NoteOn grows from 348 to 992 bytes), so its gain is not attributed
 solely to memory latency. Default policy is fixed12. Add
 `--adaptive-three` for the labelled floor3 experiment and `--cycles 57` for the
-30.4-minute workload. Preparation is offline and does not establish native or
+30.4-minute workload. The 30-minute soak of the release rule is that run:
+`--policy cap8 --worst-block --poly47-at-44100 --cycles 57` gives 228 cases,
+1,256,964 blocks and 1,824 s of audio, inside the backend's 35-minute CPU1
+lifetime. Its receipts are the same end-of-run set as a three-cycle run's
+and are cumulative, so they cover the whole soak: an empty queue at a DAC
+callback faults the run (10304) rather than playing on.
+`tools/devkit_pipeline_result.py` reports them in a `buffered` section
+(underrun checks, per-case and whole-run means against 29,604 ticks, queue
+latency 8 x 64 frames at 44,100 Hz = 11.61 ms). The firmware's own end check
+still applies the per-block deadline, so a run with a late producer block
+ends with `failure_line` and `complete=0`; the summary says when that is the
+only cause. Preparation is offline and does not establish native or
 analog acceptance. Export evidence, then remove only the generated lane after
 its build/test processes exit.
 

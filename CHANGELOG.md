@@ -17,6 +17,13 @@ history.
   eight voices; twelve stays a stretch goal.
 - The dev-board result parser reads worst-block receipts that the SDK splits
   across lines.
+- **The dev-board result parser now summarises a run under the release
+  rule.** `tools/devkit_pipeline_result.py` adds a `buffered` section: the
+  whole run's underrun counters, both cores' mean load per case and over the
+  run against 85% of the block budget, whether the run covers 30 minutes of
+  audio, and the queue latency (8 slots of 64 frames at 44,100 Hz, 11.6 ms).
+  A producer block over the old per-block deadline is reported, not counted
+  as an underrun.
 - **The dev-board image size check now asks for 128 bytes to spare.**
   `tools/jieli/pipeline_bounds.py` fails an image with less than 128 bytes
   left in the writer region or in the predicted heap, since a rebuild alone
