@@ -148,7 +148,16 @@ def clock360(rows, sys_clk):
 
 def parse(data, sys_clk=None):
     text = data.decode('ascii', errors='replace') if isinstance(data, bytes) else data
-    lines = [TIMESTAMP.sub('', line).strip() for line in text.splitlines()]
+    # The SDK's printf splits a long receipt: each continuation arrives as its
+    # own timestamped line starting with a space. Join those onto the receipt.
+    lines = []
+    for raw in text.splitlines():
+        stamp = TIMESTAMP.match(raw)
+        body = raw[stamp.end():] if stamp else raw
+        if stamp and body.startswith(' ') and lines and lines[-1].startswith('LUNAR_'):
+            lines[-1] += ' ' + body.strip()
+        else:
+            lines.append(body.strip())
 
     def rows(prefix):
         return [fields(line[len(prefix):]) for line in lines if line.startswith(prefix + ' ')]

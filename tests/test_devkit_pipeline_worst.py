@@ -94,6 +94,21 @@ def test_parser_reads_a_full_run():
     assert 'separate gates' in parsed['acceptance']
 
 
+def test_parser_joins_the_sdk_split_worst_block_lines():
+    # The SDK prints each stage of a long receipt as its own timestamped line
+    # starting with a space (bench01, 2026-10-29).
+    split = []
+    for line in worst_lines().splitlines():
+        if line.startswith('LUNAR_WORST_BLOCK '):
+            head, _, tail = line.partition(' controls=')
+            split.append('[00:01:41.854]' + head)
+            split += ['[00:01:41.855] ' + kv for kv in ('controls=' + tail).split()]
+        else:
+            split.append(line)
+    joined = result_parser.parse((dac_receipts() + worst_lines()).encode())
+    assert result_parser.parse((dac_receipts() + '\n'.join(split) + '\n').encode()) == joined
+
+
 def test_parser_reads_the_v225_fixed12_format_without_recorder():
     old = dac_receipts(policy='fixed12', voices=12)
     old = old.replace(' policy=fixed12 unit0_active=0 unit0_limit=12 unit0_retired=0 unit0_stolen=46', '')

@@ -9,6 +9,13 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- **Eight voices now fit the dev board's time budget at 320 MHz.** With the
+  new drum converter, the eight-voice images ran with mean load at or below
+  83% in every case (12 voices: 88% in the heaviest case, over the 85% line).
+  Measured on the dev kit, not yet on an FM-1; details in
+  `notes/2026-10-29-devkit-perf-levers-320.md`.
+- The dev-board result parser reads worst-block receipts that the SDK splits
+  across lines.
 - **The dev-board image size check now asks for 128 bytes to spare.**
   `tools/jieli/pipeline_bounds.py` fails an image with less than 128 bytes
   left in the writer region or in the predicted heap, since a rebuild alone
