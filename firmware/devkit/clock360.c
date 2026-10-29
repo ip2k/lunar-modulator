@@ -16,7 +16,10 @@
  *   isd_config asks for exactly 320 MHz [verified: stock V15 SPL, vendor
  *   objdump; the kit's own SPL matched by byte pattern only]. The
  *   programmable PLL2 then feeds SDRAM (sdram_clk 192 MHz in the boot log),
- *   not the core; PLL2 at about 384 MHz [inferred: the pll= line reads it].
+ *   not the core. PLL2 is 384 MHz (24 MHz / 12 x 192) and PLL3 480 MHz
+ *   [verified: bench 2026-10-29 r3 pll= line, pll2_con0=940022b
+ *   pll2_con1=75030be usb_com0=7796cb3]; sdram_clk 192 MHz = PLL2 / 2
+ *   [inferred].
  * - The 2026-10-28 design assumed PLL source 6 (sys = PLL2 x 2/3, PLL2 480
  *   MHz) on the kit. That was the FM-1's tree (source 6, PLL2 540 MHz at
  *   360 [reported: fm1-x0x 80b7d40; verified: stock isd_config + SPL]),

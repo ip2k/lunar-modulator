@@ -48,3 +48,15 @@ became the default DX7 sine for every build (engines/msfa.md, "The trunc12
 sine"). The excerpts are the pipeline's mixed workload, whose FM6 units play
 WARM PAD and SAW LEAD [inferred: `firmware/devkit/renderer_live.c`]; TINE EP
 was not in them. The 30-minute soak is still to do.
+
+**360 MHz on the kit, later the same day.** The clk360-r2 image refused
+(`result=FAIL reason=2`, nothing written): the kit boots on a fixed 320 MHz
+tap (`CLK_CON2[3:0]=2`), not the FM-1's PLL2 source 6, and the SDK's
+`system_clock_set` cannot reach 360 MHz from a tap [verified: SDK `clock.c`
+IR]. A read-only probe (clk360-r3, one reset, Codex's protocol) then printed
+`pll_con0=45400203 pll2_con0=940022b pll2_con1=75030be usb_com0=7796cb3
+usb_com2=4 sdr_con0=f01` and `result=FAIL reason=10` as designed: PLL2 is
+384 MHz and PLL3 480 MHz [verified: decode of those words]; SDRAM at 192 MHz
+is PLL2/2 [inferred]. The owner chose (2026-10-29) to estimate 360 MHz
+timing by scaling these 320 MHz results rather than switch the kit's clock.
+Receipts: `scratch/bench-2026-10-29/clk360-r3-probe/` (not tracked).
