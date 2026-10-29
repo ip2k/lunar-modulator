@@ -788,6 +788,60 @@ The heap column is a prediction until a board run reports it [inferred].
 into JSON. It refuses missing or duplicate receipts, an inconsistent policy and
 stage vectors that do not sum. It reports timing only; PCM replay, the
 buffered release rule and the physical FM-1 remain separate gates.
+Every `--worst-block` image carries the recorder inside its `p_ticks` (about
+six out-of-line marks per block, plus whatever they change in register
+pressure and LTO), so those images compare with each other, never directly
+with V225 or another build without it; the parser's `comparison` field says
+so. For each case's largest stage it also says whether that stage's code is
+known to run from XIP (`largest_stage_xip`): only `dispatch` is mapped, and
+only partly (the DX7 note path in `PIPELINE_XIP`); the others are "not
+mapped".
+
+**The 360 MHz option** (`--sys-clk 360 --stock-power`, owner 2026-10-28;
+`clock360.c`, timing only). After boot and before the DAC opens, the app
+raises the rails to the FM-1's stock levels (SYSVDD 1.38 V, VDC14 1.60 V,
+VDDIOM and VDDIOW 3.2 V, LVD 2.6 V [reported: fm1-nes `board_power.c`];
+VDDIOW is the weak VDDIO, the IO supply's sleep level, not an RF rail
+[reported: demo_hello `board.c`; its sleep use inferred]) and moves the system
+clock from 320 to 360 MHz (HSB 180, LSB 60). The option off leaves the 320 MHz
+build inputs byte-identical. Its UART receipts:
+
+- `LUNAR_CLOCK360 before=- ...` and `after=PASS|FAIL ...`: clk_get sys, hsb,
+  lsb, sfc and uart, the raw SFC `baud`, the clock registers, the five P33
+  rail registers, ten OS ticks in TIMER4 counts and the SDK's return code.
+- `LUNAR_CLOCK360 audio=preroll ... result=PASS|FAIL`: the DAC callback rate
+  over the preroll, TIMER4-timed; a FAIL is a transport fault before the
+  music starts.
+- `LUNAR_CLOCK360 end=PASS|FAIL ...`: the same readback after the soak, so an
+  SDK path that moved the clock, the SFC divider or a rail during the run
+  shows.
+- On failure `LUNAR_CLOCK360 result=FAIL reason=N` (1-6 before any write,
+  7-9 after; `clock360.h`). Only 7 and 8 roll back: 7 puts the kit's rails
+  back with the clock untouched; 8 brings the clock back to 320/160 MHz,
+  reads it back, then puts the kit's rails back (`restored=OK rails=kit`).
+  9 is a failed way back: the clock did not read back at 320/160, so the
+  stock rails stay (`restored=FAIL rails=kept`) and nothing more runs. A
+  PASS, and an audio-rate FAIL, leave the board at 360 MHz on the stock
+  rails until it is reset.
+
+So every 360 MHz run starts from a reset (power-on or the ROM's entry), never
+from a board a previous run left at 360 MHz. `tools/devkit_pipeline_result.py
+--sys-clk 360` counts a run only with `before=-`, `after=PASS`,
+`audio=preroll result=PASS` and `end=PASS` at 360/180/60 MHz with the after
+line's SFC clock and rails (and its BAUD, where the before line shows the
+register reads back); any `result=FAIL` or `restored=` line refuses it, and
+`--sys-clk 320` refuses a log that has such lines.
+
+**The SFC confound.** SFC = HSB / (BAUD + 1). The 360 MHz images keep BAUD 2,
+so the flash runs at 60 MHz, against 80 MHz in the 320 MHz images (HSB 160,
+BAUD 1) and presumably 90 MHz on the FM-1 (HSB 180, BAUD 1) [inferred: the
+kit's flash has no established 90 MHz rating]. Everything read through XIP
+(the DX7 note path, the init functions, constant tables outside SRAM, cache
+misses) is therefore slower at 360/60 than at 320/80 and than on the FM-1.
+A 360 MHz worst block whose largest stage runs XIP code understates the
+speed-up; compare 360 with 320 per stage, and do not read a 360 MHz figure as
+the FM-1's. An SFC-parity run (`--sfc-mhz 90`, BAUD 1) waits until the kit's
+flash is shown to work at 90 MHz.
 
 [verified] The tracked burst-hot V188 image completes 57 cycles, 228 cases and
 1,256,964 blocks in 30.4 minutes with zero producer/consumer deadline misses and

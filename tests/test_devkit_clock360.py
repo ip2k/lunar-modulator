@@ -77,14 +77,33 @@ def test_pass_raises_rails_before_the_clock_then_slows_sfc_held(fakes):
     assert 'FAKE system_clock_set 360000000 rails_set_before=5' in text
     assert 'FAKE sfc_flash_baud_div 2 held=1' in text
     assert text.index('system_clock_set 360000000') < text.index('sfc_flash_baud_div 2')
-    after = next(l for l in text.splitlines() if 'phase=after' in l)
-    for field in ('result=PASS', 'sys=360000000', 'hsb=180000000', 'lsb=60000000', 'sfc=60000000',
-                  'uart=48000000', 'tick=2400311', 't4=9', 'rc=0'):
+    after = receipt(text, 'after')
+    for field in ('after=PASS', 'sys=360000000', 'hsb=180000000', 'lsb=60000000', 'sfc=60000000',
+                  'uart=48000000', 'baud=2', 'tick=2400311', 't4=9', 'rc=0'):
         assert field in after.split()
     assert p33_rails(after) == dict(STOCK_RAILS, vlvd_en=1, dcdc13=1)
-    before = next(l for l in text.splitlines() if 'phase=before' in l)
+    before = receipt(text, 'before')
+    assert 'before=-' in before.split() and 'baud=1' in before.split()
     assert p33_rails(before) == dict(KIT_RAILS, vlvd_en=1, dcdc13=1)
+    # The end-of-run readback repeats the after line's clocks, BAUD and rails.
+    end = receipt(text, 'end')
+    assert end.replace('end=PASS', 'after=PASS') == after
     assert 'FAIL' not in text.split('LUNAR_CLOCK360 audio')[0]
+    assert 'restored=' not in text and 'reason=' not in text
+
+
+def receipt(text, phase):
+    found = [l for l in text.splitlines() if l.startswith(f'LUNAR_CLOCK360 {phase}=')]
+    assert len(found) == 1, (phase, text)
+    return found[0]
+
+
+def test_end_readback_catches_an_sdk_path_that_moved_the_sfc_baud(fakes):
+    text, final = run(fakes, 'end_drift')
+    assert final['result'] == 1 and final['sfc'] == 90000000
+    end = receipt(text, 'end')
+    for field in ('end=FAIL', 'sys=360000000', 'sfc=90000000', 'baud=1'):
+        assert field in end.split()
 
 
 def test_sfc_90_keeps_the_sdk_baud_and_takes_no_critical_section(fakes):
@@ -99,27 +118,53 @@ def test_preconditions_fail_before_any_write(fakes, scenario, reason):
     text, final = run(fakes, scenario)
     assert final['result'] == 0 and final['clock_sets'] == 0 and final['critical_max'] == 0
     assert {k: final[k] for k in KIT_RAILS} == KIT_RAILS
-    assert f'LUNAR_CLOCK360 result=FAIL reason={reason} audio=halted' in text
+    assert f"LUNAR_CLOCK360 result=FAIL reason={reason}" in text.splitlines() and text.count("reason=") == 1
+    assert 'after=' not in text and 'end=' not in text
 
 
 def test_rail_readback_failure_restores_rails_and_never_touches_the_clock(fakes):
     text, final = run(fakes, 'rail_stuck')
     assert final['result'] == 0 and final['clock_sets'] == 0
     assert {k: final[k] for k in KIT_RAILS} == KIT_RAILS
-    assert 'reason=7 audio=halted' in text
+    assert 'LUNAR_CLOCK360 result=FAIL reason=7' in text.splitlines()
+    assert 'after=' not in text and 'restored=' not in text
 
 
-@pytest.mark.parametrize('scenario,clock_sets', [('bad_hsb', 2), ('stale_tick', 2), ('refuse', 1)])
+# refuse: the switch is refused and the clock never moved. moved: refused,
+# but the clock moved anyway, so the module puts it back first.
+@pytest.mark.parametrize('scenario,clock_sets', [('bad_hsb', 2), ('stale_tick', 2), ('refuse', 1),
+                                                 ('moved', 2)])
 def test_readback_failure_goes_back_to_320_then_lowers_rails(fakes, scenario, clock_sets):
     text, final = run(fakes, scenario)
     assert final['result'] == 0 and final['clock_sets'] == clock_sets
     assert final['sys'] == 320000000 and final['hsb'] == 160000000 and final['critical'] == 0
     assert {k: final[k] for k in KIT_RAILS} == KIT_RAILS
-    assert 'phase=after result=FAIL' in text and 'phase=restored result=FAIL' in text
-    assert text.rstrip().count('reason=8 audio=halted') == 1
+    assert 'after=FAIL' in receipt(text, 'after').split()
+    restored = receipt(text, 'restored')
+    assert restored.startswith('LUNAR_CLOCK360 restored=OK rails=kit sys=320000000 hsb=160000000 ')
+    assert p33_rails(restored) == dict(KIT_RAILS, vlvd_en=1, dcdc13=1)
+    assert text.count('reason=') == 1 and 'LUNAR_CLOCK360 result=FAIL reason=8' in text.splitlines()
+    assert 'end=' not in text
     if clock_sets == 2:
         # The rails stay up until the clock is back down.
         assert 'FAKE system_clock_set 320000000 rails_set_before=5' in text
+
+
+# restore_refuse: the switch worked, a readback failed, and the SDK refused the
+# way back. moved_stuck: the switch was refused but moved the clock, and the
+# way back was refused. Either way the core is still fast, so the stock rails
+# stay (never undervolt a 360 MHz core) and audio stays halted.
+@pytest.mark.parametrize('scenario', ['restore_refuse', 'moved_stuck'])
+def test_clock_not_back_keeps_the_stock_rails(fakes, scenario):
+    text, final = run(fakes, scenario)
+    assert final['result'] == 0 and final['clock_sets'] == 2 and final['critical'] == 0
+    assert final['sys'] == 360000000 and final['sysvdd'] == 15
+    assert {k: final[k] for k in STOCK_RAILS} == STOCK_RAILS
+    restored = receipt(text, 'restored')
+    assert restored.startswith('LUNAR_CLOCK360 restored=FAIL rails=kept sys=360000000 ')
+    assert 'rc=-22' in restored.split()
+    assert p33_rails(restored) == dict(STOCK_RAILS, vlvd_en=1, dcdc13=1)
+    assert text.count('reason=') == 1 and 'LUNAR_CLOCK360 result=FAIL reason=9' in text.splitlines()
 
 
 def test_audio_rate_gate(fakes):
@@ -219,6 +264,11 @@ def test_on_changes_only_the_clock_files(tmp_path, monkeypatch, sfc_mhz, baud):
     assert preroll < dac.index('if(transport.fault||lunar_pipeline_error())return v110_failure(__LINE__);', preroll) \
         < dac.index('preroll_phase=PRE_ARM;')
     assert dac.count('return v110_failure(') == (ROOT/'firmware/devkit/renderer_pipeline_dac.c').read_text().count('return v110_failure(')
+    # The end-of-run readback: after the soak receipt, before the driver's own
+    # end checks, once.
+    end = dac.index('    lunar_clock360_end(now);\n')
+    assert dac.count('lunar_clock360_end(') == 1
+    assert dac.index('printf("LUNAR_PIPELINE_SOAK ') < end < dac.index('if(!lunar_pipeline_sdk_finish())')
     receipt = module.json.loads((on/'lunar-devkit-input.json').read_text())
     assert receipt['sys_clk_hz'] == 360000000 and receipt['hsb_hz'] == 180000000
     assert receipt['lsb_hz'] == 60000000 and receipt['sfc_hz'] == sfc_mhz*1000000
@@ -256,3 +306,24 @@ def test_bad_clock_options_refused_before_sdk_access(tmp_path, options, message)
         helpers.load_prepare().prepare_pipeline(tmp_path/'missing', ROOT, tmp_path/'out', tmp_path/'missing.a',
                                                 **options)
     assert not (tmp_path/'out').exists()
+
+
+def test_the_result_parser_reads_the_module_s_own_receipts(fakes):
+    # The fake's real printf output, joined to a DAC receipt set, passes the
+    # parser's 360 MHz gates; its end-drift and restore paths are refused.
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('pipeline_worst', ROOT/'tests/test_devkit_pipeline_worst.py')
+    worst = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(worst)
+    preroll = 'LUNAR_CLOCK360 audio=preroll cb=200 t4=6966000 rate_mhz=44100000 result=PASS\n'
+
+    def receipts(scenario):
+        text, _ = run(fakes, scenario)
+        return '\n'.join(l for l in text.splitlines()
+                         if l.startswith('LUNAR_CLOCK360 ') and ' audio=' not in l) + '\n' + preroll
+    parsed = worst.result_parser.parse(receipts('pass') + worst.dac_receipts(), 360)
+    assert parsed['clock360']['after']['sfc'] == 60000000 and parsed['clock360']['before']['baud'] == 1
+    for scenario, message in (('end_drift', 'before/after/end'), ('refuse', 'failed'),
+                              ('restore_refuse', 'failed')):
+        with pytest.raises(ValueError, match=message):
+            worst.result_parser.parse(receipts(scenario) + worst.dac_receipts(), 360)

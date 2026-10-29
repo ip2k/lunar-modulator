@@ -346,11 +346,17 @@ def clock360_dac(text):
     # check fails the run before the music starts. No new failure exit.
     preroll = '    preroll_ms=timer_get_ms()-pre;\n'
     check = '    if(transport.fault||lunar_pipeline_error())return v110_failure(__LINE__);\n'
-    return checked_replace(text, preroll + check,
+    text = checked_replace(text, preroll + check,
         preroll +
         '    uint32_t clock360_cb1=clock360_snap(&clock360_t1);\n'
         '    if(!lunar_clock360_audio_rate("preroll",clock360_cb1-clock360_cb0,clock360_t1-clock360_t0))'
         'task_fault103(36001);\n' + check)
+    # After the soak, before the driver's own end checks: re-read the clocks,
+    # the raw SFC BAUD, the rails and the tick, so a later SDK path that moved
+    # them (a clock change, an SFC re-init) shows in the log. Prints only;
+    # tools/devkit_pipeline_result.py requires end=PASS for a 360 MHz image.
+    finish = '    if(!lunar_pipeline_sdk_finish())return v110_failure(__LINE__);\n'
+    return checked_replace(text, finish, '    lunar_clock360_end(now);\n' + finish)
 
 
 def adapt_clock360(out, source, sfc_mhz):

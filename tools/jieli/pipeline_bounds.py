@@ -11,7 +11,14 @@
    so HEAP_SIZE - 43,512 must be at least 3,700 [inferred: a prediction until
    the board reports it].
 
-Offline only: reads the ELF, never a device. Exit status 1 when a bound fails.
+3. Headroom: both margins must be at least 128 B. A rebuild moves the image
+   by a few bytes on its own (a different __TIME__ string, LTO choices; 4-5 B
+   seen, up to 32 possible), and the 3,700 B heap floor is one board's
+   observation, not a proven floor, so an image that only just fits is not
+   counted as fitting.
+
+Offline only: reads the ELF, never a device. Exit status 1 when a bound or the
+headroom fails.
 MIT licence.
 """
 import argparse
@@ -28,6 +35,7 @@ WRITER_END = 0x97000
 APP_BYTES_LIMIT = WRITER_END - APP_FLASH_OFFSET
 HEAP_IN_USE_AFTER_OPEN = 43512
 HEAP_MIN_AFTER_OPEN = 3700
+HEADROOM = 128
 # Section, and the symbol holding its load address (None: the app entry).
 LOAD_IMAGES = (('.text', None), ('.data', 'data_lma'), ('.dynamic_data', 'dynamic_data_lma'),
                ('.ram0_data', '_ram0_data_lma'), ('.cache_ram_data', 'cache_ram_data_lma'))
@@ -58,7 +66,9 @@ def measure(data, name='<elf>'):
     return dict(app_bytes=app, app_end=hex(APP_FLASH_OFFSET + app), app_bytes_limit=APP_BYTES_LIMIT,
                 app_margin=APP_BYTES_LIMIT - app, load_images=parts, heap_size=heap,
                 heap_after_open_predicted=predicted, heap_margin=predicted - HEAP_MIN_AFTER_OPEN,
-                writer_bound=app < APP_BYTES_LIMIT, heap_bound=predicted >= HEAP_MIN_AFTER_OPEN)
+                writer_bound=app < APP_BYTES_LIMIT, heap_bound=predicted >= HEAP_MIN_AFTER_OPEN,
+                headroom=HEADROOM, writer_headroom=APP_BYTES_LIMIT - app >= HEADROOM,
+                heap_headroom=predicted - HEAP_MIN_AFTER_OPEN >= HEADROOM)
 
 
 def main(argv=None):
@@ -67,7 +77,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
     report = {str(p): measure(p.read_bytes(), str(p)) for p in args.elf}
     print(json.dumps(report, indent=2))
-    return 0 if all(r['writer_bound'] and r['heap_bound'] for r in report.values()) else 1
+    keys = ('writer_bound', 'heap_bound', 'writer_headroom', 'heap_headroom')
+    return 0 if all(r[k] for r in report.values() for k in keys) else 1
 
 
 if __name__ == '__main__':

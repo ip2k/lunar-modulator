@@ -24,13 +24,16 @@ typedef struct { volatile u32 CLK_CON2, SYS_DIV; } fake_clock_t;
 typedef struct { volatile u32 PLL2_CON0, PLL2_CON1; } fake_ana_t;
 typedef struct { volatile u32 CON, CNT, PRD; } fake_timer_t;
 typedef struct { volatile u32 TTMR_CNT, TTMR_PRD; } JL_TypeDef_q32DSP;
+typedef struct { volatile u32 CON, BAUD; } fake_sfc_t;
 extern fake_clock_t fake_clock;
 extern fake_ana_t fake_ana;
 extern fake_timer_t fake_timer4;
 extern JL_TypeDef_q32DSP fake_q32;
+extern fake_sfc_t fake_sfc;
 #define JL_CLOCK (&fake_clock)
 #define JL_ANA (&fake_ana)
 #define JL_TIMER4 (&fake_timer4)
+#define JL_SFC (&fake_sfc)
 #define q32DSP(n) ((void)(n), &fake_q32)
 
 /* asm/p33.h */

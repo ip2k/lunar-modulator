@@ -12,10 +12,11 @@ fake_clock_t fake_clock;
 fake_ana_t fake_ana;
 fake_timer_t fake_timer4;
 JL_TypeDef_q32DSP fake_q32;
+fake_sfc_t fake_sfc;
 static u8 p33[256];
 static uint64_t t24;          /* TIMER4 time, 24 MHz */
 static uint32_t sys = 320000000, hsb_div = 2, lsb_div = 3, baud = 1, boot_baud = 1;
-static int refuse, bad_hsb, stale_tick, rail_stuck, critical, critical_max;
+static int refuse, refuse_320, moved, bad_hsb, stale_tick, rail_stuck, critical, critical_max;
 static unsigned clock_sets, p33_writes;
 
 int clk_get(const char *n)
@@ -33,11 +34,18 @@ int system_clock_set(u32 clk)
 {
     ++clock_sets;
     printf("FAKE system_clock_set %u rails_set_before=%u\n", (unsigned)clk, p33_writes);
-    if (refuse || clk == sys) return -22;
+    if (moved && clk == 360000000u) {
+        /* Refused, but the PLL moved anyway: a partial change. */
+        sys = clk;
+        fake_q32.TTMR_PRD = sys / 100u;
+        return -22;
+    }
+    if (refuse || (refuse_320 && clk == 320000000u) || clk == sys) return -22;
     sys = clk;
     if (bad_hsb && clk == 360000000u) hsb_div = 3;
     if (clk == 320000000u) hsb_div = 2;
     baud = boot_baud;
+    fake_sfc.BAUD = baud;
     fake_q32.TTMR_PRD = stale_tick && clk == 360000000u ? 3200000u : sys / 100u;
     fake_ana.PLL2_CON1 = sys / 100000u;
     return 0;
@@ -47,6 +55,7 @@ int sfc_flash_baud_div(u8 d)
 {
     printf("FAKE sfc_flash_baud_div %u held=%d\n", d, critical);
     baud = d;
+    fake_sfc.BAUD = d;
     return 0;
 }
 void cpu_enter_sfc_critical(void (*cb)(void *), void *priv)
@@ -90,6 +99,7 @@ int main(int argc, char **argv)
     fake_clock.SYS_DIV = (1u << 16) | (2u << 8);
     fake_q32.TTMR_PRD = sys / 100u;
     fake_timer4.CON = 9;
+    fake_sfc.BAUD = baud;
     /* Kit boot rails (demo_hello): DCDC on, SYSVDD 1.26, VDC14 1.40, VDDIOM
      * 3.2, VDDIOW 2.1, LVD 2.5 enabled. */
     p33[P3_ANA_CON0] = 1u << 3;
@@ -104,8 +114,20 @@ int main(int argc, char **argv)
     else if (!strcmp(s, "at_240")) sys = 240000000;
     else if (!strcmp(s, "pll_source")) fake_clock.CLK_CON2 = 5;
     else if (!strcmp(s, "dcdc_off")) p33[P3_ANA_CON0] = 1u << 2;
-    else if (strcmp(s, "pass")) return 2;
+    /* A readback fails at 360 MHz, then the SDK refuses the way back. */
+    else if (!strcmp(s, "restore_refuse")) stale_tick = refuse_320 = 1;
+    /* The switch is refused but the clock moved; the way back works. */
+    else if (!strcmp(s, "moved")) moved = 1;
+    /* The switch is refused, the clock moved, and the way back is refused. */
+    else if (!strcmp(s, "moved_stuck")) moved = refuse_320 = 1;
+    else if (strcmp(s, "pass") && strcmp(s, "end_drift")) return 2;
     int ok = lunar_clock360_apply(now);
+    if (ok) {
+        /* The end-of-run readback; end_drift has an SDK path put the boot
+         * BAUD back behind the module's back. */
+        if (!strcmp(s, "end_drift")) fake_sfc.BAUD = baud = boot_baud;
+        lunar_clock360_end(now);
+    }
     printf("FAKE result=%d sys=%u hsb=%d sfc=%d clock_sets=%u critical=%d critical_max=%d "
            "sysvdd=%u vdc14=%u vddiom=%u vddiow=%u vlvd=%u\n",
            ok, (unsigned)sys, clk_get("hsb"), clk_get("sfc"), clock_sets, critical, critical_max,

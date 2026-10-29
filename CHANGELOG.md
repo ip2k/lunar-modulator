@@ -9,6 +9,18 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- **The dev-board image size check now asks for 128 bytes to spare.**
+  `tools/jieli/pipeline_bounds.py` fails an image with less than 128 bytes
+  left in the writer region or in the predicted heap, since a rebuild alone
+  moves an image by a few bytes and the heap floor is one board's
+  observation.
+- **The 51/47 resampler path is now tested at the FM-1's rate on the
+  desktop.** The browser's virtual FM-1 runs at 44,100 Hz and never takes
+  it; the docs now say so (engines/resampler.md, sim/web/README.md).
+- **Worst-block timings say what they can be compared with.** They include
+  the recorder's own cost, so the result parser labels them as comparable
+  only with other recorder builds, not with V225, and notes which stage's
+  code is known to run from flash.
 - **The dev-board pipeline images fit again, with the 51/47 table still in
   SRAM.** The images with the eight-voice policy, the worst-block recorder and
   the 51/47 fast path were 6.5 KB too large for the dev board's writer and left
@@ -224,8 +236,21 @@ history.
     is in `firmware/devkit/clock360.c`), and checks the OS tick.
   - It checks the DAC's 44,100 Hz rate over the preroll. The soak window was
     dropped to fit the app-only writer region.
-  - On any mismatch it prints a numbered reason (1 to 8, listed in
-    `clock360.h`), goes back to 320 MHz and halts audio.
+  - After the soak it reads the clocks, the flash divider and the rails
+    again and prints them as one `end=` line, so a change during the run
+    shows.
+  - On any mismatch it prints a numbered reason (1 to 9, listed in
+    `clock360.h`) and halts audio. It goes back to 320 MHz and the kit's
+    rails only when the clock reads back at 320 MHz; if it does not, the
+    higher rails stay (never a lower voltage under a 360 MHz core). A
+    passing run stays at 360 MHz until the board is reset, so every run
+    starts from a reset.
+  - `tools/devkit_pipeline_result.py --sys-clk 360` counts a run only when
+    the switch, the preroll rate and the end readback all passed.
+  - Flash at 60 MHz is slower than the 320 MHz build's 80 MHz and,
+    presumably, the FM-1's 90 MHz, so code run from flash is slower here than
+    on either: these figures are not the FM-1's (firmware/devkit/README.md,
+    "The SFC confound").
   - Nothing has been run on the board yet.
 - **A cheaper DX7 sine, behind a switch, for an A/B listening test.**
   `FM1_DX7_SINE=trunc12` gives FM6 a 4,096-point sine read with the phase's

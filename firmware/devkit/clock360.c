@@ -19,9 +19,12 @@
  *   P33_CON_SET calls [verified: power_hw.c IR].
  * - FM-1 stock levels: SYSVDD 1.38 V, VDC14 1.60 V with DCDC, VDDIOM and
  *   VDDIOW 3.2 V, LVD 2.6 V [reported: fm1-nes board_power.c, from stock
- *   FM-1_010]. The kit's demo board asks for SYSVDD 1.26 V, VDC14 1.40 V
- *   with DCDC, VDDIOM 3.2 V and LVD 2.5 V [verified: demo_hello board.c and
- *   app_config.h]; the boot values are read back here, not assumed.
+ *   FM-1_010]. VDDIOW is the weak VDDIO, the IO supply's low-power
+ *   (sleep) level, not an RF rail [reported: demo_hello board.c calls it
+ *   the "weak VDDIO" level; its use in sleep inferred]. The kit's demo
+ *   board asks for SYSVDD 1.26 V, VDC14 1.40 V with DCDC, VDDIOM 3.2 V and
+ *   LVD 2.5 V [verified: demo_hello board.c and app_config.h]; the boot
+ *   values are read back here, not assumed.
  * - The OS tick follows the change: port.c's clock_critical_exit sets
  *   TTMR_PRD = clk_get("sys") / 100 [verified: port.c IR]. TIMER4 runs from
  *   the 24 MHz oscillator (CON = 9, set by sdk_worker.c) and the UARTs from
@@ -30,6 +33,12 @@
  *   90 MHz, which is what the FM-1 is thought to run [inferred]; BAUD 2 gives
  *   60 MHz. The kit's flash is JEDEC 5E4017 [reported: Codex bring-up note]
  *   and its 90 MHz rating is not established, so 60 MHz is the default.
+ *   That is a confound: the 320 MHz kit runs SFC at 80 MHz, so code and
+ *   constants read through XIP are slower at 360/60 than at 320/80, and
+ *   slower than on the FM-1 at 360/90 [inferred].
+ * - JL_SFC->BAUD is write-only in WL82.h; the receipts print a raw read of
+ *   it as evidence only. Whether it reads back is shown by the before line
+ *   (the boot BAUD is 1) [inferred: a read has no side effect].
  */
 #include "app_config.h"
 #include "system/includes.h"
@@ -96,19 +105,21 @@ static uint32_t tick_ticks(uint32_t (*now)(void))
     return now() - before;
 }
 
-/* One line per phase. The P33 bytes are printed raw, in the order
- * ana_con0,ana_con5,ana_con6,ana_con9,vlvd_con; decode them with the field
- * map at the top of this file (SYSVDD = con9 & 15, VDC14 = con6 & 7, VDDIOM =
- * con5 & 7, VDDIOW = (con5 >> 4) & 3, LVD = (vlvd >> 3) & 7, LVD enable =
- * vlvd & 1, DCDC13 = (con0 >> 3) & 1). tick is ten OS ticks in TIMER4
- * counts (2,400,000 at 10 ms). Kept short: the kit's writer region has
- * under 1 KB to spare at 360 MHz. */
+/* One line per phase, "<phase>=<result>": before=-, after=PASS|FAIL,
+ * restored=OK rails=kit or restored=FAIL rails=kept, end=PASS|FAIL. The P33
+ * bytes are printed raw, in the order ana_con0,ana_con5,ana_con6,ana_con9,
+ * vlvd_con; decode them with the field map at the top of this file (SYSVDD =
+ * con9 & 15, VDC14 = con6 & 7, VDDIOM = con5 & 7, VDDIOW = (con5 >> 4) & 3,
+ * LVD = (vlvd >> 3) & 7, LVD enable = vlvd & 1, DCDC13 = (con0 >> 3) & 1).
+ * baud is the raw JL_SFC->BAUD read. tick is ten OS ticks in TIMER4 counts
+ * (2,400,000 at 10 ms; 0 on the restored line). Kept short: the kit's writer
+ * region has little to spare at 360 MHz. */
 static void receipt(const char *phase, const char *result, const struct clocks *c,
                     const struct rails *r, uint32_t ticks, int rc)
 {
-    printf("LUNAR_CLOCK360 phase=%s result=%s sys=%d hsb=%d lsb=%d sfc=%d uart=%d "
+    printf("LUNAR_CLOCK360 %s=%s sys=%d hsb=%d lsb=%d sfc=%d uart=%d baud=%x "
            "con2=%x div=%x pll=%x,%x p33=%x,%x,%x,%x,%x tick=%u t4=%x rc=%d\n",
-           phase, result, c->sys, c->hsb, c->lsb, c->sfc, c->uart,
+           phase, result, c->sys, c->hsb, c->lsb, c->sfc, c->uart, (unsigned)JL_SFC->BAUD,
            (unsigned)c->con2, (unsigned)c->div, (unsigned)c->pll0, (unsigned)c->pll1,
            r->con0, r->con5, r->con6, r->con9, r->vlvd,
            (unsigned)ticks, (unsigned)JL_TIMER4->CON, rc);
@@ -117,11 +128,11 @@ static void receipt(const char *phase, const char *result, const struct clocks *
 /* Failure reasons, printed as numbers to keep the image inside the kit's
  * writer region; clock360.h lists them. */
 enum { NOT_AT_320 = 1, PLL_SOURCE_NOT_6, BUS_DIVIDERS, TICK_BEFORE, UART_CLOCK, DCDC_OFF,
-       RAIL_READBACK, READBACK };
+       RAIL_READBACK, READBACK, NOT_BACK };
 
 static int fail(int reason)
 {
-    printf("LUNAR_CLOCK360 result=FAIL reason=%d audio=halted\n", reason);
+    printf("LUNAR_CLOCK360 result=FAIL reason=%d\n", reason);
     return 0;
 }
 
@@ -154,6 +165,19 @@ static int rails_are_stock(const struct rails *r)
            (r->con5 & 7u) == VDDIOM_VOL_32V && ((r->con5 >> 4) & 3u) == VDDIOW_VOL_32V &&
            ((r->vlvd >> 3) & 7u) == VLVD_SEL_26V && (r->vlvd & 1u) &&
            ((r->con0 >> 3) & 1u);
+}
+
+/* The FM-1's clock tree, the OS tick, and (with stock power) its rails. */
+static int at_fm1(const struct clocks *c, const struct rails *r, uint32_t ticks)
+{
+    (void)r;
+    return near(c->sys, FM1_SYS) && near(c->hsb, FM1_HSB) && near(c->lsb, FM1_LSB) &&
+           near(c->sfc, SFC_EXPECTED) && c->uart == 48000000 && (c->con2 & 15u) == 6u &&
+           ticks >= TICK_LOW && ticks <= TICK_HIGH && (JL_TIMER4->CON & 15u) == 9u
+#if LUNAR_DEVKIT_STOCK_POWER
+           && rails_are_stock(r)
+#endif
+           ;
 }
 
 #if LUNAR_DEVKIT_SFC_BAUD == 2
@@ -193,8 +217,8 @@ int lunar_clock360_apply(uint32_t (*now)(void))
     rails_stock();
     rails_read(&r1);
     if (!rails_are_stock(&r1)) {
+        /* The clock has not been touched: the kit's rails are safe. */
         rails_restore(&r0);
-        receipt("rails", "FAIL", &c0, &r1, ticks0, 0);
         return fail(RAIL_READBACK);
     }
 #endif
@@ -205,23 +229,34 @@ int lunar_clock360_apply(uint32_t (*now)(void))
     clocks_read(&c1);
     rails_read(&r1);
     uint32_t ticks1 = tick_ticks(now);
-    int ok = !rc && near(c1.sys, FM1_SYS) && near(c1.hsb, FM1_HSB) && near(c1.lsb, FM1_LSB) &&
-             near(c1.sfc, SFC_EXPECTED) && c1.uart == 48000000 && (c1.con2 & 15u) == 6u &&
-             ticks1 >= TICK_LOW && ticks1 <= TICK_HIGH && (JL_TIMER4->CON & 15u) == 9u;
-#if LUNAR_DEVKIT_STOCK_POWER
-    ok = ok && rails_are_stock(&r1);
-#endif
+    int ok = !rc && at_fm1(&c1, &r1, ticks1);
     receipt("after", ok ? "PASS" : "FAIL", &c1, &r1, ticks1, rc);
     if (ok) return 1;
-    /* Fail closed: back to the kit's clock, then its rails, then halt audio. */
-    int back = rc ? 0 : system_clock_set(KIT_SYS);
-#if LUNAR_DEVKIT_STOCK_POWER
-    rails_restore(&r0);
-#endif
+    /* Fail closed. Back to the kit's clock if it moved (a refused switch may
+     * still have moved it), then read it again. The rails come down only once
+     * sys and HSB read back at 320/160 MHz; otherwise the stock rails stay,
+     * since they are the FM-1's own at 360 MHz and above the kit's at 320, so
+     * safe at either clock. Lowering them with the core still fast would
+     * undervolt it. Either way audio stays halted until a reset. */
+    int back = near(c1.sys, KIT_SYS) ? 0 : system_clock_set(KIT_SYS);
     clocks_read(&c1);
+    int down = !back && near(c1.sys, KIT_SYS) && near(c1.hsb, KIT_HSB);
+#if LUNAR_DEVKIT_STOCK_POWER
+    if (down) rails_restore(&r0);
+#endif
     rails_read(&r1);
-    receipt("restored", "FAIL", &c1, &r1, tick_ticks(now), back);
-    return fail(READBACK);
+    receipt("restored", down ? "OK rails=kit" : "FAIL rails=kept", &c1, &r1, 0, back);
+    return fail(down ? READBACK : NOT_BACK);
+}
+
+void lunar_clock360_end(uint32_t (*now)(void))
+{
+    struct clocks c;
+    struct rails r;
+    clocks_read(&c);
+    rails_read(&r);
+    uint32_t ticks = tick_ticks(now);
+    receipt("end", at_fm1(&c, &r, ticks) ? "PASS" : "FAIL", &c, &r, ticks, 0);
 }
 
 int lunar_clock360_audio_rate(const char *window, uint32_t callbacks, uint32_t ticks)

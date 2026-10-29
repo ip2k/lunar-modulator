@@ -698,3 +698,42 @@ if __name__ == "__main__":
     print(c_values(kernel_table(), 6))
     print("lowpass", len(lowpass_table()))
     print(c_values(lowpass_table(), 4))
+
+
+# --------------------------------------------- 51/47 at the FM-1's rate --
+# fm1-render renders at 44,118 Hz, the FM-1's rate, where the Plaits-rate
+# engines take the 51/47 fast path. The browser's AudioContext asks for
+# 44,100 Hz, where the 10 ppm gate keeps the two-stage converter, so the
+# virtual FM-1 never plays this path (sim/web/README.md, resampler.md). Here
+# the default build is held against one built with FM1_RESAMPLER_POLY47=0:
+# the PCM must differ (the fast path ran) while pitch and level agree (it is
+# the same sound, 0.014 cent lower).
+POLY47_OFF = ENGINES / "build" / "poly47-off"
+
+
+@pytest.fixture(scope="module")
+def two_stage_renderer():
+    if not shutil.which("make") or not (shutil.which("c++") or shutil.which("g++")):
+        pytest.skip("no make / C++ compiler")
+    subprocess.run(["make", "-s", "-C", str(ENGINES), "-j4", f"BUILD={POLY47_OFF}",
+                    "EXTRA=-DFM1_RESAMPLER_POLY47=0", str(POLY47_OFF / "fm1-render")],
+                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return POLY47_OFF / "fm1-render"
+
+
+@pytest.mark.parametrize("engine,params,key", [
+    ("macro", ["Model=6", "Timbre=0", "Morph=0.5", "Harmonics=0.5"], 69),
+    ("drums", [], 36),
+])
+def test_poly47_runs_at_the_fm1_rate(renderer, two_stage_renderer, tmp_path, engine, params, key):  # noqa: F811
+    from tests.engine_helpers import RATE, cents, pitch_hz, render, rms
+    assert RATE == 44118
+    note = [f"0:{key}:100:1.5"]
+    _, fast, a = render(renderer, tmp_path, engine, params=params, notes=note, name="poly47")
+    _, slow, b = render(two_stage_renderer, tmp_path, engine, params=params, notes=note, name="two_stage")
+    assert a.read_bytes() != b.read_bytes()
+    level = 20 * math.log10(rms(fast, 0.1, 1.4) / rms(slow, 0.1, 1.4))
+    assert abs(level) < 0.05, level
+    if engine == "macro":
+        # 2-op FM at zero index is a sine; the 7.9 ppm shows as 0.014 cent.
+        assert abs(cents(pitch_hz(fast, 0.3, 1.0), pitch_hz(slow, 0.3, 1.0))) < 0.1

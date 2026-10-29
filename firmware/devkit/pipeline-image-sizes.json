@@ -4,6 +4,7 @@
   "app_bytes_limit": 601824,
   "heap_in_use_after_open": 43512,
   "heap_min_after_open": 3700,
+  "headroom": 128,
   "reference": {
     "V225": {
       "app_bytes": 598140,

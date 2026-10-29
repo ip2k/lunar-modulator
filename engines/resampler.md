@@ -263,6 +263,21 @@ inputs from ⌊51*k*/47⌋ − 23 on with that phase's row of a fixed table.
   which admits 44,100 Hz and nothing else in use. Plaits-rate engines then
   sound 0.69 cent flat on the dev board. It is never for the FM-1
   [verified: `test_poly47_tolerance_widens_only_for_the_dev_kit`].
+- **The browser's 44,100 Hz: a parity gap.** The virtual FM-1's
+  AudioContext asks for 44,100 Hz (sim/web/README.md), where the same
+  10 ppm gate keeps the two-stage converter, so the browser never runs the
+  51/47 path. The FM-1 at 44,118 Hz always does. Drums, Macro, Macro Heavy
+  and Six-Op in the browser therefore use a different converter from the
+  device's: the same pitch to 0.014 cent and the same 0–18 kHz response to
+  hundredths of a dB, but not the same samples, and not the 20.18–22.06 kHz
+  image the fast path lets through (table below) [verified: arithmetic;
+  inferred for the browser's output, which no test captures]. On the dev
+  board the path runs only with `--poly47-at-44100`, 0.69 cent flat (above).
+  The desktop renderer runs at 44,118 Hz, so it is where the fast path is
+  covered outside a board: `test_poly47_runs_at_the_fm1_rate` renders Macro
+  and Drums there and holds them against a `FM1_RESAMPLER_POLY47=0` build
+  (different PCM, level within 0.05 dB, Macro's pitch within 0.1 cent)
+  [verified: the test].
 - **The table.** A Kaiser-windowed sinc, β 10, cut off at 20,800 Hz at the
   output rate, 48 inputs wide; each row is normalised to sum to exactly 1
   and rounded to float32. Row 47 − *q* is row *q* reversed, so only rows

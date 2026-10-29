@@ -77,15 +77,19 @@ def test_bounds_are_the_writer_region_and_the_measured_heap():
     assert v225['writer_bound'] and v225['heap_bound']
 
 
-@pytest.mark.parametrize('app,heap,writer,heap_ok', [
-    (601823, 47212, True, True), (601824, 47212, False, True),
-    (598140, 47211, True, False), (608380, 44460, False, False)])
-def test_bounds_edges(tmp_path, app, heap, writer, heap_ok, capsys):
+# Heap 47,340 leaves 3,828 B predicted: the 3,700 floor plus 128.
+@pytest.mark.parametrize('app,heap,writer,heap_ok,room', [
+    (601696, 47340, True, True, True), (601697, 47340, True, True, False),
+    (598140, 47339, True, True, False), (601823, 47212, True, True, False),
+    (601824, 47212, False, True, False), (598140, 47211, True, False, False),
+    (608380, 44460, False, False, False)])
+def test_bounds_edges(tmp_path, app, heap, writer, heap_ok, room, capsys):
     report = BOUNDS.measure(synthetic_elf(sizes(app), heap))
     assert (report['writer_bound'], report['heap_bound']) == (writer, heap_ok)
+    assert (report['writer_headroom'] and report['heap_headroom']) == room
     path = tmp_path/'sdk.elf'
     path.write_bytes(synthetic_elf(sizes(app), heap))
-    assert BOUNDS.main([str(path)]) == (0 if writer and heap_ok else 1)
+    assert BOUNDS.main([str(path)]) == (0 if room else 1)
     assert json.loads(capsys.readouterr().out)[str(path)]['app_bytes'] == app
 
 
@@ -106,9 +110,13 @@ def test_recorded_pipeline_images_meet_both_bounds():
     assert record['app_bytes_limit'] == BOUNDS.APP_BYTES_LIMIT
     assert record['heap_min_after_open'] == BOUNDS.HEAP_MIN_AFTER_OPEN
     assert {'cap8-msfa', 'cap8-trunc12', 'fixed12-msfa'} <= set(record['images'])
+    assert record['headroom'] == BOUNDS.HEADROOM == 128
     for name, image in record['images'].items():
         assert image['app_bytes'] < BOUNDS.APP_BYTES_LIMIT, name
         assert image['heap_size'] - BOUNDS.HEAP_IN_USE_AFTER_OPEN >= BOUNDS.HEAP_MIN_AFTER_OPEN, name
+        # The build gate's headroom, met by every recorded image.
+        assert image['app_margin'] == BOUNDS.APP_BYTES_LIMIT - image['app_bytes'] >= BOUNDS.HEADROOM, name
+        assert image['heap_margin'] == image['heap_size'] - 43512 - 3700 >= BOUNDS.HEADROOM, name
         assert image['config']['policy'] in preparer.POLICIES
         assert image['config']['dx7_sine'] in ('msfa', 'trunc12')
     # The levers the record was measured with are still in the preparer.

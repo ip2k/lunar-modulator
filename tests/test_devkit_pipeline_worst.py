@@ -148,3 +148,72 @@ def test_invalid_combinations_refuse_to_build(source, extra, message):
                              '-I'+str(ROOT/'engines/include'), '-I'+str(ROOT/'engines/mod'),
                              '-I'+str(ROOT/'sim/web/src'), str(ROOT/source)], capture_output=True, text=True)
     assert result.returncode != 0 and message in result.stderr
+
+
+def test_worst_blocks_carry_the_xip_note_and_the_recorder_label():
+    w = result_parser.parse(dac_receipts() + worst_lines())['worst_block']
+    assert w['blocks'][3]['largest_stage_xip'].startswith('partly mapped: DX7 NoteOn')
+    assert set(result_parser.STAGE_XIP) == set(result_parser.STAGES)
+    assert 'not with V225' in w['comparison']
+
+
+def test_parser_accepts_the_cap8_and_fixed12_polyphony_lines():
+    # Codex's older parse-v2xx scripts matched 'fixed=12 adaptive=0' only.
+    assert result_parser.parse(dac_receipts())['policy'] == 'cap8'
+    assert result_parser.parse(dac_receipts(policy='fixed12', voices=12))['policy'] == 'fixed12'
+
+
+AFTER = ('sys=360000000 hsb=180000000 lsb=60000000 sfc=60000000 uart=48000000 baud=2 con2=6 div=12 '
+         'pll=1,2 p33=8,24,4,f,31 tick=2400311 t4=9 rc=0')
+
+
+def clock360_lines(**change):
+    lines = dict(
+        before='LUNAR_CLOCK360 before=- sys=320000000 hsb=160000000 lsb=53333333 sfc=80000000 uart=48000000 '
+               'baud=1 con2=6 div=11 pll=1,2 p33=8,4,3,b,31 tick=2400100 t4=9 rc=0',
+        after='LUNAR_CLOCK360 after=PASS ' + AFTER,
+        audio='LUNAR_CLOCK360 audio=preroll cb=200 t4=6966000 rate_mhz=44100000 result=PASS',
+        end='LUNAR_CLOCK360 end=PASS ' + AFTER)
+    lines.update(change)
+    return '\n'.join(v for v in lines.values() if v) + '\n'
+
+
+def test_parser_gates_a_360_mhz_run():
+    text = clock360_lines() + dac_receipts() + worst_lines()
+    for sys_clk in (None, 360):
+        parsed = result_parser.parse(text, sys_clk)
+        assert parsed['clock360']['sfc_hz'] == 60000000 and '90' in parsed['clock360']['note']
+        assert parsed['clock360']['end']['baud'] == 2
+    # A 320 MHz run is unchanged and has no clock360 entry.
+    assert 'clock360' not in result_parser.parse(dac_receipts() + worst_lines(), 320)
+    with pytest.raises(ValueError, match='320 MHz run'):
+        result_parser.parse(text, 320)
+    with pytest.raises(ValueError, match='needs its LUNAR_CLOCK360'):
+        result_parser.parse(dac_receipts() + worst_lines(), 360)
+
+
+@pytest.mark.parametrize('change,message', [
+    (dict(after='LUNAR_CLOCK360 after=FAIL ' + AFTER), 'before/after/end'),
+    (dict(end=''), 'one LUNAR_CLOCK360 end'),
+    (dict(audio=''), 'one LUNAR_CLOCK360 audio'),
+    (dict(audio='LUNAR_CLOCK360 audio=preroll cb=200 t4=7800000 rate_mhz=39385000 result=FAIL'), 'failed'),
+    (dict(end='LUNAR_CLOCK360 end=FAIL ' + AFTER.replace('baud=2', 'baud=1').replace('sfc=60000000', 'sfc=90000000')),
+     'before/after/end'),
+    (dict(end='LUNAR_CLOCK360 end=PASS ' + AFTER.replace('baud=2', 'baud=1')), 'BAUD moved'),
+    (dict(end='LUNAR_CLOCK360 end=PASS ' + AFTER.replace('sfc=60000000', 'sfc=90000000')), 'SFC clock'),
+    (dict(end='LUNAR_CLOCK360 end=PASS ' + AFTER.replace('p33=8,24,4,f,31', 'p33=8,4,3,b,31')), 'rails'),
+    (dict(end='LUNAR_CLOCK360 end=PASS ' + AFTER.replace('sys=360000000', 'sys=320000000')), '360/180/60'),
+    (dict(restored='LUNAR_CLOCK360 restored=OK rails=kit ' + AFTER, fail='LUNAR_CLOCK360 result=FAIL reason=8'),
+     'failed'),
+    (dict(fail='LUNAR_CLOCK360 result=FAIL reason=1'), 'failed'),
+])
+def test_parser_refuses_a_failed_or_incomplete_360_mhz_run(change, message):
+    with pytest.raises(ValueError, match=message):
+        result_parser.parse(clock360_lines(**change) + dac_receipts() + worst_lines(), 360)
+
+
+def test_baud_is_only_compared_where_it_reads_back():
+    # A write-only register that reads 0 everywhere says nothing.
+    zero = clock360_lines(before=clock360_lines().splitlines()[0].replace('baud=1', 'baud=0'),
+                          end='LUNAR_CLOCK360 end=PASS ' + AFTER.replace('baud=2', 'baud=0'))
+    assert result_parser.parse(zero + dac_receipts(), 360)['clock360']['end']['baud'] == 0
