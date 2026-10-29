@@ -9,6 +9,27 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- **The dev-board pipeline images fit again, with the 51/47 table still in
+  SRAM.** The images with the eight-voice policy, the worst-block recorder and
+  the 51/47 fast path were 6.5 KB too large for the dev board's writer and left
+  under 1 KB of heap after the audio output opened. Two placement-only changes
+  fix both:
+  - the board build no longer links `benchmark.c`, the resampler benchmark
+    that pipeline images never call (with it went a second, flash copy of
+    the table);
+  - the engines' run-once constructors (`Create`, `Init`) now sit in flash
+    rather than SRAM.
+
+  All three images now fit, with 3.8 to 3.9 KB to spare in the writer region
+  and a predicted 5.3 KB of heap after open, against 3.7 KB on V225:
+  - cap8 with the msfa sine: 597,980 bytes;
+  - cap8 with the trunc12 sine: 597,916 bytes;
+  - fixed12 with the msfa sine: 597,884 bytes.
+
+  Their sound is unchanged: host replays reproduce the earlier per-case hashes
+  exactly. `tools/jieli/pipeline_bounds.py` checks a linked image against both
+  bounds, and `firmware/devkit/pipeline-image-sizes.json` keeps the measured
+  sizes, which the tests hold within bounds. Nothing has run on the board yet.
 - **The FM-1-transporter build is reproducible across days.** The firmware
   embeds its build date, so the CI job's UF2 hash changed at the next UTC day
   and its drift warning fired on `main`. `build.sh` now pins the date to the

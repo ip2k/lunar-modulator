@@ -81,6 +81,53 @@ PIPELINE_XIP = (
 )
 
 
+# Engine constructors run once, when renderer_live.c selects the fixed units
+# before the first block (fm1_app_select), never from a render or note path.
+# The hot-source pragmas put them in SRAM with the rest of their files; back in
+# XIP they free SRAM for the heap. Each one's init-only callee goes with it:
+# the vendor compiler does not inline across the two sections, so leaving
+# Instance::Init in SRAM would only outline it there. Shared helpers that hot
+# code also inlines (DriveOnePoleG, CompPole, ...) stay where they are.
+# Placement only: no source body, coefficient or arithmetic flag changes.
+PIPELINE_INIT_XIP = (
+    ('engines/src/drums.cc', 'void *Create(void *mem, const fm1_host_t *host) {'),
+    ('engines/src/drums.cc', '  bool Init(const fm1_host_t *host) {'),
+    ('engines/src/mi_macro.cc', 'void *Create(void *mem, const fm1_host_t *host) {'),
+    ('engines/src/mi_macro.cc', '  bool Init(const fm1_host_t *host) {'),
+    ('engines/src/fx_echo.cc', 'void *Create(void *mem, const fm1_host_t *host) {'),
+    ('engines/src/fx_echo.cc', '  void Init(const fm1_host_t *host) {'),
+    ('engines/src/msfa_dx7.cc', 'void *Create(void *mem, const fm1_host_t *host) {'),
+    ('engines/src/msfa_dx7.cc', 'bool SharedInit(float rate) {'),
+    ('engines/src/fx_drive.cc', 'static void *DriveCreate(void *mem, const fm1_host_t *host) {'),
+    ('engines/src/fx_comp.cc', 'static void *CompCreate(void *mem, const fm1_host_t *host) {'),
+)
+INIT_XIP_ATTRIBUTE = '__attribute__((noinline, section(".text"))) '
+
+# The writer and heap bounds every pipeline image must meet, and the check of a
+# linked ELF against them, live in tools/jieli/pipeline_bounds.py.
+_bounds_spec = importlib.util.spec_from_file_location('pipeline_bounds', Path(__file__).resolve().parent / 'pipeline_bounds.py')
+BOUNDS = importlib.util.module_from_spec(_bounds_spec)
+_bounds_spec.loader.exec_module(BOUNDS)
+
+
+def place_init_xip(staging):
+    for name, anchor in PIPELINE_INIT_XIP:
+        path = staging / name
+        indent = anchor[:len(anchor) - len(anchor.lstrip())]
+        path.write_text(checked_replace(path.read_text(), '\n' + anchor,
+                                        '\n' + indent + INIT_XIP_ATTRIBUTE + anchor.lstrip()))
+
+
+def unlist_resampler_benchmark(makefile_text):
+    """Pipeline images never call lunar_devkit_benchmark (sdk_worker.c calls it
+    only in the resampler-only build), but listing it linked its own copy of
+    the resampler tables in XIP (the 51/47 table among them, 4,608 B) and its
+    1,432 B resampler state in SRAM .bss."""
+    text = checked_replace(makefile_text, '\t../../../../../apps/demo/demo_hello/benchmark.c \\\n', '')
+    return checked_replace(text, '\nobjs/apps/demo/demo_hello/benchmark.c.o: CFLAGS := '
+                           '$(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fno-data-sections\n', '\n')
+
+
 def place_pipeline_xip(staging, burst_hot=False):
     path = staging / 'engines/src/msfa_dx7.cc'
     text = path.read_text()
@@ -270,11 +317,13 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
     if poly47_at_44100:
         flags += POLY47_AT_44100_FLAGS
     makefile = app / 'board/wl82/Makefile'
-    makefile.write_text(checked_replace(makefile.read_text(),
-        'CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n', flags))
+    makefile.write_text(unlist_resampler_benchmark(checked_replace(makefile.read_text(),
+        'CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n', flags)))
+    (app / 'benchmark.c').unlink()
     # The pinned compiler's code_seg pragma is retained only in private copies.
     # Original functions remain unchanged; newly split hot paths need placement.
     place_pipeline_xip(staging, burst_hot)
+    place_init_xip(staging)
     prepare_vcf_main(staging)
     dx7 = staging / 'engines/src/msfa_dx7.cc'
     dx7.write_text(dx7_block_controls(dx7.read_text()))
@@ -307,6 +356,10 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
         'pipeline_system_sha256': PIPELINE_SYSTEM_SHA256,
         'pipeline_xip_functions': [x for x in PIPELINE_XIP if not (burst_hot and ('NoteOn(' in x or 'Allocate(' in x))],
         'pipeline_burst_hot': burst_hot,
+        'pipeline_init_xip_functions': [f'{name}: {anchor.strip()[:-2]}' for name, anchor in PIPELINE_INIT_XIP],
+        'pipeline_resampler_benchmark_linked': False,
+        'pipeline_app_bytes_limit': BOUNDS.APP_BYTES_LIMIT,
+        'pipeline_heap_min_after_open': BOUNDS.HEAP_MIN_AFTER_OPEN,
         'pipeline_vcf_main_output': True,
         'pipeline_dx7_block_controls': True,
         'pipeline_sound1_frontier_frames': 8,

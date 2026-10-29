@@ -755,9 +755,35 @@ run had. Their applications (608,380 and 608,316 bytes) also exceed the
 bounded writer's 601,824 [verified: link; the heap figure is inferred from
 the constant 43,512 bytes in use after open in five board logs].
 Pipeline images never call `lunar_devkit_benchmark`, but the board Makefile
-still lists `benchmark.c`, which builds its own copy of the resampler header.
-That links a second, flash-resident copy of the 51/47 table (4,608 bytes)
-into the image as dead code [verified: link, 2026-10-28].
+listed `benchmark.c`, which builds its own copy of the resampler header. That
+linked a second, flash-resident copy of the 51/47 table (4,608 bytes) into the
+image as dead code, with the benchmark's kernel and low-pass tables, its
+function and its resampler state in `.bss` [verified: link, 2026-10-28].
+The pipeline preparer now leaves `benchmark.c` out of the board build. It
+also moves the run-once engine constructors and their `Init` functions to
+flash (`PIPELINE_INIT_XIP`). The compiler does not inline across sections,
+so moving `Create` alone had left the `Init` it used to inline in SRAM
+[inferred: link symbols]. `renderer_live.c` builds the engines at init,
+before the first block, so none of this is on the audio path [verified:
+source]. The hot SRAM functions keep their sizes within 8 bytes
+[verified: symbol diff].
+
+Rebuilt natively on aeon (2026-10-28), every configuration meets both bounds
+[verified: link, `tools/jieli/pipeline_bounds.py`]:
+
+| image | app bytes | margin | HEAP_SIZE | heap after open (predicted) |
+| --- | --- | --- | --- | --- |
+| cap8 msfa | 597,980 | 3,844 | 48,780 | 5,268 |
+| cap8 trunc12 | 597,916 | 3,908 | 48,844 | 5,332 |
+| fixed12 msfa | 597,884 | 3,940 | 48,780 | 5,268 |
+
+The 51/47 table stays in `.ram0_data`. `audit_link` gives 0 failures and 1
+pending item, the existing objdump review of `sdk_meky_check`. Host replays
+reproduce the cap8 images' earlier per-case hashes, fold and PCM sha256
+exactly (normal and ASan/UBSan) [verified: replay; inferred for the board].
+The heap column is a prediction until a board run reports it [inferred].
+`firmware/devkit/pipeline-image-sizes.json` records these sizes, and
+`tests/test_pipeline_bounds.py` keeps them inside the bounds.
 `python3 tools/devkit_pipeline_result.py capture.log` parses a run's UART log
 into JSON. It refuses missing or duplicate receipts, an inconsistent policy and
 stage vectors that do not sum. It reports timing only; PCM replay, the

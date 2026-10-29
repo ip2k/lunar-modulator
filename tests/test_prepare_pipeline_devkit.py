@@ -95,12 +95,22 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
     dx7 = (out/'lunar-source/engines/src/msfa_dx7.cc').read_text()
     assert ('  __attribute__((noinline, section(".text"))) void NoteOn(uint8_t key, uint8_t velocity)' in dx7) != burst_hot
     assert 'extern "C" __attribute__((noinline, section(".text"))) int fm1_dx7_set_voice_limit(' in dx7
-    assert dx7.count('__attribute__((noinline, section(".text")))') == (6 if burst_hot else 8)
+    # Eight (six with burst_hot) pipeline XIP anchors plus Create and SharedInit.
+    assert dx7.count('__attribute__((noinline, section(".text")))') == (8 if burst_hot else 10)
     assert receipt['pipeline_burst_hot'] == burst_hot
     if burst_hot:
         assert '  __attribute__((noinline, section(".volatile_ram_code"))) void NoteOn(' in dx7
         assert '  __attribute__((noinline, section(".volatile_ram_code"))) Voice *Allocate(' in dx7
     assert len(receipt['pipeline_xip_functions']) == (6 if burst_hot else 8)
+    # Size and SRAM levers that keep every image inside both bounds.
+    for name, constructor in module.PIPELINE_INIT_XIP:
+        assert module.INIT_XIP_ATTRIBUTE + constructor.lstrip() in (out/'lunar-source'/name).read_text()
+    assert len(receipt['pipeline_init_xip_functions']) == 10
+    assert 'benchmark.c' not in flags and not (app/'benchmark.c').exists()
+    assert 'sdk_worker.c' in flags and (app/'benchmark.h').exists()
+    assert not receipt['pipeline_resampler_benchmark_linked']
+    assert receipt['pipeline_app_bytes_limit'] == 601824
+    assert receipt['pipeline_heap_min_after_open'] == 3700
     assert 'BlockControls common = {};' in dx7
     assert receipt['pipeline_dx7_block_controls']
     assert receipt['pipeline_sound1_frontier_frames'] == 8
