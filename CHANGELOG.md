@@ -252,6 +252,11 @@ history.
     presumably, the FM-1's 90 MHz, so code run from flash is slower here than
     on either: these figures are not the FM-1's (firmware/devkit/README.md,
     "The SFC confound").
+  - The option costs about 3.7 KB of flash and 1.5 KB of heap. All three
+    360 MHz images keep 128 bytes or more to spare in flash (132, 196 and
+    228). The two msfa images keep only 96 bytes of heap, under the
+    128-byte headroom, so the size check still fails them until that is
+    settled (firmware/devkit/README.md, "Image sizes at 360 MHz").
   - Nothing has been run on the board yet.
 - **A cheaper DX7 sine, behind a switch, for an A/B listening test.**
   `FM1_DX7_SINE=trunc12` gives FM6 a 4,096-point sine read with the phase's

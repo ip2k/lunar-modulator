@@ -847,6 +847,37 @@ speed-up; compare 360 with 320 per stage, and do not read a 360 MHz figure as
 the FM-1's. An SFC-parity run (`--sfc-mhz 90`, BAUD 1) waits until the kit's
 flash is shown to work at 90 MHz.
 
+**Image sizes at 360 MHz.** The option costs about 3.7 KB of flash and
+1.5 KB of SRAM. `pipeline_bounds.py` fails a build with less than 128 B left
+in the writer region or in the predicted heap. Rebuilt natively on aeon from
+`dad89a31` (2026-10-29) [verified: link, `pipeline_bounds.py`, `audit_link`
+0 failures and 1 pending item; host replays equal the 320 MHz images'
+hashes]:
+
+| image | app bytes | margin | HEAP_SIZE | heap after open (predicted) | heap margin |
+| --- | --- | --- | --- | --- | --- |
+| cap8 msfa | 601,692 | 132 | 47,308 | 3,796 | 96 |
+| cap8 trunc12 | 601,628 | 196 | 47,372 | 3,860 | 160 |
+| fixed12 msfa | 601,596 | 228 | 47,308 | 3,796 | 96 |
+
+All three meet the hard bounds and the flash headroom. The two msfa images
+miss the heap headroom by 32 B. That is an open issue, recorded as such in
+`pipeline-image-sizes.json`, and the gate still fails them.
+
+- The option's SRAM code ends exactly on a 32-byte boundary. The data and the
+  heap after it are aligned, so 20 B less SRAM code would give 64 B more heap
+  (a margin of 160) [verified: link map].
+- The only option SRAM code that could go is our 14-byte `sfc_baud_held` and
+  the SDK's 36-byte `sfc_flash_baud_div`.
+  - Avoiding the SDK function means either running BAUD 1 (90 MHz flash, not
+    the safe default) or writing the SDK's private copy of BAUD (unverified).
+  - Moving `sfc_baud_held` to flash freed 12 B and gained nothing.
+- The rest is the SDK's own clock-change path (`sys_clock_update`, 1,414 B).
+
+Until the owner decides, a heap figure from a 360 MHz msfa run counts only
+if the board reports at least 3,700 B left after the DAC opens, as the
+320 MHz images must.
+
 [verified] The tracked burst-hot V188 image completes 57 cycles, 228 cases and
 1,256,964 blocks in 30.4 minutes with zero producer/consumer deadline misses and
 zero reported DAC underruns or transport faults. Producer maxima are

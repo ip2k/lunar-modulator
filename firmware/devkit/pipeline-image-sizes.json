@@ -92,6 +92,81 @@
       "heap_size": 48780,
       "heap_after_open_predicted": 5268,
       "heap_margin": 1568
+    },
+    "clk360-cap8-msfa": {
+      "config": {
+        "policy": "cap8",
+        "dx7_sine": "msfa",
+        "worst_block": true,
+        "poly47_at_44100": true,
+        "cycles": 3,
+        "sys_clk_hz": 360000000,
+        "stock_power": true
+      },
+      "app_bytes": 601692,
+      "app_end": "0x96f7c",
+      "app_margin": 132,
+      "load_images": {
+        ".text": 441824,
+        ".data": 0,
+        ".dynamic_data": 0,
+        ".ram0_data": 132688,
+        ".cache_ram_data": 27180
+      },
+      "heap_size": 47308,
+      "heap_after_open_predicted": 3796,
+      "heap_margin": 96,
+      "open_issue": "heap margin under the 128 B headroom: the 360 MHz option's SRAM code ends on a 32-byte boundary, and 20 B less of it would give 64 B more heap (firmware/devkit/README.md, \"Image sizes at 360 MHz\")"
+    },
+    "clk360-cap8-trunc12": {
+      "config": {
+        "policy": "cap8",
+        "dx7_sine": "trunc12",
+        "worst_block": true,
+        "poly47_at_44100": true,
+        "cycles": 3,
+        "sys_clk_hz": 360000000,
+        "stock_power": true
+      },
+      "app_bytes": 601628,
+      "app_end": "0x96f3c",
+      "app_margin": 196,
+      "load_images": {
+        ".text": 441824,
+        ".data": 0,
+        ".dynamic_data": 0,
+        ".ram0_data": 132624,
+        ".cache_ram_data": 27180
+      },
+      "heap_size": 47372,
+      "heap_after_open_predicted": 3860,
+      "heap_margin": 160
+    },
+    "clk360-fixed12-msfa": {
+      "config": {
+        "policy": "fixed12",
+        "dx7_sine": "msfa",
+        "worst_block": true,
+        "poly47_at_44100": true,
+        "cycles": 3,
+        "sys_clk_hz": 360000000,
+        "stock_power": true
+      },
+      "app_bytes": 601596,
+      "app_end": "0x96f1c",
+      "app_margin": 228,
+      "load_images": {
+        ".text": 441728,
+        ".data": 0,
+        ".dynamic_data": 0,
+        ".ram0_data": 132688,
+        ".cache_ram_data": 27180
+      },
+      "heap_size": 47308,
+      "heap_after_open_predicted": 3796,
+      "heap_margin": 96,
+      "open_issue": "heap margin under the 128 B headroom: the 360 MHz option's SRAM code ends on a 32-byte boundary, and 20 B less of it would give 64 B more heap (firmware/devkit/README.md, \"Image sizes at 360 MHz\")"
     }
-  }
+  },
+  "measured_clk360": "2026-10-29, native builds on aeon as above, source feature/2026-10-28@perf-levers at dad89a31 (--sys-clk 360 --stock-power, SFC 60 MHz)"
 }

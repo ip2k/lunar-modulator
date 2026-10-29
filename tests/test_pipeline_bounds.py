@@ -111,12 +111,21 @@ def test_recorded_pipeline_images_meet_both_bounds():
     assert record['heap_min_after_open'] == BOUNDS.HEAP_MIN_AFTER_OPEN
     assert {'cap8-msfa', 'cap8-trunc12', 'fixed12-msfa'} <= set(record['images'])
     assert record['headroom'] == BOUNDS.HEADROOM == 128
+    assert {'clk360-cap8-msfa', 'clk360-cap8-trunc12', 'clk360-fixed12-msfa'} <= set(record['images'])
     for name, image in record['images'].items():
+        clk360 = name.startswith('clk360-')
+        assert image['config'].get('sys_clk_hz', 320000000) == (360000000 if clk360 else 320000000), name
         assert image['app_bytes'] < BOUNDS.APP_BYTES_LIMIT, name
         assert image['heap_size'] - BOUNDS.HEAP_IN_USE_AFTER_OPEN >= BOUNDS.HEAP_MIN_AFTER_OPEN, name
-        # The build gate's headroom, met by every recorded image.
+        # The build gate's headroom: every image meets it in flash.
         assert image['app_margin'] == BOUNDS.APP_BYTES_LIMIT - image['app_bytes'] >= BOUNDS.HEADROOM, name
-        assert image['heap_margin'] == image['heap_size'] - 43512 - 3700 >= BOUNDS.HEADROOM, name
+        assert image['heap_margin'] == image['heap_size'] - 43512 - 3700, name
+        if image['heap_margin'] < BOUNDS.HEADROOM:
+            # Only a 360 MHz image may fall short, and only as a recorded open
+            # issue (pipeline_bounds.py still exits 1 for it).
+            assert clk360 and 'open_issue' in image, name
+        else:
+            assert 'open_issue' not in image, name
         assert image['config']['policy'] in preparer.POLICIES
         assert image['config']['dx7_sine'] in ('msfa', 'trunc12')
     # The levers the record was measured with are still in the preparer.
