@@ -745,6 +745,18 @@ board's host runs at 44,100 Hz, where the 51/47 resampler fast path's 10 ppm
 gate does not engage, so this widens it (`FM1_RESAMPLER_POLY47_TOLERANCE=5e-4`)
 and Plaits-rate engines sound 0.69 cent flat on the board (engines/resampler.md).
 Host replays that predict such an image's PCM hashes need the same define.
+The 51/47 table (4,608 bytes) stays in `.volatile_ram` (SRAM) when the cache
+tables move to cache RAM: those seven free D-cache ways hold 28,672 bytes, the
+other tables take 27,148, and the linker refused the overflow [verified: vendor
+link, 2026-10-28]. That SRAM comes out of the heap. The integration build's
+cap8 + worst-block + poly47 images leave a predicted 948 (msfa) and 1,012
+(trunc12) bytes of heap after the DAC opens, against the 3,700 the V225 board
+run had. Their applications (608,380 and 608,316 bytes) also exceed the
+bounded writer's 601,824 [verified: link; the heap figure is inferred from
+the constant 43,512 bytes in use after open in five board logs].
+`benchmark.c` builds its own copy of the resampler header, so the arithmetic
+benchmark's 47,872 Hz case now takes the 51/47 path (it converts to 44,118),
+with a second, flash-resident copy of the table.
 `python3 tools/devkit_pipeline_result.py capture.log` parses a run's UART log
 into JSON. It refuses missing or duplicate receipts, an inconsistent policy and
 stage vectors that do not sum. It reports timing only; PCM replay, the

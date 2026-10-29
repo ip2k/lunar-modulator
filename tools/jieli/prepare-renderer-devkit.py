@@ -1230,6 +1230,16 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
             if original.count(attribute) != expected:
                 raise ValueError("Unexpected resident table definitions; review cache placement")
             text = original.replace(attribute, '__attribute__((section(".lunar_cache_tables")))')
+            if name == "mi_macro.cc" and expected == 3:
+                # The 51/47 table stays in SRAM (.volatile_ram): the seven free
+                # D-cache ways hold 28,672 bytes, the other tables 27,148, and
+                # its 4,608 more overflowed the cache_ram region at link
+                # (integration build, 2026-10-28).
+                poly = "fm1_resampler_poly47[FM1_RESAMPLER_POLY47_ROWS][FM1_RESAMPLER_POLY47_TAPS]"
+                moved = poly + ' __attribute__((section(".lunar_cache_tables")))'
+                if text.count(moved) != 1:
+                    raise ValueError("Unexpected 51/47 table definition; review cache placement")
+                text = text.replace(moved, poly + " " + attribute, 1)
             if name == "msfa_rom.cc":
                 exp2 = "extern const int32_t kExp2Tab[2048] = {"
                 if text.count(exp2) != 1:

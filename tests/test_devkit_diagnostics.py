@@ -245,7 +245,9 @@ def test_sdk_preparation_disables_downloader_and_orphan_bss(tmp_path, mode):
                     assert b"fm1_resampler_kernel[" not in macro
                     assert b"return k[0] + (float)(t & 0xFFFFu) * k[1];" in prepared
                 external = definition.replace(b'static const float', b'extern const float', 1)
-                assert external.replace(b' = {', b' __attribute__((section("' + section + b'"))) = {', 1) in macro
+                # The 51/47 table stays in SRAM: cache RAM has no room for it.
+                placed = b'.volatile_ram' if b"fm1_resampler_poly47[" in definition else section
+                assert external.replace(b' = {', b' __attribute__((section("' + placed + b'"))) = {', 1) in macro
                 declaration = definition.split(b' = {', 1)[0].replace(b'static const', b'extern const', 1) + b';'
                 assert declaration in prepared
                 if b"fm1_resampler_poly47[" in definition:
