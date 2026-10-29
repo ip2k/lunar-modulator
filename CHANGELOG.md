@@ -9,6 +9,10 @@ history.
 ## [Unreleased]
 
 ### Fixed
+- **The eight-voice image held up for 30 minutes on the dev board.** No
+  underruns, mean load 66% and 83% on the two cores, with the queue adding
+  11.6 ms of latency. This meets the release rule on the dev kit; an FM-1
+  run is still to come (`notes/2026-10-29-devkit-soak30.md`).
 - **Eight voices now fit the dev board's time budget at 320 MHz.** With the
   new drum converter, the eight-voice images ran with mean load at or below
   83% in every case (12 voices: 88% in the heaviest case, over the 85% line).
