@@ -192,6 +192,12 @@ history.
 - `U2`/`U3` are SOIC-16 `74HC595`, not SOIC-20; `U5` is a QFN, not a SOIC-8.
 
 ### Added
+- **An eight-voice DX7 policy and a worst-block recorder for the dev-board
+  pipeline.** `prepare-pipeline-devkit.py --policy cap8` limits each DX7 unit
+  to eight voices, beside the default twelve (`fixed12`). `--worst-block` keeps
+  each test case's slowest producer block, split into seven stages, and prints
+  it over the UART with its own measured overhead. `tools/devkit_pipeline_result.py`
+  reads the log. Host replay only so far; nothing has run on the dev board.
 - **A recovery guide for a Raspberry Pi Pico 2 W** (docs/17). It covers the
   wiring (with a photo), building kurogedelic's FM-1-transporter with this
   project's RP2350 patch (`tools/fm1-transporter/`), entering the mask ROM,

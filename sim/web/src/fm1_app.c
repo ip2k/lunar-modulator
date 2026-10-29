@@ -19,6 +19,12 @@ static int pipeline_owned_unit(int unit) {
 static int pipeline_busy(void) { return pipeline_pending || pipeline_producing; }
 
 #define PIPELINE_GUARD(x) PIPELINE_REQUIRE(x)
+/* Opt-in worst-block stage marks; absent unless FM1_APP_PIPELINE_MARKS. */
+#ifdef FM1_APP_PIPELINE_MARKS
+#define PIPELINE_MARK(point) fm1_app_pipeline_mark(FM1_APP_PIPELINE_MARK_##point)
+#else
+#define PIPELINE_MARK(point) ((void)0)
+#endif
 #else
 #define PIPELINE_GUARD(x) ((void)0)
 #endif
@@ -4050,6 +4056,7 @@ static void pipeline_render_sounds(fm1_app_t *a, uint32_t n, PipelineSlot *owned
      * own frames, each sound unit split where a tick writes to it. */
     seq_flush(a);
     a->seq_last_n = fm1_seq_host_advance(&a->seq_host, n);
+    PIPELINE_MARK(SEQ);
     /* The event hook also applies insert/master/mixer locks without a mod
      * runtime. With modulation it forwards every existing hook operation. */
     const fm1_seq_hook_t hook = { a, seq_auto_begin, seq_auto_event, seq_auto_lock,
@@ -4058,10 +4065,12 @@ static void pipeline_render_sounds(fm1_app_t *a, uint32_t n, PipelineSlot *owned
     fm1_seq_host_dispatch_slots_ticks(&a->seq_host, n, slot, FM1_APP_SOUNDS, &hook);
     pipeline_recording=0;
   } else {
+    PIPELINE_MARK(SEQ);
     for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
       if (slot[k].sink) sound_of(a, k)->e->render(sound_of(a, k)->self, a->mix[k], n);
     }
   }
+  PIPELINE_MARK(DISPATCH);
 
   /* CPU0 executes its sinks in original dispatch order; only Macro is deferred. */
   pipeline_validate_stream(&pipeline_recorded[1],owned->sound[1],n);
@@ -4204,6 +4213,7 @@ static void pipeline_produce_block(fm1_app_t *a, uint32_t frames, void *storage)
   uint32_t n = frames > FM1_APP_MAX_FRAMES ? FM1_APP_MAX_FRAMES : frames;
   PipelineSlot *slot=(PipelineSlot *)storage;
   pipeline_preflight(a,slot,n);
+  PIPELINE_MARK(PREFLIGHT);
   a->mod_nwr = 0;
   a->seq_nmix = 0;
   /* docs/15 §2.4, steps 2-6: what was held, the block's own events, then
@@ -4213,6 +4223,7 @@ static void pipeline_produce_block(fm1_app_t *a, uint32_t frames, void *storage)
   PROFILE_STAGE(FM1_APP_PROFILE_SOUNDS, n, 1);
   pipeline_render_sounds(a,n,slot);
   PROFILE_STAGE(FM1_APP_PROFILE_SOUNDS, n, 0);
+  PIPELINE_MARK(INSERTS);
   post_capture(a,n,&slot->view,&slot->work);
   PIPELINE_REQUIRE(slot->view.write_count<=FM1_APP_MOD_WRITES);
   PIPELINE_REQUIRE(slot->view.event_count<=FM1_APP_SEQ_EVENTS);
@@ -4222,6 +4233,7 @@ static void pipeline_produce_block(fm1_app_t *a, uint32_t frames, void *storage)
   slot->view.events=slot->view.has_seq?slot->events:NULL;
   pipeline_capture_drive(a,slot);
   slot->live=1;++pipeline_pending;++pipeline_next_produce;
+  PIPELINE_MARK(CAPTURE);
   PROFILE_STAGE(FM1_APP_PROFILE_UI, n, 1);
   a->frames += n;
   if (a->edit) {                         /* ARP held: Latch, for the next block: the panel's */

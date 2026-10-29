@@ -16,6 +16,9 @@ SYSTEM = Path('cpu/wl82/liba/system.a')
 ORIGINAL_SYSTEM_SHA256 = 'a71bdc75e5afbcffaf7d79bc2b27f2b65fec63d94d2261b584744d3e9b9098ea'
 PIPELINE_SYSTEM_SHA256 = '792c7599e76e52a2cac9cd3a69d1d99bf301912ba941840d1dc819300484c7ee'
 SELECTOR_CORRECTION = 'ac79-e30b1ee-affinity-early-selected-tail-v132'
+# Named fixed-polyphony workload policies; adaptive-three stays a separate flag.
+POLICIES = {'fixed12': '', 'cap8': 'CFLAGS += -DLUNAR_RENDERER_POLICY_CAP8=1\n'}
+WORST_BLOCK_FLAGS = 'CFLAGS += -DLUNAR_PIPELINE_WORST_BLOCK=1 -DFM1_APP_PIPELINE_MARKS=1\n'
 
 # Exact-PCM transformations/placement used by the successful private pipeline.
 # Internal timing-only setup suppresses the old DAC demo and all observers;
@@ -227,7 +230,8 @@ def checked_replace(text, before, after):
     return text.replace(before, after, 1)
 
 
-def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=False):
+def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=False,
+                   policy='fixed12', worst_block=False):
     """Replace legacy worker mode, never its recovery or lifecycle bodies."""
     app = out / 'apps/demo/demo_hello'
     main = app / 'app_main.c'
@@ -241,6 +245,9 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
              f'CFLAGS += -I{staging / "firmware/devkit"}\n')
     if adaptive_three:
         flags += 'CFLAGS += -DLUNAR_PIPELINE_ADAPTIVE_THREE=1\n'
+    flags += POLICIES[policy]
+    if worst_block:
+        flags += WORST_BLOCK_FLAGS
     makefile = app / 'board/wl82/Makefile'
     makefile.write_text(checked_replace(makefile.read_text(),
         'CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n', flags))
@@ -264,7 +271,8 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
         'timing_only': False, 'outer_timing_only': False,
         'renderer_pipeline': True, 'renderer_pipeline_dac': True,
         'pipeline_cycles': cycles,
-        'pipeline_polyphony': 'adaptive65/60-floor3' if adaptive_three else 'fixed12',
+        'pipeline_polyphony': 'adaptive65/60-floor3' if adaptive_three else policy,
+        'pipeline_worst_block': worst_block,
         'parent_task_priority': 16, 'uart_task_priority': 18,
         'worker_stack_words': 2048, 'worker_stack_bytes': 8192,
         'pipeline_worker_stack_words': 1536, 'pipeline_worker_priority': 16,
@@ -293,9 +301,14 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
     receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
 
 
-def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3, burst_hot=False):
+def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3, burst_hot=False,
+                     policy='fixed12', worst_block=False):
     if isinstance(cycles, bool) or not 1 <= cycles <= 57:
         raise ValueError('Pipeline cycles must be 1..57')
+    if policy not in POLICIES:
+        raise ValueError('Unknown polyphony policy: ' + str(policy))
+    if adaptive_three and policy != 'fixed12':
+        raise ValueError('Adaptive-three is its own policy; do not combine it with ' + policy)
     if out.exists() or out.is_symlink():
         raise ValueError('Output must be a new private build directory')
     # Refuse any unreviewed scheduler input before copying a large SDK. Exact
@@ -315,7 +328,7 @@ def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cyc
     target.write_bytes(corrected_bytes)
     if sha256(target) != PIPELINE_SYSTEM_SHA256:
         raise ValueError('Prepared scheduler copy mismatch')
-    adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot)
+    adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot, policy, worst_block)
 
 
 if __name__ == '__main__':
@@ -327,7 +340,12 @@ if __name__ == '__main__':
                         help='Private reviewed scheduler archive; copied only to output SDK')
     parser.add_argument('--adaptive-three', action='store_true', help='Explicit adaptive65/60 floor3 experiment; default fixed12')
     parser.add_argument('--cycles', type=int, default=3, help='Four-case cycles, 1..57; 57 is about 30.4 minutes')
+    parser.add_argument('--policy', choices=sorted(POLICIES), default='fixed12',
+                        help='Named fixed DX7 polyphony: fixed12 (default) or cap8 (eight voices per DX7 at init)')
+    parser.add_argument('--worst-block', action='store_true',
+                        help='Record each case\'s worst producer block stage vector (six extra timer reads per block)')
     parser.add_argument('--burst-hot', action='store_true', help='Experiment: move DX7 NoteOn/Allocate from XIP into SRAM; no DSP changes')
     args = parser.parse_args()
     prepare_pipeline(args.sdk.resolve(), args.source.resolve(), args.out.absolute(),
-                     args.pipeline_system_archive.resolve(), args.adaptive_three, args.cycles, args.burst_hot)
+                     args.pipeline_system_archive.resolve(), args.adaptive_three, args.cycles, args.burst_hot,
+                     args.policy, args.worst_block)

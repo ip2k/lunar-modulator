@@ -20,6 +20,17 @@ void *fm1_app_pipeline_work(unsigned index);
 int fm1_app_pipeline_produce(fm1_app_t *app, void *work);
 const float *fm1_app_pipeline_consume(void *work);
 int fm1_app_pipeline_retire(void *work);
+/* Opt-in producer stage marks (FM1_APP_PIPELINE_MARKS, off by default). The
+ * platform supplies fm1_app_pipeline_mark; it must only read a timer and store,
+ * never allocate, log, mutate the app or render. CONTROLS is marked by the
+ * caller before fm1_app_pipeline_produce; the rest inside the sealed block. */
+enum fm1_app_pipeline_mark_point {
+  FM1_APP_PIPELINE_MARK_CONTROLS, FM1_APP_PIPELINE_MARK_PREFLIGHT,
+  FM1_APP_PIPELINE_MARK_SEQ, FM1_APP_PIPELINE_MARK_DISPATCH,
+  FM1_APP_PIPELINE_MARK_INSERTS, FM1_APP_PIPELINE_MARK_CAPTURE,
+  FM1_APP_PIPELINE_MARK_POINTS
+};
+void fm1_app_pipeline_mark(unsigned point);
 #ifdef __cplusplus
 }
 #endif
