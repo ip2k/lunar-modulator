@@ -47,7 +47,7 @@ platform for features M-VAVE will never ship.
    is a matter of build flags and an audio DMA ring buffer, not DSP research.
 4. **The update path has no cryptography.** CRC16 only; the chip key is in the
    package. Nothing legal or cryptographic stands between us and the flash.
-5. **Headroom.** Stock runs at 240 MHz of a possible 320, with 578 KB SRAM
+5. **Headroom.** Stock runs at 360 MHz, above the SDK's 320 MHz table, with 578 KB SRAM
    barely touched. Its 12 voices render on the second core and the UI and
    effects on the first (docs/11 §2) [inferred]; how loaded either core is
    has not been measured. More voices, better effects, a real sequencer and
@@ -142,14 +142,14 @@ radio hardware. An open firmware may have to ship without Bluetooth first.
 
 | Resource | Stock use | Available |
 | --- | --- | --- |
-| CPU | 12 msfa voices on cpu1; FX, UI, MIDI, USB and BLE on cpu0; 240 MHz [inferred: docs/11 §2] | up to 320 MHz on both cores |
+| CPU | 12 msfa voices on cpu1; FX, UI, MIDI, USB and BLE on cpu0; 360 MHz [verified: docs/02 §2] | the same 360 MHz on both cores (the SPL sets it); the SDK table stops at 320 |
 | SRAM | ~135 KB static + heap + 23 KB display strips | 578 KB |
 | Flash | 583 KB app in a 1 MB map (VM 340 KB, USR 72 KB) | ~400 KB free if the VM region is shrunk; no room for large sample banks |
 | Audio | I2S (ALNK0) to an external codec, 44,117.6 Hz, 64-frame halves (~1.5 ms) [reported: Felucca, fm1-nes; docs/01 §3.1] | the internal DAC is on chip but unused on this board [reported] |
 | USB | USB-MIDI + UAC1 24-bit stereo | full-speed/high-speed device and host |
 
 msfa is integer fixed-point and was designed for 2012 Android phones; at
-240 MHz on a DSP-flavoured core, 16–24 voices are plausible, and the FPU can
+360 MHz on a DSP-flavoured core, 16–24 voices are plausible, and the FPU can
 carry effects in float.
 
 ## 5. Verdict

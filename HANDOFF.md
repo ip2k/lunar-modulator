@@ -305,7 +305,7 @@ mobile hardware editor is explicitly deferred until installable firmware; see
 
 ## 2. The ten facts that matter
 
-1. SoC = **JieLi AC791N** (WL82), two custom **pi32v2** cores at 240 MHz
+1. SoC = **JieLi AC791N** (WL82), two custom **pi32v2** cores at 360 MHz [verified: V15 `isd_config`; reported: fm1-x0x measurement]
    (stock: the OS on cpu0, the msfa voices bare-metal on cpu1 [inferred],
    docs/11 §2), 578 KB SRAM, 1 MB flash (probably in-package), XIP from
    `0x02000000`, RAM at `0x01C00000`. Marking `C156211-11B8` (aroum's unit) /

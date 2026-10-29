@@ -304,7 +304,7 @@ each. tools/seq_bench.py writes the two worst-case scripts.
 The worst blocks are fire-tick index rebuilds: the first scan after Play
 builds every clip's index, and a quantise, swing, scale or loop change
 rebuilds that clip's, here about 30 µs for 512 notes on the M1. pi32v2 runs
-at 240 MHz with a narrower core, so the same rebuild could take a sizeable
+at 360 MHz with a narrower core, so the same rebuild could take a sizeable
 part of one 64-frame block there [inferred]; stage B measures it, with the
 seq_bench scripts. Work still on the audio task that stage B must time or
 move [inferred costs]:

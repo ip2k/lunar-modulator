@@ -205,7 +205,7 @@ and effects (30–200 KB), the display strips (2 × 11.5 KB, docs/01) and the
 system. A typical clip snapshot is under 1 KB, so undo holds dozens of
 gestures; a worst-case clip (15 KB) does not fit (§10).
 
-**CPU** [inferred], against 348,160 cycles per 64-frame block at 240 MHz:
+**CPU** [inferred], against 522,236 cycles per 64-frame block at 360 MHz:
 
 - **At most one master tick per block.** A tick is 229.8 samples at 120 BPM
   and 91.9 at 300 BPM; a 64-frame block adds at most 184,320,000 against a
