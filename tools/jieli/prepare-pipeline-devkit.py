@@ -27,6 +27,17 @@ WORST_BLOCK_FLAGS = 'CFLAGS += -DLUNAR_PIPELINE_WORST_BLOCK=1 -DFM1_APP_PIPELINE
 POLY47_AT_44100_TOLERANCE = '5e-4'
 POLY47_AT_44100_FLAGS = 'CFLAGS += -DFM1_RESAMPLER_POLY47_TOLERANCE=' + POLY47_AT_44100_TOLERANCE + '\n'
 
+# Owner, 2026-10-28: time the dev board at the FM-1's stock clock tree and
+# power profile. App-only and at run time (firmware/devkit/clock360.c): the
+# kit's flash head, isd_config and SPL are unchanged. Rails go up to the
+# FM-1's levels [reported: fm1-nes board_power.c], then system_clock_set
+# moves 320 -> 360 MHz, keeping HSB /2 and LSB /3 (180 and 60 MHz). Default
+# off: the 320 MHz build inputs are byte-identical when it is not asked for.
+SYS_CLOCKS = (320, 360)
+SFC_BAUD = {60: 2, 90: 1}  # SFC = HSB 180 MHz / (BAUD + 1)
+STOCK_POWER = {'sysvdd': '1.38 V', 'vdc14': '1.60 V', 'vdc14_dcdc': True,
+               'vddiom': '3.2 V', 'vddiow': '3.2 V', 'lvd': '2.6 V'}
+
 # Exact-PCM transformations/placement used by the successful private pipeline.
 # Internal timing-only setup suppresses the old DAC demo and all observers;
 # adapt_pipeline below replaces that worker mode with the tracked DAC driver.
@@ -249,8 +260,61 @@ def checked_replace(text, before, after):
     return text.replace(before, after, 1)
 
 
+def clock360_worker(text):
+    """Switch after the recovery window, before the probe and the DAC."""
+    text = checked_replace(text, '#include "benchmark.h"\n', '#include "benchmark.h"\n#include "clock360.h"\n')
+    anchor = ('    os_time_dly(200);\n#endif\n'
+              '#if defined(LUNAR_DEVKIT_RENDERER_TIMING) || defined(LUNAR_DEVKIT_RENDERER_PIPELINE_DAC)\n')
+    return checked_replace(text, anchor, anchor.replace('#endif\n', '#endif\n'
+        '    /* FM-1 clock and power (prepare-pipeline-devkit.py --sys-clk 360).\n'
+        '     * Fail closed: no arithmetic probe and no DAC after a FAIL. */\n'
+        '    if (!lunar_clock360_apply(now)) {\n'
+        '        for (;;) os_time_dly(100);\n'
+        '    }\n', 1))
+
+
+def clock360_dac(text):
+    """Measure the DAC rate after the switch; the preroll window gates audio."""
+    if 'clock360' in text:
+        raise ValueError('DAC clock check already prepared')
+    snap = ('{unsigned f;local_irq_save(f);fence103();{cb}=transport.callbacks;{t}=transport.previous;'
+            'local_irq_restore(f);}')
+    text = checked_replace(text, '#include "voice_budget.h"\n', '#include "voice_budget.h"\n#include "clock360.h"\n')
+    wait = '    while((uint32_t)(timer_get_ms()-pre)<50u && !transport.fault && !lunar_pipeline_error())os_time_dly(1);\n'
+    text = checked_replace(text, wait, wait +
+        '    /* Callback start stamps (TIMER4) bracket whole 64-frame callbacks. */\n'
+        '    uint32_t clock360_cb0,clock360_t0,clock360_cb1,clock360_t1,clock360_ms1;int clock360_soak_ok=1;\n'
+        '    ' + snap.replace('{cb}', 'clock360_cb0').replace('{t}', 'clock360_t0') + '\n')
+    preroll = '    preroll_ms=timer_get_ms()-pre;\n'
+    text = checked_replace(text, preroll, preroll +
+        '    ' + snap.replace('{cb}', 'clock360_cb1').replace('{t}', 'clock360_t1') + 'clock360_ms1=timer_get_ms();\n'
+        '    if(!lunar_clock360_audio_rate("preroll",clock360_cb1-clock360_cb0,clock360_t1-clock360_t0))'
+        '{task_fault103(36001);return v110_failure(__LINE__);}\n')
+    end = '    printf("LUNAR_DAC103 end=1 '
+    text = checked_replace(text, end,
+        '    {uint32_t cb,t;' + snap.replace('{cb}', 'cb').replace('{t}', 't') + '\n'
+        '     /* TIMER4 wraps after 178 s; longer soaks report the preroll window only. */\n'
+        '     if((uint32_t)(timer_get_ms()-clock360_ms1)<170000u)clock360_soak_ok=lunar_clock360_audio_rate("soak",cb-clock360_cb1,t-clock360_t1);\n'
+        '     else puts("LUNAR_CLOCK360 audio window=soak skipped=timer4_wrap");}\n' + end)
+    tail = '    return 1;\n}\n\nint lunar_pipeline_dac_idle(void)'
+    return checked_replace(text, tail, '    if(!clock360_soak_ok)return v110_failure(__LINE__);\n' + tail)
+
+
+def adapt_clock360(out, source, sfc_mhz):
+    app = out / 'apps/demo/demo_hello'
+    for name in ('clock360.c', 'clock360.h'):
+        shutil.copyfile(source / 'firmware/devkit' / name, app / name)
+    worker = app / 'sdk_worker.c'
+    worker.write_text(clock360_worker(worker.read_text()))
+    dac = out / 'lunar-source/firmware/devkit/renderer_pipeline_dac.c'
+    dac.write_text(clock360_dac(dac.read_text()))
+    return ('CFLAGS += -DLUNAR_DEVKIT_SYS_CLK=360000000 -DLUNAR_DEVKIT_STOCK_POWER=1 '
+            f'-DLUNAR_DEVKIT_SFC_BAUD={SFC_BAUD[sfc_mhz]}\n')
+
+
 def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=False,
-                   policy='fixed12', worst_block=False, poly47_at_44100=False):
+                   policy='fixed12', worst_block=False, poly47_at_44100=False,
+                   sys_clk=320, stock_power=False, sfc_mhz=60):
     """Replace legacy worker mode, never its recovery or lifecycle bodies."""
     app = out / 'apps/demo/demo_hello'
     main = app / 'app_main.c'
@@ -269,9 +333,14 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
         flags += WORST_BLOCK_FLAGS
     if poly47_at_44100:
         flags += POLY47_AT_44100_FLAGS
+    if sys_clk == 360:
+        flags += adapt_clock360(out, source, sfc_mhz)
     makefile = app / 'board/wl82/Makefile'
-    makefile.write_text(checked_replace(makefile.read_text(),
-        'CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n', flags))
+    text = checked_replace(makefile.read_text(), 'CFLAGS += -DLUNAR_DEVKIT_RENDERER_TIMING=1\n', flags)
+    if sys_clk == 360:
+        text = checked_replace(text, 'c_SRC_FILES := \\\n',
+                               'c_SRC_FILES := \\\n\t../../../../../apps/demo/demo_hello/clock360.c \\\n')
+    makefile.write_text(text)
     # The pinned compiler's code_seg pragma is retained only in private copies.
     # Original functions remain unchanged; newly split hot paths need placement.
     place_pipeline_xip(staging, burst_hot)
@@ -316,6 +385,17 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
         'renderer_integration_complete': False, 'hardware_acceptance': False,
         'cleanup': 'Remove only this generated SDK after evidence export and process exit; retain logs/receipts.',
     })
+    if sys_clk == 360:
+        # Only when asked for, so a 320 MHz receipt keeps its exact keys.
+        receipt.update({
+            'sys_clk_hz': 360000000, 'hsb_hz': 180000000, 'lsb_hz': 60000000,
+            'sfc_hz': sfc_mhz * 1000000, 'sfc_baud': SFC_BAUD[sfc_mhz],
+            'stock_power': stock_power, 'stock_power_levels': STOCK_POWER,
+            'clock_switch': 'app-only at run time: rails, then system_clock_set(360 MHz), then SFC; '
+                            'fail closed before the DAC opens',
+            'prepared_sdk_worker_sha256': sha256(app / 'sdk_worker.c'),
+            'prepared_renderer_pipeline_dac_sha256': sha256(staging / 'firmware/devkit/renderer_pipeline_dac.c'),
+        })
     for directory in ('engines', 'sim/web/src', 'sim/web/mk', 'firmware/devkit'):
         for path in sorted((staging / directory).rglob('*')):
             if path.is_file():
@@ -325,8 +405,17 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
 
 
 def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3, burst_hot=False,
-                     policy='fixed12', worst_block=False, *, dx7_sine='msfa', poly47_at_44100=False):
+                     policy='fixed12', worst_block=False, *, dx7_sine='msfa', poly47_at_44100=False,
+                     sys_clk=320, stock_power=False, sfc_mhz=60):
     preset = renderer_preset(dx7_sine)
+    if sys_clk not in SYS_CLOCKS:
+        raise ValueError('System clock must be 320 or 360 MHz')
+    if sys_clk == 360 and not stock_power:
+        raise ValueError('360 MHz needs --stock-power: the rails go up before the clock')
+    if stock_power and sys_clk != 360:
+        raise ValueError('--stock-power is reviewed only with --sys-clk 360')
+    if sfc_mhz not in SFC_BAUD or (sfc_mhz != 60 and sys_clk != 360):
+        raise ValueError('SFC 90 MHz is a 360 MHz choice; default 60')
     if isinstance(cycles, bool) or not 1 <= cycles <= 57:
         raise ValueError('Pipeline cycles must be 1..57')
     if policy not in POLICIES:
@@ -353,7 +442,7 @@ def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cyc
     if sha256(target) != PIPELINE_SYSTEM_SHA256:
         raise ValueError('Prepared scheduler copy mismatch')
     adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot, policy, worst_block,
-                   poly47_at_44100)
+                   poly47_at_44100, sys_clk, stock_power, sfc_mhz)
 
 
 if __name__ == '__main__':
@@ -375,8 +464,18 @@ if __name__ == '__main__':
     parser.add_argument('--poly47-at-44100', action='store_true',
                         help='Timing-only: let the 51/47 resampler fast path engage at the dev board\'s 44,100 Hz '
                              '(+400 ppm; Plaits-rate engines 0.69 cent flat). Never for the FM-1')
+    parser.add_argument('--sys-clk', type=int, choices=SYS_CLOCKS, default=320,
+                        help='Dev-board system clock in MHz. 360 is the FM-1\'s (HSB 180, LSB 60), switched at run '
+                             'time by the app; needs --stock-power. Default 320, unchanged')
+    parser.add_argument('--stock-power', action='store_true',
+                        help='Raise the rails to the FM-1\'s stock levels (SYSVDD 1.38 V, VDC14 1.60 V with DCDC, '
+                             'VDDIO 3.2 V, LVD 2.6 V) before the clock goes to 360 MHz')
+    parser.add_argument('--sfc-mhz', type=int, choices=sorted(SFC_BAUD), default=60,
+                        help='Flash clock at 360 MHz: 60 (default; the kit\'s flash is not shown to run at 90) '
+                             'or 90 (as the FM-1 is thought to run)')
     args = parser.parse_args()
     prepare_pipeline(args.sdk.resolve(), args.source.resolve(), args.out.absolute(),
                      args.pipeline_system_archive.resolve(), args.adaptive_three, args.cycles, args.burst_hot,
                      args.policy, args.worst_block, dx7_sine=args.dx7_sine,
-                     poly47_at_44100=args.poly47_at_44100)
+                     poly47_at_44100=args.poly47_at_44100, sys_clk=args.sys_clk,
+                     stock_power=args.stock_power, sfc_mhz=args.sfc_mhz)
