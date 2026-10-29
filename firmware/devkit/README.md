@@ -862,6 +862,19 @@ speed-up; compare 360 with 320 per stage, and do not read a 360 MHz figure as
 the FM-1's. An SFC-parity run (`--sfc-mhz 90`, BAUD 1) waits until the kit's
 flash is shown to work at 90 MHz.
 
+**Since `86d05fed` (2026-10-29) a 360 MHz kit image holds no renderer.**
+The kit build's `lunar_clock360_apply` can only refuse (reason 10), so the
+link-time optimiser drops everything the worker would run after it: the
+probe, the DAC run and the renderer. The rebuilt `clk360-r3/cap8-trunc12` is
+186,160 app bytes (margin 415,664; heap after open 451,284) and is a
+read-only clock-tree probe, not a performance image. It passes `audit_link`
+(0 failures, 1 pending) and `pipeline_bounds.py`, and its host replay still
+matches the 320 MHz hashes [verified: aeon build of `86d05fed`]. The vendor
+objdump shows `lunar_clock360_apply` calling only `clk_get`, `p33_rx_1byte`,
+`os_time_dly` and `printf`, with no store outside its stack; neither
+`system_clock_set` nor `clock_set` is linked [verified]. The table below is
+the `dad89a31` images, kept for the record.
+
 **Image sizes at 360 MHz.** The option costs about 3.7 KB of flash and
 1.5 KB of SRAM. `pipeline_bounds.py` fails a build with less than 128 B left
 in the writer region or in the predicted heap. Rebuilt natively on aeon from
