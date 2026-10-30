@@ -53,7 +53,23 @@ static void fault_silence(u8 *data,int len,uint32_t code) {
     if(valid_window(data,len))memset(data,0,512);
     fence103();lunar_pipeline_wake_drain_done();
 }
+#ifdef LUNAR_PIPELINE_WORST_BLOCK
+#ifndef FM1_APP_PIPELINE_MARKS
+#error Worst-block recorder requires the app pipeline stage marks
+#endif
+#include "fm1_app_pipeline.h"
+#include "renderer_pipeline_worst.h"
+typedef char lunar_worst_marks_match_app[
+    (unsigned)FM1_APP_PIPELINE_MARK_POINTS == LUNAR_WORST_MARKS ? 1 : -1];
+/* CPU0 producer task only; the IRQ and CPU1 never touch these. */
+static lunar_worst_t worst;
+static lunar_worst_marks_t worst_marks;
+static uint32_t worst_reps, worst_mark_ticks, worst_observe_ticks;
+#endif
 #pragma code_seg(".volatile_ram_code")
+#ifdef LUNAR_PIPELINE_WORST_BLOCK
+void fm1_app_pipeline_mark(unsigned point) { lunar_worst_mark(&worst_marks, point, clock_now()); }
+#endif
 static void copy_output(u8 *data,int len) {
     const int16_t *pcm=0;const lunar_pipeline_result_t *r=0;
     uint32_t tag=transport.next,hash=transport.hash;
@@ -130,6 +146,9 @@ static int harvest103(void) {
         ++late_count;
     }
     if(r.c_ticks>=BUDGET)++service[c].clate;
+#ifdef LUNAR_PIPELINE_WORST_BLOCK
+    lunar_worst_consumer(&worst,c,r.tag,r.c_ticks);
+#endif
     ++harvested;return 1;
 }
 
@@ -172,14 +191,34 @@ static __attribute__((noinline, section(".text"))) void budget_report(void) {
 #else
 static const uint32_t budget_overflow = 0;
 static int budget_feedback(uint32_t tag,uint32_t ticks) {(void)tag;(void)ticks;return 1;}
-static void budget_report(void) {puts("LUNAR_POLYPHONY fixed=12 adaptive=0");}
+static void budget_report(void) {
+    unsigned stats[4];
+    if(!lunar_pipeline_live_voice_stats(stats)){puts("LUNAR_POLYPHONY stats_error=1");return;}
+    printf("LUNAR_POLYPHONY fixed=%u adaptive=0 policy=%s unit0_active=%u unit0_limit=%u unit0_retired=%u unit0_stolen=%u\n",
+      lunar_pipeline_live_dx7_voices(),lunar_pipeline_live_dx7_voices()==8u?"cap8":"fixed12",
+      stats[0],stats[1],stats[2],stats[3]);
+}
 #endif
 
 static int produce103(void) {
     void *work=0;int n=lunar_pipeline_reserve_work(produced,&work);if(n<=0)return n;
     lunar_pipeline_sdk_parent_block();uint32_t begin=clock_now();
+#ifdef LUNAR_PIPELINE_WORST_BLOCK
+    lunar_worst_begin(&worst_marks,begin);
+#endif
     if(!lunar_pipeline_live_produce(work,produced))return -1;
     uint32_t end=clock_now();
+#ifdef LUNAR_PIPELINE_WORST_BLOCK
+    {
+        /* Recorder bookkeeping sits after the end read: it is outside p_ticks
+           and is charged to the task loop, as the harvest bookkeeping is. */
+        unsigned c=(produced/CASE_BLOCKS)%4u,ready=0;
+        if(lunar_worst_exceeds(&worst,c,end-begin)) {
+            unsigned flags;local_irq_save(flags);ready=lunar_pipeline_ready_outputs();local_irq_restore(flags);
+        }
+        lunar_worst_end(&worst,&worst_marks,c,produced,end,ready);
+    }
+#endif
     if(lunar_pipeline_publish(produced,begin,end)!=1)return -1;
     if(!budget_feedback(produced+1,end-begin))return -1;
     ++produced;return 1;
@@ -199,6 +238,30 @@ int lunar_pipeline_dac_run(uint32_t (*now)(void)) {
     if(!lunar_pipeline_sdk_start(now)||!lunar_devkit_renderer_init()||!lunar_pipeline_live_bind(SOAK_CYCLES))return v110_failure(__LINE__);
     memset(service,0,sizeof service);memset(&transport,0,sizeof transport);
     transport.hash=2166136261u;transport.ready_min=8;
+#ifdef LUNAR_PIPELINE_WORST_BLOCK
+    {
+        /* On-target cost of the recorder, cache-warm, before any audio: the
+           six marks of one block, then one non-recording end check. The two
+           reads around the block existed before this recorder. */
+        enum { REPS=256 };
+        lunar_worst_reset(&worst,&worst_marks);
+        uint32_t t0=clock_now();
+        for(unsigned i=0;i<REPS;++i) {
+            lunar_worst_begin(&worst_marks,0);
+            for(unsigned m=0;m<LUNAR_WORST_MARKS;++m)fm1_app_pipeline_mark(m);
+        }
+        uint32_t t1=clock_now();
+        /* Prime a maximum no measured block can beat, so every end is the
+           ordinary non-recording path. */
+        worst.worst[0].valid=1;worst.worst[0].p_ticks=UINT32_MAX;
+        for(unsigned i=0;i<REPS;++i)lunar_worst_end(&worst,&worst_marks,0,i,worst_marks.begin+1u,0);
+        uint32_t t2=clock_now();
+        worst_reps=REPS;worst_mark_ticks=(t1-t0+REPS/2u)/REPS;worst_observe_ticks=(t2-t1+REPS/2u)/REPS;
+        lunar_worst_reset(&worst,&worst_marks);
+        printf("LUNAR_WORST_OVERHEAD reps=%u mark_ticks=%u observe_ticks=%u marks=%u\n",
+          (unsigned)worst_reps,(unsigned)worst_mark_ticks,(unsigned)worst_observe_ticks,LUNAR_WORST_MARKS);
+    }
+#endif
     puts("LUNAR_DAC103 post_init_heap=1");malloc_stats();
     /* Calibration never writes CFG_DAC_TRIM. Configure while transport is off. */
     dac_early_init(1,config.hw_channel,1000);
@@ -233,7 +296,8 @@ int lunar_pipeline_dac_run(uint32_t (*now)(void)) {
 #ifdef LUNAR_PIPELINE_ADAPTIVE_THREE
     puts("LUNAR_ADAPTIVE experiment=burst-safety65-floor3 initial=12 floor=3 fade_frames=64 host_replay_required=1");
 #else
-    puts("LUNAR_POLYPHONY fixed=12 adaptive=0");
+    printf("LUNAR_POLYPHONY fixed=%u adaptive=0 policy=%s\n",lunar_pipeline_live_dx7_voices(),
+      lunar_pipeline_live_dx7_voices()==8u?"cap8":"fixed12");
 #endif
     printf("LUNAR_DAC103 start=1 prefills=0 delayed_release=1 ready=%u total=%u busy_diagnostic=0 wake107=1\n",lunar_pipeline_ready_outputs(),TOTAL);
     int on=dac_on();if(on){printf("LUNAR_DAC103 ERROR on=%d\n",on);return v110_failure(__LINE__);}
@@ -296,6 +360,9 @@ int lunar_pipeline_dac_run(uint32_t (*now)(void)) {
     for(unsigned i=0;i<late_count && i<8u;++i)printf("LUNAR_LATE146 event=%u tag=%u p_ticks=%u c_ticks=%u\n",i,late_trace[i].tag,late_trace[i].p_ticks,late_trace[i].c_ticks);
     printf("LUNAR_LATE146 count=%u overflow=%u\n",late_count,late_count>8u?late_count-8u:0u);
     budget_report();
+#ifdef LUNAR_PIPELINE_WORST_BLOCK
+    lunar_worst_report(&worst,worst_reps,worst_mark_ticks,worst_observe_ticks);
+#endif
     printf("LUNAR_PREROLL161 phase=%u zeros=%u duration_ms=%u held_initial_outputs=8 pcm_discarded=0\n",preroll_phase,preroll_zeros,preroll_ms);
     printf("LUNAR_PIPELINE_SOAK cases=%u expected_cases=%u cycles=%u total=%u elapsed_ms=%u fold=%08x replay_required=1\n",transport.cases_checked,CASE_ORDINALS,SOAK_CYCLES,TOTAL,(uint32_t)(timer_get_ms()-started_ms),transport.case_fold);
     if(!lunar_pipeline_sdk_finish())return v110_failure(__LINE__);

@@ -192,10 +192,18 @@ def test_msfas_tables_are_exact(renderer):
     other rate the instance fills its own, which must match as well."""
     from decimal import Decimal
     sin, exp2 = msfa_tables.sin_table(), msfa_tables.exp2_table()
+    dx7_sine = json.loads(subprocess.run([str(renderer), "--build-info"], check=True,
+                                         capture_output=True, text=True).stdout)["dx7_sine"]
     for rate in (RATE, 22050):
         got = json.loads(subprocess.run([str(ORACLE), "--tables", "--rate", str(rate)], check=True,
                                         capture_output=True, text=True).stdout)
-        assert got["sin_sum"] == sum(sin) and got["sin"] == [sin[1], sin[257], sin[2047]]
+        if dx7_sine == "msfa":
+            assert got["sin_sum"] == sum(sin) and got["sin"] == [sin[1], sin[257], sin[2047]]
+        else:
+            # A trunc12 build (the default since 2026-10-29) has no msfa sine
+            # table; the oracle prints zeros for it (test/dx7_oracle.cc), and
+            # tests/test_dx7_sine.py checks it in an msfa build.
+            assert got["sin_sum"] == 0 and got["sin"] == [0, 0, 0]
         assert got["exp2_sum"] == sum(exp2) and got["exp2"] == [exp2[1], exp2[1023], exp2[2047]]
         lut = msfa_tables.freq_table(rate)
         assert got["freqlut_sum"] == sum(lut) and got["freqlut"] == [lut[0], lut[512], lut[1024]]

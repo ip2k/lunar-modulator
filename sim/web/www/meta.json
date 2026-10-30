@@ -22,7 +22,7 @@
       "per_note": true,
       "pads": null,
       "fx_wants": [],
-      "ram": 19872,
+      "ram": 20016,
       "page_names": [
         null,
         null,
@@ -333,7 +333,7 @@
       "per_note": true,
       "pads": null,
       "fx_wants": [],
-      "ram": 206912,
+      "ram": 207056,
       "page_names": [
         null,
         null,
@@ -591,7 +591,7 @@
       "per_note": true,
       "pads": null,
       "fx_wants": [],
-      "ram": 71392,
+      "ram": 71680,
       "page_names": [
         null,
         null,
@@ -925,7 +925,7 @@
       "per_note": true,
       "pads": null,
       "fx_wants": [],
-      "ram": 11224,
+      "ram": 11368,
       "page_names": [
         null,
         null,
@@ -1646,7 +1646,7 @@
         "count": 16
       },
       "fx_wants": [],
-      "ram": 7648,
+      "ram": 7792,
       "page_names": [
         null,
         null,
@@ -11990,5 +11990,5 @@
       }
     ]
   },
-  "meta_id": "e48ad411"
+  "meta_id": "607eec87"
 }

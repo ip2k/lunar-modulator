@@ -10,7 +10,11 @@
 //       the output's Nyquist, the group delay's deviation from the header's
 //       (30 output samples). Then the largest remaining component, from a
 //       Kaiser-windowed FFT of what the fit leaves, below and above the pass
-//       edge (0.408 x out-rate: 18 kHz at 44,118 Hz).
+//       edge (0.408 x out-rate: 18 kHz at 44,118 Hz), and anywhere up to
+//       20 kHz (scaled the same way). At a 51/47 ratio the header's fast path
+//       steps exactly 51/47 inputs per output, so the sine is generated at
+//       out-rate x 51 / 47 (7.9 ppm from Plaits' rate): the filter measured,
+//       not the 0.014 cent pitch offset.
 //   fm1-resampler-test bench --in-rate A --out-rate B [--outputs N]
 //       Nanoseconds per output sample on noise, best of seven runs.
 //   fm1-resampler-test passthrough
@@ -34,6 +38,9 @@
 //       included).
 //   fm1-resampler-test tables
 //       The header's coefficient tables, for the design check.
+//   fm1-resampler-test info --in-rate A --out-rate B
+//       What init chose: the 51/47 fast path or not, the delay, the first
+//       output's input need.
 //   fm1-resampler-test file --in-rate A --out-rate B --in IN.wav --out OUT.wav
 //       Resamples channel 0 of a 16-bit or 32-bit float WAV to a mono float WAV.
 //   fm1-resampler-test tones --in IN.wav [--start N] [--length N] --freq F...
@@ -63,6 +70,7 @@ namespace {
 
 const double kPi = 3.14159265358979323846;
 const double kPassEdge = 18000.0 / 44118.0;  // of the output rate
+const double kSpurTop = 20000.0 / 44118.0;   // of the output rate
 
 double BesselI0(double x) {
   double s = 1.0, t = 1.0;
@@ -121,6 +129,12 @@ double Db(double amplitude) { return 20.0 * log10(amplitude + 1e-30); }
 uint32_t Lcg(uint32_t *state) { return *state = *state * 1664525u + 1013904223u; }
 float Noise(uint32_t *state) { return static_cast<int32_t>(Lcg(state)) / 2147483648.0f; }
 
+// The input rate the resampler actually converts from: its fast path steps
+// exactly 51/47 inputs per output.
+double EffectiveInRate(const fm1_resampler_t &r, double in_rate, double out_rate) {
+  return r.poly ? out_rate * FM1_RESAMPLER_POLY47_STEP / FM1_RESAMPLER_POLY47_PHASES : in_rate;
+}
+
 bool Init(fm1_resampler_t *r, double in_rate, double out_rate) {
   if (!fm1_resampler_init(r, static_cast<float>(in_rate), static_cast<float>(out_rate))) {
     fprintf(stderr, "init refused %g -> %g\n", in_rate, out_rate);
@@ -152,10 +166,13 @@ int Sweep(double in_rate, double out_rate, double from, double to, double step) 
   const std::vector<double> win = KaiserWindow(kN, 20.0);
   double wsum = 0.0;
   for (size_t i = 0; i < kN; ++i) wsum += win[i];
-  const double edge = kPassEdge * out_rate;
+  const double edge = kPassEdge * out_rate, top = kSpurTop * out_rate;
   std::vector<float> y(kSettle + kN);
-  printf("{\"in_rate\":%.3f,\"out_rate\":%.3f,\"pass_edge\":%.3f,\"points\":[", in_rate, out_rate,
-         edge);
+  fm1_resampler_t probe;
+  if (!Init(&probe, in_rate, out_rate)) return 1;
+  const double src_rate = EffectiveInRate(probe, in_rate, out_rate);
+  printf("{\"in_rate\":%.3f,\"out_rate\":%.3f,\"src_rate\":%.3f,\"poly\":%u,"
+         "\"pass_edge\":%.3f,\"points\":[", in_rate, out_rate, src_rate, probe.poly, edge);
   bool first = true;
   for (double f = from; f < to && f < in_rate / 2; f += step) {
     if (!(f + step > f)) { fprintf(stderr, "sweep step does not advance\n"); return 2; }
@@ -163,7 +180,7 @@ int Sweep(double in_rate, double out_rate, double from, double to, double step) 
     if (fo < 20.0 || fo > out_rate / 2 - 20.0) continue;   // DC or Nyquist: no fit
     fm1_resampler_t r;
     if (!Init(&r, in_rate, out_rate)) return 1;
-    SineSource src = { 2.0 * kPi * f / in_rate, 0 };
+    SineSource src = { 2.0 * kPi * f / src_rate, 0 };
     Pull(&r, src, &y[0], y.size());
     // Least squares at the output frequency, over output samples kSettle..:
     // y[k] ~ a sin(wk) + b cos(wk). The input's sine at the output instants
@@ -192,18 +209,19 @@ int Sweep(double in_rate, double out_rate, double from, double to, double step) 
       re[i] = (y[k] - a * sin(w * k) - b * cos(w * k)) * win[i];
     }
     Fft(re, im);
-    double pass = 0.0, upper = 0.0;
+    double pass = 0.0, upper = 0.0, below = 0.0;
     for (size_t k = 1; k <= kN / 2; ++k) {
       const double amp = 2.0 * sqrt(re[k] * re[k] + im[k] * im[k]) / wsum;
       const double fk = k * out_rate / kN;
       if (fk <= edge) { if (amp > pass) pass = amp; } else if (amp > upper) upper = amp;
+      if (fk <= top && amp > below) below = amp;
     }
     printf("%s{\"f\":%.2f,\"fo\":%.2f,\"gain_db\":%.6f,\"delay_err\":%.6f,"
-           "\"pass_db\":%.2f,\"upper_db\":%.2f}", first ? "" : ",", f, fo, Db(gain), delay_err,
-           Db(pass), Db(upper));
+           "\"pass_db\":%.2f,\"upper_db\":%.2f,\"below20k_db\":%.2f}", first ? "" : ",", f, fo,
+           Db(gain), delay_err, Db(pass), Db(upper), Db(below));
     first = false;
   }
-  printf("],\"delay\":%d}\n", in_rate == out_rate ? 0 : FM1_RESAMPLER_DELAY);
+  printf("],\"delay\":%g}\n", static_cast<double>(fm1_resampler_delay(&probe)));
   return 0;
 }
 
@@ -360,6 +378,22 @@ double KernelBound(const fm1_resampler_t &r) {
   return worst;
 }
 
+// The 51/47 fast path's bound: the largest L1 norm of a row (a row read
+// backwards has the same).
+double PolyBound() {
+#if FM1_RESAMPLER_POLY47
+  double worst = 0.0;
+  for (int q = 0; q < FM1_RESAMPLER_POLY47_ROWS; ++q) {
+    double l1 = 0.0;
+    for (int k = 0; k < FM1_RESAMPLER_POLY47_TAPS; ++k) l1 += fabs(fm1_resampler_poly47[q][k]);
+    if (l1 > worst) worst = l1;
+  }
+  return worst;
+#else
+  return 0.0;
+#endif
+}
+
 double LowpassL1() {
   double l1 = fabs(fm1_resampler_lowpass[FM1_RESAMPLER_LP_PAIRS]);
   for (int j = 0; j < FM1_RESAMPLER_LP_PAIRS; ++j) l1 += 2.0 * fabs(fm1_resampler_lowpass[j]);
@@ -375,8 +409,10 @@ int Extreme(double in_rate, double out_rate) {
   {
     fm1_resampler_t r;
     if (!Init(&r, in_rate, out_rate)) return 1;
-    const double kernel = KernelBound(r), bound = kernel * LowpassL1();
-    const double limit = bound > 2.0 * kernel ? bound : 2.0 * kernel;
+    const double kernel = r.poly ? PolyBound() : KernelBound(r);
+    const double lowpass = r.poly ? 1.0 : LowpassL1();
+    const double bound = kernel * lowpass;
+    const double limit = r.poly ? bound : bound > 2.0 * kernel ? bound : 2.0 * kernel;
     const float big = static_cast<float>(3.4028234e38 / limit * 0.999);
     uint32_t state = 7;
     long n = 0;
@@ -397,9 +433,9 @@ int Extreme(double in_rate, double out_rate) {
       if (!std::isfinite(out[k])) ++nonfinite;
       else if (fabsf(out[k]) > peak) peak = fabsf(out[k]);
     }
-    printf("{\"kernel_bound\":%.6f,\"lowpass_l1\":%.6f,\"gain_bound\":%.6f,"
+    printf("{\"poly\":%u,\"kernel_bound\":%.6f,\"lowpass_l1\":%.6f,\"gain_bound\":%.6f,"
            "\"input_peak\":%g,\"finite_input_nonfinite_outputs\":%zu,\"peak_gain\":%.6f,",
-           kernel, LowpassL1(), bound, static_cast<double>(big), nonfinite,
+           r.poly, kernel, lowpass, bound, static_cast<double>(big), nonfinite,
            static_cast<double>(peak) / big);
   }
   // 2. A burst of NaN, +inf and -inf inside noise, against the same noise
@@ -509,8 +545,19 @@ int Window() {
     if (!clean) break;
     window = keep;
   }
+  // 3. The 51/47 fast path's read window, at Plaits' rate (0 when it is
+  //    compiled out or init does not choose it).
+  uint32_t poly_window = 0;
+  fm1_resampler_t probe;
+  if (Init(&probe, 47872.34, out_rate) && probe.poly) {
+    for (uint32_t keep = FM1_RESAMPLER_IN_CAP - 1; keep > 0; --keep) {
+      if (PoisonedRun(47872.34, out_rate, keep, 3000, 11) != 0) break;
+      poly_window = keep;
+    }
+  }
   printf("{\"cap\":%d,\"ratios\":%zu,\"outputs\":%zu,\"nonfinite\":%zu,\"failing_ratios\":%zu,"
-         "\"window\":%u}\n", FM1_RESAMPLER_IN_CAP, rates.size(), kOutputs, bad, failing, window);
+         "\"window\":%u,\"poly_window\":%u}\n", FM1_RESAMPLER_IN_CAP, rates.size(), kOutputs, bad,
+         failing, window, poly_window);
   return 0;
 }
 
@@ -524,7 +571,17 @@ int Tables() {
   for (int i = 0; i <= FM1_RESAMPLER_LP_PAIRS; ++i) {
     printf(i ? ",%.9g" : "%.9g", static_cast<double>(fm1_resampler_lowpass[i]));
   }
-  printf("],\"state_bytes\":%zu}\n", sizeof(fm1_resampler_t));
+  printf("],\"poly47\":%d,\"state_bytes\":%zu}\n", FM1_RESAMPLER_POLY47 ? 1 : 0,
+         sizeof(fm1_resampler_t));
+  return 0;
+}
+
+int Info(double in_rate, double out_rate) {
+  fm1_resampler_t r;
+  const int ok = fm1_resampler_init(&r, static_cast<float>(in_rate), static_cast<float>(out_rate));
+  printf("{\"ok\":%d,\"poly\":%u,\"delay\":%g,\"needed\":%u,\"src_rate\":%.4f}\n", ok, r.poly,
+         static_cast<double>(fm1_resampler_delay(&r)), fm1_resampler_needed(&r),
+         EffectiveInRate(r, in_rate, out_rate));
   return 0;
 }
 
@@ -682,7 +739,7 @@ bool ParseSize(const char *text, size_t *value) {
 int main(int argc, char **argv) {
   if (argc < 2) {
     fprintf(stderr, "usage: fm1-resampler-test sweep|bench|passthrough|blocks|extreme|refuse|"
-                    "window|tables|file|tones|peaks [options]\n");
+                    "window|tables|info|file|tones|peaks [options]\n");
     return 2;
   }
   const std::string mode = argv[1];
@@ -725,6 +782,7 @@ int main(int argc, char **argv) {
   if (mode == "refuse") return Refuse();
   if (mode == "window") return Window();
   if (mode == "tables") return Tables();
+  if (mode == "info") return Info(in_rate, out_rate);
   if (mode == "file" && in_path && out_path) return File(in_rate, out_rate, in_path, out_path);
   if (mode == "tones" && in_path && !freqs.empty()) return Tones(in_path, start, length, freqs);
   if (mode == "peaks" && in_path) return Peaks(in_path, start, length, floor_db);

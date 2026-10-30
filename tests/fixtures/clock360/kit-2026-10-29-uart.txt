@@ -1,0 +1,6 @@
+[00:00:00.100]sys_clk = 320000000,sdram_clk = 192000000,hsb_clk = 160000000,lsb_clk = 53333333, sfc_clk = 80000000
+[00:00:01.120]LUNAR_DEVKIT schema=1 sys=320000000 timer_clock=OSC_24M irq=enabled source=tracked-pipeline-internal-dac
+[00:00:01.220]LUNAR_DEVKIT timer_check_ticks=2367195 delay_os_ticks=10
+[00:00:01.220]LUNAR_CONTROL recovery_window_ticks=200
+[00:00:03.330]LUNAR_CLOCK360 before=- sys=320000000 hsb=160000000 lsb=53333333 sfc=80000000 baud=1 con2=2 div=10200 p33=fb,44,b,1b,31 tick=2399903 rc=0
+[00:00:03.331]LUNAR_CLOCK360 result=FAIL reason=2

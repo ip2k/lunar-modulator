@@ -43,15 +43,20 @@ def sdk_fixture(tmp_path):
     return sdk, correction
 
 
-@pytest.mark.parametrize('adaptive,cycles,burst_hot', [(False, 3, False), (True, 57, False), (True, 3, True)])
-def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptive, cycles, burst_hot):
+@pytest.mark.parametrize('adaptive,cycles,burst_hot,policy,worst,poly47', [
+    (False, 3, False, 'fixed12', False, False), (True, 57, False, 'fixed12', False, False),
+    (True, 3, True, 'fixed12', False, False), (False, 3, False, 'cap8', True, False),
+    (False, 3, True, 'fixed12', True, False), (False, 3, False, 'cap8', True, True)])
+def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptive, cycles, burst_hot, policy, worst,
+                                                  poly47):
     module = load_prepare()
     sdk, correction = sdk_fixture(tmp_path)
     # Substitute only private input identities in this synthetic SDK test.
     monkeypatch.setattr(module, 'ORIGINAL_SYSTEM_SHA256', module.sha256(sdk/module.SYSTEM))
     monkeypatch.setattr(module, 'PIPELINE_SYSTEM_SHA256', module.sha256(correction))
     out = tmp_path/'prepared'
-    module.prepare_pipeline(sdk, ROOT, out, correction, adaptive, cycles, burst_hot)
+    module.prepare_pipeline(sdk, ROOT, out, correction, adaptive, cycles, burst_hot, policy, worst,
+                            poly47_at_44100=poly47)
     assert (sdk/module.SYSTEM).read_bytes() == b'original fixture archive'
     assert (out/module.SYSTEM).read_bytes() == correction.read_bytes()
     app = out/'apps/demo/demo_hello'
@@ -63,6 +68,10 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
     assert '-DFM1_APP_RENDER_PIPELINE=1' in flags
     assert ('-DLUNAR_PIPELINE_ADAPTIVE_THREE=1' in flags) == adaptive
     assert f'-DLUNAR_PIPELINE_CYCLES={cycles}' in flags
+    assert ('-DLUNAR_RENDERER_POLICY_CAP8=1' in flags) == (policy == 'cap8')
+    assert ('-DLUNAR_PIPELINE_WORST_BLOCK=1 -DFM1_APP_PIPELINE_MARKS=1' in flags) == worst
+    # Timing-only widening of the 51/47 gate for the dev board's 44,100 Hz.
+    assert ('-DFM1_RESAMPLER_POLY47_TOLERANCE=5e-4' in flags) == poly47
     for old in ('-DLUNAR_DEVKIT_ENGINE_QUEUE', '-DLUNAR_DEVKIT_RENDERER_TIMING',
                 '-DFM1_APP_RENDER_PROFILE', '-DLUNAR_DEVKIT_RENDERER_AUDIO'):
         assert old not in flags
@@ -71,7 +80,11 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
     assert (app/'renderer_pipeline_dac.h').exists()
     receipt = json.loads((out/'lunar-devkit-input.json').read_text())
     assert not receipt['timing_only'] and not receipt['render_profile']
-    assert receipt['pipeline_polyphony'] == ('adaptive65/60-floor3' if adaptive else 'fixed12')
+    assert receipt['pipeline_polyphony'] == ('adaptive65/60-floor3' if adaptive else policy)
+    assert receipt['pipeline_worst_block'] == worst
+    assert receipt['pipeline_poly47_at_44100'] == poly47
+    assert receipt['pipeline_poly47_tolerance'] == ('5e-4' if poly47 else '1e-5')
+    assert 'firmware/devkit/renderer_pipeline_worst.h' in receipt['inputs']
     assert receipt['pipeline_deadline_ticks'] == 34829
     assert receipt['uart_task_priority'] == 18
     assert not receipt['hardware_acceptance']
@@ -82,12 +95,22 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
     dx7 = (out/'lunar-source/engines/src/msfa_dx7.cc').read_text()
     assert ('  __attribute__((noinline, section(".text"))) void NoteOn(uint8_t key, uint8_t velocity)' in dx7) != burst_hot
     assert 'extern "C" __attribute__((noinline, section(".text"))) int fm1_dx7_set_voice_limit(' in dx7
-    assert dx7.count('__attribute__((noinline, section(".text")))') == (6 if burst_hot else 8)
+    # Eight (six with burst_hot) pipeline XIP anchors plus Create and SharedInit.
+    assert dx7.count('__attribute__((noinline, section(".text")))') == (8 if burst_hot else 10)
     assert receipt['pipeline_burst_hot'] == burst_hot
     if burst_hot:
         assert '  __attribute__((noinline, section(".volatile_ram_code"))) void NoteOn(' in dx7
         assert '  __attribute__((noinline, section(".volatile_ram_code"))) Voice *Allocate(' in dx7
     assert len(receipt['pipeline_xip_functions']) == (6 if burst_hot else 8)
+    # Size and SRAM levers that keep every image inside both bounds.
+    for name, constructor in module.PIPELINE_INIT_XIP:
+        assert module.INIT_XIP_ATTRIBUTE + constructor.lstrip() in (out/'lunar-source'/name).read_text()
+    assert len(receipt['pipeline_init_xip_functions']) == 10
+    assert 'benchmark.c' not in flags and not (app/'benchmark.c').exists()
+    assert 'sdk_worker.c' in flags and (app/'benchmark.h').exists()
+    assert not receipt['pipeline_resampler_benchmark_linked']
+    assert receipt['pipeline_app_bytes_limit'] == 601824
+    assert receipt['pipeline_heap_min_after_open'] == 3700
     assert 'BlockControls common = {};' in dx7
     assert receipt['pipeline_dx7_block_controls']
     assert receipt['pipeline_sound1_frontier_frames'] == 8
@@ -99,6 +122,15 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
     staged = (out/'lunar-source/sim/web/src/fm1_app.c').read_text()
     assert '#pragma code_seg(".volatile_ram_code")\nstatic void pipeline_produce_block(' in staged
     assert '#pragma code_seg(".volatile_ram_code")\nstatic const float *pipeline_consume_block(' in staged
+
+
+@pytest.mark.parametrize('policy,adaptive,message', [('cap12', False, 'Unknown polyphony'),
+                                                     ('cap8', True, 'own policy')])
+def test_bad_policy_refused_before_sdk_access(tmp_path, policy, adaptive, message):
+    with pytest.raises(ValueError, match=message):
+        load_prepare().prepare_pipeline(tmp_path/'missing', ROOT, tmp_path/'out', tmp_path/'missing.a',
+                                        adaptive_three=adaptive, policy=policy)
+    assert not (tmp_path/'out').exists()
 
 
 @pytest.mark.parametrize('cycles', [0, 58, True])

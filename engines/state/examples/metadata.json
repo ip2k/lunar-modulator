@@ -22,7 +22,7 @@
       "per_note": true,
       "pads": null,
       "fx_wants": [],
-      "ram": 207728,
+      "ram": 207872,
       "page_names": [
         null,
         null,
@@ -283,7 +283,7 @@
         "count": 16
       },
       "fx_wants": [],
-      "ram": 7648,
+      "ram": 7792,
       "page_names": [
         null,
         null,
@@ -3100,5 +3100,5 @@
       }
     ]
   },
-  "meta_id": "aa95d5c8"
+  "meta_id": "eac33d84"
 }

@@ -48,6 +48,27 @@ $(shell mkdir -p '$(GPL_GEN)' && h='$(GPL_GEN)/fm1_gpl_mods.h' && \
     { if [ -f "$$h" ]; then sleep 1; fi; printf '%s\n' '$(GPL_LINE)' > "$$h"; }; })
 GPL_OBJ :=
 
+# The DX7 sine (engines/msfa.md, "The trunc12 sine"): FM1_DX7_SINE=trunc12,
+# the default since the owner's A/B listening test (2026-10-29: no audible
+# difference), is a 4,096-point table read with no interpolation, 12 bits of
+# phase as the DX7's chip reads its sine [reported; engines/msfa.md], cheaper
+# per operator sample; FM1_DX7_SINE=msfa keeps msfa's own interpolated sine
+# (1,024 points with their steps). One switch for every build through this
+# Makefile, as the GPL one is: fm1-render (--build-info names it), the
+# virtual FM-1's native and WebAssembly builds, and the dev-kit builds
+# (tools/jieli/prepare-*-devkit.py --dx7-sine), so the browser and the
+# firmware sound the same. Its value lives in $(BUILD)/gen/fm1_dx7_sine.h,
+# rewritten as fm1_gpl_mods.h is, only when the value changes; mk/msfa.mk
+# compiles msfa against the sin.h it names.
+FM1_DX7_SINE ?= trunc12
+ifeq ($(filter msfa trunc12,$(FM1_DX7_SINE)),)
+$(error FM1_DX7_SINE is msfa or trunc12, not "$(FM1_DX7_SINE)")
+endif
+DX7_SINE_LINE := \#define FM1_DX7_SINE_TRUNC12 $(if $(filter trunc12,$(FM1_DX7_SINE)),1,0)  /* engines/Makefile: FM1_DX7_SINE=$(FM1_DX7_SINE) */
+$(shell mkdir -p '$(GPL_GEN)' && h='$(GPL_GEN)/fm1_dx7_sine.h' && \
+  { [ "$$(cat "$$h" 2>/dev/null)" = '$(DX7_SINE_LINE)' ] || \
+    { if [ -f "$$h" ]; then sleep 1; fi; printf '%s\n' '$(DX7_SINE_LINE)' > "$$h"; }; })
+
 # The module list (FM1_MODULES; engines/modules/catalogue.mk): which engines,
 # effects, MIDI effects and modulation kinds a build has. Its generated
 # header, $(BUILD)/gen/fm1_modules.h, sits beside fm1_gpl_mods.h and is

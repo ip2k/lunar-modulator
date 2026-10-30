@@ -8,6 +8,13 @@ and alias rejection from sine sweeps at 96,000 and 47,872.34 -> 44,118 Hz
 input and output are chunked, extreme input, refused ratios, its cost, and
 the header as C99 and C++11.
 
+At 51/47 (Plaits' 47,872.34 Hz to 44,118 Hz) the header takes its fixed
+polyphase fast path (FM1_RESAMPLER_POLY47, on by default; designed by
+tools/resampler_poly47_design.py). The two-stage design is still measured at
+that rate through engines/build/fm1-resampler-test-generic, the same tool
+built with the fast path compiled out; the fast path has tests of its own
+below ("The 51/47 fast path").
+
 Shapes now runs Braids and its own envelope at 96 kHz whatever the host's
 rate and resamples the voice mix. At 44,118 Hz: every shape against upstream
 Braids at 96 kHz through the wrapper's envelope and the same resampler, note
@@ -32,6 +39,7 @@ from tests.test_engines_reference_braids_fx import (BLOCK_SENSITIVE, BRAIDS_RATE
                                                     through_wrapper, tools, write_float_wav)
 
 TOOL = ENGINES / "build" / "fm1-resampler-test"
+GENERIC_TOOL = ENGINES / "build" / "fm1-resampler-test-generic"
 HEADER = ENGINES / "include" / "fm1_resampler.h"
 
 # The design. engines/include/fm1_resampler.h holds these tables as const
@@ -122,6 +130,18 @@ def tool(renderer):  # noqa: F811
     return TOOL
 
 
+@pytest.fixture(scope="session")
+def generic_tool(renderer):  # noqa: F811
+    assert GENERIC_TOOL.exists(), "make -C engines builds build/fm1-resampler-test-generic"
+    return GENERIC_TOOL
+
+
+def two_stage(tool, generic_tool, in_rate):
+    """The tool that measures the two-stage design at in_rate: at Plaits'
+    rate the default build takes the 51/47 fast path instead."""
+    return generic_tool if in_rate == PLAITS_RATE else tool
+
+
 def run_tool(tool, *args):
     res = subprocess.run([str(tool), *map(str, args)], check=True, capture_output=True, text=True)
     return json.loads(res.stdout)
@@ -132,8 +152,10 @@ def sweep(tool, in_rate, start, stop, step, out_rate=HOST_RATE):
                     "--to", stop, "--step", step)
 
 
-def test_tables_are_the_documented_design(tool):
-    t = run_tool(tool, "tables")
+@pytest.mark.parametrize("generic", [False, True], ids=["default", "generic"])
+def test_tables_are_the_documented_design(tool, generic_tool, generic):
+    t = run_tool(generic_tool if generic else tool, "tables")
+    assert t["poly47"] == (0 if generic else 1)
     assert (t["span"], t["phases"], t["delay"], t["lp_len"]) == (SPAN, PHASES, LP_DELAY, LP_LEN)
     assert RESAMPLER_DELAY == LP_DELAY    # what the struck-decay test takes out
     for got, want in ((t["kernel"], kernel_table()), (t["lowpass"], lowpass_table())):
@@ -177,7 +199,8 @@ RATES = (BRAIDS_RATE, PLAITS_RATE, 48000.0, 2 * HOST_RATE, 4 * HOST_RATE)
 
 
 @pytest.mark.parametrize("in_rate", RATES)
-def test_passband_is_flat_and_linear_phase(tool, in_rate):
+def test_passband_is_flat_and_linear_phase(tool, generic_tool, in_rate):
+    tool = two_stage(tool, generic_tool, in_rate)
     # Unit sines every 250 Hz from 250 Hz to 18 kHz, a fit at each: gain
     # within 0.005 dB (measured -0.0043 to +0.0003, the low-pass's droop at
     # 18 kHz the most), the group delay 30 output samples at every frequency
@@ -192,7 +215,8 @@ def test_passband_is_flat_and_linear_phase(tool, in_rate):
 
 
 @pytest.mark.parametrize("in_rate", RATES)
-def test_top_of_the_band_rolls_off_without_spurs(tool, in_rate):
+def test_top_of_the_band_rolls_off_without_spurs(tool, generic_tool, in_rate):
+    tool = two_stage(tool, generic_tool, in_rate)
     # Unit sines every 20 Hz from 18 kHz to the output's Nyquist, the
     # low-pass's transition band: its gain falls as designed (-0.004 dB at
     # 18 kHz, -0.74 at 19, -6.5 at 20, -24.4 at 21, -79.7 at 22), and nothing
@@ -211,7 +235,8 @@ def test_top_of_the_band_rolls_off_without_spurs(tool, in_rate):
 
 
 @pytest.mark.parametrize("in_rate", RATES)
-def test_content_above_the_output_nyquist_is_90_db_down(tool, in_rate):
+def test_content_above_the_output_nyquist_is_90_db_down(tool, generic_tool, in_rate):
+    tool = two_stage(tool, generic_tool, in_rate)
     # Unit sines from the output's Nyquist to the input's, every 7 Hz across
     # the low-pass's stopband edge (22,059 Hz) and every 97 Hz above it:
     # their aliases, wherever they land below the Nyquist (18..22 kHz
@@ -232,23 +257,26 @@ def test_pass_through_at_equal_rates_is_bit_exact(tool):
 
 
 @pytest.mark.parametrize("in_rate", (BRAIDS_RATE, PLAITS_RATE, 2 * HOST_RATE))
-def test_output_does_not_depend_on_chunking(tool, in_rate):
+@pytest.mark.parametrize("generic", [False, True], ids=["default", "generic"])
+def test_output_does_not_depend_on_chunking(tool, generic_tool, in_rate, generic):
     # One sample at a time against fm1_resampler_process with input chunks
     # of 1, 7, 24, uneven and 1,000, and output chunks of 1, 64 and uneven:
-    # 25 patterns, all bit-identical.
-    r = run_tool(tool, "blocks", "--in-rate", in_rate)
+    # 25 patterns, all bit-identical. At Plaits' rate the default build
+    # checks the 51/47 fast path, the generic build the two stages.
+    r = run_tool(generic_tool if generic else tool, "blocks", "--in-rate", in_rate)
     assert r["patterns"] == 25 and r["differing"] == 0
 
 
 @pytest.mark.parametrize("in_rate", (BRAIDS_RATE, PLAITS_RATE, 4 * HOST_RATE, 44119.0))
-def test_extreme_input_stays_finite(tool, in_rate):
+def test_extreme_input_stays_finite(tool, generic_tool, in_rate):
     # Inputs up to the largest float over the worst-case gain (the kernel's
     # L1 norm, doubled for the low-pass's pre-added pairs, or times the
     # low-pass's L1 norm, 2.11, whichever is larger: 3.1 to 4.3 by ratio)
     # never overflow; a burst of NaN and infinities spoils about 69 outputs
     # and is then forgotten, the output bit-identical to the clean run's (a
     # FIR has no memory beyond its taps).
-    r = run_tool(tool, "extreme", "--in-rate", in_rate)
+    r = run_tool(two_stage(tool, generic_tool, in_rate), "extreme", "--in-rate", in_rate)
+    assert r["poly"] == 0
     assert r["finite_input_nonfinite_outputs"] == 0
     assert r["peak_gain"] <= r["gain_bound"]
     assert 2.5 < r["gain_bound"] < 4.6
@@ -256,7 +284,8 @@ def test_extreme_input_stays_finite(tool, in_rate):
     assert r["nonfinite"] <= r["to"] - r["burst_outputs_differing_from"] + 1
 
 
-def test_an_output_reads_only_the_inputs_it_asked_for(tool):
+@pytest.mark.parametrize("generic", [False, True], ids=["default", "generic"])
+def test_an_output_reads_only_the_inputs_it_asked_for(tool, generic_tool, generic):
     # After every push, NaN goes into the ring slot the next push will fill:
     # it holds the oldest input, and its second copy sits where the input not
     # yet received would be. At 3,006 ratios from just above 1 to 4, 3,000
@@ -264,11 +293,14 @@ def test_an_output_reads_only_the_inputs_it_asked_for(tool):
     # fm1_resampler_needed did not ask for first (the one-input margin in
     # `lead`, the rounding up in needed), nor one the ring has dropped
     # (FM1_RESAMPLER_IN_CAP). The read window itself, the fewest newest
-    # inputs an output can do with: 27 of the ring's 32, at the 4:1 limit.
-    r = run_tool(tool, "window")
-    assert (r["cap"], r["ratios"], r["outputs"]) == (32, 3006, 3000)
+    # inputs an output can do with: 27 at the 4:1 limit. The 51/47 fast
+    # path (Plaits' rate, one of the 3,006, in the default build) reads
+    # exactly 48, so its ring keeps 49; the generic build keeps 32.
+    r = run_tool(generic_tool if generic else tool, "window")
+    assert (r["cap"], r["ratios"], r["outputs"]) == ((32 if generic else 49), 3006, 3000)
     assert r["nonfinite"] == 0 and r["failing_ratios"] == 0
     assert r["window"] == 27
+    assert r["poly_window"] == (0 if generic else 48)
 
 
 def test_unsupported_ratios_are_refused(tool):
@@ -285,14 +317,176 @@ def test_unsupported_ratios_are_refused(tool):
     assert {(r["in"], r["out"]) for r in got if r["ok"]} == accepted
 
 
-def test_cost_per_output_sample(tool):
+def test_cost_per_output_sample(tool, generic_tool):
     # Desktop timing, best of seven over 2^20 outputs; it says nothing about
     # pi32v2 and only catches something pathological. Measured on an Apple
-    # M1 Max: 45 ns per output at 96 kHz, 36 ns at Plaits' rate.
-    for in_rate in (BRAIDS_RATE, PLAITS_RATE):
-        r = run_tool(tool, "bench", "--in-rate", in_rate)
-        print(in_rate, r["ns_per_output"], "ns per output")
+    # M1 Max: 45 ns per output at 96 kHz, 36 ns at Plaits' rate through the
+    # two stages; the 51/47 fast path in engines/resampler.md.
+    for t, in_rate in ((tool, BRAIDS_RATE), (tool, PLAITS_RATE), (generic_tool, PLAITS_RATE)):
+        r = run_tool(t, "bench", "--in-rate", in_rate)
+        print(t.name, in_rate, r["ns_per_output"], "ns per output")
         assert 0 < r["ns_per_output"] < 20000
+
+
+# ---------------------------------------------------------------------------
+# The 51/47 fast path (FM1_RESAMPLER_POLY47)
+# ---------------------------------------------------------------------------
+
+POLY_SRC_RATE = HOST_RATE * 51 / 47    # 47,872.72 Hz: what the fast path converts from
+
+
+@pytest.mark.parametrize("in_rate,poly", [
+    (PLAITS_RATE, 1),                         # -7.9 ppm from 51/47
+    (POLY_SRC_RATE, 1),
+    (POLY_SRC_RATE * (1 + 9e-6), 1), (POLY_SRC_RATE * (1 - 9e-6), 1),
+    (POLY_SRC_RATE * (1 + 11e-6), 0), (POLY_SRC_RATE * (1 - 11e-6), 0),
+    (BRAIDS_RATE, 0), (48000.0, 0), (2 * HOST_RATE, 0),
+])
+def test_poly47_is_chosen_only_at_51_47(tool, generic_tool, in_rate, poly):
+    # Within 10 ppm of 51/47 the default build takes the fast path: delay 0,
+    # and its first output needs inputs 0 .. 24 (25: it reads 23 zeros before
+    # input 0). Every other ratio, and every ratio in the generic build, keeps
+    # the two stages.
+    r = run_tool(tool, "info", "--in-rate", repr(in_rate), "--out-rate", HOST_RATE)
+    assert (r["ok"], r["poly"]) == (1, poly)
+    if poly:
+        assert (r["delay"], r["needed"]) == (0, 25)
+        assert r["src_rate"] == pytest.approx(POLY_SRC_RATE, abs=1e-3)
+    else:
+        assert r["delay"] == LP_DELAY
+    assert run_tool(generic_tool, "info", "--in-rate", repr(in_rate),
+                    "--out-rate", HOST_RATE)["poly"] == 0
+
+
+@pytest.mark.parametrize("tolerance,expected", [
+    (None, "poly=1 0 0 0"),        # default 10 ppm: only 44,118 Hz takes the fast path
+    ("5e-4", "poly=1 1 0 0"),      # dev-kit timing build: 44,100 Hz (+400 ppm) too
+])
+def test_poly47_tolerance_widens_only_for_the_dev_kit(tmp_path, tolerance, expected):
+    # tools/jieli/prepare-pipeline-devkit.py --poly47-at-44100 widens the gate
+    # so a dev-board run times the fast path at its 44,100 Hz host rate. It
+    # must not admit any other ratio (Braids at 96 kHz, Rings' 48 kHz).
+    compiler = shutil.which("cc")
+    if not compiler:
+        pytest.skip("no C compiler")
+    src = tmp_path / "gate.c"
+    src.write_text('#include <stdio.h>\n#include "fm1_resampler.h"\n'
+                   "static unsigned poly(float in, float out) {\n"
+                   "  static fm1_resampler_t r;\n"
+                   "  return fm1_resampler_init(&r, in, out) ? r.poly : 9u;\n}\n"
+                   "int main(void) {\n"
+                   '  printf("poly=%u %u %u %u\\n", poly(47872.34f, 44118.0f), poly(47872.34f, 44100.0f),\n'
+                   "         poly(96000.0f, 44100.0f), poly(48000.0f, 44100.0f));\n"
+                   "  return 0;\n}\n")
+    exe = tmp_path / "gate"
+    defines = [] if tolerance is None else [f"-DFM1_RESAMPLER_POLY47_TOLERANCE={tolerance}"]
+    subprocess.run([compiler, "-std=c99", "-O1", *defines, "-I", str(HEADER.parent), str(src),
+                    "-o", str(exe)], check=True)
+    assert subprocess.run([str(exe)], check=True, capture_output=True,
+                          text=True).stdout.strip() == expected
+
+
+def test_poly47_table_is_the_design(tool):
+    # The header's table is what tools/resampler_poly47_design.py writes:
+    # 24 rows of 48, each the float32 rounding of a row that sums to 1, and
+    # every unstored row (q = 24 .. 46) the reverse of row 47 - q.
+    design = poly47_design()
+    a, b = design.header_table(HEADER.read_text())
+    assert HEADER.read_text()[a:b] == design.c_table()
+    rows = design.stored_rows()
+    assert len(rows) == 24 and all(len(r) == 48 for r in rows)
+    assert all(abs(sum(r) - 1.0) < 1e-6 for r in rows)
+    full = design.table64()
+    assert max(abs(full[47 - q][k] - full[q][47 - k])
+               for q in range(1, 24) for k in range(48)) < 1e-12
+    # Phase 0's last tap is the window's edge: exactly 0.
+    assert rows[0][47] == 0.0
+
+
+def poly47_design():
+    import importlib.util
+    path = ENGINES.parent / "tools" / "resampler_poly47_design.py"
+    spec = importlib.util.spec_from_file_location("resampler_poly47_design", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_poly47_passband_is_flat_and_linear_phase(tool):
+    # Unit sines every 250 Hz from 250 Hz to 18 kHz, generated at the rate
+    # the fast path converts from (47,872.72 Hz): gain within 0.05 dB
+    # (measured -0.0059 to +0.0001), delay 0 at every frequency, and every
+    # other component, wherever it lands below the output's Nyquist, at
+    # least 95 dB down (measured -108.9 dB).
+    s = sweep(tool, PLAITS_RATE, 0, 18001, 250)
+    pts = s["points"]
+    assert s["poly"] == 1 and s["delay"] == 0
+    assert len(pts) == 72 and pts[-1]["f"] == 18000
+    assert max(abs(p["gain_db"]) for p in pts) < 0.05
+    assert max(abs(p["delay_err"]) for p in pts) < 0.001
+    assert max(max(p["pass_db"], p["upper_db"]) for p in pts) < -95.0
+
+
+def test_poly47_top_of_the_band(tool):
+    # Every 20 Hz from 18 kHz to the output's Nyquist: the prototype's
+    # transition (-0.006 dB at 18 kHz, -0.28 at 19, -2.09 at 20, -7.49 at
+    # 21, -18.8 at 22; the two stages give -0.74 dB at 19 kHz and -6.5 at
+    # 20), and nothing else below the Nyquist within 95 dB (measured
+    # -102.5 dB).
+    pts = sweep(tool, PLAITS_RATE, 18000, HOST_RATE / 2, 20)["points"]
+    assert len(pts) == 202
+    gains = {p["f"]: p["gain_db"] for p in pts}
+    for f, db, tol in ((18000, -0.006, 0.002), (19000, -0.283, 0.01), (20000, -2.09, 0.02),
+                       (21000, -7.49, 0.05), (22000, -18.81, 0.1)):
+        assert gains[f] == pytest.approx(db, abs=tol), (f, gains[f])
+    assert max(max(p["pass_db"], p["upper_db"]) for p in pts) < -95.0
+
+
+def test_poly47_content_above_the_output_nyquist(tool):
+    # Sines from the output's Nyquist to the input's (22,064 to 23,936 Hz,
+    # every 7 Hz) fold to 20.18 .. 22.05 kHz through the prototype's
+    # transition band only: their aliases are at most -20.1 dB (at
+    # 22,085 Hz), falling to -73.6 dB at 23,765 Hz. That band is the fast
+    # path's cost against the two stages' 90 dB there (engines/resampler.md).
+    # Nothing these tones leave below 20 kHz comes within 95 dB (measured
+    # -99.9 dB).
+    pts = sweep(tool, PLAITS_RATE, HOST_RATE / 2 + 5, 24000, 7)["points"]
+    assert len(pts) > 250
+    assert all(p["fo"] > 20000 for p in pts)
+    assert max(p["gain_db"] for p in pts) < -20.0
+    assert max(p["below20k_db"] for p in pts) < -95.0
+
+
+def test_poly47_matches_the_float64_design(tool, tmp_path):
+    # 3,000 outputs of noise through the header (float32), against the same
+    # converter evaluated in float64 from the design's unrounded rows: within
+    # 1e-6 of full scale (-120 dB) at every output; measured in the
+    # assertion message.
+    import random
+    rng = random.Random(4751)
+    x = [f32(rng.uniform(-1.0, 1.0)) for _ in range(3300)]
+    src = write_float_wav(tmp_path / "noise.wav", [x], PLAITS_RATE)
+    dst = tmp_path / "out.wav"
+    run_tool(tool, "file", "--in-rate", PLAITS_RATE, "--out-rate", HOST_RATE, "--in", src,
+             "--out", dst)
+    got = read_wav(dst)[1][0]
+    assert len(got) >= 3000
+    want = poly47_design().output64(x, 3000)
+    worst = max(abs(g - w) for g, w in zip(got[:3000], want))
+    assert worst < 1e-6, worst
+
+
+def test_poly47_extreme_input_stays_finite(tool):
+    # The fast path's worst-case gain is its largest row's L1 norm (2.03); an
+    # input up to the largest float over it never overflows, and a burst of
+    # NaN and infinities spoils at most the 48 outputs that read it.
+    r = run_tool(tool, "extreme", "--in-rate", PLAITS_RATE)
+    assert r["poly"] == 1
+    assert r["finite_input_nonfinite_outputs"] == 0
+    assert r["peak_gain"] <= r["gain_bound"]
+    assert 1.9 < r["gain_bound"] < 2.1
+    assert 0 < r["to"] - r["burst_outputs_differing_from"] < 50
+    assert r["nonfinite"] <= r["to"] - r["burst_outputs_differing_from"] + 1
 
 
 # ---------------------------------------------------------------------------
@@ -504,3 +698,42 @@ if __name__ == "__main__":
     print(c_values(kernel_table(), 6))
     print("lowpass", len(lowpass_table()))
     print(c_values(lowpass_table(), 4))
+
+
+# --------------------------------------------- 51/47 at the FM-1's rate --
+# fm1-render renders at 44,118 Hz, the FM-1's rate, where the Plaits-rate
+# engines take the 51/47 fast path. The browser's AudioContext asks for
+# 44,100 Hz, where the 10 ppm gate keeps the two-stage converter, so the
+# virtual FM-1 never plays this path (sim/web/README.md, resampler.md). Here
+# the default build is held against one built with FM1_RESAMPLER_POLY47=0:
+# the PCM must differ (the fast path ran) while pitch and level agree (it is
+# the same sound, 0.014 cent lower).
+POLY47_OFF = ENGINES / "build" / "poly47-off"
+
+
+@pytest.fixture(scope="module")
+def two_stage_renderer():
+    if not shutil.which("make") or not (shutil.which("c++") or shutil.which("g++")):
+        pytest.skip("no make / C++ compiler")
+    subprocess.run(["make", "-s", "-C", str(ENGINES), "-j4", f"BUILD={POLY47_OFF}",
+                    "EXTRA=-DFM1_RESAMPLER_POLY47=0", str(POLY47_OFF / "fm1-render")],
+                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return POLY47_OFF / "fm1-render"
+
+
+@pytest.mark.parametrize("engine,params,key", [
+    ("macro", ["Model=6", "Timbre=0", "Morph=0.5", "Harmonics=0.5"], 69),
+    ("drums", [], 36),
+])
+def test_poly47_runs_at_the_fm1_rate(renderer, two_stage_renderer, tmp_path, engine, params, key):  # noqa: F811
+    from tests.engine_helpers import RATE, cents, pitch_hz, render, rms
+    assert RATE == 44118
+    note = [f"0:{key}:100:1.5"]
+    _, fast, a = render(renderer, tmp_path, engine, params=params, notes=note, name="poly47")
+    _, slow, b = render(two_stage_renderer, tmp_path, engine, params=params, notes=note, name="two_stage")
+    assert a.read_bytes() != b.read_bytes()
+    level = 20 * math.log10(rms(fast, 0.1, 1.4) / rms(slow, 0.1, 1.4))
+    assert abs(level) < 0.05, level
+    if engine == "macro":
+        # 2-op FM at zero index is a sine; the 7.9 ppm shows as 0.014 cent.
+        assert abs(cents(pitch_hz(fast, 0.3, 1.0), pitch_hz(slow, 0.3, 1.0))) < 0.1

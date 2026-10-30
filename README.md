@@ -139,9 +139,10 @@ play its parameters, four to a page (SELECT turns the page).
   speech, formants, additive, a swarm, filtered noise, particles, a modelled
   string, a modal resonator and three drums.
 - **Six-Op FM:** six-operator FM with 96 patches, 8 voices.
-- **FM6:** six-operator FM that plays DX7 voices, 12 voices. It comes with
-  32 voices of its own, has 32 slots for yours, and four macros (Brightness,
-  Env Time, Feedback, Volume) that shape any voice while it plays.
+- **FM6:** six-operator FM that plays DX7 voices, 8 voices (12 is a goal).
+  It comes with 32 voices of its own, has 32 slots for yours, and four
+  macros (Brightness, Env Time, Feedback, Volume) that shape any voice while
+  it plays.
 - **Shapes:** 47 classic digital oscillator shapes, from analogue waves to
   plucked, bowed and blown models, bells and granular textures.
 - **Sophie:** a 16-pad metallic FM percussion kit.

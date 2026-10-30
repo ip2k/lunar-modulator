@@ -76,7 +76,10 @@ NATIVE_HZ = 47872.34
 FM1_RATE = "44118"           # the FM-1's
 FM1_HZ = 44118.0
 RATE_RATIO = NATIVE_HZ / FM1_HZ
-RESAMPLER_DELAY = 30         # fm1_resampler.h's group delay, output samples
+# fm1_resampler.h's group delay at 47,872.34 -> 44,118 Hz, output samples: 0
+# through its 51/47 fast path (FM1_RESAMPLER_POLY47, on by default; it was 30
+# through the two-stage converter, engines/resampler.md).
+RESAMPLER_DELAY = 0
 NOTES = (45, 69)             # A2 and A4
 VELOCITY = 100               # LEVEL 100/127 on the reference; accent 0.94
 
@@ -624,26 +627,15 @@ def stat_case(tmp, slot, note, point, name="fm1", key_offset=0, params=None):
 
 # --- when the wrappers render, at the FM-1's rate ---------------------------------------
 
-SPAN = 12                    # fm1_resampler.h's kernel width, intermediate samples
-
-
-def resampler_constants(in_rate=NATIVE_HZ, out_rate=FM1_HZ):
-    """fm1_resampler_init's step and lead (32.32 fixed point), from the rates
-    as 32-bit floats, in the same double arithmetic."""
-    ratio = f32(in_rate) / f32(out_rate)
-    rho = 2.0 / ratio
-    step = int(ratio / 2.0 * 4294967296.0 + 0.5)
-    return step, step + int(SPAN / (2.0 * rho) * 4294967296.0 + 0.5) + (1 << 32)
-
-
 def inputs_pulled(outputs):
     """The 47,872.34 Hz samples a wrapper's resampler has pulled once it has
-    made `outputs` samples at 44,118 Hz: output j needs ceil((2 j step +
-    lead) / 2^32) of them."""
+    made `outputs` samples at 44,118 Hz. At this ratio fm1_resampler.h takes
+    its 51/47 fast path (engines/resampler.md): output j reads the 48 inputs
+    from floor(51 j / 47) - 23 on, so it needs floor(51 j / 47) + 25 of them
+    [verified against the header for 40,000 outputs, 2026-10-28]."""
     if outputs == 0:
         return 0
-    step, lead = resampler_constants()
-    return -(-(2 * (outputs - 1) * step + lead) >> 32)
+    return 51 * (outputs - 1) // 47 + 25
 
 
 def host_event_sample(t, frames=64):
@@ -1025,13 +1017,13 @@ def test_fm1_rate_output_does_not_depend_on_the_host_block(wavs, slot):
 # (time of the note, host sample it arrives before, 47,872.34 Hz samples
 # pulled by then, the block it starts on, arrival to onset in output samples)
 LATE_NOTES = {
-    # Mid-block: 2,435 pulled, so the next block starts at 2,436.
-    "mid-block": (0.0503, 2240, 2435, 2436, 34.96),
-    # 768 pulled, a multiple of 12 (and of 16): the last block is just used
+    # Mid-block: 2,454 pulled, so the next block starts at 2,460.
+    "mid-block": (0.0503, 2240, 2454, 2460, 27.08),
+    # 1,968 pulled, a multiple of 12 (and of 16): the last block is just used
     # up, and the next one, not yet rendered, starts on that very sample. A
     # wrapper that rendered its next block as soon as the last ran out would
     # start the note a block later here, and nowhere else.
-    "block-boundary": (703.5 / FM1_HZ, 704, 768, 768, 33.77),
+    "block-boundary": (1791.5 / FM1_HZ, 1792, 1968, 1968, 21.66),
 }
 
 
@@ -1040,16 +1032,17 @@ LATE_NOTES = {
 def test_note_lands_on_the_next_native_block(wavs, index, case):
     """A note reaches the wrapper before a host sample (2,240 = 35 x 64 for
     the note at 0.0503 s). By then the resampler has pulled some samples at
-    47,872.34 Hz (2,435: inputs_pulled, from fm1_resampler_init's
+    47,872.34 Hz (2,454: inputs_pulled, from the 51/47 fast path's
     arithmetic), so the voice starts on the first 12-sample block not yet
-    rendered (2,436). The reference finds the same block by a dry run of the
+    rendered (2,460). The reference finds the same block by a dry run of the
     resampler itself, and the two renders agree within HOST_LSB. Nothing
     before the arrival + the outputs that cannot yet read the block is
-    anything but silence. The onset is centred 2,436 x 44,118 / 47,872.34
-    + 30 = 2,274.96 output samples in, 34.96 (0.79 ms) after the note's
-    arrival. Where the pulls end on a block boundary (704: 768 pulled) the
-    note starts on that boundary, which a block rendered ahead of need
-    would miss."""
+    anything but silence. The onset is centred 2,460 x 44,118 / 47,872.34
+    + 0 = 2,267.08 output samples in, 27.08 (0.61 ms) after the note's
+    arrival (the fast path adds no delay; the two-stage converter's 30
+    samples made it 2,436 and 34.96). Where the pulls end on a block
+    boundary (1,792: 1,968 pulled) the note starts on that boundary, which a
+    block rendered ahead of need would miss."""
     slot = BY_INDEX[index]
     point = neutral(POINTS[0])
     t, *expected, latency = LATE_NOTES[case]
@@ -1142,13 +1135,15 @@ def test_host_rate_criteria_reject(wavs, name):
 
 # The native render is written as 16-bit words, so the resampled side
 # carries their rounding: at most half an LSB per input sample, 0.29 LSB RMS.
-# Through the resampler at 47,872.34 -> 44,118 Hz (L1 gain at most 2.13 over
-# its output phases, L2 gain 0.90 [verified: impulse responses of
-# fm1_resampler.h, a scratch program]) that moves a resampled sample by at
-# most 1.07 LSB, 0.26 LSB RMS, before both sides round to 16 bits. Two values
-# 1.07 apart round at most 2 apart; 0.26 LSB RMS apart they round one apart
+# Through the resampler at 47,872.34 -> 44,118 Hz (its 51/47 fast path: L1
+# gain at most 2.03 over its 47 phases, L2 gain 0.92 [verified: the rows of
+# tools/resampler_poly47_design.py]; the two-stage converter's were 2.13 and
+# 0.90) that moves a resampled sample by at most 1.02 LSB, 0.27 LSB RMS,
+# before both sides round to 16 bits. Two values 1.02 apart round at most 2
+# apart; 0.27 LSB RMS apart they round one apart
 # with a probability of about 0.21, 0.46 LSB RMS where the signal never rests
-# [inferred]. Measured: 1 LSB at most, 0.31-0.45 LSB RMS. What these cases
+# [inferred]. Measured: 1 LSB at most, 0.29-0.44 LSB RMS (0.31-0.45 with the
+# two-stage converter). What these cases
 # exist for moves far more: an event one block late, the string machine's
 # AUX cut at a model change, or a voice freed 12 blocks early, 1,000 to
 # 9,000 LSB (reference-plaits.md, "Review").
@@ -1156,14 +1151,16 @@ SELF_LSB = dict(max=2, rms=0.5)
 
 # name: (engine, parameters, notes as (key, host sample the note-on arrives
 # before, the note-off's), parameter changes as (host sample, NAME=VALUE),
-# seconds). Every arrival is a 64-frame block start. 704, 6,720, 9,728,
-# 12,736 and 15,744 have pulled a multiple of 48 samples at 47,872.34 Hz
-# (768, 7,296, 10,560, 13,824, 17,088), so the last 12- or 16-sample block
+# seconds). Every arrival is a 64-frame block start. 1,792, 7,808, 10,816,
+# 13,824 and 16,832 have pulled a multiple of 48 samples at 47,872.34 Hz
+# through the 51/47 fast path (1,968, 8,496, 11,760, 15,024, 18,288; with
+# the two-stage converter these were 704, 6,720, 9,728, 12,736 and 15,744,
+# all 1,088 host samples earlier), so the last 12- or 16-sample block
 # has just been used up and the event starts the next one on that sample; a
 # wrapper that rendered its next block as soon as the last ran out would
 # put those a block late at 44,118 Hz, and every event at 47,872.34 Hz. The
 # others fall mid-block.
-_TWO_NOTES = [(57, 704, 6720), (64, 2240, 12800), (57, 9728, 15744)]
+_TWO_NOTES = [(57, 1792, 7808), (64, 2240, 12800), (57, 10816, 16832)]
 SELF_CASES = {
     # Two overlapping notes, and the first key played again 3,000 host samples
     # after its note-off
@@ -1174,7 +1171,7 @@ SELF_CASES = {
     # the phases the voice stopped at, so a silent-voice timer counted at the
     # host's rate (12 blocks early) moves every sample of it.
     "sixop-voice-freed-and-replayed": ("sixop", ["Patch=32", "Envelope=0.3", "Volume=1"],
-                                       [(60, 704, 3712), (60, 16000, 19968)], [], 0.5),
+                                       [(60, 1792, 3712), (60, 16000, 19968)], [], 0.5),
     # A snare (random, self-enveloped) silent from 0.26 s, freed by the
     # 50 ms timer (Decay 1 keeps the wrapper's release fade above 0.7, so
     # silence in the WAV is silence to the timer), then another snare at
@@ -1182,17 +1179,17 @@ SELF_CASES = {
     # voice freed early changes every later noise sample.
     "heavy-snare-freed-and-another-played": (
         "macro-heavy", ["Model=11", "Morph=0.2", "Decay=1", "Volume=1"],
-        [(60, 704, 3712), (62, 19968, 21760)], [], 0.5),
+        [(60, 1792, 3712), (62, 19968, 21760)], [], 0.5),
     # The string machine left for Swarm and entered again, by two Model
     # changes: its AUX (the right channel) rings out through the right
     # resampler after leaving, and the right resampler is in step on return.
     "heavy-string-machine-left-and-entered-again": (
-        "macro-heavy", ["Model=0", "Volume=1"], [(57, 704, 12736), (64, 7680, 12736),
+        "macro-heavy", ["Model=0", "Volume=1"], [(57, 1792, 13824), (64, 7680, 13824),
                                                  (60, 14080, 19968)],
         [(6016, "Model=5"), (14016, "Model=0")], 0.5),
     # The same, back within 64 samples, while the right resampler still runs.
     "heavy-string-machine-left-briefly": (
-        "macro-heavy", ["Model=0", "Volume=1"], [(57, 704, 12736), (60, 7680, 12736)],
+        "macro-heavy", ["Model=0", "Volume=1"], [(57, 1792, 13824), (60, 7680, 13824)],
         [(6016, "Model=5"), (6080, "Model=0")], 0.5),
 }
 # Cases whose premise is a voice freed before a later note: (silent blocks
@@ -1269,7 +1266,7 @@ def test_native_rate_note_starts_on_its_block(wavs, name):
     engine, _, notes, _, _ = SELF_CASES[name]
     s = self_native_sample(engine, notes[0][1])
     x = wav_channels(self_case(wavs, name)[2])[0]
-    assert s == 768
+    assert s == 1968
     assert not any(x[:s]) and any(x[s:s + self_block(engine)])
 
 

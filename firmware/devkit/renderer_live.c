@@ -19,6 +19,19 @@
 #endif
 #endif
 #include <string.h>
+#include "fm1_dx7_budget.h"
+
+/* Named DX7 polyphony policy. fixed12 (default) keeps the engine's own twelve;
+ * cap8 limits every DX7 instance to eight at init (stock FM-1 parity), before
+ * the first note, in the serial and pipelined paths alike so both replay. */
+#if defined(LUNAR_RENDERER_POLICY_CAP8) && LUNAR_RENDERER_POLICY_CAP8
+#define LUNAR_RENDERER_DX7_VOICES 8u
+#ifdef LUNAR_PIPELINE_ADAPTIVE_THREE
+#error cap8 and the adaptive floor-three experiment are separate policies
+#endif
+#else
+#define LUNAR_RENDERER_DX7_VOICES 12u
+#endif
 
 #if !FM1_APP_EXTERNAL_ARENAS
 #error The dev-kit renderer requires caller-owned arenas in every translation unit
@@ -214,6 +227,13 @@ int lunar_devkit_renderer_init(void) {
     for (unsigned i = 0; i < active_units; ++i)
         if (!strcmp(ids[i], "dx7"))
             fm1_dx7_set_kernel_adapter(app.unit[units[i]].self, kernel_adapter);
+#if LUNAR_RENDERER_DX7_VOICES != 12u
+    for (unsigned i = 0; i < active_units; ++i)
+        if (!strcmp(ids[i], "dx7") &&
+            !fm1_dx7_set_voice_limit(app.unit[units[i]].self, LUNAR_RENDERER_DX7_VOICES)) {
+            state.init_error = 23; return 0;
+        }
+#endif
     state.arena_bytes = (uint32_t)used;
     /* Fixed patches/models and modest wet levels for the named arrangement. */
     fm1_app_set_param(&app, units[0], 0, 19); /* WARM PAD, algorithm 5 */
@@ -429,6 +449,9 @@ int lunar_pipeline_live_produce(void *work, uint32_t tag) {
                           (b & 64u) ? 1200.f : 2400.f);
         state.controls += 2;
     }
+#ifdef FM1_APP_PIPELINE_MARKS
+    fm1_app_pipeline_mark(FM1_APP_PIPELINE_MARK_CONTROLS);
+#endif
     if (!fm1_app_pipeline_produce(&app, work)) return 0;
     ++state.blocks;
     state.test_case = ((tag + 1u) / CASE_BLOCKS) % 4u;
@@ -454,6 +477,7 @@ int lunar_pipeline_live_voice_limit(unsigned limit) {
     return ready && pipeline_bound && !lunar_pipeline_error() &&
         fm1_dx7_set_voice_limit(app.unit[fm1_app_sound_unit(0)].self,limit);
 }
+unsigned lunar_pipeline_live_dx7_voices(void) { return LUNAR_RENDERER_DX7_VOICES; }
 int lunar_pipeline_live_voice_stats(unsigned out[4]) {
     fm1_dx7_budget_stats_t stats;
     if(!out || !ready || !pipeline_bound ||

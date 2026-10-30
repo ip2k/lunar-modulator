@@ -1,0 +1,172 @@
+{
+  "what": "Measured size and heap of the dev-board pipeline images (tools/jieli/prepare-pipeline-devkit.py), checked by tests/test_pipeline_bounds.py. Re-measure with tools/jieli/pipeline_bounds.py on the linked sdk.elf and update this file whenever the preparer or the pipeline sources change flash or SRAM use.",
+  "measured": "2026-10-28, native builds on aeon: AC79 SDK V1.2.13 libraries, reviewed pipeline system.a 792c7599..., jieli-linux-toolchains-20250324.1 (lunar-jieli-check:bookworm), source feature/2026-10-28@perf-levers after 1e3162fe",
+  "app_bytes_limit": 601824,
+  "heap_in_use_after_open": 43512,
+  "heap_min_after_open": 3700,
+  "headroom": 128,
+  "reference": {
+    "V225": {
+      "app_bytes": 598140,
+      "heap_size": 47212,
+      "heap_after_open_measured": 3700
+    }
+  },
+  "init_xip_functions": [
+    "engines/src/drums.cc: void *Create(void *mem, const fm1_host_t *host)",
+    "engines/src/drums.cc: bool Init(const fm1_host_t *host)",
+    "engines/src/mi_macro.cc: void *Create(void *mem, const fm1_host_t *host)",
+    "engines/src/mi_macro.cc: bool Init(const fm1_host_t *host)",
+    "engines/src/fx_echo.cc: void *Create(void *mem, const fm1_host_t *host)",
+    "engines/src/fx_echo.cc: void Init(const fm1_host_t *host)",
+    "engines/src/msfa_dx7.cc: void *Create(void *mem, const fm1_host_t *host)",
+    "engines/src/msfa_dx7.cc: bool SharedInit(float rate)",
+    "engines/src/fx_drive.cc: static void *DriveCreate(void *mem, const fm1_host_t *host)",
+    "engines/src/fx_comp.cc: static void *CompCreate(void *mem, const fm1_host_t *host)"
+  ],
+  "resampler_benchmark_linked": false,
+  "poly47_table": "SRAM (.ram0_data) only; no XIP copy",
+  "images": {
+    "cap8-msfa": {
+      "config": {
+        "policy": "cap8",
+        "dx7_sine": "msfa",
+        "worst_block": true,
+        "poly47_at_44100": true,
+        "cycles": 3
+      },
+      "app_bytes": 597980,
+      "app_end": "0x960fc",
+      "app_margin": 3844,
+      "load_images": {
+        ".text": 439552,
+        ".data": 0,
+        ".dynamic_data": 0,
+        ".ram0_data": 131248,
+        ".cache_ram_data": 27180
+      },
+      "heap_size": 48780,
+      "heap_after_open_predicted": 5268,
+      "heap_margin": 1568
+    },
+    "cap8-trunc12": {
+      "config": {
+        "policy": "cap8",
+        "dx7_sine": "trunc12",
+        "worst_block": true,
+        "poly47_at_44100": true,
+        "cycles": 3
+      },
+      "app_bytes": 597916,
+      "app_end": "0x960bc",
+      "app_margin": 3908,
+      "load_images": {
+        ".text": 439552,
+        ".data": 0,
+        ".dynamic_data": 0,
+        ".ram0_data": 131184,
+        ".cache_ram_data": 27180
+      },
+      "heap_size": 48844,
+      "heap_after_open_predicted": 5332,
+      "heap_margin": 1632
+    },
+    "fixed12-msfa": {
+      "config": {
+        "policy": "fixed12",
+        "dx7_sine": "msfa",
+        "worst_block": true,
+        "poly47_at_44100": true,
+        "cycles": 3
+      },
+      "app_bytes": 597884,
+      "app_end": "0x9609c",
+      "app_margin": 3940,
+      "load_images": {
+        ".text": 439456,
+        ".data": 0,
+        ".dynamic_data": 0,
+        ".ram0_data": 131248,
+        ".cache_ram_data": 27180
+      },
+      "heap_size": 48780,
+      "heap_after_open_predicted": 5268,
+      "heap_margin": 1568
+    },
+    "clk360-cap8-msfa": {
+      "config": {
+        "policy": "cap8",
+        "dx7_sine": "msfa",
+        "worst_block": true,
+        "poly47_at_44100": true,
+        "cycles": 3,
+        "sys_clk_hz": 360000000,
+        "stock_power": true
+      },
+      "app_bytes": 601692,
+      "app_end": "0x96f7c",
+      "app_margin": 132,
+      "load_images": {
+        ".text": 441824,
+        ".data": 0,
+        ".dynamic_data": 0,
+        ".ram0_data": 132688,
+        ".cache_ram_data": 27180
+      },
+      "heap_size": 47308,
+      "heap_after_open_predicted": 3796,
+      "heap_margin": 96,
+      "open_issue": "heap margin under the 128 B headroom: the 360 MHz option's SRAM code ends on a 32-byte boundary, and 20 B less of it would give 64 B more heap (firmware/devkit/README.md, \"Image sizes at 360 MHz\")"
+    },
+    "clk360-cap8-trunc12": {
+      "config": {
+        "policy": "cap8",
+        "dx7_sine": "trunc12",
+        "worst_block": true,
+        "poly47_at_44100": true,
+        "cycles": 3,
+        "sys_clk_hz": 360000000,
+        "stock_power": true
+      },
+      "app_bytes": 601628,
+      "app_end": "0x96f3c",
+      "app_margin": 196,
+      "load_images": {
+        ".text": 441824,
+        ".data": 0,
+        ".dynamic_data": 0,
+        ".ram0_data": 132624,
+        ".cache_ram_data": 27180
+      },
+      "heap_size": 47372,
+      "heap_after_open_predicted": 3860,
+      "heap_margin": 160
+    },
+    "clk360-fixed12-msfa": {
+      "config": {
+        "policy": "fixed12",
+        "dx7_sine": "msfa",
+        "worst_block": true,
+        "poly47_at_44100": true,
+        "cycles": 3,
+        "sys_clk_hz": 360000000,
+        "stock_power": true
+      },
+      "app_bytes": 601596,
+      "app_end": "0x96f1c",
+      "app_margin": 228,
+      "load_images": {
+        ".text": 441728,
+        ".data": 0,
+        ".dynamic_data": 0,
+        ".ram0_data": 132688,
+        ".cache_ram_data": 27180
+      },
+      "heap_size": 47308,
+      "heap_after_open_predicted": 3796,
+      "heap_margin": 96,
+      "open_issue": "heap margin under the 128 B headroom: the 360 MHz option's SRAM code ends on a 32-byte boundary, and 20 B less of it would give 64 B more heap (firmware/devkit/README.md, \"Image sizes at 360 MHz\")"
+    }
+  },
+  "measured_clk360": "2026-10-29, native builds on aeon as above, source feature/2026-10-28@perf-levers at dad89a31 (--sys-clk 360 --stock-power, SFC 60 MHz)"
+}

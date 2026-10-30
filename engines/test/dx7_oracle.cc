@@ -182,8 +182,15 @@ int Tables(float rate) {
   std::vector<unsigned char> mem;
   void *self = EngineAt(rate, &mem);
   if (!self) return 1;
-  // What msfa's code reads, through its pointers (src/msfa_prelude.h).
-  const int32_t *sin = *fm1_msfa::fm1_sintab, *exp2 = *fm1_msfa::fm1_exp2tab;
+  // What msfa's code reads, through its pointers (src/msfa_prelude.h). With
+  // FM1_DX7_SINE=trunc12 msfa's sine table is not in the build: its entries
+  // print as 0 (the trunc12 table has its own checks, tests/test_dx7_sine.py).
+#if !FM1_DX7_SINE_TRUNC12
+  const int32_t *sin = *fm1_msfa::fm1_sintab;
+#else
+  static const int32_t sin[SIN_N_SAMPLES << 1] = { 0 };
+#endif
+  const int32_t *exp2 = *fm1_msfa::fm1_exp2tab;
   const int32_t *lut = *fm1_msfa::fm1_freqlut;
   long long sin_sum = 0, exp_sum = 0, lut_sum = 0;
   for (int i = 0; i < SIN_N_SAMPLES << 1; ++i) sin_sum += sin[i];
@@ -213,7 +220,11 @@ int Mismatches(const int32_t *a, const int32_t *b, int n) {
 int TablesVsMsfa(float rate) {
   const int32_t *sin, *exp2, *lut;
   MsfaRefTables(44118.0, &sin, &exp2, &lut);
+#if !FM1_DX7_SINE_TRUNC12
   const int sin_bad = Mismatches(sin, fm1_msfa::kSinTab, SIN_N_SAMPLES << 1);
+#else
+  const int sin_bad = 0;   // msfa's sine table is not in a trunc12 build
+#endif
   const int exp2_bad = Mismatches(exp2, fm1_msfa::kExp2Tab, EXP2_N_SAMPLES << 1);
   const int rom_bad = Mismatches(lut, fm1_msfa::kFreqLut44118, fm1_msfa::kFreqLutSize);
   // FillFreqLut against Freqlut::init, from the engine's lowest rate to its

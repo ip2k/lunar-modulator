@@ -658,7 +658,8 @@ failures; success finishes the finite backend without stopping the DAC clock.
 The driver checks producer/consumer deadlines as well as DAC transport faults.
 
 `LUNAR_PIPELINE_CYCLES` permits 1–57 four-case cycles (default three). Polyphony
-stays fixed at twelve unless `LUNAR_PIPELINE_ADAPTIVE_THREE=1` explicitly enables
+stays fixed at twelve unless `LUNAR_RENDERER_POLICY_CAP8=1` caps it at eight (see
+below) or `LUNAR_PIPELINE_ADAPTIVE_THREE=1` explicitly enables
 the measured 65/60 feedback policy with a three-voice floor. Adaptive results
 require an independent decision-trace replay and must not accept fixed voices.
 The task's advisory ready-count query excludes the local IRQ; it grants no lease.
@@ -688,9 +689,234 @@ NoteOn and allocation into SRAM with explicit noinline attributes. Linked code
 also changes (NoteOn grows from 348 to 992 bytes), so its gain is not attributed
 solely to memory latency. Default policy is fixed12. Add
 `--adaptive-three` for the labelled floor3 experiment and `--cycles 57` for the
-30.4-minute workload. Preparation is offline and does not establish native or
+30.4-minute workload. The 30-minute soak of the release rule is that run:
+`--policy cap8 --worst-block --poly47-at-44100 --cycles 57` gives 228 cases,
+1,256,964 blocks and 1,824 s of audio, inside the backend's 35-minute CPU1
+lifetime. Its receipts are the same end-of-run set as a three-cycle run's
+and are cumulative, so they cover the whole soak: an empty queue at a DAC
+callback faults the run (10304) rather than playing on.
+`tools/devkit_pipeline_result.py` reports them in a `buffered` section
+(underrun checks, per-case and whole-run means against 29,604 ticks, queue
+latency 8 x 64 frames at 44,100 Hz = 11.61 ms). The firmware's own end check
+still applies the per-block deadline, so a run with a late producer block
+ends with `failure_line` and `complete=0`; the summary says when that is the
+only cause. Preparation is offline and does not establish native or
 analog acceptance. Export evidence, then remove only the generated lane after
 its build/test processes exit.
+
+**Polyphony policies and the worst-block recorder** (2026-10-28; owner's
+decision: eight voices guaranteed, twelve a stretch goal).
+`--policy fixed12` (the default) keeps twelve DX7 voices. `--policy cap8`
+(`LUNAR_RENDERER_POLICY_CAP8=1`) calls `fm1_dx7_set_voice_limit(8)` on every
+DX7 unit at init. The limit is enforced per 64-frame block by the existing
+steal/retire logic. The policy is reported as `LUNAR_POLYPHONY ... policy=cap8`,
+with `unit0_limit=8` at the end. cap8 cannot be combined with
+`--adaptive-three`; the preparer and the C build both refuse.
+[verified: host replay] cap8 serial and pipelined replays match sample for
+sample in immediate and delayed modes. The 1- and 4-note cases are bit-exact
+with fixed12. From the 8-note case on the cap steals (unit 0 ends with 46
+steals), so every later case differs. This is the expected sound change above
+eight voices; listening acceptance is a separate gate.
+
+`--worst-block` (`LUNAR_PIPELINE_WORST_BLOCK=1` with `FM1_APP_PIPELINE_MARKS=1`)
+records, for each of the four cases, only the producer block with the largest
+`p_ticks`. That block is split at six existing stage boundaries into seven
+deltas:
+
+| stage | ends at |
+| --- | --- |
+| `controls` | entry to `fm1_app_pipeline_produce` (adapter, controls) |
+| `preflight` | after `pipeline_preflight` |
+| `seq` | after the sequencer advance |
+| `dispatch` | after the sound dispatch |
+| `inserts` | after the SOUNDS stage (inserts) |
+| `capture` | after the slot is sealed |
+| `ui` | the producer's existing end read |
+
+Each case's record is 64 bytes (256 bytes for four cases), printed at the end as
+`LUNAR_WORST_BLOCK`, `LUNAR_WORST_CONSUMER` and `LUNAR_WORST_SUMMARY`. The
+stages telescope and must sum to `p_ticks`. A block missing a mark is reported
+`complete=0` with zero stages, never with invented stages. The recorder's
+cost is six extra timer reads plus calls per block, inside `p_ticks`, plus a
+max test after the end read, outside it. Before audio starts the firmware
+measures both cache-warm over 256 repetitions and prints them as
+`LUNAR_WORST_OVERHEAD`. The static estimate is up to about 1–2 us per block
+(under 0.15% of the 1,451-us budget) [inferred; unmeasured until a board run].
+[verified: vendor pi32v2 clang, non-LTO objects, 2026-10-28] The driver
+(fixed12, cap8, worst, cap8+worst), the live adapter and `fm1_app.c` with and
+without marks compile against the V1.2.13 headers. `fm1_app_pipeline_mark` sits in
+`.volatile_ram_code` as eight instructions plus the existing indirect timer
+call; `lunar_worst_begin`/`mark` are forced inline so the hook never calls into
+flash. The recorder header leaves `printf` to its includer, because newlib's
+`<stdio.h>` collides with the SDK's `fs.h` `FILE`. This is not a linked-image
+placement or timing result.
+`--dx7-sine` picks FM6's sine (engines/msfa.md): `trunc12`, the default since
+the owner's A/B of 2026-10-29, drops the msfa-only sine patches; `msfa` keeps
+them. The images below each name theirs, so the change of default rebuilt none. `--poly47-at-44100` is timing-only: the
+board's host runs at 44,100 Hz, where the 51/47 resampler fast path's 10 ppm
+gate does not engage, so this widens it (`FM1_RESAMPLER_POLY47_TOLERANCE=5e-4`)
+and Plaits-rate engines sound 0.69 cent flat on the board (engines/resampler.md).
+Host replays that predict such an image's PCM hashes need the same define.
+The 51/47 table (4,608 bytes) stays in `.volatile_ram` (SRAM) when the cache
+tables move to cache RAM: those seven free D-cache ways hold 28,672 bytes, the
+other tables take 27,148, and the linker refused the overflow [verified: vendor
+link, 2026-10-28]. That SRAM comes out of the heap. The integration build's
+cap8 + worst-block + poly47 images leave a predicted 948 (msfa) and 1,012
+(trunc12) bytes of heap after the DAC opens, against the 3,700 the V225 board
+run had. Their applications (608,380 and 608,316 bytes) also exceed the
+bounded writer's 601,824 [verified: link; the heap figure is inferred from
+the constant 43,512 bytes in use after open in five board logs].
+Pipeline images never call `lunar_devkit_benchmark`, but the board Makefile
+listed `benchmark.c`, which builds its own copy of the resampler header. That
+linked a second, flash-resident copy of the 51/47 table (4,608 bytes) into the
+image as dead code, with the benchmark's kernel and low-pass tables, its
+function and its resampler state in `.bss` [verified: link, 2026-10-28].
+The pipeline preparer now leaves `benchmark.c` out of the board build. It
+also moves the run-once engine constructors and their `Init` functions to
+flash (`PIPELINE_INIT_XIP`). The compiler does not inline across sections,
+so moving `Create` alone had left the `Init` it used to inline in SRAM
+[inferred: link symbols]. `renderer_live.c` builds the engines at init,
+before the first block, so none of this is on the audio path [verified:
+source]. The hot SRAM functions keep their sizes within 8 bytes
+[verified: symbol diff].
+
+Rebuilt natively on aeon (2026-10-28), every configuration meets both bounds
+[verified: link, `tools/jieli/pipeline_bounds.py`]:
+
+| image | app bytes | margin | HEAP_SIZE | heap after open (predicted) |
+| --- | --- | --- | --- | --- |
+| cap8 msfa | 597,980 | 3,844 | 48,780 | 5,268 |
+| cap8 trunc12 | 597,916 | 3,908 | 48,844 | 5,332 |
+| fixed12 msfa | 597,884 | 3,940 | 48,780 | 5,268 |
+
+The 51/47 table stays in `.ram0_data`. `audit_link` gives 0 failures and 1
+pending item, the existing objdump review of `sdk_meky_check`. Host replays
+reproduce the cap8 images' earlier per-case hashes, fold and PCM sha256
+exactly (normal and ASan/UBSan) [verified: replay; inferred for the board].
+The heap column is a prediction until a board run reports it [inferred].
+`firmware/devkit/pipeline-image-sizes.json` records these sizes, and
+`tests/test_pipeline_bounds.py` keeps them inside the bounds.
+`python3 tools/devkit_pipeline_result.py capture.log` parses a run's UART log
+into JSON. It refuses missing or duplicate receipts, an inconsistent policy and
+stage vectors that do not sum. It reports timing only; PCM replay, the
+buffered release rule and the physical FM-1 remain separate gates.
+Every `--worst-block` image carries the recorder inside its `p_ticks` (about
+six out-of-line marks per block, plus whatever they change in register
+pressure and LTO), so those images compare with each other, never directly
+with V225 or another build without it; the parser's `comparison` field says
+so. For each case's largest stage it also says whether that stage's code is
+known to run from XIP (`largest_stage_xip`): only `dispatch` is mapped, and
+only partly (the DX7 note path in `PIPELINE_XIP`); the others are "not
+mapped".
+
+**The 360 MHz option does not switch the kit (2026-10-29).** The first bench
+run printed `con2=2` and refused with reason 2, writing nothing. CLK_CON2[3:0]
+= 2 is a fixed 320 MHz tap, not PLL2 x 2/3 (source 6) as the design assumed;
+source 6 is the FM-1's tree [verified: SDK `clk_early_init`/`sys_clock_update`
+IR, stock V15 SPL; reported: fm1-x0x]. From a tap, `system_clock_set` only
+reaches tap x {1,3,5,7} x {1,2,4,8} and returns -22 for 360 MHz with no write;
+from a PLL2 source it rewrites PLL2_CON1. Every route to 360 MHz on the kit
+(the SDK's PLL3/SDRAM mode, or a 360 MHz `isd_config` head) writes PLL2 and
+CLK_CON2 or the flash head, which the design ruled out, so the kit build now
+reads and prints the state (`before=-`, plus a `pll=-` line with PLL_CON0,
+PLL2_CON0/1, HUSB_COM_CON0/2 and SDR CON0, all read by the SDK's own
+`clk_early_init`), checks it, and refuses with reason 10. The switch below is
+kept only as a host model (`LUNAR_DEVKIT_CLOCK360_SWITCH`, an `#error` for the
+kit) until the owner chooses a design. The text below describes that model.
+
+**The 360 MHz option** (`--sys-clk 360 --stock-power`, owner 2026-10-28;
+`clock360.c`, timing only). After boot and before the DAC opens, the app
+raises the rails to the FM-1's stock levels (SYSVDD 1.38 V, VDC14 1.60 V,
+VDDIOM and VDDIOW 3.2 V, LVD 2.6 V [reported: fm1-nes `board_power.c`];
+VDDIOW is the weak VDDIO, the IO supply's sleep level, not an RF rail
+[reported: demo_hello `board.c`; its sleep use inferred]) and moves the system
+clock from 320 to 360 MHz (HSB 180, LSB 60). The option off leaves the 320 MHz
+build inputs byte-identical. Its UART receipts:
+
+- `LUNAR_CLOCK360 before=- ...` and `after=PASS|FAIL ...`: clk_get sys, hsb,
+  lsb and sfc, the raw SFC `baud`, the clock registers (`con2`, `div`), the
+  five P33 rail registers (`p33=`), ten OS ticks in TIMER4 counts (`tick=`)
+  and the SDK's return code (`rc=`). The UART clock (48 MHz) and TIMER4's
+  CON are checked before and after but not printed, to save flash.
+- `LUNAR_CLOCK360 audio=preroll cb=N t4=N rate_mhz=N result=PASS|FAIL`: the
+  DAC callback rate over the preroll, TIMER4-timed; a FAIL is a transport
+  fault before the music starts.
+- `LUNAR_CLOCK360 end=- ...`: the same readback, printed by the worker after
+  the DAC run returns, so an SDK path that moved the clock, the SFC divider
+  or a rail during the run shows. It carries no verdict; the parser judges
+  it against the after line.
+- On failure `LUNAR_CLOCK360 result=FAIL reason=N` (1-6 before any write,
+  7-9 after; `clock360.h`). Only 7 and 8 roll back: 7 puts the kit's rails
+  back with the clock untouched; 8 brings the clock back to 320/160 MHz,
+  reads it back, then puts the kit's rails back (`restored=OK rails=kit`).
+  9 is a failed way back: the clock did not read back at 320/160, so the
+  stock rails stay (`restored=FAIL rails=kept`) and nothing more runs. A
+  PASS, and an audio-rate FAIL, leave the board at 360 MHz on the stock
+  rails until it is reset.
+
+So every 360 MHz run starts from a reset (power-on or the ROM's entry), never
+from a board a previous run left at 360 MHz. `tools/devkit_pipeline_result.py
+--sys-clk 360` counts a run only with one each of `before=-`, `after=PASS`,
+`audio=preroll result=PASS` and `end=-`, where the end line reads 360/180/60
+MHz with `rc=0`, the after line's SFC clock and rails, ten OS ticks of 10 ms
+(2,352,000 to 2,424,000 TIMER4 counts) and the after line's BAUD, where the
+before line shows the register reads back; any `result=FAIL` or `restored=`
+line refuses it, and `--sys-clk 320` refuses a log that has such lines.
+
+**The SFC confound.** SFC = HSB / (BAUD + 1). The 360 MHz images keep BAUD 2,
+so the flash runs at 60 MHz, against 80 MHz in the 320 MHz images (HSB 160,
+BAUD 1) and presumably 90 MHz on the FM-1 (HSB 180, BAUD 1) [inferred: the
+kit's flash has no established 90 MHz rating]. Everything read through XIP
+(the DX7 note path, the init functions, constant tables outside SRAM, cache
+misses) is therefore slower at 360/60 than at 320/80 and than on the FM-1.
+A 360 MHz worst block whose largest stage runs XIP code understates the
+speed-up; compare 360 with 320 per stage, and do not read a 360 MHz figure as
+the FM-1's. An SFC-parity run (`--sfc-mhz 90`, BAUD 1) waits until the kit's
+flash is shown to work at 90 MHz.
+
+**Since `86d05fed` (2026-10-29) a 360 MHz kit image holds no renderer.**
+The kit build's `lunar_clock360_apply` can only refuse (reason 10), so the
+link-time optimiser drops everything the worker would run after it: the
+probe, the DAC run and the renderer. The rebuilt `clk360-r3/cap8-trunc12` is
+186,160 app bytes (margin 415,664; heap after open 451,284) and is a
+read-only clock-tree probe, not a performance image. It passes `audit_link`
+(0 failures, 1 pending) and `pipeline_bounds.py`, and its host replay still
+matches the 320 MHz hashes [verified: aeon build of `86d05fed`]. The vendor
+objdump shows `lunar_clock360_apply` calling only `clk_get`, `p33_rx_1byte`,
+`os_time_dly` and `printf`, with no store outside its stack; neither
+`system_clock_set` nor `clock_set` is linked [verified]. The table below is
+the `dad89a31` images, kept for the record.
+
+**Image sizes at 360 MHz.** The option costs about 3.7 KB of flash and
+1.5 KB of SRAM. `pipeline_bounds.py` fails a build with less than 128 B left
+in the writer region or in the predicted heap. Rebuilt natively on aeon from
+`dad89a31` (2026-10-29) [verified: link, `pipeline_bounds.py`, `audit_link`
+0 failures and 1 pending item; host replays equal the 320 MHz images'
+hashes]:
+
+| image | app bytes | margin | HEAP_SIZE | heap after open (predicted) | heap margin |
+| --- | --- | --- | --- | --- | --- |
+| cap8 msfa | 601,692 | 132 | 47,308 | 3,796 | 96 |
+| cap8 trunc12 | 601,628 | 196 | 47,372 | 3,860 | 160 |
+| fixed12 msfa | 601,596 | 228 | 47,308 | 3,796 | 96 |
+
+All three meet the hard bounds and the flash headroom. The two msfa images
+miss the heap headroom by 32 B. That is an open issue, recorded as such in
+`pipeline-image-sizes.json`, and the gate still fails them.
+
+- The option's SRAM code ends exactly on a 32-byte boundary. The data and the
+  heap after it are aligned, so 20 B less SRAM code would give 64 B more heap
+  (a margin of 160) [verified: link map].
+- The only option SRAM code that could go is our 14-byte `sfc_baud_held` and
+  the SDK's 36-byte `sfc_flash_baud_div`.
+  - Avoiding the SDK function means either running BAUD 1 (90 MHz flash, not
+    the safe default) or writing the SDK's private copy of BAUD (unverified).
+  - Moving `sfc_baud_held` to flash freed 12 B and gained nothing.
+- The rest is the SDK's own clock-change path (`sys_clock_update`, 1,414 B).
+
+Until the owner decides, a heap figure from a 360 MHz msfa run counts only
+if the board reports at least 3,700 B left after the DAC opens, as the
+320 MHz images must.
 
 [verified] The tracked burst-hot V188 image completes 57 cycles, 228 cases and
 1,256,964 blocks in 30.4 minutes with zero producer/consumer deadline misses and

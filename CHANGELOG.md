@@ -20,6 +20,58 @@ history.
   is recorded as above the SDK's table.
 
 ### Fixed
+- **The eight-voice image held up for 30 minutes on the dev board.** No
+  underruns, mean load 66% and 83% on the two cores, with the queue adding
+  11.6 ms of latency. This meets the release rule on the dev kit; an FM-1
+  run is still to come (`notes/2026-10-29-devkit-soak30.md`).
+- **Eight voices now fit the dev board's time budget at 320 MHz.** With the
+  new drum converter, the eight-voice images ran with mean load at or below
+  83% in every case (12 voices: 88% in the heaviest case, over the 85% line).
+  Measured on the dev kit, not yet on an FM-1; details in
+  `notes/2026-10-29-devkit-perf-levers-320.md`. The first release promises
+  eight voices; twelve stays a stretch goal.
+- The dev-board result parser reads worst-block receipts that the SDK splits
+  across lines.
+- **The dev-board result parser now summarises a run under the release
+  rule.** `tools/devkit_pipeline_result.py` adds a `buffered` section: the
+  whole run's underrun counters, both cores' mean load per case and over the
+  run against 85% of the block budget, whether the run covers 30 minutes of
+  audio, and the queue latency (8 slots of 64 frames at 44,100 Hz, 11.6 ms).
+  A producer block over the old per-block deadline is reported, not counted
+  as an underrun.
+- **The dev-board image size check now asks for 128 bytes to spare.**
+  `tools/jieli/pipeline_bounds.py` fails an image with less than 128 bytes
+  left in the writer region or in the predicted heap, since a rebuild alone
+  moves an image by a few bytes and the heap floor is one board's
+  observation.
+- **The 51/47 resampler path is now tested at the FM-1's rate on the
+  desktop.** The browser's virtual FM-1 runs at 44,100 Hz and never takes
+  it; the docs now say so (engines/resampler.md, sim/web/README.md).
+- **Worst-block timings say what they can be compared with.** They include
+  the recorder's own cost, so the result parser labels them as comparable
+  only with other recorder builds, not with V225, and notes which stage's
+  code is known to run from flash.
+- **The dev-board pipeline images fit again, with the 51/47 table still in
+  SRAM.** The images with the eight-voice policy, the worst-block recorder and
+  the 51/47 fast path were 6.5 KB too large for the dev board's writer and left
+  under 1 KB of heap after the audio output opened. Two placement-only changes
+  fix both:
+  - the board build no longer links `benchmark.c`, the resampler benchmark
+    that pipeline images never call (with it went a second, flash copy of
+    the table);
+  - the engines' run-once constructors (`Create`, `Init`) now sit in flash
+    rather than SRAM.
+
+  All three images now fit, with 3.8 to 3.9 KB to spare in the writer region
+  and a predicted 5.3 KB of heap after open, against 3.7 KB on V225:
+  - cap8 with the msfa sine: 597,980 bytes;
+  - cap8 with the trunc12 sine: 597,916 bytes;
+  - fixed12 with the msfa sine: 597,884 bytes.
+
+  Their sound is unchanged: host replays reproduce the earlier per-case hashes
+  exactly. `tools/jieli/pipeline_bounds.py` checks a linked image against both
+  bounds, and `firmware/devkit/pipeline-image-sizes.json` keeps the measured
+  sizes, which the tests hold within bounds. Nothing has run on the board yet.
 - **The FM-1-transporter build is reproducible across days.** The firmware
   embeds its build date, so the CI job's UF2 hash changed at the next UTC day
   and its drift warning fired on `main`. `build.sh` now pins the date to the
@@ -203,6 +255,60 @@ history.
 - `U2`/`U3` are SOIC-16 `74HC595`, not SOIC-20; `U5` is a QFN, not a SOIC-8.
 
 ### Added
+- **The dev kit can run at the FM-1's clock and power profile, for timing.**
+  `prepare-pipeline-devkit.py --sys-clk 360 --stock-power` (off by default)
+  switches the kit at run time from 320 to 360 MHz. HSB becomes 180 MHz and
+  LSB 60 MHz, and flash runs at 60 MHz unless `--sfc-mhz 90` is given. The
+  rails are raised first, to M-VAVE's levels: core 1.38 V, VDC14 1.60 V with
+  DCDC, I/O 3.2 V, LVD 2.6 V.
+  - The kit prints one compact line before and one after the switch with the
+    clock registers and the raw P33 rail registers it reads back (the decode
+    is in `firmware/devkit/clock360.c`), and checks the OS tick.
+  - It checks the DAC's 44,100 Hz rate over the preroll. The soak window was
+    dropped to fit the app-only writer region.
+  - After the soak it reads the clocks, the flash divider and the rails
+    again and prints them as one `end=` line, so a change during the run
+    shows.
+  - On any mismatch it prints a numbered reason (1 to 9, listed in
+    `clock360.h`) and halts audio. It goes back to 320 MHz and the kit's
+    rails only when the clock reads back at 320 MHz; if it does not, the
+    higher rails stay (never a lower voltage under a 360 MHz core). A
+    passing run stays at 360 MHz until the board is reset, so every run
+    starts from a reset.
+  - `tools/devkit_pipeline_result.py --sys-clk 360` counts a run only when
+    the switch and the preroll rate passed and the end readback still
+    matches the after line.
+  - Flash at 60 MHz is slower than the 320 MHz build's 80 MHz and,
+    presumably, the FM-1's 90 MHz, so code run from flash is slower here than
+    on either: these figures are not the FM-1's (firmware/devkit/README.md,
+    "The SFC confound").
+  - The option costs about 3.7 KB of flash and 1.5 KB of heap. All three
+    360 MHz images keep 128 bytes or more to spare in flash (132, 196 and
+    228). The two msfa images keep only 96 bytes of heap, under the
+    128-byte headroom, so the size check still fails them until that is
+    settled (firmware/devkit/README.md, "Image sizes at 360 MHz").
+  - **It does not switch the kit after all (2026-10-29).** On the first run
+    the kit reported a fixed 320 MHz clock source, from which the vendor
+    library cannot reach 360 MHz without reprogramming the PLL, which the
+    design ruled out. It wrote nothing and stopped. The option now only reads
+    and prints the kit's clock, PLL and power settings and stops with reason
+    10, so it produces no 360 MHz timing.
+- **A cheaper DX7 sine, behind a switch, for an A/B listening test.**
+  `FM1_DX7_SINE=trunc12` gives FM6 a 4,096-point sine read with the phase's
+  top 12 bits and no interpolation, as the DX7's chip does, in place of
+  msfa's interpolated one. It renders about 30 % faster on a desktop and
+  costs no memory. It stays 50 dB or more above its own error except at
+  the heaviest modulation (42 to 48 dB at 2 to 4 cycles), and whole voices
+  differ from today's by about 60 to 66 dB. The owner's A/B made it the
+  default on 2026-10-29 (under Changed). The switch reaches the desktop
+  renderer, the browser build (its record names the sine) and the dev kit
+  preparation scripts (`--dx7-sine`); engines/msfa.md, "The trunc12 sine".
+- **An eight-voice DX7 policy and a worst-block recorder for the dev-board
+  pipeline.** `prepare-pipeline-devkit.py --policy cap8` limits each DX7 unit
+  to eight voices, beside the default twelve (`fixed12`). `--worst-block` keeps
+  each test case's slowest producer block, split into seven stages, and prints
+  it over the UART with its own measured overhead. `tools/devkit_pipeline_result.py`
+  reads the log. Host replay only so far; nothing has run on the dev board.
 - **A recovery guide for a Raspberry Pi Pico 2 W** (docs/17). It covers the
   wiring (with a photo), building kurogedelic's FM-1-transporter with this
   project's RP2350 patch (`tools/fm1-transporter/`), entering the mask ROM,
@@ -2043,6 +2149,38 @@ history.
   names in Baud Girl's manual.
 
 ### Changed
+- **FM6 now uses the cheaper DX7 sine by default, in the browser and in the
+  firmware.** After listening to the dev board's recordings with each sine,
+  the owner heard no difference (2026-10-29), so the 12-bit sine without
+  interpolation (`FM1_DX7_SINE=trunc12`, as the DX7's own chip reads it)
+  replaces msfa's interpolated one everywhere. It costs about a third less
+  time per FM6 voice on a desktop and cut the eight-voice dev board images'
+  mean load by 4 to 7%. FM6 patches sound almost the same: whole voices
+  differ from before by about 60 to 66 dB. msfa's sine stays one switch
+  away (`FM1_DX7_SINE=msfa`, or `--dx7-sine msfa` for the dev board), and the
+  virtual FM-1 now plays the new sine. The recordings compared WARM PAD and
+  SAW LEAD in a mix; bell and brass voices have not been compared by ear yet
+  (engines/msfa.md, "The trunc12 sine").
+- **Drums, Macro, Macro Heavy and Six-Op reach the FM-1's rate for about
+  half the work.** Their engines run at Plaits' 47,872 Hz, almost exactly
+  51/47 of 44,118 Hz, and a fixed 48-tap polyphase converter now handles
+  that ratio (`FM1_RESAMPLER_POLY47`, on by default; owner's approval,
+  2026-10-28). It is 2.1 times faster on a desktop, about 300 instead of
+  about 910 instructions per sample for the dev kit's compiler, and adds no
+  delay (the old converter added 0.68 ms). 0–18 kHz stays flat within
+  0.006 dB and its spurs below −102 dB. The cost: tones sit 0.014 cent
+  lower, and what an engine puts just above 22 kHz can fold back into
+  20–22 kHz, about 20 dB down instead of 93. Their output changes slightly,
+  so the tests' block-timing cases, the metadata example and the
+  virtual FM-1's module (parity 108 of 108) were brought up to date. Other rates,
+  Shapes' 96 kHz among them, use the existing converter unchanged.
+  The dev board runs at 44,100 Hz, which the 10 ppm gate excludes, so its
+  pipeline preparer has a timing-only `--poly47-at-44100` that widens the
+  gate (`FM1_RESAMPLER_POLY47_TOLERANCE`) and leaves those engines 0.69 cent
+  flat there; never for the FM-1. On the dev board its 4,608-byte table stays
+  in SRAM even in cache-table builds: the free cache RAM (28,672 bytes) has no
+  room for it, and moving it there broke the link.
+  Details: `engines/resampler.md`, "The 51/47 fast path".
 - **Owner decisions, 2026-10-26** (after the recovery in docs/17):
   - Recovery of an unbootable FM-1 whose boot area `0x0`-`0x4000` is intact
     is proven on the owner's unit; UBOOT enumeration alone is still not proof,

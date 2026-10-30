@@ -8,7 +8,7 @@ LUNAR_EXTRA := $(filter-out -Oz -g,$(CFLAGS)) $(DEFINES) $(LUNAR_INCLUDES) \
 LUNAR_MAKE = $(MAKE) --no-print-directory -s -C $(LUNAR_ROOT)/engines \
   -f Makefile -f $(LUNAR_ROOT)/sim/web/mk/sim.mk -f $(LUNAR_ROOT)/tools/jieli/renderer.mk \
   SIM=$(LUNAR_ROOT)/sim/web BUILD=$(LUNAR_BUILD) \
-  FM1_GPL_MODS=0 FM1_MODULES=dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance \
+  FM1_GPL_MODS=0 FM1_DX7_SINE=trunc12 FM1_MODULES=dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance \
   CC="$(CC)" CXX="$(CXX)" OPT=-O2 EXTRA="$(LUNAR_EXTRA)"
 LUNAR_OBJS := $(shell $(LUNAR_MAKE) print-devkit-renderer-objs)
 ifeq ($(strip $(LUNAR_OBJS)),)

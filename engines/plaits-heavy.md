@@ -116,19 +116,23 @@ Braids at 96 kHz [verified: the code].
   the native rate, apart from that test's refused rates [verified: grep of
   the tests].
 - **Latency.** A note-on or note-off reaches the next block rendered at
-  47,872.34 Hz. The resampler adds its group delay of 30 output samples
-  and pulls about 4 input samples ahead of output time. From a note's
-  arrival to the centre of its onset, over every arrival sample at
-  44,118 Hz: 33.4–44.5 output samples (0.758–1.008 ms, mean 0.883 ms) for
-  Macro and Macro Heavy, 33.4–48.2 (0.758–1.092 ms, mean 0.925 ms) for
-  Six-Op. Before, a note waited for the wrapper's next block at the host's
-  rate: 0–11 samples (0–0.249 ms, mean 0.125 ms) and 0–15 (0–0.340 ms)
-  [verified: computed from the resampler's pull arithmetic
-  (`inputs_pulled` in tests/test_engines_reference_plaits.py), which
-  `test_note_lands_on_the_next_native_block` checks against a render]. So
-  about 0.76 ms more on average; in the FM-1's 64-frame blocks, where every
-  event arrives on a block boundary, 0.79 ms more for Macro and Macro Heavy
-  and 0.93 ms for Six-Op, whose 16-sample blocks used to divide 64.
+  47,872.34 Hz. Since 2026-10-28 the resampler takes its 51/47 fast path
+  at this rate (resampler.md, "The 51/47 fast path"): no group delay, and
+  it pulls 24 input samples ahead of output time. From a note's arrival to
+  the centre of its onset, over every arrival sample at 44,118 Hz:
+  21.2–32.3 output samples (0.480–0.733 ms, mean 0.606 ms) for Macro and
+  Macro Heavy, 21.1–36.0 (0.479–0.817 ms, mean 0.648 ms) for Six-Op. The
+  two-stage converter before it added 30 output samples of delay and
+  pulled about 4 ahead: 33.4–44.5 (mean 0.883 ms) and 33.4–48.2 (mean
+  0.925 ms). Before the wrappers resampled at all, a note waited for the
+  wrapper's next block at the host's rate: 0–11 samples (0–0.249 ms, mean
+  0.125 ms) and 0–15 (0–0.340 ms) [verified: computed from the resampler's
+  pull arithmetic (`inputs_pulled` in tests/test_engines_reference_plaits.py),
+  which `test_note_lands_on_the_next_native_block` checks against a
+  render]. So about 0.48 ms more on average; in the FM-1's 64-frame blocks,
+  where every event arrives on a block boundary, 0.60 ms more for Macro and
+  Macro Heavy and 0.65 ms for Six-Op (0.79 and 0.93 ms with the two-stage
+  converter).
 - **CPU and memory**, below and in the table at the top.
 
 ## Macro Heavy
@@ -407,8 +411,10 @@ What differs, deliberately:
     With no new patch it renders one sample of release.
     `test_sixop_note_sounds_from_its_first_block` fails with the renders
     removed. It checks the first 16 samples at Plaits' own rate, where the
-    resampler passes the blocks through; at 44,118 Hz its 30-sample delay
-    leaves the first 16 outputs silent either way.
+    resampler passes the blocks through. (At 44,118 Hz the two-stage
+    converter's 30-sample delay left the first 16 outputs silent either
+    way; the 51/47 fast path has no delay, but its outputs still start
+    from the block the note lands on.)
   - The second drops `fm::Voice`'s gate, so a voice stolen or retriggered
     while held still sees a note-on edge and attacks again. Without it a
     stolen held voice stays silent; `test_sixop_stolen_held_voice_attacks_again`
@@ -534,7 +540,7 @@ deny-list of the renamed names and of synth makers' marks, case-insensitive.
 | Voice freeing | 3 | Freeing, as render cost: released chords cost 2–6 % of held ones on the desktop, and the test allows 50 %; it fails when freeing is disabled |
 | Wrapper behaviour | 10 | Stereo string machine; the string machine entered by a model change renders as one created in it (64- and 7-frame blocks); the string machine's last block keeps its AUX after a model change mid-block (at Plaits' rate); Word Speed; a stolen held voice attacks again; a Six-Op note sounds from its first block (2 patches, at Plaits' rate); all four speech voices speak from the shared word bank; output identical at host blocks of 64, 7 and 1 frames |
 | Determinism | 3 | Particle, string and Six-Op render the same bytes twice |
-| Instance sizes | 1 | The sizes stay within the bounds above, each less than one resampler (1,288 B) above the size: the only test that sees a resampler per voice instead of per output channel |
+| Instance sizes | 1 | The sizes stay within the bounds above, each less than one resampler (1,432 B; 1,288 B before the 51/47 fast path) above the size: the only test that sees a resampler per voice instead of per output channel |
 
 Where tuning is not checked, and why:
 
@@ -763,8 +769,10 @@ the same peaks as on macOS. That was not re-run after the review fixes.
 - **Pi32v2 cost** is unmeasured; see stage B. So are one speech word-bank
   parse (above), the resamplers' share ("Voice cap") and the FPU's
   divide-by-zero behaviour.
-- **The resampler's price** ("Rate", above): 0.76 ms more from a note to its
-  sound at 44,118 Hz, 2.3 µs per resampler per desktop block, 1,288 B each,
+- **The resampler's price** ("Rate", above): 0.48 ms more from a note to its
+  sound at 44,118 Hz (0.76 ms with the two-stage converter), 2.3 µs per
+  resampler per desktop block measured with the two-stage converter (the
+  51/47 fast path is 2.1 times faster in `fm1-resampler-test bench`), 1,432 B each,
   and hosts above 47,872.34 Hz are refused rather than upsampled (no
   upsampling resampler exists here; resampler.md, "Limits").
 - **Silent-voice timers** count 12- or 16-sample blocks at 47,872.34 Hz, so

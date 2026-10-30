@@ -16,7 +16,8 @@ and the measurements of Shapes through it.
 | `src/mi_shapes.cc` | Shapes, now at 96 kHz with its mix through one resampler |
 | `test/resampler_test.cc` → `build/fm1-resampler-test` | measurements and contract checks, one JSON line per run |
 | `mk/resampler.mk` | builds it as part of `all` |
-| `tests/test_engines_resampler.py` | 152 tests, about 14 s on an M1 Max; also the generator of the coefficient tables |
+| `tests/test_engines_resampler.py` | 172 tests; also the generator of the two-stage converter's coefficient tables |
+| `tools/resampler_poly47_design.py` | the 51/47 fast path's table and its float64 reference (below) |
 
 ```bash
 make -C engines
@@ -32,7 +33,7 @@ python -m pytest tests/test_engines_resampler.py
 ```c
 #include "fm1_resampler.h"
 
-fm1_resampler_t rs;                                /* 1,288 B on 64-bit and on i386 */
+fm1_resampler_t rs;                                /* 1,432 B (1,296 B with FM1_RESAMPLER_POLY47=0) */
 if (!fm1_resampler_init(&rs, 96000.0f, host->sample_rate)) /* refuse the host */;
 
 /* per output sample */
@@ -233,6 +234,132 @@ multiply from every kernel tap (about 52 operations per output) for 3 KB
 more flash; and design the low-pass as equiripple (table above), 10 fewer
 multiply-adds and 5 samples less delay, at the cost of a Remez design in the
 generator. Memory: 3,324 B of `const` tables (flash), 1,288 B of state.
+
+## The 51/47 fast path
+
+Since 2026-10-28 (owner's approval of plan item 1) the header has a second
+converter, chosen by `init` and behind `FM1_RESAMPLER_POLY47`, **on by
+default**. Every Plaits-derived engine (Drums, Macro, Macro Heavy, Six-Op)
+runs at Plaits' 47,872.34 Hz into the FM-1's 44,118 Hz, and
+44,118 × 51 / 47 = 47,872.72 Hz is 7.9 ppm away (0.014 cent) [verified:
+arithmetic]. At exactly 51/47 no phase needs interpolating: output *k* sits
+at input time 51*k*/47, whose fraction is one of 47 phases *q*/47
+(*q* = 4*k* mod 47), and each output is one 48-tap dot product of the
+inputs from ⌊51*k*/47⌋ − 23 on with that phase's row of a fixed table.
+
+- **When.** `init` takes it when the ratio is within 10⁻⁵ of 51/47; Plaits'
+  rate is −7.9 ppm from it, so the engine's tones come out 0.014 cent lower
+  than the two-stage converter's, far below anything audible [verified:
+  `test_poly47_is_chosen_only_at_51_47`, which also checks ±11 ppm, Braids'
+  96 kHz, 48 kHz and 2:1 keep the two-stage converter]. Everything else
+  (Shapes at 96 kHz included) is unchanged.
+- **The dev board's 44,100 Hz.** The dev kit runs its host at 44,100 Hz,
+  where Plaits' rate is +400 ppm from 51/47, so the 10 ppm gate keeps the
+  two-stage converter there and a dev-board run would not time the fast
+  path [verified: arithmetic; the consumer-cost lane's host replay,
+  2026-10-28, gave PCM identical to the two-stage build at 44,100 Hz]. The
+  gate is `FM1_RESAMPLER_POLY47_TOLERANCE` (default `1e-5`). The dev-kit
+  pipeline preparer's timing-only `--poly47-at-44100` sets it to `5e-4`,
+  which admits 44,100 Hz and nothing else in use. Plaits-rate engines then
+  sound 0.69 cent flat on the dev board. It is never for the FM-1
+  [verified: `test_poly47_tolerance_widens_only_for_the_dev_kit`].
+- **The browser's 44,100 Hz: a parity gap.** The virtual FM-1's
+  AudioContext asks for 44,100 Hz (sim/web/README.md), where the same
+  10 ppm gate keeps the two-stage converter, so the browser never runs the
+  51/47 path. The FM-1 at 44,118 Hz always does. Drums, Macro, Macro Heavy
+  and Six-Op in the browser therefore use a different converter from the
+  device's: the same pitch to 0.014 cent and the same 0–18 kHz response to
+  hundredths of a dB, but not the same samples, and not the 20.18–22.06 kHz
+  image the fast path lets through (table below) [verified: arithmetic;
+  inferred for the browser's output, which no test captures]. On the dev
+  board the path runs only with `--poly47-at-44100`, 0.69 cent flat (above).
+  The desktop renderer runs at 44,118 Hz, so it is where the fast path is
+  covered outside a board: `test_poly47_runs_at_the_fm1_rate` renders Macro
+  and Drums there and holds them against a `FM1_RESAMPLER_POLY47=0` build
+  (different PCM, level within 0.05 dB, Macro's pitch within 0.1 cent)
+  [verified: the test].
+- **The table.** A Kaiser-windowed sinc, β 10, cut off at 20,800 Hz at the
+  output rate, 48 inputs wide; each row is normalised to sum to exactly 1
+  and rounded to float32. Row 47 − *q* is row *q* reversed, so only rows
+  0–23 are stored: 4,608 B of `const` (flash), against the two-stage
+  tables' 3,324 B, which stay for the other ratios.
+  `tools/resampler_poly47_design.py` generates it, `--check` compares the
+  header with the design, and its `output64` is the float64 reference the
+  tests compare with [verified: `test_poly47_table_is_the_design`].
+- **The same contract.** `needed`, `push` and `pop` keep their meaning:
+  the first output needs 25 inputs, each later one 1 or 2, and an output
+  reads only inputs it asked for. The input ring grows from 32 to 49
+  floats (window 48, plus the slot the next push fills), so the state is
+  1,432 B instead of 1,288 B [verified: `fm1-resampler-test tables` and
+  `window`; `test_the_input_ring_contract`, cap 49 and a 48-input poly
+  window]. Output does not depend on chunking [verified: the chunking test
+  in both builds].
+- **No delay, half a millisecond of lookahead.** The table is centred on
+  the output's own time, so `fm1_resampler_delay` is 0 (it was 30 output
+  samples, 0.680 ms); the converter asks for 24 inputs beyond it, 0.50 ms,
+  before the first output. A note's onset therefore comes about 0.18 ms
+  sooner than with the two-stage converter [inferred: from the two figures].
+
+Measured at 47,872.34 → 44,118 Hz with the same sweep as above (sines
+generated at the converter's effective input rate, 44,118 × 51 / 47, so
+the 7.9 ppm does not show as a frequency error) [verified:
+`fm1-resampler-test sweep`, macOS arm64, and the tests named]:
+
+| | Two-stage (still used at other ratios) | 51/47 fast path |
+| --- | --- | --- |
+| Passband, 50 Hz–18 kHz | −0.0043 to +0.0001 dB | −0.0059 to +0.0001 dB |
+| Group delay | 30 output samples, linear phase | 0 samples, exact (error 0) |
+| 18 kHz to the Nyquist | −0.74 dB at 19 kHz, −6.5 at 20, −24.4 at 21, −79.7 at 22 | −0.28 dB at 19 kHz, −2.09 at 20, −7.49 at 21, −18.8 at 22 |
+| Spurs from a sine in 0–18 kHz | ≤ −101.2 dB | ≤ **−108.9 dB** |
+| Spurs from a sine in 18–22.06 kHz | ≤ −100.9 dB | ≤ −102.5 dB |
+| A sine at 22.06–23.94 kHz: its alias | ≤ −93.3 dB | **≤ −20.1 dB** (22,085 Hz), falling to −73.6 dB at 23,765 Hz; all of it lands in 20.18–22.06 kHz |
+| …and everything else it leaves below 20 kHz | ≤ −98.3 dB | ≤ −99.9 dB |
+| Float64 reference, 3,000 outputs of noise | — | max error < 10⁻⁶ [`test_poly47_matches_the_float64_design`] |
+| Extreme input | gain bound 3.08–4.34 | gain bound 2.03 (the largest row's L1 norm), largest seen 1.38; a burst of NaN spoils 47 outputs |
+
+**The trade-off, stated plainly.** The fast path keeps 0–20 kHz clean
+(nothing above the output's Nyquist leaves more than −99.9 dB below
+20 kHz, because the stopband starts at 24,118 Hz, the output rate less
+20 kHz) but lets 20.18–22.06 kHz carry the folded image of whatever the
+engine puts at 22.06–23.94 kHz, attenuated only by the transition band,
+−20 dB at worst. The two-stage converter put that region 93 dB down at
+about three times the cost. It is above the hearing of nearly every
+listener and above the 18 kHz the spec's ±0.05 dB covers; the plan accepted
+it for the cycles [inferred: a judgement, recorded so it can be revisited;
+`test_poly47_content_above_the_output_nyquist` holds both bounds].
+
+**Cost** at 47,872.34 → 44,118 Hz:
+
+| | Two-stage | 51/47 fast path |
+| --- | --- | --- |
+| Apple M1 Max, `fm1-resampler-test bench`, best of three | 36.0–37.0 ns per output | 17.0–17.5 ns per output (2.1× faster) [verified] |
+| JieLi clang 4.0.1 `-O3` for pi32v2 (`-mcpu=r3 -mfprev1`), instructions per output, counted from the disassembly | about 910: two intermediate samples of about 190 each (a 38-instruction loop per pair of kernel taps; 13.0 taps per output at this ratio) and a 15-iteration, 32-instruction low-pass loop (480) | about 300: one 20-instruction loop of four taps, 12 times (240), and about 60 of entry, phase step and exit |
+| Floating-point operations per output | about 275 | 96 (48 multiplies, 48 adds) |
+| Loads per output | about 225 | 96 (48 table, 48 input) |
+
+The pi32v2 counts are static: the loop bodies were counted by hand from
+`objdump` of a `noinline` wrapper and multiplied by their trip counts at
+this ratio, so they say nothing about the FPU's latencies, the cache or
+the flash [inferred: from the disassembly; the board has not timed either
+path]. The probe was a two-line file wrapping `fm1_resampler_pop` in a
+`noinline` function, compiled with `clang -target pi32v2 -mcpu=r3
+-mfprev1 -integrated-as -fno-common -ffunction-sections
+-ffp-contract=off -O3` (and `-DFM1_RESAMPLER_POLY47=0` for the
+two-stage column) and read with the toolchain's `objdump -d -mcpu=r3
+-mattr=+fprev1`, on aeon in the `lunar-jieli-check` container. The table is
+4,608 B; where the devkit renderer diagnostics move the resampler tables
+into SRAM (`prepare-renderer-devkit.py --resampler-ram` and the modes
+built on it), this table moves with them, so those builds need 4.6 KB more
+of it [verified: `tests/test_devkit_diagnostics.py`; the SRAM fit is not
+checked on the board]. The table is `static const` in the header, like
+the other two, so each translation unit that runs the converter keeps
+its own copy: the simulator's WebAssembly module grew by 26,205 bytes
+(1,597,239 to 1,623,444) [verified: `fm1.wasm.json`]. A firmware build
+that wants one copy can define it once, as the devkit diagnostics do.
+
+`fm1-resampler-test-generic` is the same tool built with
+`FM1_RESAMPLER_POLY47=0`; the tests measure the two-stage converter at
+Plaits' rate through it, so both converters stay covered.
 
 ## Shapes through it
 

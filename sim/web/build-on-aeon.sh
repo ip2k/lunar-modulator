@@ -39,7 +39,11 @@
 # Docker), FM1_REMOTE_DIR (default ~/mvave-fm1/virtual on that host),
 # FM1_SESSION (the session label on the containers), FM1_GPL_MODS (the GPL
 # switch, engines/Makefile: 1, the default, builds the GPL modules in; 0 the
-# MIT/BSD build). MIT licence, like the rest of this repository.
+# MIT/BSD build), FM1_DX7_SINE (the DX7 sine, engines/Makefile: trunc12, the
+# default since the owner's A/B of 2026-10-29, or msfa; engines/msfa.md). A
+# build with the other sine is a trial: its module, record and results land
+# in sim/web/build/dx7-<sine>/ (dx7-msfa), and www/ stays as it was. MIT
+# licence, like the rest of this repository.
 set -euo pipefail
 # macOS tar would add AppleDouble ._* files (provenance attributes) to the
 # staged tree, and a scan of www/ then trips over them.
@@ -48,6 +52,10 @@ export COPYFILE_DISABLE=1
 SESSION=${FM1_SESSION:-virtual-fm1}
 GPL_MODS=${FM1_GPL_MODS:-1}
 case "$GPL_MODS" in 0|1) ;; *) echo "FM1_GPL_MODS is 0 or 1, not $GPL_MODS" >&2; exit 2 ;; esac
+# The default sine is engines/Makefile's, read here so the two cannot drift.
+DEFAULT_DX7_SINE=$(sed -n 's/^FM1_DX7_SINE ?= //p' "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/engines/Makefile")
+DX7_SINE=${FM1_DX7_SINE:-$DEFAULT_DX7_SINE}
+case "$DX7_SINE" in msfa|trunc12) ;; *) echo "FM1_DX7_SINE is msfa or trunc12, not $DX7_SINE" >&2; exit 2 ;; esac
 EMSDK_IMAGE=emscripten/emsdk:6.0.10
 ALPINE_IMAGE=alpine:3.22
 PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright:v1.63.0-noble
@@ -108,12 +116,12 @@ echo "== static musl reference in $ALPINE_IMAGE"
 ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -v '$STAGE:/src' -w /src $ALPINE_IMAGE \
   sh -c 'apk add -q build-base >/dev/null && \
          make -C engines -f Makefile -f /src/sim/web/mk/sim.mk SIM=/src/sim/web \
-           BUILD=/src/sim/web/build/musl CC=gcc CXX=g++ EXTRA=-static FM1_GPL_MODS=$GPL_MODS -j\$(nproc) \
+           BUILD=/src/sim/web/build/musl CC=gcc CXX=g++ EXTRA=-static FM1_GPL_MODS=$GPL_MODS FM1_DX7_SINE=$DX7_SINE -j\$(nproc) \
            /src/sim/web/build/musl/fm1-render /src/sim/web/build/musl/fm1-sim-render >/dev/null; \
          s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
 echo "== build and parity in $EMSDK_IMAGE"
-ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' -e FM1_GPL_MODS=$GPL_MODS \
+ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' -e FM1_GPL_MODS=$GPL_MODS -e FM1_DX7_SINE=$DX7_SINE \
   -v '$STAGE:/src' -w /src $EMSDK_IMAGE \
   sh -c 'bash sim/web/build.sh; s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
@@ -140,8 +148,14 @@ echo "== fetching results"
 # A build of another ref's engines is a trial: its module and every result go
 # to build/ref-<ref>/, so www/fm1.wasm always matches this working tree and
 # build/ keeps this tree's parity and screenshots.
+# A module with the other DX7 sine than engines/Makefile's default is a trial
+# too: www/ keeps the default sine's module.
 if [ -n "$ENGINES_REF" ]; then
   DEST=$SIM/build/ref-$(printf '%s' "$ENGINES_REF" | tr -c 'A-Za-z0-9._-' '_')
+  if [ "$DX7_SINE" != "$DEFAULT_DX7_SINE" ]; then DEST=$DEST-dx7-$DX7_SINE; fi
+  RESULTS=$DEST
+elif [ "$DX7_SINE" != "$DEFAULT_DX7_SINE" ]; then
+  DEST=$SIM/build/dx7-$DX7_SINE
   RESULTS=$DEST
 else
   DEST=$SIM/www
@@ -160,5 +174,5 @@ if [ "$README_SHOTS" = 1 ]; then
   rm -rf "$RESULTS/readme-screenshots"
   scp -q -r "$HOST:$STAGE/sim/web/build/readme-screenshots" "$RESULTS/"
 fi
-python3 -c "import json,sys; r=json.load(open(sys.argv[1])); print(sys.argv[1], r['wasm_bytes'], 'bytes; parity', r['parity'], '; GPL switch', r['gpl_mods'], [m['id'] for m in r['licences'] if 'GPL' in m['licence']])" \
+python3 -c "import json,sys; r=json.load(open(sys.argv[1])); print(sys.argv[1], r['wasm_bytes'], 'bytes; parity', r['parity'], '; GPL switch', r['gpl_mods'], '; DX7 sine', r['dx7_sine'], [m['id'] for m in r['licences'] if 'GPL' in m['licence']])" \
   "$DEST/fm1.wasm.json"

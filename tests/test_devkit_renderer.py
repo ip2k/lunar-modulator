@@ -11,6 +11,13 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULES = "dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance"
+# The reference replay's first four case hashes on Linux (GCC 13.3, Ubuntu
+# 24.04) for each DX7 sine (engines/Makefile FM1_DX7_SINE; engines/msfa.md):
+# trunc12, the default since the owner's A/B (2026-10-29), unless the
+# environment picks msfa, whose hashes are the ones recorded before then.
+LINUX_HASHES = {"trunc12": [0x2ee0a760, 0xb15b68d9, 0x08996ace, 0x901d9e40],
+                "msfa": [0x6bcab227, 0x46c02687, 0x1e2f305d, 0x5b7dbc03]}
+EXPECTED_LINUX_HASHES = LINUX_HASHES[os.environ.get("FM1_DX7_SINE", "trunc12")]
 
 
 def build_reference(modules):
@@ -51,7 +58,7 @@ def test_engine_detail_with_unrolled_fir_preserves_pcm(tmp_path, monkeypatch, vc
     hashes = re.findall(r"hash=([0-9a-fA-F]+)", baseline.stdout)[:4]
     assert len(hashes) == 4
     if sys.platform.startswith("linux"):
-        assert [int(h, 16) for h in hashes] == [0x6bcab227, 0x46c02687, 0x1e2f305d, 0x5b7dbc03]
+        assert [int(h, 16) for h in hashes] == EXPECTED_LINUX_HASHES
     # Only these private copies change. All other sources and build lists are
     # shared read-only; use a separate build directory to avoid stale objects.
     shadow = tmp_path / "source"
@@ -242,10 +249,15 @@ def test_keys_workload_replays_real_app_and_refuses_missing_master(tmp_path, mon
                for row in rows)
     assert [int(row["case"]) for row in rows] == list(range(4)) * 2
     # Apple and Linux math/toolchain paths have distinct PCM fingerprints.
-    # Pin each checked host exactly; Linux also matches the pi32v2 capture.
-    expected = ["1e3b4d6a", "8d53e78f", "2894bb36", "2f409722"]
+    # Pin each checked host exactly, per DX7 sine (engines/Makefile; trunc12
+    # the default since the owner's A/B, 2026-10-29). Linux's msfa hashes
+    # also match the pi32v2 capture; trunc12's keys workload has not run on
+    # the board.
+    sine = os.environ.get("FM1_DX7_SINE", "trunc12")
+    expected = {"msfa": ["1e3b4d6a", "8d53e78f", "2894bb36", "2f409722"],
+                "trunc12": ["30706a75", "6729456c", "33f68dae", "73a48cf4"]}[sine]
     if sys.platform == "darwin":
-        expected[-1] = "2e91545b"
+        expected[-1] = {"msfa": "2e91545b", "trunc12": "0f4f7ed7"}[sine]
     assert [row["hash"] for row in rows[:4]] == expected
     assert all(0 < int(row["arena"]) <= 96 * 1024 for row in rows)
     assert [int(row["blocks"]) for row in rows] == [5513 * i for i in range(1, 9)]
@@ -285,7 +297,7 @@ def test_profile_preserves_pcm_and_counts_all_unit_frames(tmp_path, monkeypatch,
     hashes = [int(x, 16) for x in re.findall(r"hash=([0-9a-fA-F]+)", baseline.stdout)][:4]
     assert len(hashes) == 4
     if sys.platform.startswith("linux"):
-        assert hashes == [0x6bcab227, 0x46c02687, 0x1e2f305d, 0x5b7dbc03]
+        assert hashes == EXPECTED_LINUX_HASHES
     monkeypatch.setenv("FM1_SIM_EXTRA", os.environ.get("FM1_SIM_EXTRA", "") +
                       " -DLUNAR_RENDERER_PROFILE=1 -DFM1_APP_RENDER_PROFILE=1")
     if prep_profile:
@@ -427,10 +439,10 @@ int main(void) {
     {'fm6_pair': True, 'timing_only': True, 'hot_ram': True},
     {'msfa_pure_unroll': True},
     {'msfa_pure_unroll': True, 'timing_only': True, 'hot_ram': True, 'msfa_narrow_adds': True},
-    {'msfa_sine_pair': True},
-    {'msfa_sine_pair': True, 'timing_only': True, 'hot_ram': True},
-    {'msfa_sine32': True},
-    {'msfa_sine32': True, 'timing_only': True, 'hot_ram': True},
+    {'msfa_sine_pair': True, 'dx7_sine': 'msfa'},
+    {'msfa_sine_pair': True, 'timing_only': True, 'hot_ram': True, 'dx7_sine': 'msfa'},
+    {'msfa_sine32': True, 'dx7_sine': 'msfa'},
+    {'msfa_sine32': True, 'timing_only': True, 'hot_ram': True, 'dx7_sine': 'msfa'},
     {'msfa_narrow_adds': True},
     {'msfa_narrow_adds': True, 'timing_only': True},
     {'resampler_schedule': True},

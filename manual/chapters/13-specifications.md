@@ -55,13 +55,13 @@ the chain in use, with the sequencer's own, 10 % (36 KB), and modulation's,
 
 | Engine or effect | Voices | Share of memory (size) |
 | --- | --- | --- |
-| Macro | 12 | 6 % (19 KB) |
+| Macro | 12 | 6 % (20 KB) |
 | Macro Heavy | 4 | 19 % (70 KB) |
 | Six-Op FM | 8 | 3 % (11 KB) |
 | FM6 | 12 | 5 % (16 KB); its tables stay in flash memory |
 | Shapes | 12 | 54 % (202 KB) |
 | Sophie | 12 | 21 % (77 KB) |
-| Drums | 12 | 2 % (7.5 KB) |
+| Drums | 12 | 3 % (7.6 KB) |
 | Test Sine | 12 | under 1 % (320 bytes) |
 | Plate | – | 17 % (64 KB) |
 | Ensemble | – | 2 % (4.6 KB) |
