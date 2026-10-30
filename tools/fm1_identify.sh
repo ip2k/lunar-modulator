@@ -2,13 +2,14 @@
 # Read-only identity query for an M-VAVE FM-1 over ALSA raw MIDI (Linux).
 #
 # Sends the ten-byte query the official updater uses and prints the reply.
-# Nothing else is sent. UNTESTED ON HARDWARE as of 2026-09-06; the byte
-# sequences come from aroum/fm1-custom-fw and AL-255/FM-1-RE, which captured
-# them from the official updater.
+# Nothing else is sent. Verified on hardware 2026-10-26 (stock V15, FM-1_015;
+# docs/17 §7). The byte sequences come from aroum/fm1-custom-fw and
+# AL-255/FM-1-RE, which captured them from the official updater.
 #
-# Expected reply (41 bytes): F0 00 32 45 58 01 00 00 23 4D 5A 44 ... 40 05 F7
-#   - model name is the ASCII before '_', a 20-byte field encodes the version
-#     (ASCII '0' added to each byte), the decimal suffix is the firmware version.
+# Expected reply (41 bytes): F0 00 32 45 58 01 00 00 23 4D 5A 44 ... F7; the
+# tail varies by version (FM-1_015 ends 00 20 06 F7). The identity is the
+# plain MODEL_NNN field; decode a saved reply with
+# `fm1_identify.py --decode-file`.
 #
 # Raw MIDI is unavailable while PipeWire/JACK/aseq clients hold the port. If
 # amidi reports "Device or resource busy", stop them for the session or use

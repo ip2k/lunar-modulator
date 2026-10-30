@@ -4,6 +4,14 @@ For the first session with the FM-1 on USB and the `M-UPGRADE-FM1.app` disk
 image in `~/Downloads`. Everything here is **read-only for the device**. Nothing
 below writes flash. Record all output under `notes/` with the date.
 
+**Historical.** This was the first session (2026-09-06,
+`notes/2026-09-06-bench.md`). The unit has since run FM-1+VA (`FM-1_092`,
+2026-09-29 to 2026-10-15), been left unbootable by an interrupted install,
+and been recovered to stock V15 (`FM-1_015`) on 2026-10-26 (docs/17). For
+recovery use docs/17; for the current rules use docs/07 §4 (owner revisions
+of 2026-10-07 and 2026-10-26). The checklist stays useful as a read-only
+first look at any unit.
+
 Works on macOS or Linux; commands are given for both where they differ.
 
 ## 0. Set up a workspace
@@ -94,7 +102,9 @@ The query is `F0 00 32 45 00 00 00 40 7F F7`; the reply is 41 bytes starting
   so a working `scan` is itself a useful result to report upstream.
 - **`tools/fm1_identify.py`** (any OS, mido + python-rtmidi; prints and decodes
   the reply; used on 2026-09-06, reply decoded to `FM-1_015`).
-- **`tools/fm1_identify.sh`** (Linux, ALSA raw MIDI via `amidi`). Note: raw
+- **`tools/fm1_identify.sh`** (Linux, ALSA raw MIDI via `amidi`; first run
+  on hardware 2026-10-26, reply decoded to `FM-1_015` [verified:
+  notes/2026-10-26-fm1-stock-v15-recovery.md]). Note: raw
   MIDI is unavailable while PipeWire/JACK hold the port; stop them or use the
   next option.
 - **Any SysEx tool** (macOS: SysEx Librarian, MIDI Monitor; or `sendmidi`/
@@ -151,4 +161,6 @@ OTA-mode enumeration (`4D4A:4155`, "ota-FM-1").
 
 - No custom or modified package is sent to the device in this session.
 - No flash writes other than, optionally, the stock updater in §4.
-- No soldering yet; `USB_KEY` work is docs/07 Phase 2 and needs a dongle.
+- No soldering yet. `USB_KEY` work belongs to docs/08 Phase 2, not to this
+  session. It has since been done with a Pico 2 W and FM-1-transporter
+  (docs/17, 2026-10-26).

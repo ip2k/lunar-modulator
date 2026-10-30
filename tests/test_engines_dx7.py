@@ -940,3 +940,10 @@ def _init_vced(dump):
                                                                p[116] >> 4] + p[117:128]
     assert len(d) == 155 and bytes(d[145:155]) == b"INIT VOICE"
     return d
+
+
+def test_algorithm_five_pairs_are_exact_across_thresholds(renderer):
+    """Samples, phase, gains and feedback match, including untouched fallback."""
+    result = subprocess.run([str(ENGINES / "build" / "fm1-dx7-pair-test")],
+                            check=True, text=True, capture_output=True)
+    assert "PASS 100000 randomized blocks" in result.stdout

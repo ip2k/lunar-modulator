@@ -622,24 +622,19 @@ static void read_session(fm1_seq_ui_t *u, const fm1_seq_t *s) {
   u->sess_clips = 0;
   u->sess_stop = 0;
   for (unsigned t = 0; t < 8u; ++t) {
-    fm1_seq_track_info_t tr;
+    fm1_seq_session_track_info_t tr;
     u->sess_active[t] = u->sess_play[t] = u->sess_queue[t] = FM1_SEQ_NONE;
     u->sess_pos[t] = 0;
-    memset(&tr, 0, sizeof tr);
-    if (t >= u->tracks || !fm1_seq_get_track(s, (uint8_t)t, &tr)) continue;
+    if (t >= u->tracks || !fm1_seq_get_session_track(s, (uint8_t)t, &tr)) continue;
     u->sess_active[t] = tr.active;
     u->sess_queue[t] = tr.queued;
     u->sess_play[t] = u->playing ? tr.playing : FM1_SEQ_NONE;
     if (tr.pending_stop) u->sess_stop = (uint8_t)(u->sess_stop | (1u << t));
-    for (unsigned k = 0; k < FM1_SEQ_SLOTS; ++k) {
-      fm1_seq_clip_info_t c;
-      if (!fm1_seq_get_clip(s, (uint8_t)t, (uint8_t)k, &c) || !c.length_steps) continue;
-      u->sess_clips |= (uint64_t)1 << (8u * t + k);
-      if (k == u->sess_play[t]) {
-        const uint32_t at = tr.pos_tick / FM1_SEQ_TICKS_PER_STEP;
-        const uint32_t in = at > c.loop_start ? at - c.loop_start : 0u;
-        u->sess_pos[t] = (uint8_t)(in >= c.length_steps ? 255u : in * 256u / c.length_steps);
-      }
+    u->sess_clips |= (uint64_t)tr.clips << (8u * t);
+    if (u->playing && tr.playing_length) {
+      const uint32_t at = tr.pos_tick / FM1_SEQ_TICKS_PER_STEP;
+      const uint32_t in = at > tr.playing_loop_start ? at - tr.playing_loop_start : 0u;
+      u->sess_pos[t] = (uint8_t)(in >= tr.playing_length ? 255u : in * 256u / tr.playing_length);
     }
   }
 }

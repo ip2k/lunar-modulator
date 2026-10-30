@@ -28,12 +28,18 @@ Cuvave or any space agency.
 > **Preview: not yet installable on an FM-1.**
 > - Lunar Modulator runs today as a virtual FM-1 in your browser, with the
 >   firmware's own screen and sound.
-> - Lunar's application still needs to be linked and tested on the chip.
+> - A small performance diagnostic runs on the AC79 development board; the
+>   complete instrument still needs validation on the FM-1.
 > - The owner's FM-1 has matching full backups and passed a small unused-sector
 >   write and restore, with the full flash memory unchanged afterward and
 >   normal boots confirmed [verified: [bench record](notes/2026-10-07-fm1-softkey-bench.md)].
-> - Restoring a whole image or recovering an application that will not start
->   remains untested ([Installing on your FM-1](#installing-on-your-fm-1)).
+> - On 2026-10-26 the owner's FM-1, which would not start after an interrupted
+>   install, was put into the chip's USB recovery mode with a Raspberry Pi
+>   Pico 2 W, backed up twice (identical), rewritten with the stock V15
+>   application, and boots again [reported: owner; the rest verified: [recovery guide](docs/17-pico2w-recovery.md)].
+> - Restoring the unit's own earlier image has not been done, and no Lunar
+>   application has run on an FM-1
+>   ([Installing on your FM-1](#installing-on-your-fm-1)).
 
 ## Try it in your browser
 
@@ -335,12 +341,17 @@ engineering roadmap and
 - **Lunar Modulator has to run on the FM-1's chip.** Today it runs on
   computers and in the browser. It already compiles for the FM-1's
   processor with JieLi's tools, and a small inert diagnostic application has
-  been linked. The running instrument has not been built or tested on an
+  been linked. A resampler diagnostic now runs on the AC79 development board
+  [verified: [dev-board results](notes/2026-10-22-devkit-uart-bringup.md)].
+  The running instrument has not been built or tested on an
   FM-1 [verified: [diagnostic work record](https://github.com/ip2k/lunar-modulator/blob/main/notes/2026-10-09-linked-diagnostic.md)].
-- **A safe way back has to be proven.** The FM-1 keeps one copy of its
+- **A safe way back has to stay proven.** The FM-1 keeps one copy of its
   firmware and has no recovery button, so a bad install could leave a synth
-  that does not start. Recovery testing has made progress, but does not yet
-  show that a whole image or a failed application can be restored.
+  that does not start. The way back now works once on the owner's unit: it
+  was brought back to stock firmware on 2026-10-26 (below). The next step is
+  the first Lunar code on an FM-1, with that route as the fallback; a failed
+  Lunar build has not been recovered yet, and restoring the unit's own earlier
+  image has not been done.
   - That goes through the chip's USB recovery mode. Two other FM-1 owners
     report reaching it with a small Raspberry Pi Pico adapter, and one
     reports backing up and writing firmware that way
@@ -350,8 +361,15 @@ engineering roadmap and
     small unused sector was written, checked and restored. The complete
     flash memory matched the backups afterward, and the owner confirmed
     normal boots [verified: [bench record](notes/2026-10-07-fm1-softkey-bench.md)].
-    That command depends on an application that still runs; recovery when it
-    does not run remains untested.
+    That command depends on an application that still runs; when the
+    application does not run, a different route is needed. On 2026-10-26 the
+    owner's unit, left unbootable by an interrupted install, was put into USB
+    recovery mode with a Raspberry Pi Pico 2 W running FM-1-transporter,
+    fully backed up twice (identical), rewritten with the stock V15
+    application, read back and verified [verified: [recovery guide](docs/17-pico2w-recovery.md)],
+    and it boots again [reported: owner]. This works when
+    the first 16 KiB of flash (the boot area) is intact; a damaged boot area
+    is not covered. Restoring the unit's own earlier image is untested.
 
 Once both are done, the plan is for Lunar Modulator to install over USB
 through the FM-1's own update path, as other third-party firmware already
@@ -435,7 +453,7 @@ This is a synthesis of other people's work. The details are in
   partition table installs and runs [verified here]. Their manual filled in
   port names and control details for docs/01 and docs/03. FM-1+VA is closed
   source, and nothing of it is used or redistributed here. The owner's unit
-  runs it (`FM-1_092`).
+  ran it (`FM-1_092`) until 2026-10-15 and runs stock V15 again since 2026-10-26.
 - **czietz** and **masanaohayashi**, in
   [issue #2](https://github.com/ip2k/lunar-modulator/issues/2): czietz's
   Raspberry Pi Pico `USB_KEY` dongle, and masanaohayashi's report of using it
@@ -457,8 +475,10 @@ This is a synthesis of other people's work. The details are in
     audit is the model for ours.
   - Felucca's `fm6_core.c` by Leo Kuroshita (Hügelton Instruments,
     Apache-2.0) checks FM6 in the tests; it is in no build.
-  - FM-1-transporter's PIO-USB host idea (MIT) is planned for our recovery
-    dongle.
+  - FM-1-transporter (MIT) was used, with a small RP2350 patch, on a Pico 2 W
+    to recover the owner's FM-1 on 2026-10-26
+    ([docs/17](docs/17-pico2w-recovery.md)); its PIO-USB host idea is also
+    planned for our recovery dongle.
 - **benny-sparra**: an editor and librarian for the FM-1, and observations
   of its MIDI.
 - **kagaimiq**: JieLi documentation and tools (jielie, jl-uboot-tool,
@@ -547,7 +567,7 @@ MIT/BSD.
 | [`manual/`](manual/), [`tools/manual/`](tools/manual/) | The user manual: chapters in Markdown, a Rosé Pine Dawn theme, and the build that generates its reference from the code and publishes it to GitHub Pages |
 | [`sim/web/`](sim/web/) | The browser simulator: the firmware's app layer, its WebAssembly build, the page and its tests |
 | [`engines/`](engines/) | The engine platform: the C engine API, the sound engines, effects and modulation modules, the sequencer and arpeggiator cores, a Schwung module shim, a desktop renderer and tests |
-| [`firmware/`](firmware/) | Firmware for the FM-1's chip: the boot hand-off from fm1-nes and a small inert startup diagnostic; device execution remains untested |
+| [`firmware/`](firmware/) | Boot hand-off, startup diagnostics and a resampler benchmark verified on the AC79 development board; complete FM-1 instrument validation remains pending |
 | [`assets/`](assets/) | The branding art (`assets/branding/`) and the README's screenshots (`assets/screenshots/`) |
 | [`CHANGELOG.md`](CHANGELOG.md), [`HANDOFF.md`](HANDOFF.md) | What changed, and the context summary for whoever picks the work up next |
 | [`docs/01-hardware.md`](docs/01-hardware.md) | SoC, memory, board, connectors, what is still unknown |
@@ -566,11 +586,12 @@ MIT/BSD.
 | [`docs/14-verification-ladder.md`](docs/14-verification-ladder.md) | The verification ladder: how to show 1:1 behaviour from the desktop renderer and the browser to the AC79 dev kit and then the FM-1 — tolerance classes, a ladder build profile, FPU probes, the first week with the kit |
 | [`docs/15-sequencer-in-simulator.md`](docs/15-sequencer-in-simulator.md) | The plan that put the sequencer into the virtual FM-1, stage by stage, checked against `fm1-render` |
 | [`docs/16-modulation.md`](docs/16-modulation.md) | Modulation: the rack of modules inside the matrix, its kinds, cables and chains, and the stages that built it |
+| [`docs/17-pico2w-recovery.md`](docs/17-pico2w-recovery.md) | Recovering an FM-1 to stock V15 with a Raspberry Pi Pico 2 W and FM-1-transporter: wiring, the RP2350 patch, read, write, verify |
 | [`dongle/`](dongle/) | Dongle firmware (PIO + C), ROM/dongle simulator, tests |
 | [`tools/check_msfa_table.py`](tools/check_msfa_table.py) | Finds the msfa algorithm table in an `app.bin` (tested on V13 and V14) |
 | [`tools/extract_fwsc_from_updater.py`](tools/extract_fwsc_from_updater.py) | Carves the embedded `.fwsc` out of an M-UPGRADE updater binary (verified on the macOS DMG) |
 | [`tools/fm1_identify.py`](tools/fm1_identify.py) | Read-only identity query with decoder, any OS via mido (verified on hardware 2026-09-06) |
-| [`tools/fm1_identify.sh`](tools/fm1_identify.sh) | Read-only SysEx identity query via ALSA `amidi` (untested on hardware) |
+| [`tools/fm1_identify.sh`](tools/fm1_identify.sh) | Read-only SysEx identity query via ALSA `amidi` (verified on hardware 2026-10-26, Linux) |
 | [`tools/dx7_bank.py`](tools/dx7_bank.py) | FM6's 32 built-in voices, written here, and their SysEx bank |
 | [`tools/jieli/`](tools/jieli/) | The compile-only check for the FM-1's processor with JieLi's toolchain and SDK, and the link audit and packaging guard that keep its key and eFuse code inert |
 | [`tools/seq_bench.py`](tools/seq_bench.py) | Worst-case scripts for the sequencer core's cycle budget |

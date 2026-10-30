@@ -517,7 +517,8 @@ static void apply_op(fm1_seq_t *s, const fm1_seq_cmd_t *c, sq_out_t *o) {
     if (ht && hl && track_arg(s, t) && x >= 0 && x < 8) {
       sq_track_t *tr = &sq_tracks(s)[t];
       tr->lanes_assigned |= (uint8_t)(1u << x);
-      memcpy(tr->label[x], c->argc > 2 ? c->text : "", FM1_SEQ_LABEL_MAX);
+      if (c->argc > 2) memcpy(tr->label[x], c->text, FM1_SEQ_LABEL_MAX);
+      else memset(tr->label[x], 0, FM1_SEQ_LABEL_MAX);
       tr->label[x][FM1_SEQ_LABEL_MAX - 1] = '\0';
     }
     break;

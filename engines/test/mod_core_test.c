@@ -1260,6 +1260,43 @@ static void gate_continuity(unsigned *checks) {
   fm1_mod_destroy(m);
 }
 
+/* Raw enum edits remain observable before the next tick. Removing a route,
+ * moving the rack or replacing a kind must not resurrect a cached value. */
+static void canonical_parameters(void) {
+  fm1_mod_t *m = make(0, 0, 1);
+  fm1_mod_write_t w[64];
+  fm1_mod_slot_t s;
+  fm1_mod_set_kind(m, 0, K_LFO);
+  CHECK(fm1_mod_set_param(m, 0, 1, 4.4f));
+  CHECK(fm1_mod_param_base(m, 0, 1) == 4.4f);
+  CHECK(fm1_mod_param(m, 0, 1) == 0.0f);
+  block(m, 64, w, 64);
+  CHECK(fm1_mod_param(m, 0, 1) == 4.0f);
+  s = cable(FM1_MOD_SRC_VEL, FM1_MOD_MODULE, 2, 0.5f);
+  fm1_mod_set_slot(m, 0, &s);
+  fm1_mod_live_note(m, 60, 127);
+  block(m, 64, w, 64);
+  CHECK(fm1_mod_param(m, 0, 1) == 7.0f);
+  s.flags = 0;
+  fm1_mod_set_slot(m, 0, &s);
+  block(m, 64, w, 64);
+  CHECK(fm1_mod_param(m, 0, 1) == 4.0f);
+  CHECK(fm1_mod_param_base(m, 0, 1) == 4.4f);
+  fm1_mod_set_param(m, 0, 2, -0.0f);
+  block(m, 64, w, 64);
+  CHECK(bits_of(fm1_mod_param(m, 0, 2)) == bits_of(-0.0f));
+  CHECK(fm1_mod_move(m, 0, 3));
+  block(m, 64, w, 64);
+  CHECK(fm1_mod_param(m, 3, 1) == 4.0f);
+  fm1_mod_set_param(m, 3, 1, NAN);
+  block(m, 64, w, 64);
+  CHECK(fm1_mod_param(m, 3, 1) == 0.0f);
+  fm1_mod_set_kind(m, 3, K_ENV);
+  block(m, 64, w, 64);
+  CHECK(fm1_mod_param(m, 3, 0) == fm1_mod_kinds[K_ENV]->params[0].def);
+  fm1_mod_destroy(m);
+}
+
 int main(void) {
   unsigned plans = 0, loops = 0, chain_ticks = 0, fb_ticks = 0, fill_writes = 0, nan_checked = 0;
   unsigned gate_ticks = 0, continuity = 0, voice_writes = 0;
@@ -1275,6 +1312,7 @@ int main(void) {
   any_fill(&fill_writes);
   nan_survived(&nan_checked);
   rules();
+  canonical_parameters();
   gates(&gate_ticks);
   edge_frames();
   gate_continuity(&continuity);

@@ -151,11 +151,13 @@ export function makeSequencer(ctx) {
   }
   function scheduleResize() { if (!resizeFrame) resizeFrame = requestAnimationFrame(resizeGrids); }
   const gridObserver = new ResizeObserver(scheduleResize); gridObserver.observe(root);
-  root.addEventListener('pointerdown', () => { clearTimeout(pointerRelease); pointerActive = true; }, { capture: true });
+  const startPointer = () => { clearTimeout(pointerRelease); pointerActive = true; };
+  root.addEventListener('pointerdown', startPointer, true);
+  if (ctx.transportHost) transportMount.addEventListener('pointerdown', startPointer, true);
   const finishPointer = () => { clearTimeout(pointerRelease); pointerRelease = 0; pointerActive = false; if (resizePending || refreshPending) scheduleResize(); };
   const releasePointer = e => {
     if (!pointerActive) return;
-    if (!(e.target instanceof Node) || !root.contains(e.target)) { finishPointer(); return; }
+    if (!(e.target instanceof Node) || !contains(e.target)) { finishPointer(); return; }
     // Firefox can paint between pointerup and click. Keep the target connected
     // until click dispatch; a drag/release without a click must also settle.
     pointerRelease = setTimeout(finishPointer, 250);
@@ -1091,7 +1093,7 @@ export function makeSequencer(ctx) {
       if (body) {
         const footer = el('footer', 'sq-device-dialog-footer', {}, []);
         if (!ctx.fileToolsHost) { const files = transportMount.querySelector('.sq-file-tools'); if (files) footer.append(files); }
-        deviceDialog.replaceChildren(el('div', 'sq-device-dialog-header', {}, [el('h3', '', { text: 'Device controls' }), btn('Close inspector', closeInspector)]), body, footer);
+        deviceDialog.replaceChildren(el('div', 'sq-device-dialog-header', {}, [el('h3', '', { text: 'Device controls' }), btn('Close inspector', closeInspector, { 'aria-label': 'Close inspector' })]), body, footer);
         if (!deviceDialog.open && deviceDialog.isConnected) deviceDialog.showModal();
       } else closeInspector();
     } else { if (deviceDialog.open) deviceDialog.close(); deviceDialog.replaceChildren(); }
@@ -1253,5 +1255,5 @@ export function makeSequencer(ctx) {
 return { render() { if (state.dirty && !state.busy) refresh(); return root; }, refresh, update, onTelemetry, syncLevels, onKey, contains,
     toggleTransport: () => action(ctx.playPause), restartTransport: () => action(ctx.restart),
     wantRows() { return (ctx.metadata?.doc?.telemetry?.sections || []).filter(s => ['meters', 'levels'].includes(s.name)).flatMap(s => s.rows.flatMap((row, r) => state.view === 'Mixer' || row === 'out.post_master' ? [s.mask + r] : [])); },
-    invalidate() { state.dirty = true; readRevision++; }, destroy() { gridObserver.disconnect(); cancelAnimationFrame(resizeFrame); if (ctx.transportHost) transportMount.removeEventListener('focusout', finishEdit); clearTimeout(pointerRelease); window.removeEventListener('pointerup', releasePointer); window.removeEventListener('pointercancel', finishPointer); window.removeEventListener('click', finishPointer, true); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); if (ctx.transportHost) transportMount.replaceChildren(); root.remove(); } };
+    invalidate() { state.dirty = true; readRevision++; }, destroy() { root.removeEventListener('pointerdown', startPointer, true); if (ctx.transportHost) transportMount.removeEventListener('pointerdown', startPointer, true); gridObserver.disconnect(); cancelAnimationFrame(resizeFrame); if (ctx.transportHost) transportMount.removeEventListener('focusout', finishEdit); clearTimeout(pointerRelease); window.removeEventListener('pointerup', releasePointer); window.removeEventListener('pointercancel', finishPointer); window.removeEventListener('click', finishPointer, true); releaseFader?.(); closeInspector(); disposed = true; cancelDrag?.(); window.removeEventListener('resize', syncMixerAfterResize); compactMixerMedia.removeEventListener('change', syncMixerDisclosure); if (ctx.transportHost) transportMount.replaceChildren(); root.remove(); } };
 }

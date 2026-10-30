@@ -131,6 +131,8 @@ try {
  const insert=page.getByRole('button',{name:'S1 insert 1',exact:true});await insert.click();
  const inspector=page.getByRole('dialog',{name:'Device controls',exact:true});await inspector.waitFor({state:'visible'});
  if(!await inspector.getByText('Inspector s1.in1',{exact:true}).isVisible()||await inspector.getByRole('button',{name:'Close inspector',exact:true}).evaluate(e=>e!==document.activeElement))throw Error('Device inspector did not open with focus');
+ await page.evaluate(()=>window.seq.refresh(true));
+ if(await inspector.getByRole('button',{name:'Close inspector',exact:true}).evaluate(e=>e!==document.activeElement))throw Error('Device inspector lost focus during refresh');
  const inspectorFiles=inspector.locator('.sq-device-dialog-footer .sq-file-tools');
  if(await inspectorFiles.count()!==1||await inspector.locator('.sq-transport > .sq-file-tools').count())throw Error('Files & export should move into the device inspector footer');
  await inspector.getByRole('button',{name:'Close inspector',exact:true}).click();
@@ -230,21 +232,27 @@ try {
  await tab('Scenes');
  const matrixGeometry=[];
  for(const [width,height] of [[1440,1100],[844,390],[667,375]]){
-  await page.setViewportSize({width,height});await page.waitForTimeout(60);
-  const geometry=await page.locator('.sq-matrix-cell').first().evaluate(cell=>{
+  await page.setViewportSize({width,height});
+  // ResizeObserver redraws the matrix after the viewport changes. Poll the
+  // existing layout requirements, sampling the current DOM in one evaluation.
+  const measured=await page.waitForFunction(({width,height})=>{
+   if(innerWidth!==width||innerHeight!==height)return false;
+   const cells=[...document.querySelectorAll('.sq-matrix-cell')],cell=cells[0];
+   if(!cell||!cell.getBoundingClientRect().height)return false;
+   const overlaps=cells.flatMap(cell=>{
+    const pencil=cell.querySelector('.sq-scene-edit')?.getBoundingClientRect(),body=cell.querySelector('[data-scene-launch]')?.getBoundingClientRect(),cellBox=cell.getBoundingClientRect();if(!pencil||!body)return[];
+    const intersects=r=>r.width&&r.height&&r.left<pencil.right-1&&r.right>pencil.left+1&&r.top<pencil.bottom-1&&r.bottom>pencil.top+1;
+    const content=[...cell.querySelectorAll('.sq-scene-summary,.sq-clip-preview')].filter(item=>intersects(item.getBoundingClientRect())).map(item=>item.getAttribute('class'));
+    return cellBox.height<54||cellBox.height>64?[...content,`cell height ${cellBox.height}`]:intersects(body)?[...content,'launch target']:content;
+   });
+   if(overlaps.length)return false;
    const rect=selector=>{const r=cell.querySelector(selector)?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height}:null};
    const header=cell.closest('.sq-scene-grid')?.querySelector('[data-track-header="0"]')?.getBoundingClientRect();
    return {width:innerWidth,cell:cell.getBoundingClientRect().height,header:header?.height,body:rect('[data-scene-launch]'),pencil:rect('.sq-scene-edit'),preview:rect('.sq-clip-preview')};
-  });
+  },{width,height},{timeout:2000});
+  const geometry=await measured.jsonValue();await measured.dispose();
   matrixGeometry.push(geometry);
   if(geometry.cell<54||geometry.cell>64)throw Error(`Scene matrix cell is not compact at ${width}px: ${geometry.cell}px`);
-  const overlaps=await page.locator('.sq-matrix-cell').evaluateAll(cells=>cells.flatMap(cell=>{
-   const pencil=cell.querySelector('.sq-scene-edit')?.getBoundingClientRect(),body=cell.querySelector('[data-scene-launch]')?.getBoundingClientRect(),cellBox=cell.getBoundingClientRect();if(!pencil||!body)return[];
-   const intersects=r=>r.width&&r.height&&r.left<pencil.right-1&&r.right>pencil.left+1&&r.top<pencil.bottom-1&&r.bottom>pencil.top+1;
-   const content=[...cell.querySelectorAll('.sq-scene-summary,.sq-clip-preview')].filter(item=>intersects(item.getBoundingClientRect())).map(item=>item.className);
-   return cellBox.height<54||cellBox.height>64?[...content,`cell height ${cellBox.height}`]:intersects(body)?[...content,'launch target']:content;
-  }));
-  if(overlaps.length)throw Error(`Clip content overlaps the pencil at ${width}px: ${overlaps.join(', ')}`);
  }
  await page.setViewportSize({width:1440,height:1100});
  await page.screenshot({path:`${out}/matrix-desktop.png`,fullPage:true});

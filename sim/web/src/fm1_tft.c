@@ -74,7 +74,18 @@ static int touches(int ax, int ay, int aw, int ah, int bx, int by, int bw, int b
   return ax < bx + bw + gap && bx < ax + aw + gap && ay < by + bh + gap && by < ay + ah + gap;
 }
 
+#if FM1_TFT_EXTERNAL_PIXELS
+int fm1_tft_bind_pixels(fm1_tft_t *t, uint16_t *pixels, size_t count) {
+  t->px = NULL;
+  if (!pixels) return count == 0 ? 0 : -1;
+  if (count < FM1_TFT_W * FM1_TFT_H) return -1;
+  t->px = pixels;
+  return 0;
+}
+#endif
+
 void fm1_tft_begin(fm1_tft_t *t, uint16_t color) {
+  if (!fm1_tft_ready(t)) return;
   for (int i = 0; i < FM1_TFT_W * FM1_TFT_H; ++i) t->px[i] = color;
   t->n_boxes = 0;
   t->overflow = 0;
@@ -82,6 +93,7 @@ void fm1_tft_begin(fm1_tft_t *t, uint16_t color) {
 }
 
 void fm1_tft_paint(fm1_tft_t *t, int x, int y, int w, int h, uint16_t color) {
+  if (!fm1_tft_ready(t)) return;
   int x0 = clampi(x, 0, FM1_TFT_W), x1 = clampi(x + w, 0, FM1_TFT_W);
   int y0 = clampi(y, 0, FM1_TFT_H), y1 = clampi(y + h, 0, FM1_TFT_H);
   for (int yy = y0; yy < y1; ++yy) {

@@ -20,8 +20,12 @@ minutes. For the whole project in six points, read [Key facts](#key-facts).
 > **Hardware policy (2026-10-07).** The owner authorized staged recovery
 > experiments. Soft-key entry, matching full backups and bounded sector
 > restoration succeeded [verified: [bench note](notes/2026-10-07-fm1-softkey-bench.md)].
-> Full-image restore and a Lunar application remain untested.
-> [The current rules](#the-one-rule) come before hardware work.
+> On 2026-10-26 the owner's unit, left unbootable by an interrupted install,
+> was keyed into mask ROM and rewritten to stock V15, which met the I9 gate
+> with V15 as the restore target ([docs/17](docs/17-pico2w-recovery.md);
+> owner, 2026-10-26). Restoring the unit's own FM-1_092 image and a Lunar
+> application remain untested. [The current rules](#the-one-rule) come
+> before hardware work.
 
 Until 2026-10-01 the project was called "Open firmware for the M-VAVE FM-1"
 (`ip2k/mvave-fm1-open-firmware`). GitHub redirects the old URLs [reported:
@@ -97,7 +101,8 @@ module is in the repository, so the page needs no WebAssembly toolchain.
 | The virtual FM-1 | [The virtual FM-1](#the-virtual-fm-1), [`sim/web/README.md`](sim/web/README.md) |
 | Getting Lunar onto the device | [The path to an installable build](#the-path-to-an-installable-build), [docs/14](docs/14-verification-ladder.md) |
 | The hardware and the stock firmware | [The hardware](#the-hardware), [docs/01](docs/01-hardware.md)–[03](docs/03-update-protocol.md) |
-| Anything that touches an FM-1 | [The one rule](#the-one-rule) first, then [docs/07](docs/07-recovery-and-risk.md) §4 |
+| Anything that touches an FM-1 | [The hardware rules](#the-one-rule) first, then [docs/07](docs/07-recovery-and-risk.md) §4 |
+| Recovering an FM-1 to stock V15 | [docs/17](docs/17-pico2w-recovery.md) (Pico 2 W + FM-1-transporter) |
 
 ### All the commands
 
@@ -112,7 +117,7 @@ engines/build/fm1-state canon FILE                             # saved state: ca
 FM1_GPL_MODS=0 make -C engines                                 # the same without the GPL modules: the MIT/BSD build (Licences, below)
 python3 -m http.server 8000 -d sim/web/www                     # the virtual FM-1 at http://localhost:8000/ (sim/web/README.md)
 FM1_SIM_HOST=user@host sim/web/build-on-aeon.sh                # rebuild and check its WebAssembly module in containers on a Docker host
-tools/fm1_identify.sh                                          # Linux, ALSA raw MIDI, read-only, untested
+tools/fm1_identify.sh                                          # Linux, ALSA raw MIDI, read-only (verified on hardware 2026-10-26)
 python3 reference/FM-1-RE/tools/fm1_ota.py scan                # AL-255's client, read-only scan
 ```
 
@@ -781,7 +786,7 @@ with confidence marks, are in [docs/01](docs/01-hardware.md),
 
 | | |
 | --- | --- |
-| SoC | JieLi AC791N (WL82), LQFP48, marking `C1xxxxx-11B8` (lot varies; owner's `C188612-11B8`); two pi32v2 cores, 240 MHz used of 320; 578 KB SRAM; 1 MB flash, JEDEC `0x856014` (Puya) [reported], probably in-package |
+| SoC | JieLi AC791N (WL82), LQFP48, marking `C1xxxxx-11B8` (lot varies; owner's `C188612-11B8`); two pi32v2 cores, **360 MHz** (SPL from `isd_config` `SYS_CLK` [verified: V15 bytes]; runtime [reported: fm1-x0x measurement]; HSB 180, LSB 60), the dev kit runs 320; 578 KB SRAM; 1 MB flash, JEDEC `0x856014` (Puya) [reported], probably in-package |
 | Memory map | flash XIP `0x02000000`, app entry `0x02000120` [verified: V15 `jlfw.yaml`], RAM `0x01C00000`, SFRs `0x1xxxx…0x5xxxx`, mask ROM `0xFFC0xxxx` |
 | USB | normal `4C4A:C755` (USB-MIDI + UAC1, full-speed, product string `FM-1`), OTA loader `4D4A:4155`, mask ROM `4C4A:8057` `UBOOT1.00` [reported] |
 | Display | 240×240 RGB565 ST7789V TFT on SPI1 (`0x11D00`), PC7–PC10, backlight PA2 [reported] |
@@ -879,18 +884,37 @@ indexes put that code at 55 KB (287 functions individually classified) and
 
 ### Recovery
 
-The `USB_KEY` dongle for the chip's mask-ROM download mode is in
-[docs/10](docs/10-usb-key-dongle.md) and [`dongle/`](dongle/). Reports from
-other owners are in docs/10 §1.1. [docs/07](docs/07-recovery-and-risk.md)
-ranks the recovery paths, and [the one rule](#the-one-rule) applies before
-any of them touches an FM-1.
+Recovery of an unbootable FM-1 is proven on the owner's unit, for a unit
+whose boot area `0x0`–`0x4000` is intact (owner, 2026-10-26): a Pico 2 W
+running FM-1-transporter with this project's RP2350 patch keyed the chip into
+mask-ROM `UBOOT1.00`; two full dumps matched, the stock V15 application
+region was written and read back equal [verified], and the unit boots V15
+[reported: owner] and identifies as `FM-1_015` [verified:
+[docs/17](docs/17-pico2w-recovery.md),
+[bench note](notes/2026-10-26-fm1-stock-v15-recovery.md)].
+- docs/17 is the project's approved recovery route for this unit (owner,
+  2026-10-26). Its push-pull wiring with no series resistors is an approved
+  exception to docs/10 E1/E2 for that route only.
+- `UBOOT` enumeration alone is not proof of recovery. A damaged boot area is
+  still unproven: the transporter refuses to write `0x0`–`0x4000`.
+- Our own `USB_KEY` dongle ([docs/10](docs/10-usb-key-dongle.md),
+  [`dongle/`](dongle/)) keeps the open-drain E1/E2 design. It is useful to
+  other owners, but no longer on the critical path. Reports from other
+  owners are in docs/10 §1.1.
+- The AC79 dev kit needs no dongle: its UPDATE (K1) and RESET (K2) buttons
+  enter download mode [verified: SDK schematic; Update/Reset entry enumerated `4c4a:8057` in `notes/2026-10-22-devkit-uart-bringup.md`].
+
+[docs/07](docs/07-recovery-and-risk.md) ranks the recovery paths, and
+[the hardware rules](#the-one-rule) apply before any of them touches an FM-1.
 
 ### Bench checks that write nothing
 
-These settle the MIDI-out questions above within the one rule: the FM-1
-gets only the identity query and passive captures.
-- The unit runs FM-1+VA (`FM-1_092`), so what it sends describes that
-  firmware, not stock; record the identity with every capture.
+These settle the MIDI-out questions above without writing to the unit: the
+FM-1 gets only the identity query, passive captures and, since 2026-10-26,
+ordinary MIDI in (check 5).
+- The unit has run stock V15 (`FM-1_015`) since 2026-10-26, and FM-1+VA
+  (`FM-1_092`) from 2026-09-29 to 2026-10-15. Captures describe whichever
+  firmware ran; record the identity with every capture.
 - They extend the read-only session of
   [docs/09](docs/09-first-session-checklist.md) (§2 for USB, §5 for the
   open case) and answer part of [docs/01](docs/01-hardware.md) §6.
@@ -907,8 +931,8 @@ gets only the identity query and passive captures.
 2. **The jack, powered and passive.** A logic analyser decoding 31,250 baud
    on J3's tip and ring, and on any candidate TX lead, while the owner plays
    keys, the arpeggiator and the sequencer. Nothing is sent or plugged in.
-   Silence is weak evidence, because FM-1+VA's MIDI path differs from
-   stock's [reported: Baud Girl].
+   Silence is weak evidence on FM-1+VA, whose MIDI path differs from
+   stock's [reported: Baud Girl]; the unit now runs stock V15.
 3. **The jack, at the desk.** Decode V15's UART1 set-up with JieLi's vendor
    `objdump` (CLAUDE.md trap 4): the TX pin, or "unmapped", with the
    instruction addresses.
@@ -919,16 +943,22 @@ gets only the identity query and passive captures.
      notes, channels, velocity spread (do the keys send velocity?), CCs,
      clock and the arpeggiator's timing. Baud Girl reports notes on channel
      1 only [reported].
-5. **Still forbidden before the gate:** sending MIDI into the unit, for
-   example to see whether notes from the jack are passed on to USB.
+5. **MIDI in, allowed since 2026-10-26** (owner, 2026-10-26): ordinary
+   MIDI (notes, CC, program change) may be sent into the unit on stock V15,
+   for example to see whether notes from the jack are passed on to USB.
+   SysEx stays limited to the read-only identity query. The soft key
+   `F0 22 24 35 7D F7` (CLAUDE.md trap 9), syscmd 33–36 and 48, and any
+   `5A AA A5` frame (trap 7) stay banned except in an authorised session.
 
 ## Where development stands
 
 The status first, then the roadmap line by line, the path to an installable
 build, and the research still to do.
 
-> **Status (2026-10-01): the code runs on a desktop and in a browser, not
-> yet on a JieLi chip or an FM-1. This project has flashed nothing.**
+> **Status (2026-10-26): the instrument runs on a desktop and in a browser,
+> not yet on a JieLi chip or an FM-1. The owner's FM-1 has been written under
+> the staged policy: a restored 4 KiB sector (2026-10-07), an install that was
+> interrupted (2026-10-15), and a recovery to stock V15 (2026-10-26).**
 >
 > - **Desktop and browser:** CI builds the engines, effects and sequencer
 >   core on Linux and macOS, and on Linux also as a 32-bit build and under
@@ -938,14 +968,24 @@ build, and the research still to do.
 >   ([What it does](README.md#what-it-does), [Try it in your browser](README.md#try-it-in-your-browser)).
 > - **On pi32v2:** the compile-only check builds engine and simulator objects
 >   with JieLi's compiler [verified: [`2026-10-02 report`](notes/2026-10-02-jieli-compile-check.md)].
->   No Lunar target application has been linked or run; hardware timing and
->   memory use remain unmeasured.
+>   On the AC79 dev kit (in hand since 2026-10-22), an application-sector
+>   install/restore rehearsal passed with an exact full-flash comparison, and
+>   a UART resampler diagnostic completed all eighteen cases on 2026-10-23
+>   [verified: [bring-up note](notes/2026-10-22-devkit-uart-bringup.md),
+>   [results](notes/2026-10-23-devkit-resampler-results.md)]. No Lunar
+>   instrument has been linked or run; its timing and memory use on the
+>   hardware remain unmeasured.
 > - **On the FM-1:** the audited recovery loader ran in RAM; soft-key entry,
 >   matching full backups and bounded unused-sector restoration succeeded
->   [verified: [`bench note`](notes/2026-10-07-fm1-softkey-bench.md)]. Full-image
->   restore, recovery from a broken application and a Lunar install remain untested.
-> - **The owner's unit** runs Baud Girl's FM-1+VA, identifies as `FM-1_092`,
->   and booted normally after the recovery experiments [verified: bench note,
+>   [verified: [`bench note`](notes/2026-10-07-fm1-softkey-bench.md)]. On
+>   2026-10-26 the unbootable unit was keyed into mask ROM, dumped twice
+>   (identical), rewritten to stock V15 and booted: the I9 gate is met with
+>   V15 as the restore target (owner, 2026-10-26; [docs/17](docs/17-pico2w-recovery.md)).
+>   Restoring the unit's own FM-1_092 image and a Lunar install are not done.
+>   The next milestone is the first Lunar code on the FM-1, RAM-only first.
+> - **The owner's unit** ran Baud Girl's FM-1+VA (`FM-1_092`) until 2026-10-15,
+>   and has run stock V15 (`FM-1_015`) since 2026-10-26. As FM-1_092 it
+>   booted normally after the recovery experiments [verified: bench note,
 >   including owner-confirmed power cycles].
 >
 > For the verdict on how open the firmware can be, read
@@ -1178,10 +1218,19 @@ which lands with the plan PR; its stages S0–S7 are named below.
 
 **Installing on a real FM-1** · *In preparation*
 - **Depends on:**
-  - the dev kit and JieLi's dongle (on order);
-  - the kit's own dump and restore;
-  - the gate on the owner's unit ([docs/07](docs/07-recovery-and-risk.md)
-    §4 rule 1);
+  - the dev kit is in hand (2026-10-22) and enters download mode with its
+    own UPDATE and RESET buttons, so it needs no dongle;
+  - the kit's application-sector install/restore rehearsal passed with an
+    exact full-flash comparison, and a UART resampler benchmark ran all
+    eighteen cases [verified: [bench results](notes/2026-10-22-devkit-uart-bringup.md)];
+  - an opt-in [dev-kit internal-DAC probe](firmware/devkit/README.md) is
+    built with capture screening; installation, real instrument/effect audio
+    and sustained dropout acceptance are still pending
+    ([active campaign](notes/2026-10-23-devkit-audio-performance.md));
+  - the gate on the owner's unit (I9): met on 2026-10-26 with stock V15 as
+    the restore target, with [docs/17](docs/17-pico2w-recovery.md) as the
+    fallback (owner, 2026-10-26); the next step, first Lunar code in RAM,
+    follows the staged policy of [docs/07](docs/07-recovery-and-risk.md) §4;
   - Lunar running on the board;
   - Lunar's own update service and installer, which no doc planned before
     2026-10-01 [inferred: install-path study]; Felucca and SLOOP have since
@@ -1192,12 +1241,12 @@ which lands with the plan PR; its stages S0–S7 are named below.
   [docs/08](docs/08-roadmap.md) Phases 2, 3 and 6;
   [docs/10](docs/10-usb-key-dongle.md) §5–6.
 - **Rough effort:** about 30–50 sessions and 25–40 h of owner bench time to
-  a private preview; 8–14 of the sessions fit before the kit arrives
-  [inferred].
+  a private preview; 8–14 of the sessions were planned to fit before the
+  kit arrived (2026-10-22) [inferred].
 
 **DX7 patches and SysEx, presets on the synth** · *Planned*
 - **Depends on:** the device firmware's USB-MIDI class and flash storage
-  (after the gate). The engine side is there since 2026-10-05: FM6 runs
+  (after Lunar first runs on the FM-1). The engine side is there since 2026-10-05: FM6 runs
   msfa, plays DX7 voices and reads single-voice and 32-voice dumps
   (`engines/include/fm1_dx7.h`; `fm1-render --sysex` on the desktop)
   [verified: tests/test_engines_dx7.py]; the simulator's import and the
@@ -1278,10 +1327,11 @@ modulation source, a MIDI effect, an audio effect, or another kind.
   ([Renders checked against the reference](#renders-checked-against-the-reference-sample-by-sample)).
 - **Depends on:**
   - the ladder runner, the R0 manifest and the `bsp_*` contract (I2);
-  - the kit and JieLi's dongle (on order), and stage B numbers on the kit
-    (I8);
-  - for the FM-1 rung, the gate (I9): that rung opens only after a dump and
-    a byte-identical restore.
+  - the kit (in hand since 2026-10-22; no dongle needed), and stage B
+    numbers on the kit (I8);
+  - for the FM-1 rung, the gate (I9): met on 2026-10-26 with stock V15 as
+    the restore target (owner, 2026-10-26). The rung now waits on the first
+    Lunar code on the FM-1 (I11), under the staged policy.
 - **Where it is planned:** [docs/14](docs/14-verification-ladder.md) §2–5;
   I2 and I8 of [the install path](#the-path-to-an-installable-build).
 - **Rough effort:** inside the install path (I2 3–5 sessions, I8 3–5
@@ -1413,8 +1463,10 @@ study of the FM-1 community firmware and the current SDK
 changed several steps; its §6 lists the owner decisions it raises.
 - Milestones are numbered I0–I15 so they do not clash with docs/13's M0–M4.
 - **[bench]** marks the owner's bench work.
-- Nothing is written to the owner's FM-1 before I9 passes
-  ([docs/07](docs/07-recovery-and-risk.md) §4).
+- Writes to the owner's FM-1 follow the staged hardware policy
+  ([docs/07](docs/07-recovery-and-risk.md) §4). I9 passed on 2026-10-26
+  with stock V15 as the restore target (owner, 2026-10-26), and
+  [docs/17](docs/17-pico2w-recovery.md) is the fallback for the next step.
 
 **Two things no plan covered before.**
 1. **Lunar needs its own update service.** The way back to stock goes
@@ -1440,11 +1492,13 @@ changed several steps; its §6 lists the owner decisions it raises.
    installer is built from AL-255's `fm1_ota.py` (WTFPL [verified]) (I3,
    I15).
 
-There are two tracks, and they meet at the gate:
+There are two tracks, and they met at the gate (I9, met 2026-10-26):
 - **Desk work** (I0–I4) can start now.
-- **Hardware work** starts when the AC79 kit and JieLi's dongle arrive.
+- **Hardware work** started when the AC79 kit arrived (2026-10-22). The kit
+  needs no dongle: its UPDATE and RESET buttons enter download mode.
 
-**Critical path:** kit delivery → I6 → I9 → I11 → I12 and I13 → I14 → I15.
+**Critical path:** I6 (finish) → I11 → I12 and I13 → I14 → I15. The kit
+arrived on 2026-10-22 and I9 was met on 2026-10-26 (owner, 2026-10-26).
 
 #### The milestones at a glance
 
@@ -1455,11 +1509,11 @@ There are two tracks, and they meet at the gate:
 | I2 | Compile-only stage B and the ladder runner | I1 for the pi32v2 half; nothing for the desktop half | 3–5 sessions |
 | I3 | Packaging, imaging and installer tools | nothing | 2–4 sessions |
 | I4 | The FM-1's pin map, read from V15 | I1's vendor `objdump` | 2–4 sessions |
-| I5 | Inventory **[bench]** | the kit and the dongle | ½ session, 1–2 h |
+| I5 | Inventory **[bench]** | the kit (in hand since 2026-10-22) | ½ session, 1–2 h |
 | I6 | Recovery rehearsal on the kit **[bench]** | I5 | 1–2 sessions, 2–4 h |
 | I7 | Kit bring-up **[bench]** | I1, I6 | 2–3 sessions, 2–3 h |
 | I8 | Stage B numbers | I2, I7 | 3–5 sessions, 1–2 h of owner time |
-| I9 | The gate **[bench]** | I6, I3's compare script | 1 session, 2–3 h |
+| I9 | The gate **[bench]**: met 2026-10-26, stock V15 as the restore target | I6, I3's compare script | 1 session, 2–3 h |
 | I10 | Rollback rehearsal through the stock path **[bench]** | I9, I3, the I0 decision | 1 session, 1–2 h |
 | I11 | First code on the FM-1 **[bench]** | I9, I4, I7, I3's image builder | 2–3 sessions, 2–4 h |
 | I12 | Drivers and the app on the SDK **[bench, iterative]** | I11, I8, I4 | 6–10 sessions, 6–10 h over 2–3 weeks |
@@ -1467,21 +1521,26 @@ There are two tracks, and they meet at the gate:
 | I14 | The OTA round trip: the earliest safe installable preview **[bench]** | I12, I13, I3, I10 | 1–2 sessions, 1–2 h |
 | I15 | A preview for other owners, then a release | I14 | 2–4 sessions, 2–4 h, plus testers |
 
-#### Now, before the kit
+#### Desk work
 
 **I0. Owner decisions.** Needs nothing. About 1 h of the owner's time. To
 decide:
 - The preview is an app on JieLi's SDK (docs/05's L1), not a hook build on
   V15 like FM-1+VA.
-- After the gate, the first rollback test takes the unit back to M-VAVE's
-  V15 through the stock path.
-- Which dongle opens the FM-1: JieLi's if the kit rehearsal works,
-  otherwise ours. czietz's Pico tool and FM-1-transporter both drive
-  push-pull with no series resistors (FM-1-transporter's `usb_key_pp`
-  program sets both pins as outputs, `set pindirs, 3`, and its README wires
-  them straight to D+/D− [verified at `a632d92`]), so both are ruled out for
-  this unit (docs/10 §1.1, E1). FM-1-transporter's `fm1t.py` also sends the
-  soft key by itself (CLAUDE.md trap 9).
+- After the gate (met 2026-10-26), the first rollback test takes the unit
+  back to M-VAVE's V15 through the stock path.
+- Which tool opens the FM-1: answered (owner, 2026-10-26).
+  [docs/17](docs/17-pico2w-recovery.md) is the approved recovery route for
+  this unit: FM-1-transporter (`a7fb5e8`) on a Pico 2 W with this project's
+  RP2350 patch and the V15-only research shim. It drives push-pull with no
+  series resistors (its `usb_key_pp` program sets both pins as outputs,
+  `set pindirs, 3`, and its README wires them straight to D+/D− [verified
+  at `a632d92`]); that is an approved exception to docs/10 E1/E2 for this
+  route only. E1/E2 still bind our own dongle ([docs/10](docs/10-usb-key-dongle.md),
+  [`dongle/`](dongle/)), which is no longer on the critical path. czietz's
+  Pico tool stays outside the exception. FM-1-transporter sends the soft key
+  from `fm1t info`, `dump`, `write` and `uboot` and from console `k`
+  (CLAUDE.md trap 9): those are off limits while a running V15 is attached.
 - New since 2026-10-05 (the study's §6): an SDK app (L1) or bare metal (L2)
   for the preview; M-VAVE's loader or our own for install and rollback;
   soft-key entry on the owner's unit (answered: works on FM-1_092,
@@ -1489,8 +1548,9 @@ decide:
   oracle (answered: yes, as FM6's test oracle only, 2026-10-05,
   `engines/third_party/felucca-fm6/`); whether to read V1.1.9's `system.a` with a modern `llvm-dis` in a
   container on aeon (output kept in scratch) to see how `#C<n>` is parsed.
-- If the kit is late, whether to run the gate first with our RP2040 dongle.
-  docs/08 Phase 2 allows it; docs/14 prefers the kit first.
+- ~~If the kit is late, whether to run the gate first with our RP2040
+  dongle.~~ Moot: the kit arrived on 2026-10-22, and the gate was met on
+  2026-10-26 with a Pico 2 W (docs/17).
 - A version range clear of M-VAVE (up to FM-1_019), Baud Girl (FM-1_020
   and up) and Felucca/SLOOP (FM-1_9xx) [reported: docs/03 §5], for example
   FM-1_500 and up; and whether to tell Baud Girl, AL-255 and the Felucca,
@@ -1659,21 +1719,28 @@ sessions.
 - *Done when:* a `board_fm1` pin table ties every entry to a V15 address
   with a mark, and conflicts are listed as bench checks.
 
-#### When the kit arrives
+#### On the kit
 
-**I5. Inventory. [bench]** Needs the kit and the dongle. ½ session, 1–2 h.
+The kit (`JL_AC79_DevKitBoard V1.2`) arrived on 2026-10-22 [verified:
+[bring-up note](notes/2026-10-22-devkit-uart-bringup.md)]. It has onboard
+UPDATE (K1) and RESET (K2) buttons and a UART debug header, so flashing or
+recovering it needs no `USB_KEY` dongle.
+
+**I5. Inventory. [bench]** Needs the kit. ½ session, 1–2 h.
 - docs/14 §5 step 1.
-- Also record the dongle's version, its DIP switch and its "update" button.
-  Try what the button does on the kit only.
+- Record what K1 (UPDATE) and K2 (RESET) do, as the bring-up note does. A
+  JieLi dongle is optional.
 
 **I6. Recovery rehearsal on the kit. [bench]** Needs I5. 1–2 sessions,
 2–4 h.
-- Enter `UBOOT1.00` with JieLi's dongle, on a direct USB 2.0 port of a
-  Linux host. jl-uboot-tool's device finder has no macOS path [reported:
+- Enter `UBOOT1.00` with the kit's UPDATE and RESET buttons, on a direct
+  USB 2.0 port of a Linux host. jl-uboot-tool's device finder has no macOS path [reported:
   docs/10 §5].
 - Run `jl-uboot-tool --chip wl82`, read-only first: JEDEC ID, dump ×2,
   restore, dump ×3, boot.
-- Repeat the entry with our RP2040 dongle.
+- Optionally repeat the entry with our RP2040 dongle. It is no longer on
+  the critical path: the FM-1 was keyed with a Pico 2 W on 2026-10-26
+  (docs/17).
 - Two identical dumps do not prove that reads are raw. Also write, re-dump
   and compare before trusting a restore [inferred].
 - *Done when:* two identical dumps, a restore and a third identical dump,
@@ -1701,15 +1768,30 @@ sessions.
   - heap and stack high-water marks.
 - *Done when:* there is a cycle table and FM-1 voice caps, and a preview
   chain is chosen. Its worst block must leave room for UI, USB and scanning
-  (suggested: 70 % or less of 348,160 cycles at 240 MHz), and its SRAM total
-  must fit. The 240 MHz assumes stock's CRT sets the PLL; a build that does
-  not inherits the SPL's clock from `isd_config` (I4) [inferred].
+  (suggested: 70 % or less of 522,236 cycles at 360 MHz), and its SRAM total
+  must fit. The 360 MHz is the SPL's clock from `isd_config`, which stock's
+  CRT keeps and a build that inherits it keeps too (docs/02 §2) [inferred].
 
 #### On the owner's FM-1
 
-**I9. The gate. [bench]** Needs I6 and I3's compare script. Independent of
-I7 and I8. 1 session, 2–3 h.
-1. Run the identity query (FM-1_092 expected) and charge the battery.
+**I9. The gate. [bench]** **Met on 2026-10-26, with stock V15 as the
+restore target** (owner, 2026-10-26). The unit, unbootable since an
+interrupted install on 2026-10-15, was keyed into `UBOOT1.00` with
+FM-1-transporter on a Pico 2 W; two full dumps were identical; the stock V15
+image was written over `[0, 0x93000)` (143 sectors, `0x4000`–`0x92000`;
+`0x0`–`0x4000` already equal), read back equal and confirmed by an
+independent dump; the unit boots V15 [reported: owner] and identifies as `FM-1_015` [verified:
+[docs/17](docs/17-pico2w-recovery.md),
+[bench note](notes/2026-10-26-fm1-stock-v15-recovery.md)]. The restore target
+is stock V15, not `FM-1_092`; restoring the unit's own FM-1_092 image is not
+done, and the two private 092 backups are the only copy of that state. The
+plan below is kept as written before the run; it ran in a different order.
+Now I11 gates the next step.
+
+Needs I6 and I3's compare script. Independent of I7 and I8. 1 session,
+2–3 h.
+1. Run the identity query (FM-1_092 expected when this was written;
+   `FM-1_015` since 2026-10-26) and charge the battery.
 2. With the unit off, start the dongle keying, then switch on.
 3. Confirm `UBOOT1.00` on a Linux host's direct USB 2.0 port, with no hub,
    and read the JEDEC ID. Expect `4C4A:8057` `WL80UBOOT1.00`, SCSI
@@ -1726,15 +1808,20 @@ I7 and I8. 1 session, 2–3 h.
 The dumps stay private: they hold the chip ID, the Bluetooth address and
 key_mac.
 
-*Done when:* dumps 1, 2 and 3 have the same SHA-256, and the unit boots
-FM-1_092 after each restore. docs/07 rule 1 is then met for this unit;
-record that in notes/ and CLAUDE.md.
+*Done when (as planned):* dumps 1, 2 and 3 have the same SHA-256, and the
+unit boots FM-1_092 after each restore. *As met (owner, 2026-10-26):* two
+identical dumps, the known V15 image written byte-identically over
+`[0, 0x93000)` and read back, and a boot into V15. The old docs/07 rule 1
+was already replaced by the staged policy on 2026-10-07; the result is
+recorded in notes/, docs/07 §4 (D3) and CLAUDE.md.
 
 **I10. Rollback rehearsal through the stock path. [bench]** Needs I9, I3 and
 the I0 decision. 1 session, 1–2 h.
-- Install V15 over FM-1_092 with our client.
+- The unit has run V15 since 2026-10-26, so start from a non-V15 state:
+  install a non-stock rehearsal package (or FM-1_092 through Baud Girl's
+  installer) over V15, then V15 back over it with our client.
 - Dump in three states: while the loader waits after step 1; after step 2;
-  and, optionally, back on FM-1_092.
+  and, optionally, back on the non-V15 state.
 - *Done when:*
   - our client works for both steps on hardware;
   - the identity reads FM-1_015;
@@ -1748,8 +1835,11 @@ the I0 decision. 1 session, 1–2 h.
   magic `0x5441` [reported: Felucca]. Where stock V15 itself stages `ota.bin` is still for the dumps
   to show.
 
-**I11. First code on the FM-1. [bench]** Needs I9, I4, I7 and I3's image
-builder. 2–3 sessions, 2–4 h.
+**I11. First code on the FM-1. [bench]** The next milestone on the FM-1
+(owner, 2026-10-26). Needs I9 (met 2026-10-26), I4, I7 and I3's image
+builder. 2–3 sessions, 2–4 h. It follows the staged policy
+([docs/07](docs/07-recovery-and-risk.md) §4), with
+[docs/17](docs/17-pico2w-recovery.md) as the fallback.
 - **RAM only first.** `jlrunner.py` loads a small image that drives the
   LEDs or the TFT. A power cycle brings the installed firmware back
   [reported mechanism: kagaimiq; untested on WL82].
@@ -1840,7 +1930,8 @@ cuts]** Needs I11, I3 and I10. 3–5 sessions, 3–5 h.
 Needs I12 (a minimal feature set), I13, I3 and I10. 1–2 sessions, 1–2 h.
 - Build Lunar's `.fwsc` with I3.
 - Install it over V15 and over FM-1_092 with our client, then roll back to
-  V15.
+  V15. The unit runs V15 since 2026-10-26; FM-1_092 needs Baud Girl's
+  installer first.
 - Dump before and after each step.
 - *Done when:*
   - V15 → Lunar → V15 and FM-1_092 → Lunar → V15 both work through the
@@ -1893,7 +1984,8 @@ their FM-1 through mask ROM.
 - **Not in it:** BLE, USB audio, the sequencer, MIDI effects, and any flash
   write beyond the boot counter.
 - **Why it is safe at that point:**
-  - docs/07 §4 rules 1, 2, 4 and 5 are met on the owner's unit;
+  - docs/07 §4 rules 1, 2, 4 and 5 are met on the owner's unit (I9, the
+    dump, restore and boot gate, met on 2026-10-26);
   - both round trips through the stock path are shown, with USR unchanged
     and power cuts resuming;
   - a boot-looping build returns to update mode by itself;
@@ -1902,7 +1994,8 @@ their FM-1 through mask ROM.
 
 **Rough total** [inferred]:
 - 30–50 sessions and 25–40 h of owner bench time;
-- about 4–7 weeks of work from the kit's arrival to the private preview;
+- about 4–7 weeks of work from the kit's arrival (2026-10-22) to the
+  private preview;
 - 1–2 weeks more to the outside preview.
 
 **Still open before the preview:**
@@ -2010,18 +2103,45 @@ rules keep the one FM-1 safe and the project's builds shareable.
 
 ### The one rule
 
-The owner replaced the original blanket prerequisite with staged hardware
-experiments on 2026-10-07. The operative rules are in
-[docs/07 §4](docs/07-recovery-and-risk.md#4-rules-of-engagement).
-Soft-key entry, repeated matching full backups and bounded 4 KiB restoration
-are verified on the owner's FM-1_092; full-image restoration and recovery
-from a broken application remain untested ([bench note](notes/2026-10-07-fm1-softkey-bench.md)).
+This heading keeps its old name so that links to it still work. The one
+rule itself (a full dump and a byte-identical restore before any write) is
+superseded: the owner replaced it with staged hardware experiments on
+2026-10-07. The operative rules are in
+[docs/07 §4](docs/07-recovery-and-risk.md#4-rules-of-engagement-owner-revised-2026-10-07), with the
+owner's decisions of 2026-10-26 (D1–D4) on top.
+- **History.** Soft-key entry, repeated matching full backups and bounded
+  4 KiB restoration were verified on the owner's unit while it ran FM-1_092
+  ([bench note](notes/2026-10-07-fm1-softkey-bench.md)).
+- **D1, recovery proven, bounded.** Recovery of an unbootable FM-1 whose boot
+  area `0x0`–`0x4000` is intact is proven on this unit: mask-ROM `USB_KEY`
+  entry, two identical dumps, a verified write [verified:
+  [docs/17](docs/17-pico2w-recovery.md)], a boot [reported: owner] and
+  identity `FM-1_015` [verified]. `UBOOT` enumeration alone is not
+  proof. A damaged boot area is unproven.
+- **D2, the standing route.** [docs/17](docs/17-pico2w-recovery.md) is the
+  approved recovery route for this unit. Its push-pull wiring with no series
+  resistors is an exception to docs/10 E1/E2 for that route only; E1/E2 still
+  bind our own dongle. While a running V15 is attached, `fm1t info`, `dump`,
+  `write`, `uboot` and console `k` are off limits, because they send the soft
+  key.
+- **D3, I9 met with V15 as the target.** The dump, restore and boot gate is
+  met (2026-10-26) with stock V15 as the restore target, not FM-1_092. The
+  next milestone is the first Lunar code on the FM-1, RAM-only first, with
+  docs/17 as the fallback. Restoring the unit's own FM-1_092 image is not
+  done; the two private 092 backups are the only copy of that state.
+- **D4, MIDI in.** Ordinary MIDI (notes, CC, program change) may be sent into
+  the unit on stock V15. SysEx stays limited to the read-only identity query.
+  The soft key `F0 22 24 35 7D F7` (CLAUDE.md trap 9), syscmd 33–36 and 48,
+  and `5A AA A5` frames (trap 7) stay banned except in an authorised session.
 
 Keep the backups off the bench host, use only audited commands and bounded
 ranges, and retain stock SPL/OTA/configuration and partition layout. Never
-send eFuse writes or SDK key-provisioning commands. Preparing a Lunar build
-is authorized; this resumption does not authorize an arbitrary flash write.
-Any installation needs a concrete reviewed image and recovery procedure.
+send eFuse writes or SDK key-provisioning commands, never loader command
+`FC12` or the raw `0xA1` write, and never erase the whole chip. Every package
+passes the stock SPL, `ota.bin` and `cfg` guards (CLAUDE.md trap 11), and no
+V1.2.x `uboot.boot` or loader is ever shipped. Preparing a Lunar build is
+authorized; this does not authorize an arbitrary flash write. Any
+installation needs a concrete reviewed image and recovery procedure.
 
 ### Conventions
 
@@ -2143,17 +2263,24 @@ The project in brief, the order of work, and where every document lives.
     back through the stock path, and fm1-nes (Keitark) runs an AC79 SDK app
     on one V14 unit, written through mask ROM [reported;
     [docs/04](docs/04-prior-art.md)].
-  - There is still **no proven recovery path** for a device whose
-    application does not run: one flash bank, no debug pads, no recovery
-    button, and JieLi's mask-ROM USB boot mode has not been demonstrated on
-    this project's unit. Other owners now report reaching it with czietz's
-    Pico dongle, and one reports backing up and writing firmware that way
+  - The device has one flash bank, no debug pads and no recovery button.
+    Recovery of a unit whose application does not run is **proven on this
+    project's unit, for an intact boot area** (owner, 2026-10-26): on
+    2026-10-26 FM-1-transporter on a Pico 2 W keyed it into JieLi's mask-ROM
+    USB boot mode, and the stock V15 application region was written and read
+    back [verified: [docs/17](docs/17-pico2w-recovery.md)], and it booted
+    [reported: owner].
+    Recovery from a damaged boot area is unproven. Other owners report
+    reaching the mode with czietz's Pico dongle, and one reports backing up
+    and writing firmware that way
     ([issue #2](https://github.com/ip2k/lunar-modulator/issues/2),
     [docs/10](docs/10-usb-key-dongle.md) §1.1); FM-1-transporter and
     fm1-nes report mask-ROM dumps and writes as well.
-  - AL-255's standing verdict remains *NO-GO for non-stock flashing* until
-    recovery exists; [docs/10](docs/10-usb-key-dongle.md) is the dongle that
-    should provide it.
+  - AL-255's verdict was *NO-GO for non-stock flashing* until recovery
+    exists [reported: AL-255]. For this unit that condition is now met
+    through docs/17 [inferred: D1]; our own dongle
+    ([docs/10](docs/10-usb-key-dongle.md)) is an open-drain alternative,
+    no longer on the critical path.
 - **"Wholly open source" is bounded by JieLi.**
   - The compiler is a closed Clang/LLVM 4.0.1 fork with a proprietary
     pi32v2 backend, and the vendor SDK links closed `.a` libraries
@@ -2165,7 +2292,7 @@ The project in brief, the order of work, and where every document lives.
     blob removal and an open toolchain come later.
 - **schwung-movy cannot be ported, but its design can.**
   - Movy is TypeScript + Rust running inside Ableton Move, a quad-core
-    Cortex-A72 Linux computer with 2 GB of RAM. The FM-1 is a 240 MHz
+    Cortex-A72 Linux computer with 2 GB of RAM. The FM-1 is a 360 MHz
     custom-ISA microcontroller with 578 KB of SRAM and no Rust or LLVM
     target.
   - Movy's 8-knob parameter pages become two pages of four on the FM-1's
@@ -2179,19 +2306,29 @@ The project in brief, the order of work, and where every document lives.
 1. **Bench characterization, read-only** ([docs/09](docs/09-first-session-checklist.md)).
    The first session was done on 2026-09-06
    ([`notes/2026-09-06-bench.md`](notes/2026-09-06-bench.md)).
-2. **Prove recovery before anything else** ([docs/07](docs/07-recovery-and-risk.md)):
-   - Get the chip into its mask-ROM USB boot mode through the USB-C port with
-     the `USB_KEY` signal.
-   - Dump the flash, restore it, and repeat.
-   - Rehearse on the AC79 dev kit first, which is on order
-     ([docs/14](docs/14-verification-ladder.md)).
-   - Everything else on the FM-1 waits on this.
-   - The dongles for it are JieLi's updater (on order) and ours
-     ([docs/10](docs/10-usb-key-dongle.md) / [`dongle/`](dongle/)). Other
-     owners report the route works with a Pico dongle ([docs/10](docs/10-usb-key-dongle.md)
-     §1.1).
-3. **First custom code through the mask-ROM route**: the vendor SDK's
-   `demo_hello` for AC791N, on the dev kit and then adapted to the FM-1 board.
+2. **Prove recovery before anything else** ([docs/07](docs/07-recovery-and-risk.md)).
+   Done on 2026-10-26 for an intact boot area (owner, 2026-10-26):
+   - The chip was keyed into its mask-ROM USB boot mode through the USB-C
+     port with the `USB_KEY` signal, by FM-1-transporter on a Pico 2 W.
+   - Two full dumps matched; the stock V15 image was written and read back
+     equal [verified: [docs/17](docs/17-pico2w-recovery.md)], and it booted
+     [reported: owner]. This met the I9 gate with V15 as the restore target
+     (owner, D3).
+   - The AC79 dev kit's application-sector install/restore rehearsal is
+     complete, with a byte-identical full-flash comparison [verified:
+     [bench results](notes/2026-10-22-devkit-uart-bringup.md)]. The kit
+     enters download mode with its UPDATE and RESET buttons; it needs no
+     dongle.
+   - The FM-1's route is docs/17. Our own dongle
+     ([docs/10](docs/10-usb-key-dongle.md) / [`dongle/`](dongle/)) and
+     JieLi's are optional; other owners report the route works with a Pico
+     dongle ([docs/10](docs/10-usb-key-dongle.md) §1.1).
+   - Not done: restoring the unit's own FM-1_092 image, and recovery from a
+     damaged boot area.
+3. **First custom code through the mask-ROM route**, the next milestone:
+   the vendor SDK's `demo_hello` for AC791N, on the dev kit and then adapted
+   to the FM-1 board, RAM-only first on the FM-1 under the staged policy,
+   with docs/17 as the fallback (I11).
 4. **The synth**:
    - The engine platform ([`engines/`](engines/README.md)), built and checked
      against reference renders on the desktop, brought to pi32v2. Its cost and
@@ -2218,7 +2355,9 @@ document. By topic:
   [docs/03](docs/03-update-protocol.md) update protocol.
 - **Safety and recovery:** [docs/07](docs/07-recovery-and-risk.md) rules and
   risks, [docs/09](docs/09-first-session-checklist.md) the first bench
-  session, [docs/10](docs/10-usb-key-dongle.md) the `USB_KEY` dongle.
+  session, [docs/10](docs/10-usb-key-dongle.md) the `USB_KEY` dongle,
+  [docs/17](docs/17-pico2w-recovery.md) recovering an FM-1 to stock V15
+  with a Pico 2 W (the approved route).
 - **What the firmware can be:** [docs/05](docs/05-open-source-feasibility.md)
   how open, [docs/06](docs/06-movy-and-schwung.md) Movy and Schwung,
   [docs/11](docs/11-plugin-platform.md) the engine platform,

@@ -16,11 +16,27 @@ try {
   m.tracks[0].clips[0].notes=[{step:32,tick:768,gate:24,pitch:60,vel:90},{step:255,tick:6120,gate:24,pitch:60,vel:80}];m.tracks[0].lanes[0]={label:'Cutoff',base:64};m.tracks[0].lanes[1]={label:'mix:Level',base:90};m.tracks[0].clips[0].locks=[{lane:0,step:0,value:12},{lane:1,step:0,value:101},{lane:0,step:255,value:33},{lane:1,step:255,value:77}];
   window.doc={set:writeSet(m),sounds:[{engine:'Punch'}]};window.transport={playing:false,tracks:[{playing:0,active:0,posTick:0}]};window.model=()=>parseSet(window.doc.set);window.calls=[];
   const telemetry={sections:[{name:'meters',offset:0,mask:0,rows:['out.post_master'],fields:['peak','rms']}]};
-  window.seq=makeSequencer({transportHost:document.querySelector('#transport'),fetchProject:async()=>structuredClone(window.doc),applyProject:async d=>{window.doc=d},getTransport:()=>window.transport,metadata:{doc:{telemetry},engine:()=>({params:[{name:'Cutoff',type:'float',min:0,max:1,def:.5,flags:[]} ]})},watchTrack:t=>window.calls.push(['watch',t]),playScene:s=>window.calls.push(['scene',s]),playClip:(t,s)=>window.calls.push(['clip',t,s])});
+  window.seq=makeSequencer({transportHost:document.querySelector('#transport'),fetchProject:async()=>structuredClone(window.doc),applyProject:async d=>{window.doc=d},getTransport:()=>window.transport,playPause:()=>window.calls.push(['transport']),metadata:{doc:{telemetry},engine:()=>({params:[{name:'Cutoff',type:'float',min:0,max:1,def:.5,flags:[]} ]})},watchTrack:t=>window.calls.push(['watch',t]),playScene:s=>window.calls.push(['scene',s]),playClip:(t,s)=>window.calls.push(['clip',t,s])});
   document.querySelector('main').append(window.seq.render());await window.seq.refresh();
  });
  check(await page.locator('.sq .sq-transport').count()===0&&await page.locator('#transport .sq-transport').count()===1,'External transport duplicated or detached');
  check(await page.evaluate(()=>window.seq.contains(document.querySelector('#transport button'))),'External transport excluded from shortcuts');
+ // A pinned transport is outside .sq, but remains part of its pointer lifetime.
+ await page.evaluate(()=>{
+  window.heldTransport=document.querySelector('#transport [data-transport-play-pause]');
+  heldTransport.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:1}));
+  document.querySelector('main').style.maxWidth='900px';
+ });
+ await page.waitForTimeout(80);
+ check(await page.evaluate(()=>heldTransport.isConnected),'Resize replaced held external transport button');
+ await page.evaluate(()=>heldTransport.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:1})));
+ // Release alone must keep the original target until its compatibility click.
+ check(await page.evaluate(()=>heldTransport.isConnected),'Release detached external transport before click');
+ await page.evaluate(()=>heldTransport.click());
+ check(await page.evaluate(()=>window.calls.filter(c=>c[0]==='transport').length===1),'Held transport click did not dispatch exactly once');
+ await page.waitForFunction(()=>!window.heldTransport.isConnected);
+ await page.evaluate(()=>document.querySelector('main').style.maxWidth='1300px');
+ await page.waitForTimeout(80);
  const metro=page.getByRole('button',{name:'Metronome',exact:true});check(await metro.locator('svg').count()===1&&await metro.textContent()==='','Metronome is not icon-only');
  await metro.click();await page.waitForFunction(()=>window.doc.settings.metronome===1);check(await metro.getAttribute('aria-pressed')==='true','Metronome toggle lost state');
  await page.evaluate(()=>window.seq.onTelemetry(new Float32Array([.5,.25])));check(await page.getByRole('meter',{name:'Master output',exact:true}).getAttribute('aria-valuenow')==='-6.0','External master meter stale');

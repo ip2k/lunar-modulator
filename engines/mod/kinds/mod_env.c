@@ -112,11 +112,12 @@ static void env_run(env_t *s, uint32_t n, uint32_t *at, fm1_mod_gate_t *eoc,
     uint64_t steps;
     unsigned last;
     if (frozen(e)) break;
-    steps = (0x100000000ull - e->phase + e->inc[e->seg] - 1u) / e->inc[e->seg];
-    if ((uint64_t)n < steps) {
+    /* Avoid the boundary division when this whole block precedes overflow. */
+    if ((uint64_t)n * e->inc[e->seg] < 0x100000000ull - e->phase) {
       fm1_mp_env_process(e, n);
       break;
     }
+    steps = (0x100000000ull - e->phase + e->inc[e->seg] - 1u) / e->inc[e->seg];
     last = e->seg;
     fm1_mp_env_process(e, (uint32_t)steps);
     *at += (uint32_t)steps;

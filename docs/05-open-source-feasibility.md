@@ -2,10 +2,13 @@
 
 Short answer: **an open application is feasible and most of the hard analysis
 is already done; a *wholly* open stack is bounded by JieLi's closed compiler
-and libraries.** Recovery is partially demonstrated on the owner's unit:
-matching full backups and bounded sector restoration passed, with normal
-boots afterward. Full-image restoration and broken-app recovery remain
-untested [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)].
+and libraries.** Recovery is demonstrated on the owner's unit in two ways. Matching
+full backups and bounded sector restoration passed, with normal boots
+afterward (2026-10-07) [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)].
+On 2026-10-26 a unit left unbootable by an interrupted install was keyed into
+mask-ROM UBOOT with a Pico 2 W, dumped twice (identical), rewritten with the
+stock V15 app region (read back equal) [verified: docs/17] and boots V15 [reported: owner].
+Restoring the unit's own FM-1_092 image remains untested.
 Firmware preparation follows the owner's staged policy (docs/07 §4).
 
 ## 1. What "open" can mean on this chip
@@ -44,7 +47,7 @@ platform for features M-VAVE will never ship.
    is a matter of build flags and an audio DMA ring buffer, not DSP research.
 4. **The update path has no cryptography.** CRC16 only; the chip key is in the
    package. Nothing legal or cryptographic stands between us and the flash.
-5. **Headroom.** Stock runs at 240 MHz of a possible 320, with 578 KB SRAM
+5. **Headroom.** Stock runs at 360 MHz, above the SDK's 320 MHz table, with 578 KB SRAM
    barely touched. Its 12 voices render on the second core and the UI and
    effects on the first (docs/11 §2) [inferred]; how loaded either core is
    has not been measured. More voices, better effects, a real sequencer and
@@ -56,7 +59,7 @@ platform for features M-VAVE will never ship.
 
 ## 3. What blocks it
 
-### 3.1 Recovery demonstrated in part; broken-app recovery untested
+### 3.1 Recovery demonstrated, including from a nonbooting app; own-image restore untested
 
 - Single application bank; an interrupted or bad write leaves nothing to fall
   back to.
@@ -67,17 +70,24 @@ platform for features M-VAVE will never ship.
   SLOOP; docs/04].
 - Two owners report reaching mask-ROM USB boot mode (`UBOOT1.00`) with
   czietz's Pico dongle, and one reports a firmware backup and a write
-  [reported: issue #2, docs/10 §1.1]. This project's physical dongle remains
-  untried.
+  [reported: issue #2, docs/10 §1.1]. On this project's unit a Pico 2 W
+  running FM-1-transporter (RP2350 patch, `tools/fm1-transporter/`) reached
+  UBOOT1.00 on 2026-10-26 with D+ as the clock [verified: docs/17]; this
+  project's own `dongle/` design remains untried.
 - On this project's FM-1_092, the vetted soft key entered UBOOT and a pinned
   RAM loader took matching full 1 MiB backups. A bounded 4 KiB write/readback
   and sector restoration passed; the complete post-test dump matched the
   backups, and the owner confirmed normal boots [verified:
   [bench note](../notes/2026-10-07-fm1-softkey-bench.md)].
-- This proves restoration of that unused sector, not a whole-image rewrite
-  or recovery from a nonbooting app. Soft-key entry depends on the running
-  app; an independent recovery-entry path remains untested here. Use docs/07
-  §4 for the exact backup, image/range and recovery-plan conditions.
+- The 2026-10-07 run proves restoration of that unused sector only. On
+  2026-10-26 an independent entry path (USB_KEY from a Pico 2 W, no running
+  app needed) reached UBOOT on the unbootable unit, and the stock V15 app
+  region (143 sectors) was written and verified [verified: docs/17]. Recovery
+  of a unit whose boot area `0x0`–`0x4000` is intact is therefore proven
+  (owner, 2026-10-26); a damaged boot area is not, because the transporter
+  refuses to write it. A rewrite of the unit's own FM-1_092 image is still
+  untested here. Use docs/07 §4 for the exact backup, image/range and
+  recovery-plan conditions.
 
 ### 3.2 The verifier gate
 
@@ -91,8 +101,10 @@ a package that carries a new version, keeps the stock flash head (the OTA
 loader can rewrite it) and keeps the stock loader path. It is still not a
 development workflow: a build that does not boot, or that loses its USB descriptor or
 update service, cannot be replaced this way. Direct programming through
-mask-ROM access has been demonstrated only for the bounded unused sector on
-this project's unit; whole-image rewriting remains untested [verified: bench note].
+mask-ROM access has been demonstrated on this project's unit for the bounded
+unused sector (2026-10-07) and for the stock V15 app region `[0x4000, 0x93000)`,
+143 sectors, via a Pico 2 W key (2026-10-26, docs/17) [verified]; writing the
+unit's own FM-1_092 image remains untested.
 Explaining the gate becomes much easier once a device can be freely
 re-flashed and its RAM inspected (`jlrunner.py` can execute code and read
 memory in UBOOT mode).
@@ -130,40 +142,44 @@ radio hardware. An open firmware may have to ship without Bluetooth first.
 
 | Resource | Stock use | Available |
 | --- | --- | --- |
-| CPU | 12 msfa voices on cpu1; FX, UI, MIDI, USB and BLE on cpu0; 240 MHz [inferred: docs/11 §2] | up to 320 MHz on both cores |
+| CPU | 12 msfa voices on cpu1; FX, UI, MIDI, USB and BLE on cpu0; 360 MHz [verified: docs/02 §2] | the same 360 MHz on both cores (the SPL sets it); the SDK table stops at 320 |
 | SRAM | ~135 KB static + heap + 23 KB display strips | 578 KB |
 | Flash | 583 KB app in a 1 MB map (VM 340 KB, USR 72 KB) | ~400 KB free if the VM region is shrunk; no room for large sample banks |
 | Audio | I2S (ALNK0) to an external codec, 44,117.6 Hz, 64-frame halves (~1.5 ms) [reported: Felucca, fm1-nes; docs/01 §3.1] | the internal DAC is on chip but unused on this board [reported] |
 | USB | USB-MIDI + UAC1 24-bit stereo | full-speed/high-speed device and host |
 
 msfa is integer fixed-point and was designed for 2012 Android phones; at
-240 MHz on a DSP-flavoured core, 16–24 voices are plausible, and the FPU can
+360 MHz on a DSP-flavoured core, 16–24 voices are plausible, and the FPU can
 carry effects in float.
 
 ## 5. Verdict
 
 | Question | Answer |
 | --- | --- |
-| Can custom code run on the FM-1? | **Yes, routinely**: first a version-bumped V15 package (Echomatter, AL-255 PR #2, 2026-09-04), then Baud Girl's public FM-1+VA releases `FM-1_020` … `FM-1_092` (2026-09), all through the stock OTA path. The mask-ROM path is reported working on two other FM-1s, with a firmware backup and a write on one (issue #2, docs/10 §1.1), and soft-key entry, full backups and bounded sector restoration succeeded on this project's FM-1_092 [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)]. Full-image restoration remains untested. |
+| Can custom code run on the FM-1? | **Yes, routinely**: first a version-bumped V15 package (Echomatter, AL-255 PR #2, 2026-09-04), then Baud Girl's public FM-1+VA releases `FM-1_020` … `FM-1_092` (2026-09), all through the stock OTA path. The mask-ROM path is reported working on two other FM-1s, with a firmware backup and a write on one (issue #2, docs/10 §1.1), and soft-key entry, full backups and bounded sector restoration succeeded on this project's FM-1_092 [verified: [bench note](../notes/2026-10-07-fm1-softkey-bench.md)]. On 2026-10-26 a Pico 2 W also keyed the unbootable unit into UBOOT, and the stock V15 app region was written and verified (docs/17). Restoring the unit's own FM-1_092 image remains untested. |
 | Can it be sound-compatible with stock? | Yes: same msfa engine, same DX7 patch format. |
 | Can it be fully open source? | The application, bootloader and (with work) drivers can be. The compiler and the Bluetooth stack cannot in any foreseeable timeframe without a dedicated compiler/BLE effort. |
-| Is it safe to start hacking on the one device we have? | The owner authorized staged experiments (docs/07 §4). Matching full backups and bounded sector restoration passed; full-image restoration and broken-app recovery remain untested [verified: bench note]. |
+| Is it safe to start hacking on the one device we have? | The owner authorized staged experiments (docs/07 §4). Matching full backups and bounded sector restoration passed (2026-10-07), and an unbootable unit was recovered to stock V15 through a Pico 2 W key on 2026-10-26 (docs/17) [verified]. Restoring the unit's own FM-1_092 image remains untested. The dump-and-restore gate (I9) is met with stock V15 as the restore target (owner, 2026-10-26); the next step is the first Lunar code on the FM-1, RAM-only first, under docs/07 §4. |
 | Is porting schwung-movy the way in? | No; reimplement its ideas in C (docs/06). |
-| Biggest unknowns | Full-image restoration and broken-app recovery on this unit; the Lunar runtime, linked memory/stack budget and audio timing. The display/key wiring is reported by Felucca and fm1-nes (docs/01 §3.1); the physical `USB_KEY` dongle remains untried here. |
+| Biggest unknowns | Restoring the unit's own FM-1_092 image byte-identically (a stock V15 recovery was done 2026-10-26, docs/17); recovery from a damaged boot area; the Lunar runtime, linked memory/stack budget and audio timing. The display/key wiring is reported by Felucca and fm1-nes (docs/01 §3.1); this project's own `dongle/` design remains untried, the Pico 2 W FM-1-transporter path having worked instead. |
 
 ## 6. Recommended strategy
 
-The original sequence below predates the 2026-10-07 recovery results and
-owner policy revision. Use docs/07 §4 for bench authorization and the
+The original sequence below predates the 2026-10-07 recovery results, the
+owner policy revision and the 2026-10-26 recovery. Use docs/07 §4 for bench authorization and the
 [SDK-runtime evaluation](../notes/2026-10-07-sdk-runtime-evaluation.md) for
 the proposed SDK-free platform; no replacement SPL or loader is authorized.
 
 1. Read-only bench session (docs/09), including capturing the stock updater
    traffic and extracting the V15 package from `M-UPGRADE-FM1.app`.
-2. Build a `USB_KEY` dongle (any small MCU) and try to reach `UBOOT1.00`
-   through the USB-C port. If it works: dump, restore, dump again. If not: map
-   the LQFP48 pins and try `UART_KEY`/ISP or the debug TAP via soldered wires.
-3. With recovery proven, port the SDK's `demo_hello` to the FM-1 board and
+2. Done on the FM-1 for the stock image (2026-10-26): a Pico 2 W running
+   FM-1-transporter reached `UBOOT1.00` through the USB-C port, two full dumps
+   matched, and the stock V15 app region was written and verified (docs/17).
+   Still open: restoring the unit's own FM-1_092 image, and a damaged boot
+   area (the fallback ideas: `UART_KEY`/ISP or the debug TAP via soldered
+   wires).
+3. With recovery proven (D3: the I9 gate is met with stock V15 as the
+   restore target, owner 2026-10-26), port the SDK's `demo_hello` to the FM-1 board and
    flash via mask ROM. Log over USB CDC or on the TFT: the MIDI TRS jack is
    UART RX only (docs/01 §3.1).
 4. Bring up display, keys, knobs, audio out (I2S); then msfa; then USB-MIDI;

@@ -104,7 +104,7 @@ async function filesChecks() {
   await page.click('#target-ok');
   await waitNotice(page, /^Loaded sound/);
   r.sound_loaded = (await notice(page)).text;
-  await page.waitForFunction(() => document.getElementById('file-notice').hidden, null, {timeout: 12000});
+  await page.waitForFunction(() => document.getElementById('file-notice')?.hidden === true, null, {timeout: 12000});
   r.info_auto_dismissed = !(await notice(page)).shown;
   // Open…: the example project, through the file chooser.
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#open')]);

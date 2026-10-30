@@ -35,10 +35,10 @@ What it would have to model [inferred unless marked]:
   and an FPU. Sources: jielie's opcode tables, the SLEIGH modules, and JieLi's
   `objdump` as the decoding oracle (CLAUDE.md trap 4). Thousands of lines and
   a test corpus of decoded instructions.
-- **Speed.** The stock app clocks its two cores at 240 MHz of a possible
-  320, and renders its voices on the second (docs/01 §1, §5; docs/11 §2);
+- **Speed.** The stock app clocks its two cores at 360 MHz (the SDK table stops
+  at 320), and renders its voices on the second (docs/01 §1, §5; docs/11 §2);
   nothing has measured how much of that it uses. An emulator that keeps up
-  in the worst case must therefore run up to 240 million guest cycles a
+  in the worst case must therefore run up to 360 million guest cycles a
   second per core, fewer if it skips the idle loop, which a
   worst-case estimate cannot count on. An interpreter in WebAssembly manages
   perhaps 50–300 million guest instructions a second on a fast desktop, so
@@ -88,6 +88,6 @@ anything about stock firmware.
 
 An interpreter for the CPU alone, no peripherals, running our engines as
 JieLi's clang compiles them, would count instructions per 64-frame block
-before the AC79 dev board arrives (stage B), and would catch code generation
+before the AC79 dev board (stage B, in hand since 2026-10-22) is used, and would catch code generation
 problems. Weeks of work [inferred], and stage B's dev board answers the same
-question with real cycles. Not recommended unless the board is delayed.
+question with real cycles, and the board is in hand. Not recommended.

@@ -343,18 +343,18 @@ application has been installed or run on an FM-1.
 
 The steps below describe planned workstreams, not a validated sequence or a
 claim that Lunar can be installed. Offline diagnostic builds now exist, but no
-Lunar application has run on FM-1 hardware. Full-image recovery and rescue of a
-nonbooting application also remain untested; see
+Lunar application has run on FM-1 hardware. One FM-1 that would not start has
+been brought back to M-VAVE's firmware; see
 [chapter 11](11-updating-and-recovery.md). Any future installation needs its
-own reviewed recovery evidence and a usable route back to USB update mode.
+own reviewed recovery evidence and a usable way back to recovery mode.
 
-1. **Recovery evidence.** Continue from the verified bounded sector
-   program/restore and matching full-flash backups. Full-image rewrite and
-   recovery from a nonbooting application remain untested; see
+1. **Recovery evidence.** Done once: the owner's FM-1, which would not
+   start, was rewritten with M-VAVE's V15 and starts again. A damaged boot
+   area and putting back a unit's own earlier firmware remain untested; see
    [chapter 11](11-updating-and-recovery.md).
 2. **A development board.** Run Lunar Modulator's code on a board with the
    same family of processor, and show that it gives the same results as the
-   desktop tools and the simulator.
+   desktop tools and the simulator. The board is in hand.
 3. **The FM-1, from memory.** Run Lunar Modulator on the FM-1 without
    writing anything to its permanent memory.
 4. **The FM-1, installed.** Install it with a way back built in: a key held

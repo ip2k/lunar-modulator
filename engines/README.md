@@ -384,8 +384,8 @@ On pi32v2 nothing is measured yet. This stream's research compiled the
 classes with JieLi's clang and counted their per-sample loops: about 200
 instructions a sample for Analog Drum, 270 for Punch Drum, 370 for Snare,
 210 for Snap Snare, 130 for Hat and 470 for Ring Hat, upper bounds that
-put a dense hit (kick, snare, hat, clap and a tom) at 18–35 % of the
-5,440 cycles a sample one 240 MHz core has, at 1 to 2 cycles an
+put a dense hit (kick, snare, hat, clap and a tom) at 12–23 % of the
+8,160 cycles a sample one 360 MHz core has, at 1 to 2 cycles an
 instruction [inferred]. The hats share a choke group, so at most one Ring
 Hat rings at a time, but for a choked one's 4 ms. Stage B measures it.
 
@@ -2239,7 +2239,7 @@ insert that distorts on purpose; this one is meant to be left on the bus.
   channel and one divide: about 100 operations with Glue at 0, 130 with
   Glue up (the curve runs again at the lowered drive) and 170 with
   Asymmetry too (ten terms instead of five); both curves during a 5 ms Shape
-  crossfade. At one operation per cycle that is 2–5 % of a 240 MHz core
+  crossfade. At one operation per cycle that is 1–3 % of a 360 MHz core
   [inferred], more than the note's 1.5 %, which did not count the filters'
   flush tests, Glue's second curve or the divide. Desktop (Apple M1 Max,
   20 s of noise, the fastest of nine runs, 2026-10-05) [verified:
@@ -2343,7 +2343,7 @@ and 2,484 Hz [reported in the note: its constants]).
 - **Cost:** about 103 operations and 28 comparisons per channel and sample,
   about 13,000 and 3,600 per 64-frame stereo block, no divide unless a
   crossover is moving. At one operation per cycle on pi32v2 that is about
-  5 % of a 240 MHz core [inferred]. Desktop (Apple M1 Max): 1.8 µs per
+  3 % of a 360 MHz core [inferred]. Desktop (Apple M1 Max): 1.8 µs per
   block, 0.12 % of it, and 2.0 µs while the crossovers glide
   (`build/fm1-isolator-test --bench`). After 2 s at unity it idles, at
   about 2 % of that ([Idle at pass-through](#idle-at-pass-through)).
@@ -2450,7 +2450,7 @@ How it works [verified: tests/test_engines_eq.py and `build/fm1-eq-test`,
   1.86 µs per block with the bands flat or set, 2.6 µs with all three
   gliding all the time, against Plate's 0.93 µs in the same run: 0.13 % and
   0.18 % of the 1.451 ms block. At one operation per cycle on pi32v2 that
-  is about 2.2 % of a 240 MHz core [inferred]; stage B measures it. Idle at
+  is about 1.5 % of a 360 MHz core [inferred]; stage B measures it. Idle at
   pass-through, about 2 % of that ([Idle at pass-through](#idle-at-pass-through)).
 - **Where it departs from the note:** the note proposed the vendored
   `stmlib::Svf` and stmlib's `SemitonesToRatio` tables for 10^(dB/40). The
@@ -2633,7 +2633,7 @@ idle path's bookkeeping (a counter and a flag per frame, or per 8 frames in
 EQ) is within the noise. On pi32v2 the guard is two comparisons and a store
 per sample, about 400 operations per block, against about 7,700 for EQ,
 13,000 and 3,600 comparisons for Isolator and 8,300 for Master Sat at its
-defaults: about 2 %, 5 % and 2 % of a 240 MHz core freed while they sit at
+defaults: about 1 %, 3 % and 1 % of a 360 MHz core freed while they sit at
 pass-through [inferred]. A chain's budget still counts them busy, since a
 knob can wake them at any time.
 

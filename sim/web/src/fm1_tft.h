@@ -21,6 +21,7 @@
 #define FM1_TFT_H_
 
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +30,13 @@ extern "C" {
 #define FM1_TFT_W 240
 #define FM1_TFT_H 240
 #define FM1_TFT_MAX_BOXES 96
+
+/* Embedded pixels remain the desktop/browser default. A target may instead
+ * bind caller-owned storage before drawing; this does not supply a display
+ * transport. Compile every translation unit with the same setting. */
+#ifndef FM1_TFT_EXTERNAL_PIXELS
+#define FM1_TFT_EXTERNAL_PIXELS 0
+#endif
 
 /* Text cells: 5 x 9 glyphs plus one column of spacing, times the scale. */
 #define FM1_TFT_ADVANCE(scale) (6 * (scale))
@@ -110,13 +118,34 @@ typedef struct fm1_tft_box {
 } fm1_tft_box_t;
 
 typedef struct fm1_tft {
+#if FM1_TFT_EXTERNAL_PIXELS
+  uint16_t *px;
+#else
   uint16_t px[FM1_TFT_W * FM1_TFT_H];
+#endif
   int record;                 /* log boxes for fm1_tft_check_layout */
   int n_boxes;
   int overflow;               /* more boxes than FM1_TFT_MAX_BOXES */
   int truncated;              /* text runs cut short by max_chars */
   fm1_tft_box_t boxes[FM1_TFT_MAX_BOXES];
 } fm1_tft_t;
+
+#if FM1_TFT_EXTERNAL_PIXELS
+/* Bind at least W*H pixels, or unbind with (NULL, 0). Returns 0 on success.
+ * A refused size unbinds, so a later draw cannot overrun an earlier buffer.
+ * The caller owns the buffer lifetime. Binding survives app reinitialization;
+ * initialize a fresh TFT to zero or bind it before any drawing call. */
+int fm1_tft_bind_pixels(fm1_tft_t *t, uint16_t *pixels, size_t count);
+#endif
+
+static inline int fm1_tft_ready(const fm1_tft_t *t) {
+#if FM1_TFT_EXTERNAL_PIXELS
+  return t->px != NULL;
+#else
+  (void)t;
+  return 1;
+#endif
+}
 
 /* Start a frame: clear to `color` and forget the logged boxes. */
 void fm1_tft_begin(fm1_tft_t *t, uint16_t color);

@@ -30,16 +30,16 @@ Nothing was built or run, so every CPU figure for the FM-1 below is
 | Compile Schwung modules from *source*? | **Yes, for a subset.** Schwung's DSP contract is three plain C structs of function pointers, and it runs at 44.1 kHz like the FM-1. About 22 of the 100 sound generators and audio effects look likely to port; about 42 more would need work (§3). Their JavaScript UIs do not carry over. |
 | Mutable Instruments code? | **Yes, and it is the best fit found.** MIT licence, C++98 with no exceptions, RTTI or heap, single-precision float or fixed point, few ARM-specific lines, each with a C fallback. It has already been ported to an ESP32, a chip of the same class (§4). Polyphony is the constraint, not whether it runs. |
 | A plugin loader? | **Yes, in stages** (§5). Start with engines compiled into the firmware behind one stable C API. Then add units loaded into RAM at a fixed address over USB-MIDI, the Korg logue v1 / OWL model. Relocatable plugins depend on a toolchain question nobody has answered yet. |
-| What gates it? | The same things that gate the whole project: a firmware of our own on the device (docs/07 rule 1), and a first benchmark of pi32v2 DSP speed. The benchmark needs no FM-1 at all: a JieLi AC79 dev board will do (§8). |
+| What gates it? | The same things that gate the whole project: a firmware of our own on the device (staged under docs/07 §4; the old one rule is superseded), and a first benchmark of pi32v2 DSP speed. The benchmark needs no FM-1 at all: a JieLi AC79 dev board will do (§8). |
 
 ## 2. The FM-1's budget
 
 | Resource | Figure | Confidence |
 | --- | --- | --- |
 | Audio clock | 44,118 Hz, 64-sample blocks, i.e. 1.451 ms per block | [reported] AL-255 `04-synth-engine.md` §2 |
-| Cycles per output sample, one core | 5,440 at 240 MHz (the stock clock), 7,250 at 320 MHz (the family maximum) | arithmetic |
+| Cycles per output sample, one core | 8,160 at 360 MHz (the stock clock, docs/02 §2), 7,253 at 320 MHz (the dev kit's clock; the SDK table's maximum) | arithmetic |
 | Same figure on CTAG TBD's ESP32 | 5,442 (`CPU_MAX_ALLOWED_CYCLES 174150` per 32-frame block at 240 MHz, 44.1 kHz) | [verified] CTAG `SPManager.cpp` |
-| Stock load | **Not measured.** msfa renders its 12 voices on cpu1; the 6 FX slots, the fade and the output run in a task on cpu0 (next row). "240 of 320 MHz" in older docs is clock speed, not load | — |
+| Stock load | **Not measured.** msfa renders its 12 voices on cpu1; the 6 FX slots, the fade and the output run in a task on cpu0 (next row). "240 of 320 MHz" in older docs was wrong (stock runs 360 MHz) and was clock speed, not load | — |
 | Second core | **Stock uses both cores**: JieLi's OS on cpu0, and the msfa voice render on cpu1, outside the OS. The routine at V13 file `0x86AD6` (AL-255's "engine task pump loop") writes 1 to `0x01C1FF08`, busy-polls a state byte at `0x01C16EC0` and, on value 2, calls `dx7note_compute_block` (`0x862FA`), its only call site. That routine is cpu1's: AL-255's `cpu1_boot_start` writes `0x020001B8` to the cpu1 mailbox `0x01C7FFF8`, clears `0x01C1FF08` and waits for it to turn non-zero, and the vector at file `0x98` returns into this routine, which has the shape of the SDK's `cpu1_main` (`cpu1_run_flag = 1` first). The interrupt table is the SDK's `CPU_CORE_NUM 1` table: SOFT5 on cpu0, SOFT4 on cpu1. In that mode the OS runs on cpu0 only and `cpu1_main` runs bare-metal; it needs a single-core `system.a` that JieLi supplies on request. cpu0 runs the UI, MIDI, USB and BLE, and the audio task with the fade, the six FX slots and the output. **AL-255's docs are partly wrong here.** `reversing/01-hardware-map.md` reads `CPU_CORE_NUM 1` as a single core, and `io/01-boot.md` takes cpu1's entry `0x01C023D6` for the cross-core IPC path. With `app.bin` running from `0x02000120` (docs/01 §2), that address is the render loop above | the loop and call [verified: V13 disassembly]; that it runs on cpu1 [reported: AL-255's symbol names; inferred from the `cpu1_run_flag`]; the mailbox write, the wait and the vector [verified: V13 disassembly, file `0x5A0C8` and `0x98`]; the interrupt table [verified: bytes at V13 file `0x4DD48` and V15 and FM-1_092 file `0x4D4A0`, against the SDK's `demo_hello`]; the mode and its library [reported: JieLi AC79 doc 7.40; the SDK's `init.c` verified]; cpu0's audio task [reported: AL-255 `io/03-audio-dac.md` §7.2; its core inferred] |
 | Code in RAM | Stock copies msfa's hot kernels from flash to SRAM at boot and runs them there | [reported] AL-255 `04-synth-engine.md` §2 |
 | Free SRAM in the stock layout | Stock `.bss` ends at `0x01C211FC` and the boot info struct sits at `0x01C7FD50`: a gap of about 387 KB, part of it used by stock's heap. AL-255's demo used 192 KB of it; FM-1+VA uses the top | [inferred] from AL-255 addresses and `link.ld` |
@@ -59,13 +59,13 @@ What that buys, in round numbers [inferred]:
   - Rings, Elements and Clouds: a 168 MHz Cortex-M4F with 128 + 64 KB of
     RAM.
 - **Plaits on the FM-1:** if a pi32v2 cycle is worth roughly a Cortex-M4F
-  cycle, one core at 240 MHz holds about three worst-case Plaits voices, or
+  cycle, one core at 360 MHz holds about four worst-case Plaits voices, or
   one Rings instance. The light engines (VA, waveshaping, 2-op FM,
   wavetable) cost far less than the heavy ones (string, modal, particle).
   That per-cycle parity is the big unknown.
 - **One weak data point:** Synth_Dexed on a Teensy 3.6 (Cortex-M4F) plays
   12 notes with effects at 180 MHz [verified: MicroDexed `config.h`], and
-  the FM-1 plays 12 msfa notes at 240 MHz on one core, with its effects on
+  the FM-1 plays 12 msfa notes at 360 MHz on one core, with its effects on
   the other. That fits "M4F-class per clock" but does not prove it, because
   the FM-1's headroom is unknown.
 - **The second core** is the largest lever if the SDK lets us use it. Stock
@@ -356,7 +356,7 @@ problem with an online compiler.
 ## 6. Where the platform would run
 
 - **The open firmware** (docs/05 L1, the SDK). This is the clean home. It
-  needs the recovery path first (docs/07).
+  needs the recovery path first (docs/07; a stock-V15 recovery path via a Pico 2 W is proven, docs/17, while restoring the unit's own image is not).
 - **A patch on stock V15.** Like FM-1+VA (V15 plus 90 hooks plus 110 KB of
   appended code) and AL-255's demo (trampolines over `usr_app_task` and
   `midi_msg_dispatch`).
@@ -431,11 +431,10 @@ switch. docs/12 §6 has the full rules.
 | --- | --- | --- | --- |
 | A — desk | any computer, no hardware | `fm1_engine_t` API and a desktop host (the same source building for a simulator and for JACK/CoreAudio, as AL-255's branch does); port the Plaits light engines and Braids at 44.1 kHz and 64 frames; the Schwung v2 shim with `schwung-braids` and PSX Verb compiled through it; build with `-std=c++11 -fno-exceptions -fno-rtti` for a 32-bit target | renders match upstream MI (VCV or MI's own test harness) within tolerance; memory per voice measured |
 | B — bench | a JieLi AC79 dev board (docs/07 §3 already suggests one) with the Linux toolchain | build stage A for pi32v2; read the cycle counter per block for msfa, Plaits light and heavy engines, Braids, Rings and the MI reverb; try `-fPIC` and read the relocations | a cycles-per-block table, and a yes or no on Tier 2 |
-| C — FM-1 | staged owner-authorized work under docs/07 §4; full-image recovery remains untested | Tier 0 in the open firmware, or in a hook build if the owner chooses that route | engines selectable per preset, CPU meter on screen |
+| C — FM-1 | staged owner-authorized work under docs/07 §4; the dump-and-restore gate is met with stock V15 as the target (owner, 2026-10-26, docs/17), restoring the unit's own image is untested; next: first Lunar code, RAM-only first | Tier 0 in the open firmware, or in a hook build if the owner chooses that route | engines selectable per preset, CPU meter on screen |
 | D | FM-1 | Tier 1 RAM units over USB-MIDI; then flash-stored units and Berry scripts if wanted | a unit built outside the firmware tree loads, runs, and is refused cleanly when over budget |
 
-Stage A can start today and costs nothing. Stage B is the one purchase
-that turns every [inferred] CPU figure in this document into a measurement.
+Stage A is under way (below). Stage B's board is in hand (AC79 dev kit, UART bring-up 2026-10-22, docs/14) and will turn the [inferred] CPU figures in this document into measurements.
 
 **Progress (2026-09-30).** Stage A is well under way in
 [`engines/`](../engines/) [verified: desktop builds and tests, CI]:

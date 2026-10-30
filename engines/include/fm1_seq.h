@@ -328,12 +328,25 @@ typedef struct fm1_seq_track_info {
   uint8_t route_kind, route_index;        /* FM1_SEQ_ROUTE_*, channel or slot */
 } fm1_seq_track_info_t;
 
+/* Current destination only, without copying the track's automation arrays. */
+typedef struct fm1_seq_route_info {
+  uint8_t route_kind, route_index;        /* FM1_SEQ_ROUTE_*, channel or slot */
+} fm1_seq_route_info_t;
+
 typedef struct fm1_seq_clip_info {
   uint16_t length_steps;                  /* 0: no clip in this slot */
   uint8_t loop_start, scale_num, scale_den, quant;
   int8_t transpose;
   uint16_t notes, locks, trigs;
 } fm1_seq_clip_info_t;
+
+/* Session grid metadata without the track's automation arrays or each clip's
+ * note/lock counts. Position remains in native ticks; the UI scales it. */
+typedef struct fm1_seq_session_track_info {
+  uint16_t pos_tick, playing_length;
+  uint8_t playing_loop_start, clips;
+  uint8_t active, playing, queued, pending_stop;
+} fm1_seq_session_track_info_t;
 
 typedef struct fm1_seq_note_info {
   uint16_t tick, gate, step;
@@ -436,6 +449,11 @@ typedef struct fm1_seq_transport {
 void fm1_seq_transport_take(const fm1_seq_t *s, fm1_seq_transport_t *out);
 void fm1_seq_transport_put(fm1_seq_t *s, const fm1_seq_transport_t *in);
 int fm1_seq_get_track(const fm1_seq_t *s, uint8_t track, fm1_seq_track_info_t *out);
+int fm1_seq_get_route(const fm1_seq_t *s, uint8_t track, fm1_seq_route_info_t *out);
+int fm1_seq_get_session_track(const fm1_seq_t *s, uint8_t track,
+                              fm1_seq_session_track_info_t *out);
+/* Fresh mask of nonempty lane labels; no cached state or mutation. */
+uint8_t fm1_seq_labeled_lanes(const fm1_seq_t *s, uint8_t track);
 const char *fm1_seq_lane_label(const fm1_seq_t *s, uint8_t track, uint8_t lane);
 int fm1_seq_get_clip(const fm1_seq_t *s, uint8_t track, uint8_t slot, fm1_seq_clip_info_t *out);
 int fm1_seq_get_note(const fm1_seq_t *s, uint8_t track, uint8_t slot, uint16_t i,

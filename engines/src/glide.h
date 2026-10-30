@@ -225,7 +225,9 @@ struct Held {
 
   void Remove(uint8_t k) {
     int w = 0;
-    for (int r = 0; r < n && r < kMaxHeld; ++r) {
+    // Only the suffix after the first removed key can need compaction.
+    while (w < n && w < kMaxHeld && key[w] != k) ++w;
+    for (int r = w; r < n && r < kMaxHeld; ++r) {
       if (key[r] != k) key[w++] = key[r];
     }
     n = static_cast<uint8_t>(w);
@@ -314,7 +316,8 @@ Plan<V> PlanNoteOn(V *voice, int n, const Config &c) {
   p.mono = c.voice == MODE_POLY ? NULL : Newest(voice, n);
   const V *held;
   if (c.voice == MODE_POLY) {
-    held = Source(static_cast<const V *>(voice), n);
+    held = c.glide == GLIDE_LEGATO
+        ? Source(static_cast<const V *>(voice), n) : NULL;
   } else {
     held = p.mono && p.mono->gate && p.mono->glide.HasPitch() ? p.mono : NULL;
   }

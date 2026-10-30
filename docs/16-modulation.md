@@ -55,10 +55,11 @@ was read at these commits:
 - [inferred]: our estimate or proposal.
 
 **No CPU figure in this document is measured on pi32v2.** All of them stay
-[inferred] until the AC79 dev kit (docs/14, stage B).
+[inferred] until stage B measures them on the AC79 dev kit (in hand since 2026-10-22, docs/14).
 
-**The one rule.** Nothing here runs on, writes to, or is sent to an FM-1
-(CLAUDE.md). Everything below is built and tested on a desktop and in the
+**Scope.** Nothing here runs on, writes to, or is sent to an FM-1. The old
+"one rule" is superseded by the staged hardware policy (CLAUDE.md, docs/07
+§4); this document stays desktop and browser only. Everything below is built and tested on a desktop and in the
 browser simulator.
 
 **Contents**
@@ -162,7 +163,7 @@ with our own maps) and the audio followers.
 
 **Cost** [inferred]: about 4.5 KB of fixed state plus an 8 KB module arena,
 3.3 % of the 387,924 B free in the stock layout. A typical rack takes about
-1–2 % of a 240 MHz core at the 32-frame grid.
+1 % of a 360 MHz core at the 32-frame grid.
 
 **Order of work (§8).** Stages MG1–MG9 follow docs/15's S7a (API v2). The
 core and the small modules are desktop-only and can be built in parallel with
@@ -820,7 +821,7 @@ native and browser parity: one C source per module, built for both.
 ## 4. Budgets
 
 All figures are [inferred] unless marked. The 64-frame block at 44,118 Hz is
-348,160 cycles at 240 MHz, and the stock layout leaves 387,924 B of SRAM
+522,236 cycles at 360 MHz, and the stock layout leaves 387,924 B of SRAM
 [verified: docs/11 §2; `FM1_APP_RAM_BUDGET`]. The sequencer's half budget is
 full at 8 tracks (36,216 of 36,864 B, docs/15 §2.6), so modulation needs a
 budget line of its own.

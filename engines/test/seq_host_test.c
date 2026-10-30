@@ -634,6 +634,8 @@ static void uids_and_refusals(void) {
 typedef struct {
   int write;
   uint32_t ticks, begins, events, locks;
+  uint32_t bpm;
+  int playing;
   uint32_t ev_frame[32];
   uint8_t ev_kind[32], ev_to_engine[32];
   fm1_seq_hook_write_t w[2];
@@ -643,8 +645,8 @@ static uint32_t h_begin(void *ctx, uint32_t frames, const fm1_engine_t *e, uint3
   fake_hook_t *f = (fake_hook_t *)ctx;
   (void)frames;
   (void)e;
-  (void)bpm;
-  (void)playing;
+  f->bpm = bpm;
+  f->playing = playing;
   ++f->begins;
   return 0;
 }
@@ -995,6 +997,45 @@ static void no_buffer(void) {
   CHECK(st.dropped_events > 0);
 }
 
+/* Both audio dispatch paths read the current transport, including edits
+ * between blocks and a host without a sequencer. The full UI snapshot is
+ * the independent reference, not part of the dispatch path. */
+static void hook_transport(void) {
+  static const char *commands[] = {
+    "bpm 13333", "play", "pause", "bpm 8765;resume", "stop"
+  };
+  static const uint32_t expected_bpm[] = {13333, 13333, 13333, 8765, 8765};
+  static const int expected_playing[] = {0, 1, 0, 1, 0};
+  fm1_seq_t *s = make(mem_text);
+  fm1_seq_host_t h;
+  fm1_seq_hook_t hook;
+  fake_hook_t fh;
+  unsigned k, path;
+  memset(&hook, 0, sizeof(hook));
+  hook.ctx = &fh;
+  hook.begin = h_begin;
+  hook.event = h_event;
+  hook.tick = h_tick;
+  fm1_seq_host_init(&h, s, NULL, 0);
+  for (k = 0; k <= sizeof(commands) / sizeof(commands[0]); ++k) {
+    fm1_seq_info_t info;
+    memset(&info, 0, sizeof(info));
+    if (k < sizeof(commands) / sizeof(commands[0])) {
+      fm1_seq_apply_text(s, commands[k], strlen(commands[k]), NULL, 0);
+      fm1_seq_get_info(s, &info);
+      CHECK(info.bpm_x100 == expected_bpm[k] && info.playing == expected_playing[k]);
+    } else {
+      h.seq = NULL;
+    }
+    for (path = 0; path < 2; ++path) {
+      memset(&fh, 0, sizeof(fh));
+      if (path) fm1_seq_host_dispatch_slots_ticks(&h, BLOCK, NULL, 0, &hook);
+      else fm1_seq_host_dispatch_ticks(&h, BLOCK, NULL, NULL, &hook);
+      CHECK(fh.begins == 1 && fh.bpm == info.bpm_x100 && fh.playing == info.playing);
+    }
+  }
+}
+
 int main(void) {
   uint64_t events = 0, calls = 0, inside = 0;
   parsers_and_figures();
@@ -1005,6 +1046,7 @@ int main(void) {
   hooked_block();
   slots();
   hooked_slots();
+  hook_transport();
   no_buffer();
   printf("{\"ok\":%s,\"events\":%llu,\"sink_calls\":%llu,\"splits\":%llu}\n", failed ? "false" : "true",
          (unsigned long long)events, (unsigned long long)calls, (unsigned long long)inside);

@@ -15,6 +15,7 @@ split's byte identity).
 """
 import json
 import math
+import shutil
 import subprocess
 
 import pytest
@@ -90,6 +91,67 @@ def test_instance_size(renderer, tmp_path, tool):  # noqa: F811
     assert s["fx_bytes"] == [656]
     sizes = {rate: size for rate, ok, size in tool["rates"] if ok}
     assert sizes == {"8000": 656, "44118": 656, "48000": 656, "96000": 656, "384000": 656}
+
+
+@pytest.mark.parametrize("filter_type", [0, 1], ids=["svf", "ladder"])
+def test_mono_shortcut_preserves_independent_channels(tmp_path, filter_type):
+    """Other-channel input cannot affect this channel, even across old tails."""
+    compiler = shutil.which("c++")
+    if not compiler:
+        pytest.skip("no C++ compiler")
+    source = tmp_path / "channels.cc"
+    source.write_text((r'''
+#include "fm1_engine.h"
+#include <assert.h>
+#include <initializer_list>
+#include <stdint.h>
+#include <string.h>
+extern "C" const fm1_engine_t fm1_engine_filter;
+int main() {
+  const auto &e = fm1_engine_filter;
+  for (float rate : {8000.f, 44118.f, 96000.f, 384000.f}) {
+    alignas(16) unsigned char memory[3][1024];
+    fm1_host_t host = {FM1_ENGINE_API_VERSION, rate, 64};
+    assert(e.instance_size(&host) <= sizeof memory[0]);
+    void *state[3];
+    for (int i = 0; i < 3; ++i) {
+      state[i] = e.create(memory[i], &host);
+      e.set_param(state[i], 0, FILTER_TYPE);
+    }
+    uint32_t rng = 3;
+    for (unsigned frame = 0; frame < 16384; ++frame) {
+      if (frame % 127 == 0) {
+        for (auto s : state) {
+          e.set_param(s, 1, 300.f + frame % 4000);  // moving cutoff
+          e.set_param(s, 2, .7f);
+          e.set_param(s, 3, .3f);
+          e.set_param(s, 4, (frame / 2048) % 4);
+          e.set_param(s, 5, (frame / 2048) % 2 ? .3f : 0.f); // spread/tails
+        }
+      }
+      rng = rng * 1664525u + 1013904223u;
+      float l = static_cast<int32_t>(rng) / 4294967296.f;
+      float r = frame >= 4096 && frame < 8192 ? -l : l;  // mono, stereo tails, then mono
+      if (frame % 101 == 0) { l = 0.f; r = -0.f; }
+      float actual[2] = {l, r};
+      // Force different opposite inputs while keeping each oracle channel's
+      // input and parameters identical. No filter equations are copied here.
+      float left[2] = {l, l + .25f}, right[2] = {r - .25f, r};
+      e.render(state[0], actual, 1);
+      e.render(state[1], left, 1);
+      e.render(state[2], right, 1);
+      assert(memcmp(actual, left, sizeof(float)) == 0);
+      assert(memcmp(actual + 1, right + 1, sizeof(float)) == 0);
+    }
+    for (auto s : state) e.destroy(s);
+  }
+}
+''').replace('FILTER_TYPE', str(filter_type)))
+    binary = tmp_path / "channels"
+    subprocess.run([compiler, "-std=c++11", "-O2", "-I", str(ENGINES / "include"),
+                    str(source), str(ENGINES / "src/fx_filter.cc"), "-o", str(binary)],
+                   check=True, capture_output=True, text=True)
+    subprocess.run([str(binary)], check=True, capture_output=True, text=True)
 
 
 # --- host contracts, every type ----------------------------------------------

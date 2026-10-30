@@ -395,13 +395,20 @@ static void CompRender(void *s, float *lr, uint32_t frames) {
   float power = self->power, y1 = self->y1, y2 = self->y2, ys = self->ys;
   float offset = self->offset, reduction = self->reduction;
   const float glide = self->glide, glide_pole = self->glide_pole, k_rms = self->k_rms;
+  /* Controls cannot change during render. Once every glide is settled,
+   * avoid scanning them again until the next call; keep the last update
+   * even when its step reaches the target exactly. */
+  int unsettled = 1;
   for (uint32_t f = 0; f < frames; ++f) {
     int gliding = 0;
-    for (int k = 0; k < S_COUNT; ++k) {
-      if (self->value[k] != self->target[k]) {
-        self->value[k] = CompGlide(self->value[k], self->target[k], glide);
-        gliding = 1;
+    if (unsettled) {
+      for (int k = 0; k < S_COUNT; ++k) {
+        if (self->value[k] != self->target[k]) {
+          self->value[k] = CompGlide(self->value[k], self->target[k], glide);
+          gliding = 1;
+        }
       }
+      unsettled = gliding;
     }
     if (gliding) {
       self->kq = CompKq(self->value[S_SLOPE], self->value[S_KNEE]);

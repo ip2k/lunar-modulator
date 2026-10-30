@@ -6,6 +6,11 @@ Protocol facts and Linux SG_IO layout checked against kagaimiq's jl-uboot-tool
 This implementation permits only INQUIRY, pinned-loader RAM upload/jump,
 FC14/FC0A and 256-byte FD05 flash reads. It implements no flash writes.
 MIT licence, like this repository. Vendor loader and private dumps stay out of Git.
+
+It needs the entry log written by `tools/fm1_softkey_probe.py` (identity, then
+soft key), for `FM-1_092` or `FM-1_015`. A USB_KEY entry (docs/17,
+FM-1-transporter) writes no such log; that route takes its backups with
+`fm1t.py dump`.
 """
 import argparse
 import binascii
@@ -21,6 +26,8 @@ LOADER_SHA = 'd41da6126760c9d66660bcc0cac8d27d221806c5e369a8036921efe68dca5376'
 RAM = 0x01C02000
 LOADER_SIZE = 24064
 FLASH_SIZE = 0x100000
+# Identities the entry log may report: the unit's FM-1+VA (092) and stock V15 (015).
+ALLOWED_IDENTITIES = frozenset({'FM-1_092', 'FM-1_015'})
 CHUNK = 256  # WL82 buffer limit, including the transporter's reported quirk
 
 
@@ -163,8 +170,8 @@ def main():
         raise SystemExit('Loader hash/length mismatch')
     events = [json.loads(s) for s in args.entry_log.read_text().splitlines()]
     entered = [e for e in events if e.get('event') == 'uboot_enumerated']
-    if not entered or not any(e.get('event') == 'identity' and e['decoded'].get('identity') == 'FM-1_092' for e in events):
-        raise SystemExit('Need the successful owner-unit soft-key entry log')
+    if not entered or not any(e.get('event') == 'identity' and e['decoded'].get('identity') in ALLOWED_IDENTITIES for e in events):
+        raise SystemExit('Need a successful owner-unit UBOOT entry log with an allowed identity (%s)' % ', '.join(sorted(ALLOWED_IDENTITIES)))
     args.out.mkdir(mode=0o700, parents=True, exist_ok=False)
     with (args.out/'commands.jsonl').open('x') as fp:
         def log(event, **fields):

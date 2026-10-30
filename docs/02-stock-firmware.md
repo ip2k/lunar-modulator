@@ -10,7 +10,7 @@ in docs/01.
 | --- | --- | --- |
 | `FM-1_009` (package folder "V13", 2026-07-03) | `FM-1.fwsc` (704084 bytes) analysed by AL-255 | Full disassembly, byte-identical reassembly |
 | `FM-1_014` ("V14", updater dated 2026-07-06) | Embedded Qt resource in `M-UPGRADE-FM1.exe`; `FM-1.fwsc` 704052 bytes. **Also what the macOS `M-UPGRADE-FM1.dmg` downloaded 2026-09-06 embeds** (same 2026-07-08 build) [verified] | `app.bin` 1888 bytes larger; `uboot.boot`, `cfg_tool.bin`, `ota.bin` byte-identical to V13. Adds MIDI program change per M-VAVE's video |
-| `FM-1_015` ("V15", CDN file dated 2026-07-30) | `https://yms-file-store.oss-cn-hongkong.aliyuncs.com/software/firmware/FM-1.fwsc`; 699956 bytes, sha256 `db1642b2…db8a` | **Analysed here 2026-09-06** (`notes/2026-09-06-bench.md`) [verified]: `app.bin` 581564 bytes (3392 smaller than V14); `uboot.boot`, `isd_config.ini`, `cfg`, `cfg_tool.bin` and `ota.bin` byte-identical to V14; app area shrinks by 0x1000 and VM grows to 0x56000 at `0x93000`; msfa table at `0x8BE8C`; new strings for glide (`Fingered`/`Full Time`), three sequencer pages, two "Globe" pages, reordered OP pages, a patch `Rename` UI. Ran on the owner's unit until Baud Girl's FM-1+VA installation; the unit identifies as `FM-1_092` since 2026-09-29 (`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §4) |
+| `FM-1_015` ("V15", CDN file dated 2026-07-30) | `https://yms-file-store.oss-cn-hongkong.aliyuncs.com/software/firmware/FM-1.fwsc`; 699956 bytes, sha256 `db1642b2…db8a` | **Analysed here 2026-09-06** (`notes/2026-09-06-bench.md`) [verified]: `app.bin` 581564 bytes (3392 smaller than V14); `uboot.boot`, `isd_config.ini`, `cfg`, `cfg_tool.bin` and `ota.bin` byte-identical to V14; app area shrinks by 0x1000 and VM grows to 0x56000 at `0x93000`; msfa table at `0x8BE8C`; new strings for glide (`Fingered`/`Full Time`), three sequencer pages, two "Globe" pages, reordered OP pages, a patch `Rename` UI. Ran on the owner's unit until Baud Girl's FM-1+VA installation; the unit identified as `FM-1_092` from 2026-09-29 (`notes/2026-09-29-baudgirl-fm1va-and-pcb-photos.md` §4), and runs V15 again since 2026-10-26 (docs/17) |
 
 The updater apps (`M-UPGRADE-FM1.app` on macOS, `M-UPGRADE-FM1.exe` on Windows)
 are Qt6 + RtMidi programs with the firmware embedded as a resource
@@ -29,12 +29,49 @@ AL-255's `extract.sh` and probonopd's SMK-37 notes use).
 | --- | --- | --- |
 | `flash.bin` | 0x94000 | the flash image below the VM region |
 | `top/uboot.boot` | 14384 B | SPL, "UBOOT2.00", `sha256 730e54f0…d3ef`; byte-identical to `cpu/wl82/tools/uboot.boot` of SDK release `AC79NN_SDK_V1.1.9_2023-08-01` (AL-255) |
-| `top/isd_config.ini` | 699 B | packed `[SYS_CFG_PARAM]` entries: `SPI=4_1_0_0`, `OSC0 24MHz`, `UTBD=1000000`, `RESET=PB01_08_0`, `UPDATE_JUMP=0`, `SDRAM_SIZE=0`, no `UTTX`/`UTRX` pins, no double-bank keys; V15's also carries `SYS_CLK`, `HSB_DIV` and `LSB_DIV` keys [verified 2026-10-05: key names in our V15 unpack; values not decoded], which set the clock a bare-metal app inherits from the SPL |
+| `top/isd_config.ini` | 699 B | packed `[SYS_CFG_PARAM]` entries: `SPI=4_1_0_0`, `OSC0 24MHz`, `UTBD=1000000`, `RESET=PB01_08_0`, `UPDATE_JUMP=0`, `SDRAM_SIZE=0`, no `UTTX`/`UTRX` pins, no double-bank keys; V15's also carries `SYS_CLK`, `HSB_DIV` and `LSB_DIV` keys, decoded in the table below [verified 2026-10-28: V15 bytes], which set the clock a bare-metal app inherits from the SPL |
 | `files/app.bin` | 583068 B (V13) | the application, SFC-encrypted in flash with chip key `0x980F`, XIP at `0x02000000`, entry `0x02000120` [verified: `entry-point: 33554720` in our V15 and FM-1_092 `jlfw.yaml`]; its first word is `04 81 80 00` ("goto +4; rts") [verified: our V15 unpack; decoding reported: Felucca] |
 | `files/cfg_tool.bin` | 383 B | packaged configuration/calibration resource |
 | `files/cfg` | 0xB79 | JLFS daisy-chain with `eq_cfg_hw.bin` etc. |
 | `ota.bin` | 19969 B | nested bootable image `usb_hid_ota.bin`: the **USB-MIDI OTA loader**, six LZ4 blocks, 23324 B decompressed, load address `0x01C0A800` |
 | `script.ver`, `info.log`, `USR`, `blimit.bin`, `tail.bin` | small | `script.ver` decrypts to `AC791N-v0.01-cfg_tool-v0.10` |
+
+**`[SYS_CFG_PARAM]` decoded** (V15, `FM-1_015`; the package's `isd_config.ini`
+is byte-identical to the updater's) [verified 2026-10-28: bytes; meanings from
+the SDK's `cpu/wl82/tools/isd_config_rule.c`]. Each record is a one-byte value
+length, a NUL-terminated name, then the value; integers are u32 LE.
+
+| Key | Raw | Value |
+| --- | --- | --- |
+| `SPI` | `4_1_0_0` | 4-wire, clock field 1, mode 0 (RD_OUTPUT), port A: the flash bus |
+| `OSC`, `OSC_FREQ` | `OSC0`, `00 36 6e 01` | 24,000,000 Hz crystal |
+| `OSC_HC_EN`, `OSC_1PIN_EN` | 0, 0 | off |
+| **`SYS_CLK`** | `00 2a 75 15` | **360,000,000 Hz.** Not in the SDK's list (320, 240, ...; 396 only under `CONFIG_OVERCLOCKING_ENABLE`); the rule's note says other values are accepted |
+| `HSB_DIV` | 1 | divisor 2: **HSB 180 MHz** |
+| `LSB_DIV` | 2 | divisor 3: **LSB 60 MHz** |
+| `UTBD` | 1,000,000 | SPL UART baud; no `UTTX`, so no output |
+| `RESET` | `PB01_08_0` | reset pin |
+| `UPDATE_JUMP` | 0 | |
+| `VLVD` | 4 | the SPL's low-voltage-detect level; the app later runs LVD 2.6 V (CLAUDE.md trap 12) |
+| `ENABLE_SDRAM`, `SDRAM_SIZE` | 0, 0 | no SDRAM; the other `SDRAM_*` keys are inert defaults |
+
+The SPL programs the PLL from these, and the stock app inherits the result.
+The app's CRT reads the clock tree and skips its own PLL programming when the
+PLL is already running, and the SPL always leaves it running [verified: V13
+and V15 bytes; logic read from AL-255's V13 decode]. fm1-x0x's debug build
+measured PLL 540 MHz, system clock 2/3 of it = 360 MHz, HSB 180, LSB 60 on an
+FM-1 running a Felucca-lineage loader, which never rewrites the flash head
+[reported: fm1-x0x `docs/plans/2026-10-04-dual-core-and-clock.md`; the match
+with stock's config is inferred]. The SDK's `clk_early_init` only reads this
+tree and never reprograms the system PLL, so an SDK app in a package that
+keeps stock `isd_config` runs at 360 MHz too [inferred, strong]. AL-255's
+"240 MHz" is a `pll_clock_init(24000000, 240000000)` call in a wrapper that
+nothing in V13 reaches [verified: V13 objdump]; it looks like an unused SDK
+routine [inferred]. The stock power profile that goes with 360 MHz (SYSVDD
+1.38 V, VDC14 1.60 V, both at the top setting) is above the SDK's table for
+320 MHz (1.26 V, 1.45 V) [reported: fm1-nes `board_power.c`; SDK
+`system_vdd_clock.c` verified]. There is no temperature or current data at
+360 MHz. Desk decode: `scratch/fm1-clock-2026-10-28.md` (private).
 
 The UFW header, stored entry list, flash payload and OTA payload use
 **CRC-16/XMODEM** (polynomial `0x1021`, initial value zero, no reflection or
@@ -62,7 +99,9 @@ the package.
    provisions only **one application bank**.
 3. **Application CRT** at `0x02000120`, the image's first byte (docs/01
    §2): set stacks, zero `.bss`, copy `.data` from `0x02084820`, save boot
-   parameters to `0x01C7FD50`, PLL to 240 MHz, board init (keys, ADC, SPI
+   parameters to `0x01C7FD50`, read the clock tree the SPL set (360 MHz) and
+   leave the PLL alone when it is already running [verified: V13/V15 bytes,
+   logic read from AL-255's V13 decode; docs/02 §2], board init (keys, ADC, SPI
    display, audio server at ~44.1 kHz), create `usr_app_task`, start the
    scheduler. The audio leaves over ALNK0 (I2S) to an external codec, not
    the internal DAC [reported: Felucca, fm1-nes; docs/01 §3.1].

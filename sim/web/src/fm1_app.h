@@ -176,9 +176,20 @@ extern "C" {
  * fm1_app_sound_unit and fm1_app_insert_unit give the others. */
 #define FM1_APP_UNITS (1 + FM1_APP_FX_SLOTS + (FM1_APP_SOUNDS - 1) + FM1_APP_SOUNDS * FM1_APP_INSERTS)
 #define FM1_APP_EFFECTS (FM1_APP_FX_SLOTS + FM1_APP_SOUNDS * FM1_APP_INSERTS)
+/* Optional render observer IDs follow the unit IDs. Stages enclose unit
+ * callbacks, so stage totals must not be added to unit totals. */
+enum fm1_app_profile_stage {
+  FM1_APP_PROFILE_SOUNDS, FM1_APP_PROFILE_MASTERS, FM1_APP_PROFILE_AMP,
+  FM1_APP_PROFILE_LIMITER, FM1_APP_PROFILE_SCOPE, FM1_APP_PROFILE_UI,
+  FM1_APP_PROFILE_STAGES
+};
 #define FM1_APP_MAX_FRAMES 64
 #define FM1_APP_MAX_PARAMS 32
 #define FM1_APP_SCOPE 512
+/* Visual work cadence; 1 restores the original cadence for A/B timing. */
+#ifndef FM1_APP_VISUAL_DIVISOR
+#define FM1_APP_VISUAL_DIVISOR 4
+#endif
 
 /* Pixels the screen keeps between any two labels, or a label and a bar
  * (fm1_tft_check_layout's gap in the tests). */
@@ -204,6 +215,11 @@ extern "C" {
  * every chain the simulator plays inside that budget. */
 #define FM1_APP_SOUND_BYTES (512u * 1024u)
 #define FM1_APP_FX_BYTES (256u * 1024u)
+/* Set consistently in every translation unit to omit simulator-only reserves.
+ * Engine storage is then supplied by fm1_app_init_arenas, without a heap. */
+#ifndef FM1_APP_EXTERNAL_ARENAS
+#define FM1_APP_EXTERNAL_ARENAS 0
+#endif
 
 /* RAM the stock layout leaves free (docs/11 §2, engines/README.md; part of
  * it is stock's heap, so this is an upper bound [inferred]). The meter
@@ -342,6 +358,8 @@ typedef struct fm1_app_unit {
   size_t cap;
   float value[FM1_APP_MAX_PARAMS];
   int driven;                    /* FM1_PARAM_DRIVEN as last sent (0: as created) */
+  const fm1_engine_t *lock_pages_engine; /* immutable page layout last counted */
+  int lock_pages;
 } fm1_app_unit_t;
 
 /* A tick's write to an effect or to AMP, at its frame in the block. */
@@ -394,6 +412,7 @@ typedef struct fm1_app {
   fm1_host_t host;
   fm1_host_t ram_host;           /* host at FM1_APP_RAM_RATE: the RAM rule's sizes */
   fm1_app_unit_t unit[FM1_APP_UNITS];   /* by id: see FM1_APP_UNITS */
+  uint8_t external_arenas;       /* project loads preserve host-owned storage */
   fm1_mix_limiter_t limiter;
   float master;                  /* MASTER position, 0..1 */
   float gain;                    /* master * master */
@@ -452,6 +471,7 @@ typedef struct fm1_app {
   uint64_t last_draw;            /* a->frames at the last redraw */
   float scope[FM1_APP_SCOPE];
   int scope_pos;
+  unsigned scope_block;
   float peak;                    /* largest output sample since the last redraw */
   float meter;                   /* level shown, with a falling decay */
   uint8_t led[FM1_APP_LEDS];     /* keys 0..26, then buttons in enum order */
@@ -539,8 +559,10 @@ typedef struct fm1_app {
   int store_ready;               /* a host store answers SAVE (fm1_app_saved) */
 
   fm1_tft_t tft;
+#if !FM1_APP_EXTERNAL_ARENAS
   unsigned char sound_mem[FM1_APP_SOUNDS][FM1_APP_SOUND_BYTES] FM1_APP_ALIGN16;
   unsigned char fx_mem[FM1_APP_EFFECTS][FM1_APP_FX_BYTES] FM1_APP_ALIGN16;
+#endif
   unsigned char seq_mem[FM1_APP_SEQ_BYTES] FM1_APP_ALIGN16;
   fm1_seq_ev_t seq_ev[FM1_APP_SEQ_EVENTS];
   unsigned char mod_mem[FM1_APP_MOD_BYTES] FM1_APP_ALIGN16;
@@ -555,6 +577,23 @@ typedef struct fm1_app {
  * FM1_APP_MOD_SEED and the default rack: LFO1, LFO2, ENV3, ENV4 and CHN5,
  * with RTRG cabled into both envelopes' GATE. */
 void fm1_app_init(fm1_app_t *a, float sample_rate);
+
+typedef struct {
+  unsigned char *mem;
+  size_t bytes;
+} fm1_app_arena_t;
+
+/* Initialize with one caller-owned arena per unit (unit ids, not sound ids).
+ * Storage must remain alive, be 16-byte aligned, and not overlap another arena,
+ * the descriptor array, or the app. {NULL, 0} disables an unused unit. Returns
+ * 0 on success, -1 on invalid storage/rate, leaving the app untouched on error.
+ * Call only on a fresh app; it does not destroy existing engine instances.
+ * Ordinary fm1_app_init keeps built-in arenas in the default build; with
+ * FM1_APP_EXTERNAL_ARENAS=1 it initializes every unit with zero capacity.
+ * Project loads preserve these arenas. Sequencer/modulation/UI storage and
+ * the render path are unchanged. */
+int fm1_app_init_arenas(fm1_app_t *a, float sample_rate,
+                        const fm1_app_arena_t arenas[FM1_APP_UNITS]);
 
 /* The registry index of an engine id, or -1. */
 int fm1_app_find(const char *id);
@@ -834,7 +873,8 @@ size_t fm1_app_ram_of(const fm1_engine_t *e);
  * the host saves the project and calls fm1_app_saved with the result:
  * `ok` shows the L1 banner "SAVED" with the RAM figure, else the refusal
  * "NOT SAVED" and `why`. Without a store the press says there is none.
- * Nothing is ever written to a device (CLAUDE.md, the one rule). */
+ * Nothing is ever written to a device (CLAUDE.md, hardware experimentation
+ * policy). */
 void fm1_app_saved(fm1_app_t *a, int ok, const char *why);
 
 /* For the state layer (fm1_app_state.c): a message popup (`tone`
