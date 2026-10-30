@@ -515,6 +515,15 @@ it in the arpeggiator's slot ([`engines/midi_fx/README.md`](engines/midi_fx/READ
 
 ### Saved state
 
+The [offline Workbench adapter](notes/workbench/formats.md) validates DX7 SysEx
+and wraps it as a normal Lunar sound, or exports its voice data back to SysEx.
+It reuses the state codec below, writes a separate loss/default report, and
+refuses lossy exports unless explicitly requested. Vendor project, timbre and
+sample-bank files have structural inspection only; they are not converted into
+Lunar songs. The tool performs no device operations. The
+[pinned inventory verifier](notes/workbench/inventory.md) checks the vendor kit
+against its source snapshot without executing vendor tools.
+
 Projects, sounds, effects chains, mod racks, clips, sets and settings are
 one record model with two encodings: canonical JSON for people, links, git
 and the coming web editor, and a chunked binary container (CRC-32 a chunk,
