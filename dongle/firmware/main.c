@@ -199,11 +199,12 @@ int main(void) {
 
     for (;;) {
         state_t st = selftest() ? ST_KEY : ST_FAULT;
+        bool ack_seen = false;
         if (st == ST_KEY) {
             int pol = key_phase();
             if (pol < 0) st = ST_FAILED;
             else {
-                st = ST_ACK; blink(3, 100);
+                st = ST_ACK; ack_seen = true;
                 pio_sm_set_enabled(pio, sm_key, false); lines_release(); pullups(true);
                 if (!wait_lines(true, true, ACK_RELEASE_TIMEOUT_MS))
                     dlog("ACK: lines not released within %d ms (D+=%d D-=%d), continuing", ACK_RELEASE_TIMEOUT_MS, dp(), dm());
@@ -217,6 +218,8 @@ int main(void) {
             }
         }
         pullups(false); lines_release(); mux_to_pc();
+        // LED indication is after hand-over: the ACK release/SOF timing must not wait for it.
+        if (ack_seen) blink(3, 100);
         // Idle until the button is pressed; LED shows the outcome.
         dlog("state=%s - press the button to restart (power-cycle the FM-1 first)",
              st == ST_DONE ? "DONE" : st == ST_FAULT ? "FAULT" : "FAILED");

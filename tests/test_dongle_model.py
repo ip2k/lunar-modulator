@@ -1,4 +1,6 @@
 """End-to-end simulation of the dongle logic against the ROM model."""
+from pathlib import Path
+
 import pytest
 
 from dongle.sim import cosim, pio_waveform
@@ -13,6 +15,16 @@ SOF_WAVE = pio_waveform.sof_waveform(1)
 
 def dongle(**kw):
     return DongleModel(key_waveform=KEY_WAVE, sof_waveform=SOF_WAVE, **kw)
+
+
+def test_firmware_ack_indicator_follows_bus_handoff():
+    """The model's immediate ACK release check must match the firmware path."""
+    source = (Path(__file__).resolve().parents[1] / "dongle/firmware/main.c").read_text()
+    ack = source.index("st = ST_ACK;")
+    timeout = source.index("wait_lines(true, true, ACK_RELEASE_TIMEOUT_MS)", ack)
+    handoff = source.index("pullups(false); lines_release(); mux_to_pc();", ack)
+    blink = source.index("blink(3, 100)", ack)
+    assert timeout < handoff < blink
 
 
 def test_config_constants():
@@ -36,7 +48,8 @@ def test_shared_pullup_pin_fails_the_sof_phase():
     rom = JieLiMaskRom(clock_line="dp")
     d = dongle(polarity_mode=POLARITY_DP_CLOCK, sof_mode=SOF_MODE_DONGLE)
     cosim.run(d, rom, max_us=600_000, pullup_node="shared")
-    assert d.state == "failed" and ("failed", d.log[-1][1], "dp_never_high") == d.log[-1], d.log
+    assert d.state == "failed" and d.log[-2] == ("failed", d.log[-2][1], "dp_never_high"), d.log
+    assert d.log[-1] == ("ack_indicator_after_handoff", d.log[-2][1])
     rom = JieLiMaskRom(clock_line="dp")
     d = dongle(polarity_mode=POLARITY_DP_CLOCK, sof_mode=SOF_MODE_DONGLE)
     cosim.run(d, rom, max_us=80_000)
@@ -55,6 +68,7 @@ def test_alternate_polarity_reaches_uboot_with_dongle_sof(rom_clock):
     assert abs(rom.measured_period_us - 1000) <= 1
     assert d.mux_pc and not d.pullups_on
     assert t < 80_000
+    assert d.log[-1] == ("ack_indicator_after_handoff", d.done_at)
 
 
 @pytest.mark.parametrize("rom_clock,pol", [("dp", POLARITY_DP_CLOCK), ("dm", POLARITY_DM_CLOCK)])
@@ -66,6 +80,17 @@ def test_fixed_polarity_pc_sof_hands_over_right_after_ack(rom_clock, pol):
     # the ACK is 1.5 ms long; the bus goes to the PC within a few ms of it
     assert d.done_at - d.ack_at < 5_000
     assert rom.state in ("sof_wait", "calibrated", "usb_ready")   # PC would now supply SOFs
+    assert d.log[-1] == ("ack_indicator_after_handoff", d.done_at)
+
+
+def test_ack_release_timeout_precedes_handoff_and_led_indicator():
+    rom = JieLiMaskRom(clock_line="dp", ack_us=50_000)
+    d = dongle(polarity_mode=POLARITY_DP_CLOCK, sof_mode=SOF_MODE_PC)
+    cosim.run(d, rom, max_us=30_000)
+    assert d.state == "done" and d.mux_pc
+    assert d.done_at - d.ack_at == PARAMS["ACK_RELEASE_TIMEOUT_MS"] * 1000
+    assert [event[0] for event in d.log[-3:]] == [
+        "ack_release_timeout", "done", "ack_indicator_after_handoff"]
 
 
 @pytest.mark.parametrize("rom_clock,pol", [("dp", POLARITY_DM_CLOCK), ("dm", POLARITY_DP_CLOCK)])
