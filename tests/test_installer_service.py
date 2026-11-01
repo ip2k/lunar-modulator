@@ -909,7 +909,7 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     assert (base / "input/docker_worker.py").stat().st_mode & 0o777 == 0o400
     command = adapter._command(build_id, base)
     joined = " ".join(command)
-    for option in ("--pull=never", "--cgroup-parent=docker-batch.slice", "--network=none", "--cpus=4", "--memory=6g",
+    for option in ("--pull=never", "--cgroup-parent=docker-batch.slice", "--network=none", "--cpus=4", "--cpuset-cpus=4-7", "--memory=6g",
                    "--memory-swap=6g", "--pids-limit=512", "--read-only",
                    "--cap-drop=ALL", "--security-opt=no-new-privileges",
                    f"--user {config.worker_uid}:{config.worker_gid}"):
@@ -1437,6 +1437,9 @@ def test_fastapi_lifespan_invokes_adapter_shutdown():
     adapter = ShutdownAdapter()
     app = __import__("tools.installer_service.api", fromlist=["create_app"]).create_app(
         adapter=adapter, template=TEMPLATE, module_kinds=MODULES, project_ids=PROJECTS)
-    with TestClient(app):
-        pass
+    with TestClient(app) as http:
+        response = http.post("/api/v1/builds", json=request_doc())
+        assert response.status_code == 202
+        assert adapter.jobs
     assert adapter.did_shutdown
+    assert not adapter.jobs and not adapter.submissions

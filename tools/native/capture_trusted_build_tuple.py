@@ -139,7 +139,9 @@ def _verified_generated_inputs(
     # later required to be clean and commit-pinned. This checks the no-bank
     # wave_tables.inc/json case too, and prevents an unselected bank from being
     # smuggled into the tuple inventory.
-    with tempfile.TemporaryDirectory(prefix="lunar-tuple-wave-") as temporary:
+    scratch_root = root / "scratch/installer-tuple-wave"
+    scratch_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="run-", dir=scratch_root) as temporary:
         expected_root = Path(temporary)
         expected_rows = _generate_wavetables_from_source(root, expected_root, namespaces)
         if expected_rows != wavetable["compressed_wave_tables"]:
@@ -798,7 +800,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         "--label", "lan.project=lunar-modulator",
         "--label", "lan.session=continuous-tuple-capture",
         "--cgroup-parent=docker-batch.slice", "--network=none",
-        "--cpu-quota=400000", "--cpu-period=100000", "--memory=6g",
+        "--cpu-quota=400000", "--cpu-period=100000", "--cpuset-cpus=4-7", "--memory=6g",
         "--memory-swap=6g", "--pids-limit=512", "--read-only",
         "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=1003:1003",
         "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=3221225472",
@@ -817,6 +819,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         raise ValueError("container command differs from fixed operator invocation")
     expected_resources = {
         "network_mode": "none", "cgroup_parent": "docker-batch.slice", "cpus": 4,
+        "cpuset_cpus": "4-7",
         "memory": 6442450944, "memory_swap": 6442450944, "pids_limit": 512,
         "readonly_rootfs": True, "cap_drop": ["ALL"],
         "security_opt": ["no-new-privileges"], "user": "1003:1003",
@@ -843,7 +846,8 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
             or not isinstance(host, dict)
             or host.get("network_mode") != "none" or host.get("cgroup_parent") != "docker-batch.slice"
             or host.get("readonly_rootfs") is not True or host.get("cpu_quota") != 400000
-            or host.get("cpu_period") != 100000 or host.get("nano_cpus") != 0
+            or host.get("cpu_period") != 100000 or host.get("cpuset_cpus") != "4-7"
+            or host.get("nano_cpus") != 0
             or host.get("privileged") is not False or host.get("devices") != []
             or host.get("device_requests") is not None or host.get("cap_add") is not None
             or host.get("pid_mode") != "" or host.get("ipc_mode") != "private"

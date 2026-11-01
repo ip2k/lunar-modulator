@@ -192,7 +192,9 @@ def _validate_preview(request_raw: bytes, request: dict, service_result: WorkerR
 
     # Reuse the service's established full manifest/receipt/catalogue/linked-
     # object validator instead of reimplementing its path and evidence rules.
-    with tempfile.TemporaryDirectory(prefix="lunar-service-evidence-") as temporary:
+    scratch_root = Path(__file__).resolve().parents[2] / "scratch/installer-service-evidence"
+    scratch_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="run-", dir=scratch_root) as temporary:
         result_dir = Path(temporary)
         evidence_root = result_dir / "evidence"
         evidence_root.mkdir(mode=0o700)
@@ -359,7 +361,7 @@ def _run_trusted_wrapper(source_root: Path, request_path: Path, toolchain_root: 
                                     completed.failure_reason or "nonzero_exit")
         except (OSError, ValueError):
             pass  # Unsafe/occupied destinations fail closed without overwriting them.
-    except OSError:
+    except (OSError, subprocess.SubprocessError):
         raise ValueError(error) from None
     finally:
         if root_fd is not None:

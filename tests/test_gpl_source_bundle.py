@@ -266,13 +266,17 @@ def test_generated_link_sources_fail_closed(tmp_path, mutation, message):
     with pytest.raises(ValueError,match=message):
         build_bundle(src,tup,prov,manifest,anchor,tmp_path/'bad.tgz',generated_link_root=generated)
 
-def test_runtime_inventories_and_named_recording_sources_are_selected():
+@pytest.mark.skipif(not (ROOT / "firmware/third_party/musl/inventory.json").is_file(),
+                    reason="native runtime inventories are absent from main; production startup refuses them")
+def test_runtime_inventories_are_selected():
     # The native runtime builders hash every inventory row, including notices.
     for component in ('musl','dinghy','compiler-rt','printf','tlsf','tinf','arduino-midi'):
         directory=ROOT/'firmware/third_party'/component
         inventory=json.loads((directory/'inventory.json').read_text())
         for name in inventory['files']:
             assert _selected((directory/name).relative_to(ROOT).as_posix())
+
+def test_named_recording_source_selection_is_bounded():
     for name in ('hh','ride','crash'):
         assert _selected(f'engines/third_party/fm1-x0x/assets/909/{name}.wav')
     assert not _selected('engines/third_party/fm1-x0x/assets/909/extra.wav')

@@ -652,6 +652,12 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
             shutdown = getattr(adapter, "shutdown", None)
             if callable(shutdown):
                 await asyncio.to_thread(shutdown)
+                # Workers are drained before removing only this process's jobs.
+                # A failed drain keeps evidence in place for recovery.
+                with lock:
+                    for build_id in tuple(admissions):
+                        adapter.delete(build_id)
+                        admissions.pop(build_id, None)
 
     app = FastAPI(title="Private Lunar diagnostic build prototype", docs_url=None,
                   redoc_url=None, openapi_url=None, lifespan=lifespan)

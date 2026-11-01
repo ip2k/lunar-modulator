@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: MIT
-"""Versioned contract for the private Hall-O2 native diagnostic build."""
+"""Versioned contract for the private Hall-O2 native diagnostic build.
+
+Historical contract extracted from cccd21cc; these constants are required receipt
+values, not measurements of the current source checkout. A new build must bind
+its exact source, toolchain, catalogue and outputs; hardware/release stay pending."""
 from __future__ import annotations
 
 import hashlib
