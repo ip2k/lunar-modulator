@@ -692,14 +692,16 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames);
  * `len` when the whole line went in, less when the room ran out before an
  * op (the caller sends the rest, from there, after the next render, before
  * anything newer), 0 while a held command waits. A line with a leading
- * "#<n>;" batch tag goes in whole or not at all (the tag is the core's). */
+ * "#<n>;" batch tag goes in whole or not at all (the tag is the core's).
+ * Consumed bytes report admission, not semantic edit success. */
 size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len);
 /* Realtime transport input, without changing content generation. 1 consumed
  * (including unknown status/no sequencer), 0 retry after rendering for room. */
 int fm1_app_seq_realtime(fm1_app_t *a, uint8_t status);
 
 /* One typed command (the UI's): FM1_APP_SEQ_APPLIED, _HELD, _BUSY or
- * _REFUSED. */
+ * _REFUSED. These report admission; a core edit may still refuse its data
+ * (stats.refused). Panel Capture reports that case through its popup. */
 int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c);
 
 /* Live notes for recording and Capture (velocity 0 releases), at frame 0

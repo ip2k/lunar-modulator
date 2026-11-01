@@ -56,13 +56,38 @@ The exact maximum fresh window (tick 0 through 6,144) still captures to 256
 steps and roundtrips; tick 6,145 refuses without mutation. Compatibility
 arithmetic is unchanged. The focused C probe now covers 12 cases.
 
-Observability seam (reported to coordinator before any app/UI edits): app
-command return values and browser text API return admission/bytes consumed,
-not semantic edit success. Native render telemetry already exposes
-`seq_refused`. Panel sync sees the unchanged `capture_gen`, restores pending
-history/REC LED and says “Nothing to capture”, never “Captured”; that wording
-needs a refusal toast for unchanged generation with remaining history. The
-browser's 61-word transport mirror currently carries no refusal counter.
+[verified] The authorized panel seam now snapshots the core's actual refusal
+counter immediately before sending Capture. On sync, unchanged capture
+generation plus a new refusal and retained pending history uses the existing
+refusal popup: “Not captured / Clip limit reached / Take kept”. The appended
+toast enum preserves all prior IDs. Empty takes still say “Nothing to capture”;
+a valid held/incomplete note still says “Captured”. History alone is not
+used to infer refusal. App and browser text API return values remain command
+admission/bytes consumed, not semantic edit results; their comments now state
+that contract. Native render telemetry already exposes `seq_refused`. The
+browser's 61-word transport mirror is unchanged; no telemetry API expansion.
+
+[verified] The standalone actual-app regression links the complete production
+app, engine and metadata objects (GPL switch on), selects built-in `test-sine`
+through the public API, and drives public note, text and panel entry points.
+It checks empty takes, refused/history/generation/clip invariants and popup,
+then an empty take after an old refusal, and successful held-note Capture.
+The popup render has zero layout faults, truncation or overflow; its saved
+240×240 screenshot was visually inspected for overlap and clipping. Build
+variants follow the main app harness's flag/GPL isolation. Final normal
+Capture checks: 45 passed, 127 deselected, 9.09 s. The 12-case C regression
+passes ASan/UBSan with leak detection and halt-on-error. The actual-app test
+also passes ASan/UBSan, 1 test in 14.42 s, including its instrumented engines.
+
+[verified] Mac arm64 and Linux x86-64 report UI size 664→672 bytes and app
+size unchanged at 4,960,112 bytes (existing padding absorbs the increase).
+GCC 13.3 -O2 stack usage for `fm1_seq_ui_sync` is 1,456→1,472 bytes and for
+`fm1_seq_ui_button` 384→400 bytes, both static; the new stats snapshot adds
+no large scratch array. Final core stack remains 160 bytes, dynamic/bounded.
+After checked endpoint bounds, the same full-ring benchmark averages 90.2 µs
+(maximum 226.4 µs) on the valid worst-case scan and 0.36 µs (maximum 3.83 µs)
+on its now-early refusal. No 32-bit app layout, pi32v2 stack/deadline or
+aggregate native-runtime RAM acceptance is claimed.
 
 Small logs/probe sources: this worktree's ignored `scratch/sequencer-ci/`.
 LAN containers use CPUs 0–3, four CPUs / 6 GiB, `docker-batch.slice`, `--rm`

@@ -228,7 +228,8 @@ enum {
   FM1_SEQ_TOAST_SONG_CLEARED,       /* the confirm's `sgclr` */
   FM1_SEQ_TOAST_CLIP_DELETED,       /* the confirm's `clipdel` or `clipdelat` */
   FM1_SEQ_TOAST_CLIP_COPIED,        /* COPY + a slot in Session: `clipcopy` */
-  FM1_SEQ_TOAST_CLIP_PASTED         /* COPY + another slot: `clippaste` */
+  FM1_SEQ_TOAST_CLIP_PASTED,        /* COPY + another slot: `clippaste` */
+  FM1_SEQ_TOAST_CAPTURE_REFUSED     /* take did not fit; history remains available */
 };
 
 /* What REC's press did, for its release (fm1_seq_ui_t.rec_role). */
@@ -430,6 +431,7 @@ typedef struct fm1_seq_ui {
   uint8_t cap_sent;                 /* a `cap` went: the next sync says what it did */
   uint16_t capture_cands[3];        /* candidate tempos, BPM, ascending */
   uint32_t capture_gen, cap_gen_sent;
+  uint32_t cap_refused_sent;        /* core refusal count before that `cap` */
 
   /* Tracks, mute and the pages (S6). The set's and the focused track's
    * settings are read once per block, and moved at once by the commands
