@@ -463,6 +463,58 @@ def test_repairs_and_skips_are_counted(tool, names, name, text, counts):
     assert report["code"] == "OK", report
     for k, v in counts.items():
         assert report[k] == v, (k, report)
+
+
+@pytest.mark.parametrize("text,count", [
+    (SND % ('"Unison": 1', ""), "skipped"),
+    (SND % ('"Shape": 999', ""), "repaired"),
+])
+def test_strict_pack_refuses_loss_while_default_remains_compatible(tool, tmp_path, text, count):
+    default = tmp_path / "default.lunarbin"
+    strict = tmp_path / "strict.lunarbin"
+    assert run(tool, "pack", "-", "-o", default, data=text.encode()).returncode == 0
+    refused = run(tool, "pack", "-", "--strict", "-o", strict, data=text.encode())
+    assert refused.returncode == 1
+    report = json.loads(refused.stderr.decode().splitlines()[-1])
+    assert report["code"] == "BAD" and report[count] == 1
+    assert "strict pack" in report["what"]
+    assert not strict.exists()
+
+
+def test_strict_pack_preserves_valid_bytes(tool, tmp_path):
+    source = (EXAMPLES / "init-starters" / "shapes-init.lunar").read_bytes()
+    default = tmp_path / "default.lunarbin"
+    strict = tmp_path / "strict.lunarbin"
+    assert run(tool, "pack", "-", "-o", default, data=source).returncode == 0
+    result = run(tool, "pack", "-", "--strict", "-o", strict, data=source)
+    assert result.returncode == 0, result.stderr.decode()
+    assert strict.read_bytes() == default.read_bytes()
+
+    binary_default = tmp_path / "binary-default.lunarbin"
+    binary_strict = tmp_path / "binary-strict.lunarbin"
+    assert run(tool, "pack", default, "-o", binary_default).returncode == 0
+    assert run(tool, "pack", default, "--strict", "-o", binary_strict).returncode == 0
+    assert binary_strict.read_bytes() == binary_default.read_bytes()
+
+
+def test_native_prepare_refuses_lossy_project_pack(tool, tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(ROOT / "tools" / "native"))
+    from tools.native.prepare_image_profile import prepare
+
+    source = json.loads((EXAMPLES / "init-starters" / "shapes-init.lunar").read_text())
+    profile = tmp_path / "profile.json"
+    profile.write_text(json.dumps({"version": 1, "engines": ["shapes"],
+                                   "content": ["project.lunar"]}))
+    project = tmp_path / "project.lunar"
+    project.write_text(json.dumps(source))
+    valid = prepare(profile, tool, tmp_path / "valid")
+    assert valid["content"][0]["kind"] == "project"
+
+    source["sounds"][0]["params"]["Volumee"] = source["sounds"][0]["params"].pop("Volume")
+    project.write_text(json.dumps(source))
+    with pytest.raises(ValueError, match="strict pack"):
+        prepare(profile, tool, tmp_path / "lossy")
+    assert not (tmp_path / "lossy" / "profile.json").exists()
     rep = ls.read_json(text.encode(), names)[1]
     for k, v in counts.items():
         assert getattr(rep, k) == v, k
