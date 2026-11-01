@@ -62,3 +62,25 @@ No actual HTTP listener/container/native execution acceptance is claimed here.
 Preparatory independent review identified request canonicalization dropping an
 unknown empty set_ids field from result summaries. Summary validation now requires
 the exact expected key set before comparing values; a causal regression refuses it.
+
+Independent composition review then found the inherited Docker adapter removed
+its ownership maps before an ignored filesystem removal, making get(None) false
+cleanup evidence. The actual delete method now retains maps/capacity until lstat
+confirms the exact owned directory entry is absent, under the lifecycle lock.
+Removal errors, no-op removal, symlinks and inaccessible entries retain recovery
+state. Tracked live workers/processes cannot lose their paths. Selected records
+also require terminal status and confirmed container cleanup. There is no Docker
+operation in delete and no name-only cleanup. The worker integration must retain
+its selected_inputs/selected_verified maps until this same confirmation succeeds;
+that separate branch is not incorporated here.
+
+Three causal regressions failed against 25d962b before the correction: API
+capacity-one expiration after no-op/raised removal, and shutdown after no-op
+removal. Production delete tests now cover recovery success, lock ownership,
+live/uncertain guards and the cancelled HTTP waiter followed by shutdown.
+Submission, results and container state are synthetic; deletion is the actual
+production method on owned fixture directories. Focused five-suite result:
+238 passed, one expected retained-input skip. RED/GREEN logs and final combined
+results are retained under scratch/selected-trio-api/cleanup-*.log; disposable
+basetemps are removed after the run. No listener, container, native build,
+device traffic, private donor data or production capability was used or enabled.

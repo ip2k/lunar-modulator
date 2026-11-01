@@ -25,6 +25,7 @@ from .docker_worker import GENERATED_EVIDENCE_PATHS, generated_evidence_paths
 from .provenance import (make_diagnostic_provenance, sha256 as _sha256,
                          tree_manifest)
 from .process_capture import run_bounded
+from .selected_trio_profile import SELECTED_TRIO_PROFILE
 
 _BUILD_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 _CONTAINER_ID = re.compile(rb"[0-9a-f]{64}\n?\Z")
@@ -741,9 +742,41 @@ class DockerJobAdapter:
         with self.lock:
             if build_id in self.cleanup_unconfirmed:
                 return  # Keep both the job and its exact private evidence for recovery.
+            worker = self.threads.get(build_id)
+            proc = self.processes.get(build_id)
+            if ((worker is not None and worker.is_alive()) or
+                    (proc is not None and proc.poll() is None)):
+                return  # A live producer may still use or recreate these paths.
+            snapshot = self.jobs.get(build_id)
+            if (getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE
+                    and snapshot is not None
+                    and (snapshot.status in ("queued", "running")
+                         or build_id not in self.cleanup_confirmed)):
+                return
+            base = self.job_dirs.get(build_id)
+            if base is None and snapshot is not None:
+                return  # Missing ownership metadata is not proof of removal.
+            if base is not None:
+                # Keep ownership and capacity until absence is confirmed. Hold
+                # the lifecycle lock so another submit/finalizer cannot reuse
+                # this ID while removal is in progress. lstat distinguishes an
+                # absent entry from a symlink or an inaccessible directory.
+                try:
+                    try:
+                        base.lstat()
+                    except FileNotFoundError:
+                        pass
+                    else:
+                        shutil.rmtree(base)
+                    try:
+                        base.lstat()
+                    except FileNotFoundError:
+                        pass
+                    else:
+                        return
+                except OSError:
+                    return
             self.jobs.pop(build_id, None)
             self.created.pop(build_id, None)
             self.cleanup_confirmed.discard(build_id)
-            base = self.job_dirs.pop(build_id, None)
-        if base is not None:
-            shutil.rmtree(base, ignore_errors=True)
+            self.job_dirs.pop(build_id, None)

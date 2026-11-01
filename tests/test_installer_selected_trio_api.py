@@ -5,6 +5,7 @@ from dataclasses import replace
 import hashlib
 import json
 import threading
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 import pytest
@@ -13,6 +14,7 @@ from tools.installer_service.api import (FakeJobAdapter, WorkerResult, WorkerSna
     WorkerTemplate, create_selected_trio_app)
 from tools.installer_service import selected_trio_profile as profile
 from tools.installer_service.request_contract import canonical_request
+from tools.installer_service.docker_adapter import DockerJobAdapter
 
 PATH = "/api/v2/offline-builds"
 COMMIT, TREE = "a" * 40, "b" * 40
@@ -60,6 +62,146 @@ class Adapter(FakeJobAdapter):
     def delete(self, identifier):
         self.events.append("delete")
         super().delete(identifier)
+
+
+class ProductionCleanupAdapter(Adapter):
+    """Synthetic submission/result, but the actual production cleanup method."""
+
+    def delete(self, identifier):
+        self.events.append("delete")
+        DockerJobAdapter.delete(self, identifier)
+
+    def __init__(self, runtime):
+        super().__init__()
+        self.runtime = runtime
+        self.config = SimpleNamespace(profile_id=profile.SELECTED_TRIO_PROFILE)
+        self.lock = threading.RLock()
+        self.created, self.job_dirs, self.threads, self.processes = {}, {}, {}, {}
+        self.cleanup_confirmed, self.cleanup_unconfirmed = set(), set()
+
+    def submit(self, identifier, *args):
+        super().submit(identifier, *args)
+        base = self.runtime / identifier
+        base.mkdir()
+        (base / "private-evidence").write_bytes(b"owned synthetic evidence")
+        self.created[identifier] = 0
+        self.job_dirs[identifier] = base
+
+    def complete(self, identifier, result=None):
+        self.cleanup_confirmed.add(identifier)
+        return super().complete(identifier, result)
+
+    def fail(self, identifier):
+        self.cleanup_confirmed.add(identifier)
+        super().fail(identifier)
+
+    def shutdown(self):
+        self.events.append("shutdown")
+        DockerJobAdapter.shutdown(self)
+
+
+@pytest.mark.parametrize("failure", ["noop", "error"])
+def test_actual_delete_keeps_capacity_and_evidence_until_confirmed_recovery(tmp_path, monkeypatch, failure):
+    from tools.installer_service import docker_adapter
+    adapter = ProductionCleanupAdapter(tmp_path)
+    now = [0]
+    original = docker_adapter.shutil.rmtree
+    def refuse(*args, **kwargs):
+        if failure == "error": raise PermissionError("synthetic removal denied")
+    monkeypatch.setattr(docker_adapter.shutil, "rmtree", refuse)
+    with TestClient(app(adapter, record_cap=1, clock=lambda:now[0], retention_seconds=60),
+                    base_url="http://localhost") as client:
+        identifier = submit(client)
+        adapter.fail(identifier)
+        base = adapter.job_dirs[identifier]
+        now[0] = 61
+        assert client.get(PATH + "/" + identifier).json()["status"] == "failed"
+        assert client.post(PATH, json=request()).status_code == 429
+        assert adapter.get(identifier).status == "failed"
+        assert adapter.job_dirs[identifier] == base and identifier in adapter.created
+        assert identifier in adapter.cleanup_confirmed
+        assert (base / "private-evidence").read_bytes() == b"owned synthetic evidence"
+        monkeypatch.setattr(docker_adapter.shutil, "rmtree", original)
+        assert client.get(PATH + "/" + identifier).status_code == 404
+        assert adapter.get(identifier) is None and not base.exists()
+        assert identifier not in adapter.job_dirs and identifier not in adapter.created
+        assert identifier not in adapter.cleanup_confirmed
+        adapter.fail(submit(client))
+    assert not adapter.jobs and not list(tmp_path.iterdir())
+
+
+def test_actual_delete_shutdown_retains_failed_removal_for_later_recovery(tmp_path, monkeypatch):
+    from tools.installer_service import docker_adapter
+    adapter = ProductionCleanupAdapter(tmp_path)
+    with monkeypatch.context() as patch:
+        patch.setattr(docker_adapter.shutil, "rmtree", lambda *a, **k:None)
+        with TestClient(app(adapter, record_cap=1), base_url="http://localhost") as client:
+            identifier = submit(client)
+            adapter.fail(identifier)
+            base = adapter.job_dirs[identifier]
+        assert adapter.get(identifier).status == "failed" and base.is_dir()
+    adapter.delete(identifier)
+    assert adapter.get(identifier) is None and not base.exists()
+
+
+@pytest.mark.parametrize("guard", ["container", "worker", "process", "queued", "running",
+    "unconfirmed", "missing-owner", "symlink", "stat-error"])
+def test_actual_delete_preserves_live_or_uncertain_ownership(tmp_path, monkeypatch, guard):
+    from pathlib import Path
+    from tools.installer_service import docker_adapter
+    adapter = ProductionCleanupAdapter(tmp_path)
+    identifier = "a" * 32
+    adapter.submit(identifier, b"{}", "unused", TEMPLATE)
+    adapter.fail(identifier)
+    base = adapter.job_dirs[identifier]
+    if guard == "container": adapter.cleanup_unconfirmed.add(identifier)
+    elif guard == "worker": adapter.threads[identifier] = SimpleNamespace(is_alive=lambda:True)
+    elif guard == "process": adapter.processes[identifier] = SimpleNamespace(poll=lambda:None)
+    elif guard in ("queued", "running"): adapter.jobs[identifier] = WorkerSnapshot(guard)
+    elif guard == "unconfirmed": adapter.cleanup_confirmed.clear()
+    elif guard == "missing-owner": adapter.job_dirs.pop(identifier)
+    elif guard == "symlink":
+        moved = tmp_path / "foreign"
+        base.rename(moved)
+        base.symlink_to(moved, target_is_directory=True)
+    elif guard == "stat-error":
+        original = Path.lstat
+        def inaccessible(path):
+            if path == base: raise PermissionError("synthetic inaccessible entry")
+            return original(path)
+        monkeypatch.setattr(Path, "lstat", inaccessible)
+    if guard != "symlink":
+        monkeypatch.setattr(docker_adapter.shutil, "rmtree", lambda *a, **k:pytest.fail("no removal"))
+    adapter.delete(identifier)
+    assert adapter.get(identifier).status == (guard if guard in ("queued", "running") else "failed")
+    assert identifier in adapter.created
+    assert identifier in adapter.cleanup_confirmed or guard == "unconfirmed"
+    assert (base / "private-evidence").read_bytes() == b"owned synthetic evidence"
+
+
+def test_actual_delete_serializes_ownership_until_confirmed_absence(tmp_path, monkeypatch):
+    from tools.installer_service import docker_adapter
+    adapter = ProductionCleanupAdapter(tmp_path)
+    identifier = "b" * 32
+    adapter.submit(identifier, b"{}", "unused", TEMPLATE)
+    adapter.fail(identifier)
+    base = adapter.job_dirs[identifier]
+    entered, release = threading.Event(), threading.Event()
+    original = docker_adapter.shutil.rmtree
+    def blocked(path):
+        entered.set()
+        assert release.wait(3)
+        original(path)
+    monkeypatch.setattr(docker_adapter.shutil, "rmtree", blocked)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        deletion = executor.submit(adapter.delete, identifier)
+        try:
+            assert entered.wait(2)
+            assert not adapter.lock.acquire(blocking=False)
+            assert identifier in adapter.jobs and adapter.job_dirs[identifier] == base
+        finally: release.set()
+        deletion.result(timeout=3)
+    assert adapter.get(identifier) is None and not base.exists()
 
 
 def app(adapter, **changes):
@@ -227,10 +369,12 @@ def test_unconfirmed_cleanup_keeps_record_capacity_until_actual_delete():
         submit(client)
 
 
-def test_cancelled_http_waiter_does_not_release_verification_or_cleanup_early(monkeypatch):
+@pytest.mark.parametrize("production_cleanup", [False, True])
+def test_cancelled_http_waiter_does_not_release_verification_or_cleanup_early(monkeypatch, tmp_path, production_cleanup):
     import asyncio
     from tools.installer_service import api
-    adapter=Adapter();entered=threading.Event();release=threading.Event();draining=threading.Event()
+    adapter=ProductionCleanupAdapter(tmp_path) if production_cleanup else Adapter()
+    entered=threading.Event();release=threading.Event();draining=threading.Event()
     class ObservedExecutor(ThreadPoolExecutor):
         def shutdown(self,*args,**kwargs):
             draining.set()
