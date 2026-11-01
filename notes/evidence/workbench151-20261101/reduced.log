@@ -1,0 +1,23 @@
+lost true 19 [
+  'pointerdown', 'mousedown',
+  'pointerup',   'mouseup',
+  'click',       'click',
+  'pointerdown', 'mousedown',
+  'pointerup',   'mouseup'
+]
+lost true 31 [
+  'pointerdown', 'mousedown',
+  'pointerup',   'mouseup',
+  'click',       'click',
+  'pointerdown', 'mousedown',
+  'pointerup',   'mouseup'
+]
+lost true 96 [
+  'pointerdown', 'mousedown',
+  'pointerup',   'mouseup',
+  'click',       'click',
+  'pointerdown', 'mousedown',
+  'pointerup',   'mouseup'
+]
+{"locking":true,"lost":3,"count":97}
+{"locking":false,"lost":0,"count":100}

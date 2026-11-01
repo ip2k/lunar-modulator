@@ -299,8 +299,18 @@ export function makeSequencer(ctx) {
   }
   async function action(fn) {
     if (state.busy || !fn) return;
-    lock(true);
-    try { await fn(); } catch (e) { announce(e.message, true); } finally { lock(false); }
+    // A synchronous transport postMessage has no pending work to lock. In
+    // WebKit, disabling/re-enabling its fieldset during click dispatch can
+    // suppress the next rapid click even though its pointer events arrive.
+    let pending = false;
+    try {
+      const result = fn();
+      if (result && typeof result.then === 'function') {
+        pending = true; lock(true);
+        await result;
+      }
+    } catch (e) { announce(e.message, true); }
+    finally { if (pending) lock(false); }
   }
   function selectClip(t, s, open = false) {
     if (open) changeView('Clip');
