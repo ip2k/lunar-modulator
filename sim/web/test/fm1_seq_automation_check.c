@@ -66,6 +66,12 @@ static void lock(unsigned frame, unsigned track, unsigned lane, unsigned value) 
   fm1_seq_ev_t *e = &app.seq_ev[app.seq_host.n++];
   memset(e, 0, sizeof *e);
   e->kind=FM1_SEQ_EV_LOCK; e->frame=frame; e->track=track; e->a=lane; e->b=value;
+  /* Handmade LOCK events carry the same immutable identity as core events. */
+  const char *label = fm1_seq_lane_label(app.seq, (uint8_t)track, (uint8_t)lane);
+  memcpy(e->label, label, strlen(label) + 1u);
+  fm1_seq_track_info_t ti;
+  if (lane < FM1_SEQ_LANES && fm1_seq_get_track(app.seq, (uint8_t)track, &ti))
+    e->lane_base = ti.base[lane];
 }
 static void render(unsigned n) {
   app.mod_nwr=0; app.seq_nmix=0;
@@ -169,6 +175,77 @@ static int release_and_legacy(void) {
   CHECK(probes[6].value[0]==1); /* reserved labels did not change legacy focus support */
   return 0;
 }
+/* Core events emitted before a lane is freed/reused keep their old target
+ * and base through the app's insert/master/mixer hook, in emission order. */
+static int queued_lane_identity(void) {
+  static const char *const old_label[] = { "in1:Mix", "m1:Mix", "mix:Level" };
+  static const char *const new_label[] = { "in2:Mix", "m2:Mix", "in1:Mix" };
+  static const int old_unit[] = { 6, 1, FM1_APP_UNITS };
+  static const int new_unit[] = { 7, 2, 6 };
+  for (unsigned kind = 0; kind < 3; ++kind) {
+    for (unsigned reuse = 0; reuse < 2; ++reuse) {
+      char text[256];
+      setup();
+      snprintf(text,sizeof text,"route 0 1 0;clen 0 16;alabel 0 0 %s;abaseq 0 0 96;aset 0 0 1 0 1;play",old_label[kind]);
+      CHECK(line(text)); render(64);
+      CHECK(app.seq_target[0][0].active);
+      CHECK(line("aset 0 0 1 90;aclr 0 0"));
+      if (reuse) {
+        snprintf(text,sizeof text,"alabel 0 0 %s;abaseq 0 0 48;aset 0 0 1 70",new_label[kind]);
+        CHECK(line(text));
+      }
+      unsigned locks = 0;
+      for (unsigned n = 0; n < app.seq_host.n; ++n) {
+        const fm1_seq_ev_t *e = &app.seq_ev[n];
+        if (e->kind != FM1_SEQ_EV_LOCK) continue;
+        CHECK(locks < (reuse ? 3u : 2u));
+        CHECK(!strcmp(e->label, locks < 2 ? old_label[kind] : new_label[kind]));
+        CHECK(e->lane_base == (locks < 2 ? 96 : 48));
+        CHECK(e->b == (locks == 0 ? 90 : locks == 1 ? 96 : 70));
+        ++locks;
+      }
+      CHECK(locks == (reuse ? 3u : 2u));
+      render(1);
+      /* Boundary restoration, then the audition and its reset must all reach
+       * the old target; testing only the final value would miss dropped events. */
+      const float values[3] = { 96.0f/127.0f, 90.0f/127.0f, 96.0f/127.0f };
+      unsigned old_writes = 0, new_writes = 0;
+      if (kind == 2) {
+        for (unsigned n = 0; n < app.seq_nmix; ++n) {
+          CHECK(old_writes < 3 && app.seq_mix[n].sound == 0 && app.seq_mix[n].frame == 0);
+          CHECK(NEAR(app.seq_mix[n].level,100.0f*values[old_writes]));
+          ++old_writes;
+        }
+        CHECK(NEAR(app.seq_level[0],100.0f*96.0f/127.0f));
+      }
+      for (unsigned n = 0; n < app.mod_nwr; ++n) {
+        const fm1_app_mod_write_t *w = &app.mod_wr[n];
+        if (kind < 2 && w->w.unit == fm1_app_mod_unit(old_unit[kind])) {
+          CHECK(old_writes < 3 && w->frame == 0 && w->w.index == 0);
+          CHECK(NEAR(w->w.value,values[old_writes])); ++old_writes;
+        } else {
+          CHECK(reuse && w->w.unit == fm1_app_mod_unit(new_unit[kind]) && w->w.index == 0);
+          CHECK(NEAR(w->w.value,70.0f/127.0f)); ++new_writes;
+        }
+      }
+      CHECK(old_writes == 3 && new_writes == reuse);
+      CHECK(app.seq_target[0][0].active == reuse);
+      CHECK(app.seq_target[0][0].base == (reuse ? 48 : 96));
+      if (reuse) CHECK(app.seq_target[0][0].unit == new_unit[kind]);
+      else CHECK(app.seq_target[0][0].unit == old_unit[kind]);
+      if (kind < 2) CHECK(NEAR(probes[old_unit[kind]].value[0],96.0f/127.0f));
+      if (reuse) {
+        CHECK(NEAR(probes[new_unit[kind]].value[0],70.0f/127.0f));
+        CHECK(line("aclr 0 0")); render(1);
+        CHECK(!app.seq_target[0][0].active && app.seq_target[0][0].base == 48);
+        CHECK(NEAR(probes[new_unit[kind]].value[0],48.0f/127.0f));
+      }
+      CHECK(app.seq_auto_dropped == 0 && app.seq_auto_refused == 0);
+    }
+  }
+  return 0;
+}
+
 static int modulation(void) {
   char err[256];
   setup(); fm1_app_mod_reset(&app,7);
@@ -395,7 +472,7 @@ static int lock_page_replacement(void) {
 }
 int main(int argc, char **argv) {
   if(argc>1 && !strcmp(argv[1],"--meter-bench")) return meter_bench();
-  if(labeled_lanes() || timing() || stop_reset() || routes_types_mask() || release_and_legacy() || modulation() || panel_targets() || meters() || lock_page_replacement()) return 1;
+  if(labeled_lanes() || timing() || stop_reset() || routes_types_mask() || release_and_legacy() || queued_lane_identity() || modulation() || panel_targets() || meters() || lock_page_replacement()) return 1;
   puts("PASS sample frames, isolation, inserts/master/mix, D6, knob bases, reset, routes, enum/log, NOLOCK/PER_FOCUS, masks and modulation precedence");
   return 0;
 }

@@ -257,23 +257,17 @@ enum {
 /* A sound unit's level into the mix, in percent (100: unity, as before). */
 #define FM1_APP_LEVEL_MAX 100.0f
 
-/* The sequencer (docs/15 §2.5 and §2.6). Its instance takes the FM-1's
- * default limits (fm1_seq_limits_default) for FM1_APP_SEQ_TRACKS tracks:
- * 32,072 B at 8 tracks, Capture included, the same on 32- and 64-bit
- * builds. Every block's commands and events share one buffer of
- * FM1_APP_SEQ_EVENTS (3,264 B). With the pending command record (240 B),
- * the UI state (fm1_seq_ui_t, at most 1,024 B) and the metronome's click
- * voice (20 B) that is 36,620 B of the sequencer's 36,864 B budget, half of
- * docs/13 §5's 72 KiB. The track count is the owner's decision O3 (docs/15
- * §8, answered 2026-10-02): 8, the count the firmware will use (4 would
- * have left room for docs/13's undo ring). The buffer was 256 events until
- * stage S6: one short of the worst burst measured, seq_bench's 193 events
- * in a block beside the 64 gates' note-offs the core keeps room for (257);
- * 272 holds it whole, and fits the budget at 8 tracks. */
+/* The sequencer (docs/15 §2.5 and §2.6). At eight default tracks its
+ * instance is 32,080 B (Capture included), within the 32,768-byte arena.
+ * Commands/events share 272 immutable-target events (9,792 B at 36 B each).
+ * Pending command (240 B), UI bound (1,024 B) and click voice (20 B) make
+ * 43,156 B of the approved 44 KiB sequencer budget (2026-11-01). Aggregate
+ * native runtime RAM fit is checked separately. The buffer holds the S6
+ * measured worst burst of 257 events, including gate note-offs. */
 #define FM1_APP_SEQ_TRACKS 8
 #define FM1_APP_SEQ_BYTES 32768u      /* the instance's arena */
 #define FM1_APP_SEQ_EVENTS 272u       /* the block's event buffer, in events */
-#define FM1_APP_SEQ_BUDGET 36864u     /* the sequencer's share of FM-1 RAM */
+#define FM1_APP_SEQ_BUDGET 45056u     /* the sequencer's share of FM-1 RAM */
 #define FM1_APP_SEQ_UI_BYTES 1024u    /* the SEQ mode UI state's bound */
 
 /* Modulation (docs/16 MG3): the runtime's memory (fm1_mod_size(), the same
