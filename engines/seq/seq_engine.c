@@ -1108,8 +1108,7 @@ static void song_restart_at(fm1_seq_t *s, unsigned entry) {
   }
   s->song_pos = (uint16_t)song_entry_first(s, entry);
   s->song_has_start = 0;
-  song_entry_at(s, s->song_pos, &scene, &reps);
-  sq_launch_scene(s, scene);
+  if (song_entry_at(s, s->song_pos, &scene, &reps)) sq_launch_scene(s, scene);
 }
 
 /* After an edit that left the playing entry in place: redo a stale arm (the
