@@ -201,6 +201,8 @@ enum { FM1_SEQ_ROUTE_MIDI = 0, FM1_SEQ_ROUTE_ENGINE = 1 };
 
 /* Bytes one instance needs under *lim, or 0 if the limits are out of range. */
 size_t fm1_seq_size(const fm1_seq_limits_t *lim);
+/* Existing instance allocation extent, for caller scratch-overlap checks. */
+size_t fm1_seq_instance_size(const fm1_seq_t *s);
 
 /* Builds an instance in mem (fm1_seq_size(lim) bytes, 8-byte aligned). Tempo
  * 120.00 BPM, stopped, every clip empty. NULL on bad limits or alignment. */

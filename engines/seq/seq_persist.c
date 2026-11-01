@@ -30,6 +30,8 @@
  */
 #include "seq_int.h"
 
+size_t fm1_seq_instance_size(const fm1_seq_t *s) { return s ? fm1_seq_size(&s->lim) : 0; }
+
 /* ---- Export ------------------------------------------------------------- */
 
 typedef struct {
