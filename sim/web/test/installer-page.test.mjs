@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mountInstallerPage } from '../www/installer-page.js';
+import { MAX_SAVED_REQUEST_BYTES, parseSavedRequest, mountInstallerPage } from '../www/installer-page.js';
 
 class Element {
   constructor(tagName, ownerDocument) {
@@ -527,4 +527,179 @@ test('profile selector explicitly changes runtime, preserves choices and clears 
   await select.dispatch('change');
   await button.dispatch('click');
   assert.deepEqual(requests[2], { ...requests[0], flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' });
+});
+
+
+function requestImportFixture() {
+  const inputCatalogue = structuredClone(catalogue);
+  inputCatalogue.sets = [{
+    id: 'replacement-showcase-event-horizon-companion-set', title: 'Companion',
+    parent_project_id: ids[5], source_dependency_scan_complete: false, dependency_scan_complete: false,
+  }];
+  const document = new Document();
+  const root = new Element('div', document);
+  for (const [id, tag] of [['installer-modules', 'div'], ['installer-export-status', 'p'],
+    ['installer-build-profile', 'select'], ['installer-request-file', 'input'],
+    ['installer-request-load', 'button'], ['installer-request-status', 'p']]) {
+    document.nodes.set(id, new Element(tag, document));
+  }
+  document.getElementById('installer-build-profile').value = 'legacy';
+  const request = { version: 1, engines: ['drums', 'sixop', 'shapes', 'macro'],
+    effects: ['hall', 'plate'], midi: [], modulation: ['lfo'], project_ids: [ids[2], ids[5], ids[0]],
+    startup_index: 1, set_ids: [inputCatalogue.sets[0].id],
+    flash_layout: 'expanded-d7000', runtime_mode: 'song-diagnostic' };
+  return { document, root, inputCatalogue, request };
+}
+
+for (const runtime of ['legacy', 'song-diagnostic', 'continuous']) {
+  test(`saved request restores ordered choices, SET and ${runtime} profile without submitting`, async () => {
+    const { document, root, inputCatalogue, request } = requestImportFixture();
+    if (runtime === 'legacy') { delete request.flash_layout; delete request.runtime_mode; }
+    else request.runtime_mode = runtime;
+    let calls = 0;
+    const controller = await mountInstallerPage(root, {
+      fetchImpl: async () => { calls++; return { ok: true, json: async () => inputCatalogue }; },
+      buildClient: { build() { assert.fail('Import must not build'); } },
+    });
+    const source = JSON.stringify(request);
+    const file = new Blob([source], { type: 'application/json' });
+    document.getElementById('installer-request-file').files = [file];
+    await document.getElementById('installer-request-load').dispatch('click');
+    assert.match(document.getElementById('installer-request-status').textContent, /Request loaded. No build or install/);
+    assert.equal(calls, 1, 'import performs no extra network operation');
+    assert.deepEqual(controller.getRequest(), request);
+    assert.equal(document.getElementById('installer-build-profile').value, runtime);
+    const controls = walk(root);
+    assert.deepEqual(controller.getSelection(), {
+      projectIds: request.project_ids, startupId: ids[5], setIds: request.set_ids,
+    });
+    assert.equal(controls.find(node => node.type === 'radio' && node.value === ids[5]).checked, true);
+    assert.equal(controls.find(node => node.type === 'checkbox' && node.value === request.set_ids[0]).checked, true);
+    for (const input of walk(document.getElementById('installer-modules')).filter(node => node.tagName === 'INPUT')) {
+      assert.equal(input.checked, ['drums', 'sixop', 'shapes', 'macro', 'hall', 'plate', 'lfo'].includes(input.value));
+    }
+    // A second reopen preserves canonical semantics, including array order.
+    controller.restoreRequest(JSON.stringify(controller.getRequest()));
+    assert.deepEqual(controller.getRequest(), request);
+    const originalCreate = URL.createObjectURL, originalRevoke = URL.revokeObjectURL;
+    let exported;
+    URL.createObjectURL = blob => { exported = blob; return 'blob:test'; };
+    URL.revokeObjectURL = () => {};
+    try {
+      // Use an offline page for the actual download side of export-import-export.
+      const offline = requestImportFixture();
+      const page = await mountInstallerPage(offline.root, {
+        fetchImpl: async () => ({ ok: true, json: async () => offline.inputCatalogue }),
+      });
+      page.restoreRequest(source);
+      await walk(offline.root).find(node => node.tagName === 'BUTTON').dispatch('click');
+      assert.deepEqual(JSON.parse(await exported.text()), request);
+      page.destroy();
+    } finally { URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke; }
+    controller.destroy();
+  });
+}
+
+test('invalid saved requests leave every control, configuration and selection unchanged', async () => {
+  const { document, root, inputCatalogue, request } = requestImportFixture();
+  const controller = await mountInstallerPage(root, {
+    fetchImpl: async () => ({ ok: true, json: async () => inputCatalogue }),
+    buildClient: { build() { assert.fail('Invalid import must not build'); } },
+  });
+  controller.restoreRequest(JSON.stringify(request));
+  const snapshot = () => ({ request: controller.getRequest(), selection: controller.getSelection(),
+    profile: document.getElementById('installer-build-profile').value,
+    controls: [...walk(root), ...walk(document.getElementById('installer-modules'))]
+      .filter(node => node.tagName === 'INPUT').map(node => [node.value, node.checked, node.disabled]),
+  });
+  const before = snapshot();
+  const mutations = [
+    x => { x.version = 2; }, x => { x.extra = true; }, x => { x.project_ids = ['obsolete']; },
+    x => { x.engines = ['obsolete']; }, x => { x.engines = ['sixop']; },
+    x => { x.engines.push('macro'); }, x => { x.project_ids.push(ids[0]); },
+    x => { x.set_ids.push(x.set_ids[0]); }, x => { x.set_ids = ['obsolete']; },
+    x => { x.startup_index = 0; }, x => { x.startup_index = -1; },
+    x => { x.startup_index = 0.5; }, x => { x.startup_index = '1'; },
+    x => { x.startup_index = x.project_ids.length; }, x => { x.set_ids = null; },
+    x => { x.effects = null; }, x => { delete x.midi; }, x => { x.project_ids = []; },
+    x => { x.flash_layout = 'expanded-d9000'; }, x => { delete x.flash_layout; },
+    x => { delete x.runtime_mode; }, x => { x.runtime_mode = 'arbitrary'; },
+    x => { x.effects = ['plate']; }, x => { x.midi = {}; },
+  ];
+  const invalid = mutations.map(mutate => { const x = structuredClone(request); mutate(x); return JSON.stringify(x); });
+  invalid.push('{', 'null', '[]', '1', '"hello"', ' '.repeat(MAX_SAVED_REQUEST_BYTES + 1),
+    '"' + 'é'.repeat(MAX_SAVED_REQUEST_BYTES / 2) + '"',
+    JSON.stringify(request).replace('"version":1', '"version":1,"version":1'),
+    JSON.stringify(request).replace('"version":1', '"version":1,"\\u0076ersion":1'));
+  for (const source of invalid) {
+    assert.throws(() => controller.restoreRequest(source), undefined, source.slice(0, 100));
+    assert.deepEqual(snapshot(), before);
+  }
+  const noSets = structuredClone(request); delete noSets.set_ids;
+  controller.restoreRequest(JSON.stringify(noSets));
+  assert.deepEqual(controller.getRequest(), noSets);
+  controller.destroy();
+});
+
+test('file load failures, oversize files and read races preserve current choices', async () => {
+  const { document, root, inputCatalogue, request } = requestImportFixture();
+  const controller = await mountInstallerPage(root, {
+    fetchImpl: async () => ({ ok: true, json: async () => inputCatalogue }),
+  });
+  const fileInput = document.getElementById('installer-request-file');
+  const button = document.getElementById('installer-request-load');
+  const status = document.getElementById('installer-request-status');
+  const before = controller.getRequest();
+  for (const files of [[], [{ size: MAX_SAVED_REQUEST_BYTES + 1, text() { assert.fail('must bound before read'); } }],
+    [{ size: 1, text() { throw new Error('unreadable'); } }], [new Blob(['{'])]]) {
+    fileInput.files = files;
+    await button.dispatch('click');
+    assert.match(status.textContent, /Request not loaded:.*Previous choices are unchanged/);
+    assert.equal(button.disabled, false);
+    assert.deepEqual(controller.getRequest(), before);
+  }
+  let resolveRead;
+  fileInput.files = [{ size: 1, text: () => new Promise(resolve => { resolveRead = resolve; }) }];
+  const pending = button.dispatch('click');
+  controller.restoreRequest(JSON.stringify(request));
+  resolveRead(JSON.stringify(before));
+  await pending;
+  assert.match(status.textContent, /Choices changed while reading/);
+  assert.deepEqual(controller.getRequest(), request);
+  // Destruction during a read may never mutate the retired page.
+  fileInput.files = [{ size: 1, text: () => new Promise(resolve => { resolveRead = resolve; }) }];
+  const retired = button.dispatch('click');
+  controller.destroy();
+  resolveRead(JSON.stringify(before));
+  await retired;
+  assert.equal(button.disabled, true);
+  assert.throws(() => controller.restoreRequest(JSON.stringify(before)), /closed/);
+});
+
+test('import refuses a busy demo view before module or profile mutation', async () => {
+  const { document, root, inputCatalogue, request } = requestImportFixture();
+  let finish;
+  const controller = await mountInstallerPage(root, {
+    fetchImpl: async () => ({ ok: true, json: async () => inputCatalogue }),
+    buildClient: { build: () => new Promise(resolve => { finish = resolve; }) },
+  });
+  const before = controller.getRequest();
+  const pending = walk(root).find(node => node.tagName === 'BUTTON').dispatch('click');
+  assert.throws(() => controller.restoreRequest(JSON.stringify(request)), /current submission/);
+  assert.deepEqual(controller.getRequest(), before);
+  assert.equal(document.getElementById('installer-build-profile').value, 'legacy');
+  finish({ artifactBytes: 1, appBudgetBytes: 10, remainingBytes: 9 });
+  await pending;
+  controller.destroy();
+});
+
+test('saved request controls use native keyboard controls with labels and live status', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const html = await readFile(new URL('../www/installer.html', import.meta.url), 'utf8');
+  assert.match(html, /<label for="installer-request-file">Saved request JSON file<\/label>/);
+  assert.match(html, /<input id="installer-request-file" type="file"[^>]*aria-describedby="installer-request-hint"/);
+  assert.match(html, /<button id="installer-request-load" type="button" disabled>Load saved request<\/button>/);
+  assert.match(html, /<p id="installer-request-status" role="status" aria-live="polite">/);
+  assert.match(html, /<section aria-labelledby="installer-request-heading">/);
+  assert.doesNotMatch(html, /id="installer-request-(?:file|load)"[^>]*tabindex="-1"/);
 });

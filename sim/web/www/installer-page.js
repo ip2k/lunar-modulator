@@ -2,10 +2,56 @@
 // The trusted build exports this catalogue into the static Pages artifact.
 // Build requests stay disabled unless a private deployment sets the explicit
 // same-origin marker in installer.html.
+import { BUILDER_GROUPS } from './native-build-selection.js';
+import { buildNativeDemoSelectionRequest } from './native-demo-selection.js';
 import { createInstallerBuildClient } from './installer-build-client.js';
 import { mountNativeDemoSelectionView } from './native-demo-selection-view.js';
 import { mountNativeModuleSelectionView } from './native-module-selection-view.js';
 import { mountLocalPackageInspection } from './installer-package-inspection.js';
+
+export const MAX_SAVED_REQUEST_BYTES = 65536;
+
+/** Strictly reopen our v1 export; reject ambiguous duplicate JSON keys before normalization. */
+export function parseSavedRequest(source, catalogue) {
+  if (typeof source !== 'string' || source.length > MAX_SAVED_REQUEST_BYTES
+      || new TextEncoder().encode(source).length > MAX_SAVED_REQUEST_BYTES) {
+    throw new TypeError('Request file must be at most 64 KiB of UTF-8 JSON.');
+  }
+  const request = JSON.parse(source);
+  // JSON.parse checks grammar; this bounded token pass only detects duplicate keys,
+  // including escaped spellings, which JSON.parse would otherwise silently overwrite.
+  const scopes = [];
+  const tokens = /"(?:[^"\\]|\\.)*"|[{}\[\]]/g;
+  for (const token of source.matchAll(tokens)) {
+    if (token[0] === '{') scopes.push(new Set());
+    else if (token[0] === '[') scopes.push(null);
+    else if (token[0] === '}' || token[0] === ']') scopes.pop();
+    else if (/^\s*:/.test(source.slice(token.index + token[0].length))) {
+      const key = JSON.parse(token[0]);
+      const keys = scopes.at(-1);
+      if (keys.has(key)) throw new TypeError('Duplicate request field: ' + key);
+      keys.add(key);
+    }
+  }
+  const required = ['version', ...BUILDER_GROUPS, 'project_ids', 'startup_index'];
+  const allowed = [...required, 'set_ids', 'flash_layout', 'runtime_mode'];
+  if (!request || typeof request !== 'object' || Array.isArray(request)
+      || request.version !== 1 || BUILDER_GROUPS.some(group => !Array.isArray(request[group]))
+      || required.some(key => !Object.hasOwn(request, key))
+      || Object.keys(request).some(key => !allowed.includes(key))
+      || Object.hasOwn(request, 'flash_layout') !== Object.hasOwn(request, 'runtime_mode')) {
+    throw new TypeError('Expected an exact version-1 Lunar build request.');
+  }
+  const configuration = Object.hasOwn(request, 'runtime_mode') ? {
+    flash_layout: request.flash_layout, runtime_mode: request.runtime_mode,
+  } : undefined;
+  // An explicit null is invalid, rather than the builder's optional default.
+  if (Object.hasOwn(request, 'set_ids') && !Array.isArray(request.set_ids)) {
+    throw new TypeError('Companion SET IDs must be an array.');
+  }
+  return buildNativeDemoSelectionRequest(catalogue, request, request.project_ids,
+    request.startup_index, request.set_ids, configuration);
+}
 
 function downloadRequest(request, document, status) {
   const payload = `${JSON.stringify(request, null, 2)}\n`;
@@ -97,7 +143,7 @@ export async function mountInstallerPage(root, {
     if (!response?.ok) throw new Error('The generated project catalogue is unavailable.');
     const catalogue = await response.json();
     const profile = catalogue.default_profile;
-    mountNativeModuleSelectionView(moduleRoot, catalogue, profile, (nextProfile) => {
+    const moduleController = mountNativeModuleSelectionView(moduleRoot, catalogue, profile, (nextProfile) => {
       Object.assign(profile, nextProfile);
       selectionChanged();
     });
@@ -172,6 +218,53 @@ export async function mountInstallerPage(root, {
           throw error;
         }
       }, () => selectedBuildConfiguration, selectionChanged);
+    const importFile = document.getElementById?.('installer-request-file');
+    const importButton = document.getElementById?.('installer-request-load');
+    const importStatus = document.getElementById?.('installer-request-status');
+    let destroyed = false;
+    let reading = false;
+    function restoreRequest(source) {
+      if (destroyed) throw new Error('The customization page has been closed.');
+      const request = parseSavedRequest(source, catalogue);
+      const commitModules = moduleController.prepareRestore(request);
+      const commitDemos = controller.prepareRestore(request, request);
+      // Every operation that can reject has completed. Commits have no callbacks.
+      commitModules();
+      commitDemos();
+      Object.assign(profile, moduleController.getProfile());
+      selectedBuildConfiguration = request.runtime_mode === undefined ? undefined : {
+        flash_layout: request.flash_layout, runtime_mode: request.runtime_mode,
+      };
+      if (profileSelect) profileSelect.value = request.runtime_mode ?? 'legacy';
+      selectionChanged();
+      return request;
+    }
+    if (importButton && importFile && importStatus) {
+      importButton.disabled = false;
+      importButton.addEventListener('click', async () => {
+        if (reading || destroyed) return;
+        reading = true;
+        importButton.disabled = true;
+        const revision = selectionRevision;
+        try {
+          const files = importFile.files;
+          if (!files || files.length !== 1) throw new Error('Choose one saved request JSON file.');
+          const file = files[0];
+          if (!Number.isSafeInteger(file.size) || file.size < 0 || file.size > MAX_SAVED_REQUEST_BYTES) {
+            throw new Error('Request file must be at most 64 KiB.');
+          }
+          const source = await file.text();
+          if (revision !== selectionRevision) throw new Error('Choices changed while reading. Load the file again to replace them.');
+          restoreRequest(source);
+          importStatus.textContent = 'Request loaded. No build or install was performed.';
+        } catch (error) {
+          if (!destroyed) importStatus.textContent = `Request not loaded: ${error instanceof Error ? error.message : 'Unable to read JSON.'} Previous choices are unchanged.`;
+        } finally {
+          reading = false;
+          if (!destroyed) importButton.disabled = false;
+        }
+      });
+    }
     const button = findButton(root);
     root.append(receiptSummary);
     if (button) button.textContent = buildClient
@@ -181,7 +274,17 @@ export async function mountInstallerPage(root, {
     }
     if (loading) loading.textContent = '';
     return Object.freeze({
-      destroy() { controller.destroy(); packageInspection?.destroy(); },
+      destroy() {
+        destroyed = true;
+        if (importButton) importButton.disabled = true;
+        controller.destroy(); moduleController.destroy(); packageInspection?.destroy();
+      },
+      restoreRequest,
+      getRequest() {
+        const selection = controller.getSelection();
+        return buildNativeDemoSelectionRequest(catalogue, profile, selection.projectIds,
+          selection.projectIds.indexOf(selection.startupId), selection.setIds, selectedBuildConfiguration);
+      },
       getSelection() { return controller.getSelection(); },
     });
   } catch (error) {

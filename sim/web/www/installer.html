@@ -37,6 +37,14 @@
       </select>
       <p>Continuous mode checks the selected modules and projects with no automatic return timer. Hardware playback, recovery and installation remain unverified. No firmware file is returned.</p>
     </details>
+    <section aria-labelledby="installer-request-heading">
+      <h2 id="installer-request-heading">Reopen a saved request</h2>
+      <p id="installer-request-hint">Load a previously exported JSON request (up to 64 KiB) to replace your choices. This does not build or install firmware.</p>
+      <label for="installer-request-file">Saved request JSON file</label>
+      <input id="installer-request-file" type="file" accept=".json,application/json" aria-describedby="installer-request-hint">
+      <button id="installer-request-load" type="button" disabled>Load saved request</button>
+      <p id="installer-request-status" role="status" aria-live="polite"></p>
+    </section>
     <div id="installer-modules"></div>
     <div id="installer-selection"></div>
     <p id="installer-export-status" class="installer-export-status" role="status" aria-live="polite"></p>
