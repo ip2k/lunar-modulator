@@ -87,6 +87,7 @@ class FM1Processor extends AudioWorkletProcessor {
     super();
     this.fm1 = null;
     this.pending = [];
+    this.inputs = [];
     this.quanta = 0;
     this.views = null;
     this.free = [];              // screen buffers not with the page
@@ -248,6 +249,7 @@ class FM1Processor extends AudioWorkletProcessor {
       return;
     }
     if (m.type === 'init') {
+      this.inputs.length = 0;
       try {
         const fm1 = await instantiateFm1(m.wasm);
         const ex = fm1.exports;
@@ -263,7 +265,7 @@ class FM1Processor extends AudioWorkletProcessor {
           const index = catalog.findIndex((e) => e.id === 'macro');
           this.port.postMessage({ type: 'refused', unit: 0, index, code: chain, rate: sampleRate, start: true });
         }
-        for (const p of this.pending) this.apply(p);
+        for (const p of this.pending) this.dispatch(p);
         this.pending = [];
         this.sendState();
       } catch (err) {
@@ -271,12 +273,47 @@ class FM1Processor extends AudioWorkletProcessor {
       }
       return;
     }
-    if (this.fm1) this.apply(m); else this.pending.push(m);
+    if (this.fm1) this.dispatch(m);
+    else if (this.pending.length < 1024) this.pending.push(m);
+    else {
+      this.pending = [{ type: 'midi-reset' }];
+      this.port.postMessage({ type: 'error', message: 'Input overflow during startup; pending input cleared.' });
+    }
+  }
+
+  // Preserve port order when realtime must wait for native event room. Inputs
+  // arrive between quanta; retry at each 64-frame host block, never invent a
+  // browser clock or interpolate timestamps from a different clock domain.
+  dispatch(m) {
+    if (m.type === 'midi-reset' || m.type === 'panic') {
+      this.inputs.length = 0;
+      this.fm1.exports.fm1w_all_notes_off();
+      if (m.type === 'midi-reset' && this.apply({ type: 'rt', status: 0xfc }) === false)
+        this.inputs.push({ type: 'rt', status: 0xfc });
+      return;
+    }
+    if (!this.inputs.length && this.apply(m) !== false) return;
+    if (this.inputs.length >= 1024) {
+      this.inputs.length = 0;
+      this.fm1.exports.fm1w_all_notes_off();
+      this.port.postMessage({ type: 'error', message: 'MIDI input overflow; pending input cleared and notes released.' });
+      return;
+    }
+    this.inputs.push(m);
+  }
+
+  drainInputs() {
+    let n = 0;
+    while (n < this.inputs.length && this.apply(this.inputs[n]) !== false) ++n;
+    if (n) this.inputs.splice(0, n);
   }
 
   apply(m) {
     const ex = this.fm1.exports;
     switch (m.type) {
+      case 'rt':
+        if (![0xf8, 0xfa, 0xfb, 0xfc].includes(m.status)) break;
+        return this.fm1.exports.fm1w_seq_realtime(m.status) !== 0;
       case 'key': ex.fm1w_key(m.key, m.down ? 1 : 0, m.velocity | 0); break;
       case 'button': ex.fm1w_button(m.button, m.down ? 1 : 0); break;
       case 'encoder': ex.fm1w_encoder(m.encoder, m.delta | 0); break;
@@ -478,6 +515,7 @@ class FM1Processor extends AudioWorkletProcessor {
     const t1 = clock();
     for (let off = 0; off < left.length; off += BLOCK) {
       const n = Math.min(BLOCK, left.length - off);
+      this.drainInputs();
       v = this.getViews(ex.fm1w_render(n));   // always the app's one buffer
       const lr = v.out;
       for (let i = 0; i < n; ++i) {
