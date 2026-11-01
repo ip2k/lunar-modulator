@@ -7,3 +7,7 @@ Base: `951ca6eb053c7fde82cd17baed949fd43528dab0`. This fixes a checker false acc
 Verification: `tests/test_sim_palette.py` 21 passed using the project venv; `python3 -B sim/web/tools/palette.py` reports “every rule holds”; `git diff --check` passed. No browser, audio, heavy build, generated Wasm, or device operation was part of this focused change. The separate Wasm source-drift gate is tracked by the coordinator.
 
 Lifecycle: tests ran without bytecode or pytest cache writes in this worktree. Remove this isolated worktree after the branch is integrated and backed up; retain this note as the small durable provenance record.
+
+## Independent-review follow-up
+
+The review at `audit-20261101/combined-corrections-review.md` found that the first alias parser ignored `C_BG BOGUS`: its prefix filter did not record the object-like macro, so the actual `check()` still returned `[]`. A RED-first regression added `BOGUS`, parenthesized expression, and empty-value mutations to the existing actual-checker test. The parser now collects all object-like `C_*` definitions, strips inline comments, and only resolves a supported identifier spelling. All three mutations fail, while the existing valid nested alias and current header/CSS pass. This changes only checker assurance; it does not change a runtime palette token.

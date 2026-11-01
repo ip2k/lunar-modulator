@@ -316,9 +316,10 @@ def read_header(text):
             r"^#define\s+(RP|LUNAR)_([A-Z0-9_]+)\s+FM1_RGB565\(\s*0x([0-9a-fA-F]{2})\s*,"
             r"\s*0x([0-9a-fA-F]{2})\s*,\s*0x([0-9a-fA-F]{2})\s*\)", text, re.M):
         tokens[_token_name(pre, name)] = (int(r, 16), int(g, 16), int(b, 16))
-    for name, target in re.findall(r"^#define\s+(C_[A-Z0-9_]+)\s+((?:RP|LUNAR|C)_[A-Z0-9_]+)\s*(?:/\*.*)?$",
-                                   text, re.M):
-        aliases[name] = target
+    # Collect every object-like C_* definition, including malformed values.
+    # A prefix-filtered regex would silently drop e.g. C_BG BOGUS.
+    for name, value in re.findall(r"^#define[ \t]+(C_[A-Z0-9_]+)(?:[ \t]+([^\n]*))?$", text, re.M):
+        aliases[name] = value.split("/*", 1)[0].split("//", 1)[0].strip()
     return tokens, aliases
 
 
@@ -327,6 +328,8 @@ def resolve_header_alias(name, aliases, tokens, seen=frozenset()):
     if name in seen or name not in aliases:
         return None
     target = aliases[name]
+    if not re.fullmatch(r"(?:RP|LUNAR|C)_[A-Z0-9_]+", target):
+        return None
     if target.startswith("C_"):
         return resolve_header_alias(target, aliases, tokens, seen | {name})
     prefix, token = target.split("_", 1)

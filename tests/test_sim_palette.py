@@ -145,6 +145,9 @@ def test_it_requires_screen_tokens_and_defined_colour_aliases(files):
            css, "C_SELECT")
     _fails(header.replace("#define C_BG RP_BASE", "#define C_BG RP_UNKNOWN"),
            css, "C_BG")
+    for bad in ("BOGUS", "(RP_BASE)", ""):
+        _fails(header.replace("#define C_BG RP_BASE", "#define C_BG " + bad),
+               css, "C_BG")
     _fails(header.replace("#define C_SELECT RP_IRIS",
                           "#define C_SELECTION_ALIAS C_SELECT\n#define C_SELECT C_SELECTION_ALIAS"),
            css, "C_SELECT")
