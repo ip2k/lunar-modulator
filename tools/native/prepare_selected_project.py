@@ -17,6 +17,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from tools import lunar_state
+from tools.installer_service.process_capture import run_bounded
 
 SELECTION = "init-starter-trio"
 SOURCE = ROOT / "engines/state/examples/init-starters/trio-init.lunar"
@@ -40,11 +41,17 @@ def read_bounded(path, limit):
 
 
 def tool_output(tool, *args):
-    result = subprocess.run([str(tool), *args], capture_output=True, timeout=90)
-    if result.returncode:
-        raise ValueError(f"{tool.name} {' '.join(args)} refused: "
-                         + result.stderr[:1024].decode(errors="replace"))
-    return result.stdout
+    # Full legacy metadata is about 255 KiB; selected Trio metadata is 39 KiB.
+    # Refuse overflow rather than parse a truncated success. Descendants share
+    # the existing capture helper's process-group and post-exit drain bound.
+    result = run_bounded([str(tool), *args], cwd=ROOT, timeout_seconds=90,
+                         max_stream_bytes=MAX_META)
+    overflow = any(n > MAX_META for n in result.observed.values())
+    reason = "output_limit" if overflow else result.failure_reason
+    if reason or result.returncode:
+        raise ValueError(f"{tool.name} {' '.join(args)} refused ({reason or 'nonzero_exit'}): "
+                         + result.logs["stderr"][:1024].decode(errors="replace"))
+    return result.logs["stdout"]
 
 
 def write_blob(path, packed):
