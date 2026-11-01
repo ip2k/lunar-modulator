@@ -82,6 +82,7 @@ RULE_MEAN_TICKS = BUDGET_TICKS * 85 // 100  # 29,604
 FRAMES_PER_BLOCK = 64
 DAC_RATE_HZ = 44100  # renderer_pipeline_dac.c: dac_set_sample_rate(44100)
 DMA_WINDOWS = 3  # the DAC ring the driver checks: DAC_LEN 192 frames
+PIPELINE_OUTPUT_SLOTS = 8  # firmware/common/renderer_pipeline_core.h
 IDLE_QUIET_MS = 250  # zero-idle wait inside elapsed_ms, after the last block
 CASE_BLOCKS = 5513  # renderer_pipeline_dac.c, each of four cases per cycle
 
@@ -112,10 +113,17 @@ def buffered_rule(end, cases, soak, ready, final_lines, terminal, preroll, idle,
     mean_checks = {f'case{c["case"]}_{core}': c[f'{core}_mean'] <= RULE_MEAN_TICKS
                    for c in cases for core in ('p', 'c')}
     mean_checks.update(whole_p=p_mean <= RULE_MEAN_TICKS, whole_c=c_mean <= RULE_MEAN_TICKS)
-    slots = ready.get('outputs') if ready else None
+    ready_fields = ('ready', 'lifetime_ms', 'stack_words', 'priority', 'outputs')
+    ready_valid = (ready is not None and all(type(ready.get(k)) is int for k in ready_fields) and
+                   ready['ready'] == 1 and ready['lifetime_ms'] > 0 and
+                   ready['stack_words'] > 0 and ready['priority'] > 0 and
+                   ready['outputs'] == PIPELINE_OUTPUT_SLOTS)
+    slots = ready['outputs'] if ready_valid else None
+    queue_depth_valid = (slots is not None and type(end.get('ready_min')) is int and
+                         1 <= end['ready_min'] <= slots)
     audio_s = total * FRAMES_PER_BLOCK / DAC_RATE_HZ
     queue = None
-    if slots:
+    if queue_depth_valid:
         queue = dict(slots=slots, frames=slots * FRAMES_PER_BLOCK, rate_hz=DAC_RATE_HZ,
                      queue_ms=round(1000.0 * slots * FRAMES_PER_BLOCK / DAC_RATE_HZ, 2),
                      dma_ring_frames=DMA_WINDOWS * FRAMES_PER_BLOCK,
@@ -137,7 +145,8 @@ def buffered_rule(end, cases, soak, ready, final_lines, terminal, preroll, idle,
                          running_min_margin_ms=(round(1000.0 * minimum * FRAMES_PER_BLOCK / DAC_RATE_HZ, 2)
                                                 if samples else None))
     run_ms = soak['elapsed_ms'] - IDLE_QUIET_MS
-    lifetime = ready.get('lifetime_ms') if ready else None
+    lifetime = ready['lifetime_ms'] if ready_valid else None
+    within_lifetime = None if lifetime is None else soak['elapsed_ms'] < lifetime
     fail_line = [r['failure_line'] for r in final_lines if 'failure_line' in r]
     reports = [r for r in final_lines if r.get('case') == 4]
     finals = [r for r in final_lines if r.get('final') == 1]
@@ -148,6 +157,9 @@ def buffered_rule(end, cases, soak, ready, final_lines, terminal, preroll, idle,
     deadline = terminal.get('result') == 'FAIL' and terminal.get('reason') == 'per_block_deadline'
     clean = terminal.get('result') == 'PASS' and terminal.get('reason') == 'none'
     completion_checks = dict(
+        ready_receipt=ready_valid,
+        queue_depth=queue_depth_valid,
+        within_cpu1_lifetime=within_lifetime is True,
         typed_terminal=terminal.get('contract') == 1,
         terminal_outcome=((deadline and any_late and len(fail_line) == 1 and devkit.get('complete') == 0) or
                           (clean and not any_late and not fail_line and devkit.get('complete') == 1)),
@@ -170,7 +182,7 @@ def buffered_rule(end, cases, soak, ready, final_lines, terminal, preroll, idle,
         rule_mean_ticks=RULE_MEAN_TICKS, blocks=total, audio_s=round(audio_s, 1),
         audio_min=round(audio_s / 60, 2), elapsed_ms=soak['elapsed_ms'],
         rate_hz_estimate=round((total + end['drain']) * FRAMES_PER_BLOCK * 1000 / run_ms) if run_ms > 0 else None,
-        within_cpu1_lifetime=None if lifetime is None else soak['elapsed_ms'] < lifetime,
+        within_cpu1_lifetime=within_lifetime,
         whole_p_mean=round(p_mean), whole_p_mean_pct=pct(p_mean),
         whole_c_mean=round(c_mean), whole_c_mean_pct=pct(c_mean),
         producer_late_blocks=sum(c['p_late'] for c in cases), consumer_late_blocks=sum(c['c_late'] for c in cases),
@@ -352,9 +364,9 @@ def parse(data, sys_clk=None):
                   late_count=late_count[0], polyphony=poly, soak=soak)
     if soak:
         pipeline = rows('LUNAR_PIPELINE')
-        ready = [r for r in pipeline if r.get('ready') == 1]
+        ready = [r for r in pipeline if 'ready' in r]
         if len(ready) > 1:
-            raise ValueError('Require at most one LUNAR_PIPELINE ready receipt')
+            raise ValueError('Require exactly one LUNAR_PIPELINE ready receipt')
         complete = [r for r in rows('LUNAR_DEVKIT') if 'complete' in r]
         if len(complete) > 1:
             raise ValueError('Require at most one LUNAR_DEVKIT complete receipt')
