@@ -7,6 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdatomic.h>
+typedef _Atomic uint32_t lunar_pipeline_word_t;
+typedef _Atomic int lunar_pipeline_status_t;
+static inline void port_fence(void) { atomic_thread_fence(memory_order_seq_cst); }
+#define LUNAR_PIPELINE_PORT_DEFINED 1
+#define LUNAR_PIPELINE_CORE_COLD
 #include <pthread.h>
 #include <time.h>
 #include <errno.h>
@@ -22,7 +27,8 @@ static uint64_t host_ns(void) {
     return (uint64_t)(t.tv_sec-host_epoch.tv_sec)*UINT64_C(1000000000)+
         (uint64_t)t.tv_nsec-(uint64_t)host_epoch.tv_nsec;
 }
-static unsigned timer_get_ms(void) { return (unsigned)(host_ns()/1000000u); }
+static _Atomic unsigned host_ms_offset;
+static unsigned timer_get_ms(void) { return (unsigned)(host_ns()/1000000u)+atomic_load(&host_ms_offset); }
 static unsigned current_cpu_id(void) { return host_cpu; }
 static void os_time_dly(unsigned ticks) {
     /* One host ms per fake tick keeps startup/parking bounded. NOT SDK cadence. */
