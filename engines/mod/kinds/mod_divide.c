@@ -188,6 +188,25 @@ static void clock(divide_t *s, const float *p, uint64_t at) {
   ++s->step;
 }
 
+/* Commit outputs strictly before the next input. A reset or new Mult clock
+ * may cancel waiting triggers, but cannot cancel one that already happened.
+ * Equal-frame inputs still take precedence, as they did before. */
+static void drain(divide_t *s, const fm1_mod_io_t *io, uint64_t t0, uint64_t until) {
+  unsigned k;
+  for (k = 0; k < 2u; ++k) {
+    channel_t *c = &s->ch[k];
+    refill(s, c, io->p);
+    while (c->n && c->at[0] < until) {
+      unsigned j;
+      mod_trig_fire(&c->trig, &io->gout[O_OUT1 + k],
+                    c->at[0] > t0 ? (unsigned)(c->at[0] - t0) : 0u);
+      for (j = 1; j < c->n; ++j) c->at[j - 1u] = c->at[j];
+      --c->n;
+      refill(s, c, io->p);
+    }
+  }
+}
+
 static void divide_process(void *self, const fm1_mod_io_t *io) {
   divide_t *s = (divide_t *)self;
   const uint64_t t0 = kind_t0(io), t1 = t0 + FM1_MOD_TICK;
@@ -200,6 +219,7 @@ static void divide_process(void *self, const fm1_mod_io_t *io) {
   for (e = 0; e < n;) {
     unsigned end = e, pass, a;
     while (end < n && ev[end].frame == ev[e].frame) ++end;
+    drain(s, io, t0, t0 + ev[e].frame);
     for (pass = 0; pass < 2u; ++pass) {
       for (a = e; a < end; ++a) {
         if (!ev[a].high || ev[a].input != (pass ? G_CLOCK : G_RESET)) continue;
@@ -216,19 +236,9 @@ static void divide_process(void *self, const fm1_mod_io_t *io) {
     }
     e = end;
   }
-  for (k = 0; k < 2u; ++k) {
-    channel_t *c = &s->ch[k];
-    refill(s, c, io->p);
-    while (c->n && c->at[0] < t1) {
-      unsigned j;
-      mod_trig_fire(&c->trig, &io->gout[O_OUT1 + k],
-                    c->at[0] > t0 ? (unsigned)(c->at[0] - t0) : 0u);
-      for (j = 1; j < c->n; ++j) c->at[j - 1u] = c->at[j];
-      --c->n;
-      refill(s, c, io->p);
-    }
-    mod_trig_end(&c->trig, &io->gout[O_OUT1 + k], &io->out[O_OUT1 + k]);
-  }
+  drain(s, io, t0, t1);
+  for (k = 0; k < 2u; ++k)
+    mod_trig_end(&s->ch[k].trig, &io->gout[O_OUT1 + k], &io->out[O_OUT1 + k]);
 }
 
 static void divide_reset(void *self, uint32_t why) {

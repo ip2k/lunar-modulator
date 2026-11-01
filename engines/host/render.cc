@@ -1989,9 +1989,9 @@ int main(int argc, char **argv) {
       for (size_t i = 0; i < sent.size(); ++i) {
         const fm1_midi_ev_t &e = sent[i].second;
         const unsigned c = sent[i].first.second;
-        if (e.kind == FM1_MIDI_EV_NOTE_ON && e.b) {
+        if (e.kind == FM1_MIDI_EV_NOTE_ON && FM1_MIDI_EV_VEL(e.b)) {
           fprintf(mfx_log, "{\"t\":%llu,\"u\":%u,\"k\":\"on\",\"key\":%u,\"vel\":%u}\n",
-                  static_cast<unsigned long long>(pos) + e.frame, c, e.a, e.b);
+                  static_cast<unsigned long long>(pos) + e.frame, c, e.a, FM1_MIDI_EV_VEL(e.b));
         } else {
           fprintf(mfx_log, "{\"t\":%llu,\"u\":%u,\"k\":\"off\",\"key\":%u}\n",
                   static_cast<unsigned long long>(pos) + e.frame, c, e.a);
