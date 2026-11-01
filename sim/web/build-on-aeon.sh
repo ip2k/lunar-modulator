@@ -84,11 +84,84 @@ REMOTE=${FM1_REMOTE_DIR:-$(ssh "$HOST" 'printf %s "$HOME"')/mvave-fm1/virtual}
 
 ROOT=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 SIM=$ROOT/sim/web
-STAGE=$REMOTE/src
-LABELS=(--label project=mvave-fm1-firmware --label "session=$SESSION")
+REMOTE=${REMOTE%/}
+case "$REMOTE" in
+  /*) [ "$REMOTE" != / ] || { echo "FM1_REMOTE_DIR cannot be /" >&2; exit 2; } ;;
+  *) echo "FM1_REMOTE_DIR must be an absolute path: $REMOTE" >&2; exit 2 ;;
+esac
+case "$REMOTE" in
+  *"'"*|*$'\n'*|*$'\r'*) echo "FM1_REMOTE_DIR contains an unsupported quote or newline" >&2; exit 2 ;;
+esac
+if [ "$(uname -s)" = Darwin ]; then
+  MAC_FREE_GB=$(df -g /System/Volumes/Data | awk 'END {print $4}')
+  if ! [[ "$MAC_FREE_GB" =~ ^[0-9]+$ ]] || [ "$MAC_FREE_GB" -lt 500 ]; then
+    echo "Mac data volume has ${MAC_FREE_GB:-unknown} GiB free; this build requires the 500 GiB floor" >&2
+    exit 1
+  fi
+fi
+RUN_ID=build-$(date -u +%Y%m%dT%H%M%SZ)-$$-$RANDOM
+LOG=$SIM/build/remote-runs/$RUN_ID.log
+FETCH=$SIM/build/remote-runs/$RUN_ID.fetch
+mkdir -p "${LOG%/*}"
+record() { printf '%s\n' "$*" | tee -a "$LOG"; }
+record "host=$HOST remote=$REMOTE run=$RUN_ID base=$(git -C "$ROOT" rev-parse HEAD)"
 
+# Allocate under the project root without touching any other invocation's src
+# tree. The remote checks an external-volume mount before mkdir can create a
+# plain directory on the Mac's internal disk in its place.
+REMOTE_Q=$(printf '%q' "$REMOTE")
+STAGE=$(ssh "$HOST" "bash -s -- $REMOTE_Q $RUN_ID" <<'REMOTE_STAGE'
+remote=$1
+run_id=$2
+if [[ "$remote" == /Volumes/* ]]; then
+  volume=${remote#/Volumes/}; volume=${volume%%/*}
+  if [ -z "$volume" ] || ! mountpoint -q "/Volumes/$volume"; then
+    echo "remote volume is not mounted: /Volumes/$volume" >&2
+    exit 1
+  fi
+fi
+mkdir -p -- "$remote/runs"
+free_kb=$(df -Pk "$remote/runs" | awk 'END {print $4}')
+if ! [[ "$free_kb" =~ ^[0-9]+$ ]] || [ "$free_kb" -lt 10485760 ]; then
+  echo "remote stage needs at least 10 GiB free (found ${free_kb:-unknown} KiB)" >&2
+  exit 1
+fi
+mktemp -d "$remote/runs/$run_id.XXXXXXXX"
+REMOTE_STAGE
+)
+if [[ "$STAGE" != "$REMOTE/runs/$RUN_ID".* ]]; then
+  echo "unexpected remote stage path: $STAGE" >&2
+  exit 1
+fi
+STAGE_Q=$(printf '%q' "$STAGE")
+MOUNT_GUARD=""
+if [[ "$REMOTE" == /Volumes/* ]]; then
+  volume=${REMOTE#/Volumes/}; volume=${volume%%/*}
+  MOUNT_GUARD="mountpoint -q '/Volumes/$volume' && "
+fi
+MUSL_CONTAINER=lunar-$RUN_ID-musl
+EMSDK_CONTAINER=lunar-$RUN_ID-emsdk
+PLAYWRIGHT_CONTAINER=lunar-$RUN_ID-playwright
+cleanup() {
+  status=$?
+  trap - EXIT INT TERM
+  if ssh "$HOST" "docker rm -f '$MUSL_CONTAINER' '$EMSDK_CONTAINER' '$PLAYWRIGHT_CONTAINER' >/dev/null 2>&1 || true; ${MOUNT_GUARD}rm -rf -- $STAGE_Q"; then
+    record "cleanup=ok stage=$STAGE"
+  else
+    record "cleanup=failed stage=$STAGE"
+    status=1
+  fi
+  if [ -d "$FETCH" ]; then rm -rf -- "$FETCH"; fi
+  record "exit=$status"
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+LABELS=(--label project=mvave-fm1-firmware --label "session=$SESSION" --label "invocation=$RUN_ID")
+
+record "stage=$STAGE"
 echo "== staging sources on $HOST:$STAGE"
-ssh "$HOST" "rm -rf '$STAGE' && mkdir -p '$STAGE'"
 if [ -n "$ENGINES_REF" ]; then
   git -C "$ROOT" archive "$ENGINES_REF" engines | ssh "$HOST" "tar -x -C '$STAGE'"
 else
@@ -111,9 +184,10 @@ REMOTE
 )
 DIGESTS=$(printf '%s' "$DIGESTS" | paste -sd';' -)
 echo "$DIGESTS" | tr ';' '\n'
+record "images=$DIGESTS"
 
 echo "== static musl reference in $ALPINE_IMAGE"
-ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -v '$STAGE:/src' -w /src $ALPINE_IMAGE \
+ssh "$HOST" "docker run --rm --name '$MUSL_CONTAINER' --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -v '$STAGE:/src' -w /src $ALPINE_IMAGE \
   sh -c 'apk add -q build-base >/dev/null && \
          make -C engines -f Makefile -f /src/sim/web/mk/sim.mk SIM=/src/sim/web \
            BUILD=/src/sim/web/build/musl CC=gcc CXX=g++ EXTRA=-static FM1_GPL_MODS=$GPL_MODS FM1_DX7_SINE=$DX7_SINE -j\$(nproc) \
@@ -121,14 +195,18 @@ ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --me
          s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
 echo "== build and parity in $EMSDK_IMAGE"
-ssh "$HOST" "docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' -e FM1_GPL_MODS=$GPL_MODS -e FM1_DX7_SINE=$DX7_SINE \
+ssh "$HOST" "docker run --rm --name '$EMSDK_CONTAINER' --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' -e FM1_GPL_MODS=$GPL_MODS -e FM1_DX7_SINE=$DX7_SINE \
   -v '$STAGE:/src' -w /src $EMSDK_IMAGE \
   sh -c 'bash sim/web/build.sh; s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
 if [ "$SCREENSHOT" = 1 ]; then
   echo "== page in headless Chromium ($PLAYWRIGHT_IMAGE)"
-  ssh "$HOST" "mkdir -p '$REMOTE/playwright' && docker run --rm --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} --ipc=host \
-    -v '$REMOTE/playwright:/pw' -v '$STAGE:/src' -w /pw $PLAYWRIGHT_IMAGE \
+  # Seed from the prior shared install when present; this run writes only to
+  # its own copy, so offline cached builds and concurrent npm runs both work.
+  ssh "$HOST" "if [ -d '$REMOTE/playwright/node_modules/playwright' ] && [ -d '$REMOTE/playwright/node_modules/axe-core' ]; then \
+    mkdir -p '$STAGE/playwright' && cp -a '$REMOTE/playwright/node_modules' '$STAGE/playwright/'; fi"
+  ssh "$HOST" "docker run --rm --name '$PLAYWRIGHT_CONTAINER' --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} --ipc=host \
+    -v '$STAGE/playwright:/pw' -v '$STAGE:/src' -w /pw $PLAYWRIGHT_IMAGE \
     sh -c '[ -d node_modules/playwright ] && [ -d node_modules/axe-core ] || npm install --no-save --no-audit --no-fund $PLAYWRIGHT_NPM $AXE_NPM >/dev/null; \
            PLAYWRIGHT_DIR=/pw node /src/sim/web/test/screenshot.mjs /src/sim/web/www /src/sim/web/build/screenshots; \
            s=\$?; PLAYWRIGHT_DIR=/pw node /src/sim/web/test/files.mjs /src/sim/web/www /src/sim/web/build/screenshots \
@@ -161,18 +239,27 @@ else
   DEST=$SIM/www
   RESULTS=$SIM/build
 fi
-mkdir -p "$DEST" "$RESULTS"
+record "destination=$DEST results=$RESULTS"
+mkdir -p "$FETCH"
 scp -q "$HOST:$STAGE/sim/web/www/fm1.wasm" "$HOST:$STAGE/sim/web/www/fm1.wasm.json" \
-  "$HOST:$STAGE/sim/web/www/meta.json" "$DEST/"
-rm -f "$RESULTS/parity.json"
-scp -q "$HOST:$STAGE/sim/web/build/parity.json" "$RESULTS/"
+  "$HOST:$STAGE/sim/web/www/meta.json" "$FETCH/"
+scp -q "$HOST:$STAGE/sim/web/build/parity.json" "$FETCH/"
 if [ "$SCREENSHOT" = 1 ]; then              # replaced only by a new set
-  rm -rf "$RESULTS/screenshots"
-  scp -q -r "$HOST:$STAGE/sim/web/build/screenshots" "$RESULTS/"
+  scp -q -r "$HOST:$STAGE/sim/web/build/screenshots" "$FETCH/"
 fi
 if [ "$README_SHOTS" = 1 ]; then
-  rm -rf "$RESULTS/readme-screenshots"
-  scp -q -r "$HOST:$STAGE/sim/web/build/readme-screenshots" "$RESULTS/"
+  scp -q -r "$HOST:$STAGE/sim/web/build/readme-screenshots" "$FETCH/"
+fi
+mkdir -p "$DEST" "$RESULTS"
+for name in fm1.wasm fm1.wasm.json meta.json; do mv -f "$FETCH/$name" "$DEST/$name"; done
+mv -f "$FETCH/parity.json" "$RESULTS/parity.json"
+if [ "$SCREENSHOT" = 1 ]; then
+  rm -rf -- "$RESULTS/screenshots"
+  mv "$FETCH/screenshots" "$RESULTS/screenshots"
+fi
+if [ "$README_SHOTS" = 1 ]; then
+  rm -rf -- "$RESULTS/readme-screenshots"
+  mv "$FETCH/readme-screenshots" "$RESULTS/readme-screenshots"
 fi
 python3 -c "import json,sys; r=json.load(open(sys.argv[1])); print(sys.argv[1], r['wasm_bytes'], 'bytes; parity', r['parity'], '; GPL switch', r['gpl_mods'], '; DX7 sine', r['dx7_sine'], [m['id'] for m in r['licences'] if 'GPL' in m['licence']])" \
   "$DEST/fm1.wasm.json"
