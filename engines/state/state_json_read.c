@@ -1606,6 +1606,10 @@ static int on_close(fm1_state_json_reader_t *r, const fm1_json_ev_t *ev) {
   if (r->depth == 0) return bad(r, "unexpected end");
   f = top(r);
   switch (f->ctx) {
+    case C_SOUNDS:
+      /* Shorthand may omit trailing slots, but never Sound 1. */
+      if (!f->items && !r->maps_only) return bad(r, "Sound 1 is never empty");
+      break;
     case C_MIDI_MAP:
       if (f->seen != 3u) return bad(r, "midiMap needs version and bindings");
       break;

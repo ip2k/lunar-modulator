@@ -581,6 +581,8 @@ class JsonReader:
                 self.session(v)
             elif k == "sounds":
                 self.want(v, list)
+                if not v:
+                    self.bad("Sound 1 is never empty")
                 for i, s in enumerate(v):
                     self.path = ["sounds", i]
                     if i >= 4:
