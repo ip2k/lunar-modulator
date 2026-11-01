@@ -149,8 +149,12 @@ not reset or reconfigure a borrowed counter.
 With fake evidence, the selected platform's prospective path is prepare, IRQ
 setup, APP completion, LCD completion, IO/audio completion, IRQ enable, then MAIN
 completion checks. It reuses the existing fixed Trio initializer and render IRQ.
-Exception terminal publication precedes a bounded best-effort audio stop in
-halt; no app, allocation, logging, P33 or waiting helper runs in the fault path.
+The LCD completion check requires the existing fresh-zero
+`fm1_lcd_timeouts` counter to remain zero: the HAL records a bounded SPI timeout
+and returns, so return from `lcd_sync` alone is not healthy completion. A recorded
+timeout terminates before another feed or input/audio startup. Exception terminal
+publication precedes a bounded best-effort audio stop in halt; no app, allocation,
+logging, P33 or waiting helper runs in the fault path.
 Nested HAL faults already halt without reentering this adapter. This path is
 compiled source only until actual target review, and remains unreachable past
 the immutable qualification refusal in this candidate.
@@ -171,6 +175,16 @@ budgets, toolchain pins, source audits and worker capture helper stay unchanged.
 The candidate receipt states physical qualification false, functional startup
 refused, ROM return false and no distribution/hardware admission. An actual link
 can prove retained candidate code and layout; it cannot prove startup execution.
+
+The focused host proof also executes this actual platform startup body through
+typed HAL shims and the actual injected target binding/policy. Separate processes
+cover qualification refusal, APP failure, a recorded LCD timeout, and MAIN status
+failure after IO/audio startup; terminal publication precedes audio stop. The shims
+do not model SPI completion, clock frequency, watchdog reset or physical silence.
+Normal and ASan/UBSan checks use the same owner body as the candidate. A private
+counterfactual build restoring only the old unconditional LCD health predicate
+reaches an extra feed and forbidden IO startup in both configurations; the corrected
+source stops after the APP feed. All target qualification remains zero.
 
 ## Minimal subsequent physical qualification experiment
 

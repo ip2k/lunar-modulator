@@ -30,6 +30,27 @@ def test_actual_injected_target_binding(tmp_path, sanitized):
     print(result.stdout, end='')
 
 
+@pytest.mark.parametrize('sanitized', [False, True])
+def test_actual_candidate_platform_health(tmp_path, sanitized):
+    binary = tmp_path / 'platform'
+    fixture = ROOT / 'tests/fixtures/selected_return_target'
+    flags = ['-std=c11', '-O1', '-g', '-Wall', '-Wextra', '-Werror', *FLAGS,
+             '-DLUNAR_SR_PLATFORM_TEST=1']
+    if sanitized:
+        flags += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer']
+    subprocess.run([os.environ.get('CC', 'cc'), *flags, '-I', str(PACKAGE),
+                    '-I', str(ROOT / 'firmware/native'), '-I', str(fixture),
+                    str(PACKAGE / 'selected_return.c'),
+                    str(PACKAGE / 'selected_return_pi32v2.c'),
+                    str(PACKAGE / 'selected_return_platform.c'),
+                    str(fixture / 'platform_check.c'), '-o', str(binary)], check=True)
+    for mode in ['unqualified', 'app-fail', 'lcd-fail', 'main-fail']:
+        result = subprocess.run([str(binary), mode], capture_output=True, text=True, timeout=15)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert f'actual selected platform passed {mode}' in result.stdout
+        print(result.stdout, end='')
+
+
 @pytest.mark.parametrize('defines,diagnostic', [
     ([*FLAGS, '-DLUNAR_SELECTED_RETURN_FAKE_MMIO=1'], 'mutually exclusive'),
     ([*FLAGS, '-D__PI32V2__=1'], 'injected target binding is host only'),

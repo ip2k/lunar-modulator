@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include "diagnostic_api.h"
 #include "selected_return_pi32v2.h"
+#ifdef LUNAR_SELECTED_RETURN_TARGET_INJECTED
+#include "platform_hal.h" /* host test only; actual owner body below is shared */
+#else
 #include "fm1_time.h"
 #include "fm1_irq.h"
 #include "fm1_input.h"
@@ -12,6 +15,7 @@
 #include "fm1_lcd_hw.h"
 #include "fm1_audio.h"
 #include "lcd.c"
+#endif
 
 #define HALF_FRAMES 64u
 #define HALF_WORDS (2u * HALF_FRAMES)
@@ -19,6 +23,9 @@ static int32_t audio[2u * HALF_WORDS] __attribute__((aligned(16)));
 static uint32_t keys;
 static lunar_selected_return_t return_policy;
 static volatile uint32_t audio_may_run;
+#ifdef LUNAR_SELECTED_RETURN_TARGET_INJECTED
+const lunar_selected_return_t *lunar_sr_platform_test_state(void) { return &return_policy; }
+#endif
 extern void isr_timer5(void), isr_alnk0(void);
 
 void fm1_timer5_irq(void) { fm1_timer5_ack(); fm1_input_tick(); }
@@ -56,11 +63,13 @@ static void fm1_fault(const fm1_crash_t *crash) {
   lunar_selected_return_fault(&return_policy,LUNAR_SR_FAULT);
 }
 void lunar_diagnostic_cstart(void) {
+#ifndef LUNAR_SELECTED_RETURN_TARGET_INJECTED
   extern uint32_t _data_start[], _data_end[], _data_load[], _bss_start[], _bss_end[];
   uint32_t *s, *d;
   /* Initialise C storage before calling code which reads/writes globals. */
   for (s = _data_load, d = _data_start; d < _data_end;) *d++ = *s++;
   for (d = _bss_start; d < _bss_end;) *d++ = 0;
+#endif /* host C runtime already initialized storage in the injected test */
   /* Exact real qualification is all zero: this call halts before timer,
    * mailbox/P33, IRQ/app/LCD/audio work. A future physical qualification must
    * separately establish exclusive configured TIMER4 ownership before entry.
@@ -72,7 +81,8 @@ void lunar_diagnostic_cstart(void) {
   lcd_init();
   lcd_fill(0, 0, 240, 240, 0); /* diagnostic has no interactive screen */
   lcd_sync();
-  (void)lunar_selected_return_progress(&return_policy,LUNAR_SR_LCD_READY,1);
+  (void)lunar_selected_return_progress(&return_policy,LUNAR_SR_LCD_READY,
+                                      fm1_lcd_timeouts==0);
   fm1_input_init();
   audio_may_run=1;
   fm1_audio_init(audio, HALF_WORDS, isr_alnk0, 3);
@@ -80,7 +90,11 @@ void lunar_diagnostic_cstart(void) {
   (void)lunar_selected_return_progress(&return_policy,LUNAR_SR_IO_READY,1);
   fm1_irq_enable_all();
   for (;;) {
+#ifdef LUNAR_SELECTED_RETURN_TARGET_INJECTED
+    lunar_sr_test_barrier();
+#else
     __asm__ volatile("csync" ::: "memory");
+#endif
     (void)lunar_selected_return_progress(&return_policy,LUNAR_SR_MAIN,
                                         lunar_diagnostic_status()==0);
   }

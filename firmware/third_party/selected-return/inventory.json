@@ -89,7 +89,7 @@
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/UPSTREAM.md": {
-      "sha256": "4156b0175ef82763afdc9a34988e1babf1c25d5e292bd5c08628c1caa0857be1",
+      "sha256": "4abe35bb1c9fcf7ea6ddecbd8660c018e1db21d258461300c4c86c233fcc9669",
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/LICENSE": {
@@ -105,15 +105,15 @@
       "modification": "new offline proof; actual policy and register-only test fixture"
     },
     "firmware/third_party/selected-return/selected_return_pi32v2.c": {
-      "sha256": "cc8d059e366e3d3f068ead05c4827e7869d13732da16ec5d0780678930694207",
+      "sha256": "c67f12b6e47373f5a2444cd3d484aaa853947116c6a06c75cb24960646be02f2",
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/selected_return_pi32v2.h": {
-      "sha256": "b24b9df02343b9dff1932b726d33ddc12e76a7b3d890541a3cea02b7d1fe087f",
+      "sha256": "afbcb44b905574a41bb8059451f53cf29729ebdbe99e1cc42036e0c007942177",
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/selected_return_platform.c": {
-      "sha256": "dfd59d57a9c5100e2afb6258c9f180d2313093b1aa1c9e96e6b58485e5ba7998",
+      "sha256": "5dfa13afab28d0b7bfde7667693eecf6040cf788f55fedcbcd70608132f67d20",
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/selected_return_candidate.ld": {
@@ -121,27 +121,35 @@
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "tests/test_selected_return_target.py": {
-      "sha256": "7957b12185f82fd2e300373db1bd68ce0e785c7990d90ec7825f819ae6e99462",
+      "sha256": "730918b0a69483ffe46cf8632c1234c1f1e6fd8d6004953ed9bdc3fd77ea38ce",
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "tests/fixtures/selected_return_target/check.c": {
-      "sha256": "27749933c7d6bcd18100f0e03358aeac5438928171b5981b3b40443a86ce2803",
+      "sha256": "0a5bd661c72bc2f959d7eed82a8590445ff5b78570dc981ae54d86f7d082b7ec",
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "tools/native/build_selected_trio_return_candidate.py": {
       "sha256": "aa15b099f7ddbf04ff6f2bd54d9689c8e9813ef899bc3b09ff94cb676437e50b",
       "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "tests/fixtures/selected_return_target/platform_check.c": {
+      "sha256": "03568899a630ab9457c9cfefc6f400101da6b69daf544d0c280fe625f2540a99",
+      "modification": "host-only actual candidate startup proof through typed HAL shims"
+    },
+    "tests/fixtures/selected_return_target/platform_hal.h": {
+      "sha256": "e50f3fc7ff4b2b8ea95673a3b234c602edfb207c3b0417838beeeefe01475d32",
+      "modification": "host-only actual candidate startup proof through typed HAL shims"
     }
   },
   "files": {
     "selected_return.c": "27933f1ca834fef3d3de6b7f5ca0419c12db795e53a25039c93c2fec93969278",
     "selected_return.h": "b5bf1c1f43f4ce78346c7c985aaf432e3a10632339ded758599c6ddba5159b62",
-    "selected_return_pi32v2.c": "cc8d059e366e3d3f068ead05c4827e7869d13732da16ec5d0780678930694207",
-    "selected_return_pi32v2.h": "b24b9df02343b9dff1932b726d33ddc12e76a7b3d890541a3cea02b7d1fe087f",
-    "selected_return_platform.c": "dfd59d57a9c5100e2afb6258c9f180d2313093b1aa1c9e96e6b58485e5ba7998",
+    "selected_return_pi32v2.c": "c67f12b6e47373f5a2444cd3d484aaa853947116c6a06c75cb24960646be02f2",
+    "selected_return_pi32v2.h": "afbcb44b905574a41bb8059451f53cf29729ebdbe99e1cc42036e0c007942177",
+    "selected_return_platform.c": "5dfa13afab28d0b7bfde7667693eecf6040cf788f55fedcbcd70608132f67d20",
     "selected_return_candidate.ld": "a4a178074ba3e0a9d89748a8ddab7a0f6fb8790acc7cd2fcfec8136748bdd0c9",
     "LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
-    "UPSTREAM.md": "4156b0175ef82763afdc9a34988e1babf1c25d5e292bd5c08628c1caa0857be1"
+    "UPSTREAM.md": "4abe35bb1c9fcf7ea6ddecbd8660c018e1db21d258461300c4c86c233fcc9669"
   },
   "target_binding_base": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
   "target_binding_provenance": {
