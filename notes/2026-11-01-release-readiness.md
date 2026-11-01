@@ -31,23 +31,25 @@ deployment was skipped. Do not rerun passing checks to hide that failure.
 
 [verified] Corrections PR #165 is the combined integration candidate on
 `fix/2026-11-01@release-state-corrections`. Reviewed source is pushed and remote
-verified through `eb1527dfc50c02714a342e72065178a3e11b157c`. It is not a release
-or hardware admission. Capture completion, bounded codec phase 1, fault handling,
-lifecycle cleanup, exact audit proofs and target-derived test expectations are
-integrated. Required exact-head CI and real-Chrome acceptance remain.
+verified through `bf7a09546bc52d9b4126d34f543a75650a5c264b`. It is not a release
+or hardware admission. Capture completion, streamed PROJECT persistence,
+renderer fault/lifecycle handling, strict native preparation, a private build
+worker/API and the host-only interactive owner are integrated. Required final
+exact-head CI and real-Chrome acceptance remain. Prior head `13426bdc` CI
+41325603135 was superseded without a failed job; Pages 41325603139 succeeded.
 
-[verified] The actual simulator build for frozen source `a68a9e31` passed
-108-case parity, SysEx, MIDI, metadata, a 30-second DSP edit storm with zero
-late blocks/resyncs, and 7,049 browser edits with zero playback underruns.
-Generated artifacts were integrated at `3dbbd3d5`; strict committed-artifact
-provenance passes on the combined tree. Chromium passed the full page suite;
-Firefox/WebKit passed targeted state, sequencer and toolbar checks. A broader
-Firefox editor-map run was interrupted before a verdict and is not claimed as
-passing. Subsequent native-only additions do not change browser source hashes.
-Scripted results do not establish owner visual, device, analog or listening
-acceptance. Exact `3dbbd3d5` CI passed its browser, engine, sanitizer and 32-bit
-jobs; broad Mac/Linux jobs were cancelled by the newer integration push.
-Pages 41318288124 succeeded. Current-head CI remains required.
+[verified] The latest actual canonical simulator build used frozen source
+`5197daae`; its generated record is integrated at `13426bdc`. All 108 JS/musl
+parity cases pass; glibc agrees exactly in 105 cases and within one LSB in the
+remaining three. Metadata, SysEx, MIDI and routing checks pass. A 30-second DSP
+edit storm completed 10,341 quanta with zero late blocks or resyncs; 7,049 browser
+edits caused zero playback underruns, and Chromium passed all 99 page checks.
+Coordinator strict record/drift checks pass. Earlier Firefox/WebKit targeted
+state, sequencer and toolbar checks are historical evidence, not a fresh run on
+this pin. Scripted checks do not establish real-Chrome visual, device, analog or
+listening acceptance. The integrated CLI buffer cleanup changes the engine-source digest; a fresh
+actual canonical run is assigned from `bf7a0954`. Until that completes, the
+record is stale for current source. Never edit the source digest manually.
 
 [verified] Pinned musl and compiler-rt sources now close the reviewed native
 math/string/remainder dependencies without substitutes or budget changes.
@@ -83,9 +85,17 @@ integrated after independent review; its immutable zero qualification refuses
 startup before timer, mailbox, P33, app, LCD or audio work. Review corrected a
 recorded LCD timeout being treated as healthy completion. Sixteen independent
 normal/sanitized host checks pass, including the actual candidate startup body
-through typed HAL shims and unchanged default plans. Actual target codegen, MMIO,
-watchdog lease, timer, mailbox guards and physical recovery qualification remain
-separate work; no target reset behavior is admitted.
+through typed HAL shims and unchanged default plans.
+
+[verified] A fresh complete target build from `5197daae` passed its original
+12-check audit and layout checks after a narrow compiler-fence fix removed an
+unavailable synchronization helper. The four source ordering boundaries,
+explicit target synchronization and immutable zero qualification are preserved.
+The generated code deliberately refuses functional startup before timer,
+mailbox, P33, app, display or audio work. BSS is 277,856 bytes, with 164,512 bytes
+to the guard; reserved stacks are not runtime measurements. Actual MMIO,
+watchdog, timer/mailbox behavior and physical recovery qualification remain
+separate; no target reset or ROM-return behavior is admitted.
 
 [verified] The disabled fixed-Trio v2 service contract is integrated after
 independent review. It validates the actual retained target ELF, flat image,
@@ -100,8 +110,15 @@ default and loopback-only, returns no binaries, and retains jobs through verifie
 cancellation and unconfirmed cleanup. The separately reviewed worker is integrated with bounded evidence acquisition,
 operator-owned trust anchors and confirmed cleanup before capacity release.
 Independent worker/API composition checks pass 464 tests with one expected skip.
-Fresh actual worker execution remains the next dependency; package, installation
-and hardware capability flags stay false.
+[verified] One real HTTP build through the actual private factory passed from
+frozen `5197daae`: 123 target objects, four prepared files and the original
+12-check audit. The factory reported success only after verification; the
+coordinator independently revalidated the same held outputs with fresh
+operator-owned trust inputs. The first attempt exposed read-only copied MSFA
+header replacement; the one-line generated-file replacement fix has independent
+causal RED/GREEN coverage. Resource/HTTP/cleanup evidence is retained privately;
+build products and the container are removed. All seven hardware, installation,
+package, release, distribution and ROM-return flags remain false.
 
 The foundation provides DX7 bank export, ordered MIDI realtime input,
 queue-margin telemetry, offline customization/catalogue and a shared request
@@ -171,8 +188,8 @@ private coordinator checkpoint retains detailed receipts and current lane state.
   checks any additional tracked imports. Independent bundle checks pass 41
   tests with one existing skip; seven service tests confirm production still
   refuses missing native prerequisites. No selector or startup gate changed.
-- [verified] The current actual simulator artifacts and browser acceptance batch
-  are recorded above. Native-only additions do not require another WASM rebuild.
+- [verified] Current canonical artifacts are recorded above. Native-only
+  additions do not change their inputs; the integrated CLI engine-file change does.
 - [verified] Native codec phase 1 uses the existing encoder with explicit host
   backing and a bounded two-pass plain path. Independent normal and sanitizer
   checks compare 387 cases against the exact old implementation, including
@@ -201,10 +218,28 @@ private coordinator checkpoint retains detailed receipts and current lane state.
   when the clock stops. Actual protocol tests preserve first error and retained
   ownership. Test-only ABI fixture expectations now use measured full candidate
   RAM; native and 32-bit runs retain the unchanged budget and refusal policy.
-- The historical native-build prerequisite refusal remains. The separate fixed
-  Trio profile now has reviewed contract, worker and private API source; its
-  first real composed worker/HTTP run is still pending. Test-only adapters do
-  not supply that execution witness or enable installation.
+- [verified] The selected interactive owner now composes the actual Trio app,
+  ordered accepted scanner events, existing PCM queues and framebuffer leases,
+  and an injected nonblocking SPI protocol. Independent review and normal plus
+  ASan/UBSan proof cover 12,960 exact 64-frame blocks, 216 ordered controls,
+  240 row payloads and fault/reentry cases. Coordinator combined-tree checks
+  pass four focused tests and all 17 integrated paths match reviewed source.
+  The actual rendered frame was inspected without visible label overlap.
+  This is host-only: audio readiness during a real startup interrupt, target
+  publication, SPI/DMA retirement, memory/stack and deadlines are still open.
+- The next PROJECT composition slice stages the real selected app through the
+  existing transaction codec before any platform or IRQ service starts, under
+  an explicit offline exclusive-owner contract. It does not implement live
+  pause, save through an already-running owner, real storage or the SAVE action.
+- [verified] CLI process buffers now release on normal, refusal and error exits.
+  Independent source-bound normal and Clang ASan/UBSan checks pass 28 actual CLI
+  invocations per tool, including the exact module-independent regression body;
+  this was not a pytest framework run. The original two 4,096-byte leaks are
+  causally reproduced; successful packed bytes remain identical. The core codec
+  and audio algorithms do not change.
+- The historical general native-build prerequisite refusal remains. The
+  separate fixed-Trio private worker has actual execution evidence above,
+  but neither that witness nor test adapters enable public installation.
 
 ## Native and physical evidence limits
 
@@ -217,16 +252,16 @@ high-water or closed call-chain proof. It has blank LCD/limited HOME controls,
 no persistence, pipeline, USB, bootguard or full interactive runtime. Later
 source changes require new target evidence before admission.
 
-Last successful canonical browser build source is `a68a9e31`, integrated at
-`3dbbd3d5`. The actual module SHA is
+The latest canonical browser build source is `5197daae`, record integrated at
+`13426bdc`. Its actual module SHA is
 `e4d0b94f4e05181afeb74f9a004c7a03f00a1370a2a99be204426ae33ef68755`.
-The strict source record matches the current engine/simulator inputs. The
-selected-Trio target ELF is
-`75960e3e4011da43f26776cf356b23a338b6c5a925f950adcb83689e56612983`;
-its flat application is 178,744 bytes. Full app state occupies 239,360 bytes of
-BSS; that value is not the flash artifact size. Reserved stacks remain
-unmeasured at runtime. No service or installation capability follows from this
-static diagnostic build.
+The fresh actual private-worker Trio ELF is
+`4e8df12f6bca03263d077acef9c32a14d437a8e3bc11fc5eaa8cf345cfce60cc`;
+its flat app is 178,744 bytes, SHA
+`ee03de799a69410228af0cdff10cc07c3e3685fa51580344dd93ad16a83f2dfc`.
+Full app state occupies 239,360 target bytes, distinct from artifact size and
+from host ABI size 241,536. Reserved stacks remain unmeasured at runtime.
+No installation capability follows from the static diagnostic or build service.
 
 No device traffic occurred during this release-coordination resume. The physical
 FM-1 boots recovered stock V15; D1–D4 and docs/17 still govern firmware-changing
@@ -252,6 +287,6 @@ never force-push or merge unfinished work.
 Heavy work uses coordinated Aeon lanes of four CPUs and 6 GiB in
 `docker-batch.slice`, labelled disposable containers and exact owned staging.
 Retain small evidence, delete owned reproducible products, and preserve sibling
-worktrees, owner data and transcripts. Mac free space is 1,116 GiB against the
+worktrees, owner data and transcripts. Mac free space is 1,114 GiB against the
 500 GiB floor. The release-readiness automation remains ACTIVE until verified
 completion or an owner-requested pause.
