@@ -98,6 +98,30 @@ static void zero_velocity(void) {
   CHECK(FM1_MIDI_EV_SRC(out[1].b) == FM1_MIDI_SRC_SEQ);
   free(s);
 }
+static void run_in_block(void) {
+  void *s = create(); fm1_midi_ev_t in[2], out[64]; unsigned n;
+  param(s, "Keys", 1);
+  in[0] = event(9, FM1_MIDI_EV_STOP, 0, 0);
+  in[1] = event(40, FM1_MIDI_EV_RESET, 0, 0);
+  n = process(s, in, 2, 1, 48, out, 64);
+  CHECK(n == 3 && out[0].frame == 0 && out[0].kind == FM1_MIDI_EV_NOTE_ON);
+  CHECK(out[1].frame == 9 && out[1].kind == FM1_MIDI_EV_NOTE_OFF);
+  CHECK(out[2].frame == 40 && out[2].kind == FM1_MIDI_EV_NOTE_ON);
+  free(s);
+}
+static void same_pitch_tie(void) {
+  void *s = create(); fm1_midi_ev_t in[4], out[64]; unsigned n;
+  param(s, "Length", 1); param(s, "Octaves", 0);
+  in[0] = event(0, FM1_MIDI_EV_NOTE_ON, 45, FM1_MIDI_SRC_LIVE);
+  in[1] = event(1, FM1_MIDI_EV_NOTE_ON, 45, FM1_MIDI_SRC_SEQ);
+  in[2] = event(30, FM1_MIDI_EV_STOP, 0, 0);
+  in[3] = event(60, FM1_MIDI_EV_NOTE_OFF, 45, FM1_MIDI_SRC_LIVE);
+  n = process(s, in, 4, 0, 64, out, 64);
+  CHECK(n == 2 && out[0].kind == FM1_MIDI_EV_NOTE_ON && out[0].frame == 0);
+  CHECK(out[1].kind == FM1_MIDI_EV_NOTE_OFF && out[1].frame == 60);
+  CHECK(FM1_MIDI_EV_SRC(out[0].b) == FM1_MIDI_SRC_LIVE && FM1_MIDI_EV_SRC(out[1].b) == FM1_MIDI_SRC_LIVE);
+  free(s);
+}
 int main(int argc, char **argv) {
   CHECK(argc == 2);
   if (!strcmp(argv[1], "seq-latch")) latch_stop(FM1_MIDI_SRC_SEQ);
@@ -106,6 +130,8 @@ int main(int argc, char **argv) {
   else if (!strcmp(argv[1], "same-key")) same_key_origins();
   else if (!strcmp(argv[1], "deferred")) deferred_origin();
   else if (!strcmp(argv[1], "zero-velocity")) zero_velocity();
+  else if (!strcmp(argv[1], "run-in-block")) run_in_block();
+  else if (!strcmp(argv[1], "same-pitch-tie")) same_pitch_tie();
   else CHECK(0);
   return 0;
 }

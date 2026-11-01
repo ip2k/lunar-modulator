@@ -41,7 +41,8 @@ def event_tools(tmp_path_factory):
 
 
 @gpl_only
-@pytest.mark.parametrize("case", ["seq-latch", "live-latch", "run", "same-key", "deferred", "zero-velocity"])
+@pytest.mark.parametrize("case", ["seq-latch", "live-latch", "run", "same-key", "deferred",
+                                "zero-velocity", "run-in-block", "same-pitch-tie"])
 def test_acid_transport_origin(event_tools, case):
     subprocess.run([str(event_tools["acid"]), case], check=True)
 

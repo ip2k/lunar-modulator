@@ -298,7 +298,7 @@ static void fire(acid_gen_t *s, out_t *o, uint16_t frame) {
   note = note < 0 ? 0 : (note > 127 ? 127 : note);
   note |= (s->p[AG_KEYS] == AG_KEYS_RUN ? FM1_MIDI_SRC_SEQ : s->source) << 7;
   if (s->sounding >= 0 && s->slides) {
-    if (note != s->sounding) {               /* a slide: the new note first */
+    if ((note & 127) != (s->sounding & 127)) { /* a slide: the new note first */
       if (send_on(o, frame, note, (st->flags & BS_ACCENT) ? AG_VEL_ACCENT : AG_VEL_PLAIN)) {
         s->slide_off = s->sounding;          /* its note-off at the next tick */
         s->sounding = note;
@@ -306,7 +306,7 @@ static void fire(acid_gen_t *s, out_t *o, uint16_t frame) {
         end_notes(s, o, frame);
         return;
       }
-    }                                        /* the same note: a tie */
+    }                                        /* same pitch: tie, keep its original owner */
   } else {
     send_off(s, o, frame, s->sounding);
     s->sounding = -1;
@@ -526,9 +526,12 @@ static uint32_t ag_process(void *self, const fm1_midi_ev_t *in, uint32_t n_in,
                            const fm1_midi_fx_ctx_t *ctx, fm1_midi_ev_t *out, uint32_t cap) {
   acid_gen_t *s = (acid_gen_t *)self;
   out_t o;
+  fm1_midi_fx_ctx_t tick_ctx;
   uint32_t i = 0, j = 0, k;
   const uint32_t n_ticks = ctx && ctx->ticks ? ctx->n_ticks : 0u;
   if (!s) return 0;
+  if (ctx) tick_ctx = *ctx;
+  else memset(&tick_ctx, 0, sizeof tick_ctx);
   if (!in) n_in = 0;
   o.ev = out;
   o.cap = out ? cap : 0u;
@@ -556,9 +559,13 @@ static uint32_t ag_process(void *self, const fm1_midi_ev_t *in, uint32_t n_in,
    * pressed on a tick plays on it. */
   while (i < n_in || j < n_ticks) {
     if (i < n_in && (j >= n_ticks || in[i].frame <= ctx->ticks[j])) {
+      /* Context describes the block's beginning; its transport events
+       * govern the ticks after them within this same block. */
+      if (in[i].kind == FM1_MIDI_EV_STOP) tick_ctx.running = 0;
+      else if (in[i].kind == FM1_MIDI_EV_RESET) tick_ctx.running = 1;
       handle(s, &in[i++], &o);
     } else {
-      on_tick(s, ctx, ctx->ticks[j++], &o);
+      on_tick(s, &tick_ctx, ctx->ticks[j++], &o);
     }
   }
   return o.n;

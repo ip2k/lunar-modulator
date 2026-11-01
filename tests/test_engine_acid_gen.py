@@ -271,6 +271,20 @@ def test_root_and_scale_can_follow_the_project_key(renderer, tmp_path):
     assert maj == dmaj and maj != own
 
 
+def test_run_stop_clears_a_downstream_arp_latch(renderer, tmp_path):
+    """Run's generated notes belong to transport through the next slot."""
+    play, stop = BOUND * 2, BOUND * 80
+    script = (f"#! rate={RATE} block=64 tracks=8 end={BOUND * 140}\n"
+              f"@{play} play\n@{stop} stop\n")
+    s, _, ev = mfx_run(renderer, tmp_path, [
+        "--engine", "test-sine", "--mfx", "0:acid-gen", "--mfx-param", "0:Keys=1",
+        "--mfx-param", "0:Density=100", "--mfx", "0:arp", "--mfx-param", "0:Latch=1",
+    ], script=script)
+    assert any(e["k"] == "on" for e in ev)
+    assert all(e["t"] <= stop for e in ev) and s["notes_hung"] == 0
+    assert all(0 < e["vel"] <= 127 for e in ev if e["k"] == "on")
+
+
 # ---- The contract ------------------------------------------------------------------------
 
 def busy(block):
