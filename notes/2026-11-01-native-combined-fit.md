@@ -113,3 +113,14 @@ launch/build/probe/verification commands and inventory are in the enclosing
 scratch directory. Candidate ELF/app remain private for exact review only.
 No binary/vendor material is committed. Shared pinned SDK/toolchain/headers
 remain unchanged. Cleanup and final source/push status are recorded below.
+
+[verified] Cleanup complete: exact labelled build/probe containers absent;
+pre-cleanup lsof found no open files in owned stage. Removed stage src/,
+outputs/ (objects/generated libc++ headers), source export tar and probe
+object, plus Mac export/test temp/cache. Remote retained stage7.5MiB, Mac
+private evidence7.5MiB; only small reports/logs/scripts and exact candidate
+ELF/app remain for independent review. Shared vendor inputs untouched. Mac
+free1116GiB; Aeon filesystem free4.5TiB. Source delta from frozen e267d7cd is
+this note only. Coordination handoff records the verified branch SHA, then
+releases only this task's unique claim. Parent owns review and integration;
+no PR/merge/hardware/public release performed by this evidence lane.
