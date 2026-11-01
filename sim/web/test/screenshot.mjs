@@ -44,7 +44,6 @@
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serve } from './serve.mjs';
@@ -313,7 +312,7 @@ const bigEnough = (t, px) => Math.min(t.white_key, t.black_key, t.button, t.knob
 
 // A self-signed certificate for 127.0.0.1, made for this run only.
 function selfSigned() {
-  const dir = mkdtempSync(join(tmpdir(), 'fm1-tls-'));
+  const dir = mkdtempSync(join(out, '.fm1-tls-'));
   try {
     execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
       '-subj', '/CN=127.0.0.1', '-addext', 'subjectAltName=IP:127.0.0.1',
