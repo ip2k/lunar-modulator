@@ -15,7 +15,7 @@ After: both local Mac disk capacity and simulated remote capacity are determinis
 - `tests/test_build_on_aeon_lifecycle.py`
 - `scratch/performance/devkit-20261023/audit-20261101/ci-lifecycle-disk-fixture/HANDOFF.md`
 - Branch: `fix/2026-11-01@ci-lifecycle-disk-fixture`, based on `6ece5032bb4a2e7f3856350c89015725f727a473`.
-- Commit and remote SHA: pending at note creation; update after push.
+- Code commit: `00b8194a4de6382eb20dc3bc5dfe64eccff8ea91`; its remote branch SHA was verified equal after push. The handoff update is a follow-up commit on the same branch; the final tip SHA is reported in the parent result.
 
 ## Checks and limits
 
