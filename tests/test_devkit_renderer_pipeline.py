@@ -13,6 +13,10 @@ MODES = ('stream', 'output_full', 'output_full_descheduled', 'reserve_twice', 'p
          'wrong_core', 'tag_wrap', 'clock_wrap', 'lifetime', 'result_tag',
          'finish_leased', 'finish_done_pending', 'start_stopped_clock_poison', 'finish_stopped_clock_poison')
 
+CLOCK_MODES = ('poison_worker_clock_start', 'poison_worker_clock_end', 'poison_wait_clock',
+               'poison_publish_clock', 'poison_direct_step')
+HOST_CLOCK_MODES = ('poison_worker_ms', 'poison_wait_ms', 'poison_start_ms')
+
 @pytest.mark.parametrize('sanitize', [False, True])
 @pytest.mark.parametrize('adapter', ['sdk', 'host'])
 def test_native_pipeline_protocol(tmp_path, sanitize, adapter):
@@ -30,7 +34,7 @@ def test_native_pipeline_protocol(tmp_path, sanitize, adapter):
                     '-I'+str(fixture), '-I'+str(ROOT/'firmware/devkit'),
                     '-I'+str(ROOT/'firmware/common'), str(fixture/'protocol.c'), '-o', str(exe)], check=True)
     env = dict(os.environ, ASAN_OPTIONS='halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1')
-    for mode in MODES:
+    for mode in MODES + CLOCK_MODES + (HOST_CLOCK_MODES if adapter == 'host' else ()):
         result = subprocess.run([str(exe), mode], check=True, env=env, timeout=2 if 'stopped_clock_poison' in mode else 15,
                                 capture_output=True, text=True)
         assert f'LUNAR_PIPELINE_HOST PASS mode={mode} ' in result.stdout
