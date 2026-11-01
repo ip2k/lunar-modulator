@@ -620,7 +620,14 @@ static int playing_fits(fm1_seq_t *s, unsigned t, unsigned clip,
     if (fresh) {
       const uint32_t at = cap_tick(s, e), end = playing_note_end(s, t, i);
       const uint32_t gate = end > at ? end - at : 1u;
-      tick = start + first_abs % SQ_TPB + (at > first_abs ? at - first_abs : 0);
+      const uint32_t phase = start + first_abs % SQ_TPB;
+      const uint32_t offset = at > first_abs ? at - first_abs : 0;
+      const uint32_t max_end = ((SQ_MAX_STEPS - c->loop_start) / SQ_BAR_STEPS) * SQ_TPB;
+      /* Bound operands before adding or rounding: a held note can remain
+       * in the ring until the next input even near the 32-bit tick limit. */
+      if (phase > max_end || offset > max_end - phase) return 0;
+      tick = phase + offset;
+      if (gate > max_end - tick) return 0;
       if (tick + gate > span_end) span_end = tick + gate;
     } else {
       tick = start + (cap_clip_tick(e) + span - start % span) % span;

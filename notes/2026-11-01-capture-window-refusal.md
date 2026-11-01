@@ -47,6 +47,15 @@ ring, all same-pitch note-ons, 2,000 valid and 2,000 refused preflights average
 These host measurements are not pi32v2 stack, code-generation or deadline
 acceptance. Custom larger ring sizes retain quadratic cost.
 
+[verified] Independent review found that a held note can remain in the ring
+without a new push until `UINT32_MAX`; the initial preflight's endpoint/bar
+rounding could wrap and admit it. The follow-up bounds phase, offset and gate
+against the exact available bar end before addition. Regressions reproduce
+that failure at phases 0 and 383 and compare the full arena on refusal.
+The exact maximum fresh window (tick 0 through 6,144) still captures to 256
+steps and roundtrips; tick 6,145 refuses without mutation. Compatibility
+arithmetic is unchanged. The focused C probe now covers 12 cases.
+
 Observability seam (reported to coordinator before any app/UI edits): app
 command return values and browser text API return admission/bytes consumed,
 not semantic edit success. Native render telemetry already exposes
