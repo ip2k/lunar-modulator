@@ -36,6 +36,32 @@ static int selected_overlap(const void *a, size_t an, const void *b, size_t bn) 
   return ap < bp + bn && bp < ap + an;
 }
 
+/* This is a cold diagnostic, not a loader for an app with host attachments.
+ * Refuse redirected live storage before even initializing the caller's report:
+ * that report (or reader scratch) might itself occupy the redirected object. */
+static int selected_fresh_topology(const fm1_app_t *app) {
+  const fm1_midi_fx_t *arp = fm1_midi_fx_find("arp");
+  if (!app || app->edit || app->on_cmd || app->on_note_in ||
+      app->on_mfx || app->on_mod ||
+      app->seq != (const fm1_seq_t *)(const void *)app->seq_mem ||
+      app->mod != (const fm1_mod_t *)(const void *)app->mod_mem ||
+      app->seq_host.seq != app->seq || app->seq_host.ev != app->seq_ev ||
+      app->seq_host.mfx != &app->mfx || app->seq_host.engine ||
+      app->mod_glue.mod != app->mod || app->mod_glue.ctx != app ||
+      app->mod_glue.hook.ctx != &app->mod_glue || app->mod_glue.sound)
+    return 0;
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    for (unsigned slot = 0; slot < FM1_MFX_SLOTS; ++slot) {
+      const fm1_mfx_slot_t *m = &app->mfx.chain[k].slot[slot];
+      if (slot == 0) {
+        if (m->fx != arp ||
+            (m->self && m->self != (const void *)app->mfx_mem[k])) return 0;
+      } else if (m->fx || m->self) return 0;
+    }
+  }
+  return 1;
+}
+
 static uint32_t selected_read(void *ctx, uint32_t off, uint8_t *out, uint32_t n) {
   const selected_source_t *src = (const selected_source_t *)ctx;
   if (off >= src->size) return 0;
@@ -198,6 +224,7 @@ int lunar_selected_project_load(fm1_app_t *app, const uint8_t *packed,
   const fm1_engine_t *engine = fm1_engine_find("trio");
   int index;
   if (!report) return 0;
+  if (app && !selected_fresh_topology(app)) return 0;
   /* Never write a refusal report into caller-owned live input or scratch. */
   if ((app && selected_overlap(report, sizeof *report, app, sizeof *app)) ||
       (packed && packed_bytes && selected_overlap(report, sizeof *report, packed, packed_bytes)) ||
