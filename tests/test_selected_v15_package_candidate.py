@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 """Synthetic-only composition proof; no vendor bytes, build, service or device."""
 from dataclasses import replace
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -13,7 +14,6 @@ from tools.installer_service import selected_v15_package_candidate as candidate
 from tests.test_installer_selected_trio_profile import evidence, request  # noqa: F401
 from tests.test_inspect_stock_flash import synthetic_decoded, encode, jlfs
 
-outer = candidate.model.inspect.__globals__
 # These are the same original sibling modules imported by the model/inspectors.
 import inspect_fwsc  # noqa: E402
 import package_guard  # noqa: E402
@@ -171,17 +171,21 @@ def test_actual_v2_validator_and_model_preserve_full_synthetic_v15(inputs, monke
     assert decoded[0x120:0x120 + len(inputs['app'])] == inputs['app']
 
 
-@pytest.mark.parametrize('change', ['app', 'elf', 'object', 'prepared', 'source', 'toolchain', 'headers', 'admission', 'request', 'trust'])
+@pytest.mark.parametrize('change', ['app', 'elf', 'object', 'prepared', 'source', 'toolchain', 'headers', 'admission', 'request', 'identity_request', 'return_request', 'trust'])
 def test_invalid_v2_trust_refuses_before_donor_processing(inputs, monkeypatch, change):
     def forbidden(*args, **kwargs):
         pytest.fail('invalid evidence reached donor processing')
     monkeypatch.setattr(candidate, '_donor_inputs', forbidden)
     if change in ('app', 'elf'):
         inputs[change] += b'changed'
-    elif change in ('admission', 'request'):
+    elif change in ('admission', 'request', 'identity_request', 'return_request'):
         name = 'receipt_raw' if change == 'admission' else 'request_raw'
         value = json.loads(inputs[name])
-        value['hardware_admitted' if change == 'admission' else 'flash_layout'] = True if change == 'admission' else 'expanded-d7000'
+        key, new_value = {'admission': ('hardware_admitted', True),
+                          'request': ('flash_layout', 'expanded-d7000'),
+                          'identity_request': ('application_identity', 'FM-1_999'),
+                          'return_request': ('rom_return', True)}[change]
+        value[key] = new_value
         inputs[name] = json.dumps(value).encode()
     elif change == 'trust':
         inputs['trusted'] = None
@@ -198,7 +202,7 @@ def test_invalid_v2_trust_refuses_before_donor_processing(inputs, monkeypatch, c
     assert_clean(inputs)
 
 
-@pytest.mark.parametrize('change', ['raw_hash', 'raw_size', 'pin', 'record', 'missing', 'extra', 'mutable', 'reference_hash', 'fixed_spl', 'config_size', 'per_file', 'aggregate'])
+@pytest.mark.parametrize('change', ['raw_hash', 'raw_valid_crc', 'raw_size', 'pin', 'pin_identity', 'missing_pin', 'record', 'missing', 'extra', 'mutable', 'reference_hash', 'fixed_spl', 'config_size', 'per_file', 'aggregate'])
 def test_donor_refusals_precede_decoding_and_materialization(inputs, monkeypatch, change):
     def forbidden(*args, **kwargs):
         pytest.fail('invalid donor reached decoder')
@@ -207,10 +211,19 @@ def test_donor_refusals_precede_decoding_and_materialization(inputs, monkeypatch
     pins = inputs['donor_pins']
     if change == 'raw_hash':
         inputs['donor_fwsc'] = bytes([inputs['donor_fwsc'][0] ^ 1]) + inputs['donor_fwsc'][1:]
+    elif change == 'raw_valid_crc':
+        image = candidate.model.logical(inputs['donor_fwsc'])
+        image[0xa5f00 + 19969] ^= 1
+        fix_envelope(image)
+        inputs['donor_fwsc'] = candidate.model.physical(image, inputs['donor_fwsc'])
     elif change == 'raw_size':
         inputs['donor_fwsc'] += b'x'
     elif change == 'pin':
         inputs['donor_pins'] = replace(pins, sha256='0' * 64)
+    elif change == 'pin_identity':
+        inputs['donor_pins'] = replace(pins, identity='FM-1_092')
+    elif change == 'missing_pin':
+        inputs['donor_pins'] = replace(pins, references={})
     elif change == 'record':
         inputs['donor_pins'] = replace(pins, authorization_record='')
     elif change == 'missing':
@@ -253,13 +266,21 @@ def test_scratch_root_refuses_shared_or_aliased_directory(inputs, tmp_path, kind
     assert_clean(inputs)
 
 
-@pytest.mark.parametrize('phase', ['write', 'build', 'verify'])
+@pytest.mark.parametrize('phase', ['write', 'build', 'verify', 'cleanup'])
 def test_failure_cleans_owned_references_without_final_output(inputs, monkeypatch, phase):
     untouched = inputs['scratch_root'] / 'operator-record'
     untouched.write_bytes(b'keep')
     def fail(*args, **kwargs):
         raise OSError('injected ' + phase)
-    if phase == 'write':
+    if phase == 'cleanup':
+        original = candidate.tempfile.TemporaryDirectory
+        @contextmanager
+        def fail_cleanup(*args, **kwargs):
+            with original(*args, **kwargs) as temporary:
+                yield temporary
+            fail()
+        monkeypatch.setattr(candidate.tempfile, 'TemporaryDirectory', fail_cleanup)
+    elif phase == 'write':
         real_open = os.open
         def fail_open(path, *args, **kwargs):
             if Path(path).name == 'ota.bin':
@@ -290,19 +311,26 @@ def test_original_extent_bounds_without_claiming_random_bytes_are_valid_v2(input
     assert_clean(inputs)
 
 
-@pytest.mark.parametrize('damage', ['unused_tail', 'resource', 'partition', 'placement', 'spl', 'ota', 'tail', 'metadata', 'identity'])
+@pytest.mark.parametrize('damage', ['unused_tail', 'resource', 'cfg', 'partition', 'placement', 'spl', 'config', 'ota', 'tail', 'metadata', 'identity', 'allocation', 'padding'])
 def test_crc_repaired_candidate_damage_cannot_bypass_original_verifier(inputs, monkeypatch, damage):
     original = candidate.model._build
     def damaged(raw, stock, app):
         good = original(raw, stock, app)
         image = candidate.model.logical(good)
-        if damage in ('unused_tail', 'resource', 'partition', 'placement'):
+        if damage in ('unused_tail', 'resource', 'cfg', 'partition', 'placement'):
             decoded = bytearray(inspect_fwsc.sfc_decode(image[0x4400:0x93400], 0))
             if damage == 'unused_tail':
                 decoded[0x120 + len(app)] ^= 1
             elif damage == 'resource':
                 decoded[0x8e0dc] ^= 1
                 decoded[0x40:0x60] = jlfs('cfg_tool.bin', 0x8e0dc, 2, 0x82, 0, decoded[0x8e0dc:0x8e0de])
+            elif damage == 'cfg':
+                start = CFG_OFFSET - 0x4000
+                decoded[start + 0x40] ^= 1
+                decoded[start + 0x20:start + 0x40] = jlfs('eq_cfg_hw.bin', 0x40, 3, 0x82, 1,
+                    decoded[start + 0x40:start + 0x43])
+                decoded[start:start + 0x20] = jlfs('cfg', 0x20, 0x80, 0x83, 1,
+                    decoded[start + 0x20:start + 0x80])
             elif damage == 'partition':
                 decoded[0x60:0x80] = jlfs('VM', 0x92000, 0x56000, 0x12, 0)
             else:
@@ -311,12 +339,34 @@ def test_crc_repaired_candidate_damage_cannot_bypass_original_verifier(inputs, m
             decoded[:32] = jlfs('app_area_head', 0x02000120, CFG_OFFSET - 0x4000, 0x83, 0,
                                 decoded[32:CFG_OFFSET - 0x4000])
             image[0x4400:0x93400] = inspect_fwsc.sfc_decode(decoded, 0)
-        elif damage == 'spl':
-            image[0x400 + 0xb0] ^= 1
+        elif damage in ('spl', 'config'):
+            # Rebuild every nested checksum involved, not just the outer CRC.
+            flash = bytearray(image[0x400:0x93400])
+            if damage == 'spl':
+                data = bytearray(inspect_fwsc.header_decode(flash[0xa0:0xb0])
+                                 + inspect_fwsc.header_decode(flash[0xb0:0x38d0]))
+                data[16] ^= 1
+                struct.pack_into('<H', data, 12, inspect_fwsc.crc16(data[16:]))
+                struct.pack_into('<H', data, 14, inspect_fwsc.crc16(data[:14]))
+                flash[0xa0:0xb0] = inspect_fwsc.header_decode(data[:16])
+                flash[0xb0:0x38d0] = inspect_fwsc.header_decode(data[16:])
+                flash[0x20:0x40] = inspect_fwsc.header_decode(jlfs('uboot.boot', 0xa0, len(data), 0, 0, data))
+            else:
+                flash[0x38d0 + 698] ^= 1
+                data = flash[0x38d0:0x38d0 + 699]
+                flash[0x40:0x60] = inspect_fwsc.header_decode(jlfs('isd_config.ini', 0x38d0, 699, 2, 0, data))
+            image[0x400:0x93400] = flash
         elif damage == 'ota':
             image[0xa5f00] ^= 1
         elif damage == 'tail':
             image[-64] ^= 1
+        elif damage == 'allocation':
+            offset = 64 + 4 * 80  # OTA allocation can shrink one byte without overlap.
+            record = bytearray(inspect_fwsc.header_decode(image[offset:offset + 80]))
+            struct.pack_into('<I', record, 16, 19999)
+            image[offset:offset + 80] = inspect_fwsc.header_decode(record)
+        elif damage == 'padding':
+            image[0xa5f00 + 19969] ^= 1
         elif damage == 'metadata':
             header = bytearray(inspect_fwsc.header_decode(image[:64]))
             struct.pack_into('<I', header, 12, 513)
@@ -327,6 +377,15 @@ def test_crc_repaired_candidate_damage_cannot_bypass_original_verifier(inputs, m
             result = bytearray(result)
             result[7 * 48 + 47] = ord('6') + 8
             result = bytes(result)
+        # Every candidate still has a valid outer checksum envelope. In the
+        # unused-tail case even all nested binding/CRC checks pass, so only
+        # the independent original-to-candidate byte mask can catch the loss.
+        inspect_fwsc.inspect(result)
+        if damage == 'unused_tail':
+            candidate.nested._inspect_app_replacement(result, stock, app)
+        elif damage in ('resource', 'cfg', 'spl', 'config'):
+            with pytest.raises(ValueError, match='guarded decoded component differs'):
+                candidate.nested._inspect_app_replacement(result, stock, app)
         return result
     monkeypatch.setattr(candidate.model, '_build', damaged)
     with pytest.raises(ValueError):

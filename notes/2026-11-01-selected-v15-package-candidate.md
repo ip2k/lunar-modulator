@@ -66,8 +66,30 @@ readers/guard/model. They cover independent trust mismatch before donor decode,
 bounds/reference/record refusals, private scratch and cleanup failures, app
 extent limits, repaired-CRC preservation failures and legacy cross-profile
 refusal. These are source/format proofs, never target execution or installer
-acceptance. Exact commands/results are recorded in the ignored lane scratch;
-final results will be added after the focused run.
+acceptance. [verified] Final focused run: 51 passed in 16.99s. The selected/legacy model,
+reader, guard, contract and packager regression run: 268 passed, 17 skipped,
+one pre-existing legacy fixture failure in 27.33s. The failing
+`test_composer_current_native_capabilities_fail_closed_before_capture` passes
+an invented Git commit and expects an unavailable-audit ValueError; current
+unchanged prerequisites instead reach Git and raise CalledProcessError. It
+fails identically in isolation without importing this adapter. Its test/helper
+source matches the base; the coordinator assigned that test-only fixture fix
+to a separate lane. No gate or legacy source was weakened here.
+
+Focused command (with the existing service venv Python):
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 "$SERVICE_PYTHON" -m pytest -q -o addopts='' \
+  -p no:cacheprovider --basetemp=scratch/selected-v15-private-package/final-new \
+  tests/test_selected_v15_package_candidate.py
+```
+
+The regression additionally selects `test_installer_selected_trio_profile`,
+`test_model_app_replacement`, `test_inspect_stock_flash`, `test_inspect_fwsc`,
+`test_inspect_version_contract`, `test_package_guard`,
+`test_private_package_candidate` and `test_trusted_fwsc_package`. All actual
+stock/diagnostic input opt-in variables were unset; retained-input tests skip.
+Logs remain in ignored lane scratch; no vendor input was decoded.
 
 Rarefaction orient/scope and Serena navigation agreed on the existing primary
 checkout's verifier. The isolated external worktree is outside their shared
