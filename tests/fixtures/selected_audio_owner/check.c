@@ -5,6 +5,7 @@
 #define lunar_sr_test_barrier original_test_barrier
 #include "../selected_return_target/check.c"
 #undef lunar_sr_test_barrier
+void lunar_sr_test_barrier(void);
 #include "diagnostic_app.h"
 #include "selected_project_blob.h"
 #include "fm1_app_state.h"
@@ -217,8 +218,8 @@ static void lunar_audio_owner_test_iteration(void) {
     }
   }
   if(!strcmp(mode,"clock-back")) { f.now=return_policy.last_tick-1;return; }
-  if(iterations==20) {
-    assert(tail_calls==1 && nonzero>0);
+  if(iterations==120) {
+    assert(tail_calls==1 && nonzero>0 && f.feed>3);
     assert(!PLATFORM->owner.display.initialized && !PLATFORM->owner.spi.initialized);
     /* Finish with a deliberate sticky fault; no auto-retry/pause teardown. */
     lunar_transport_fault(&PLATFORM->owner.transport,88);return;
@@ -229,7 +230,20 @@ static void lunar_audio_owner_test_iteration(void) {
     scan_raw[0]=iterations==2?8:0;
     for(unsigned i=0;i<(iterations==2?22u:88u);++i) fm1_timer5_irq();
   }
-  if(iterations>=4 && iterations<11) accepted_encoder(iterations,iterations-4,1);
+  if(iterations==4) {
+    static const unsigned turns[]={1,3,2,0};
+    for(unsigned n=0;n<4;++n) {
+      scan_raw[0]=(uint8_t)((turns[n]>>1)&1u);scan_raw[1]=(uint8_t)(turns[n]&1u);
+      for(unsigned i=0;i<22;++i) fm1_timer5_irq();
+    }
+  }
+  /* Every matrix mapping, including press/release between audio callbacks. */
+  if(iterations>=5 && iterations<87) {
+    unsigned id=(iterations-5)/2;
+    accepted_key(iterations,id,iterations&1u);
+  }
+  if(iterations>=87 && iterations<101)
+    accepted_encoder(iterations,(iterations-87)/2,(iterations&1u)?1:-1);
   audio_irq();
   reference_pending();
 }
@@ -251,7 +265,7 @@ int main(int argc,char **argv) {
   } else if(!strcmp(mode,"empty")) assert(word(&PLATFORM->owner.transport.underruns)==1 && !tail_calls);
   else if(!strcmp(mode,"overflow")) assert(!tail_calls);
   else if(!strcmp(mode,"clock-back")) assert(return_policy.first_error==LUNAR_SR_CLOCK && !tail_calls);
-  else { assert(iterations==20 && tail_calls==1 && accepted>=2 && nonzero); }
+  else { assert(iterations==120 && tail_calls==1 && accepted>=3 && nonzero); }
   if(dma_starts) assert(stop_calls==1);
   uint64_t frames=lunar_diagnostic_state()->frames;unsigned tx=f.transfers,tail=tail_calls;
   fm1_timer5_irq();audio_irq();lunar_selected_return_stop_audio();

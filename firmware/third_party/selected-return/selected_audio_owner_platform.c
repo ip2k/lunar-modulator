@@ -111,9 +111,14 @@ static void main_step(void) {
   uint32_t now=fm1_ticks();
   /* Health cadence is evidence-relative, never a feed in a fast full-queue
    * spin or an IRQ. The policy independently checks configuration/deadline. */
+  uint32_t elapsed=(uint32_t)(now-return_policy.last_tick);
+  /* Do not discard an already invalid observation just because a later P33
+   * callback/read advances the clock again. No feed or codec-tail write. */
+  if(elapsed>return_policy.qualification.max_phase_ticks)
+    lunar_selected_return_fault(&return_policy,LUNAR_SR_CLOCK);
   uint32_t cadence=return_policy.qualification.max_phase_ticks/2u;
   if(!cadence) cadence=1;
-  if((uint32_t)(now-return_policy.last_tick)>=cadence) {
+  if(elapsed>=cadence) {
     (void)lunar_selected_return_progress(&return_policy,LUNAR_SR_MAIN,1);
     check();
   }
@@ -158,6 +163,7 @@ void lunar_diagnostic_cstart(void) {
   fm1_timer5_start(isr_timer5,4);
   check();
   fm1_irq_enable_all();
+  check();
   for(;;) {
 #ifdef LUNAR_SELECTED_RETURN_TARGET_INJECTED
     lunar_audio_owner_test_iteration();
