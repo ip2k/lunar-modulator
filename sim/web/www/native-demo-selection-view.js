@@ -162,13 +162,7 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
     checkbox.id = id;
     checkbox.value = project.id;
     checkbox.checked = project.id === approvedFullSong?.id;
-    checkbox.disabled = project.reservation.status === 'rejected';
     checkbox.addEventListener('change', () => {
-      if (project.reservation.status === 'rejected') {
-        checkbox.checked = false;
-        status.textContent = project.reservation.label;
-        return;
-      }
       if (checkbox.checked) {
         if (!selected.includes(project.id)) selected.push(project.id);
         const radio = startupControls.get(project.id);
