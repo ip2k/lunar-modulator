@@ -591,7 +591,10 @@ static void check_sound_restore_audio(void) {
   static const char *projects[] = {
     "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7}}],\"mix\":{\"levels\":[100,0,0,0]}}",
     "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7},\"inserts\":[{\"engine\":\"filter\"},{\"engine\":\"drive\"}]}],\"mix\":{\"levels\":[100,0,0,0]}}",
-    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7},\"midi_fx\":[{\"engine\":\"arp\",\"on\":true}]}],\"mix\":{\"levels\":[100,0,0,0]}}"
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7},\"midi_fx\":[{\"engine\":\"arp\",\"on\":true}]}],\"mix\":{\"levels\":[100,0,0,0]}}",
+#if FM1_WITH_DX7
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"dx7\"}],\"mix\":{\"levels\":[100,0,0,0]}}"
+#endif
   };
   static uint8_t buf[FM1_STATE_BIN_MAX];
   static float control[128 * 2 * FM1_APP_MAX_FRAMES];
@@ -615,10 +618,18 @@ static void check_sound_restore_audio(void) {
       CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
       fm1_app_unit_note_on(&g_a, 0, 69, 100);
       render(50);
+      const fm1_engine_t *live = g_a.unit[0].e;
+      const size_t bytes = g_a.unit[0].bytes, ram = g_a.unit[0].ram;
+      if (c != 2) CHECK(g_a.note_count[0][69] == 1);
       if (restore) {
         mem.b = buf; mem.n = len;
         o.into = 0; o.flags |= FM1_APP_LOAD_RESTORE_SOUND;
         CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+        if (c != 2) CHECK(g_a.note_count[0][69] == 1);
+        CHECK(g_a.unit[0].e == live && g_a.unit[0].bytes == bytes && g_a.unit[0].ram == ram);
+#if FM1_WITH_DX7
+        if (c == 3) CHECK(live == &g_a.dx7.engine && live->params == g_a.dx7.params);
+#endif
       }
       float energy = 0;
       for (unsigned b = 0; b < 128; ++b) {
@@ -975,6 +986,56 @@ static void check_empty_sound_insert(void) {
   CHECK(fm1_app_select(&g_a, unit, -1) == 0);  /* clearing remains harmless */
   CHECK(fm1_app_unit_select(&g_a, sound, fm1_app_find("test-sine")) == 0);
   CHECK(fm1_app_select(&g_a, unit, fm1_app_find("comp")) == 0);
+  const int second = fm1_app_insert_unit(sound, 1), parent = fm1_app_sound_unit(sound);
+  CHECK(fm1_app_select(&g_a, second, fm1_app_find("drive")) == 0);
+  fm1_app_set_param(&g_a, unit, 0, g_a.unit[unit].e->params[0].min);
+  const float value = fm1_app_get_param(&g_a, unit, 0);
+  /* Replacing an engine preserves its chain; clearing the parent clears it. */
+  CHECK(fm1_app_unit_select(&g_a, sound, fm1_app_find("macro")) == 0);
+  CHECK(g_a.unit[unit].e && fm1_app_get_param(&g_a, unit, 0) == value);
+  CHECK(fm1_app_unit_select(&g_a, sound, fm1_app_find("test-sine")) == 0);
+  CHECK(fm1_app_unit_route(&g_a, 2, sound) == FM1_APP_SEQ_APPLIED);
+  fm1_app_unit_set_level(&g_a, sound, 37);
+  fm1_app_unit_note_on(&g_a, sound, 60, 100);
+  fm1_app_unit_note_on(&g_a, 0, 64, 100);
+  const size_t before = fm1_app_ram(&g_a);
+  const size_t freed = g_a.unit[parent].ram + g_a.unit[unit].ram + g_a.unit[second].ram + FM1_APP_MIX_BLOCK_BYTES;
+  const uint32_t gen = fm1_edit_gen(&g_a);
+  CHECK(edit_line("unit sound 3 0 -", 1, NULL) == 0);
+  CHECK(!g_a.unit[parent].e && !g_a.unit[unit].e && !g_a.unit[second].e);
+  CHECK(!g_a.unit[unit].self && !g_a.unit[unit].bytes && !g_a.unit[unit].ram && g_a.unit[unit].index == -1);
+  CHECK(!g_a.unit[second].self && !g_a.unit[second].bytes && !g_a.unit[second].ram && g_a.unit[second].index == -1);
+  CHECK(fm1_app_ram(&g_a) == before - freed);
+  CHECK(!g_a.note_count[sound][60] && g_a.note_count[0][64] == 1);
+  CHECK(fm1_app_unit_of_track(&g_a, 2) == sound && fm1_app_unit_level(&g_a, sound) == 37);
+  {
+    fm1_change_t ring[FM1_EDIT_RING];
+    unsigned clears = 0;
+    const uint32_t n = fm1_edit_changes(&g_a, gen, ring, FM1_EDIT_RING);
+    for (uint32_t i = 0; i < n && n != FM1_EDIT_RESYNC; ++i) {
+      if (ring[i].rec[0] == FM1_REC_UNIT && ring[i].rec[2] == sound && !ring[i].rec[4]) ++clears;
+    }
+    CHECK(n != FM1_EDIT_RESYNC && clears == 3);
+  }
+  /* Both codecs represent the same intentional empty state. Persisted routes
+   * and levels survive; note state is intentionally absent from state files. */
+  fm1_app_all_notes_off(&g_a);
+  const uint32_t empty_hash = fm1_edit_state_hash(&g_a);
+  for (int binary = 0; binary < 2; ++binary) {
+    static uint8_t buf[FM1_STATE_BIN_MAX];
+    uint32_t len = 0;
+    fm1_state_report_t rep;
+    fm1_app_state_report_t loaded;
+    fm1_app_load_opts_t opts;
+    fm1_app_state_mem_t mem;
+    CHECK(fm1_app_state_save(&g_a, FM1_STATE_PROJECT, 0, binary, fm1_edit_check_put, &len, &rep));
+    CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
+    mem.b = buf; mem.n = len;
+    fm1_app_load_opts_init(&opts); opts.flags = FM1_APP_LOAD_QUIET;
+    CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &opts, &loaded));
+    CHECK(!g_a.unit[parent].e && !g_a.unit[unit].e && !g_a.unit[second].e);
+    CHECK(fm1_edit_state_hash(&g_a) == empty_hash);
+  }
 }
 
 static void check_gate_readout(void) {
