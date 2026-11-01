@@ -1,0 +1,42 @@
+npm notice
+npm notice New major version of npm available! 11.19.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
+debconf: delaying package configuration, since apt-utils is not installed
+W: [pulseaudio] main.c: Running in system mode, but --disallow-module-loading not set.
+N: [pulseaudio] main.c: Running in system mode, forcibly disabling SHM mode.
+page.evaluate: Error: Immediate transport actions disabled or blocked one another
+PASS sequencer mock-host desktop/mobile checks, real Verse note visibility and offset-loop navigation
+Compact toolbar checks passed at editor/sequencer 1440x900, editor/flow 1440x900, workbench/sequencer 1440x900, workbench/flow 1440x900, editor/sequencer 1024x768, editor/flow 1024x768, workbench/sequencer 1024x768, workbench/flow 1024x768, editor/sequencer 844x390, editor/flow 844x390, workbench/sequencer 844x390, workbench/flow 844x390, editor/sequencer 667x375, editor/flow 667x375, workbench/sequencer 667x375, workbench/flow 667x375, editor/sequencer 390x844, editor/flow 390x844, editor/sequencer 375x812, editor/flow 375x812, editor/sequencer 320x812, editor/flow 320x812
+PASS sequencer mock-host desktop/mobile checks, real Verse note visibility and offset-loop navigation
+Compact toolbar checks passed at editor/sequencer 1440x900, editor/flow 1440x900, workbench/sequencer 1440x900, workbench/flow 1440x900, editor/sequencer 1024x768, editor/flow 1024x768, workbench/sequencer 1024x768, workbench/flow 1024x768, editor/sequencer 844x390, editor/flow 844x390, workbench/sequencer 844x390, workbench/flow 844x390, editor/sequencer 667x375, editor/flow 667x375, workbench/sequencer 667x375, workbench/flow 667x375, editor/sequencer 390x844, editor/flow 390x844, editor/sequencer 375x812, editor/flow 375x812, editor/sequencer 320x812, editor/flow 320x812
+PASS sequencer mock-host desktop/mobile checks, real Verse note visibility and offset-loop navigation
+Compact toolbar checks passed at editor/sequencer 1440x900, editor/flow 1440x900, workbench/sequencer 1440x900, workbench/flow 1440x900, editor/sequencer 1024x768, editor/flow 1024x768, workbench/sequencer 1024x768, workbench/flow 1024x768, editor/sequencer 844x390, editor/flow 844x390, workbench/sequencer 844x390, workbench/flow 844x390, editor/sequencer 667x375, editor/flow 667x375, workbench/sequencer 667x375, workbench/flow 667x375, editor/sequencer 390x844, editor/flow 390x844, editor/sequencer 375x812, editor/flow 375x812, editor/sequencer 320x812, editor/flow 320x812
+✔ initial load generation change retries the read and returns the current project (2.45905ms)
+✔ continuous generation changes bound read retries without any writes (0.381098ms)
+✔ a power restart during a read refuses the old audio node snapshot (0.18848ms)
+✔ matching native state permits undo then redo, preserving the atomic hash fence (3.58386ms)
+✔ later panel note refuses undo without shadow checking or removing either note (0.475639ms)
+✔ later non-sequencer native values also refuse full-project history restoration (0.312838ms)
+✔ redo refuses a native edit made after undo (0.405295ms)
+✔ object key order does not cause a false conflict (0.535504ms)
+✔ a native change during validation is refused by the final audio-thread fence (0.727701ms)
+✔ content generations coalesce and invalidate hidden panel changes without polling snapshots (0.406146ms)
+✔ worklet posts content-only changes immediately and keeps old-module transport compatibility (1.894322ms)
+✔ toolbar and keyboard actions issue native pause, resume, rewind and locate verbs (0.217085ms)
+✔ project transactions preserve native metronome settings (0.43434ms)
+✔ transport and view keys keep native Tab/button activation and modifiers (0.600758ms)
+✔ duplicate requires selection focus while browser/system shortcuts survive (0.150678ms)
+✔ repeat, IME, handled events and unrelated controls cannot delete/nudge (0.126812ms)
+✔ duplicate copies timing, gate, velocity and trigger to next step (1.420786ms)
+✔ duplicate refuses stale source, end-of-clip, note and trigger collisions (0.37106ms)
+✔ nudge preserves microtiming and clamps pitch and clip window (0.154094ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 58.796823
