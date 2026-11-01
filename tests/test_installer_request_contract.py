@@ -54,6 +54,18 @@ def request(**changes):
 
 
 class InstallerRequestContractTests(unittest.TestCase):
+    def test_accepts_actual_generated_default_catalogue_and_request(self):
+        fixture = Path(__file__).parent / "fixtures" / "installer-request-catalogue.json"
+        catalogue_data = fixture.read_bytes()
+        catalogue = json.loads(catalogue_data)
+        request_data = json.dumps(catalogue["default_build_request"]).encode()
+        normalized = validate_request(request_data, catalogue_data)
+        self.assertEqual(sum(len(ids) for ids in catalogue["groups"].values()), 55)
+        self.assertEqual(len(catalogue["projects"]), 11)
+        self.assertEqual(len(catalogue["sets"]), 1)
+        self.assertEqual(len(normalized["engines"] + normalized["effects"] + normalized["midi"] + normalized["modulation"]), 55)
+        self.assertFalse(result_for(normalized)["installable"])
+
     def test_valid_minimal_request_matches_reference_canonical_bytes(self):
         normalized = validate_request(request(), catalogue_bytes())
         expected = b'{"effects":[],"engines":["trio"],"midi":[],"modulation":[],"project_ids":["song-a"],"startup_index":0,"version":1}\n'
@@ -110,6 +122,21 @@ class InstallerRequestContractTests(unittest.TestCase):
                     b" " * (MAX_REQUEST_BYTES + 1)):
             with self.subTest(raw=raw[:16]):
                 self.refuses(raw)
+
+    def test_accepts_finite_nested_catalogue_metadata(self):
+        catalogue = json.loads(catalogue_bytes())
+        catalogue["projects"][0]["metadata"] = {"ratio": 1.25e2, "underflow": 1e-9999}
+        normalized = validate_request(request(), json.dumps(catalogue).encode())
+        self.assertEqual(normalized["project_ids"], ["song-a"])
+
+    def test_refuses_positive_and_negative_overflow_in_nested_catalogue_metadata(self):
+        base = catalogue_bytes()
+        for number in (b"1e9999", b"-1e9999"):
+            with self.subTest(number=number):
+                raw = base.replace(b'"id": "song-a"',
+                                   b'"id": "song-a", "metadata": {"value": ' + number + b'}',
+                                   1)
+                self.refuses(request(), raw)
 
     def test_refuses_boolean_or_coerced_integer_fields(self):
         self.refuses(request(version=True))
