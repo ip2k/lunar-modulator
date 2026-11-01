@@ -455,8 +455,16 @@ def test_wrapper_capture_exception_still_attempts_exact_owned_cancellation(tmp_p
     assert len(canceled) == 1
 
 
-def test_composer_current_native_capabilities_fail_closed_before_capture(monkeypatch):
-    root = Path(adapter.__file__).resolve().parents[2]
+def test_composer_current_native_capabilities_fail_closed_before_capture(tmp_path, monkeypatch):
+    from tools.installer_service import server
+
+    audit = tmp_path / "tools/jieli/audit_link.py"
+    audit.parent.mkdir(parents=True)
+    audit.write_text("def audit(elves, flat_images, linked, sources=None, runtime='sdk'):\n    pass\n")
+    monkeypatch.setattr(server, "check_native_prerequisites",
+                        lambda *_: pytest.fail("audit must refuse before native prerequisites"))
     monkeypatch.setattr(adapter, "run_bounded", lambda *_args, **_kw: pytest.fail("must not launch native wrapper"))
-    with pytest.raises(ValueError, match="native audit prerequisites are unavailable"):
-        adapter._require_native_capabilities(root, "a" * 40)
+    with pytest.raises(ValueError, match="native audit prerequisites are unavailable") as failure:
+        adapter._require_native_capabilities(tmp_path, "a" * 40)
+    for missing in ("relative_call_payloads", "stub_call_boundary_patterns", "--objdump"):
+        assert missing in str(failure.value)
