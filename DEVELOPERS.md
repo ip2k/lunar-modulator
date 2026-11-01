@@ -1457,6 +1457,14 @@ modulation source, a MIDI effect, an audio effect, or another kind.
 
 ### The path to an installable build
 
+[verified: offline build, 2026-11-01] A distinct
+[SDK-free current-app diagnostic](notes/2026-11-01-sdk-free-native-diagnostic.md)
+now links on pinned pi32v2 tools with permanent external arenas, a fixed FM6
+arrangement and an explicit eight-voice cap. Its link and focused host checks
+are evidence for that bounded profile; hardware and release admission remain
+false. It is separate from the complete instrument and installer milestones.
+
+
 This is the path from today to an installable preview and a release
 [inferred: install-path study, 2026-10-01, unless marked]. The 2026-10-05
 study of the FM-1 community firmware and the current SDK
