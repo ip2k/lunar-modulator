@@ -104,5 +104,11 @@
       "sha256": "a57adf1f9d37a56f0854e820ea99c9676020c2747a705cfee6c050d6ec30d665",
       "modification": "new offline proof; actual policy and register-only test fixture"
     }
+  },
+  "files": {
+    "selected_return.c": "14f10b4c0d9f55d8a50236bbb0aab2e58c13a634fba91a7507d1302c1cd12438",
+    "selected_return.h": "a4a6a2c7f0f91cecf6540c3615f709e6b240cac9e4c2b8e447c7440343e8a4b7",
+    "LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "UPSTREAM.md": "ddeb81aa89361def8127318c9e7fc0e7547254fbd7064f136c8833586d484495"
   }
 }
