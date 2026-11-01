@@ -119,8 +119,11 @@ the silence was: with it second, the checking build trapped on a note-on
 after 206 s of silence over a one-step loop at 254X, whose cycle had moved
 exactly 2^20 [verified: tests/test_seq_core.py, the Movy oracle].
 
-**Events.** `fm1_seq_ev_t` is 12 bytes: the master tick, the frame offset in
-the block, kind, track, two arguments. At one frame the order is Movy's
+**Events.** `fm1_seq_ev_t` is 36 bytes: the master tick, the frame offset in
+the block, kind, track, two arguments, and a lock's immutable 24-byte lane
+label and base value. Every emitted LOCK snapshots its target before later
+commands can release or relabel its lane. Handmade LOCK events must also
+supply the label and base; other event kinds leave them zero. At one frame the order is Movy's
 emission order: gate note-offs, then (D2) the locks of a step starting there,
 then note-ons, then the locks of the step the playhead enters.
 
@@ -251,11 +254,11 @@ global pools; 64 gates, 64 song presses, 16 recording notes and a Capture
 ring of 256 events per instance (the owner's choice of 2026-10-01, docs/13
 §10; `limits.capture` changes it, 0 leaves Capture out).
 
-| Tracks | Bytes | Of the half budget (36,864 B) | Of the stock gap (387,924 B) |
+| Tracks | Bytes | Of the sequencer budget (45,056 B) | Of the stock gap (387,924 B) |
 | --- | --- | --- | --- |
-| 4 | 18,192 | 49 % | 4.7 % |
-| 8 | 32,080 | 87 % | 8.2 % |
-| 8, Capture off | 29,008 | 78 % | 7.4 % |
+| 4 | 18,192 | 40 % | 4.7 % |
+| 8 | 32,080 | 71 % | 8.2 % |
+| 8, Capture off | 29,008 | 64 % | 7.4 % |
 | 16 (docs/13 §5's pools) | 59,856 | | 15.4 % |
 
 Each track adds 3,472 bytes: 2,304 of notes, 576 of locks, 160 of trig rows,
@@ -270,7 +273,7 @@ the measured 59,856 leaves out its undo ring (12,288) and packs locks and
 trig rows tighter (3,584 bytes less), while 23-byte lane labels make each
 track larger.
 
-Not instance memory: one `fm1_seq_cmd_t` is 240 bytes and one event 12. An
+Not instance memory: one `fm1_seq_cmd_t` is 240 bytes and one event 36. An
 entry edit (`sgins`, `sgdel`, `sgset`, `sgmov`) unfolds the song on the
 stack, 516 bytes at most. The instance lays out alike on x86-64, i386 and
 armv7 (clang; the struct was 352 bytes on all three) [verified 2026-10-06].
@@ -428,9 +431,11 @@ these Lunar titles [verified against the local upstream source].
 The 17-byte field increases each aligned track by 16 bytes (240 → 256);
 eight tracks add 128 bytes. The streaming importer increases 160 → 184 bytes.
 `fm1-seq --sizes` measures the eight-track instance at 32,080 bytes, below the
-unchanged 32,768-byte arena. Including the host's 3,264-byte event buffer,
+unchanged 32,768-byte arena. Including the host's 9,792-byte event buffer,
 240-byte pending command, 1,024-byte UI and 20-byte click state gives
-**36,620 of 36,864 bytes**, with 244 bytes spare. The focused regression
+**43,156 of 45,056 bytes**, with 1,900 bytes spare. The 44 KiB budget
+was approved for immutable event targets on 2026-11-01; aggregate native
+runtime RAM acceptance remains a separate integration check. The focused regression
 `tests/test_seq_track_names.py` asserts both limits, guards the arena with a
 canary, and tests stream boundaries and binary codec roundtrips. These are
 host layout measurements; they do not verify JieLi code generation or device

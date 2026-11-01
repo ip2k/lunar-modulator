@@ -21,3 +21,17 @@ def test_playing_capture_offset_loop(tmp_path):
     result = subprocess.run([str(exe)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert "27 cases" in result.stdout
+
+
+def test_released_lane_host_dispatch(tmp_path):
+    cc = shutil.which("cc")
+    if not cc:
+        pytest.skip("no C compiler")
+    exe = tmp_path / "seq-host"
+    subprocess.run([cc, "-std=c99", "-O2", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+                    "-Iengines/include", "engines/test/seq_host_test.c",
+                    *[f"engines/seq/{s}.c" for s in CORE + ["seq_host", "fx_host", "mfx_host"]],
+                    "-lm", "-o", str(exe)], cwd=ROOT, check=True)
+    result = subprocess.run([str(exe)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert '"ok":true' in result.stdout

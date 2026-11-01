@@ -235,8 +235,8 @@ uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames);
 /* Plays the block's events into `sink` and empties the buffer. Only
  * note-ons, note-offs and locks of tracks routed to the engine reach it;
  * clicks, clock, Start, Stop and MIDI-routed tracks are the host's to send
- * elsewhere (or log). A lock goes to the parameter whose uid its lane
- * resolved to (binding sink->engine first if it is not the bound one); a
+ * elsewhere (or log). A lock goes to the parameter its immutable event
+ * label names (binding sink->engine first if it is not the bound one); a
  * lock on a lane that names no parameter of sink->engine is skipped, one on
  * a NOLOCK parameter is refused and counted, and neither splits the block.
  * The engine renders

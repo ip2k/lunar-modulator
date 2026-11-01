@@ -228,11 +228,11 @@ uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames) {
   return h->n;
 }
 
-/* The index of the parameter a lock reaches on engine e, or -1: its lane
- * names nothing there (or nothing any more), or the parameter is NOLOCK,
+/* The index of the parameter a lock reaches on engine e, or -1: its immutable event label
+ * names nothing there, or the parameter is NOLOCK,
  * which is counted. */
 static int lock_target(fm1_seq_host_t *h, const fm1_engine_t *e, const fm1_seq_ev_t *ev) {
-  const int i = fm1_param_index(e, lane_uid_on(h, e, ev->track, ev->a));
+  const int i = fm1_param_index(e, fm1_seq_lane_uid(e, ev->label));
   if (i < 0) return -1;
   if (!fm1_param_lockable(&e->params[i])) {
     ++h->locks_refused;
@@ -338,6 +338,7 @@ static int walk_next(walk_t *w, walk_ev_t *out) {
   }
   {
     const fm1_midi_ev_t *x = &m->chain[best].out[w->j[best]++];
+    memset(&w->tmp, 0, sizeof w->tmp);
     w->tmp.tick = 0;
     w->tmp.frame = x->frame;
     w->tmp.kind = x->kind == FM1_MIDI_EV_NOTE_ON && x->b ? FM1_SEQ_EV_NOTE_ON : FM1_SEQ_EV_NOTE_OFF;

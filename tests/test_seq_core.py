@@ -883,7 +883,7 @@ def test_memory_figures_for_four_and_eight_tracks(seq_tools):
             "Capture: 256 events of 12 bytes"
     assert z["limits8"] == {"notes": 1536, "locks": 1536, "trigs": 256, "gates": 64, "song": 64,
                             "rec_notes": 16, "pad_mutes": 16, "capture": 256}
-    assert z["event_bytes"] == 12
+    assert z["event_bytes"] == 36
 
 
 def test_size_is_linear_in_tracks(seq_tools):
