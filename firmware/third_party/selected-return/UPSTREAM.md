@@ -129,6 +129,17 @@ not ISO C11 thread synchronization, C signal safety, CPU1 or cache proof. A faul
 before a valid policy/exception handler exists remains in the bootstrap gap.
 
 ICFG capture and restoration use volatile assembly with memory clobbers.
+The policy's four compiler fences (IRQ mask, P33 begin/end and mailbox
+publication) use an empty volatile assembly memory clobber on actual pi32v2.
+The vendor compiler lowered C11 `atomic_signal_fence` to an unresolved
+`__sync_synchronize` in the failed source-pinned `ca45926a` target attempt;
+adding a runtime helper or no-op stub would not establish the intended ordering.
+Host fake and injected-target paths retain the original C11 signal fence.
+The target fence is compiler ordering only: it neither substitutes for nor adds
+to the explicit `csync` operations in the unchanged ICFG/MMIO/publication
+callbacks. Object/IR inspection and the eventual full target link remain separate
+acceptance gates; this correction does not qualify hardware.
+
 Register callbacks use exact volatile 32-bit accesses and `csync` after each
 load/store; P33 DAT is 32 bits with the low protocol byte returned. No pointer
 or opcode is provided by a caller. Mailbox stores remain exactly the policy's

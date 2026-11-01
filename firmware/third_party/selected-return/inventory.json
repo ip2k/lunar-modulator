@@ -81,7 +81,7 @@
   },
   "owned_files": {
     "firmware/third_party/selected-return/selected_return.c": {
-      "sha256": "27933f1ca834fef3d3de6b7f5ca0419c12db795e53a25039c93c2fec93969278",
+      "sha256": "a9fd786bc0739374cbb1eefa4c2bffa4e6521727840bb1c54b8476611fbcdcdf",
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/selected_return.h": {
@@ -89,7 +89,7 @@
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/UPSTREAM.md": {
-      "sha256": "4abe35bb1c9fcf7ea6ddecbd8660c018e1db21d258461300c4c86c233fcc9669",
+      "sha256": "72c9cfe90fb1cf05cf2633048939e7cb1dc693715061586426ebcfead376ebb3",
       "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/LICENSE": {
@@ -142,14 +142,14 @@
     }
   },
   "files": {
-    "selected_return.c": "27933f1ca834fef3d3de6b7f5ca0419c12db795e53a25039c93c2fec93969278",
+    "selected_return.c": "a9fd786bc0739374cbb1eefa4c2bffa4e6521727840bb1c54b8476611fbcdcdf",
     "selected_return.h": "b5bf1c1f43f4ce78346c7c985aaf432e3a10632339ded758599c6ddba5159b62",
     "selected_return_pi32v2.c": "c67f12b6e47373f5a2444cd3d484aaa853947116c6a06c75cb24960646be02f2",
     "selected_return_pi32v2.h": "afbcb44b905574a41bb8059451f53cf29729ebdbe99e1cc42036e0c007942177",
     "selected_return_platform.c": "5dfa13afab28d0b7bfde7667693eecf6040cf788f55fedcbcd70608132f67d20",
     "selected_return_candidate.ld": "a4a178074ba3e0a9d89748a8ddab7a0f6fb8790acc7cd2fcfec8136748bdd0c9",
     "LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
-    "UPSTREAM.md": "4abe35bb1c9fcf7ea6ddecbd8660c018e1db21d258461300c4c86c233fcc9669"
+    "UPSTREAM.md": "72c9cfe90fb1cf05cf2633048939e7cb1dc693715061586426ebcfead376ebb3"
   },
   "target_binding_base": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
   "target_binding_provenance": {
