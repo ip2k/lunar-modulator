@@ -1042,12 +1042,9 @@ def test_committed_wasm_matches_its_build_record():
     """build-on-aeon.sh writes fm1.wasm.json next to the module: its hash, the
     hashes of the sources it was built from, and the parity results.
 
-    When sim/web's own inputs (src/, mk/, build.sh, the parity test) have
-    changed since, the module is stale: a warning locally, a failure in CI
-    (CI=true), so a pull request that changes the simulator carries its
-    rebuilt module. When only engines/ has changed, CI warns too: engine
-    work elsewhere should not need aeon, but rebuild before the module is
-    published."""
+    When the simulator or engine inputs have changed since, the module is
+    stale: a warning locally and a failure in CI (CI=true). A pull request
+    must carry the module and record built from its current source tree."""
     record = json.loads((SIM / "www" / "fm1.wasm.json").read_text(encoding="utf-8"))
     wasm = (SIM / "www" / "fm1.wasm").read_bytes()
     assert hashlib.sha256(wasm).hexdigest() == record["wasm_sha256"]
@@ -1061,12 +1058,31 @@ def test_committed_wasm_matches_its_build_record():
     assert all("@sha256:" in i for i in record["images"]) and len(record["images"]) >= 2
     current = source_hashes()
     stale = [k for k in ("engines", "sim") if current[k] != record["sources_sha256"].get(k)]
-    if "sim" in stale and os.environ.get("CI") == "true":
-        pytest.fail("sim/web changed since www/fm1.wasm was built; rebuild it with "
+    if stale and os.environ.get("CI") == "true":
+        pytest.fail("sim/web/www/fm1.wasm was built from other " + " and ".join(stale) +
+                    " sources; rebuild it with "
                     "sim/web/build-on-aeon.sh and commit www/fm1.wasm and fm1.wasm.json")
     if stale:
         warnings.warn(f"sim/web/www/fm1.wasm was built from other {' and '.join(stale)} "
                       "sources than these; rebuild with sim/web/build-on-aeon.sh")
+
+
+def test_ci_rejects_engine_only_wasm_source_drift(monkeypatch):
+    """Exercise the committed-module gate with only the engine digest changed."""
+    record = json.loads((SIM / "www" / "fm1.wasm.json").read_text(encoding="utf-8"))
+    current = dict(record["sources_sha256"])
+    current["engines"] = "stale-engine-source-digest"
+    monkeypatch.setattr(sys.modules[__name__], "source_hashes", lambda: current)
+    monkeypatch.setenv("CI", "true")
+    with pytest.raises(pytest.fail.Exception, match="engines"):
+        test_committed_wasm_matches_its_build_record()
+
+
+def test_ci_accepts_matching_wasm_source_digests(monkeypatch):
+    record = json.loads((SIM / "www" / "fm1.wasm.json").read_text(encoding="utf-8"))
+    monkeypatch.setattr(sys.modules[__name__], "source_hashes", lambda: dict(record["sources_sha256"]))
+    monkeypatch.setenv("CI", "true")
+    test_committed_wasm_matches_its_build_record()
 
 
 def source_hashes():
