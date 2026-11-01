@@ -2,6 +2,12 @@
 
 Guidance for Codex working in this repo.
 
+## Adopted browser skill — owner, 2026-11-01
+
+The chrome-browser skill is approved for real-Chrome installer visual and
+interaction checks. Browser access still depends on the user's Work settings;
+keep visual acceptance pending when that access is disabled.
+
 ## Automatic integration — owner, 2026-10-09
 
 Merge completed project work automatically once review and required CI checks
