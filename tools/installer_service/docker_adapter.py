@@ -24,8 +24,12 @@ from .api import (MAX_ARTIFACT_BYTES, MAX_BODY_BYTES, MAX_ELF_BYTES, QueueFull,
 from .docker_worker import GENERATED_EVIDENCE_PATHS, generated_evidence_paths
 from .provenance import (make_diagnostic_provenance, sha256 as _sha256,
                          tree_manifest)
+from .process_capture import run_bounded
 
 _BUILD_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
+_CONTAINER_ID = re.compile(rb"[0-9a-f]{64}\n?\Z")
+_DOCKER_CAPTURE_CAP = 65536
+_CONTAINER_SESSION = "installer-diagnostic-worker"
 # The service deliberately pins the locally provisioned image ID.  A Docker
 # image ID is an immutable sha256 digest but is not a repository-qualified
 # pull reference; treating it as one makes Docker try to pull a nonexistent
@@ -35,6 +39,48 @@ _MAX_PRIVATE_EVIDENCE_FILE = 128 * 1024 * 1024
 _MAX_PRIVATE_EVIDENCE_TOTAL = 512 * 1024 * 1024
 _CATALOGUE_MOUNT = "/catalogue/"
 _BUILD_LINK_MOUNT = "/output/build/link/"
+
+
+def _remove_owned_container(docker: str, build_id: str, base: Path) -> bool:
+    """Remove only the immutable ID Docker wrote for this job, after inspection.
+
+    A failed `docker run` may be a name collision. The generated name alone is
+    never authority to remove a container, even during shutdown.
+    """
+    name = "lunar-private-" + build_id
+    try:
+        cid = _read_private_file(base / "input" / "container.id", 65)
+        if not _CONTAINER_ID.fullmatch(cid):
+            return False
+        cid_text = cid.decode("ascii").strip()
+
+        def capture(args):
+            result = run_bounded([docker, *args], cwd=base, timeout_seconds=10,
+                                 max_stream_bytes=_DOCKER_CAPTURE_CAP)
+            if (result.returncode != 0 or result.failure_reason is not None
+                    or any(result.observed[stream] > _DOCKER_CAPTURE_CAP
+                           for stream in ("stdout", "stderr"))):
+                return None
+            return result.logs["stdout"]
+
+        raw = capture(["container", "inspect", "--format", "{{json .}}", cid_text])
+        if raw is None:
+            return False
+        inspected = json.loads(raw)
+        if not isinstance(inspected, dict):
+            return False
+        config = inspected.get("Config")
+        labels = config.get("Labels") if isinstance(config, dict) else None
+        if (inspected.get("Id") != cid_text or inspected.get("Name") != "/" + name
+                or not isinstance(labels, dict)
+                or labels.get("lan.project") != "lunar-modulator"
+                or labels.get("lan.session") != _CONTAINER_SESSION
+                or labels.get("lan.owner") != name):
+            return False
+        return capture(["rm", "--force", cid_text]) is not None
+    except Exception:
+        # Any Docker, capture, or inspection failure leaves ownership unproven.
+        return False
 
 
 def _scratch_tmpfs(budget: int, uid: int, gid: int) -> list[str]:
@@ -338,6 +384,8 @@ class DockerJobAdapter:
         self.job_dirs: dict[str, Path] = {}
         self.threads: dict[str, threading.Thread] = {}
         self.processes: dict[str, subprocess.Popen] = {}
+        self.cleanup_confirmed: set[str] = set()
+        self.cleanup_unconfirmed: set[str] = set()
         self.stopping = False
         self.lock = threading.RLock()
         self.semaphore = threading.BoundedSemaphore(capacity)
@@ -354,11 +402,16 @@ class DockerJobAdapter:
         if self.config.image_reference != template.image_digest:
             raise ValueError("request template differs from pinned worker image")
         with self.lock:
+            if self.cleanup_unconfirmed:
+                raise RuntimeError("prior installer container cleanup is unconfirmed")
             if self.stopping:
                 raise QueueFull
         if not self.semaphore.acquire(blocking=False):
             raise QueueFull
         with self.lock:
+            if self.cleanup_unconfirmed:
+                self.semaphore.release()
+                raise RuntimeError("prior installer container cleanup is unconfirmed")
             if self.stopping:
                 self.semaphore.release()
                 raise QueueFull
@@ -441,9 +494,11 @@ class DockerJobAdapter:
         return [
             cfg.docker_binary, "run",
             "--name", "lunar-private-" + build_id,
+            "--cidfile", str(base / "input" / "container.id"),
             "--pull=never",
             "--label", "lan.project=lunar-modulator",
-            "--label", "lan.session=installer-diagnostic-worker",
+            "--label", "lan.session=" + _CONTAINER_SESSION,
+            "--label", "lan.owner=lunar-private-" + build_id,
             "--cgroup-parent=docker-batch.slice", "--network=none", "--cpuset-cpus=4-7", "--cpus=" + cfg.cpu_limit,
             "--memory=" + cfg.memory_limit, "--memory-swap=" + cfg.memory_limit,
             "--log-driver=json-file", "--log-opt=max-size=1m", "--log-opt=max-file=1",
@@ -466,10 +521,22 @@ class DockerJobAdapter:
             if build_id in self.jobs:
                 self.jobs[build_id] = snapshot
 
+    def _cleanup_container(self, build_id: str, base: Path) -> bool:
+        # Shutdown and a worker finalizer may race. Serialize their Docker
+        # inspection/removal so an already removed ID is not treated as foreign.
+        with self.lock:
+            if build_id in self.cleanup_confirmed:
+                return True
+            if _remove_owned_container(self.config.docker_binary, build_id, base):
+                self.cleanup_confirmed.add(build_id)
+                self.cleanup_unconfirmed.discard(build_id)
+                return True
+            self.cleanup_unconfirmed.add(build_id)
+            return False
+
     def _run(self, build_id: str):
         base = self.job_dirs[build_id]
         result_dir = base / "result"
-        container_name = "lunar-private-" + build_id
         self._set(build_id, WorkerSnapshot("running"))
         proc = None
         log = bytearray()
@@ -608,20 +675,7 @@ class DockerJobAdapter:
                     proc.stdout.close()
                 except (OSError, ValueError):
                     outcome = WorkerSnapshot("failed")
-            try:
-                removed = None
-                for attempt in range(2):
-                    removed = subprocess.run(
-                        [self.config.docker_binary, "rm", "--force", container_name],
-                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL, timeout=10, check=False)
-                    if removed.returncode == 0:
-                        break
-                    if attempt == 0:
-                        time.sleep(0.2)
-                if removed is None or removed.returncode != 0:
-                    outcome = WorkerSnapshot("failed")
-            except Exception:
+            if not self._cleanup_container(build_id, base):
                 outcome = WorkerSnapshot("failed")
             try:
                 log_path = base / "worker.log"
@@ -637,7 +691,7 @@ class DockerJobAdapter:
             self.semaphore.release()
 
     def shutdown(self, timeout_seconds: float = 30.0) -> None:
-        # Stop admission, kill active named containers, and boundedly drain workers.
+        # Stop admission, kill active clients, and boundedly drain workers.
         if not isinstance(timeout_seconds, (int, float)) or not 1 <= timeout_seconds <= 120:
             raise ValueError("shutdown timeout must be between 1 and 120 seconds")
         with self.lock:
@@ -652,14 +706,6 @@ class DockerJobAdapter:
                     proc.kill()
                 except OSError:
                     pass
-        for build_id in active:
-            try:
-                subprocess.run(
-                    [self.config.docker_binary, "rm", "--force", "lunar-private-" + build_id],
-                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL, timeout=5, check=False)
-            except Exception:
-                pass
         end = time.monotonic() + timeout_seconds
         for worker in workers.values():
             if worker is not None:
@@ -675,14 +721,12 @@ class DockerJobAdapter:
                         proc.kill()
                     except OSError:
                         pass
-                try:
-                    subprocess.run(
-                        [self.config.docker_binary, "rm", "--force", "lunar-private-" + build_id],
-                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL, timeout=5, check=False)
-                except Exception:
-                    pass
+                base = self.job_dirs.get(build_id)
+                if base is not None:
+                    self._cleanup_container(build_id, base)
             raise TimeoutError("installer workers did not drain before shutdown deadline")
+        if self.cleanup_unconfirmed:
+            raise RuntimeError("installer container cleanup was not confirmed; job evidence retained")
 
     def get(self, build_id: str) -> WorkerSnapshot | None:
         with self.lock:
@@ -690,8 +734,11 @@ class DockerJobAdapter:
 
     def delete(self, build_id: str) -> None:
         with self.lock:
+            if build_id in self.cleanup_unconfirmed:
+                return  # Keep both the job and its exact private evidence for recovery.
             self.jobs.pop(build_id, None)
             self.created.pop(build_id, None)
+            self.cleanup_confirmed.discard(build_id)
             base = self.job_dirs.pop(build_id, None)
         if base is not None:
             shutil.rmtree(base, ignore_errors=True)
