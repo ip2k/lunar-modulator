@@ -480,11 +480,16 @@ def test_repairs_and_skips_are_counted(tool, names, name, text, counts):
     (SND % ('"Unison": 1', ""), "skipped"),
     (SND % ('"Shape": 999', ""), "repaired"),
 ])
-def test_strict_pack_refuses_loss_while_default_remains_compatible(tool, tmp_path, text, count):
+@pytest.mark.parametrize("size", [None, 4095, 4096, 4097])
+def test_strict_pack_refuses_loss_while_default_remains_compatible(tool, tmp_path, text, count, size):
+    data = text.encode()
+    if size is not None:
+        assert len(data) < size
+        data += b" " * (size - len(data))
     default = tmp_path / "default.lunarbin"
     strict = tmp_path / "strict.lunarbin"
-    assert run(tool, "pack", "-", "-o", default, data=text.encode()).returncode == 0
-    refused = run(tool, "pack", "-", "--strict", "-o", strict, data=text.encode())
+    assert run(tool, "pack", "-", "-o", default, data=data).returncode == 0
+    refused = run(tool, "pack", "-", "--strict", "-o", strict, data=data)
     assert refused.returncode == 1
     report = json.loads(refused.stderr.decode().splitlines()[-1])
     assert report["code"] == "BAD" and report[count] == 1
@@ -508,7 +513,8 @@ def test_strict_pack_preserves_valid_bytes(tool, tmp_path):
     assert binary_strict.read_bytes() == binary_default.read_bytes()
 
 
-def test_native_prepare_refuses_lossy_project_pack(tool, tmp_path, monkeypatch):
+@pytest.mark.parametrize("size", [None, 4096])
+def test_native_prepare_refuses_lossy_project_pack(tool, tmp_path, monkeypatch, size):
     monkeypatch.syspath_prepend(str(ROOT / "tools" / "native"))
     from tools.native.prepare_image_profile import prepare
 
@@ -518,18 +524,25 @@ def test_native_prepare_refuses_lossy_project_pack(tool, tmp_path, monkeypatch):
     profile.write_text(json.dumps({"version": 1, "engines": ["shapes"],
                                    "content": ["project.lunar"]}))
     project = tmp_path / "project.lunar"
-    project.write_text(json.dumps(source))
+    def write_project(document):
+        data = json.dumps(document)
+        if size is not None:
+            assert len(data) < size
+            data += " " * (size - len(data))
+        project.write_text(data)
+
+    write_project(source)
     valid = prepare(profile, tool, tmp_path / "valid")
     assert valid["content"][0]["kind"] == "project"
 
     source["sounds"][0]["params"]["Volumee"] = source["sounds"][0]["params"].pop("Volume")
-    project.write_text(json.dumps(source))
+    write_project(source)
     with pytest.raises(ValueError, match="strict pack"):
         prepare(profile, tool, tmp_path / "lossy")
     assert not (tmp_path / "lossy" / "profile.json").exists()
 
     valid_source["sounds"][0]["params"]["Volume"] = 9999
-    project.write_text(json.dumps(valid_source))
+    write_project(valid_source)
     with pytest.raises(ValueError, match="strict pack"):
         prepare(profile, tool, tmp_path / "repaired")
     assert not (tmp_path / "repaired" / "profile.json").exists()
