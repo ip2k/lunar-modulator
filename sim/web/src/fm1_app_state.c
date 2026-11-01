@@ -732,6 +732,10 @@ typedef struct plan {
   int8_t voice_map[FM1_DX7_USER_SLOTS];        /* by file slot: the bank slot, or -1 */
   /* Lines, the session, the view, settings, words. */
   uint8_t has_set, has_clip, has_session, has_view;
+  /* Pass 1 owns the validated clip merge until check returns or load applies.
+   * No allocating reconstruction is allowed after live mutations begin. */
+  char *clip_set;
+  size_t clip_set_n;
   fm1_rec_t session, view;
   fm1_midi_map_t midi_map;
   uint8_t setting_has[FM1_SET_KEYS];
@@ -1372,13 +1376,14 @@ static int plan_finish(plan_t *p) {
   }
   if (p->kind == FM1_STATE_CLIP) {
     const int t = p->o->into, sl = p->o->slot;
-    char err[64];
+    char err[64] = "";
     char *merged;
     const char *lines[CLIP_LINES];
     size_t n = 0;
     uint32_t at = 0, set_n;
     char *clip_copy = g_clip;
-    if (!a->seq || t < 0 || t >= (int)a->seq_lim.tracks || sl < 0 || sl >= 8) {
+    if (!a->seq || fm1_seq_size(&a->seq_lim) > sizeof g_seq_scratch ||
+        t < 0 || t >= (int)a->seq_lim.tracks || sl < 0 || sl >= 8) {
       return refuse_load(p, FM1_STATE_BAD, "No such slot", "A clip loads into a track and a slot.%s", "");
     }
     {
@@ -1398,9 +1403,19 @@ static int plan_finish(plan_t *p) {
       at = i + 1;
     }
     set_n = set_text(a);
-    merged = set_n ? fm1_state_clip_into(g_set, set_n, lines, n, (unsigned)t, (unsigned)sl, err, sizeof err) : NULL;
+    if (!set_n) return refuse_load(p, FM1_STATE_NO_ROOM, "No room", "The current set cannot be exported.%s", "");
+    merged = fm1_state_clip_into(g_set, set_n, lines, n, (unsigned)t, (unsigned)sl, err, sizeof err);
     if (!merged) return refuse_load(p, FM1_STATE_NO_ROOM, "No room", "The clip does not fit: %s.", err);
-    free(merged);
+    {
+      fm1_seq_t *s = fm1_seq_create(g_seq_scratch, &a->seq_lim, (uint32_t)(a->host.sample_rate + 0.5f));
+      const size_t merged_n = strlen(merged);
+      if (!s || !fm1_seq_import_movy1(s, merged, merged_n)) {
+        free(merged);
+        return refuse_load(p, FM1_STATE_BAD, "Not a set", "The merged clip is not a movy1 set.%s", "");
+      }
+      p->clip_set = merged;
+      p->clip_set_n = merged_n;
+    }
     rep->clips = 1;
   }
   /* The report's counts. */
@@ -1697,27 +1712,8 @@ static void apply_finish(plan_t *p) {
     fm1_app_seq_import(a, g_set, g_set_n);
     if (p->kind == FM1_STATE_SET) fm1_app_seq_default_route(a);
   }
-  if (p->kind == FM1_STATE_CLIP && p->has_clip) {
-    const char *lines[CLIP_LINES];
-    char *clip_copy = g_clip;
-    size_t n = 0;
-    uint32_t at = 0, clip_n = g_set_n;
-    char err[64];
-    char *merged;
-    memcpy(clip_copy, g_set, clip_n);
-    for (uint32_t i = 0; i < clip_n && n < CLIP_LINES; ++i) {
-      if (clip_copy[i] != '\n') continue;
-      clip_copy[i] = '\0';
-      lines[n++] = clip_copy + at;
-      at = i + 1;
-    }
-    if (set_text(a)) {
-      merged = fm1_state_clip_into(g_set, g_set_n, lines, n, (unsigned)p->o->into, (unsigned)p->o->slot, err, sizeof err);
-      if (merged) {
-        fm1_app_seq_import(a, merged, strlen(merged));
-        free(merged);
-      }
-    }
+  if (p->kind == FM1_STATE_CLIP && p->clip_set) {
+    fm1_app_seq_import(a, p->clip_set, p->clip_set_n);
   }
   if (p->kind == FM1_STATE_PROJECT && p->has_session) {
     const fm1_rec_t *s = &p->session;
@@ -1792,7 +1788,10 @@ int fm1_app_state_check(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t to
     fm1_app_load_opts_init(&none);
     o = &none;
   }
-  return check(a, rd, rctx, total, o, rep);
+  const int ok = check(a, rd, rctx, total, o, rep);
+  free(g_plan.clip_set);
+  g_plan.clip_set = NULL;
+  return ok;
 }
 
 int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
@@ -1810,6 +1809,8 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
     o = &none;
   }
   if (!check(a, rd, rctx, total, o, rep)) {
+    free(p->clip_set);
+    p->clip_set = NULL;
     if (!(o->flags & FM1_APP_LOAD_QUIET)) fm1_app_say(a, FM1_APP_TONE_REFUSE, rep->screen[0], rep->screen[1], NULL);
     return 0;
   }
@@ -1880,6 +1881,8 @@ int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t tot
     else fm1_state_json_read(names(), rd, rctx, plan_sink, p, &r2);
     apply_finish(p);
   }
+  free(p->clip_set);
+  p->clip_set = NULL;
   if ((carry.playing || carry.paused) && a->seq) {
     /* A Play (the new set's clips launch, or its song starts), then the old clock and playheads over it. */
     fm1_seq_cmd_t c;

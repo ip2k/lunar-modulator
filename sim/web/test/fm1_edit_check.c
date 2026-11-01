@@ -537,6 +537,9 @@ static void check_locks(void) {
 static void seq_import_live(void) {
   fm1_seq_cmd_t cmd;
   fresh(44118.0f);
+  CHECK(fm1_app_unit_select(&g_a, 1, fm1_app_find("test-sine")) == 0);
+  fm1_app_arp_set_on(&g_a, 1, 1);
+  fm1_app_unit_note_on(&g_a, 1, 72, 100);
   fm1_app_button(&g_a, FM1_BTN_PLAY, 1); fm1_app_button(&g_a, FM1_BTN_PLAY, 0);
   render(20);
   unsigned notes = 0;
@@ -568,6 +571,17 @@ static void check_seq_import_refusal(void) {
     for (unsigned b = 0; b < 64; ++b)
       CHECK(!memcmp(control + b * 2 * FM1_APP_MAX_FRAMES,
                     fm1_app_render(&g_a, FM1_APP_MAX_FRAMES), sizeof(float) * 2 * FM1_APP_MAX_FRAMES));
+  }
+  /* Accepted EOF/whitespace tags keep the core grammar, and old sound notes
+   * are released even when the replacement routes that track elsewhere. */
+  static const char *good[] = { "movy1", " \tmovy1 \r\n", "movy1\nrt 0 1 1\n" };
+  for (unsigned c = 0; c < sizeof good / sizeof good[0]; ++c) {
+    seq_import_live();
+    CHECK(fm1_app_seq_import(&g_a, good[c], strlen(good[c])));
+    CHECK(!g_a.seq_pending && !g_a.lock_mask[0] && !g_a.seq_host.n && !g_a.seq_last_n);
+    for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k)
+      for (unsigned n = 0; n < 128; ++n) CHECK(!g_a.seq_note_count[k][n]);
+    if (c == 2) CHECK(fm1_app_unit_of_track(&g_a, 0) == 1);
   }
 }
 
