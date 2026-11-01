@@ -23,7 +23,7 @@ def test_current_app_display_controls_offline(tmp_path):
         "$(BUILD)/proof-check: $(SIM_APP_OBJ) $(SIM_ENGINE_OBJ) $(SIM_META_OBJ) "
         "$(BUILD)/proof/diagnostic_app.o $(BUILD)/proof/diagnostic_display.o $(BUILD)/proof/diagnostic_transport.o "
         "$(BUILD)/proof/check.o\n"
-        "\t$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm\n"
+        "\t$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm -pthread\n"
     )
     target = tmp_path / "build/proof-check"
     extra = os.environ.get("FM1_SIM_EXTRA", "")

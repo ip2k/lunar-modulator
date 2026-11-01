@@ -9,6 +9,9 @@
 #include "diagnostic_api.h"
 const fm1_app_t *lunar_diagnostic_state(void);
 #ifdef LUNAR_DIAGNOSTIC_OFFLINE_PROOF
+#ifdef FM1_APP_RENDER_PIPELINE
+#error "offline owner proof does not admit pending app pipeline work"
+#endif
 /* Explicit single-owner host proof only, absent from the default diagnostic.
  * The display lease owner serializes every call; pixels stay permanent. */
 int lunar_diagnostic_owner_button(int button, int down);
