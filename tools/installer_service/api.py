@@ -421,8 +421,7 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
                 and receipt["app_budget_bytes"] != app_budget("expanded-d7000"))
             or not 0 < receipt["app_bytes"] <= receipt["app_budget_bytes"]
             or receipt["app_budget_bytes"] > selected_budget
-            or (flash_layout == "expanded-d7000"
-                and receipt["runtime_configuration"].get("runtime_mode") != runtime_mode)
+            or receipt["runtime_configuration"].get("runtime_mode") != runtime_mode
             or any(receipt.get(key) is not False for key in false_fields)):
         raise ValueError("worker receipt does not bind the admitted private build")
     if any(not isinstance(receipt.get(key), str) or not SHA256.fullmatch(receipt[key])
@@ -575,11 +574,7 @@ def _verify_diagnostic_provenance(provenance, admission, result, receipt, app_sh
     if not isinstance(outputs, dict) or json.dumps(outputs, sort_keys=True) != json.dumps(expected_outputs, sort_keys=True):
         raise ValueError("worker provenance does not bind the exact build outputs")
     flash_layout = admission.request.get("flash_layout", "expanded-d9000")
-    # D9000 historically accepted any canonical bounded runtime mode carried
-    # by the worker receipt; keep that behavior while D7000 binds the request.
-    runtime_mode = (admission.request.get("runtime_mode", "diagnostic")
-                    if flash_layout == "expanded-d7000"
-                    else receipt["runtime_configuration"]["runtime_mode"])
+    runtime_mode = admission.request.get("runtime_mode", "diagnostic")
     profile = provenance.get("profile")
     if continuous:
         expected_profile = continuous_profile.profile_summary()
