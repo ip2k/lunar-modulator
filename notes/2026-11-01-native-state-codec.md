@@ -56,3 +56,17 @@ Reproduce: FM1_CODEC_BASELINE_SOURCE=<exact-old-state_bin.c> python -m pytest
 Omit the optional baseline path for current host comparison. Tests remove their
 own compiler products. Retain logs/receipts; clean own scratch objects before
 handoff. Independent phase review by audit_effects is still required.
+
+Independent phase1 review found and reproduced constructor report/version alias
+hazards and an outer success after nested sink refusal. Compact constructors now
+refuse known protected-block aliases before mutation, leaving an aliased report
+untouched; callback context pointers inside either block also refuse. Opaque
+backing extents and reconstruction of an active writer remain explicit caller
+restrictions. A compact record call has an active guard; nested calls poison the
+outer operation, and staged_put checks poison after the callback. In-flight
+writes may already have taken effect, so the uncommitted stage must be aborted.
+No legacy host behavior was changed. [verified, host] Normal+ASan/UBSan pass all
+387 exact-old differential cases with unchanged report digest2a4db010, plus
+known-alias cases and8 reentry boundaries (full/short callback results). The
+callback deliberately writes after nested refusal; outer refusal and zero
+subsequent callbacks are asserted. Independent corrected-head review pending.
