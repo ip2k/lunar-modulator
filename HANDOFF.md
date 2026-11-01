@@ -6,8 +6,38 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-10-26. Read this first, then
+original conversation; last updated 2026-11-01. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
+
+## Latest release/performance status — 2026-11-01
+
+PR #160 (`feature/2026-10-28@perf-levers`) is merged into `main` at
+`a1b7823ba768d7657474f9be432d7584998b1501`. The owner set the release target
+to eight guaranteed voices, with twelve as a stretch goal, and approved the
+trunc12 DX7 sine as the default after listening to the cap8 A/B excerpts
+(`notes/2026-10-29-devkit-perf-levers-320.md`).
+
+The 30.4-minute fixed-eight-voice cap8-trunc12 buffered run passed its
+recorded dev-kit gates at 320 MHz: zero DAC gaps/late blocks/faults, producer
+mean 66.0%, consumer mean 82.8%, and matching hashes for all 228 cases. Two
+producer blocks exceeded one block's 34,829-tick budget, but the queue covered
+them. The analog detector screen was clean, with its documented limits; it is
+screening, not owner listening or acceptance. No one listened to the soak.
+The minimum queue depth during the run was not measured. This was the AC79 dev
+kit's internal DAC, not the physical FM-1's ALNK0/external codec; 360 MHz FM-1
+timing remains an estimate by scaling the 320 MHz measurements, not a device
+measurement. See `notes/2026-10-29-devkit-soak30.md`.
+
+The worst producer block measured 34,978 ticks, with 21,112 in `dispatch`,
+at a case-segment start. A current source audit found explicit
+`voices[c]` note-on injection at exact `CASE_BLOCKS` boundaries in
+`renderer_live.c`; it found no per-case program change. The dispatch cost is
+measured, but its cause remains unresolved. Physical FM-1 Lunar execution,
+FM-1 audio-path validation, and owner listening/acceptance remain outstanding.
+This run does not establish physical-device acceptance.
+
+See `notes/2026-11-01-release-handoff.md` for source references, the limits
+and the next acceptance steps.
 
 ## Latest hardware update — 2026-10-26
 
