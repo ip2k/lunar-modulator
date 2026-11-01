@@ -159,7 +159,7 @@ def test_capture_and_producer_resource_attestation_policies_agree():
     from run_trusted_continuous_build import DOCKER_POLICY
     tree = ast.parse(Path(capture.__file__).read_text())
     policies = [ast.literal_eval(node.value) for node in ast.walk(tree)
-                if isinstance(node, ast.Assign)
+                if isinstance(node, ast.Assign) and isinstance(node.value, ast.Dict)
                 and any(isinstance(target, ast.Name) and target.id == "expected_resources"
                         for target in node.targets)]
     assert policies == [DOCKER_POLICY]
