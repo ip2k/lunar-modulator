@@ -1,225 +1,158 @@
 # Lunar release and installation readiness — 2026-11-01
 
-## Owner objective and current baseline
+## Goal and acceptance
 
-Owner resumed work and authorized parallel implementation lanes, then set the
-objective: get Lunar Modulator ready for release and installation, including
-missing firmware, the web-based installer and customization. This supersedes
-the paused lane's narrower fixed12 optimization priority. This is a personal,
-non-commercial project; existing licensing, device and publication gates apply.
+The owner authorized continuing parallel implementation to make Lunar Modulator
+ready for release and installation, including firmware, web installation and
+customization. This is a personal, non-commercial project. Eight voices is the
+release target; twelve is a stretch goal. The owner approved trunc12 by A/B
+listening. Historical fixed-eight dev-board arrangement soak results do not
+establish interactive runtime, physical FM-1 or owner listening acceptance.
 
-[verified] Starting integration base is origin/main
-`a1b7823ba768d7657474f9be432d7584998b1501`, PR #160 merged. Its required CI
-jobs completed successfully (the PR deployment job was skipped). Eight voices
-are the owner's release target; twelve is a stretch goal. The owner approved
-trunc12 by A/B listening; the fixed-eight dev-kit soak passed the documented
-buffered rule. See the October 29 performance and soak notes. Those results
-are not physical FM-1, owner soak listening or distribution acceptance.
+Completion requires reviewed source, exact-head CI, a truthful customization and
+installer flow, compatible admitted artifacts, demonstrated boot/fail-open,
+storage/update/recovery, actual FM-1 audio/display/controls, and applicable
+listening and publication gates. SDK/vendor material and private captures stay
+private. Diagnostics and offline receipts are not installable releases.
 
-The old private V225/V226 work is preserved in
-`/Users/likwid/.codex/worktrees/devkit-performance-20261022/scratch/devkit-20261023/`.
-Its board-current statements are historical, superseded by later bench work.
-Do not install an old candidate, retry any consumed reset or infer current
-hardware state from those notes. No hardware action has occurred on this resume.
+## Integration status
 
-## Completion criteria
+[verified] Remote main is `8d790e3060643ab4e4f8404a7dbf52505ec9b303`.
+PR #151 merged after its exact-head CI passed. Preserve its synchronous
+`action()` browser fix.
 
-- Firmware and browser source integrate through required review and exact-head
-  CI. Release defaults implement the owner-approved eight-voice policy.
-- A coherent customization flow validates engine/effect/project selections,
-  reports resource and licensing constraints, and binds build results to the
-  exact selected configuration. Reuse existing installer work before adding more.
-- The web installer accepts only compatible, admitted artifacts and has truthful
-  progress/errors, disconnect handling and a documented recovery path. Diagnostic
-  or build-only receipts must never imply installation or device acceptance.
-- Storage, boot/fail-open, update and rollback gates are resolved under the
-  current physical-unit recovery policy. Actual FM-1 audio, controls, display,
-  persistence and update round trips require fresh hardware evidence.
-- Release packaging and user instructions match demonstrated behavior; proprietary
-  SDK/raw captures stay private, and distribution respects the selected licenses.
-- Listening, hardware and publication requirements remain explicit until met.
-  Do not call source tests or a dev-kit soak a completed product release.
+[verified] Foundation PR #161 is open at
+`e80ac1788d2968e9779577a7a7d66aa13c2a37c5`. Service PR #162, native
+foundation PR #163 and OTA transport PR #164 passed their own exact-head CI and
+independent reviews, then merged into this foundation. They have not merged
+to main. Combined CI 41304070922 is not green: the Mac job found a missing
+TLSF inventory assumption in a source-bundle test. Pages build passed; PR
+deployment was skipped. Do not rerun passing checks to hide that failure.
 
-## Current integration and acceptance
+[verified] Corrections PR #165 is the combined integration candidate on
+`fix/2026-11-01@release-state-corrections`, pushed and remote verified through
+`50b65a2ea8c4aefde756ef190c8a9ab2ac525ea1`. It is not a release or
+hardware admission. Further reviewed corrections and one fresh combined WASM
+build are required before final exact-head CI and integration.
 
-[verified] Foundation branch `feature/2026-11-01@milestone-integration` is
-pushed at `e80ac1788d2968e9779577a7a7d66aa13c2a37c5`. PR #161 is open.
-Exact CI 41300110158 at the earlier `6606c1d0` head succeeded. Reviewed
-service PR #162, native foundation PR #163 and OTA transport PR #164 then
-passed their own exact-head CI and merged into this foundation. The new
-combined head still requires its own CI and visual review.
-Deployment was skipped for the PR. Full actual WASM rebuild passed 108 parity
-scenarios, metadata/edit parity, SysEx, routing and MIDI realtime checks;
-the 30-second edit storm had zero late quanta or resynchronizations.
+The foundation provides DX7 bank export, ordered MIDI realtime input,
+queue-margin telemetry, offline customization/catalogue and a shared request
+contract. The public page exports requests and inspects packages. Public build
+and installation capability remain closed. The extracted private service also
+refuses production startup without complete native prerequisites; API tests do
+not imply a runnable native build or device installation.
 
-The foundation supplies complete DX7 bank export, ordered MIDI realtime input,
-queue-margin telemetry, offline customization/catalogue and a strict shared
-request contract. The public page exports requests and inspects packages;
-it does not build or install firmware or claim resource fit.
+Real-Chrome visual and interaction acceptance remains pending. The owner
+approved the chrome-browser skill, but browser access was disabled in Work
+settings and no extension tools are available. The enablement question remains
+pending; do not bypass the setting. The owned loopback preview is
+`http://127.0.0.1:8767/installer.html`; stop it after review or before pausing.
 
-Real-Chrome visual review remains pending. The owner approved chrome-browser,
-but browser access was disabled in Work settings when checked. An owner prompt
-is pending. Do not bypass that setting. Preview is loopback-only at
-`http://127.0.0.1:8767/installer.html`, owned exec session 63121 in the
-foundation checkout. Stop it after review or before pausing.
+## Reviewed corrections integrated
 
-PR #151 merged after its separately reviewed `ca6f3c14` passed exact-head CI
-41296941683. Remote main is verified at
-`8d790e3060643ab4e4f8404a7dbf52505ec9b303`. Foundation and corrections
-include that merge. Preserve action() when integrating browser fixes.
+- Native Capture checks representability before changing a clip or clearing
+  history. Takes outside the unchanged 256-step format refuse transactionally;
+  valid clip growth and the explicit Movy compatibility oracle remain. Endpoint
+  arithmetic checks bounds before rounding, including UINT32_MAX. A retained
+  take receives a readable refusal popup. Author normal/sanitizer checks,
+  independent arithmetic/FIFO checks and coordinator focused tests pass.
+- WebKit transport updates preserve unchanged icon nodes. An actual-app held
+  pointer regression demonstrated the old lost click and passes in all three
+  browser engines with the fix. This does not replace real-Chrome acceptance.
+- Scene launch requires successful decode. Stopped-ARP fixtures finish all six
+  straight/swing intervals and releases. The RAM-edge fixture removes an unused
+  Ensemble that made its initial chain 612 bytes too large, while retaining
+  explicit oversized-chain and ARP refusal witnesses. Production limits stay.
+- Explicit aligned state workspaces preserve host behavior and guard aliases,
+  reentry and lifetime. Actual pi32 object evidence removes a 917,536-byte
+  default arena in external-workspace mode. The 481,244-byte JSON writer is
+  still too large for native persistence; workspace APIs alone do not solve it.
+- The renderer protocol now has a shared core and explicit platform ports,
+  preserving the SDK wake paths. Native lifecycle tests cover publication,
+  readiness, timeout, late entry and poison refusal. The production native
+  CPU1 backend is disabled and cannot be enabled by a build flag.
+- The LAN browser wrapper isolates remote staging, claims canonical output
+  paths and cleans only owned resources. Validated SSH-config and CPU/CPU-set/
+  memory hooks apply to every container. Independent fake-transport lifecycle
+  tests pass; the next actual combined batch will validate the revised wrapper.
+- MATRIX stack frames were reduced with bounded snapshots. Actual pi32 local
+  frames fell to 652/376/404 bytes; this is not a whole-call-chain stack bound.
+- FM6 descriptor identity, sound/insert release, finite edit indices,
+  transactional imports, immutable queued locks, Compare/Acid/Divide chronology
+  and transitive sound/FX save dependencies have focused regression coverage.
+  Increased static event storage must be charged in the current native link.
+- Buffered-soak terminal reasons and browser negative witnesses reject unrelated
+  failures. Dongle LED indication follows ACK/SOF/PC handoff rather than delaying
+  that path; physical timing remains unmeasured.
 
-## Latest combined candidate checkpoint
+Scoped notes retain exact commands, source pins, checks and their limits. The
+private coordinator checkpoint retains detailed receipts and current lane state.
 
-[verified] Corrections PR #165 contains the foundation above and reviewed
-source through `7843ede8ab6496c71f0ab55f8925026793cdda5b`, pushed with remote
-SHA verified. This is an integration candidate, not a release or deployment.
-The final combined WASM rebuild and exact-head CI remain outstanding.
+## Current dependent work
 
-- CI 41302493347 exposed a GCC scene-decode warning, stopped-ARP fixture
-  duration and RAM-edge fixture failures. Reviewed corrections gate launch on
-  successful scene decoding, let the fixture finish all six swing intervals
-  and note releases, and remove an unused Ensemble from a chain that exceeded
-  RAM by 612 bytes. The original oversized-chain refusal remains covered;
-  production RAM limits and ARP behavior are unchanged.
-- WebKit can lose a transport click when unchanged label text is replaced
-  between pointer down and up. Preserving the existing label node fixes the
-  actual-app reproduction. A held-press regression fails on the old source
-  and passes all three browsers; it crosses a real transport update and
-  retains the original timeout. This is not the pending real-Chrome review.
-- The reviewed build wrapper isolates remote stages and claims each canonical
-  output directory, including aliases. Independent actual-wrapper fake tests
-  cover concurrency and partial-claim cleanup. All eight cases also pass in
-  the combined checkout. Real LAN acceptance will use the next combined build.
-- Explicit aligned state workspaces preserve host behavior; normal and Clang
-  sanitizer comparisons pass in four configurations. Actual pi32 object
-  evidence removes a 917,536-byte default arena in native external-workspace
-  mode. The 481,244-byte JSON writer still cannot fit the native headroom:
-  full native persistence requires further work, not a larger memory budget.
-- The shared renderer protocol is extracted behind explicit platform ports;
-  existing SDK wake behavior is preserved. Independent and coordinator
-  protocol/fault checks pass. Native CPU1 launch remains disabled.
+- PROJECT saves can currently confuse an absent set with an oversized export
+  and succeed without saving SEQS. A narrow correction is under independent
+  review: preflight before any output, preserve all valid bytes, and refuse
+  oversized state without app/edit/PCM mutation. Tests distinguish the default
+  fitting pool from a supported custom pool that actually exceeds the buffer.
+- The source-bundle inventory test is being corrected against committed inputs,
+  retaining explicit coverage and the separate production prerequisite refusal.
+- After these fixes, freeze one source and run the actual bounded browser build:
+  parity, metadata/SysEx/routing/MIDI, edit-storm, generated provenance and all
+  three browser regression sets. No manual acceptance-hash edits.
+- Rebuild the unchanged current native diagnostic from the same frozen source
+  with pinned private inputs, fresh objects and the original link audit. Its
+  closure excludes the renderer pipeline and is not full-product RAM proof.
+- Implement native persistence offline in dependent phases: compact MIT plain
+  codec, current canonical PROJECT replay/streamed SEQS, then fake storage.
+  The reviewed proposal preserves caps, metadata, reports and record ordering;
+  uses the actual directory size; binds readback to a frozen expected manifest;
+  and treats a late commit error as potentially indeterminate. Its inclusive
+  98,304-byte ceiling is a gate, not a measured fit. No SAVE UI or real storage
+  binding is admitted by these phases.
+- Close SDK-free CPU1 reset/IRQ/stack/cache/publication contracts and prepare
+  the smallest current-app display/control runtime. Read-only plans precede
+  production implementation and target experiments.
 
-[verified] One deeper Capture issue remains open: a first take can construct
-a loop beyond the format's 256-step addressable window, drop notes and fail to
-roundtrip unchanged. The original Movy compatibility witness is retained.
-A separate native transactional-refusal correction is being prepared; valid
-Capture growth must remain intact. Do not turn this into an unlabelled skip
-or claim the combined candidate is green.
+## Native and physical evidence limits
 
-Private authoritative continuation state is
-`scratch/release-coordinator-checkpoint-20261101.md`, atomically mirrored to
-the owned Aeon coordinator dataset. Detailed failure logs and lane receipts
-stay private. No hardware operation or public service was started.
+[verified] The earlier source-9440 native diagnostic used a fixed FM6,
+eight-voice arrangement and linked without SDK archives. Its original audit
+passed with no pending rows and app/ROM load bytes reproduced. Historical flash
+210,364 bytes, BSS 300,240 bytes and 142,112-byte headroom must not be applied
+to corrected source without a fresh link. It has no general interactive screen,
+persistence, CPU1 backend or installation admission.
 
-## Release corrections stream
+The last actual full combined browser module was built from source 897931cf.
+It passed 108 parity cases, metadata/edit, SysEx, routing, all four MIDI groups,
+a 30-second edit storm with zero late quanta/resynchronizations, and the three
+browser regression sets with CI audio setup. That module is now stale after
+new C changes. Keep the evidence; regenerate the module before final CI.
 
-Current coordinator checkout is
-`/Users/likwid/.codex/worktrees/lunar-release-corrections-20261101`, branch
-`fix/2026-11-01@release-state-corrections`, based on the approved foundation.
-Integrated and pushed corrections include:
+No device traffic occurred during this release-coordination resume. The physical
+FM-1 boots recovered stock V15; D1–D4 and docs/17 still govern firmware-changing
+tests. Routine dev-board work uses acknowledged UART entry, application flashing
+and fresh results, without repeated full backups/readbacks/factory rehearsals.
+Never retry a consumed reset. Mac coordinator alone owns device operations.
+Native boot/fail-open, interactive timing/stack/underruns, storage/update,
+display/controls/audio and owner listening acceptance remain open.
 
-- MATRIX destination enumeration uses bounded metadata snapshots. Differential
-  tests cover 492,640 events; actual pi32 local frame allocations fell from
-  roughly 6 KiB each to 652/376/404 bytes. This is not whole-stack acceptance.
-- FM6 copied descriptors retain stable engine identity for modulation routes
-  and unchanged SOUND restore; held-note PCM continuation is preserved.
-- Clearing a nonprimary sound releases its owned inserts and emits notices.
-  Replacing an engine still retains its insert chain.
-- Edit text indices reject nonfinite/out-of-range float conversions before
-  casting. Sixteen focused sanitizer cases pass.
-- BAD dropped files remain dismissible; Solo is bound to project identity and
-  observed state; view replacement rejects stale snapshots; reconnect cancels
-  pending edits and rejects old-port acknowledgments. Independent review
-  approved the four fixes. Reconnect tests inject lifecycle events rather
-  than proving a complete physical/audio power cycle.
-- Browser-state regressions are wired into each browser CI job.
-- Rejected sequencer imports preserve app/PCM state; merged clip text stays
-  allocated through application, avoiding a fallible allocation after mutation.
-- Queued locks carry immutable target labels and base values through app dispatch.
-  Focused checks pass 10 normal and 9 sanitizer tests; both pipeline variants
-  pass three-way 22,581,248-byte PCM comparisons and seven fault refusals.
-  Two static event arrays grow by 13,056 bytes; aggregate target fit is unproven.
-- Offset-loop Capture, two-edge Compare crossings, Acid STOP/origin ownership,
-  Divide output chronology and transitive sound/FX save dependencies are fixed.
-- Typed buffered-soak terminal reasons reject unrelated failures; Python state
-  readers enforce byte limits. Browser negative witnesses reject nonfinite PCM
-  and missing required controls rather than silently accepting incomplete checks.
-- Dongle LED indication follows ACK release/SOF and final PC handoff, removing
-  a 300 ms delay from that critical path. Sixteen model/source tests pass;
-  physical dongle timing is not established by those checks.
+## Audit, persistence and data lifecycle
 
-A combined full WASM rebuild is required after the current source-fix batch;
-individual host proofs do not make the old generated module current.
-Do not hand-edit generated acceptance hashes.
+[verified] All 803 first-party manifest files at pinned b831 were read, totaling
+225,835 lines, with zero hash/count mismatches or unassigned files. Later source
+deltas have separate reviews; the current entire tree is not claimed audited,
+and its audit mark is not advanced.
 
-## Other active lanes and dependencies
+Authoritative private continuation:
+`scratch/release-coordinator-checkpoint-20261101.md`, atomically mirrored to the
+owned Aeon coordinator dataset. Source changes use explicit-refspec pushes with
+remote SHA verification. Preserve reviewed branch backups and required CI;
+never force-push or merge unfinished work.
 
-- Private installer service extraction is independently approved at
-  `d62044bc`. Dedicated integration branch
-  `feature/2026-11-01@installer-service-integration` adds real service CI
-  dependencies. Draft PR #162 is pushed at `9601311b`; CI 41300128269 is
-  pending after incorporating the reviewed WebKit fix. Production native capability remains unavailable; no daemon,
-  native build, Docker execution or hardware acceptance follows from API tests.
-- SDK-free fixed FM6 diagnostic is pushed at `5add9c0d`, with eight voices,
-  trunc12 and permanent external arenas. Actual pi32 link and unchanged audit
-  pass: flash 210,364 bytes, BSS 300,240. Hardware admission remains false;
-  bootguard, stack bounds, timing and general interactive runtime remain open.
-- Stackless RAM execution witness is pushed at `fd0b33d6` and independently
-  reviewed, with 72 tests passing. PA2 physical ownership, inherited ROM state,
-  optical timing and watchdog/capture bounds remain unresolved. No execution
-  or hardware admission has occurred.
-- Draft native foundation PR #163 is pushed at `9440b081`; reviewed binding
-  source `f736bf4b` binds the toolchain tree to the pinned archive. Independent
-  checks pass 24 focused plus six additional synthetic cases; combined checks
-  pass 95 with one optional retained-output skip. CI 41300396882 is pending.
-  Actual archive compatibility/native build and all hardware gates remain open.
-- A platform-independent extraction of the existing MIT queue protocol is now
-  assigned for implementation with atomic host-adapter and directed fault tests.
-  No reviewed SDK-free CPU1 launcher was found. A shim alone cannot admit live
-  editing or make the fixed-arrangement pipeline a general interactive runtime.
-- Buffered soak parser now distinguishes terminal failure
-  reasons. Exact historical Oct29 source and raw receipt were checked: its
-  line-370 failure follows successful finish/invariant guards and is consistent
-  with the two allowed producer-late blocks. No evidence that accepted soak
-  was falsely accepted has been found. New unrelated failures must not pass.
-- Offline browser OTA transport/controller review found a truncated chunk-length
-  encoding at full-size chunks; correction and independent re-review are pending.
-  Package admission stays closed. No MIDI/device traffic has occurred.
-
-## Audit and resources
-
-The full audit threshold was exceeded on main. Source partitions are being
-read fully with pinned hashes and reports in the performance checkout's
-`scratch/devkit-20261023/audit-20261101/`. Engine core/effects, app core,
-browser source, sequencer/state, modulation/host, firmware/tools and engine C
-checks are covered. Browser and Python test partitions have returned reports;
-aggregate and changed-head reconciliation remain pending. Do not
-claim a completed whole-repository audit or remove uncertain legacy guards.
-
-Aeon has CPUs 0–15. Current heavy lanes use exclusive sets of four CPUs,
-6 GiB, docker-batch.slice and owned lifecycle stages: combined WASM reserves
-0–3; queue extraction may use 4–7. App-state 12–15 is released. Ask the coordinator before another heavy
-job; completed browser/matrix/WASM stages are removed. Mac coordinator alone
-owns hardware. No hardware traffic has occurred on this resume.
-
-## Next integration gates
-
-1. Finish and independently review the current correction batch, rebuild
-   actual WASM once for the combined source, run full host and browser gates.
-2. Merge completed PRs only after exact-head CI/review and their applicable
-   visual gates; use merge commits, preserve branch backups, verify main SHA.
-3. Integrate the private service separately, retaining unavailable native and
-   public-install gates. Continue the reviewed SDK-free runtime rather than
-   merging the historical installer branch wholesale.
-4. Resolve native boot/fail-open, RAM/stack, current interactive CPU1 backend,
-   package/update/recovery and physical FM-1 acceptance before release.
-5. Preserve owner listening and publication gates; tests are not a release.
-
-## Persistence and cleanup
-
-The release-readiness heartbeat remains ACTIVE until verified completion or
-owner pause. Save exact source refs, useful logs and actionable handoffs;
-remove owned reproducible stages. Keep worktrees until reviewed/integrated,
-then remove through git without force. Never clean owner or sibling data.
-Latest Mac free space is over 1,120 GiB, above the 500 GiB floor. The loopback
-preview noted above is the only coordinator-owned live local server.
+Heavy work uses coordinated Aeon lanes of four CPUs and 6 GiB in
+`docker-batch.slice`, labelled disposable containers and exact owned staging.
+Retain small evidence, delete owned reproducible products, and preserve sibling
+worktrees, owner data and transcripts. Mac free space is 1,116 GiB against the
+500 GiB floor. The release-readiness automation remains ACTIVE until verified
+completion or an owner-requested pause.
