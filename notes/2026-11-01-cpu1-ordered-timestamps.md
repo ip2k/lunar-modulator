@@ -33,3 +33,12 @@ return to publish p_start and second return to p_end, source-bound by a fresh
 receipt and independent review. That compile-path check is not device execution
 or silicon/timing proof. Historical f703 approval/1c5 receipt remains historical
 until the corrected source and fresh receipt are independently approved.
+
+[verified] Frozen correction source bc6bfcf733c376217fa43c340040d644b5ca5fbd was
+actually recompiled/linked as five TUs. Fresh ELF SHA256
+2deb969452c6857af5ab9e31dfd578bcbd2ae565b4671f3f4229afcd5db13795.
+Actual target listing: first ticks return at0x020010fa saved inr4; second at
+0x02001100 moved tor2; r1=r4 before publish0x0200110a. The lane-owned offline
+profile-order-check.py checks that emitted register dataflow. Fresh source/header/
+tool/artifact receipt and instruction trace are under evidence-ordered. Native
+ENABLE rejection/default compile remain verified. Hardware execution is false.

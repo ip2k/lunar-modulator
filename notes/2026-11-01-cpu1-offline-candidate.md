@@ -6,7 +6,8 @@ branch feature/2026-11-01@cpu1-offline-candidate, isolated worktree
 
 Authorized endpoint: separately selectable OFFLINE stock-SPL candidate, actual
 native adapter/common-core host checks and actual pi32 object/link inventory.
-[verified] Implemented at behavior source 1c5a1f41f99f301797ea42775546df4b67f292e0.
+[verified] Current behavior source bc6bfcf733c376217fa43c340040d644b5ca5fbd;
+this supersedes the historical1c5/f703 source review with explicit clock ordering.
 Hardware admission/execution is absent: ENABLE=1 still errors, hardware_admitted
 always zero, no installer/catalogue/package exposure. Default diagnostic startup,
 linker and original native/JieLi link auditors remain byte-unchanged from base.
@@ -29,7 +30,7 @@ f74633075cf2b595c76d235caa740ef915718a33 from9537ae55, without candidate imports
 All three have independent exact-delta source review; final candidate target
 manifest review is recorded separately rather than inferred from those approvals.
 
-[verified] Final behavior source1c5: three focused host suites 27 passed33.10s,
+[verified] Historical core-correction source1c5: three focused host suites 27 passed33.10s,
 1,222 executions: 542 candidate modes x normal/ASan+UBSan, 24 SDK/host core modes
 x4, 21 native lifecycle modes x2. Nine new candidate clock-poison modes independently
 failed against exact parent core in18 normal/sanitizer runs; standalone existing
@@ -39,7 +40,7 @@ fault tests set claimed[1]; the native_ms condition reads both words. Host atomi
 words/mock MMIO do not prove target compiler/SRAM/fault-entry/cache contracts.
 
 [verified] Actual pi32 clang4.0.1 r3 compiled all5TUs warning-clean and linked,
-source1c5. ELF SHA256bf56ff8a4fa29f51f882ddbed03fe59d0387c8d6286fcc02b5d1044e34baad0e.
+sourcebc6bfcf7. ELF SHA2562deb969452c6857af5ab9e31dfd578bcbd2ae565b4671f3f4229afcd5db13795.
 .text7372B, BSS5568B, explicit stacks/canaries23040B; RAM28608B, ending01c0efc0.
 Default disabled object compiles and ENABLE=1 rejects. Original link auditors are
 unchanged and were not repurposed as candidate admission. Actual entry/RTI/ICFG/
@@ -48,7 +49,7 @@ fault and corrected poison reload instructions inspected. Compiler rejects
 stack bounds or high-water proof. No executable target code was run.
 
 Source-bound actual five-TU/compiler-M header/toolchain/object/ELF manifest:
-scratch/cpu1-candidate-20261101/evidence-1c5/source-artifact-receipt.json.
+scratch/cpu1-candidate-20261101/evidence-ordered/source-artifact-receipt.json.
 Private ELF/map/listings, stack TSVs and review, disabled/ENABLE evidence are beside
 it. Full commands/logs and public MPL grant/NOTICE records with hashes are retained
 under this owned scratch lane. Actual clang/ld/objdump and used header bytes are
@@ -79,3 +80,16 @@ labelled --rm containers; target compilation was subsecond, no daemon changes.
 Owned claim handoffs/cleanup are recorded in the private final author report.
 Mac free space was1115GiB, above500GiB floor. Unmerged pushed source worktrees
 remain for coordinator integration; no owner or sibling data is removed.
+
+Superseding timestamp portability correction:5a8e16c4 is the separately approved
+a1eda test-only lifecycle dependency, already present on coordinator root. Then
+bc6bfcf7 sequences two clock samples into p_start/p_end full expressions in the
+actual profile and owned candidate fixture. No other paired clock arguments found
+in bounded candidate search. Exact final candidate12pytest pass17.78s; combined
+precheck27pass33.15s. Actual five-TU profile recompiled and linked; fresh receipt
+binds bc6 source. profile-order-check.json traces actual first/second pi32 clock
+returns into publish r1/r2. Historical compiler happened to choose this order;
+portable C sequencing no longer depends on that choice. New .text instructions
+match1c5; full ELF differs due build-path symbol metadata. See separate ordered-
+timestamps note. No artificial host MMIO startup model or regex source test used.
+Final offline review/port handoff is in private author report; hardware stays false.
