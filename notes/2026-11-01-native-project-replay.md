@@ -111,11 +111,11 @@ not recursively emit; SOUND may recurse only one level into INSERT/MFX. Internal
 provider callbacks terminate at leaf scans. Movy encode comparison and decode
 callbacks are distinct. `snprintf` uses its buffer gadget, not an external putchar.
 
-The conservative library maximum is4,504 bytes including the24-byte probe, or
-4,480 bytes from the public API entry. The largest path includes two nested
+The conservative library maximum is4,508 bytes including the24-byte probe, or
+4,484 bytes from the public API entry. The largest path includes two nested
 1,280-byte modulation collectors during prior-parameter scanning:
 `stage -> prepare -> collect_project -> mod_out -> mod_collect -> mod_emit ->
-out -> state_write -> each_param -> project_params -> mod_collect -> memcpy`.
+out -> state_write -> each_param -> project_params -> mod_collect -> mod_get_slot -> memcpy`.
 This is an upper-bound call graph, not a measured high-water mark. With a1,024-byte
 external getter/backend complete-callee allowance, the largest modeled path is
 5,488 including the probe. Arbitrary callbacks are not proven bounded.
@@ -133,10 +133,10 @@ The conditional profile reserves:
 | Total | **98,028** |
 | Remaining below98,304 | **276** |
 
-The8,192 stack reservation requires: library<=4,480; each external getter/backend
+The8,192 stack reservation requires: library<=4,484; each external getter/backend
 callback's complete nested callee closure<=1,024; caller chain and locals<=512;
 combined same-stack IRQ/exception use including nesting<=1,024. Their conservative
-sum7,040 leaves1,152 stack padding in addition to the separate8,192 safety reserve.
+sum7,044 leaves1,148 stack padding in addition to the separate8,192 safety reserve.
 No recursion/reentry or hidden heap/lazy allocations are allowed. Backend buffers,
 ops/report/context outside the arena/caller stack all count within4,096. Candidate
 file bytes must live in external storage, not an uncharged RAM file. These limits
