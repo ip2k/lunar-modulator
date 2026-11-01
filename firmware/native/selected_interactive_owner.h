@@ -11,7 +11,7 @@ typedef struct {
   lunar_transport_t transport;
   lunar_diagnostic_display_t display;
   lunar_spi_model_t spi;
-  uint32_t initialized, max_events, min_draw_frames;
+  uint32_t initialized, max_events, min_draw_frames, stepping;
 } lunar_selected_owner_t;
 /* All objects, callback contexts and queue storage are zeroed, permanent and
  * mutually disjoint. Caller serializes init/step; only matrix/encoder is the

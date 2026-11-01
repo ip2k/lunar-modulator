@@ -1,4 +1,4 @@
-/* Actual fixed Trio app vs separately driven app, no hardware. MIT. */
+/* Fixture MIT; linked imported scanner GPL-3.0-only. No hardware. */
 #include "selected_interactive_owner.h"
 #include "diagnostic_app.h"
 #include "selected_project_blob.h"
@@ -16,6 +16,20 @@ static unsigned char arena[16384] FM1_APP_ALIGN16;
 static fm1_app_arena_t arenas[FM1_APP_UNITS];
 static unsigned char work_space[655360] FM1_APP_ALIGN16;
 static fm1_app_state_report_t report;
+static uint32_t fake_gpio[8][8], fake_clock;
+static uint8_t scan_raw[11];
+static void matrix(unsigned, int);
+static void encoder(unsigned, int);
+#include "fm1_time.h"
+#include "fm1_gpio.h"
+#include "fm1_cc.h"
+#undef FM1_PR
+#define FM1_PR(p,r) fake_gpio[p][(r)/4]
+static uint32_t fake_ticks(void) { return fake_clock++; }
+#define fm1_ticks fake_ticks
+#define FM1_INPUT_ACCEPTED_KEY(scan,id,down) matrix(id,down)
+#define FM1_INPUT_ACCEPTED_ENCODER(scan,id,delta) encoder(id,delta)
+#include "fm1_input.h"
 static uint32_t now, launches, rows, selected, data, live, done_flag;
 static unsigned row_phase, polls, draw_count, nonzero;
 static int fail_scan, fail_audio, fail_spi;
@@ -33,9 +47,16 @@ static int scan_init(void *ctx) {
   assert(ctx==&platform && lunar_diagnostic_state()->unit[0].e);
   assert(!strcmp(lunar_diagnostic_state()->unit[0].e->id,"trio"));
   assert(!platform.started && !launches);
+  if(!fail_scan) fm1_input_init();
   return fail_scan;
 }
-static void scan_tick(void *ctx) { assert(ctx==&platform); }
+static void scan_tick(void *ctx) {
+  assert(ctx==&platform);
+  uint32_t v=(uint32_t)~scan_raw[fm1__tick_col];
+  fake_gpio[FM1_PA][FM1_IN/4]=(v&1u)|((v&0x1eu)<<4);
+  fake_gpio[FM1_PB][FM1_IN/4]=(v&0x20u)<<2;
+  fm1_input_tick();
+}
 static int audio_start(void *ctx) {
   assert(ctx==&platform && !platform.started);
   assert(atomic_load(&platform.owner.transport.pcm_head)-
@@ -177,8 +198,23 @@ static void save_frame(void) {
   }
   assert(!fclose(f));
 }
+static void scan_frames(unsigned n) {
+  uint64_t before=lunar_diagnostic_state()->frames;
+  for(unsigned i=0;i<n*11;++i) lunar_selected_platform_timer(&platform);
+  assert(lunar_diagnostic_state()->frames==before); /* real accepted hooks enqueue only */
+}
 static void positive(void) {
   ref_render(); draw_reference_if_called(0,0); projection(); consume();
+  /* Actual scanner -> accepted hooks -> platform -> queued app input. */
+  scan_frames(2);
+  scan_raw[0]=1u<<3; scan_frames(2); assert(pending_n==1); step();
+  scan_raw[0]=0; scan_frames(8); assert(pending_n==1); step();
+  static const unsigned turn[]={1,3,2,0};
+  for(unsigned i=0;i<4;++i) {
+    scan_raw[0]=(uint8_t)((turn[i]>>1)&1u); scan_raw[1]=(uint8_t)(turn[i]&1u);
+    scan_frames(2);
+  }
+  assert(pending_n==1); step();
   /* Repeated main calls cannot consume events or render through full PCM. */
   assert(main_step()==1 && main_step()==1);
   matrix(18,1); uint64_t frames=reference.frames;

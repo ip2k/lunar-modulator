@@ -24,7 +24,7 @@ typedef struct {
   lunar_spi_model_ops_t ops;
   const uint8_t *row;
   uint8_t params[8];
-  uint32_t initialized, active, fault, phase, transfer, ticket;
+  uint32_t initialized, active, fault, phase, transfer, ticket, stepping;
   uint32_t start, steps, max_steps, timeout_ticks;
 } lunar_spi_model_t;
 /* Fresh zeroed permanent storage, stable disjoint ops/context/row lifetime.

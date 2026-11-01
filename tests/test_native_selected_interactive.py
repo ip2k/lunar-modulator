@@ -21,7 +21,7 @@ def test_actual_selected_owner(tmp_path):
         "\t$(CC) $(SIM_CFLAGS) -I$(PROOF) -Istate -I$(BLOB) -c $< -o $@\n"
         f"$(BUILD)/proof/check.o: {ROOT / 'tests/fixtures/selected_interactive/check.c'}\n"
         "\t@mkdir -p $(dir $@)\n"
-        "\t$(CC) $(SIM_CFLAGS) -I$(PROOF) -Istate -I$(BLOB) -c $< -o $@\n"
+        "\t$(CC) $(SIM_CFLAGS) -I$(PROOF) -Istate -I$(BLOB) -I$(PROOF)/../third_party/dinghy/hal -Wno-unused-function -c $< -o $@\n"
         "$(BUILD)/proof/blob.o: $(BLOB)/selected_project_blob.c\n"
         "\t@mkdir -p $(dir $@)\n"
         "\t$(CC) $(SIM_CFLAGS) -I$(BLOB) -c $< -o $@\n"

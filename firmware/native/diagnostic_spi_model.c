@@ -22,23 +22,26 @@ int lunar_spi_model_submit(void *ctx,uint32_t row,uint32_t ticket,
                             const uint8_t *data,size_t bytes) {
   lunar_spi_model_t *m=ctx;
   if(!m || !m->initialized || m->fault) return -1;
-  if(m->active || !data || bytes!=LUNAR_DISPLAY_ROW_BYTES || row>=240)
+  if(m->stepping || m->active || !data || bytes!=LUNAR_DISPLAY_ROW_BYTES || row>=240)
     return fail(m,LUNAR_SPI_LEASE);
   m->row=data; m->ticket=ticket;
   m->params[0]=0; m->params[1]=0; m->params[2]=0; m->params[3]=239;
   m->params[4]=(uint8_t)(row>>8); m->params[5]=(uint8_t)row;
   m->params[6]=(uint8_t)(row>>8); m->params[7]=(uint8_t)row;
   m->transfer=0; m->phase=SELECT; m->steps=0;
-  m->start=m->ops.ticks(m->ops.ctx); m->active=1;
+  m->active=1; m->stepping=1;
+  m->start=m->ops.ticks(m->ops.ctx); m->stepping=0;
+  if(m->fault) return -1;
   return 1;
 }
-int lunar_spi_model_step(lunar_spi_model_t *m,uint32_t *ticket) {
+static int service(lunar_spi_model_t *m,uint32_t *ticket) {
   int r;
   if(!m || !m->initialized || m->fault) return -1;
   if(!ticket) return fail(m,LUNAR_SPI_CONFIG);
   if(!m->active) return 0;
-  if(m->steps++>=m->max_steps ||
-     (uint32_t)(m->ops.ticks(m->ops.ctx)-m->start)>=m->timeout_ticks)
+  uint32_t now=m->ops.ticks(m->ops.ctx);
+  if(m->fault) return -1;
+  if(m->steps++>=m->max_steps || (uint32_t)(now-m->start)>=m->timeout_ticks)
     return fail(m,LUNAR_SPI_TIMEOUT);
   switch(m->phase) {
   case SELECT:
@@ -81,4 +84,12 @@ int lunar_spi_model_step(lunar_spi_model_t *m,uint32_t *ticket) {
   default: return fail(m,LUNAR_SPI_CONFIG);
   }
   return 0;
+}
+int lunar_spi_model_step(lunar_spi_model_t *m,uint32_t *ticket) {
+  if(!m || m->fault) return -1;
+  if(m->stepping) return fail(m,LUNAR_SPI_LEASE);
+  m->stepping=1;
+  int r=service(m,ticket);
+  m->stepping=0;
+  return m->fault ? -1 : r;
 }
