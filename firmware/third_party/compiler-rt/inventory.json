@@ -44,7 +44,8 @@
     "int_to_fp.h": "9ac8fd0650f1560e6c910979e0004c5956ae7da6e3bded7eab0b0270c51bf400",
     "fixunsdfdi.c": "edfc5d1bc551a6acb8d3cb4e6e5073125e8a3ef93ff539002db381fce4c6236a",
     "floatdidf.c": "aa8abfb4f802a359b220b4a5edcd494aa484e7ece129c9e8036143f5913e8783",
-    "floatundidf.c": "052bbd24835e69cfa03dc9c820f5022893dd69c2f8b9d9e6fe4187bb8773d28b"
+    "floatundidf.c": "052bbd24835e69cfa03dc9c820f5022893dd69c2f8b9d9e6fe4187bb8773d28b",
+    "moddi3.c": "ec2261d7e4bf7b04583c17933a7fd370be4de10418c1d75929e0dc382694f820"
   },
   "diagnostic_selection": "2026-11-01: retain only C units contributing allocated sections to the pinned current-app diagnostic link; headers and licences preserved."
 }
