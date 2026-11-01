@@ -18,6 +18,9 @@ only, no binutils that know pi32v2). Two kinds of input:
   --objects DIR|ARCHIVE.a             relocatable objects, e.g. this repo's
                                       engine archive or the compile-only set
                                       from tools/jieli/compile-check.sh
+  --objdump VENDOR_OBJDUMP            verify ambiguous direct-call and
+                                      call-boundary bytes against the linked
+                                      pi32v2 ELF; requires only --elf
 
 Checks fall in three buckets per input:
   pass     the condition holds
@@ -35,7 +38,9 @@ machinery may legitimately touch its mailbox (V1.2.8+ `boot_info_init` ->
 `mkey_dummy_func` stores the chip key at 0x01C8010C [verified: notes §3]),
 so that one store passes, other hits inside the dormant functions are
 pending (a human confirms them with the vendor objdump), and a hit anywhere
-else fails. The `late_initcall` group check reads the linked image's
+else fails. An eFuse-shaped call operand remains pending without exact
+vendor-decoded call evidence; a proved call can clear only its own bytes.
+The `late_initcall` group check reads the linked image's
 `late_initcall_begin`/`_end` table and requires exactly [sdk_meky_check];
 `sdk_meky_check`'s exact scheduling needs the vendor objdump and stays
 pending until the real link (DEVELOPERS.md I1).
@@ -329,7 +334,78 @@ def _find_le32(blob, value):
     return hits
 
 
-def audit(elves, flat_images, linked, sources=None, runtime="sdk"):
+def relative_call_payloads(name, elf, disassembly):
+    """Vendor-decoded direct calls whose LE32 bytes are displacements, not SFRs.
+
+    Fail closed on missing/mismatched bytes, non-function data, unresolved or
+    external targets. This recognizes only the verified six-byte 80 ff call.
+    It never exempts a load immediate or a literal address in allocated data.
+    """
+    proofs = {}
+    if (elf.e_type, elf.e_machine) != (ET_EXEC, EM_PI32V2):
+        return proofs
+    pattern = re.compile(r'^\s*([0-9a-fA-F]+):\s+((?:[0-9a-fA-F]{2}\s+){6})'
+                         r'call\s+(-?\d+)\s+<([^<>]+)\s*:\s*([0-9a-fA-F]+)\s*>\s*$', re.M)
+    functions = [s for s in elf.symbols if s['type'] == 2 and s['shndx'] and s['size']]
+    for match in pattern.finditer(disassembly):
+        address = int(match[1], 16)
+        instruction = bytes.fromhex(match[2])
+        if instruction[:2] != b'\x80\xff' or elf.read(address, 6) != instruction:
+            continue
+        displacement = struct.unpack('<i', instruction[2:])[0]
+        target = int(match[5], 16)
+        if displacement != int(match[3]) or (address + 6 + displacement) & 0xffffffff != target:
+            continue
+        if not any(s['value'] <= address and address + 6 <= s['value'] + s['size'] for s in functions):
+            continue
+        if not any(s['value'] == target and s['name'] == match[4].strip() for s in functions):
+            continue
+        for section in elf.sections:
+            if (section['flags'] & 6) == 6 and section['addr'] <= address and \
+                    address + 6 <= section['addr'] + section['size']:
+                proofs[(name + ':' + section['name'], address + 2 - section['addr'])] = dict(
+                    address=address, bytes=instruction.hex(), target=target, symbol=match[4].strip())
+    return proofs
+
+
+
+def stub_call_boundary_patterns(name, elf, disassembly):
+    """Prove only the observed call-tail/register-move overlap of STUB_ADDR.
+
+    This is not a general exemption for unaligned constants. Both instructions
+    must be byte-exact vendor decodes in one sized function and executable
+    section. The direct call also needs the normal resolved-target proof.
+    """
+    proofs = {}
+    moves = {}
+    pattern = re.compile(r'^\s*([0-9a-fA-F]+):\s+02\s+15\s+'
+                         r'r3_r2\s*=\s*r1_r0\s*$', re.M)
+    for match in pattern.finditer(disassembly):
+        moves[int(match[1], 16)] = b'\x02\x15'
+    for (source, offset), call in relative_call_payloads(name, elf, disassembly).items():
+        address = call['address']
+        move = moves.get(address + 6)
+        instruction = bytes.fromhex(call['bytes'])
+        if move is None or elf.read(address + 6, 2) != move:
+            continue
+        if instruction[3:] + move[:1] != struct.pack('<I', STUB_ADDR):
+            continue
+        if not any(s['type'] == 2 and s['shndx'] and s['size'] and
+                   s['value'] <= address and address + 8 <= s['value'] + s['size']
+                   for s in elf.symbols):
+            continue
+        if not any(source == name + ':' + sec['name'] and
+                   (sec['flags'] & 6) == 6 and sec['addr'] <= address and
+                   address + 8 <= sec['addr'] + sec['size'] for sec in elf.sections):
+            continue
+        proofs[(source, offset + 1)] = dict(call=call,
+            following_address=address + 6, following_bytes=move.hex(),
+            following_instruction='r3_r2 = r1_r0')
+    return proofs
+
+
+def audit(elves, flat_images, linked, sources=None, runtime="sdk", call_payloads=None,
+          stub_boundaries=None):
     """sources: None, or [(path, line number, line)] of our C/C++ sources."""
     if runtime not in ("sdk", "sdk-free"):
         raise ValueError(f"unknown runtime: {runtime}")
@@ -375,6 +451,8 @@ def audit(elves, flat_images, linked, sources=None, runtime="sdk"):
             scan_sources.append((f"{name}:{sec}", e, addr, blob))
     for name, blob in flat_images:
         scan_sources.append((name, None, None, blob))
+    proof_arch_ok = linked and any(e.e_type == ET_EXEC and e.e_machine == EM_PI32V2
+                                   for _name, e in elves)
 
     def imm_hits(values, attributable=False):
         """[(label, offset, value, owning function or None)] for each LE32 hit.
@@ -429,8 +507,14 @@ def audit(elves, flat_images, linked, sources=None, runtime="sdk"):
 
     # 3. The key_check_demo stub: nothing may load or call it, SDK or ours.
     stub = imm_hits([STUB_ADDR])
+    stub_boundaries = stub_boundaries or {}
+    decoded_boundaries = [dict(location=fmt(h), instructions=stub_boundaries[(h[0], h[1])])
+                          for h in stub if proof_arch_ok and (h[0], h[1]) in stub_boundaries]
+    stub = [h for h in stub if not (proof_arch_ok and (h[0], h[1]) in stub_boundaries)]
     record("stub_0200012E_unused", "fail" if stub else "pass",
            [fmt(h) for h in stub] or f"no immediate 0x{STUB_ADDR:08X} (key_check_demo stub call/load)")
+    if decoded_boundaries:
+        record("stub_byte_patterns_cross_decoded_call_boundary", "pass", decoded_boundaries)
 
     # 4. The key-check mailbox: ours never; the SDK's mkey_dummy_func store is expected.
     classify("keycheck_mailbox_unwritten",
@@ -452,25 +536,24 @@ def audit(elves, flat_images, linked, sources=None, runtime="sdk"):
         record("irq123_unused_in_sources", "fail" if src_hits else "pass",
                src_hits or "only proven literal non-123 IRQ arguments; no IRQ-123 vector address")
 
-    # 8. eFuse controller never touched. A pi32v2 long relative-call operand
-    # can coincidentally equal an SFR address. This byte scan is not an
-    # instruction decoder: keep that ambiguity PENDING for vendor objdump
-    # sign-off, never silently pass it or exempt a whole vendor function.
+    # 8. eFuse controller never touched. Only exact vendor-decoded direct call
+    # operands may be exempted. Without that proof, retain the conservative
+    # candidate heuristic and PENDING review state for plausible collisions.
     efuse = imm_hits(range(EFUSE_SFR_LO, EFUSE_SFR_HI + 1, 4))
+    call_payloads = call_payloads or {}
+    decoded_calls = [dict(location=fmt(h), instruction=call_payloads[(h[0], h[1])])
+                     for h in efuse if proof_arch_ok and (h[0], h[1]) in call_payloads]
+    efuse = [h for h in efuse if not (proof_arch_ok and (h[0], h[1]) in call_payloads)]
     call_candidates = []
     for hit in efuse:
         src, off, value, fn = hit
         for label, e, addr, blob in scan_sources:
             if (label != src or not linked or e is None or e.e_type != ET_EXEC
-                    or e.e_machine != 0xf1 or not addr or not fn or off < 2
+                    or e.e_machine != EM_PI32V2 or not addr or not fn or off < 2
                     or (addr + off) % 2 or blob[off-2:off] != b'\x80\xff'
                     or e.function_at(addr + off - 2) != fn):
                 continue
-            # Six-byte call: signed byte displacement from the following PC.
             target = (addr + off + 4 + value) & 0xffffffff
-            # Vendor assembly helpers (e.g. strcmp) have STT_FUNC symbols
-            # with zero size: accept only their exact entry, not an inferred
-            # span up to the next symbol.
             entry = any(s['type'] == 2 and s['shndx'] and s['value'] == target
                         for s in e.symbols)
             if entry or e.function_at(target):
@@ -482,6 +565,8 @@ def audit(elves, flat_images, linked, sources=None, runtime="sdk"):
             ["possible relative-call operands; confirm every instruction and destination with vendor objdump"]
             + [fmt(h) for h in call_candidates] if efuse else
             f"no reference to eFuse SFRs 0x{EFUSE_SFR_LO:05X}-0x{EFUSE_SFR_HI:05X}"))
+    if decoded_calls:
+        record("efuse_byte_patterns_are_relative_calls", "pass", decoded_calls)
 
     # 9. The late_initcall group is exactly [sdk_meky_check] (fm1-nes
     #    audit_boot.py:251-264): the dormant check is linked, not stubbed or
@@ -570,6 +655,7 @@ def main(argv=None):
     ap.add_argument("--sources", action="append", metavar="DIR",
                     help="our C/C++ sources, scanned for request_irq(123) (repeatable)")
     ap.add_argument("--json", help="write the full report here")
+    ap.add_argument("--objdump", help="vendor pi32v2 objdump; verify direct-call displacement collisions")
     ap.add_argument("--runtime", choices=("sdk", "sdk-free"), default="sdk",
                     help="SDK policy (default), or a linked SDK-free image with no key/initcall machinery")
     args = ap.parse_args(argv)
@@ -592,7 +678,21 @@ def main(argv=None):
             print(f"audit_link: warning: {name} machine 0x{e.e_machine:x} is not pi32v2", file=sys.stderr)
 
     sources = collect_sources(args.sources) if args.sources else None
-    report = audit(elves, flat, linked, sources, runtime=args.runtime)
+    call_payloads = {}
+    stub_boundaries = {}
+    if args.objdump:
+        if not args.elf or args.app or args.objects:
+            ap.error("--objdump requires exactly one --elf input")
+        import subprocess
+        try:
+            decoded = subprocess.check_output([args.objdump, '-d', args.elf], text=True)
+        except (OSError, subprocess.CalledProcessError) as exc:
+            print(f"audit_link: objdump failed: {exc}", file=sys.stderr)
+            return 2
+        call_payloads = relative_call_payloads(elves[0][0], elves[0][1], decoded)
+        stub_boundaries = stub_call_boundary_patterns(elves[0][0], elves[0][1], decoded)
+    report = audit(elves, flat, linked, sources, runtime=args.runtime,
+                   call_payloads=call_payloads, stub_boundaries=stub_boundaries)
     if args.json:
         Path(args.json).write_text(json.dumps(report, indent=2))
 
@@ -601,7 +701,8 @@ def main(argv=None):
         mark = {"pass": "ok  ", "fail": "FAIL", "pending": "...."}[c["status"]]
         detail = c["detail"]
         if isinstance(detail, list):
-            detail = detail[0] + (f" (+{len(detail) - 1} more)" if len(detail) > 1 else "")
+            first = detail[0] if isinstance(detail[0], str) else json.dumps(detail[0], sort_keys=True)
+            detail = first + (f" (+{len(detail) - 1} more)" if len(detail) > 1 else "")
         print(f"  [{mark}] {c['check'].ljust(width)}  {detail}")
     tag = "PASS" if report["passed"] else "FAIL"
     print(f"audit_link: {tag} ({report['n_fail']} fail, {report['n_pending']} pending, "
