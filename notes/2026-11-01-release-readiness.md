@@ -40,38 +40,63 @@ hardware state from those notes. No hardware action has occurred on this resume.
 - Listening, hardware and publication requirements remain explicit until met.
   Do not call source tests or a dev-kit soak a completed product release.
 
-## Active lanes and file ownership
+## Integrated foundation and active lanes
 
-| Lane | Worktree / branch | Deliverable |
-|---|---|---|
-| Coordinator | lunar-tonight-20261101 / feature/2026-11-01@milestone-integration | Review, integration, release gates and sole hardware coordination |
-| Queue margin | lunar-queue-margin-20261101 / feature/2026-11-01@queue-margin | Running-only queue minimum plus receipt/parser tests |
-| Release handoff | lunar-release-handoff-20261101 / chore/2026-11-01@release-handoff | Current HANDOFF status with acceptance limits |
-| DX7 bank export | lunar-dx7-export-20261101 / feature/2026-11-01@dx7-bank-export | Browser VMEM download using existing core exporter |
-| MIDI clock | lunar-midi-clock-20261101 / feature/2026-11-01@midi-clock | Existing sequencer realtime input wired into browser scheduling |
-| Installer audit | Existing installer branches read-only initially | Gap map and first bounded installer/customization implementation |
-| Onset audit | Private report in historical performance scratch | Trace actual segment-start critical work and propose measured fixes |
-| Algorithm1 proof | Private V226 scripts/reports | Directed complete-state proof; optional twelve-voice stretch, no target claim |
+[verified] Integration branch `feature/2026-11-01@milestone-integration` is
+pushed at `1294fc54cc8f51ad82315bac6578838610ad4746`, with remote SHA
+matching. Completed source lanes are queue-margin telemetry, current release
+handoff, DX7 complete-bank export, browser MIDI realtime input, offline
+customization UI/catalogue, and the strict shared build-request contract.
+Independent reviews approved their source changes. No release PR or merge has
+occurred for this foundation yet.
 
-Independent lanes use isolated worktrees, push explicit refs and verify SHA.
-Coordinator reviews results before integration. No worker may use USB/MIDI,
-flash, reset or power hardware. UI/bridge lanes coordinate overlapping functions.
-Heavy work uses bounded containers with cleanup: Aeon CPU0–3 bank export,
-8–11 state proof,12–15 MIDI; queue tests use4–7 if needed. Hera was unreachable
-through IPv4 and the documented IPv6 path on resume; no power action was taken.
-Use the reachable Aeon fallback rather than assume the cause of that failure.
+- The customization page exports a validated request; it does not install
+  firmware or claim a resource fit. Historical twelve-voice allocator estimates
+  no longer gate the current eight-voice runtime. Generated catalogue deployment
+  and contract tests are included in CI.
+- Complete 32-slot DX7 banks use the core VMEM exporter. Partial banks visibly
+  refuse rather than inventing missing voices.
+- MIDI realtime input preserves message order, Link gating and saved project
+  generation. The first integrated build passed 108 parity scenarios, 19 SysEx
+  tests and five routing tests, then exposed an inaudible test fixture. Selecting
+  its engine before sequencer reset and waiting for the first tick corrected
+  the fixture; sustained sound and Stop silence assertions were strengthened.
+  Actual rebuilt WASM passes all four runtime groups. Full build remains pending.
+- Private installer API/service extraction is active in isolated
+  `lunar-installer-service-20261101`, branch
+  `feature/2026-11-01@installer-service`. It reuses the existing unmerged service,
+  consumes the shared request contract and keeps public installation disabled.
+  Production native build assets and physical acceptance remain separate gates.
+- Astra's source audit is preparing the smallest observable RAM-only FM-1
+  experiment. Existing flash application startup is not a RAM-only payload.
+  No device operation is authorized merely by a source review or run receipt.
+- Optional V226 algorithm1 state proof passed normal and sanitizer runs against
+  both msfa and trunc12 main baselines. It is twelve-voice stretch research,
+  not required for the eight-voice release and not a target timing result.
+
+Workers use isolated worktrees, explicit pushed refs and exact SHA checks.
+Mac coordinator alone owns hardware. Aeon CPU0–3 runs the full integration
+WASM build in stage `release-integration-r2-20261101`, limited to four CPUs and
+6 GiB; service tests may use CPU4–7. Hera was unreachable on resume; no power
+or infrastructure changes were made.
 
 ## Immediate next dependencies
 
-1. Review installer audit before starting new installer architecture; the
-   existing continuous-installer-service stream contains substantial unmerged
-   work and historical hardware receipts that must not be replayed.
-2. Review and integrate the small returned source lanes with real tests and
-   required CI. Preserve dirty owner files in the primary checkout.
-3. Replace the old note-on/case-change guess with actual source tracing before
-   another performance change. Queue telemetry is evidence, not a speedup.
-4. Establish the exact next physical-FM-1 milestone from current recovery and
-   installer handoffs, then prepare a concrete bounded test under that policy.
+1. Complete the full integrated WASM build from exact source `1294fc54`,
+   including metadata, edit storm and generated record. Return generated
+   artifacts only after all gates pass; never hand-edit acceptance hashes.
+2. Review the final CI/Pages/source-hash integration, then open a foundation
+   PR and require exact-head CI and review before its merge commit.
+3. Finish and independently review the extracted private installer service,
+   then bind its results to the same canonical customization request.
+4. Real-Chrome visual/interaction review is pending: the owner approved the
+   chrome-browser skill, but local browser access is disabled in Work settings.
+   Owner has been directly prompted to enable it or leave that gate pending.
+   Loopback preview is running at `http://127.0.0.1:8767/installer.html` from
+   this checkout, owned exec session 63121. Stop it after review or before pause.
+5. Review the fresh RAM-readiness plan before preparing any physical FM-1
+   experiment. No hardware traffic has occurred on this resume. Do not replay
+   historical reset receipts or installer/hardware commands.
 
 ## Persistence and cleanup
 
@@ -80,4 +105,7 @@ Automation `continue-lunar-dev-board-audio-performance` is ACTIVE again, named
 milestones or blockers only. Save lane handoffs, small reports and receipts;
 remove owned reproducible build/test artifacts. Retain worktrees until reviewed
 and integrated, then remove them through git. Do not clean another session's
-files. Built-in disk free space on resume:1,129GiB (floor500GiB).
+files. Built-in disk free space at latest checkpoint: 1,122 GiB (floor 500 GiB).
+Build staging and temporary module copies from the failed build were removed;
+small reports/logs are retained. Lane worktrees remain until integration.
+The loopback preview above is the only coordinator-owned live local server.
