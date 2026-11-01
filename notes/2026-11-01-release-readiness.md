@@ -43,9 +43,11 @@ hardware state from those notes. No hardware action has occurred on this resume.
 ## Current integration and acceptance
 
 [verified] Foundation branch `feature/2026-11-01@milestone-integration` is
-pushed at `6606c1d001271f03af9670f9fadbe3535ea0e173`. PR #161 is open;
-its earlier `b831724f` CI run 41296360365 succeeded, as did Pages build 41296360432.
-After merging main's WebKit fix, current CI 41300110158 is pending.
+pushed at `e80ac1788d2968e9779577a7a7d66aa13c2a37c5`. PR #161 is open.
+Exact CI 41300110158 at the earlier `6606c1d0` head succeeded. Reviewed
+service PR #162, native foundation PR #163 and OTA transport PR #164 then
+passed their own exact-head CI and merged into this foundation. The new
+combined head still requires its own CI and visual review.
 Deployment was skipped for the PR. Full actual WASM rebuild passed 108 parity
 scenarios, metadata/edit parity, SysEx, routing and MIDI realtime checks;
 the 30-second edit storm had zero late quanta or resynchronizations.
@@ -65,6 +67,49 @@ PR #151 merged after its separately reviewed `ca6f3c14` passed exact-head CI
 41296941683. Remote main is verified at
 `8d790e3060643ab4e4f8404a7dbf52505ec9b303`. Foundation and corrections
 include that merge. Preserve action() when integrating browser fixes.
+
+## Latest combined candidate checkpoint
+
+[verified] Corrections PR #165 contains the foundation above and reviewed
+source through `7843ede8ab6496c71f0ab55f8925026793cdda5b`, pushed with remote
+SHA verified. This is an integration candidate, not a release or deployment.
+The final combined WASM rebuild and exact-head CI remain outstanding.
+
+- CI 41302493347 exposed a GCC scene-decode warning, stopped-ARP fixture
+  duration and RAM-edge fixture failures. Reviewed corrections gate launch on
+  successful scene decoding, let the fixture finish all six swing intervals
+  and note releases, and remove an unused Ensemble from a chain that exceeded
+  RAM by 612 bytes. The original oversized-chain refusal remains covered;
+  production RAM limits and ARP behavior are unchanged.
+- WebKit can lose a transport click when unchanged label text is replaced
+  between pointer down and up. Preserving the existing label node fixes the
+  actual-app reproduction. A held-press regression fails on the old source
+  and passes all three browsers; it crosses a real transport update and
+  retains the original timeout. This is not the pending real-Chrome review.
+- The reviewed build wrapper isolates remote stages and claims each canonical
+  output directory, including aliases. Independent actual-wrapper fake tests
+  cover concurrency and partial-claim cleanup. All eight cases also pass in
+  the combined checkout. Real LAN acceptance will use the next combined build.
+- Explicit aligned state workspaces preserve host behavior; normal and Clang
+  sanitizer comparisons pass in four configurations. Actual pi32 object
+  evidence removes a 917,536-byte default arena in native external-workspace
+  mode. The 481,244-byte JSON writer still cannot fit the native headroom:
+  full native persistence requires further work, not a larger memory budget.
+- The shared renderer protocol is extracted behind explicit platform ports;
+  existing SDK wake behavior is preserved. Independent and coordinator
+  protocol/fault checks pass. Native CPU1 launch remains disabled.
+
+[verified] One deeper Capture issue remains open: a first take can construct
+a loop beyond the format's 256-step addressable window, drop notes and fail to
+roundtrip unchanged. The original Movy compatibility witness is retained.
+A separate native transactional-refusal correction is being prepared; valid
+Capture growth must remain intact. Do not turn this into an unlabelled skip
+or claim the combined candidate is green.
+
+Private authoritative continuation state is
+`scratch/release-coordinator-checkpoint-20261101.md`, atomically mirrored to
+the owned Aeon coordinator dataset. Detailed failure logs and lane receipts
+stay private. No hardware operation or public service was started.
 
 ## Release corrections stream
 
