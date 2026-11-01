@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "candidate": "return-r01",
+  "hardware_admitted": false,
+  "native_output_verified": false,
+  "rom_abi_qualified": false,
+  "watchdog_lease_qualified": false,
+  "fetch_coherence_qualified": false,
+  "entry": 29368320,
+  "footprint": 512,
+  "code_size": 2,
+  "prospective_instruction": {
+    "hex": "8000",
+    "operation": "rts"
+  },
+  "prospective_code_sha256": "8509b81230019d2ad970d970f791dfbdc8caf54f5c594fcd327cef9feed206c1",
+  "prospective_payload_sha256": "898b7737d69e351e54b406aebda27652c04413344d19dfb698a8642e33b698f9",
+  "sources": {
+    "firmware/rom-witness-return/witness.S": "b6d9c15e8e59bb002f9ffcacd3dcb103e494b825ff4b5c5d8d6a26917c8832d5",
+    "firmware/rom-witness-return/witness.ld": "1e383931aaf5adeab74891aa9533a0249dfea4d0648ee6cceeb8a5e2bd297e8f",
+    "tools/jieli/audit_link.py": "22c301350a76d3c09a3410685ce080005dc70fb386c5cfa372b4ce144d551eb1"
+  },
+  "toolchain_archive_sha256": "f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958",
+  "tools": {
+    "common/bin/clang": "42b94f9e11140b0fcab8f807b2872ad245b8eeca03a2d792f8706c5a3a35d34c",
+    "pi32v2/bin/ld": "fd61aff15616bb6f6b58fd2e9ede7af741c7bf05facb3e0cb3d3c9817c268fd9",
+    "pi32v2/bin/objcopy": "a941eab0dd62d51da635be7834fc34d4765dbf421d00599f3a5081d42d416502",
+    "pi32v2/bin/objdump": "cffc304e1a9be5dac22984a6ad48e81ef82b17166fd8864c251cf635c9663b73"
+  }
+}
