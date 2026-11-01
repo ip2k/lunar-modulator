@@ -1,6 +1,6 @@
 # Private selected-Trio API, 2026-11-01
 
-Base7abc5b4595b0483650836cf460dcb6fd7dec6d3f; branch
+Base `7abc5b4595b0483650836cf460dcb6fd7dec6d3f`; branch
 feature/2026-11-01@selected-trio-private-api. This lane owns api.py, server.py,
 selected API tests, narrow server tests and this note. No browser/worker/native
 changes, service/container activation or target build is in scope.
@@ -27,11 +27,18 @@ expiry/deletion, and shutdown drains verification before adapter shutdown and
 job deletion. The trusted callback must use already acquired bounded private
 bytes without subprocesses or external input acquisition.
 
+Selected retention is capped at four jobs and 16 MiB private evidence per job.
+A no-op adapter deletion cannot release API record capacity; confirmed absence
+is required. Valid requests are unavailable outside an active ASGI lifespan.
+Shutdown closes admission before draining the executor and adapter.
+
 Tests use existing FastAPI/TestClient and service venv, bytecode/cache disabled,
 exact scratch/selected-trio-api/pytest basetemp removed at completion, and small
-logs retained. Initial queue extraction plus selected HTTP checks:185 passed,
-1 pre-existing retained-native-input skip. Further lifecycle/factory checks are
-in progress. Synthetic callbacks test HTTP binding and are not native acceptance.
+logs retained. Seven focused suites pass 392 tests and six subtests, with one
+pre-existing retained-native-input skip and the existing Starlette deprecation
+warning. Cancellation, blocked-verifier responsiveness, shutdown ordering,
+confirmed-delete capacity and repeated lifespan tests are in-process only.
+Synthetic callbacks test HTTP binding and are not native acceptance.
 
 Rarefaction status confirms the shared primary Python profile; orient/scope
 reject this sibling worktree path. Serena absolute create_app lookup matches
@@ -42,3 +49,16 @@ no package or licence change. Personal/noncommercial project. SDK inputs remain
 private and untouched. Independent composed review precedes any allocated real
 container or loopback execution. Source worktree stays until integration; keep
 small evidence and remove owned test products in this flow.
+
+Focused command: existing service .venv/bin/python -m pytest with
+PYTHONDONTWRITEBYTECODE=1, -o addopts='' -q -p no:cacheprovider and
+--basetemp=scratch/selected-trio-api/pytest; files selected_trio_api, service,
+server, request_contract, selected_trio_profile, native_profile and trusted_policy.
+Final log: scratch/selected-trio-api/final-tests.log. The separate worker lane
+provides profile_id/toolchain_archive/cxx_headers config fields and the trusted
+callback; composed source review/tests are required after that dependency lands.
+No actual HTTP listener/container/native execution acceptance is claimed here.
+
+Preparatory independent review identified request canonicalization dropping an
+unknown empty set_ids field from result summaries. Summary validation now requires
+the exact expected key set before comparing values; a causal regression refuses it.
