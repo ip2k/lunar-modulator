@@ -1,5 +1,6 @@
 """Fixed selected-Trio actual-app owner oracle. Host only; owned build products."""
 import os
+import shlex
 from pathlib import Path
 import subprocess
 from tools.native.prepare_selected_project import prepare
@@ -38,8 +39,22 @@ def test_actual_selected_owner(tmp_path):
            "FM1_GPL_MODS=1", "FM1_DX7_SINE=trunc12", "OPT=-O1", "-j4",
            f"CC={os.environ.get('FM1_SIM_CC', 'cc')}",
            f"CXX={os.environ.get('FM1_SIM_CXX', 'c++')}", f"EXTRA={extra}"]
-    render, state = build / "fm1-render", build / "fm1-state"
-    subprocess.run([*cmd, str(render), str(state)], check=True, timeout=300)
+    # Sanitized short-lived packing CLI retains its output allocation at exit.
+    # Keep preparation separate: every app/reader/Trio/proof object below still
+    # uses the full requested sanitizer flags and leak detection remains on.
+    flags = shlex.split(os.environ.get("FM1_SIM_EXTRA", ""))
+    sanitized = any(f.startswith("-fsanitize=") for f in flags)
+    prep_build = tmp_path / "prep-build" if sanitized else build
+    prep_cmd = [f"BUILD={prep_build}" if arg == f"BUILD={build}" else arg for arg in cmd]
+    if sanitized:
+        prep_flags = [f for f in flags if not f.startswith("-fsanitize=")
+                      and f != "-fno-omit-frame-pointer"]
+        prep_extra = " ".join(prep_flags) + (
+            " -DFM1_APP_EXTERNAL_ARENAS=1 -DFM1_APP_STATE_EXTERNAL_WORKSPACE=1"
+            " -DLUNAR_DIAGNOSTIC_OFFLINE_PROOF=1 -DLUNAR_SELECTED_INTERACTIVE_PROOF=1")
+        prep_cmd = [f"EXTRA={prep_extra}" if arg.startswith("EXTRA=") else arg for arg in prep_cmd]
+    render, state = prep_build / "fm1-render", prep_build / "fm1-state"
+    subprocess.run([*prep_cmd, str(render), str(state)], check=True, timeout=300)
     receipt = prepare(render, state, prepared)
     assert receipt["packed_bytes"] == 597 and not receipt["hardware_admitted"]
     exe = build / "proof-check"
