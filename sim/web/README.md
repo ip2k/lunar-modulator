@@ -456,7 +456,7 @@ FM-1's budget only. A project save costs the audio thread about 1.5 ms
 | Page | Does |
 | --- | --- |
 | **Open…**, drop | `.lunar` (JSON or binary), `.movy1`, `.syx`, several at once; sniffed by content (§11). `.syx` goes to FM6's bank as before. A sound, effects or clip asks for its target (sound 1-4; master or a sound's inserts; track and slot). Before POWER, a file waits on the power card |
-| **Save…** | Project, current sound, its effects, master effects, mod rack (`application/json`, `first-orbit-s2.sound.lunar`: the kind as a middle word, a project as `first-orbit.lunar`), the set as `.movy1` (`text/plain`) |
+| **Save…** | Project, current sound, its effects, master effects, mod rack (`application/json`, `first-orbit-s2.sound.lunar`: the kind as a middle word, a project as `first-orbit.lunar`), the set as `.movy1` (`text/plain`), all 32 loaded FM6 user slots as `title.fm6-bank.syx` (`application/octet-stream`, Yamaha channel 1; a partial bank is refused and can be kept in a `.lunar` project) |
 | SAVE | The project into IndexedDB `files`; the screen shows the store's answer (`fm1w_saved`) |
 | Autosave | The whole project, as binary with no chunk deflated (the worklet's `state-save` with `plain`, `fm1w_state_save`'s binary 2; owner, 2026-10-06, to save the audio thread the deflate; files, SAVE, Recent and links stay compressed). Measured in Node on this Mac, 350 saves each after 50 to warm up: the example project 0.52 ms deflated, 0.47 ms plain (3,140 and 4,624 bytes); with all 8 tracks' clips full, 0.84 and 0.76 ms (5,504 and 12,568 bytes). Deflate is about a tenth of a save; the rest is the JSON writer and reader the save goes through for the canonical order, into `autosave`: 5 s after the last change, at most 15 s after the first unsaved one, never more often than every 5 s, and on `visibilitychange`, `pagehide` and Power off; skipped when the bytes are the same. POWER restores it unless a link loads something; *Start fresh* loads the start chain (the shadow's own) |
 | Recent | The last five states a load replaced, as "Before *title*"; Undo load restores the last |
@@ -1727,9 +1727,10 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
 - **No drivers**: no SPI, DMA, ADC or USB; the panel calls the app directly.
 - **Files**: a refusal decided by the shadow Worker's pass 1 shows on the
   page, not on the device screen (the worklet never sees the file; a
-  `NOT LOADED` banner there needs a small export). Save… has no DX7 bank
-  (VMEM) download yet. Only the arpeggiator's first
-  MIDI-effect slot is on the panel. On the panel the sequencer
+  `NOT LOADED` banner there needs a small export). Save… exports a
+  complete FM6 user bank as a 4,104-byte DX7 VMEM `.syx` file. Partial banks are refused because VMEM cannot represent
+  unloaded slots; save a `.lunar` project to preserve those. Only the
+  arpeggiator's first MIDI-effect slot is on the panel. On the panel the sequencer
   has no Session, scenes, song, Loop view, COPY or a CLEAR tap (docs/15
   S9), and no sets in the browser or MIDI clock in (S10); the desktop tools
   have them. Per-voice modulation reaches only the engines with per-note

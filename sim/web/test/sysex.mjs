@@ -268,6 +268,23 @@ await check('each voice sounds the same from the bank as from its single dump', 
   return { pass: true, peaks };
 });
 
+await check('complete bank export is canonical, checksummed and byte exact', async () => {
+  const a = await fm1('macro'); // bank belongs to the app, not the current sound
+  const empty = a.ex.fm1w_dx7_save_bank();
+  a.load(single(0));
+  const partial = a.ex.fm1w_dx7_save_bank();
+  a.load(BANK);
+  const n = a.ex.fm1w_dx7_save_bank();
+  const bytes = new Uint8Array(a.w.memory.buffer, a.ex.fm1w_text_buf(), n).slice();
+  const b = await fm1();
+  const loaded = b.load(bytes).n;
+  const m = b.ex.fm1w_dx7_save_bank();
+  const again = new Uint8Array(b.w.memory.buffer, b.ex.fm1w_text_buf(), m).slice();
+  const checksum = (bytes.slice(6, 4103).reduce((sum, v) => sum + v, 0) & 127) === 0;
+  return { pass: empty === -3 && partial === -3 && n === VMEM && loaded === 32 &&
+    checksum && same(bytes, BANK) && same(bytes, again), empty, partial, n, loaded, checksum };
+});
+
 const summary = {
   passed: results.filter((r) => r.pass).length,
   failed: results.filter((r) => !r.pass).length,

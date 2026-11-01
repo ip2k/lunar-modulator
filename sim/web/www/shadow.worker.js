@@ -229,6 +229,14 @@ const ops = {
     }
     return { ok: true, report: rep, bin };
   },
+  dx7Bank(m) {
+    mirror(m.live);
+    const n = ex.fm1w_dx7_save_bank();
+    if (n === -2) throw refusal('BAD', 'FM6 is unavailable in this build.');
+    if (n === -3) throw refusal('BAD', 'Load all 32 FM6 user slots before saving a DX7 bank. VMEM cannot represent empty slots; save a .lunar project to keep a partial bank.');
+    if (n !== 4104) throw refusal('BAD', 'The DX7 bank could not be exported.');
+    return { bytes: buf().slice(0, n) };
+  },
   save(m) {
     mirror(m.live);
     const n = ex.fm1w_state_save(m.kind, m.arg | 0, 0);
