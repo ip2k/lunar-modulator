@@ -253,6 +253,9 @@ def test_run_plays_with_the_transport(renderer, tmp_path, line_tool):
     first_tick = min(e["frame"] for e in seq if e["kind"] == "clock" and e["frame"] >= play)
     assert ev and ev[0]["t"] == first_tick and all(e["t"] >= play for e in ev)
     assert all(e["t"] <= stop for e in ev) and s["notes_hung"] == 0
+    # Run's origin is sequencer metadata in b's high byte. The JSON oracle
+    # reports MIDI velocity alone, including for sequencer-owned notes.
+    assert all(e["vel"] in (72, 118) for e in ev if e["k"] == "on")
     steps = tb3po(line_tool["vendored"])
     got = played(ev, first_tick)
     end = round((stop - first_tick) / TICK)
