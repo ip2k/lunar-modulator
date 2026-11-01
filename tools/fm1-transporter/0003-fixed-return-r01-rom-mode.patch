@@ -6,7 +6,7 @@ index 761cde1..a6720ee 100644
  pico_sdk_init()
  
  function(fm1t_add_firmware TARGET)
-+    if(TARGET STREQUAL "fm1_transporter_return_r01")
++    if("${TARGET}" STREQUAL "fm1_transporter_return_r01")
 +        set(FM1T_PROTO_SOURCE src/return_r01_proto.c)
 +        set(FM1T_LOG_SOURCE src/return_r01_log_stub.c)
 +    else()
