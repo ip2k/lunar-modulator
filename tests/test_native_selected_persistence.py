@@ -7,6 +7,27 @@ from tools.native.prepare_selected_project import prepare
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _check_object_symbols(obj, expected, exported):
+    # Mach-O prefixes C names and nm -S prints zero sizes. Only ELF has the
+    # authoritative st_size used by this allocation assertion.
+    with obj.open("rb") as source:
+        magic = source.read(4)
+    is_elf = magic == b"\x7fELF"
+    is_macho = magic in (b"\xfe\xed\xfa\xce", b"\xce\xfa\xed\xfe",
+                         b"\xfe\xed\xfa\xcf", b"\xcf\xfa\xed\xfe")
+    symbols = subprocess.check_output(["nm", "-S", str(obj)], text=True)
+    rows = [line.split() for line in symbols.splitlines() if line.split()]
+    named = [(row[-1].removeprefix("_") if is_macho else row[-1], row)
+             for row in rows if len(row) >= 3]
+    reader = [row for name, row in named if name == "reader_space"]
+    assert len(reader) == 1
+    if is_elf:
+        assert len(reader[0]) == 4 and int(reader[0][1], 16) == expected
+    stage = [row for name, row in named
+             if name == "lunar_selected_interactive_stage" and row[-2] == "T"]
+    assert bool(stage) == exported
+
+
 def test_actual_selected_project_stage(tmp_path):
     build = tmp_path / "build"
     prepared = tmp_path / "prepared"
@@ -76,9 +97,5 @@ def test_actual_selected_project_stage(tmp_path):
     subprocess.run([*cmd, str(default)], check=True, timeout=60)
     for obj, expected, exported in [(default, 16384, False),
                                   (build / "proof/selected_diagnostic_app.o", 65536, True)]:
-        symbols = subprocess.check_output(["nm", "-S", str(obj)], text=True)
-        reader = [line.split() for line in symbols.splitlines()
-                  if line.split() and line.split()[-1] == "reader_space"]
-        assert len(reader) == 1 and int(reader[0][1], 16) == expected
-        assert (" T lunar_selected_interactive_stage" in symbols) == exported
+        _check_object_symbols(obj, expected, exported)
 

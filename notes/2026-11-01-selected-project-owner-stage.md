@@ -53,7 +53,11 @@ write, read, commit, abort, pre-entry poison and commit returning REFUSED or
 INDETERMINATE. No automatic retry occurs. Normal object symbols prove the
 default reader remains 16,384 bytes with no stage API, versus the opt-in shared
 65,536-byte arena. ASan adds global redzones, so allocation-size assertions run
-only in the normal build; all runtime cases run under both.
+only in the normal ELF build; all runtime cases run under both. A subsequent
+review caught Mach-O nm portability: C names have a leading underscore and
+reported sizes are zero. The test normalizes the name and asserts st_size only
+for actual ELF magic; a real Mac object verifies the symbol-presence path.
+This is a test-only correction after the exact6f16 runtime proof.
 
 The first test attempt exposed an uninitialized independent-reader report in
 the fixture; that test setup was corrected. The next run passed all runtime
