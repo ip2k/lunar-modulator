@@ -53,6 +53,17 @@ static int selected_bad(selected_scan_t *s, const char *why) {
   return 0;
 }
 
+static int selected_complete(fm1_state_report_t *report, const selected_plan_t *plan) {
+  if (report->code != FM1_STATE_OK || plan->phase != 4) return 0;
+  if (report->skipped || report->repaired || report->unknown || report->defaulted) {
+    report->code = FM1_STATE_BAD;
+    memcpy(report->what, "selected project has unsupported data",
+           sizeof "selected project has unsupported data");
+    return 0;
+  }
+  return 1;
+}
+
 static int selected_info(selected_scan_t *s, const fm1_rec_t *r) {
   selected_plan_t *p = s->plan;
   char *dest;
@@ -228,7 +239,7 @@ int lunar_selected_project_load(fm1_app_t *app, const uint8_t *packed,
   scan.report = report;
   if (!fm1_state_bin_read_workspace(reader, reader_bytes, selected_read,
           &source, packed_bytes, selected_sink, &scan, report, 0) ||
-      first.phase != 4 || report->code != FM1_STATE_OK) return 0;
+      !selected_complete(report, &first)) return 0;
 
   memset(&second, 0, sizeof second);
   fm1_state_report_init(&second_report);
@@ -236,7 +247,7 @@ int lunar_selected_project_load(fm1_app_t *app, const uint8_t *packed,
   scan.report = &second_report;
   if (!fm1_state_bin_read_workspace(reader, reader_bytes, selected_read,
           &source, packed_bytes, selected_sink, &scan, &second_report, 0) ||
-      second.phase != 4 || second_report.code != FM1_STATE_OK ||
+      !selected_complete(&second_report, &second) ||
       memcmp(&first, &second, sizeof first) != 0) {
     *report = second_report;
     if (report->code == FM1_STATE_OK) report->code = FM1_STATE_BAD;
