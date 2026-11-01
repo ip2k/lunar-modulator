@@ -10,10 +10,12 @@
 size_t baseline_writer_size(void);
 fm1_state_writer_t *baseline_writer(void *, unsigned, unsigned, const uint8_t *, fm1_put_t, void *, fm1_state_report_t *);
 int baseline_write(void *, const fm1_rec_t *);
+int baseline_read(fm1_src_read_t,void*,uint32_t,fm1_rec_sink_t,void*,fm1_state_report_t*,int);
 #else
 #define baseline_writer_size fm1_state_bin_writer_size
 #define baseline_writer fm1_state_bin_writer
 #define baseline_write fm1_state_bin_write
+#define baseline_read fm1_state_bin_read
 #endif
 
 typedef struct { uint8_t b[FM1_STATE_BIN_MAX]; uint32_t n, calls, fail, partial, short_read; } image_t;
@@ -326,10 +328,36 @@ static void json_report(unsigned lines, unsigned width) {
   ++cases;
 }
 
+typedef struct {fm1_state_printer_t printer;uint32_t hash,calls,fail,read_hash;} reader_observer_t;
+static _Alignas(16) uint8_t reader_memory[16416];
+static unsigned reader_cases;
+static void observed_text(void*ctx,const char*b,size_t n){reader_observer_t*o=ctx;o->hash=fm1_state_crc32(o->hash,(const uint8_t*)b,n);}
+static int observed_record(void*ctx,const fm1_rec_t*r){reader_observer_t*o=ctx;uint8_t h[]={r->type,r->role,r->sound,r->slot,r->piece};
+ o->hash=fm1_state_crc32(o->hash,h,sizeof h);++o->calls;if(o->calls==o->fail)return 0;return fm1_state_print(&o->printer,r);}
+static uint32_t observed_read(void*ctx,uint32_t off,uint8_t*b,uint32_t n){reader_observer_t*o=ctx;uint32_t h[]={off,n};
+ o->read_hash=fm1_state_crc32(o->read_hash,(const uint8_t*)h,sizeof h);return read_at(&input,off,b,n);}
+static unsigned reader_case(uint32_t total,int skip,unsigned fail){
+ reader_observer_t a={0},b={0};fm1_state_report_t ar,br;int x,y;
+ a.fail=b.fail=fail;fm1_state_printer_init(&a.printer,observed_text,&a);fm1_state_printer_init(&b.printer,observed_text,&b);
+ fm1_state_report_init(&ar);fm1_state_report_init(&br);memset(reader_memory,0xa5,sizeof reader_memory);
+ x=baseline_read(observed_read,&a,total,observed_record,&a,&ar,skip);
+ y=fm1_state_bin_read_workspace(reader_memory+16,16384,observed_read,&b,total,observed_record,&b,&br,skip);
+ assert(x==y&&!memcmp(&ar,&br,sizeof ar)&&a.calls==b.calls&&a.hash==b.hash&&a.read_hash==b.read_hash);
+ for(unsigned i=0;i<16;i++)assert(reader_memory[i]==0xa5&&reader_memory[16400+i]==0xa5);
+ ++reader_cases;return a.calls;
+}
+static void reader_faults(void){
+ unsigned calls=reader_case(input.n,0,0);
+ for(unsigned i=1;i<=calls;i++)reader_case(input.n,0,i);
+ for(uint32_t i=0;i<input.n;i+=input.n<256?1:37){
+  reader_case(i,0,0);input.b[i]^=0x51;reader_case(input.n,0,0);reader_case(input.n,1,0);input.b[i]^=0x51;
+ }
+}
 static void golden(const char *path) {
   FILE *f = fopen(path, "rb"); fm1_state_report_t a, b, parse;
   fm1_state_writer_t *h, *c;
   assert(f); reset_image(&input, 0); input.n = (uint32_t)fread(input.b, 1, sizeof(input.b), f); assert(!ferror(f)); fclose(f);
+  reader_faults();
   reset_image(&host_image, 0); fm1_state_report_init(&a); fm1_state_report_init(&b); fm1_state_report_init(&parse);
   h = baseline_writer(host_memory, 0, 1, version, put, &host_image, &a);
   assert(fm1_state_bin_read(read_at, &input, input.n, baseline_write, h, &parse, 0));
@@ -384,5 +412,6 @@ int main(int argc, char **argv) {
   for (i = 1; i < (unsigned)argc; ++i) golden(argv[i]);
   printf("codec cases=%u reports=%08x compact=%zu plan=%zu host=%zu\n", cases, report_digest,
       fm1_state_bin_compact_size(), fm1_state_bin_plan_size(), fm1_state_bin_writer_size());
-  free(current_host_memory); free(host_memory); return 0;
+  free(current_host_memory); printf("reader differential cases=%u bytes=%zu\n",reader_cases,fm1_state_bin_reader_size());
+  free(host_memory); return 0;
 }

@@ -32,6 +32,13 @@ def test_project_stage(tmp_path, sanitize):
             '$(BUILD)/project-check.o: $(SIM)/../../tests/fixtures/native_state/project.c\n'
             '\t@mkdir -p $(dir $@)\n'
             '\t$(CC) $(SIM_CFLAGS) -Istate -Ihost -c $< -o $@\n' + rules)
+        if not baseline:
+            with fragment.open('a') as f:
+                f.write('$(BUILD)/transaction-check: $(SIM_APP_OBJ) $(SIM_ENGINE_OBJ) $(SIM_META_OBJ) $(BUILD)/transaction-check.o\n'
+                        '\t$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm\n'
+                        '$(BUILD)/transaction-check.o: $(SIM)/../../tests/fixtures/native_state/transaction.c\n'
+                        '\t@mkdir -p $(dir $@)\n'
+                        '\t$(CC) $(SIM_CFLAGS) -Istate -Ihost -c $< -o $@\n')
         extra = f'-DFM1_APP_STATE_EXTERNAL_WORKSPACE=1 -DFM1_PROJECT_BASELINE={int(baseline)}'
         if sanitize:
             extra += ' -fsanitize=address,undefined -fno-omit-frame-pointer'
@@ -39,11 +46,13 @@ def test_project_stage(tmp_path, sanitize):
         subprocess.run(['make', '-C', str(ROOT/'engines'), '-f', 'Makefile', '-f',
             str(ROOT/'sim/web/mk/sim.mk'), '-f', str(fragment), f'SIM={ROOT}/sim/web',
             f'BUILD={build}', 'FM1_GPL_MODS=1',
-            'FM1_MODULES=test-sine,test-gain,arp,lfo,env,calc,register,chance', '-j4',
+            'FM1_MODULES=test-sine,test-gain,dx7,drums,arp,lfo,env,calc,register,chance', '-j4',
             f'CC={os.environ.get("FM1_SIM_CC", "cc")}', f'CXX={os.environ.get("FM1_SIM_CXX", "c++")}',
-            f'EXTRA={extra}', str(target)], check=True, stdout=subprocess.DEVNULL)
+            f'EXTRA={extra}', str(target), *([] if baseline else [str(build/'transaction-check')])], check=True, stdout=subprocess.DEVNULL)
         corpus = build / 'corpus'
         subprocess.run([str(target), str(corpus)], check=True, timeout=180)
         results.append(corpus.read_bytes())
+        if not baseline:
+            subprocess.run([str(build/'transaction-check')], check=True, timeout=180)
     if oracle:
         assert results[0] == results[1], 'frozen app/JSON/sequence/binary oracle mismatch'
