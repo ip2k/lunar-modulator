@@ -73,3 +73,32 @@ void lunar_diagnostic_fault(uint32_t reason) {
 }
 uint32_t lunar_diagnostic_status(void) { return fault; }
 const fm1_app_t *lunar_diagnostic_state(void) { return &app; }
+
+#ifdef LUNAR_SELECTED_INTERACTIVE_PROOF
+#include "selected_interactive_app.h"
+int lunar_selected_interactive_apply(void *unused, const lunar_input_t *e) {
+  (void)unused;
+  if (!ready || fault || !e) return -1;
+  if (e->kind == LUNAR_INPUT_ENCODER && e->id < 7 &&
+      e->value && e->value >= -64 && e->value <= 64)
+    fm1_app_encoder(&app, e->id, e->value);
+  else if ((e->value == 0 || e->value == 1) &&
+           e->kind == LUNAR_INPUT_KEY && e->id < 27)
+    fm1_app_key(&app, e->id, e->value, 100);
+  else if ((e->value == 0 || e->value == 1) &&
+           e->kind == LUNAR_INPUT_BUTTON && e->id < 14)
+    fm1_app_button(&app, e->id, e->value);
+  else return -1;
+  return 0;
+}
+int lunar_selected_interactive_render(void *unused, int32_t *pcm) {
+  (void)unused;
+  if (lunar_diagnostic_render(pcm, LUNAR_PCM_FRAMES)) return -1;
+  for (unsigned i = 0; i < LUNAR_PCM_WORDS; ++i) pcm[i] *= 128;
+  return 0;
+}
+const uint16_t *lunar_selected_interactive_draw(void *unused, uint32_t frames) {
+  (void)unused;
+  return ready && !fault ? fm1_app_draw(&app, frames) : NULL;
+}
+#endif
