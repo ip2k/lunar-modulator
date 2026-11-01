@@ -316,3 +316,32 @@ Retain small evidence, delete owned reproducible products, and preserve sibling
 worktrees, owner data and transcripts. Mac free space is 1,114 GiB against the
 500 GiB floor. The release-readiness automation remains ACTIVE until verified
 completion or an owner-requested pause.
+
+
+## Reviewed audio-owner source and CI fixture repairs
+
+[verified] Reviewed opt-in audio-only main-owner source is integrated at
+`aa00bced`. Main owns application controls, rendering and PCM conversion;
+Timer scanning enqueues accepted controls and ALNK consumes queued PCM.
+Startup prepares both physical DMA halves and both producer slots before
+hardware enable. The legacy initializer preserves its original statement order.
+The final adapter passes 25 actual-app process modes normally and under
+ASan/UBSan with leak detection. A clock-regression guard now rejects backward
+observations before watchdog feeds or the deferred codec tail. A genuinely
+stopped clock remains dependent on a physically qualified independent watchdog;
+the bounded host observations do not prove reset or finite software escape.
+Immutable target qualification remains zero. One exact-source compile-only
+codegen/layout check is assigned; no target execution or hardware admission.
+
+[verified] The previous macOS/Linux CI failures were traced to test setup and
+stale documentation. Test-local disk probes now cover both adequate space and
+499 GiB refusal while preserving the production 500 GiB floor. Native
+prerequisite history coverage now commits a temporary fixture instead of relying
+on a Git object absent from shallow clones. Import fixtures use a fitting master
+effect while retaining the original oversized arrangement as an explicit
+transactional refusal; full native app/specification coverage passes 13 tests
+with zero skips. The manual now records the existing 44 KiB sequencer allocation.
+No production RAM limit, validator or deadline changed. Root combined focused
+checks pass 140 tests with one actual-app build intentionally deselected because
+its normal/sanitized source-bound proof is recorded separately. Required
+exact-head integration CI remains open; no passing checks were rerun manually.
