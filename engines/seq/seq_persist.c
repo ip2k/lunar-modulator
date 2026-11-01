@@ -35,10 +35,19 @@
 typedef struct {
   char *buf;
   size_t cap, len;
+  fm1_seq_export_sink_t write;
+  void *ctx;
+  int failed;
 } sink_t;
 
 static void put(sink_t *k, const char *s, size_t n) {
   size_t i;
+  if (k->failed) return;
+  if (k->write) {
+    if (k->write(k->ctx, s, n)) { k->failed = 1; return; }
+    k->len += n;
+    return;
+  }
   for (i = 0; i < n; ++i) {
     if (k->len + 1 < k->cap) k->buf[k->len] = s[i];
     ++k->len;
@@ -66,13 +75,10 @@ static void puti(sink_t *k, int64_t v) {
   }
 }
 
-size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap) {
-  sink_t k;
+static void export_set(const fm1_seq_t *s, sink_t *sink) {
+  sink_t k = *sink;
   unsigned t, lane, slot, i;
   const uint8_t *song = sq_csong(s);
-  k.buf = buf;
-  k.cap = buf ? cap : 0;
-  k.len = 0;
   puts_(&k, "movy1\nbpm ");
   putu(&k, s->bpm_x100);
   puts_(&k, "\nswing ");
@@ -198,7 +204,23 @@ size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap) {
     }
   }
   if (k.cap) k.buf[k.len < k.cap ? k.len : k.cap - 1] = '\0';
+  *sink = k;
+}
+
+size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap) {
+  sink_t k = {buf, buf ? cap : 0, 0, NULL, NULL, 0};
+  export_set(s, &k);
   return k.len;
+}
+
+int fm1_seq_export_movy1_stream(const fm1_seq_t *s, fm1_seq_export_sink_t write,
+                               void *ctx, size_t *length) {
+  sink_t k = {NULL, 0, 0, write, ctx, 0};
+  if (length) *length = 0;
+  if (!s || !write) return -1;
+  export_set(s, &k);
+  if (length) *length = k.len;
+  return k.failed ? -1 : 0;
 }
 
 /* ---- Import ------------------------------------------------------------- */

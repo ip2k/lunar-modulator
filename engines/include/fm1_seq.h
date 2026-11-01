@@ -246,6 +246,14 @@ uint32_t fm1_seq_realtime_in(fm1_seq_t *s, uint16_t frame, uint8_t status,
 /* The set as Movy's `movy1` text. Returns the length of the whole text; it is
  * written (NUL-terminated) only if that is less than cap. */
 size_t fm1_seq_export_movy1(const fm1_seq_t *s, char *buf, size_t cap);
+/* Same formatter without a whole-set buffer. Sink returns zero to continue,
+ * nonzero to stop; bytes are borrowed only during the synchronous call. Source
+ * must remain stable. On refusal length counts accepted fragments, not a file.
+ * Returns0 on complete export, -1 on refusal/invalid arguments. */
+typedef int (*fm1_seq_export_sink_t)(void *ctx, const char *bytes, size_t n);
+int fm1_seq_export_movy1_stream(const fm1_seq_t *s, fm1_seq_export_sink_t sink,
+                               void *ctx, size_t *length);
+
 
 /* Replaces the set from `movy1` text, as Movy's persist::load. Returns 1 if
  * the format tag matched, 0 otherwise (nothing changed). Outside compat

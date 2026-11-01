@@ -11,6 +11,7 @@
  * C99, no heap, no stdio. MIT licence. */
 #include "fm1_state.h"
 #include "fm1_num.h"
+#include "state_json_project.h"
 
 #include <string.h>
 
@@ -42,7 +43,7 @@ typedef struct {
 typedef struct {
   uint8_t present, version;
   uint16_t n;
-  uint8_t b[FM1_STATE_DATA_ONE];
+  uint8_t *b;
 } w_data_t;
 
 typedef struct {
@@ -65,26 +66,27 @@ struct fm1_state_writer {
   uint32_t level[4];
   uint32_t seed;
   fm1_rec_t session, view;
-  fm1_midi_map_t midi_map;
+  fm1_midi_map_t *midi_map;
+  const fm1_state_json_project_t *source;
+  uint32_t param_seen[W_UNITS], cable_mask;
   uint16_t info_n[FM1_INFO_KEYS];
   uint8_t info_has[FM1_INFO_KEYS];
-  char info[FM1_INFO_KEYS][W_INFO];
+  const char *info[FM1_INFO_KEYS];
   uint8_t set_has[FM1_SET_KEYS];
   uint8_t set_bool[FM1_SET_KEYS];
   int32_t set_val[FM1_SET_KEYS];
   w_unit_t unit[W_UNITS];
   uint32_t n_params;
-  w_param_t params[W_PARAMS];
+  w_param_t *params;
   uint32_t dx7_mask;
-  uint8_t dx7[32][155];
+  uint8_t (*dx7)[155];
   w_data_t data[8];
-  w_cable_t cable[32];
+  w_cable_t *cable;
   uint8_t lines_which, line_open;
   uint32_t n_lines;
-  uint32_t line_off[W_LINES];
-  uint32_t line_len[W_LINES];
+  uint32_t *line_off, *line_len;
   uint32_t text_n;
-  char text[W_TEXT];
+  char *text;
   /* output */
   int sp;
   uint8_t inl[16], first[16];
@@ -92,19 +94,70 @@ struct fm1_state_writer {
   char out[W_OUT];
 };
 
-size_t fm1_state_json_writer_size(void) { return sizeof(struct fm1_state_writer); }
+typedef struct {
+  fm1_state_writer_t w;
+  fm1_midi_map_t map;
+  char info[FM1_INFO_KEYS][W_INFO];
+  w_param_t params[W_PARAMS];
+  uint8_t dx7[32][155], data[8][FM1_STATE_DATA_ONE];
+  w_cable_t cable[32];
+  uint32_t line_off[W_LINES], line_len[W_LINES];
+  char text[W_TEXT];
+} json_host_t;
 
+size_t fm1_state_json_writer_size(void) { return sizeof(json_host_t); }
+size_t fm1_state_json_project_size(void) { return sizeof(fm1_state_writer_t); }
+
+static void writer_init(fm1_state_writer_t *w, const fm1_state_names_t *nm, int compact,
+                         fm1_put_t put, void *ctx, fm1_state_report_t *rep) {
+  memset(w, 0, sizeof(*w));
+  w->nm = nm; w->compact = compact; w->put = put; w->ctx = ctx; w->rep = rep;
+}
 fm1_state_writer_t *fm1_state_json_writer(void *mem, const fm1_state_names_t *nm, int compact,
                                           fm1_put_t put, void *ctx, fm1_state_report_t *rep) {
-  fm1_state_writer_t *w = (fm1_state_writer_t *)mem;
-  if (!w) return NULL;
-  memset(w, 0, sizeof(*w));
-  w->nm = nm;
-  w->compact = compact;
-  w->put = put;
-  w->ctx = ctx;
-  w->rep = rep;
+  json_host_t *h = (json_host_t *)mem;
+  unsigned i;
+  if (!h) return NULL;
+  memset(h, 0, sizeof(*h));
+  writer_init(&h->w, nm, compact, put, ctx, rep);
+  h->w.midi_map = &h->map; h->w.params = h->params; h->w.dx7 = h->dx7;
+  h->w.cable = h->cable; h->w.line_off = h->line_off; h->w.line_len = h->line_len;
+  h->w.text = h->text;
+  for (i = 0; i < FM1_INFO_KEYS; ++i) h->w.info[i] = h->info[i];
+  for (i = 0; i < 8; ++i) h->w.data[i].b = h->data[i];
+  return &h->w;
+}
+fm1_state_writer_t *fm1_state_json_project_writer(void *mem, const fm1_state_names_t *nm,
+    const fm1_state_json_project_t *source, fm1_midi_map_t *map,
+    fm1_put_t put, void *ctx, fm1_state_report_t *rep) {
+  fm1_state_writer_t *w = mem;
+  if (!w || !source || !map) return NULL;
+  writer_init(w, nm, 0, put, ctx, rep);
+  memset(map, 0, sizeof(*map)); w->midi_map = map; w->source = source;
   return w;
+}
+
+/* One value iterator serves host backing and the current-app provider. */
+static void each_param(const fm1_state_writer_t *w, unsigned unit, fm1_rec_sink_t fn, void *ctx) {
+  uint32_t i;
+  fm1_rec_t r;
+  if (w->source) { w->source->params(w->source->ctx, unit, fn, ctx); return; }
+  memset(&r, 0, sizeof(r)); r.type = FM1_REC_PARAM;
+  for (i = 0; i < w->n_params; ++i) {
+    const w_param_t *p = &w->params[i];
+    if (p->unit != unit) continue;
+    r.u.param.uid = p->uid; r.u.param.focus = p->focus;
+    r.u.param.vtype = p->vtype; r.u.param.bits = p->bits;
+    if (!fn(ctx, &r)) break;
+  }
+}
+typedef struct { uint32_t left; uint16_t uid; uint8_t focus, found; } prior_t;
+static int prior_param(void *ctx, const fm1_rec_t *r) {
+  prior_t *p = ctx;
+  if (!p->left) return 0;
+  --p->left;
+  if (r->u.param.uid == p->uid && r->u.param.focus == p->focus) p->found = 1;
+  return 1;
 }
 
 static int werr(fm1_state_writer_t *w, unsigned code, const char *what) {
@@ -144,9 +197,9 @@ static int w_unit_index(unsigned role, unsigned sound, unsigned slot) {
 
 static int add_piece(fm1_state_writer_t *w, const char *s, size_t n) {
   if (w->text_n + n > W_TEXT) return werr(w, FM1_STATE_TOO_BIG, "the set is larger than the writer holds");
-  memcpy(w->text + w->text_n, s, n);
+  if (!w->source) memcpy(w->text + w->text_n, s, n);
   w->text_n += (uint32_t)n;
-  w->line_len[w->n_lines - 1u] += (uint32_t)n;
+  if (!w->source) w->line_len[w->n_lines - 1u] += (uint32_t)n;
   return 1;
 }
 
@@ -167,7 +220,10 @@ int fm1_state_write(void *wv, const fm1_rec_t *r) {
       if (k == 0 || k >= FM1_INFO_KEYS) return werr(w, FM1_STATE_BAD, "an unknown info key");
       if (r->piece & FM1_REC_FIRST) { w->info_n[k] = 0; w->info_has[k] = 1; }
       if (w->info_n[k] + r->u.info.n > W_INFO) return werr(w, FM1_STATE_TOO_BIG, "info text too long");
-      memcpy(w->info[k] + w->info_n[k], r->u.info.s, r->u.info.n);
+      if (w->source) {
+        if (r->piece != (FM1_REC_FIRST | FM1_REC_LAST)) return werr(w, FM1_STATE_BAD, "project info must be whole");
+        w->info[k] = r->u.info.s;
+      } else memcpy((char *)w->info[k] + w->info_n[k], r->u.info.s, r->u.info.n);
       w->info_n[k] = (uint16_t)(w->info_n[k] + r->u.info.n);
       return 1;
     }
@@ -191,19 +247,29 @@ int fm1_state_write(void *wv, const fm1_rec_t *r) {
       w->unit[ix].on = r->u.on ? 1 : 0;
       return 1;
     case FM1_REC_PARAM: {
-      w_param_t *p;
+      w_param_t *p, value;
       uint32_t i;
       ix = w_unit_index(r->role, r->sound, r->slot);
       if (ix < 0) return werr(w, FM1_STATE_BAD, "a parameter's unit out of range");
-      for (i = 0; i < w->n_params; ++i) {    /* a later value replaces an earlier one */
+      if (w->source) {
+        prior_t prior = {w->param_seen[ix]++, r->u.param.uid, r->u.param.focus, 0};
+        each_param(w, (unsigned)ix, prior_param, &prior);
+        if (!prior.found) {
+          if (w->n_params >= W_PARAMS) return werr(w, FM1_STATE_TOO_BIG, "too many parameters");
+          ++w->n_params;
+        }
+        p = &value;
+      } else {
+        for (i = 0; i < w->n_params; ++i) { /* a later value replaces an earlier one */
+          p = &w->params[i];
+          if (p->unit == ix && p->uid == r->u.param.uid && p->focus == r->u.param.focus) break;
+        }
+        if (i == w->n_params) {
+          if (w->n_params >= W_PARAMS) return werr(w, FM1_STATE_TOO_BIG, "too many parameters");
+          ++w->n_params;
+        }
         p = &w->params[i];
-        if (p->unit == ix && p->uid == r->u.param.uid && p->focus == r->u.param.focus) break;
       }
-      if (i == w->n_params) {
-        if (w->n_params >= W_PARAMS) return werr(w, FM1_STATE_TOO_BIG, "too many parameters");
-        ++w->n_params;
-      }
-      p = &w->params[i];
       p->unit = (uint8_t)ix;
       p->uid = r->u.param.uid;
       p->focus = r->u.param.focus;
@@ -222,7 +288,7 @@ int fm1_state_write(void *wv, const fm1_rec_t *r) {
     case FM1_REC_DX7:
       if (r->slot >= 32u) return werr(w, FM1_STATE_BAD, "an FM6 slot out of range");
       w->dx7_mask |= 1u << r->slot;
-      memcpy(w->dx7[r->slot], r->u.dx7.vced, 155);
+      if (!w->source) memcpy(w->dx7[r->slot], r->u.dx7.vced, 155);
       return 1;
     case FM1_REC_MOD:
       w->has_mod = 1;
@@ -239,12 +305,16 @@ int fm1_state_write(void *wv, const fm1_rec_t *r) {
       if (r->piece & FM1_REC_FIRST) { d->present = 1; d->n = 0; }
       d->version = r->u.data.version;
       if (d->n + r->u.data.n > FM1_STATE_DATA_ONE) return werr(w, FM1_STATE_TOO_BIG, "too much pattern data");
-      memcpy(d->b + d->n, r->u.data.b, r->u.data.n);
+      if (w->source) {
+        if (r->piece != (FM1_REC_FIRST | FM1_REC_LAST)) return werr(w, FM1_STATE_BAD, "project data must be whole");
+      } else memcpy(d->b + d->n, r->u.data.b, r->u.data.n);
       d->n = (uint16_t)(d->n + r->u.data.n);
       return 1;
     }
     case FM1_REC_CABLE:
       if (r->slot >= 32u) return werr(w, FM1_STATE_BAD, "a matrix slot out of range");
+      w->cable_mask |= 1u << r->slot;
+      if (w->source) return 1;
       w->cable[r->slot].present = 1;
       w->cable[r->slot].s = r->u.cable.s;
       memcpy(w->cable[r->slot].name, r->u.cable.name, sizeof(w->cable[r->slot].name));
@@ -254,8 +324,10 @@ int fm1_state_write(void *wv, const fm1_rec_t *r) {
       if (r->piece & FM1_REC_FIRST) {
         if (w->n_lines >= W_LINES) return werr(w, FM1_STATE_TOO_BIG, "too many lines");
         w->lines_which = r->u.line.which;
-        w->line_off[w->n_lines] = w->text_n;
-        w->line_len[w->n_lines] = 0;
+        if (!w->source) {
+          w->line_off[w->n_lines] = w->text_n;
+          w->line_len[w->n_lines] = 0;
+        }
         ++w->n_lines;
         w->line_open = 1;
       } else if (!w->line_open) {
@@ -278,16 +350,16 @@ int fm1_state_write(void *wv, const fm1_rec_t *r) {
       w->set_val[r->u.setting.key] = r->u.setting.value;
       return 1;
     case FM1_REC_MIDI_MAP:
-      if (w->kind != FM1_STATE_PROJECT || r->u.map_version != FM1_MIDI_MAP_VERSION || w->midi_map.version)
+      if (w->kind != FM1_STATE_PROJECT || r->u.map_version != FM1_MIDI_MAP_VERSION || w->midi_map->version)
         return werr(w, FM1_STATE_BAD, "invalid or duplicate MIDI map");
-      w->midi_map.version = r->u.map_version; return 1;
+      w->midi_map->version = r->u.map_version; return 1;
     case FM1_REC_MIDI_BINDING: {
-      const unsigned code = fm1_midi_map_add(&w->midi_map, r->u.binding.target, r->u.binding.source,
+      const unsigned code = fm1_midi_map_add(w->midi_map, r->u.binding.target, r->u.binding.source,
         r->u.binding.channel, r->u.binding.kind, r->u.binding.number);
       return code == FM1_STATE_OK ? 1 : werr(w, code, "invalid or oversized MIDI map");
     }
     case FM1_REC_END:
-      return write_doc(w);
+      return w->source ? 1 : write_doc(w);
     default:
       return werr(w, FM1_STATE_BAD, "an unknown record");
   }
@@ -346,10 +418,9 @@ static void close_c(fm1_state_writer_t *w, char c) {
   raw(w, &c, 1);
 }
 
-static void jstr(fm1_state_writer_t *w, const char *s, size_t n) {
+static void jstr_piece(fm1_state_writer_t *w, const char *s, size_t n) {
   static const char hex[] = "0123456789abcdef";
   size_t i, run = 0;
-  raw(w, "\"", 1);
   for (i = 0; i < n; ++i) {
     const unsigned char c = (unsigned char)s[i];
     const char *esc = NULL;
@@ -378,7 +449,9 @@ static void jstr(fm1_state_writer_t *w, const char *s, size_t n) {
     }
   }
   if (run) raw(w, s + n - run, run);
-  raw(w, "\"", 1);
+}
+static void jstr(fm1_state_writer_t *w, const char *s, size_t n) {
+  raw(w, "\"", 1); jstr_piece(w, s, n); raw(w, "\"", 1);
 }
 
 static void jstrz(fm1_state_writer_t *w, const char *s) { jstr(w, s, strlen(s)); }
@@ -407,13 +480,33 @@ static void jf32(fm1_state_writer_t *w, uint32_t bits) {
 static void jbool(fm1_state_writer_t *w, int b) { rawz(w, b ? "true" : "false"); }
 
 /* ---- Parameters ------------------------------------------------------------------------------ */
-static const w_param_t *find_param(const fm1_state_writer_t *w, int unit, uint16_t uid, uint8_t focus) {
-  uint32_t i;
-  for (i = 0; i < w->n_params; ++i) {
-    const w_param_t *p = &w->params[i];
-    if (p->unit == unit && p->uid == uid && p->focus == focus) return p;
+typedef struct { uint16_t uid; uint8_t focus, found; w_param_t value; } find_t;
+static int find_value(void *ctx, const fm1_rec_t *r) {
+  find_t *f = ctx;
+  if (r->u.param.uid == f->uid && r->u.param.focus == f->focus) {
+    f->found = 1; f->value.uid = f->uid; f->value.focus = f->focus;
+    f->value.vtype = r->u.param.vtype; f->value.bits = r->u.param.bits;
   }
-  return NULL;
+  return 1;
+}
+static int find_param(const fm1_state_writer_t *w, int unit, uint16_t uid, uint8_t focus, w_param_t *out) {
+  find_t f; memset(&f, 0, sizeof(f)); f.uid = uid; f.focus = focus;
+  each_param(w, (unsigned)unit, find_value, &f);
+  if (f.found) *out = f.value;
+  return f.found;
+}
+typedef struct { uint32_t best; uint16_t last; uint8_t focus; const fm1_param_t *bp; } next_t;
+static int next_value(void *ctx, const fm1_rec_t *r) {
+  next_t *n = ctx;
+  if (r->u.param.focus != n->focus || r->u.param.uid <= n->last || r->u.param.uid > n->best) return 1;
+  if (r->u.param.uid < n->best) n->bp = NULL;
+  n->best = r->u.param.uid;
+  return 1;
+}
+static int pad_count(void *ctx, const fm1_rec_t *r) {
+  unsigned *n = ctx;
+  if (r->u.param.focus != FM1_FOCUS_NONE && r->u.param.focus + 1u > *n) *n = r->u.param.focus + 1u;
+  return 1;
 }
 
 /* A value as its parameter takes it: a list entry in range (a float
@@ -484,6 +577,8 @@ static void params_obj(fm1_state_writer_t *w, int unit, const fm1_engine_t *e, c
     uint32_t best = 0x10000u, i;
     const fm1_param_t *bp = NULL;
     const w_param_t *br = NULL;
+    w_param_t value;
+    next_t next;
     for (i = 0; i < n; ++i) {
       const fm1_param_t *p = &table[i];
       const int fk = e ? fm1_state_param_focus(e, i) : 0;
@@ -492,15 +587,12 @@ static void params_obj(fm1_state_writer_t *w, int unit, const fm1_engine_t *e, c
       best = p->uid;
       bp = p;
     }
-    for (i = 0; i < w->n_params; ++i) {
-      const w_param_t *r = &w->params[i];
-      if (r->unit != unit || r->focus != focus || r->uid <= last || r->uid > best) continue;
-      if (r->uid < best) bp = NULL;
-      best = r->uid;
-    }
+    next.best = best; next.last = last; next.focus = focus; next.bp = bp;
+    each_param(w, (unsigned)unit, next_value, &next);
+    best = next.best; bp = next.bp;
     if (best == 0x10000u) break;
     last = (uint16_t)best;
-    br = find_param(w, unit, (uint16_t)best, focus);
+    if (find_param(w, unit, (uint16_t)best, focus, &value)) br = &value;
     if (bp && br) {
       key(w, bp->name);
       param_val(w, bp, br->vtype, br->bits);
@@ -559,14 +651,9 @@ static void unit_obj(fm1_state_writer_t *w, int ix, int role) {
   params_obj(w, ix, e, e ? e->params : NULL, e ? e->n_params : 0u, FM1_FOCUS_NONE);
   if (role == FM1_ROLE_SOUND) {
     const int sound = ix;
-    unsigned npads = e ? e->pad_count : 0u, i, j;
+    unsigned npads = e ? e->pad_count : 0u, j;
     if (npads > FM1_STATE_PADS) npads = FM1_STATE_PADS;
-    if (!e) {
-      for (i = 0; i < w->n_params; ++i) {
-        const w_param_t *p = &w->params[i];
-        if (p->unit == ix && p->focus != FM1_FOCUS_NONE && p->focus + 1u > npads) npads = p->focus + 1u;
-      }
-    }
+    if (!e) each_param(w, (unsigned)ix, pad_count, &npads);
     if (npads) {
       key(w, "pads");
       open_c(w, '[', 0);
@@ -793,6 +880,15 @@ static void mod_obj(fm1_state_writer_t *w) {
     key(w, "params");
     params_obj(w, 32 + (int)p, NULL, k ? k->params : NULL, k ? k->n_params : 0u, FM1_FOCUS_NONE);
     if (w->data[p].present) {
+      fm1_rec_t data;
+      const uint8_t *bytes = w->data[p].b;
+      if (w->source) {
+        if (!w->source->data(w->source->ctx, p, &data) || data.u.data.n != w->data[p].n ||
+            data.u.data.version != w->data[p].version) {
+          werr(w, FM1_STATE_BAD, "project data changed"); return;
+        }
+        bytes = data.u.data.b;
+      }
       static const char hex[] = "0123456789abcdef";
       uint16_t i;
       key(w, "data");
@@ -803,8 +899,8 @@ static void mod_obj(fm1_state_writer_t *w) {
       raw(w, "\"", 1);
       for (i = 0; i < w->data[p].n; ++i) {
         char h[2];
-        h[0] = hex[w->data[p].b[i] >> 4];
-        h[1] = hex[w->data[p].b[i] & 15u];
+        h[0] = hex[bytes[i] >> 4];
+        h[1] = hex[bytes[i] & 15u];
         raw(w, h, 2);
       }
       raw(w, "\"", 1);
@@ -816,8 +912,19 @@ static void mod_obj(fm1_state_writer_t *w) {
   key(w, "cables");
   open_c(w, '[', 0);
   for (j = 0; j < 32u; ++j) {
-    const w_cable_t *c = &w->cable[j];
-    const fm1_mod_slot_t *s = &c->s;
+    w_cable_t value;
+    const w_cable_t *c;
+    const fm1_mod_slot_t *s;
+    if (w->source) {
+      fm1_rec_t cable;
+      if (!((w->cable_mask >> j) & 1u)) continue;
+      if (!w->source->cable(w->source->ctx, j, &cable)) {
+        werr(w, FM1_STATE_BAD, "project cable changed"); return;
+      }
+      memset(&value, 0, sizeof(value)); value.present = 1; value.s = cable.u.cable.s;
+      memcpy(value.name, cable.u.cable.name, sizeof(value.name)); value.name[24] = 0; c = &value;
+    } else c = &w->cable[j];
+    s = &c->s;
     if (!c->present) continue;
     if (!cable_ok(w, c)) {
       wskip(w, "a cable this kind of file or build cannot name");
@@ -852,6 +959,15 @@ static void mod_obj(fm1_state_writer_t *w) {
   }
   close_c(w, ']');
   close_c(w, '}');
+}
+
+typedef struct { fm1_state_writer_t *w; uint32_t lines, text; unsigned open; } line_output_t;
+static int line_output(void *ctx, const fm1_rec_t *r) {
+  line_output_t *o = ctx;
+  if (r->piece & FM1_REC_FIRST) { sep(o->w); raw(o->w, "\"", 1); ++o->lines; o->open = 1; }
+  jstr_piece(o->w, r->u.line.s, r->u.line.n); o->text += r->u.line.n;
+  if (r->piece & FM1_REC_LAST) { raw(o->w, "\"", 1); o->open = 0; }
+  return !o->w->err;
 }
 
 /* ---- The document ------------------------------------------------------------------------------- */
@@ -969,9 +1085,11 @@ static int write_doc(fm1_state_writer_t *w) {
     key(w, "dx7");
     open_c(w, '[', 0);
     for (i = 0; i < 32u; ++i) {
-      const uint8_t *v = w->dx7[i];
+      const uint8_t *v;
       int nl = 10;
       if (!((w->dx7_mask >> i) & 1u)) continue;
+      v = w->source ? w->source->voice(w->source->ctx, i) : w->dx7[i];
+      if (!v) return werr(w, FM1_STATE_BAD, "project voice changed");
       sep(w);
       open_c(w, '{', 0);
       key(w, "slot"); jint(w, i + 1u);
@@ -1006,7 +1124,12 @@ static int write_doc(fm1_state_writer_t *w) {
       (w->kind == FM1_STATE_CLIP && w->lines_which == FM1_LINES_CLIP)) {
     key(w, w->kind == FM1_STATE_CLIP ? "clip" : "set");
     open_c(w, '[', 0);
-    for (i = 0; i < w->n_lines; ++i) {
+    if (w->source) {
+      line_output_t out = {w, 0, 0, 0};
+      if (!w->source->lines(w->source->ctx, line_output, &out) || out.open ||
+          out.lines != w->n_lines || out.text != w->text_n)
+        return werr(w, FM1_STATE_BAD, "project lines changed");
+    } else for (i = 0; i < w->n_lines; ++i) {
       sep(w);
       jstr(w, w->text + w->line_off[i], w->line_len[i]);
     }
@@ -1044,8 +1167,8 @@ static int write_doc(fm1_state_writer_t *w) {
     }
     close_c(w, '}');
   }
-  if (w->midi_map.version) {
-    const fm1_midi_map_t *m = &w->midi_map;
+  if ((w->source ? w->source->midi_map : w->midi_map)->version) {
+    const fm1_midi_map_t *m = w->source ? w->source->midi_map : w->midi_map;
     key(w, "browser"); open_c(w, '{', 0);
     key(w, "midiMap"); open_c(w, '{', 0);
     key(w, "version"); jint(w, m->version);
@@ -1065,5 +1188,12 @@ static int write_doc(fm1_state_writer_t *w) {
   close_c(w, '}');
   if (!w->compact) raw(w, "\n", 1);
   flush(w);
-  return 1;
+  return !w->err;
+}
+
+int fm1_state_json_project_emit(fm1_state_writer_t *w, fm1_put_t put,
+                                void *ctx, fm1_state_report_t *rep) {
+  if (!w || !w->source || w->err || !put) return 0;
+  w->put = put; w->ctx = ctx; w->rep = rep;
+  return write_doc(w);
 }
