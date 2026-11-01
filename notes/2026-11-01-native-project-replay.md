@@ -50,3 +50,27 @@ cases per build passed; old/new-only independent semantic rescans, source
 mutation, reentry, corruption, wrap/equal/half-range ambiguity and uncertain
 marker handling. Further known-alias/short-read guards are being verified.
 No flash partition, production storage, complete native fit or live save claim.
+
+[verified, corrected source slice] Known MIDI-effect descriptors and parameter
+arrays now join the live overlap checks (full fm1_midi_fx_t extent). A causal
+probe against frozen3dd reached begin once with its descriptor inside workspace;
+the corrected adapter refuses before begin, normal and ASan/UBSan. Public fault
+fixtures cover descriptor/parameter workspace and report aliases. Fresh exact
+old/current comparisons pass244 PROJECT saves plus80 host-only kind saves per
+normal/sanitized build; all549 partial transaction faults still pass.
+
+The PROJECT record collector is shared by host saves and native replay through
+a separate entry. The old all-kind dispatch retains CLIP handling, while native
+replay cannot reference its heap-backed host extractor. This is required by the
+actual target relocation graph: the previous combined dispatch retained
+malloc/realloc/free/sscanf despite PROJECT never executing that branch.
+
+[verified, compile-only] All selected target translation units compile with the
+pinned pi32v2 toolchain. Object queries: compact43788, plan1072, reader9528,
+JSON2624, provider+reader+emitter aux6912 bytes; app-state object BSS11976.
+The previous complete link is blocked by missing maintained runtime functions
+sqrtf/strncpy/memchr and compiler-rt __moddi3, independently traced by relocation
+reachability. A separate lane owns unchanged same-pin source restoration.
+No closed link/stack, inclusive98304-byte fit, storage backend or native runtime
+claim follows from these object measurements. Independent phase2 review and
+fresh corrected target closure remain pending.
