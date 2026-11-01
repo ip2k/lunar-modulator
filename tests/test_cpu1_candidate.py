@@ -10,6 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 MODES = ["stream", "clock", "clock_fraction", "enabled_irq", "nested_irq", "frozen_clock", "fault_records",
          "wrong_core", "early_hold", "prepoison", "bad_setup", "no_entry",
          "late_entry", "cleanup_failure", "lifetime", "stalled_launch", "stalled_ready"]
+MODES += ["poison_worker_failed", "poison_worker_raw_fault", "poison_worker_clock_start",
+          "poison_worker_clock_end", "poison_wait_failed", "poison_wait_raw_fault",
+          "poison_wait_clock", "poison_publish_clock", "poison_direct_step"]
 MODES += [f"write_{kind}_{i}" for kind in ("a", "n") for i in range(1, 65)]
 MODES += [f"read_{i}" for i in range(1, 45)]
 MODES += [f"vector_{kind}_{i}" for kind in ("a", "n") for i in range(1, 167)]

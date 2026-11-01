@@ -12,6 +12,7 @@
 static _Thread_local unsigned mock_cpu;
 static _Thread_local uint32_t mock_icfg;
 static cpu1_candidate candidate;
+static cpu1_word raw_fault_claimed[2];
 static _Atomic uint32_t regs[1280],vectors[128],divider;
 static _Atomic unsigned reads,writes,releases,worker_created;
 static _Atomic unsigned setup_bad,no_entry,late_entry,cleanup_bad,do_shutdown,hang_ready;
@@ -132,6 +133,54 @@ static void clock_checks(void){
  candidate.clocks[1].ms=UINT32_MAX-1u;raw+=48000u;
  assert(cpu1_candidate_ms(&candidate)==0u);mock_cpu=0;
 }
+/* Exercise the actual common worker in this adapter TU with one permanently
+ * owned SEALED job. Deterministic scheduling avoids racing fault injection with
+ * a host thread: this is protocol setup, not a second worker implementation. */
+static unsigned poison_clock_at,poison_clock_calls,poison_consumes;
+static uint32_t poison_clock(void){
+ if(++poison_clock_calls==poison_clock_at){native_refuse(0xc106);native_refuse(0xc107);}
+ return poison_clock_calls;
+}
+static int poison_consume(void *w,uint32_t tag,int16_t *pcm,lunar_pipeline_result_t *r){
+ (void)pcm;assert(w==&arena[0] && tag==0 && r->tag==0);
+ assert(!lunar_pipeline_error());++poison_consumes;return 1;
+}
+static void *run_poison_worker(void *p){(void)p;mock_cpu=1;worker(NULL);return NULL;}
+static void poison_checks(const char *mode){
+ s.clock=poison_clock;s.bound=1;s.consume=poison_consume;
+ works[0].state=SEALED;works[0].tag=0;works[0].work=&arena[0];
+ unsigned raw_fault=strstr(mode,"_raw_fault")!=NULL;
+ unsigned failed=strstr(mode,"_failed")!=NULL;
+ if(raw_fault)raw_fault_claimed[1]=1;
+ if(failed)candidate.failed=1;
+ if(strstr(mode,"_clock_start") || !strcmp(mode,"poison_wait_clock") ||
+    !strcmp(mode,"poison_publish_clock"))poison_clock_at=1;
+ if(strstr(mode,"_clock_end"))poison_clock_at=2;
+ if(!strncmp(mode,"poison_wait_",12)){
+  uint32_t ticket=0;
+  assert(lunar_pipeline_wait_check(&ticket)==-1);assert(ticket==0);
+  assert(!poison_consumes && works[0].state==SEALED && outputs[0].state==FREE);
+ }else if(!strcmp(mode,"poison_publish_clock")){
+  works[0].state=PRODUCING;
+  assert(lunar_pipeline_publish(0,1,2)==-1);
+  assert(!s.produced && works[0].state==PRODUCING && outputs[0].state==FREE);
+ }else if(!strcmp(mode,"poison_direct_step")){
+  lunar_pipeline_refuse(0xc108);
+  assert(worker_step()==-1);assert(!poison_consumes);
+  assert(works[0].state==SEALED && outputs[0].state==FREE);
+ }else{
+  pthread_t t;assert(!pthread_create(&t,NULL,run_poison_worker,NULL));
+  assert(!pthread_join(t,NULL));assert(s.exited && !s.consumed);
+  assert(poison_consumes==(!strcmp(mode,"poison_worker_clock_end")?1u:0u));
+  assert(works[0].state==(failed || raw_fault?SEALED:CONSUMING));
+  assert(outputs[0].state==(failed || raw_fault?FREE:RESERVED));
+ }
+ uint32_t expected=failed || raw_fault?0xc104u:
+  !strcmp(mode,"poison_direct_step")?0xc108u:0xc106u;
+ assert(lunar_pipeline_error()==expected);
+ assert(!lunar_pipeline_ready_outputs() && !s.harvested && !s.output_retired);
+ assert(works[0].work==&arena[0] && !releases && !worker_created);
+}
 int main(int argc,char **argv){
  assert(argc==2);const char *mode=argv[1];(void)unused_pointer;
  if(!strcmp(mode,"clock")){clock_checks();goto done;}
@@ -144,6 +193,7 @@ int main(int argc,char **argv){
   assert(!candidate.clocks[0].remainder && !candidate.clocks[1].remainder);goto done;
  }
  initialize();
+ if(!strncmp(mode,"poison_",7)){poison_checks(mode);goto done;}
  if(!strcmp(mode,"nested_irq")){
   uint32_t a,b;mock_icfg=0x1234ffefu;
   assert(cpu1_candidate_irq_save(&candidate,&a));assert(!(mock_icfg&0x100u));

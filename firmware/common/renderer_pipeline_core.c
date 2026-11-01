@@ -67,8 +67,11 @@ int lunar_pipeline_wait_check(uint32_t *ticket) {
     uint32_t now;
     if(!ticket || !s.clock)return bad(E_API);
     if(lunar_pipeline_error())return -1;
-    if((uint32_t)(port_ms()-s.started_ms)>=LIFETIME_MS)return bad(E_LIFETIME);
+    now=port_ms();
+    if(lunar_pipeline_error())return -1;
+    if((uint32_t)(now-s.started_ms)>=LIFETIME_MS)return bad(E_LIFETIME);
     now=s.clock();
+    if(lunar_pipeline_error())return -1;
     /* Store encoded first timestamp; zero is the unstarted sentinel.
      * At the one value where now+1 wraps, start at now-1 (one tick earlier). */
     if(!*ticket) { *ticket=now+1u; if(!*ticket)*ticket=0xffffffffu; }
@@ -106,6 +109,7 @@ int lunar_pipeline_publish(uint32_t tag,uint32_t p_start,uint32_t p_end) {
     if((uint32_t)(p_end-p_start)>=0x80000000u)return bad(E_API);
     w->completion.p_start=p_start;w->completion.p_end=p_end;
     w->completion.p_ticks=p_end-p_start;w->completion.published=s.clock();
+    if(lunar_pipeline_error())return -1;
     /* Count before publication; count is diagnostics, not the worker gate. */
     s.produced=tag+1u;fence();w->state=SEALED;fence();port_signal(1,0);return lunar_pipeline_error()?-1:1;
 }
@@ -144,6 +148,7 @@ int lunar_pipeline_output_retire(uint32_t tag) {
 }
 static int worker_step(void) {
     uint32_t tag=s.consumed;Work *w;Output *o;
+    if(lunar_pipeline_error())return -1;
     if(!s.bound)return 0;
     fence();w=&works[tag%LUNAR_PIPELINE_WORK_SLOTS];
     if(w->state!=SEALED)return 0;
@@ -154,10 +159,14 @@ static int worker_step(void) {
     memset(&o->result,0,sizeof o->result);o->result.tag=tag;
     w->state=CONSUMING;w->completion.c_start=s.clock();
     w->completion.ready_wait_ticks=w->completion.c_start-w->completion.published;
+    /* Clock hooks may synchronously poison. Retain both slots and the work
+     * context, and never admit a user callback after observing that poison. */
+    if(lunar_pipeline_error())return -1;
     int consumed_ok=s.consume(w->work,tag,o->pcm,&o->result);
     if(!consumed_ok || lunar_pipeline_error())return bad(E_CALLBACK);
     if(o->result.tag!=tag)return bad(E_TAG);
     w->completion.result=o->result;w->completion.c_end=s.clock();
+    if(lunar_pipeline_error())return -1;
     w->completion.c_ticks=w->completion.c_end-w->completion.c_start;
     if(w->completion.c_ticks>=0x80000000u)return bad(E_API);
     /* No work/output field access after its respective release. */
@@ -169,11 +178,13 @@ static void worker(void *unused) {
     if(port_cpu()!=1){lunar_pipeline_refuse(E_CORE);goto done;}
     fence();s.ready=1;
     for(;;) {
-        int result;
+        int result;uint32_t now;
         if(port_wake_drain(1)<0)break;
         if(lunar_pipeline_error())break;
         if(s.stop)break;
-        if((uint32_t)(port_ms()-s.started_ms)>=LIFETIME_MS){lunar_pipeline_refuse(E_LIFETIME);break;}
+        now=port_ms();
+        if(lunar_pipeline_error())break;
+        if((uint32_t)(now-s.started_ms)>=LIFETIME_MS){lunar_pipeline_refuse(E_LIFETIME);break;}
         result=worker_step();
         if(result<0)break;
         /* Bound output-full blockage only when an actual sealed job waits.
@@ -200,6 +211,7 @@ int lunar_pipeline_core_start(uint32_t (*clock)(void)) {
     uint32_t first;int status;
     if(s.invoked || port_cpu()!=0 || !clock){lunar_pipeline_refuse(E_API);return 0;}
     s.invoked=1;s.clock=clock;s.started_ms=port_ms();fence();
+    if(lunar_pipeline_error())return 0;
     if(!port_wake_init(clock)){lunar_pipeline_refuse(10711);return 0;}
     status=port_launch(worker,NULL);
     if(status){lunar_pipeline_refuse(E_CREATE);return 0;}
