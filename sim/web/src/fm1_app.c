@@ -417,7 +417,10 @@ const char *fm1_look_full_name(const char *name) {
 /* ---- the sequencer's panel UI (fm1_seq_ui.h) ------------------------------------- */
 
 /* The UI's commands go in through fm1_app_seq_cmd, under the event-room rule. */
-static int ui_cmd(void *ctx, const fm1_seq_cmd_t *c) { return fm1_app_seq_cmd((fm1_app_t *)ctx, c); }
+static int seq_command(fm1_app_t *a, const fm1_seq_cmd_t *c, int ui_capture);
+static int ui_cmd(void *ctx, const fm1_seq_cmd_t *c) {
+  return seq_command((fm1_app_t *)ctx, c, c->verb == FM1_SEQ_V_CAP);
+}
 
 static fm1_seq_ui_emit_t ui_out(fm1_app_t *a) {
   fm1_seq_ui_emit_t out;
@@ -569,6 +572,8 @@ static void ui_toast(fm1_app_t *a) {
     case FM1_SEQ_TOAST_NOTHING: popup(a, "Nothing to capture", NULL, NULL, -1); break;
     case FM1_SEQ_TOAST_CAPTURE_REFUSED:
       refuse(a, FM1_APP_TONE_REFUSE, "Not captured", "Clip limit reached", "Take kept"); break;
+    case FM1_SEQ_TOAST_CAPTURE_BUSY:
+      refuse(a, FM1_APP_TONE_REFUSE, "Capture busy", "Try again", "Take kept"); break;
     case FM1_SEQ_TOAST_TRACK:
     case FM1_SEQ_TOAST_TRACK_EMPTIED: {
       char line[24];
@@ -4326,9 +4331,11 @@ static int seq_fits(const fm1_app_t *a) {
   return fm1_seq_host_room(&a->seq_host) >= seq_need(a);
 }
 
-static void seq_apply(fm1_app_t *a, const fm1_seq_cmd_t *c) {
+static void seq_apply(fm1_app_t *a, const fm1_seq_cmd_t *c, int ui_capture) {
   ++a->seq_gen;
+  if (ui_capture) fm1_seq_ui_capture_begin(&a->ui, a->seq);
   fm1_seq_host_cmd(&a->seq_host, c);
+  if (ui_capture) fm1_seq_ui_capture_end(&a->ui, a->seq);
   if (a->on_cmd) a->on_cmd(a->on_cmd_ctx, a->frames, c);
 }
 
@@ -4336,8 +4343,10 @@ static void seq_apply(fm1_app_t *a, const fm1_seq_cmd_t *c) {
  * block, since every input and every render calls this first. */
 static void seq_flush(fm1_app_t *a) {
   if (a->seq_pending && seq_fits(a)) {
+    const int ui_capture = a->seq_pend_ui_capture;
     a->seq_pending = 0;
-    seq_apply(a, &a->seq_pend);
+    a->seq_pend_ui_capture = 0;
+    seq_apply(a, &a->seq_pend, ui_capture);
   }
 }
 
@@ -4390,7 +4399,7 @@ size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len) {
   return len;
 }
 
-int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
+static int seq_command(fm1_app_t *a, const fm1_seq_cmd_t *c, int ui_capture) {
   PIPELINE_GUARD(!pipeline_busy() || c->verb==FM1_SEQ_V_METRO);
   if (!a->seq) return FM1_APP_SEQ_REFUSED;
   seq_flush(a);
@@ -4399,13 +4408,18 @@ int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
     return FM1_APP_SEQ_BUSY;
   }
   if (seq_fits(a)) {
-    seq_apply(a, c);
+    seq_apply(a, c, ui_capture);
     return FM1_APP_SEQ_APPLIED;
   }
   a->seq_pend = *c;
+  a->seq_pend_ui_capture = (uint8_t)ui_capture;
   a->seq_pending = 1;
   ++a->seq_held;
   return FM1_APP_SEQ_HELD;
+}
+
+int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
+  return seq_command(a, c, 0);
 }
 
 void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity) {
@@ -4430,6 +4444,8 @@ static void seq_drop(fm1_app_t *a) {
   seq_release(a);
   memset(a->lock_mask, 0, sizeof a->lock_mask);
   a->seq_pending = 0;
+  a->seq_pend_ui_capture = 0;
+  a->ui.cap_sent = 0;
   a->seq_host.n = 0;
   a->seq_last_n = 0;
 }

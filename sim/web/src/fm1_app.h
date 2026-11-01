@@ -297,11 +297,11 @@ enum {
 
 /* What fm1_app_seq_cmd did with a command. */
 enum {
-  FM1_APP_SEQ_REFUSED = -1,   /* no sequencer */
-  FM1_APP_SEQ_BUSY = 0,       /* a held command waits already: send it again
+  FM1_APP_SEQ_REFUSED = FM1_SEQ_UI_CMD_REFUSED,   /* no sequencer */
+  FM1_APP_SEQ_BUSY = FM1_SEQ_UI_CMD_BUSY,       /* a held command waits already: send it again
                                  after the next fm1_app_render */
-  FM1_APP_SEQ_APPLIED = 1,    /* applied now: its events lead the next block */
-  FM1_APP_SEQ_HELD = 2        /* too little room this block: held, and applied
+  FM1_APP_SEQ_APPLIED = FM1_SEQ_UI_CMD_APPLIED,    /* applied now: its events lead the next block */
+  FM1_APP_SEQ_HELD = FM1_SEQ_UI_CMD_HELD        /* too little room this block: held, and applied
                                  at the start of the next block, before any
                                  other sequencer input */
 };
@@ -482,6 +482,7 @@ typedef struct fm1_app {
   float lock_shown[FM1_APP_SOUNDS][FM1_APP_MAX_PARAMS];   /* the last lock of each */
   uint32_t lock_mask[FM1_APP_SOUNDS];     /* parameter, for the screen; never in value[] */
   int seq_pending;               /* seq_pend waits for room (event-room rule) */
+  uint8_t seq_pend_ui_capture;    /* only this held CAP completes panel feedback */
   fm1_seq_cmd_t seq_pend;
   uint64_t seq_dropped_before;   /* events dropped by instances since replaced */
   uint64_t seq_held, seq_busy;   /* commands held for room, and refused */

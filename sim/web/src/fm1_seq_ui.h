@@ -229,7 +229,8 @@ enum {
   FM1_SEQ_TOAST_CLIP_DELETED,       /* the confirm's `clipdel` or `clipdelat` */
   FM1_SEQ_TOAST_CLIP_COPIED,        /* COPY + a slot in Session: `clipcopy` */
   FM1_SEQ_TOAST_CLIP_PASTED,        /* COPY + another slot: `clippaste` */
-  FM1_SEQ_TOAST_CAPTURE_REFUSED     /* take did not fit; history remains available */
+  FM1_SEQ_TOAST_CAPTURE_REFUSED,    /* take did not fit; history remains available */
+  FM1_SEQ_TOAST_CAPTURE_BUSY       /* command not admitted; the take is still available */
 };
 
 /* What REC's press did, for its release (fm1_seq_ui_t.rec_role). */
@@ -319,8 +320,13 @@ int fm1_seq_ui_prob_index(unsigned pct);
 int fm1_seq_ui_cond_index(unsigned a, unsigned b);
 void fm1_seq_ui_cond_pair(int index, unsigned *a, unsigned *b);
 
-/* Where commands go: the app's fm1_app_seq_cmd, under its event-room rule.
- * The UI ignores the result; a refusal is counted there. */
+/* Command admission, matching the app's public return values. Most gestures
+ * ignore the result; Capture waits for its exact application, or reports BUSY. */
+enum {
+  FM1_SEQ_UI_CMD_REFUSED = -1, FM1_SEQ_UI_CMD_BUSY = 0,
+  FM1_SEQ_UI_CMD_APPLIED = 1, FM1_SEQ_UI_CMD_HELD = 2
+};
+/* Where commands go, under the app's event-room rule. */
 typedef struct fm1_seq_ui_emit {
   void *ctx;
   int (*cmd)(void *ctx, const fm1_seq_cmd_t *c);
@@ -428,10 +434,10 @@ typedef struct fm1_seq_ui {
   uint16_t capture_pending;         /* note-ons buffered for the watched track */
   uint8_t capture_mode;             /* FM1_SEQ_UI_CAPTURE_*: the overlay */
   uint8_t capture_n, capture_sel;   /* the picker's candidates and the one taken */
-  uint8_t cap_sent;                 /* a `cap` went: the next sync says what it did */
+  uint8_t cap_sent;                 /* panel CAP admitted, awaiting its exact application */
   uint16_t capture_cands[3];        /* candidate tempos, BPM, ascending */
   uint32_t capture_gen, cap_gen_sent;
-  uint32_t cap_refused_sent;        /* core refusal count before that `cap` */
+  uint32_t cap_refused_sent;        /* snapshot at the actual CAP application boundary */
 
   /* Tracks, mute and the pages (S6). The set's and the focused track's
    * settings are read once per block, and moved at once by the commands
@@ -529,14 +535,20 @@ void fm1_seq_ui_leave(fm1_seq_ui_t *u);
  * once per block, after the sequencer's advance, and opens the Step page for
  * a step held past the threshold at `frame`. `gen` changes whenever the app
  * gave the sequencer input (a line, a command, a reset, an import), so the
- * steps are read again. A `cap` sent since the last call is answered here: a
- * toast, or the core's overlay. Step record ends if the transport runs.
+ * steps are read again. Capture feedback comes from the command's explicit
+ * application boundary below, never from this sync. Step record ends if the transport runs.
  * Returns FM1_SEQ_UI_SYNC_SEQ when anything SEQ mode's screen or the LEDs
  * show changed, plus FM1_SEQ_UI_SYNC_OVERLAY when Capture's overlay, drawn
  * over every mode, did. */
 #define FM1_SEQ_UI_SYNC_SEQ 1
 #define FM1_SEQ_UI_SYNC_OVERLAY 2
 int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t frame);
+
+/* The host brackets only the panel's admitted CAP, immediately around its
+ * actual application (including a held command). Other inputs and syncs must
+ * not complete it. A reset/import cancels cap_sent and its host association. */
+void fm1_seq_ui_capture_begin(fm1_seq_ui_t *u, const fm1_seq_t *s);
+void fm1_seq_ui_capture_end(fm1_seq_ui_t *u, const fm1_seq_t *s);
 
 /* A button edge at `frame` (fm1_app_button_t; down 1 or 0) in panel mode
  * `mode` (fm1_app_mode_t). Returns 1 when the UI took it and the app must
