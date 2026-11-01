@@ -158,7 +158,7 @@ def synthetic_elf():
     strings = bytearray(b"\0"); entries = [bytes(16)]
     for name, value, size, section in syms:
         offset = len(strings); strings.extend(name.encode() + b"\0")
-        entries.append(struct.pack("<IIIBBH", offset, value, size, 0x11, 0, section))
+        entries.append(struct.pack("<IIIBBH", offset, value, size, 0x10 if name == "_start" else 0x11, 0, section))
     shstrings = bytearray(b"\0"); names = {}
     for name in [s[0] for s in sections] + [".shstrtab", ".strtab", ".symtab"]:
         names[name] = len(shstrings); shstrings.extend(name.encode() + b"\0")
@@ -386,3 +386,48 @@ def test_elf_string_and_symbol_references_are_bounded(evidence, failure):
     if failure == "symbol_section": struct.pack_into("<H", raw, symbol_offset + 16 + 14, 500)
     if failure == "wrong_string_table": struct.pack_into("<I", raw, shoff + 7*40 + 24, 1)
     with pytest.raises(ValueError): profile._elf(bytes(raw))
+
+
+@pytest.mark.parametrize("failure", ["zero", "outside", "nobits", "not_executable", "wrong_section", "oversized_extent", "tiny_text"])
+def test_startup_must_be_in_fixed_file_backed_executable_text(evidence, failure):
+    import struct
+    raw = evidence[2]
+    if failure in ("zero", "outside"):
+        address = 0 if failure == "zero" else 0x02010000
+        raw = bytearray(change_symbol(raw, "_start", value=address))
+        struct.pack_into("<I", raw, 24, address)
+    else:
+        raw = bytearray(raw)
+    shoff = struct.unpack_from("<I", raw, 32)[0]
+    symbol_offset = struct.unpack_from("<I", raw, shoff + 7*40 + 16)[0]
+    if failure == "nobits": struct.pack_into("<I", raw, shoff + 40 + 4, 8)
+    if failure == "not_executable": struct.pack_into("<I", raw, shoff + 40 + 8, 2)
+    if failure == "wrong_section": struct.pack_into("<H", raw, symbol_offset + 16 + 14, 3)
+    if failure == "oversized_extent": raw = change_symbol(bytes(raw), "_start", size=0x10000)
+    if failure == "tiny_text": struct.pack_into("<I", raw, shoff + 40 + 20, 1)
+    updated = rehashed_elf(evidence, bytes(raw))
+    if failure in ("zero", "outside"):
+        from tools.jieli.audit_link import Elf, audit
+        updated[0]["audit_link"] = audit([("fixture.elf", Elf(bytes(raw)))],
+            [("app.bin", updated[1])], True, sources=updated[3].audit_sources, runtime="sdk-free")
+    with pytest.raises(ValueError, match="startup"):
+        validate(updated)
+
+
+@pytest.mark.parametrize("section,kind,flags", [(2,8,3),(3,1,3),(4,8,7)])
+def test_allocated_storage_types_and_flags_are_fixed(evidence, section, kind, flags):
+    import struct
+    raw = bytearray(evidence[2]); shoff = struct.unpack_from("<I", raw, 32)[0]
+    struct.pack_into("<II", raw, shoff + section*40 + 4, kind, flags)
+    with pytest.raises(ValueError): validate(rehashed_elf(evidence, bytes(raw)))
+
+
+def test_zero_size_assembly_start_symbol_is_valid(evidence):
+    raw = change_symbol(evidence[2], "_start", size=0)
+    assert profile._elf(raw).symbol_value("_start") == 0x02000120
+
+
+def test_duplicate_startup_symbol_refuses(evidence):
+    raw = evidence[2].replace(b"_data_load\0", b"_start\0" + bytes(4))
+    with pytest.raises(ValueError, match="unique executable startup"):
+        profile._elf(raw)

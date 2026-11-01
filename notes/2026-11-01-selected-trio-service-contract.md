@@ -56,7 +56,7 @@ host tools. Raw SDK/header inputs remained there; none were copied here.
 Test command uses existing service venv, `PYTHONDONTWRITEBYTECODE=1`, pytest
 `-o addopts='' -q -p no:cacheprovider --basetemp=scratch/selected-trio-contract/pytest`,
 with selected_trio_profile, request_contract, service, server, native_profile,
-trusted_policy and audit_link test files. Result: 363 passed, 1 pre-existing
+trusted_policy and audit_link test files. Result: 375 passed, 1 pre-existing
 retained-native-input skip, 6 subtests passed; existing Starlette deprecation
 warning. Fixtures prove request/receipt refusal, changed actual bytes, table/name
 bounds, storage overlap, guard/blob/audit mismatches and unchanged v1 behavior.
@@ -82,3 +82,10 @@ until its own actual receipt and lifecycle/security checks pass.
 Independent review requested pinning the accepted audit_limit prose to the exact
 builder disclaimer, preventing that field from smuggling a complete-safety claim.
 The fixed comparison and causal refusal regression are included; no gate changes.
+
+Independent review also reproduced false coherence when entry and _start were
+both moved to zero. Corrected startup checks require one section-associated
+global label at fixed text origin, executable file-backed text and minimum
+instruction extent; preserve actual assembler STT_NOTYPE/size0 semantics. Fixed
+allocated section type/flag geometry and causal zero/outside/NOBITS/extent/storage
+regressions accompany the correction. Actual target positive smoke also passes after the correction.
