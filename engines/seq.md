@@ -91,7 +91,7 @@ does with it needs; `seq_capture.c` gives the reasoning in full:
 | Pitch | 7 | `non`, `nof` and `fm1_seq_note_in` take 0–127 only |
 | Velocity, which also tells the kind | 7 | a note-on's is clamped to 1–127, a note-off's is 0, so it says which the event is (Movy's `on`), as in MIDI |
 | Track | 4 | at most 16; input for a track past the instance's is refused before it is stamped |
-| Playhead (clip tick) | 14 | below the clip's loop end, at most (255 + 256) steps × 24 = 12,264: a take written into an empty clip whose loop starts late makes it 256 steps long from there |
+| Playhead (clip tick) | 14 | below the clip's loop end, at most (255 + 256) steps × 24 = 12,264 in compatibility mode: a take into an empty late clip can make it 256 steps long from there; native playing Capture refuses such an oversized window |
 | Frame | 25, from a base | only differences between events of the ring (or of a frozen take) are used, and the 8-bar window keeps those within 96 s at 20 BPM: 4,235,328 frames at 44,118 Hz, below 2^25 up to 349,525 Hz. The base moves onto the oldest event when the newest would not fit; the newest event's frame is Movy's `last_frame` |
 | Master tick | 16 and a flag | below 2^16 as it is, above as an offset from a base. The ring's ticks above 2^16 all come from one transport run and lie within 96 s at 300 BPM (46,080 ticks) of each other; after a restart that keeps the ring (a MIDI Start while playing) the new ticks are small again |
 | Cycle | 20 and a flag | only compared for equality with the track's cycle now, for events at most 104 s old (window and gap; the gap rule is applied first, so older events are gone before any comparison): a 1-step loop at Movy's 255X and 300 BPM wraps 530,400 times in that, more than 2^19 and below 2^20 − 1, and the flag tells a cycle of 2^20 or more (hours of looping before a restart) from any cycle reached since |
@@ -226,6 +226,15 @@ build, the default skips them.
   clock averaging above about 426 BPM) the ring drops its oldest events
   early, and with a 1-step loop at compat's 255X the stale rule can keep
   notes Movy drops.
+- Native playing Capture refuses a whole take if any resulting anchor or
+  fresh clip window would exceed the addressable steps 0–255. The clip,
+  transport and captured history stay unchanged, and `stats.refused` rises
+  once; a retry can use the retained history at a representable destination.
+  Growth within that capacity is kept. Compatibility preserves Movy's
+  oversized-window and partial-take quirks. This avoids creating windows
+  that `movy1` reload clamps and the browser editor rejects. Covered by
+  `test_playing_capture_overflow_is_transactional`, the valid offset-loop
+  regression, and the explicit compatibility deep-playhead witness.
 - The external clock's tempo smoothing and Capture's tempo search run in
   float, not f64. A result can differ from Movy's only at a near-tie
   [inferred]; none has in the oracle's scripts.
