@@ -6,10 +6,11 @@ set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
 UPSTREAM_COMMIT=a7fb5e8ac692c528f8ed29e325911a3f4b8111d6
+IMAGE_REF=${FM1T_RETURN_IMAGE:-}
 
 if [[ $# != 1 || ! -d ${FM1T_RETURN_UPSTREAM:-} || ! -d ${FM1T_RETURN_SDK:-} ||
       ! -d ${FM1T_RETURN_TINYUSB:-} ||
-      ! ${FM1T_RETURN_IMAGE:-} =~ ^[^[:space:]]+@sha256:[0-9a-f]{64}$ ||
+      ! $IMAGE_REF =~ ^(sha256:[0-9a-f]{64}|[^[:space:]@]+@sha256:[0-9a-f]{64})$ ||
       ! ${FM1T_RETURN_SDK_SHA:-} =~ ^[0-9a-f]{40}$ ||
       ! ${FM1T_RETURN_TINYUSB_SHA:-} =~ ^[0-9a-f]{40}$ ||
       ! ${FM1T_RETURN_CPUSET:-} =~ ^[0-9]+(-[0-9]+)?$ ||
@@ -57,12 +58,19 @@ for patch in "$HERE"/0001-pico2-reject-false-d-pullups.patch \
 done
 
 EPOCH=$(git -C "$FM1T_RETURN_UPSTREAM" show -s --format=%ct "$UPSTREAM_COMMIT")
-docker image inspect "$FM1T_RETURN_IMAGE" --format '{{.Id}}' > "$OUT/image-id.txt"
+IMAGE_ID=$(docker image inspect "$IMAGE_REF" --format '{{.Id}}')
+if [[ ! $IMAGE_ID =~ ^sha256:[0-9a-f]{64}$ ]] ||
+   [[ $IMAGE_REF == sha256:* && $IMAGE_REF != "$IMAGE_ID" ]]; then
+  echo 'image did not resolve to the requested immutable local ID' >&2
+  exit 64
+fi
+printf '%s\n' "$IMAGE_REF" > "$OUT/image-ref.txt"
+printf '%s\n' "$IMAGE_ID" > "$OUT/image-id.txt"
 sha256sum "$HERE"/000{1,2,3}-*.patch > "$OUT/patch-sha256.txt" 2>/dev/null || \
   shasum -a 256 "$HERE"/000{1,2,3}-*.patch > "$OUT/patch-sha256.txt"
 cp "$HERE/return-r01-build-manifest.json" "$OUT/manifest.json"
 printf '%s\n' "$UPSTREAM_COMMIT" "$FM1T_RETURN_SDK_SHA" "$FM1T_RETURN_TINYUSB_SHA" \
-  "$FM1T_RETURN_IMAGE" "$FM1T_RETURN_CPUSET" > "$OUT/input-pins.txt"
+  "$IMAGE_REF" "$FM1T_RETURN_CPUSET" > "$OUT/input-pins.txt"
 
 docker run --rm --pull=never --network=none --read-only --cap-drop=ALL \
   --security-opt=no-new-privileges --cgroup-parent=docker-batch.slice \
@@ -72,10 +80,9 @@ docker run --rm --pull=never --network=none --read-only --cap-drop=ALL \
   -e SOURCE_DATE_EPOCH="$EPOCH" \
   -v "$STAGE/src:/src:ro" -v "$FM1T_RETURN_SDK:/sdk:ro" \
   -v "$FM1T_RETURN_TINYUSB:/sdk/lib/tinyusb:ro" -v "$STAGE/build:/build:rw" \
-  "$FM1T_RETURN_IMAGE" sh -ec '
+  "$IMAGE_ID" sh -ec '
     cmake -S /src -B /build -DPICO_SDK_PATH=/sdk -DPICO_BOARD=pico2_w \
-      -DFM1T_BUILD_RETURN_R01=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      -DCMAKE_EXE_LINKER_FLAGS=-Wl,-Map=/build/return-r01.map
+      -DFM1T_BUILD_RETURN_R01=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
     cmake --build /build -j4 --target fm1_transporter_return_r01
     arm-none-eabi-nm --numeric-sort /build/fm1_transporter_return_r01.elf > /build/return-r01.nm
     arm-none-eabi-objdump -dr /build/fm1_transporter_return_r01.elf > /build/return-r01.disasm
@@ -87,8 +94,9 @@ docker run --rm --pull=never --network=none --read-only --cap-drop=ALL \
 
 cp "$STAGE/build/fm1_transporter_return_r01.uf2" "$OUT/return-r01-pico2_w.uf2"
 cp "$STAGE/build/fm1_transporter_return_r01.elf" "$OUT/return-r01.elf"
-for name in return-r01.map return-r01.nm return-r01.disasm return-r01.sections \
-            return-r01.size compile_commands.json CMakeCache.txt; do
+cp "$STAGE/build/fm1_transporter_return_r01.elf.map" "$OUT/return-r01.map"
+for name in return-r01.nm return-r01.disasm return-r01.sections return-r01.size \
+            compile_commands.json CMakeCache.txt; do
   cp "$STAGE/build/$name" "$OUT/$name"
 done
 (cd "$OUT" && sha256sum return-r01-pico2_w.uf2 return-r01.elf return-r01.map \
