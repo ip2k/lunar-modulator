@@ -24,14 +24,18 @@ without that, app-only changes could run a stale probe binary.
 [verified] Budget: 272 events * 36 B = 9,792 B, up 6,528 B from 12 B/event.
 The eight-track instance is 32,080 B inside its unchanged 32,768 B arena; instance,
 events, pending command 240 B, UI bound 1,024 B and click 20 B total 43,156 B
-within the approved 45,056 B (44 KiB) budget. The desktop app guard grows by the
-approved 8 KiB budget delta to 4,968,192 B, rather than matching exact sizeof.
+within the revised 45,056 B (44 KiB) implementation budget, a coordinator-approved
+routine implementation choice. Aggregate target fit remains unproven. The desktop app guard grows by the
+8 KiB implementation budget delta to 4,968,192 B, rather than matching exact sizeof.
 The two conditional `static PipelineSlot pipeline_work_storage[2]` event arrays
 add 13,056 B together; this is static storage, not stack. No new large local array
 is introduced. Actual target link/RAM fit remains a separate integration gate.
 
-Focused normal/ASan edit/automation, memory and pipeline PCM/fault checks are
-running at this source checkpoint; final results and measured sizes follow.
+The first focused normal run exposed a test setup assumption: with the revised
+budget, the default 96 kHz chain plus a second Macro hits RAM preflight before
+Macro can refuse the rate. The RATE test now clears its default first master
+effect to leave room. Production refusal priority and engine rates are unchanged.
+Focused normal/ASan edit/automation, memory and pipeline PCM/fault results follow.
 
 Rarefaction status/orient/scope and Serena initial/config/symbol checks succeeded
 on shared main, including `seq_auto_target` and its event caller. Their fixed root

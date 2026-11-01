@@ -238,6 +238,9 @@ static void check_refusals(void) {
   CHECK(refused_cleanly("cable any 64 255 0 1 1 1000 0", FM1_REFUSE_NO_ROOM));
   /* RATE: at 96 kHz the Plaits-based engines refuse the host. */
   fresh(96000.0f);
+  /* Leave room for the attempted instance: the revised sequencer budget
+   * must not mask the engine's rate refusal with a RAM refusal first. */
+  CHECK(edit_line("unit master 0 0 -", 5, NULL) == 0);
   CHECK(refused_cleanly("unit sound 1 0 macro", FM1_REFUSE_RATE));
   /* ARENA: a module that does not fit the runtime's arena, if any kind is
    * that large; an effect larger than an insert's arena at 96 kHz. */
