@@ -13,11 +13,11 @@
 #include "state_clip.h"
 
 #define DX7_USER0 (FM1_APP_DX7_PATCHES - (int)FM1_DX7_USER_SLOTS)
-#define SET_CAP FM1_STATE_CAP_MOVY1           /* a set's text: 53,208 B at most at 8 tracks */
+#define SET_CAP FM1_STATE_CAP_MOVY1           /* the format's full 64 KiB text cap */
 #define JSON_CAP FM1_STATE_CAP_PROJECT        /* the largest JSON file */
-/* The JSON writer's document (476,664 B on a 64-bit build) and, once the
- * JSON is written, the binary writer's file (284,920 B); never both at once,
- * so they share. Pass 1's rate check creates engines in it too. */
+/* The JSON writer's document and, once JSON is written, the binary writer's
+ * file never coexist, so they share. Pass 1's rate check creates engines in
+ * it too. Actual target sizes are recorded in the state-workspace note. */
 #define W_BYTES (480u * 1024u)
 #define CLIP_LINES 512u
 
