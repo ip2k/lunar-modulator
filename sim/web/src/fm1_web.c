@@ -186,6 +186,21 @@ int fm1w_dx7_load(unsigned len, int play) {
   return n;
 }
 
+/* Download only a complete user bank: VMEM has no empty-slot marker.
+ * Refuse partial banks rather than silently replacing unloaded slots with
+ * INIT VOICE. This reads the bank regardless of the current sound's engine.
+ * -2: FM6 absent; -3: one or more unloaded slots. Output is in g_text. */
+int fm1w_dx7_save_bank(void) {
+  const uint8_t *voices[FM1_DX7_USER_SLOTS];
+  unsigned k;
+  if (g_app.dx7.index < 0) return -2;
+  for (k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
+    if (!g_app.dx7.loaded[k]) return -3;
+    voices[k] = g_app.dx7.voice[k];
+  }
+  return (int)fm1_dx7_write_bank(voices, 0, (uint8_t *)g_text);
+}
+
 const uint32_t *fm1w_dx7_result(void) { return g_dx7_result; }
 const char *fm1w_dx7_name(int slot) { return fm1_app_dx7_name(&g_app, slot < 0 ? 999u : (unsigned)slot); }
 
