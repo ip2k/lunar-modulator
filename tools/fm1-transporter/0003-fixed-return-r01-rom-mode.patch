@@ -100,7 +100,7 @@ index 4a16e1b..ff18248 100644
          fm1_proto_drain();
      }
 diff --git a/src/pio_host.c b/src/pio_host.c
-index cca19de..e20d569 100644
+index cca19de..cc2bc84 100644
 --- a/src/pio_host.c
 +++ b/src/pio_host.c
 @@ -34,6 +34,7 @@
@@ -127,7 +127,7 @@ index cca19de..e20d569 100644
 +
 +static bool r01_probe_live(uint8_t daddr) {
 +    return r01_phase == R01_COLD && r01_mount_count == 1 &&
-+           mounted_addr == daddr;
++           mounted_addr == daddr && fm1_proto_live();
 +}
 +
 +void fm1_host_return_arm_cold(void) {
@@ -260,12 +260,12 @@ index cca19de..e20d569 100644
      rgb(false, false, true);
  }
  
-@@ -155,10 +254,21 @@ static void xfer_done(tuh_xfer_t *x) {
+@@ -155,16 +254,30 @@ static void xfer_done(tuh_xfer_t *x) {
  }
  
  static bool edpt_sync(uint8_t daddr, uint8_t ep, void *buf, uint16_t len, uint32_t *actual) {
 +#if FM1T_RETURN_R01
-+    if (r01_phase == R01_TERMINAL || mounted_addr != daddr) return false;
++    if (r01_phase == R01_TERMINAL || mounted_addr != daddr || !fm1_proto_live()) return false;
 +#endif
      xfer_result = XFER_RESULT_INVALID;
      xfer_actual = 0;
@@ -283,35 +283,45 @@ index cca19de..e20d569 100644
          .daddr = daddr,
          .ep_addr = ep,
          .buflen = len,
-@@ -172,8 +282,15 @@ static bool edpt_sync(uint8_t daddr, uint8_t ep, void *buf, uint16_t len, uint32
+         .buffer = buf,
+         .complete_cb = xfer_done,
+     };
++#if FM1T_RETURN_R01
++    if (r01_phase == R01_TERMINAL || mounted_addr != daddr || !fm1_proto_live()) return false;
++#endif
+     if (!tuh_edpt_xfer(&x)) {
+         dlog("HOST: EP %02X submit failed", ep);
+         return false;
+@@ -172,8 +285,16 @@ static bool edpt_sync(uint8_t daddr, uint8_t ep, void *buf, uint16_t len, uint32
  
      uint64_t deadline = time_us_64() + XFER_TIMEOUT_MS * 1000ull;
      while (xfer_result == XFER_RESULT_INVALID) {
 +#if FM1T_RETURN_R01
-+        if (r01_phase == R01_TERMINAL || mounted_addr != daddr) return false;
++        if (r01_phase == R01_TERMINAL || mounted_addr != daddr || !fm1_proto_live())
++            return false;
 +#endif
          tuh_task();
 -        if (mounted_addr != daddr) {
 +        if (mounted_addr != daddr
 +#if FM1T_RETURN_R01
-+            || r01_phase == R01_TERMINAL
++            || r01_phase == R01_TERMINAL || !fm1_proto_live()
 +#endif
 +           ) {
              dlog("HOST: EP %02X abandoned, device gone", ep);
              return false;
          }
-@@ -184,6 +301,10 @@ static bool edpt_sync(uint8_t daddr, uint8_t ep, void *buf, uint16_t len, uint32
+@@ -184,6 +305,10 @@ static bool edpt_sync(uint8_t daddr, uint8_t ep, void *buf, uint16_t len, uint32
          }
      }
  
 +#if FM1T_RETURN_R01
-+    if (r01_phase == R01_TERMINAL || mounted_addr != daddr) return false;
++    if (r01_phase == R01_TERMINAL || mounted_addr != daddr || !fm1_proto_live()) return false;
 +#endif
 +
      if (actual) *actual = xfer_actual;
      if (xfer_result != XFER_RESULT_SUCCESS) {
          dlog("HOST: EP %02X result %d", ep, xfer_result);
-@@ -273,6 +394,7 @@ static bool bot_cmd(uint8_t daddr, const uint8_t *cdb, uint8_t cdb_len, bool in,
+@@ -273,6 +398,7 @@ static bool bot_cmd(uint8_t daddr, const uint8_t *cdb, uint8_t cdb_len, bool in,
  // M0 probe: descriptors + INQUIRY, all read-only
  //--------------------------------------------------------------------+
  
@@ -319,7 +329,7 @@ index cca19de..e20d569 100644
  static void log_string(uint8_t daddr, const char *what, uint8_t idx) {
      if (!idx) return;
      uint16_t s[64];
-@@ -288,40 +410,83 @@ static void log_string(uint8_t daddr, const char *what, uint8_t idx) {
+@@ -288,40 +414,83 @@ static void log_string(uint8_t daddr, const char *what, uint8_t idx) {
      a[n] = 0;
      dlog("  %s: \"%s\"", what, a);
  }
@@ -403,7 +413,7 @@ index cca19de..e20d569 100644
  
      dlog("CONFIGURATION DESCRIPTOR (%u bytes), bConfigurationValue=%u", total,
           ((tusb_desc_configuration_t *)cfg_buf)->bConfigurationValue);
-@@ -360,10 +525,20 @@ static bool probe_descriptors(uint8_t daddr) {
+@@ -360,10 +529,20 @@ static bool probe_descriptors(uint8_t daddr) {
          return false;
      }
  
@@ -425,14 +435,14 @@ index cca19de..e20d569 100644
      ep_in = bulk_in->bEndpointAddress;
      ep_out = bulk_out->bEndpointAddress;
      dlog("HOST: MSC bulk OUT=%02X IN=%02X", ep_out, ep_in);
-@@ -374,7 +549,13 @@ static bool probe_inquiry(uint8_t daddr) {
+@@ -374,7 +553,13 @@ static bool probe_inquiry(uint8_t daddr) {
      static const uint8_t inquiry[6] = {0x12, 0, 0, 0, 36, 0};
      uint32_t got = 0;
  
 -    if (!bot_cmd(daddr, inquiry, sizeof(inquiry), true, data_buf, 36, &got) || got < 36) {
 +    if (!bot_cmd(daddr, inquiry, sizeof(inquiry), true, data_buf, 36, &got)
 +#if FM1T_RETURN_R01
-+        || got != 36 || r01_phase != R01_COLD || mounted_addr != daddr
++        || got != 36 || r01_phase != R01_COLD || mounted_addr != daddr || !fm1_proto_live()
 +#else
 +        || got < 36
 +#endif
@@ -440,7 +450,7 @@ index cca19de..e20d569 100644
          dlog("INQUIRY failed (got %lu bytes)", (unsigned long)got);
          return false;
      }
-@@ -387,6 +568,10 @@ static bool probe_inquiry(uint8_t daddr) {
+@@ -387,6 +572,10 @@ static bool probe_inquiry(uint8_t daddr) {
      memcpy(rev, &data_buf[32], 4);
      rev[4] = 0;
      dlog("INQUIRY OK: vendor=\"%s\" product=\"%s\" rev=\"%s\"", vendor, product, rev);
@@ -451,7 +461,7 @@ index cca19de..e20d569 100644
      return true;
  }
  
-@@ -400,9 +585,14 @@ static void get_max_lun(uint8_t daddr) {
+@@ -400,9 +589,14 @@ static void get_max_lun(uint8_t daddr) {
  //--------------------------------------------------------------------+
  
  void fm1_pio_host_command(char c) {
@@ -466,7 +476,7 @@ index cca19de..e20d569 100644
  static void run_command(uint8_t daddr, char c) {
      static const uint8_t tur[6] = {0};
      uint32_t got = 0;
-@@ -462,43 +652,85 @@ static void run_command(uint8_t daddr, char c) {
+@@ -462,43 +656,85 @@ static void run_command(uint8_t daddr, char c) {
          break;
      }
  }
@@ -483,8 +493,8 @@ index cca19de..e20d569 100644
      tuh_task();
  
 +#if FM1T_RETURN_R01
++    fm1_proto_poll();
 +    if (r01_phase == R01_TERMINAL) {
-+        fm1_proto_poll();
 +        return;
 +    }
 +#endif
@@ -554,7 +564,7 @@ index cca19de..e20d569 100644
          } else {
              next_inquiry_us = time_us_64() + INQUIRY_RETRY_MS * 1000ull;
          }
-@@ -506,6 +738,7 @@ void fm1_pio_host_task(void) {
+@@ -506,6 +742,7 @@ void fm1_pio_host_task(void) {
  
      fm1_proto_poll();
  
@@ -562,7 +572,7 @@ index cca19de..e20d569 100644
      char c = pending_cmd;
      if (c) {
          pending_cmd = 0;
-@@ -516,7 +749,9 @@ void fm1_pio_host_task(void) {
+@@ -516,7 +753,9 @@ void fm1_pio_host_task(void) {
              dlog("> %c ignored: no UBOOT mounted", c);
          }
      }
@@ -572,7 +582,7 @@ index cca19de..e20d569 100644
      if (!daddr && now - unmounted_since_us > REATTACH_AFTER_MS * 1000ull) {
          // Pico-PIO-USB inverts the pad input (GPIO_OVERRIDE_INVERT), so a
          // pulled-up D+ reads as 0 here. With nothing mounted there is no bus
-@@ -538,6 +773,7 @@ void fm1_pio_host_task(void) {
+@@ -538,6 +777,7 @@ void fm1_pio_host_task(void) {
          }
          unmounted_since_us = now;   // re-check after another interval
      }
@@ -654,10 +664,10 @@ index 0000000..13ca661
 +void dlog(const char *fmt, ...) { (void)fmt; }
 diff --git a/src/return_r01_proto.c b/src/return_r01_proto.c
 new file mode 100644
-index 0000000..3b071df
+index 0000000..bd4503c
 --- /dev/null
 +++ b/src/return_r01_proto.c
-@@ -0,0 +1,313 @@
+@@ -0,0 +1,320 @@
 +// SPDX-License-Identifier: MIT
 +// Fixed return-r01 ROM-only CDC protocol. Never linked into recovery firmware.
 +#include "transporter_proto.h"
@@ -709,6 +719,13 @@ index 0000000..3b071df
 +static uint32_t tx_head, tx_tail;
 +
 +void fm1_proto_init(void) { critical_section_init(&state_lock); }
++
++bool fm1_proto_live(void) {
++    critical_section_enter_blocking(&state_lock);
++    bool live = phase != TERMINAL;
++    critical_section_exit(&state_lock);
++    return live;
++}
 +
 +// Call only with state_lock held. The TX ring is copied under the same lock;
 +// TinyUSB calls and formatting happen outside it.
@@ -972,10 +989,18 @@ index 0000000..3b071df
 +    finish_error("ERR rr01-terminal");
 +}
 diff --git a/src/transporter_proto.h b/src/transporter_proto.h
-index e9881c9..7c3fc5e 100644
+index e9881c9..e4b6a0d 100644
 --- a/src/transporter_proto.h
 +++ b/src/transporter_proto.h
-@@ -28,3 +28,8 @@ void fm1_proto_drain(void);
+@@ -1,5 +1,7 @@
+ #pragma once
+ 
++#include <stdbool.h>
++
+ // Mac-facing data channel on the second CDC interface (tools/fm1t.py).
+ //
+ // Requests are text lines; replies are text lines, and `read` replies carry
+@@ -28,3 +30,10 @@ void fm1_proto_drain(void);
  
  // core 1: handle a pending request, if any.
  void fm1_proto_poll(void);
@@ -983,6 +1008,8 @@ index e9881c9..7c3fc5e 100644
 +#if FM1T_RETURN_R01
 +// Strict variant only; called before tud_init/core-1 launch.
 +void fm1_proto_init(void);
++// Short synchronized read for core-1 host transfer boundaries.
++bool fm1_proto_live(void);
 +#endif
 diff --git a/src/usb_device.c b/src/usb_device.c
 index 1e6dbe9..4d4b776 100644

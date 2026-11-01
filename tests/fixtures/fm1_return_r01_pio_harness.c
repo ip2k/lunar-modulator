@@ -16,6 +16,7 @@ static bool bad_inquiry;
 static bool detach_in_inquiry;
 
 static void dlog(const char *fmt, ...) { (void)fmt; }
+static bool fm1_proto_live(void) { return true; }
 static bool bot_cmd(uint8_t daddr, const uint8_t *cdb, uint8_t cdb_len, bool in,
                     void *buf, uint16_t len, uint32_t *got) {
     (void)daddr;

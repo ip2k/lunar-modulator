@@ -135,6 +135,11 @@ int main(int argc, char **argv) {
         fm1_proto_poll(); fm1_proto_drain(); upload(false, false);
     }
     else if (!strcmp(kind, "generic")) { feed("info\n", 5); ready(); }
+    else if (!strcmp(kind, "live-query")) {
+        if (!fm1_proto_live()) abort();
+        feed("info\n", 5);
+        if (fm1_proto_live()) abort();
+    }
     else if (!strcmp(kind, "pipelined-ready")) { feed("rr01-ready\nrr01-upload\n", 23); }
     else if (!strcmp(kind, "premature-next-before-ready-reply")) {
         fm1_proto_rx("rr01-ready\n", 11); fm1_proto_poll();

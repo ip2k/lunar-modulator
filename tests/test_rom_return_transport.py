@@ -101,6 +101,7 @@ def harness():
     ("concurrent-call-extra", "1 1 1", ("ERR rr01-call",), ("OK rr01-call", "ERR rr01-terminal")),
     ("no-mount", "0 0 1", ("ERR rr01-ready",), ("OK rr01-ready",)),
     ("generic", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
+    ("live-query", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
     ("pipelined-ready", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
     ("premature-next-before-ready-reply", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
     ("split-next-before-ready-reply", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready", "OK rr01-upload")),
@@ -294,9 +295,12 @@ def boundary_harness(harness):
 @pytest.mark.parametrize("case,expected", [
     ("valid", "1 2 2 0"),
     ("device-terminal", "1 0 0 1"),
+    ("device-proto-terminal", "1 0 0 0"),
     ("header-terminal", "1 1 0 1"),
+    ("header-proto-terminal", "1 1 0 0"),
     ("config-terminal", "1 2 0 1"),
     ("out-open-terminal", "1 2 1 1"),
+    ("out-open-proto-terminal", "1 2 1 0"),
     ("malformed-tail", "1 2 0 0"),
     ("malformed-crossing", "1 2 0 0"),
     ("malformed-small-total", "1 1 0 0"),
@@ -309,9 +313,12 @@ def boundary_harness(harness):
     ("endpoint-preterminal", "endpoint-preterminal"),
     ("endpoint-submit-terminal", "endpoint-submit-terminal"),
     ("endpoint-task-terminal", "endpoint-task-terminal"),
+    ("endpoint-proto-submit-terminal", "endpoint-proto-submit-terminal"),
+    ("endpoint-proto-task-terminal", "endpoint-proto-task-terminal"),
     ("endpoint-valid", "endpoint-valid"),
     ("task-preterminal", "task-preterminal"),
     ("task-dispatch-terminal", "task-dispatch-terminal"),
+    ("task-proto-dispatch-terminal", "task-proto-dispatch-terminal"),
 ])
 def test_actual_strict_descriptor_endpoint_and_task_boundaries(boundary_harness, case, expected):
     assert subprocess.check_output([str(boundary_harness), case], text=True).strip() == expected

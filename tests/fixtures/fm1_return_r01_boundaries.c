@@ -68,7 +68,9 @@ static uint8_t cfg_buf[512];
 static volatile xfer_result_t xfer_result;
 static volatile uint32_t xfer_actual;
 static int device_reads, config_reads, endpoint_opens, host_tasks, submissions, probe_calls;
-static int terminal_at, terminal_on_poll, terminal_on_host_task, terminal_on_submit;
+static int terminal_at, proto_terminal_at, terminal_on_poll, terminal_on_host_task;
+static int terminal_on_submit, proto_terminal_on_host_task, proto_terminal_on_submit;
+static bool proto_terminal;
 static uint16_t configured_total = 32;
 static bool malformed_tail, malformed_crossing, malformed_short_interface;
 static bool malformed_short_endpoint;
@@ -81,8 +83,9 @@ static void rgb(bool r, bool g, bool b) { (void)r; (void)g; (void)b; }
 static uint16_t tu_edpt_packet_size(const tusb_desc_endpoint_t *ep) { return ep->wMaxPacketSize; }
 static unsigned tu_edpt_dir(uint8_t addr) { return !!(addr & 0x80); }
 void fm1_host_return_terminal(void);
+static bool fm1_proto_live(void) { return !proto_terminal; }
 static void fm1_proto_poll(void) {
-    if (terminal_on_poll) fm1_host_return_terminal();
+    if (terminal_on_poll || proto_terminal) fm1_host_return_terminal();
 }
 static bool probe_inquiry(uint8_t daddr) { (void)daddr; probe_calls++; return true; }
 static void tuh_task(void) {
@@ -94,11 +97,13 @@ static void tuh_task(void) {
         submitted = NULL;
     }
     if (terminal_on_host_task) fm1_host_return_terminal();
+    if (proto_terminal_on_host_task) proto_terminal = true;
 }
 static bool tuh_edpt_xfer(tuh_xfer_t *x) {
     submissions++;
     submitted = x;
     if (terminal_on_submit) fm1_host_return_terminal();
+    if (proto_terminal_on_submit) proto_terminal = true;
     return true;
 }
 static void tuh_edpt_abort_xfer(uint8_t daddr, uint8_t ep) {
@@ -111,6 +116,7 @@ static xfer_result_t tuh_descriptor_get_device_sync(uint8_t daddr,
     device_reads++;
     *out = (tusb_desc_device_t){.idVendor = FM1_VID, .idProduct = FM1_PID};
     if (terminal_at == device_reads) fm1_host_return_terminal();
+    if (proto_terminal_at == device_reads) proto_terminal = true;
     return XFER_RESULT_SUCCESS;
 }
 static void fill_config(uint8_t *out, uint16_t n) {
@@ -160,12 +166,14 @@ static xfer_result_t tuh_descriptor_get_configuration_sync(uint8_t daddr, uint8_
     if (n != 9 && n != configured_total) abort();
     fill_config(out, n);
     if (terminal_at == 1 + config_reads) fm1_host_return_terminal();
+    if (proto_terminal_at == 1 + config_reads) proto_terminal = true;
     return XFER_RESULT_SUCCESS;
 }
 static bool tuh_edpt_open(uint8_t daddr, const tusb_desc_endpoint_t *ep) {
     (void)daddr; (void)ep;
     endpoint_opens++;
     if (terminal_at == 3 + endpoint_opens) fm1_host_return_terminal();
+    if (proto_terminal_at == 3 + endpoint_opens) proto_terminal = true;
     return true;
 }
 
@@ -175,9 +183,12 @@ int main(int argc, char **argv) {
     if (argc != 2) return 2;
     r01_phase = R01_COLD;
     if (!strcmp(argv[1], "device-terminal")) terminal_at = 1;
+    else if (!strcmp(argv[1], "device-proto-terminal")) proto_terminal_at = 1;
     else if (!strcmp(argv[1], "header-terminal")) terminal_at = 2;
+    else if (!strcmp(argv[1], "header-proto-terminal")) proto_terminal_at = 2;
     else if (!strcmp(argv[1], "config-terminal")) terminal_at = 3;
     else if (!strcmp(argv[1], "out-open-terminal")) terminal_at = 4;
+    else if (!strcmp(argv[1], "out-open-proto-terminal")) proto_terminal_at = 4;
     else if (!strcmp(argv[1], "malformed-tail")) {
         configured_total = 512; malformed_tail = true;
     } else if (!strcmp(argv[1], "malformed-crossing")) malformed_crossing = true;
@@ -207,6 +218,16 @@ int main(int argc, char **argv) {
         uint8_t buf[8];
         if (edpt_sync(1, 1, buf, sizeof(buf), NULL) || submissions != 1 || host_tasks != 1) abort();
         puts("endpoint-task-terminal"); return 0;
+    } else if (!strcmp(argv[1], "endpoint-proto-submit-terminal")) {
+        proto_terminal_on_submit = 1;
+        uint8_t buf[8];
+        if (edpt_sync(1, 1, buf, sizeof(buf), NULL) || submissions != 1 || host_tasks) abort();
+        puts("endpoint-proto-submit-terminal"); return 0;
+    } else if (!strcmp(argv[1], "endpoint-proto-task-terminal")) {
+        proto_terminal_on_host_task = 1;
+        uint8_t buf[8];
+        if (edpt_sync(1, 1, buf, sizeof(buf), NULL) || submissions != 1 || host_tasks != 1) abort();
+        puts("endpoint-proto-task-terminal"); return 0;
     } else if (!strcmp(argv[1], "endpoint-valid")) {
         uint8_t buf[8]; uint32_t got = 0;
         if (!edpt_sync(1, 1, buf, sizeof(buf), &got) || got != 8) abort();
@@ -222,12 +243,18 @@ int main(int argc, char **argv) {
         fm1_pio_host_task();
         if (host_tasks != 1 || probe_calls || device_reads) abort();
         puts("task-dispatch-terminal"); return 0;
+    } else if (!strcmp(argv[1], "task-proto-dispatch-terminal")) {
+        proto_terminal_on_host_task = 1;
+        probe_pending = true;
+        fm1_pio_host_task();
+        if (host_tasks != 1 || probe_calls || device_reads) abort();
+        puts("task-proto-dispatch-terminal"); return 0;
     } else return 2;
 
     bool ok = probe_descriptors(1);
     if (!strcmp(argv[1], "valid")) {
         if (!ok || endpoint_opens != 2) abort();
-    } else if (ok || endpoint_opens > (terminal_at == 4 ? 1 : 0)) {
+    } else if (ok || endpoint_opens > ((terminal_at == 4 || proto_terminal_at == 4) ? 1 : 0)) {
         fprintf(stderr, "unexpected descriptor acceptance: ok=%d opens=%d\n",
                 ok, endpoint_opens);
         abort();

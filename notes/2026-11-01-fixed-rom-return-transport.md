@@ -74,9 +74,12 @@ source accepted forged short interface/endpoint records and opened both bulk
 endpoints; the corrected source refuses them before endpoint submission.
 
 On terminal state the strict core-1 task stops calling TinyUSB's host task,
-and transfer/probe hooks recheck the sticky state before later stages. An
-already submitted transfer may still complete or time out, and PIO/USB
-electrical signaling is not proven silent. The later actual target build
+and transfer/probe hooks recheck both the core-1 host state and a synchronized
+core-0 protocol-terminal snapshot before later stages. A protocol terminal
+detected during host task dispatch is mirrored before descriptor work begins.
+The boundary check or claim can precede a concurrent terminal, so an already
+submitted transfer may still complete or time out; PIO/USB electrical
+signaling is not proven silent. The later actual target build
 must retain its ELF, map, disassembly, symbols, compile commands, cache and
 UF2 in one owned output for independent inspection before stage cleanup.
 
