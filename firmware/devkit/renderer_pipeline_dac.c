@@ -32,10 +32,13 @@ static struct { uint64_t p,c; uint32_t count,pmax,cmax,plate,clate; } service[4]
 static struct {
     volatile uint32_t fault,next,callbacks,drain,hash,case_hash[4],cases_checked,case_fold;
     volatile uint32_t cb_max,irq_max,gap_max,late,gaps,previous,ready_min;
+    volatile uint32_t ready_running_min,ready_running_samples;
     volatile uint32_t last_pcm_ticks, zero_drain_ticks, idle, idle_callbacks;
     uintptr_t base;
 } transport;
-static uint32_t produced,harvested;
+/* CPU0 task writes; its DAC IRQ samples the completed-producer count. */
+static volatile uint32_t produced;
+static uint32_t harvested;
 #include "renderer_pipeline_preroll.h"
 static volatile uint32_t preroll_phase,preroll_zeros;
 static uint32_t preroll_ms;
@@ -70,6 +73,17 @@ static uint32_t worst_reps, worst_mark_ticks, worst_observe_ticks;
 #ifdef LUNAR_PIPELINE_WORST_BLOCK
 void fm1_app_pipeline_mark(unsigned point) { lunar_worst_mark(&worst_marks, point, clock_now()); }
 #endif
+/* Pre-acquire music samples only: the final output drain must not lower the
+   running minimum. Zero samples leaves min=0; the count disambiguates it from
+   an observed empty queue. Includes the slot about to be acquired, not DMA. */
+static void observe_ready103(unsigned ready) {
+    if(ready<transport.ready_min)transport.ready_min=ready;
+    if(produced<TOTAL) {
+        if(!transport.ready_running_samples || ready<transport.ready_running_min)
+            transport.ready_running_min=ready;
+        ++transport.ready_running_samples;
+    }
+}
 static void copy_output(u8 *data,int len) {
     const int16_t *pcm=0;const lunar_pipeline_result_t *r=0;
     uint32_t tag=transport.next,hash=transport.hash;
@@ -86,7 +100,7 @@ static void copy_output(u8 *data,int len) {
     /* Each tag maps to its fixed DMA window, including the three prefills. */
     if((uintptr_t)data-transport.base!=(tag%3u)*512u){fault_silence(data,len,10303);return;}
     unsigned ready=lunar_pipeline_ready_outputs();
-    if(ready<transport.ready_min)transport.ready_min=ready;
+    observe_ready103(ready);
     if(lunar_pipeline_output_acquire(tag,&pcm,&r)!=1){fault_silence(data,len,10304);return;}
     if(!r||r->tag!=tag||r->case_index!=(tag/CASE_BLOCKS)%4u||r->case_block!=tag%CASE_BLOCKS||
        r->case_total!=tag+1||r->invalid||r->clipped){fault_silence(data,len,10305);return;}
@@ -351,9 +365,9 @@ int lunar_pipeline_dac_run(uint32_t (*now)(void)) {
     printf("LUNAR_DRAIN175 observations=%u seen=%u protocol_ticks_unchanged=1\n",drain_progress,observed_drain);
     fence103();
     while(harvested<produced&&!transport.fault&&!lunar_pipeline_error())if(harvest103()<0)break;
-    printf("LUNAR_DAC103 end=1 produced=%u harvested=%u submitted=%u callbacks=%u drain=%u fault=%u backend=%u off=%d close=%d cb_max=%u irq_max=%u gap_max=%u late=%u gaps=%u ready_min=%u parent_unused=%u\n",
+    printf("LUNAR_DAC103 end=1 produced=%u harvested=%u submitted=%u callbacks=%u drain=%u fault=%u backend=%u off=%d close=%d cb_max=%u irq_max=%u gap_max=%u late=%u gaps=%u ready_min=%u ready_running_min=%u ready_running_samples=%u parent_unused=%u\n",
       produced,harvested,transport.next,transport.callbacks,transport.drain,transport.fault,lunar_pipeline_error(),off,closed,
-      transport.cb_max,transport.irq_max,transport.gap_max,transport.late,transport.gaps,transport.ready_min,(unsigned)uxTaskGetStackHighWaterMark(NULL));
+      transport.cb_max,transport.irq_max,transport.gap_max,transport.late,transport.gaps,transport.ready_min,transport.ready_running_min,transport.ready_running_samples,(unsigned)uxTaskGetStackHighWaterMark(NULL));
     for(unsigned c=0;c<4;++c)printf("LUNAR_DAC103_CASE case=%u blocks=%u hash=%08x p_mean=%u p_max=%u p_late=%u c_mean=%u c_max=%u c_late=%u\n",
       c,service[c].count,transport.case_hash[c],service[c].count?(unsigned)(service[c].p/service[c].count):0,service[c].pmax,service[c].plate,
       service[c].count?(unsigned)(service[c].c/service[c].count):0,service[c].cmax,service[c].clate);

@@ -302,3 +302,95 @@ def test_buffered_summary_refuses_an_unexplained_firmware_failure():
     assert not b['firmware_failure_is_per_block_deadline_only'] and not b['pass_soak_receipts']
     clean = result_parser.parse(soak_receipts(p_late=(0, 0, 0, 0), failure_line=''), 320)['buffered']
     assert clean['firmware_failure_line'] is None and clean['pass_soak_receipts']
+
+
+@pytest.mark.parametrize('sanitize', [False, True])
+def test_running_queue_minimum_excludes_drain(tmp_path, sanitize):
+    """Execute the firmware observer against playback/drain queue traces."""
+    source = (ROOT/'firmware/devkit/renderer_pipeline_dac.c').read_text()
+    begin = source.index('static void observe_ready103(')
+    observer = source[begin:source.index('\n}', begin) + 2]
+    harness = tmp_path/'queue-margin.c'
+    harness.write_text('''#include <assert.h>
+#include <stdint.h>
+#define TOTAL 100u
+static volatile uint32_t produced;
+static struct { volatile uint32_t ready_min,ready_running_min,ready_running_samples; } transport;
+''' + observer + '''
+int main(void) {
+    transport.ready_min=8;
+    /* No live producer: a drain-only trace must not invent a running sample. */
+    produced=TOTAL;
+    observe_ready103(4);observe_ready103(1);
+    assert(transport.ready_min==1);
+    assert(transport.ready_running_min==0 && transport.ready_running_samples==0);
+    /* Live queue has margin, then the producer completes and the queue drains. */
+    transport.ready_min=8;
+    produced=8;observe_ready103(8);
+    produced=50;observe_ready103(5);
+    produced=TOTAL-1;observe_ready103(3);
+    produced=TOTAL;observe_ready103(2);observe_ready103(1);
+    assert(transport.ready_min==1);
+    assert(transport.ready_running_min==3 && transport.ready_running_samples==3);
+    /* A genuine running starvation remains distinguishable from no samples. */
+    produced=TOTAL-1;observe_ready103(0);
+    assert(transport.ready_min==0);
+    assert(transport.ready_running_min==0 && transport.ready_running_samples==4);
+    return 0;
+}
+''')
+    exe = tmp_path/'queue-margin'
+    flags = ['-fsanitize=address,undefined', '-fno-omit-frame-pointer'] if sanitize else []
+    subprocess.run([compiler(), '-std=c99', '-O2', '-Wall', '-Wextra', '-Werror', *flags,
+                    str(harness), '-o', str(exe)], check=True)
+    subprocess.run([str(exe)], check=True, timeout=10)
+    # Observe exactly where the original ready_min sampled: after preroll and
+    # completed-output checks, before acquire can fail on a genuinely empty queue.
+    copy = source[source.index('static void copy_output('):source.index('static void fill103(')]
+    assert copy.index('if(!music)') < copy.index('if(tag==TOTAL)') < copy.index('observe_ready103(ready)')
+    assert copy.index('observe_ready103(ready)') < copy.index('lunar_pipeline_output_acquire(')
+
+
+def running_receipts(minimum, samples):
+    return soak_receipts().replace('ready_min=1 parent_unused=',
+                                   f'ready_min=1 ready_running_min={minimum} '
+                                   f'ready_running_samples={samples} parent_unused=')
+
+
+def test_parser_reports_running_margin_without_reinterpreting_old_minimum():
+    old = result_parser.parse(soak_receipts(), 320)['buffered']
+    new = result_parser.parse(running_receipts(3, 1256957), 320)['buffered']
+    q = new['queue_latency']
+    assert q['running_min_ready_slots'] == 3 and q['running_min_margin_ms'] == 4.35
+    assert q['running_samples'] == 1256957
+    assert q['min_ready_slots'] == 1 and q['min_margin_ms'] == 1.45
+    assert not any(k.startswith('running_') for k in old['queue_latency'])
+    assert new['pass_soak_receipts'] == old['pass_soak_receipts']
+
+
+def test_parser_running_margin_no_sample_is_unknown():
+    q = result_parser.parse(running_receipts(0, 0), 320)['buffered']['queue_latency']
+    assert q['running_samples'] == 0
+    assert q['running_min_ready_slots'] is None and q['running_min_margin_ms'] is None
+    empty = result_parser.parse(running_receipts(0, 1), 320)['buffered']['queue_latency']
+    assert empty['running_min_ready_slots'] == 0 and empty['running_min_margin_ms'] == 0
+
+
+@pytest.mark.parametrize('minimum,samples', [(9, 2), (-1, 1), (3, -1), (3, 0), ('bad', 1), (3, 'bad')])
+def test_parser_refuses_invalid_running_margin(minimum, samples):
+    with pytest.raises(ValueError, match='running queue'):
+        result_parser.parse(running_receipts(minimum, samples), 320)
+
+
+def test_parser_refuses_partial_running_margin():
+    text = running_receipts(3, 7).replace(' ready_running_samples=7', '')
+    with pytest.raises(ValueError, match='min and samples'):
+        result_parser.parse(text, 320)
+
+
+def test_parser_joins_split_running_queue_fields():
+    text = running_receipts(3, 1256957)
+    split = text.replace(' ready_running_min=3 ready_running_samples=1256957',
+                         '\n[00:30:24.001] ready_running_min=3'
+                         '\n[00:30:24.002] ready_running_samples=1256957')
+    assert result_parser.parse(split, 320) == result_parser.parse(text, 320)
