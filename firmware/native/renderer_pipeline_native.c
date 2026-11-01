@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: MIT.
  * Real common-core adapter with a permanent, one-shot launch handshake.
  * No SDK code, launch register recipe or primary/secondary IRQ initializer.
- * The only executable concurrent backend in this slice is the atomic host test.
+ * Production execution remains disabled. A separate offline stock-SPL candidate
+ * has explicit compile access only; host tests use atomic words and mocked HW.
  */
 #include "renderer_pipeline_native.h"
 #if defined(LUNAR_NATIVE_PIPELINE_ENABLE) && LUNAR_NATIVE_PIPELINE_ENABLE

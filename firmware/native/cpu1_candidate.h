@@ -41,7 +41,7 @@ typedef struct {
  int (*registers)(void *,cpu1_registers *);
 } cpu1_ops;
 typedef struct {
- uint32_t entry,exception,unexpected,user_lo,user_hi,super_lo,super_hi;
+ uint32_t entry,exception,unexpected,user_lo,user_hi,super_lo,super_hi,fault_lo,fault_hi;
  uint32_t executable_lo,executable_hi,nonce;
 } cpu1_layout;
 typedef struct {

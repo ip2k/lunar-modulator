@@ -14,15 +14,15 @@ retry, free, replay, hardware path or callback cancellation.
 stopped ms/failing delay reproduced BOTH start and finish hangs, each killed by
 a one-second external subprocess watchdog. The fixture retains an unentered
 worker for start and blocks the existing stack-report hook before exit for finish.
-After correction, each returns refusal after one failing delay call; error701
+After correction, each returns refusal after one failing delay call; error 701
 survives later timeout refusal, counts/storage remain retained and no extra
 callback executes. Only the host harness cancels its pthread after assertions.
 
 [verified] Command: PYTHONDONTWRITEBYTECODE=1 primary-project .venv/bin/python
 -m pytest -q -o addopts= -p no:cacheprovider tests/test_devkit_renderer_pipeline.py
---basetemp=scratch/cpu1-candidate-20261101/poison-green. Result: 12 passed in7.40s;
+--basetemp=scratch/cpu1-candidate-20261101/poison-green. Result: 12 passed in 7.40 s;
 24 actual protocol modes through SDK wrapper AND atomic host adapter, normal and
-ASan/UBSan =96 executions, plus build/header checks. Local Apple ASan, no silicon,
+ASan/UBSan = 96 executions, plus build/header checks. Local Apple ASan, no silicon,
 native timing, stalled bus or hung C-call proof. Hooks still must return; poison
 does not forcibly interrupt a callback or make memory reusable.
 

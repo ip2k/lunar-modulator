@@ -50,7 +50,7 @@ void lunar_cpu1_candidate_cstart(uint32_t boot_argument,uint32_t early_debug) {
     lunar_cpu1_candidate_evidence.phase=2;
     if(!lunar_pipeline_native_start(lunar_cpu1_candidate_ticks))terminal(2);
     lunar_cpu1_candidate_evidence.phase=3;
-    if(!lunar_pipeline_bind(&work[0],&work[1],consume,retire))terminal(3);
+    if(lunar_pipeline_bind(&work[0],&work[1],consume,retire)!=1)terminal(3);
     for(uint32_t tag=0;tag<24u;++tag) {
         void *arena=0;const int16_t *pcm=0;const lunar_pipeline_result_t *result=0;
         lunar_pipeline_completion_t completion;

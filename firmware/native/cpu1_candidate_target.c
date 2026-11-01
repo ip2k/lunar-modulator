@@ -15,9 +15,11 @@ typedef struct {
 raw_fault lunar_cpu1_raw_fault[2] __attribute__((section(".candidate_fault"),aligned(64)));
 _Static_assert(sizeof(raw_fault)==64,"assembly raw-fault stride");
 extern uint32_t _cpu1_user_lo[],_cpu1_user_top[],_cpu1_super_lo[],_cpu1_super_top[];
+extern uint32_t _cpu1_fault_lo[],_cpu1_fault_top[];
 extern uint32_t _cpu1_guard_lo[],_cpu1_guard_middle[],_cpu1_guard_hi[];
 extern uint32_t _cpu0_guard_lo[],_cpu0_guard_middle[],_cpu0_guard_hi[];
 extern uint32_t _cpu0_fault_guard[],_cpu1_fault_guard[];
+extern uint32_t _cpu0_user_lo[],_cpu0_fault_top[];
 extern uint32_t _candidate_text_lo[],_candidate_text_hi[];
 extern void lunar_cpu1_entry(void),lunar_cpu1_exception(void),lunar_cpu1_unexpected(void);
 
@@ -57,7 +59,7 @@ int lunar_cpu1_candidate_target_early_hold(uint32_t *prior_debug) {
 static void mark(uint32_t *lo,uint32_t *hi) {
     while(lo<hi)*lo++=CPU1_CANDIDATE_MARK;
 }
-static int guard(const uint32_t *lo) {
+static int guard(const volatile uint32_t *lo) {
     for(unsigned i=0;i<16;++i)if(lo[i]!=CPU1_CANDIDATE_MARK)return 0;
     return 1;
 }
@@ -78,12 +80,23 @@ int lunar_cpu1_candidate_target_prepare(void) {
         (uint32_t)(uintptr_t)lunar_cpu1_unexpected,
         (uint32_t)(uintptr_t)_cpu1_user_lo,(uint32_t)(uintptr_t)_cpu1_user_top,
         (uint32_t)(uintptr_t)_cpu1_super_lo,(uint32_t)(uintptr_t)_cpu1_super_top,
+        (uint32_t)(uintptr_t)_cpu1_fault_lo,(uint32_t)(uintptr_t)_cpu1_fault_top,
         (uint32_t)(uintptr_t)_candidate_text_lo,(uint32_t)(uintptr_t)_candidate_text_hi,
         lunar_cpu1_candidate_ticks()^0xc101b007u
     };
     if(!layout.nonce)layout.nonce=1;
     if(!cpu1_candidate_prepare(&lunar_cpu1_candidate,&target_ops,&layout) ||
        !cpu1_candidate_install_vectors(&lunar_cpu1_candidate))return 0;
+    /* Explicit CPU0 outer stack window includes its emergency fault stack.
+     * As on CPU1, gaps/canaries separate stacks in software; this combined
+     * hardware window does not prove isolation between the three stacks. */
+    uint32_t emu=*(volatile uint32_t *)0x01eef0d0u;
+    *(volatile uint32_t *)0x01eef0d8u=(uint32_t)(uintptr_t)_cpu0_fault_top-1u;
+    *(volatile uint32_t *)0x01eef0dcu=(uint32_t)(uintptr_t)_cpu0_user_lo;
+    *(volatile uint32_t *)0x01eef0e0u=(uint32_t)(uintptr_t)_cpu0_fault_top-1u;
+    *(volatile uint32_t *)0x01eef0e4u=(uint32_t)(uintptr_t)_cpu0_user_lo;
+    *(volatile uint32_t *)0x01eef0d0u=(emu&~((1u<<2)|(31u<<16)))|8u;
+    target_fence(0);
     return lunar_pipeline_native_primary_irq_ready();
 }
 int lunar_cpu1_candidate_target_setup(void) {

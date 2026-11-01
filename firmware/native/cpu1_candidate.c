@@ -54,8 +54,8 @@ int cpu1_candidate_prepare(cpu1_candidate *s,const cpu1_ops *o,const cpu1_layout
     ((l->entry|l->exception|l->unexpected)&1u) ||
     l->user_lo<0x01c08000u || l->user_hi<=l->user_lo ||
     l->super_lo<l->user_hi || l->super_hi<=l->super_lo ||
-    l->super_hi>0x01c7fd50u ||
-    ((l->user_lo|l->user_hi|l->super_lo|l->super_hi)&7u))return fail(s);
+    l->fault_lo<l->super_hi || l->fault_hi<=l->fault_lo || l->fault_hi>0x01c7fd50u ||
+    ((l->user_lo|l->user_hi|l->super_lo|l->super_hi|l->fault_lo|l->fault_hi)&7u))return fail(s);
  s->layout=*l;
  uint32_t now=o->ticks(o->context);
  for(unsigned i=0;i<2;++i){s->clocks[i].last=now;s->clocks[i].ms=0;s->clocks[i].remainder=0;}
@@ -167,8 +167,8 @@ int cpu1_candidate_worker_setup(cpu1_candidate *s){
     r.ssp<s->layout.super_lo || r.ssp>s->layout.super_hi)return fail(s);
  uint32_t emu;
  if(!rd(o,C1_EMU_CON,&emu) ||
-    !wr(o,C1_SSP_H,s->layout.super_hi-1u) || !wr(o,C1_SSP_L,s->layout.user_lo) ||
-    !wr(o,C1_USP_H,s->layout.super_hi-1u) || !wr(o,C1_USP_L,s->layout.user_lo) ||
+    !wr(o,C1_SSP_H,s->layout.fault_hi-1u) || !wr(o,C1_SSP_L,s->layout.user_lo) ||
+    !wr(o,C1_USP_H,s->layout.fault_hi-1u) || !wr(o,C1_USP_L,s->layout.user_lo) ||
     !wr(o,C1_EMU_CON,(emu&~((1u<<2)|(31u<<16)))|8u))return fail(s);
  sync(o);s->setup_nonce=s->layout.nonce;sync(o);return 1;
 }

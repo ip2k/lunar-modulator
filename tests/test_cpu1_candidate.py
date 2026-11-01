@@ -13,6 +13,7 @@ MODES = ["stream", "clock", "nested_irq", "frozen_clock", "fault_records",
 MODES += [f"write_{kind}_{i}" for kind in ("a", "n") for i in range(1, 65)]
 MODES += [f"read_{i}" for i in range(1, 45)]
 MODES += [f"vector_{kind}_{i}" for kind in ("a", "n") for i in range(1, 167)]
+MODES += [f"invalid_{i}" for i in range(12)]
 
 @pytest.mark.parametrize("sanitize", [False, True])
 def test_actual_candidate(tmp_path, sanitize):

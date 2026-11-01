@@ -82,7 +82,8 @@ static void initialize(void){
  poke(C1_PC_H0,0x02070000u);poke(C1_PC_L0,0x02000120u);
  poke(C1_PC_H1,0x01c73000u);poke(C1_PC_L1,0x01c08000u);
  cpu1_layout l={0x02001000u,0x02002000u,0x02003000u,
-  0x01c10000u,0x01c12000u,0x01c13000u,0x01c14000u,0x02000120u,0x02080000u,0x1234567u};
+  0x01c10000u,0x01c12000u,0x01c13000u,0x01c14000u,0x01c15000u,0x01c15400u,
+  0x02000120u,0x02080000u,0x1234567u};
  assert(cpu1_candidate_prepare(&candidate,&ops,&l));
 }
 static void restored(void){
@@ -158,8 +159,27 @@ int main(int argc,char **argv){
   assert(!writes && !releases);goto done;
  }
  if(!strcmp(mode,"early_hold")){
+  poke(C1_DBG_MSG,0x003f1234u);uint32_t prior=0;
+  assert(cpu1_candidate_early_hold_record(&ops,&prior));assert(prior==0x003f1234u);
   assert(cpu1_candidate_early_hold(&ops));assert(peek(C1_CON)==2u);
   assert(peek(C1_DBG_EN)==0x003f0040u && !peek(C1_ACCESS));goto done;
+ }
+ if(!strncmp(mode,"invalid_",8)){
+  static cpu1_candidate invalid;cpu1_layout l=candidate.layout;
+  unsigned which=(unsigned)strtoul(mode+8,NULL,10);
+  if(which==0)l.nonce=0;
+  if(which==1)l.entry=l.executable_hi;
+  if(which==2)l.exception=l.executable_lo-2u;
+  if(which==3)l.unexpected|=1u;
+  if(which==4)l.user_lo=0x01c07ff8u;
+  if(which==5)l.user_hi=l.user_lo;
+  if(which==6)l.super_lo=l.user_hi-8u;
+  if(which==7)l.super_hi=l.super_lo;
+  if(which==8)l.fault_lo=l.super_hi-8u;
+  if(which==9)l.fault_hi=l.fault_lo;
+  if(which==10)l.fault_hi=0x01c7fd58u;
+  if(which==11)l.fault_lo|=4u;
+  assert(!cpu1_candidate_prepare(&invalid,&ops,&l));assert(invalid.failed && !writes && !releases);goto done;
  }
  if(!strncmp(mode,"vector_",7)){
   ambiguous_write=mode[7]=='a';fail_write_at=(unsigned)strtoul(mode+9,NULL,10);
