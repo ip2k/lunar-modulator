@@ -365,9 +365,11 @@ class DockerJobAdapter:
             if build_id in self.jobs:
                 self.semaphore.release()
                 raise ValueError("duplicate build ID")
+            created_base = False
             try:
                 base = self.config.runtime_root / build_id
                 base.mkdir(mode=0o700)
+                created_base = True
                 request_dir = base / "input"
                 result_dir = base / "result"
                 request_dir.mkdir(mode=0o700)
@@ -421,7 +423,7 @@ class DockerJobAdapter:
                     separators=(",", ":")).encode("ascii"))
                 os.chmod(binding_path, 0o400)
             except Exception:
-                if "base" in locals():
+                if created_base:
                     shutil.rmtree(base, ignore_errors=True)
                 self.semaphore.release()
                 raise

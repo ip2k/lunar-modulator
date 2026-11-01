@@ -570,12 +570,12 @@ def test_wrong_selector_hook_receipt_is_refused():
     assert c.get(accepted.json()["status_url"]).status_code == 502
 
 
-def test_song_diagnostic_runtime_receipt_is_accepted():
+def test_d9000_request_rejects_a_different_canonical_runtime_receipt():
     c, adapter = client()
     accepted = accept_and_succeed(
         c, adapter,
         lambda receipt: receipt.update(runtime_configuration=runtime_configuration("song-diagnostic")))
-    assert c.get(accepted.json()["status_url"]).status_code == 200
+    assert c.get(accepted.json()["status_url"]).status_code == 502
 
 
 @pytest.mark.parametrize("mutation", [
@@ -817,6 +817,11 @@ def test_actual_retained_controller_receipt_through_testclient():
     assert hashlib.sha256(request_bytes).hexdigest() == req_sha
     adapter.succeed(build_id, app_bytes, json.dumps(receipt).encode(), elf)
     response = client.get(accepted.json()["status_url"])
+    if request.get("runtime_mode", "diagnostic") != runtime["runtime_mode"]:
+        # Historical D9000 fixtures may carry a different, valid bounded runtime;
+        # a valid receipt still cannot override the admitted request.
+        assert response.status_code == 502, response.text
+        return
     assert response.status_code == 200, response.text
     assert response.json()["result"]["artifact_sha256"] == hashlib.sha256(app_bytes).hexdigest()
 
@@ -1443,3 +1448,37 @@ def test_fastapi_lifespan_invokes_adapter_shutdown():
         assert adapter.jobs
     assert adapter.did_shutdown
     assert not adapter.jobs and not adapter.submissions
+
+
+@pytest.mark.parametrize("existing", ["directory", "file", "symlink"])
+def test_submit_collision_preserves_preexisting_recovery_data_and_capacity(tmp_path, existing):
+    adapter, _build_id, _base = _docker_lifecycle_adapter(tmp_path)
+    adapter.semaphore.release()  # The fixture reserves a fake queued job.
+    adapter.jobs.clear()
+    template = WorkerTemplate(adapter.config.image_reference, "private-test")
+    collision_id = "C" * 32
+    collision = adapter.config.runtime_root / collision_id
+    outside = tmp_path / "preserved"
+    outside.mkdir()
+    sentinel = outside / "sentinel"
+    sentinel.write_bytes(b"owner recovery evidence")
+    if existing == "directory":
+        collision.mkdir()
+        (collision / "sentinel").write_bytes(b"preexisting recovery evidence")
+    elif existing == "file":
+        collision.write_bytes(b"preexisting recovery evidence")
+    else:
+        collision.symlink_to(outside, target_is_directory=True)
+    request = canonical_request(request_doc())
+    with pytest.raises(FileExistsError):
+        adapter.submit(collision_id, request, hashlib.sha256(request).hexdigest(), template)
+    assert sentinel.read_bytes() == b"owner recovery evidence"
+    if existing == "directory":
+        assert (collision / "sentinel").read_bytes() == b"preexisting recovery evidence"
+    elif existing == "file":
+        assert collision.read_bytes() == b"preexisting recovery evidence"
+    else:
+        assert collision.is_symlink()
+    assert collision_id not in adapter.jobs and collision_id not in adapter.job_dirs
+    assert adapter.semaphore.acquire(blocking=False)
+    adapter.semaphore.release()
