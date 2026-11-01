@@ -1230,7 +1230,21 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   const int snd = unit_sound(unit);
   fm1_kind_t want = snd >= 0 ? FM1_KIND_SOUND : FM1_KIND_AUDIO_FX;
   if (index == -1 && unit > 0) {
-    if (snd >= 0) release_sound(a, snd);
+    if (snd >= 0) {
+      release_sound(a, snd);
+      /* An empty sound has no saved insert chain. Release its live inserts
+       * with their modulation, FX page and editor notices too. Replacing
+       * a sound engine below still retains its chain. */
+      for (int slot = 0; slot < FM1_APP_INSERTS; ++slot) {
+        const int insert = fm1_app_insert_unit(snd, slot);
+        const fm1_engine_t *insert_from = a->unit[insert].e;
+        if (!insert_from) continue;
+        release(&a->unit[insert]);
+        mod_rebind(a, insert, insert_from);
+        fx_unit_changed(a, insert);
+        fm1_edit_note_unit(a, insert);
+      }
+    }
     release(u);
     mod_rebind(a, unit, from);
     if (snd < 0 && fx_unit_at(a, a->fx_slot) == unit) a->fx_page = 0;   /* an empty slot has one page */

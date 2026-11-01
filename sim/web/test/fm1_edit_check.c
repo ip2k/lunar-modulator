@@ -546,42 +546,53 @@ static void check_sound_restore(void) {
   fm1_app_load_opts_t o;
   fm1_state_report_t r;
   fm1_mod_slot_t cable, got;
-  fresh(44118.0f);
-  CHECK(fm1_app_select(&g_a, fm1_app_sound_unit(1), fm1_app_find("macro")) == 0);
-  memset(&cable, 0, sizeof cable);
-  cable.src = FM1_MOD_SRC_MODULE; cable.via = FM1_MOD_NONE;
-  cable.dst_unit = (uint8_t)fm1_mod_sound_unit(1); cable.dst = 2;
-  cable.flags = FM1_MOD_SLOT_ON; cable.amount = 1000;
-  CHECK(fm1_mod_set_slot(g_a.mod, 0, &cable));
-  CHECK(fm1_app_state_save(&g_a, FM1_STATE_SOUND, 1, 1, fm1_edit_check_put, &len, &r));
-  CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
-  mem.b = buf; mem.n = len;
-  fm1_app_load_opts_init(&o); o.into = 1;
-  o.flags = FM1_APP_LOAD_QUIET | FM1_APP_LOAD_RESTORE_SOUND;
-  for (unsigned n = 0; n < 12; ++n) {
-    unsigned modules = 0, cables = 0;
-    CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
-    for (unsigned i = 0; i < FM1_MOD_POSITIONS; ++i) modules += fm1_mod_kind_at(g_a.mod, i) >= 0;
-    for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
-      CHECK(fm1_mod_get_slot(g_a.mod, i, &got)); cables += got.dst != 0;
+  static const char *engines[] = { "macro",
+#if FM1_WITH_DX7
+    "dx7",
+#endif
+  };
+  for (unsigned engine = 0; engine < sizeof engines / sizeof engines[0]; ++engine) {
+    len = 0;
+    fresh(44118.0f);
+    CHECK(fm1_app_select(&g_a, fm1_app_sound_unit(1), fm1_app_find(engines[engine])) == 0);
+    memset(&cable, 0, sizeof cable);
+    cable.src = FM1_MOD_SRC_MODULE; cable.via = FM1_MOD_NONE;
+    cable.dst_unit = (uint8_t)fm1_mod_sound_unit(1); cable.dst = 2;
+    cable.flags = FM1_MOD_SLOT_ON; cable.amount = 1000;
+    CHECK(fm1_mod_set_slot(g_a.mod, 0, &cable));
+    CHECK(fm1_app_state_save(&g_a, FM1_STATE_SOUND, 1, 1, fm1_edit_check_put, &len, &r));
+    CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
+    mem.b = buf; mem.n = len;
+    fm1_app_load_opts_init(&o); o.into = 1;
+    o.flags = FM1_APP_LOAD_QUIET | FM1_APP_LOAD_RESTORE_SOUND;
+    fm1_app_unit_note_on(&g_a, 1, 60, 100);
+    for (unsigned n = 0; n < 12; ++n) {
+      unsigned modules = 0, cables = 0;
+      CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+      for (unsigned i = 0; i < FM1_MOD_POSITIONS; ++i) modules += fm1_mod_kind_at(g_a.mod, i) >= 0;
+      for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+        CHECK(fm1_mod_get_slot(g_a.mod, i, &got)); cables += got.dst != 0;
+      }
+      CHECK(modules == 5 && cables == 1);
+      CHECK(g_a.note_count[1][60] == 1);
+      CHECK(fm1_mod_get_slot(g_a.mod, 0, &got) && got.src == cable.src && got.amount == cable.amount);
+      render(4);
     }
-    CHECK(modules == 5 && cables == 1);
-    CHECK(fm1_mod_get_slot(g_a.mod, 0, &got) && got.src == cable.src && got.amount == cable.amount);
-    render(4);
+    /* A changed shared source must not be overwritten by a sound restore. */
+    cable.dst_unit = FM1_MOD_SOUND;
+    CHECK(fm1_mod_set_slot(g_a.mod, 1, &cable));
+    CHECK(fm1_mod_set_param(g_a.mod, 0, 0, fm1_mod_param_base(g_a.mod, 0, 0) + 0.1f));
+    {
+      const uint32_t hash = fm1_edit_state_hash(&g_a);
+      CHECK(!fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+      CHECK(rep.r.code == FM1_STATE_NO_ROOM && fm1_edit_state_hash(&g_a) == hash);
+    }
+    /* An ordinary external import still remaps instead of replacing identities. */
+    o.flags = FM1_APP_LOAD_QUIET;
+    CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+    CHECK(fm1_mod_kind_at(g_a.mod, 5) >= 0);
+    CHECK(!g_a.note_count[1][60]);
   }
-  /* A changed shared source must not be overwritten by a sound restore. */
-  cable.dst_unit = FM1_MOD_SOUND;
-  CHECK(fm1_mod_set_slot(g_a.mod, 1, &cable));
-  CHECK(fm1_mod_set_param(g_a.mod, 0, 0, fm1_mod_param_base(g_a.mod, 0, 0) + 0.1f));
-  {
-    const uint32_t hash = fm1_edit_state_hash(&g_a);
-    CHECK(!fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
-    CHECK(rep.r.code == FM1_STATE_NO_ROOM && fm1_edit_state_hash(&g_a) == hash);
-  }
-  /* An ordinary external import still remaps instead of replacing identities. */
-  o.flags = FM1_APP_LOAD_QUIET;
-  CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
-  CHECK(fm1_mod_kind_at(g_a.mod, 5) >= 0);
 }
 
 /* A/B of a complete, unchanged sound is audio transparent: retained voices,
@@ -663,6 +674,20 @@ static void check_sound_restore_audio(void) {
         CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, mem.n, &o, &rep));
         CHECK(fm1_app_get_param(&g_a, 0, 0) == 0.7f);
       }
+#if FM1_WITH_DX7
+      if (restore && c == 3) {
+        /* A genuinely different engine and a sparse FM6 file still recreate. */
+        CHECK(fm1_app_unit_select(&g_a, 0, fm1_app_find("macro")) == 0);
+        fm1_app_unit_note_on(&g_a, 0, 69, 100);
+        CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+        CHECK(g_a.unit[0].e == &g_a.dx7.engine && !g_a.note_count[0][69]);
+        fm1_app_unit_note_on(&g_a, 0, 69, 100);
+        mem.b = (const uint8_t *)"{\"lunar\":\"1.0\",\"kind\":\"sound\",\"sound\":{\"engine\":\"dx7\"}}";
+        mem.n = strlen((const char *)mem.b);
+        CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, mem.n, &o, &rep));
+        CHECK(!g_a.note_count[0][69]);
+      }
+#endif
     }
   }
 }

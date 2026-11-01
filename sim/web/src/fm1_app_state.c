@@ -1157,8 +1157,14 @@ static int plan_finish(plan_t *p) {
     rep->left_out = (uint16_t)(rep->left_out + p->chain_n - 2u);
   }
   if (p->kind == FM1_STATE_SOUND && (flags & FM1_APP_LOAD_RESTORE_SOUND)) {
-    for (int u = 0; u < FM1_APP_UNITS; ++u)
-      p->reuse_unit[u] = (uint8_t)(p->e[u] == a->unit[u].e && complete_params(p->e[u], p->unit_params[u]));
+    for (int u = 0; u < FM1_APP_UNITS; ++u) {
+      /* The live FM6 descriptor owns the user's patch names. Compare its
+       * registry identity without replacing that descriptor or its metadata. */
+      const int index = a->unit[u].index;
+      const fm1_engine_t *identity = a->unit[u].e && index >= 0 && (size_t)index < fm1_engine_count
+          ? fm1_engines[index] : NULL;
+      p->reuse_unit[u] = (uint8_t)(p->e[u] == identity && complete_params(p->e[u], p->unit_params[u]));
+    }
     /* A MIDI effect has note/clock state too. Reuse only an exactly unchanged
      * complete record; changed configuration retains its normal flush. */
     for (int k = 0; k < FM1_APP_SOUNDS; ++k)
