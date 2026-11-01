@@ -224,7 +224,7 @@ def evidence():
         elf_sha256=profile._sha(elf), app_sha256=profile._sha(app), sizes=sizes,
         audit_link=audit([("fixture.elf",image)], [("app.bin",app)],True,
                          sources=trusted.audit_sources,runtime="sdk-free"),
-        audit_limit="synthetic coherence fixture, never target acceptance",
+        audit_limit=profile.AUDIT_LIMIT,
         selected_project=preparation, fixed_project_startup=True, rom_return=False,
         distribution_reviewed=False, linked_blob=dict(sha256=profile.PACKED_SHA256,
             bytes=597,address=sizes["selected_blob"]["address"]),
@@ -263,6 +263,7 @@ def test_synthetic_coherence_never_returns_admission(evidence):
     ("linked_blob", dict(sha256="0"*64,bytes=597,address=0x02000130)),
     ("gpl_sources", {}), ("combined_licence", "MIT"),
     ("installable", True), ("runtime_configuration", {"return_to_rom_seconds":20}),
+    ("audit_limit", "complete hardware safety proved"),
 ])
 def test_receipt_mutations_refuse(evidence, field, value):
     evidence[0][field] = value
