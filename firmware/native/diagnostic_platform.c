@@ -2,7 +2,7 @@
  * New bounded adapter over Dinghy's GPL base HAL. No updater, settings,
  * reset/UBOOT, USB commands, SDK calls or CPU1 backend are included. */
 #include <stdint.h>
-#include "diagnostic_app.h"
+#include "diagnostic_api.h"
 #include "fm1_time.h"
 #include "fm1_irq.h"
 #include "fm1_input.h"
@@ -30,7 +30,7 @@ void fm1_alnk0_irq(void) {
     /* Preserve IRQ state while draining encoder deltas. The upstream
      * fm1_enc_take helper unconditionally enables IRQs, so it is not used
      * from this ISR. Timer5 can resume before app mutation/render. */
-    for (unsigned e = 2; e <= 5; ++e) {
+    for (unsigned e = 3; e <= 6; ++e) {
       uint32_t icfg = fm1_icfg();
       fm1_irq_off();
       int delta = fm1_in.enc_steps[e];

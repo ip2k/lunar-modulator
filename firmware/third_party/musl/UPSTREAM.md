@@ -52,3 +52,5 @@ application uses the ordinary predicates. Classifier checks span every float
 exponent, both signs and selected mantissas; atoi checks remain within the
 standard's representable result domain. Signed-zero tests now reject opposite
 signs before applying a tolerance. Individual source bytes remain unchanged.
+
+[verified: source and target map, 2026-11-01] This diagnostic selection retains 30 C units contributing allocated target sections. Earlier evaluation counts above describe the historical larger subset. No function bodies are changed.
