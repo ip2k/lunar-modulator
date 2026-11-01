@@ -20,7 +20,8 @@ published PCM or zeroes; it cannot render/apply/draw. Startup loads the generate
 hash-bound fixed project, initializes the scanner, publishes the first actual
 64-frame block, then calls injected audio-start before exposing either simulated
 IRQ. Existing native rate 44,118 Hz, Q15 conversion followed once by x128, fixed
-velocity 100 and visual divisor 1470 remain explicit in the oracle.
+velocity 100 and draw min_frames argument 1470 remain explicit in the oracle.
+The app's separate FM1_APP_VISUAL_DIVISOR behavior remains unchanged.
 
 [verified] Accepted scanner hooks default to no-op. They preserve the existing
 Dinghy decoder, debounce and aggregate state while recording chronological key
