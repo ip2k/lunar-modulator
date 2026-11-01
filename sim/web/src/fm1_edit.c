@@ -1073,8 +1073,11 @@ int fm1_edit_parse_text(const char *line, uint8_t out[FM1_EDIT_REC_BYTES]) {
     r.u.param.bits = fbits(f);
     for (int k = 6; k < n; ++k) {
       if (strcmp(w[k], "index") == 0) {
+        /* Keep finite negatives as the invalid-index sentinel and truncate
+         * finite fractions. 2^32 is exclusive: (float)UINT32_MAX rounds up. */
+        if (!isfinite(f) || f >= 4294967296.0f) return 0;
         r.u.param.vtype = FM1_VAL_INDEX;
-        r.u.param.bits = (uint32_t)(f < 0.0f ? 0xFFFFFFFFu : (uint32_t)f);
+        r.u.param.bits = f < 0.0f ? UINT32_MAX : (uint32_t)f;
       } else if (strncmp(w[k], "focus=", 6) == 0 && num(w[k] + 6, 0, 255, &x[3])) {
         r.u.param.focus = (uint8_t)x[3];
       } else {
@@ -1124,7 +1127,6 @@ void fm1_edit_rec_text(const uint8_t b[FM1_EDIT_REC_BYTES], char *buf, size_t ca
   fm1_rec_t r;
   fm1_edit_verb_t v;
   const int what = fm1_edit_unpack(b, &r, &v);
-  const char *role = r.role < 6 ? kRoles[r.role] : "?";
   if (!cap) return;
   buf[0] = 0;
   if (b[0] == FM1_EDIT_LOADED) {
@@ -1140,6 +1142,7 @@ void fm1_edit_rec_text(const uint8_t b[FM1_EDIT_REC_BYTES], char *buf, size_t ca
                v.role[1] < 6 ? kRoles[v.role[1]] : "?", v.sound[1], v.slot[1]);
     }
   } else if (what == 1) {
+    const char *role = r.role < 6 ? kRoles[r.role] : "?";
     switch (r.type) {
       case FM1_REC_PARAM:
         snprintf(buf, cap, "param %s %u %u %u %.9g%s", role, r.sound, r.slot, r.u.param.uid,
