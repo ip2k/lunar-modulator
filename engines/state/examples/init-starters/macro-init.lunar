@@ -1,0 +1,44 @@
+{
+  "lunar": "1.0",
+  "kind": "project",
+  "made": {"by": "hand"},
+  "name": "MACRO INIT",
+  "title": "Macro Init Starter",
+  "about": "Macro default patch in Sound 1. No sequence or song. Native controls and playback remain unverified.",
+  "licence": "MIT",
+  "sounds": [
+    {
+      "engine": "macro",
+      "params": {
+        "Model": "VA+Filter",
+        "Harmonics": 0.5,
+        "Timbre": 0.5,
+        "Morph": 0.5,
+        "Decay": 0.5,
+        "Colour": 0.5,
+        "Volume": 0.7,
+        "Env Pitch": 0,
+        "Env Timbre": 0,
+        "Env Morph": 0,
+        "LPG": "Gate",
+        "Glide": 100,
+        "Voice Mode": "Poly",
+        "Glide Mode": "Off",
+        "Time Mode": "Time"
+      },
+      "level": 100,
+      "inserts": [
+        null,
+        null
+      ],
+      "midi_fx": []
+    },
+    null,
+    null,
+    null
+  ],
+  "master": [
+    null,
+    null
+  ]
+}

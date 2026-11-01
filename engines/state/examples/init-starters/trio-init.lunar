@@ -1,0 +1,43 @@
+{
+  "lunar": "1.0",
+  "kind": "project",
+  "made": {"by": "hand"},
+  "name": "TRIO INIT",
+  "title": "Trio Init Starter",
+  "about": "Trio default patch in Sound 1. No sequence or song. Native controls and playback remain unverified.",
+  "licence": "MIT",
+  "sounds": [
+    {
+      "engine": "trio",
+      "params": {
+        "Wave": "Saw x3",
+        "Int 2": 0,
+        "Int 3": -12,
+        "Detune": 6,
+        "Mode": "Low-pass",
+        "Cutoff": 1566.45,
+        "Resonance": 31.5,
+        "PW": 50.3937,
+        "Env Amt": 0,
+        "Attack": 2.07,
+        "Decay": 160.2,
+        "Sustain": 70.9,
+        "Release": 77.6,
+        "Volume": 0.7
+      },
+      "level": 100,
+      "inserts": [
+        null,
+        null
+      ],
+      "midi_fx": []
+    },
+    null,
+    null,
+    null
+  ],
+  "master": [
+    null,
+    null
+  ]
+}
