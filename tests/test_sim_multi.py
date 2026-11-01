@@ -165,12 +165,25 @@ def test_fx_mode_walks_the_inserts_mix_and_master(tools):
     s2 = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.05:SEL:0.05",
              "--turn", "0.07:PRESETS:1", "--button", "0.15:FX", "--turn", "0.2:SELECT:-64",
              "--turn", "0.25:ALGORITHM:1", seconds=0.4)
-    assert s2["current"] == 1 and s2["inserts"][1] == ["ensemble", ""] and s2["inserts"][0] == ["", ""]
-    # Immutable lock-event storage leaves insufficient room for Plate here;
-    # ALGORITHM still loads the next fitting insert on the current sound.
-    assert s2["popup"] == ["Plate", "does not fit", need_line(
-        instance_bytes(tools, "macro") + instance_bytes(tools, "shapes") +
-        instance_bytes(tools, "plate", "fx") + FIXED + MIX_BLOCK)]
+    # Macro's instance size differs by host ABI. Use this build's measured
+    # instances and fixed costs to predict whether Plate fits, then check the
+    # app's selected effect, refusal, and reported RAM against that contract.
+    base_ram = (instance_bytes(tools, "macro") + instance_bytes(tools, "shapes") +
+                FIXED + MIX_BLOCK)
+    plate_ram = base_ram + instance_bytes(tools, "plate", "fx")
+    ensemble_ram = base_ram + instance_bytes(tools, "ensemble", "fx")
+    assert ensemble_ram <= BUDGET, "the fallback insert must fit in this target"
+    assert s2["current"] == 1 and s2["inserts"][0] == ["", ""]
+    if plate_ram <= BUDGET:
+        assert s2["inserts"][1] == ["plate", ""]
+        assert s2["ram"] == plate_ram
+        assert s2["popup_list"]["title"] == "S2 insert 1 effect"
+        assert s2["popup"][:2] == ["Empty slot", "Plate"]
+        assert s2.get("popup_tone") != "refuse"
+    else:
+        assert s2["inserts"][1] == ["ensemble", ""]
+        assert s2["popup"] == ["Plate", "does not fit", need_line(plate_ram)]
+        assert s2["ram"] == ensemble_ram
     assert s2["ram"] <= BUDGET
 
 
