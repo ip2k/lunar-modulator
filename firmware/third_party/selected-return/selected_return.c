@@ -4,7 +4,21 @@
  * See UPSTREAM.md. Portable fake or separately guarded unqualified candidate.
  */
 #include "selected_return.h"
+#ifndef __PI32V2__
 #include <stdatomic.h>
+#endif
+
+/* The vendor pi32v2 compiler lowers atomic_signal_fence to an unresolved
+ * __sync_synchronize call. This compiler-only barrier preserves ordering at
+ * every policy boundary; target ICFG/MMIO/publication callbacks separately
+ * retain their explicit csync instructions and memory clobbers. */
+static inline void compiler_fence(void) {
+#ifdef __PI32V2__
+  __asm__ volatile("" ::: "memory");
+#else
+  atomic_signal_fence(memory_order_seq_cst);
+#endif
+}
 
 /* P33 CON 0x13e08 / DAT 0x13e0c source facts. No arbitrary-address API. */
 enum { P33_CS=1u, P33_BUSY=2u, P33_KICK=16u, P33_RTC=256u };
@@ -15,7 +29,7 @@ static void irq_mask(lunar_selected_return_t *s) {
   const lunar_selected_return_io_t *io=s->io;
   uint32_t saved=io->icfg_read(io->context);
   io->icfg_write(io->context,saved&~0x100u);
-  atomic_signal_fence(memory_order_seq_cst);
+  compiler_fence();
 }
 static uint8_t byte(lunar_selected_return_t *s,uint8_t value) {
   const lunar_selected_return_io_t *io=s->io; void *p=io->context;
@@ -50,10 +64,10 @@ static uint32_t p33_begin(lunar_selected_return_t *s) {
   s->p33_owned=1;
   uint32_t saved=s->io->icfg_read(s->io->context);
   s->io->icfg_write(s->io->context,saved&~0x100u);
-  atomic_signal_fence(memory_order_seq_cst); return saved;
+  compiler_fence(); return saved;
 }
 static void p33_end(lunar_selected_return_t *s,uint32_t saved) {
-  atomic_signal_fence(memory_order_seq_cst);
+  compiler_fence();
   s->p33_owned=0;
   s->io->icfg_write(s->io->context,saved); /* exact entry state, never STI */
 }
@@ -127,7 +141,7 @@ int lunar_selected_return_prepare(lunar_selected_return_t *s,
   qualify_timer(s);
   static const uint8_t marker[LUNAR_SR_MAILBOX_BYTES]="usb_update_mode";
   for(unsigned i=0;i<LUNAR_SR_MAILBOX_BYTES;++i) (*io->mailbox)[i]=marker[i];
-  atomic_signal_fence(memory_order_seq_cst);
+  compiler_fence();
   io->mailbox_publish_barrier(io->context);
   for(unsigned i=0;i<LUNAR_SR_MAILBOX_BYTES;++i)
     if((*io->mailbox)[i]!=marker[i]) terminal(s,LUNAR_SR_MAILBOX,0);
