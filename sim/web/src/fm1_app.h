@@ -261,7 +261,7 @@ enum {
  * instance is 32,080 B (Capture included), within the 32,768-byte arena.
  * Commands/events share 272 immutable-target events (9,792 B at 36 B each).
  * Pending command (240 B), UI bound (1,024 B) and click voice (20 B) make
- * 43,156 B of the approved 44 KiB sequencer budget (2026-11-01). Aggregate
+ * 43,156 B of the revised 44 KiB implementation budget. Aggregate
  * native runtime RAM fit is checked separately. The buffer holds the S6
  * measured worst burst of 257 events, including gate note-offs. */
 #define FM1_APP_SEQ_TRACKS 8
