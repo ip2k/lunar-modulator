@@ -51,10 +51,15 @@ compares the selected applier to that app's actual general state loader: all
 14 values, level, info, and a 64-frame PCM block agree. A corrupted CRC and
 five structurally valid but unsupported variants (missing parameter, extra
 info, wrong engine, out-of-range parameter, missing level) refuse before any
-app or arena mutation. The 1-test provisional pytest run passed. Normal CI
-cannot pass this test until the reviewed bounded reader is integrated into
-the branch; after integration, rerun without the provisional environment
-variables. Exact commands and small logs are retained in ignored
+app or arena mutation. A second provisional run used the strict CLI from
+`532eae0187cb221534f91a0c95f49254a436d2cc` (binary SHA-256
+`c06f98336629978d17c06cdd11143e47c0f07eeec2f3ab02e0be4c49d45fb3f4`)
+to prepare the exact 597-byte C blob. The host fixture linked that generated
+symbol and passed its bytes to the applier; the general current-app loader
+consumed the matching binary file. The 1-test provisional pytest run passed.
+Normal CI cannot pass until the reviewed bounded reader and strict packer
+are integrated into the branch; after integration, rerun without provisional
+environment variables. Exact commands and small logs are retained in ignored
 `scratch/selected-project-m1/` while review proceeds.
 
 ## Next dependency
@@ -68,8 +73,8 @@ cleaning its fresh output). The baseline CLI's unstrict `--store` bytes
 independently match the pinned Python container SHA-256; this is format
 evidence only, not a replacement for strict validation. Once the strict
 packer is reviewed and integrated, rerun the builder with exact compiled
-renderer/tool and add a host link test proving the generated symbol is the
-bytes the applier reads. Its receipt records source/export/container/tool
+renderer/tool. The provisional host link test already proves the generated
+symbol is the bytes the applier reads. Its receipt records source/export/container/tool
 hashes and flags native link/RAM, installability, hardware and distribution
 as unproven. A later target builder must add its own toolchain binding and
 resource-fit receipt. Review this source and the native closure before any
