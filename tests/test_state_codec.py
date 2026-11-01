@@ -468,6 +468,38 @@ def test_repairs_and_skips_are_counted(tool, names, name, text, counts):
         assert getattr(rep, k) == v, k
 
 
+@pytest.mark.parametrize("text,count", [
+    (SND % ('"Unison": 1', ""), "skipped"),
+    (SND % ('"Shape": 999', ""), "repaired"),
+])
+def test_strict_pack_refuses_loss_while_default_remains_compatible(tool, tmp_path, text, count):
+    default = tmp_path / "default.lunarbin"
+    strict = tmp_path / "strict.lunarbin"
+    assert run(tool, "pack", "-", "-o", default, data=text.encode()).returncode == 0
+    refused = run(tool, "pack", "-", "--strict", "-o", strict, data=text.encode())
+    assert refused.returncode == 1
+    report = json.loads(refused.stderr.decode().splitlines()[-1])
+    assert report["code"] == "BAD" and report[count] == 1
+    assert "strict pack" in report["what"]
+    assert not strict.exists()
+
+
+def test_strict_pack_preserves_valid_bytes(tool, tmp_path):
+    source = (EXAMPLES / "settings.lunar").read_bytes()  # available in both GPL profiles
+    default = tmp_path / "default.lunarbin"
+    strict = tmp_path / "strict.lunarbin"
+    assert run(tool, "pack", "-", "-o", default, data=source).returncode == 0
+    result = run(tool, "pack", "-", "--strict", "-o", strict, data=source)
+    assert result.returncode == 0, result.stderr.decode()
+    assert strict.read_bytes() == default.read_bytes()
+
+    binary_default = tmp_path / "binary-default.lunarbin"
+    binary_strict = tmp_path / "binary-strict.lunarbin"
+    assert run(tool, "pack", default, "-o", binary_default).returncode == 0
+    assert run(tool, "pack", default, "--strict", "-o", binary_strict).returncode == 0
+    assert binary_strict.read_bytes() == binary_default.read_bytes()
+
+
 def test_a_file_with_the_arps_own_swing_still_loads(tool, names):
     """The arp follows the set's swing (owner, 2026-10-06): its own Swing
     (uid 7) is retired, and a file written before then, which names it,
