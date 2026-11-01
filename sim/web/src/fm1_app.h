@@ -698,6 +698,9 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames);
  * anything newer), 0 while a held command waits. A line with a leading
  * "#<n>;" batch tag goes in whole or not at all (the tag is the core's). */
 size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len);
+/* Realtime transport input, without changing content generation. 1 consumed
+ * (including unknown status/no sequencer), 0 retry after rendering for room. */
+int fm1_app_seq_realtime(fm1_app_t *a, uint8_t status);
 
 /* One typed command (the UI's): FM1_APP_SEQ_APPLIED, _HELD, _BUSY or
  * _REFUSED. */
