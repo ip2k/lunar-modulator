@@ -2018,7 +2018,7 @@ static void seq_session_screens(const char *dir, float rate) {
     destroy_units();
     fm1_app_init(&g_app, rate);
     fm1_app_select(&g_app, 0, fm1_app_find("macro"));
-    expect(fm1_app_seq_reset(&g_app, n) == 0 || g_app.ui.tracks <= 8, "the sequencer's reset");
+    expect(fm1_app_seq_reset(&g_app, n) == 0, "the sequencer's reset");
     fm1_app_seq_default_route(&g_app);
     seq_line("bpm 6000");
     for (int t = 0; t < n; ++t) {

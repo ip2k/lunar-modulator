@@ -111,13 +111,19 @@ check(log === native.log, 'the verdicts, the ring, the view and the hash match t
   check(differing === 0, `the screen matches the native harness (${differing} px differ)`);
 }
 let maxDiff = 0;
+let nonfinite = 0;
 const flat = new Float32Array(audio.length * 2 * BLOCK);
 audio.forEach((b, i) => flat.set(b, i * 2 * BLOCK));
 check(flat.length === native.audio.length, 'as much audio as the native harness');
 for (let i = 0; i < Math.min(flat.length, native.audio.length); ++i) {
+  if (!Number.isFinite(flat[i]) || !Number.isFinite(native.audio[i])) {
+    ++nonfinite;
+    continue;
+  }
   const d = Math.abs(Math.round(flat[i] * 32767) - Math.round(native.audio[i] * 32767));
   if (d > maxDiff) maxDiff = d;
 }
+check(nonfinite === 0, `finite audio from the module and native harness (${nonfinite} non-finite pairs)`);
 check(maxDiff <= 1, `the audio within one 16-bit step of the native harness (max ${maxDiff})`);
 check(fm1.calls.length === 0, 'no import calls');
 
