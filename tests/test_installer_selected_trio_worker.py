@@ -260,3 +260,172 @@ def test_selected_capture_actual_timeout_retains_private_diagnostic(tmp_path, mo
     with pytest.raises(ValueError, match="timeout"):
         worker._selected_capture([sys.executable, "-c", "import time; print('before',flush=True); time.sleep(10)"], timeout=.1)
     assert b"before" in (tmp_path / "diagnostic.log").read_bytes()
+
+
+@pytest.fixture
+def collected(config, evidence, monkeypatch):
+    """Synthetic pi32 ELF plus real byte collection; no target build is implied."""
+    from copy import deepcopy
+    receipt, app, elf, trusted = evidence
+    receipt = deepcopy(receipt)
+    metadata = b'{"synthetic":true}'
+    receipt["selected_project"]["metadata_sha256"] = hashlib.sha256(metadata).hexdigest()
+    prepared = dict(trusted.prepared_files)
+    prepared["receipt.json"] = json.dumps(receipt["selected_project"]).encode()
+    receipt["prepared_input_manifest"] = {k: hashlib.sha256(v).hexdigest() for k, v in prepared.items()}
+    receipt["compile_flags"] = worker.selected_compile_flags()
+    external = dict(source_manifest=dict(trusted.source_manifest),
+                    toolchain_binding=trusted.toolchain_binding,
+                    cxx_headers_manifest=dict(trusted.cxx_headers_manifest),
+                    configured_cxx_headers_manifest=dict(trusted.configured_cxx_headers_manifest))
+    monkeypatch.setattr(adapter, "selected_external_inputs", lambda *args: external)
+    monkeypatch.setattr(adapter.threading.Thread, "start", lambda self: None)
+    job = adapter.DockerJobAdapter(config)
+    build_id = "a" * 32
+    submit(job, build_id)
+    base = job.job_dirs[build_id]
+    audit = [("/workspace/firmware/native/unit.c", 1, "void unit(void) {}")]
+    local_audit = [(str(config.source_root / "firmware/native/unit.c"), 1, "void unit(void) {}")]
+    monkeypatch.setattr(adapter, "load_selected_builder", lambda root:
+        SimpleNamespace(collect_sources=lambda paths: local_audit))
+    anchors = dict(external, compile_flags=worker.selected_compile_flags(),
+                   compiler_version=trusted.compiler_version, audit_sources=audit,
+                   host_tools=dict(trusted.host_tools, metadata=hashlib.sha256(metadata).hexdigest()))
+    raw = json.dumps(receipt).encode()
+    values = {"request.json": request(),
+        "image_receipt.json": raw, "host-bindings.json": job.selected_inputs[build_id]["binding_raw"],
+        "anchors.json": json.dumps(anchors).encode(), "metadata.json": metadata,
+        "build.log": b"synthetic build", "host-build.log": b"synthetic host"}
+    values.update({"prepared/" + k: v for k, v in prepared.items()})
+    values.update({"objects/" + k: v for k, v in trusted.objects.items()})
+    evidence_tree(base / "result/evidence", values)
+    yield job, build_id, base, app, elf, raw, values, anchors
+    finish_without_docker(job, build_id)
+    job.delete(build_id)
+
+
+def test_actual_collection_and_full_pure_validation_share_immutable_object_bytes(collected):
+    job, build_id, base, app, elf, receipt, _, _ = collected
+    result = job._collect_selected_result(build_id, base, app, elf, receipt)
+    request_bytes, trusted, _ = job.selected_verified[build_id]
+    assert trusted.objects["obj/unit.o"] is result.private_evidence["objects/obj/unit.o"]
+    assert trusted.prepared_files["selected_project.bin"] is result.private_evidence["prepared/selected_project.bin"]
+    envelope = json.loads(result.provenance)
+    assert envelope["schema"] == 2 and "catalogue_manifest_sha256" not in envelope["host_bindings"]
+    job.jobs[build_id] = WorkerSnapshot("succeeded", result)
+    job.cleanup_confirmed.add(build_id)
+    summary = job.verify_selected_trio_result(build_id, request_bytes, result)
+    assert summary == envelope["validation"]
+    assert summary["source_commit"] == job.config.source_commit
+
+
+@pytest.mark.parametrize("mutation", ["source_archive", "host_binding", "operator_inputs", "worker_flags",
+    "worker_source", "worker_audit", "worker_tools", "worker_metadata", "receipt_self_claim"])
+def test_collection_refuses_changed_inputs_and_self_claims(collected, monkeypatch, mutation):
+    job, build_id, base, app, elf, receipt, values, anchors = collected
+    if mutation == "source_archive":
+        path = base / "input/source.tar"
+        path.chmod(0o600); path.write_bytes(b"changed archive")
+    elif mutation == "host_binding":
+        path = base / "input/host-bindings.json"
+        path.chmod(0o600); path.write_bytes(b"{}")
+    elif mutation == "operator_inputs":
+        monkeypatch.setattr(adapter, "selected_external_inputs", lambda *args: {})
+    else:
+        if mutation == "worker_flags": anchors["compile_flags"] = ["-O2"]
+        elif mutation == "worker_source": anchors["source_manifest"] = {"claimed": "0" * 64}
+        elif mutation == "worker_audit": anchors["audit_sources"][0] = ("/workspace/other.c", 1, "changed")
+        elif mutation == "worker_tools": anchors["host_tools"]["renderer"] = "0" * 64
+        elif mutation == "worker_metadata": values["metadata.json"] = b"substituted metadata"
+        else:
+            claim = json.loads(receipt); claim["source_manifest"] = {"claimed": "0" * 64}
+            receipt = json.dumps(claim).encode(); values["image_receipt.json"] = receipt
+        values["anchors.json"] = json.dumps(anchors).encode()
+        root = base / "result/evidence"
+        adapter.shutil.rmtree(root)
+        evidence_tree(root, values)
+    with pytest.raises(ValueError):
+        job._collect_selected_result(build_id, base, app, elf, receipt)
+    assert build_id not in job.selected_verified
+
+
+@pytest.mark.parametrize("relative", ["tools/installer_service/process_capture.py",
+                                      "tools/installer_service/__init__.py"])
+def test_capture_imports_are_mandatory_committed_prerequisites(tmp_path, relative):
+    from tools.installer_service import build_capabilities as capabilities
+    assert relative in capabilities.SELECTED_TRIO_PREREQUISITES
+    source = tmp_path / "source"
+    source.mkdir()
+    for name in capabilities.SELECTED_TRIO_PREREQUISITES:
+        path = source / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("pinned source")
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    subprocess.run(["git", "-C", str(source), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(source), "-c", "user.name=Fixture", "-c",
+                    "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], check=True)
+    commit = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"]).decode().strip()
+    capabilities.check_profile_prerequisites(source, commit, worker.SELECTED_TRIO_PROFILE)
+    (source / relative).write_text("changed execution source")
+    with pytest.raises(ValueError, match="differs from pinned"):
+        capabilities.check_profile_prerequisites(source, commit, worker.SELECTED_TRIO_PROFILE)
+
+
+def test_selected_imports_refuse_cached_module_from_other_root(tmp_path):
+    with pytest.raises(ValueError, match="outside extracted source"):
+        worker.verify_selected_imports(tmp_path)
+
+
+@pytest.mark.parametrize("failure", ["stdout", "stderr", "nonzero"])
+def test_selected_capture_actual_failure_is_bounded_and_causal(tmp_path, monkeypatch, failure):
+    from tools.installer_service import process_capture
+    original = process_capture.run_bounded
+    def small_capture(command, **kwargs):
+        assert kwargs["max_stream_bytes"] == 16 * 1024**2
+        return original(command, **(kwargs | dict(max_stream_bytes=128)))
+    monkeypatch.setattr(process_capture, "run_bounded", small_capture)
+    monkeypatch.setattr(worker, "SOURCE", tmp_path)
+    monkeypatch.setattr(worker, "RESULT", tmp_path)
+    scripts = {"stdout": "print('x'*1024)", "stderr": "import sys;sys.stderr.write('x'*1024)",
+               "nonzero": "raise SystemExit(3)"}
+    # Preserve the observed-vs-cap check while avoiding a 16 MiB test product.
+    if failure != "nonzero":
+        def overflow(command, **kwargs):
+            result = small_capture(command, **kwargs)
+            result.observed[failure] = 16 * 1024**2 + 1
+            return result
+        monkeypatch.setattr(process_capture, "run_bounded", overflow)
+    reason = "nonzero_exit" if failure == "nonzero" else "output_limit"
+    with pytest.raises(ValueError, match=reason):
+        worker._selected_capture([sys.executable, "-c", scripts[failure]])
+    assert (tmp_path / "diagnostic.log").stat().st_size <= 256
+
+
+@pytest.mark.parametrize("failure", ["bytes", "count"])
+def test_worker_evidence_budget_refuses_before_next_file_read(tmp_path, monkeypatch, failure):
+    first, second = tmp_path / "first.o", tmp_path / "second.o"
+    first.write_bytes(b"first")
+    second.write_bytes(b"second")
+    captured = worker.SelectedEvidence(max_bytes=7 if failure == "bytes" else 100,
+                                       max_files=1 if failure == "count" else 10)
+    captured.retain_file("objects/first.o", first, 100)
+    original_open = worker.os.open
+    opened = []
+    def spy(path, *args, **kwargs):
+        opened.append(Path(path))
+        return original_open(path, *args, **kwargs)
+    monkeypatch.setattr(worker.os, "open", spy)
+    with pytest.raises(ValueError):
+        captured.retain_file("objects/second.o", second, 100)
+    assert opened == []
+    assert captured.values == {"objects/first.o": b"first"} and captured.total == 5
+
+
+def test_worker_evidence_json_and_existing_bytes_share_one_budget():
+    captured = worker.SelectedEvidence(max_bytes=16)
+    captured.retain_bytes("request.json", b"request")
+    with pytest.raises(ValueError, match="byte bound"):
+        captured.retain_json("anchors.json", {"over": "budget"})
+    with pytest.raises(ValueError, match="byte bound"):
+        captured.retain_bytes("log", b"0123456789")
+    assert list(captured.values) == ["request.json"] and captured.total == 7

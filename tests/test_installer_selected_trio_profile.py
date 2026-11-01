@@ -83,7 +83,8 @@ def test_source_declaration_never_enables_any_capability():
 
 
 def test_current_fixed_source_prerequisites_pass_separately_from_legacy_gate():
-    capabilities.check_profile_prerequisites(ROOT, BASE, capabilities.SELECTED_TRIO_PROFILE)
+    commit = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"]).decode().strip()
+    capabilities.check_profile_prerequisites(ROOT, commit, capabilities.SELECTED_TRIO_PROFILE)
 
 
 @pytest.fixture

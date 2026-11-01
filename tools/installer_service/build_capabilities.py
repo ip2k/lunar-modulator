@@ -10,6 +10,7 @@ SELECTED_TRIO_PROFILE = "sdk-free-selected-trio-offline-diagnostic-v1"
 SELECTED_TRIO_PREREQUISITES = (
     "tools/native/build_diagnostic.py", "tools/native/build_selected_trio_diagnostic.py",
     "tools/native/prepare_selected_project.py", "tools/jieli/audit_link.py",
+    "tools/installer_service/process_capture.py", "tools/installer_service/__init__.py",
     "tools/jieli/objects.mk", "engines/Makefile", "sim/web/mk/sim.mk",
     "engines/state/examples/init-starters/trio-init.lunar",
     "firmware/native/selected_project.c", "firmware/native/selected_project.h",
