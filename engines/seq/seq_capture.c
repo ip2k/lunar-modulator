@@ -625,6 +625,12 @@ static int commit_playing(fm1_seq_t *s, unsigned t) {
     if (gate < 1) gate = 1;
     tick = fresh ? loop_start + first_phase + (at > first_abs ? at - first_abs : 0)
                  : cap_clip_tick(&ev) % span;
+    if (!fresh && !s->lim.compat) {
+      /* The packed playhead is an absolute clip tick. Fold relative to the
+       * window's origin, not zero (D11 silences anchors outside it). The
+       * extra span also covers a take spanning a queued clip's launch. */
+      tick = loop_start + (cap_clip_tick(&ev) + span - loop_start % span) % span;
+    }
     stored = (int32_t)cap_pitch(&ev) - transpose;
     step = sq_anchor_step(s, tick, snum, sden);
     sq_clip_add_raw(s, clip, step, sq_unswing(s, tick, step, snum, sden), gate,
