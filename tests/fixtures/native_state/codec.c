@@ -209,6 +209,93 @@ static void guards(void) {
   assert(!candidate.calls || candidate.b[0] == 0xa5); /* header was never published */
 }
 
+/* Known constructor aliases are refused before touching either block. */
+static void ownership_guards(void) {
+  fm1_state_report_t rep;
+  unsigned i;
+  uint32_t a, b;
+  const size_t offsets[] = {0, 16, sizeof(compact) - sizeof(rep)};
+  spec_t spec = {FM1_STATE_PROJECT, 7, 1, 0, 0};
+  for (i = 0; i < sizeof(offsets)/sizeof(offsets[0]); ++i) {
+    memset(compact, 0xa5, sizeof(compact)); memset(plan, 0x5a, sizeof(plan));
+    a = fm1_state_crc32(0, compact, sizeof(compact)); b = fm1_state_crc32(0, plan, sizeof(plan));
+    assert(!fm1_state_bin_preflight(compact, sizeof(compact), plan, sizeof(plan), 1, version,
+                                   (fm1_state_report_t *)(void *)(compact + offsets[i])));
+    assert(a == fm1_state_crc32(0, compact, sizeof(compact)) && b == fm1_state_crc32(0, plan, sizeof(plan)));
+  }
+  for (i = 0; i < 2; ++i) {
+    uint8_t *block = i ? plan : compact;
+    memset(compact, 0xa5, sizeof(compact)); memset(plan, 0x5a, sizeof(plan));
+    block[0] = 7; block[1] = 8; block[2] = 9;
+    a = fm1_state_crc32(0, compact, sizeof(compact)); b = fm1_state_crc32(0, plan, sizeof(plan));
+    fm1_state_report_init(&rep);
+    assert(!fm1_state_bin_preflight(compact, sizeof(compact), plan, sizeof(plan), 1, block, &rep));
+    assert(rep.code == FM1_STATE_BAD);
+    assert(a == fm1_state_crc32(0, compact, sizeof(compact)) && b == fm1_state_crc32(0, plan, sizeof(plan)));
+  }
+  fm1_state_report_init(&rep);
+  assert(!fm1_state_bin_preflight(compact, sizeof(compact), plan, sizeof(plan), 1, version,
+                                 (fm1_state_report_t *)(void *)plan));
+  fm1_state_report_init(&rep);
+  generate(&spec, fm1_state_bin_write,
+           fm1_state_bin_preflight(compact, sizeof(compact), plan, sizeof(plan), 1, version, &rep));
+  assert(rep.code == 0);
+  a = fm1_state_crc32(0, compact, sizeof(compact)); b = fm1_state_crc32(0, plan, sizeof(plan));
+  for (i = 0; i < 2; ++i) {
+    void *block = i ? (void *)plan : (void *)compact;
+    assert(!fm1_state_bin_replay(compact, sizeof(compact), plan, sizeof(plan), write_at, &candidate, block));
+    fm1_state_report_init(&rep);
+    assert(!fm1_state_bin_replay(compact, sizeof(compact), plan, sizeof(plan), write_at, block, &rep));
+    assert(rep.code == FM1_STATE_BAD);
+    assert(a == fm1_state_crc32(0, compact, sizeof(compact)) && b == fm1_state_crc32(0, plan, sizeof(plan)));
+  }
+  assert(!fm1_state_bin_plan_match(plan, sizeof(plan), read_at, &candidate, candidate.n,
+                                  (fm1_state_report_t *)(void *)plan));
+  fm1_state_report_init(&rep);
+  assert(!fm1_state_bin_plan_match(plan, sizeof(plan), read_at, plan, candidate.n, &rep));
+  assert(rep.code == FM1_STATE_BAD && b == fm1_state_crc32(0, plan, sizeof(plan)));
+}
+
+typedef struct { fm1_state_writer_t *writer; unsigned trigger, calls, short_result; } reentry_t;
+static uint32_t reentry_write(void *ctx, uint32_t off, const uint8_t *bytes, uint32_t n) {
+  reentry_t *x = ctx;
+  ++x->calls;
+  if (x->calls == x->trigger) {
+    fm1_rec_t end = rec(FM1_REC_END);
+    assert(!fm1_state_bin_write(x->writer, &end));
+  }
+  /* The in-flight operation may take effect even though nested use poisoned it. */
+  memcpy(candidate.b + off, bytes, n);
+  return x->short_result && x->calls == x->trigger ? 0 : n;
+}
+static int reentry_source(fm1_state_writer_t *w) {
+  fm1_rec_t r = rec(FM1_REC_HEAD);
+  r.u.head.kind = FM1_STATE_SET; r.u.head.major = 1;
+  if (!fm1_state_bin_write(w, &r)) return 0;
+  r = rec(FM1_REC_LINE); r.piece = 3; r.u.line.s = "movy1"; r.u.line.n = 5;
+  if (!fm1_state_bin_write(w, &r)) return 0;
+  r = rec(FM1_REC_END); return fm1_state_bin_write(w, &r);
+}
+static void reentry_guards(void) {
+  fm1_state_report_t rep;
+  reentry_t x;
+  unsigned total, i, j;
+  fm1_state_report_init(&rep);
+  assert(reentry_source(fm1_state_bin_preflight(compact, sizeof(compact), plan, sizeof(plan), 1, version, &rep)));
+  memset(&x, 0, sizeof(x));
+  x.writer = fm1_state_bin_replay(compact, sizeof(compact), plan, sizeof(plan), reentry_write, &x, &rep);
+  assert(reentry_source(x.writer)); total = x.calls; assert(total > 2);
+  for (j = 0; j < 2; ++j) for (i = 1; i <= total; ++i) {
+    fm1_rec_t end = rec(FM1_REC_END);
+    fm1_state_report_init(&rep); memset(&x, 0, sizeof(x)); x.trigger = i; x.short_result = j;
+    x.writer = fm1_state_bin_replay(compact, sizeof(compact), plan, sizeof(plan), reentry_write, &x, &rep);
+    assert(!reentry_source(x.writer));
+    assert(rep.code == FM1_STATE_BAD && !strcmp(rep.what, "a reentrant compact writer"));
+    assert(x.calls == i && !fm1_state_bin_write(x.writer, &end) && x.calls == i);
+  }
+  printf("ownership guards passed; reentry boundaries=%u\n", 2 * total);
+}
+
 /* JSON input drives the ordinary parser positions/counters into the same
  * report as the writer, as app save does. Deferred cap failures must retain
  * line/column/path/offset/near and the exact first failing record. */
@@ -291,7 +378,7 @@ int main(int argc, char **argv) {
     };
     for (i = 0; i < sizeof(boundary)/sizeof(boundary[0]); ++i) compare(&boundary[i], 0);
   }
-  guards();
+  guards(); ownership_guards(); reentry_guards();
   for (i = 1; i <= 5; ++i) { json_report(i, 8190); json_report(i, 4093); }
   json_report(1, 16384); json_report(1, 16385);
   for (i = 1; i < (unsigned)argc; ++i) golden(argv[i]);
