@@ -41,11 +41,28 @@ from 44,118 to 48,000 Hz is not a valid multi-rate test.
 
 ## Validation and handoff
 
-Normal and ASan/UBSan focused checks passed after the fixes; final checks after
-removing recursive selection and the selected broader host suite are in progress.
-The initial broader pytest attempt used a container lacking `g++`; the default
-renderer fixture failed setup. Re-running with `CC=clang CXX=clang++` explicitly.
-No pass is claimed for that failed setup attempt.
+[verified] Final normal and ASan/UBSan `--edit-check` runs both returned exit 0,
+`failed: 0`: 380 parameters, 28,621 steps, 47 hands, 40 sweeps, 900 lock
+blocks, 30 telemetry fills and 12,774 fuzz operations. Sanitizers used
+`-fsanitize=address,undefined -fno-sanitize=shift -fno-omit-frame-pointer`
+(the existing legacy shift exclusion) and halt-on-error; no sanitizer diagnostic.
+
+[verified] The broader host suite passed: **145 passed, 5 skipped**, exit 0,
+81.63 s. It covers app state, codec, state render, editor, arenas and renderer
+pipeline tests, including normal/ASan PCM continuity and fault refusal cases.
+Command: `CC=clang CXX=clang++ FM1_GPL_MODS=1 FM1_SIM_CC=clang
+FM1_SIM_CXX=clang++ python3 -m pytest -o addopts= -q -ra
+tests/test_app_state.py tests/test_state_codec.py tests/test_state_render.py
+tests/test_sim_edit.py tests/test_sim_arenas.py tests/test_app_renderer_pipeline.py`.
+Three skips need jsonschema, one needs the optional JSONTestSuite checkout and
+one needs node. Browser parity, a final integrated WASM rebuild and hardware
+acceptance remain coordinator dependencies.
+
+The first broader attempt lacked `g++` and failed fixture setup; explicit clang
+compiler selection resolved it. A permissive-profile attempt had three example
+codec failures because those checked-in songs require GPL-only comet. Repeating
+with the declared GPL-enabled profile passed all three. No pass is claimed for
+either failed attempt.
 
 The preapproved lan-compute workflow is used. Aeon was verified to have online
 CPUs 0–15, so CPU16–19 was refused; the coordinator assigned this lane exclusive
@@ -69,11 +86,12 @@ root compile database, and no pi32 ABI/stack or hardware correctness claim.
 Evidence location on Mac:
 `scratch/sound-state-fixes-20261101/`; on Aeon:
 `/home/likwid/datasets/lunar/sound-state-fixes-20261101/`.
-The source stage, binaries, pytest intermediates and caches are reproducible and
-will be removed after final results are copied; retain only small logs and the
-source-hash receipt. The worktree remains until coordinator integration, then
+The source stage, binaries, pytest intermediates and caches were removed after
+copying final results; only small logs and source-hash receipts remain (732 KiB
+on Aeon). No lane container remained running at cleanup. The worktree remains until coordinator integration, then
 remove it using `git worktree remove` after verifying no uncommitted work.
-Mac data-volume free space at start: 1,123 GiB (above the 500 GiB floor).
+Mac data-volume free space at start: 1,123 GiB; at this checkpoint: 1,120 GiB
+(above the 500 GiB floor).
 
 ## Declared browser rebuild inputs
 
