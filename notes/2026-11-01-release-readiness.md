@@ -31,7 +31,7 @@ deployment was skipped. Do not rerun passing checks to hide that failure.
 
 [verified] Corrections PR #165 is the combined integration candidate on
 `fix/2026-11-01@release-state-corrections`. Reviewed source is pushed and remote
-verified through `c5381f0c1c137084eb4da55f711635aa979f84ca`. It is not a release
+verified through `eb1527dfc50c02714a342e72065178a3e11b157c`. It is not a release
 or hardware admission. Capture completion, bounded codec phase 1, fault handling,
 lifecycle cleanup, exact audit proofs and target-derived test expectations are
 integrated. Required exact-head CI and real-Chrome acceptance remain.
@@ -78,10 +78,14 @@ not runtime stack/timing evidence. General project loading, service activation,
 reset/ROM return and hardware acceptance remain unsupported.
 
 [verified] The selected-return policy is independently reviewed and integrated
-as an offline host-only GPL module. Five focused tests pass, including normal
-and sanitized execution of timeout/fault cases and explicit target compile
-refusal. Actual MMIO, watchdog lease, timer, mailbox guards and physical recovery
-qualification remain separate work; no target reset behavior is admitted.
+as an offline GPL module. A separately selected target-binding candidate is now
+integrated after independent review; its immutable zero qualification refuses
+startup before timer, mailbox, P33, app, LCD or audio work. Review corrected a
+recorded LCD timeout being treated as healthy completion. Sixteen independent
+normal/sanitized host checks pass, including the actual candidate startup body
+through typed HAL shims and unchanged default plans. Actual target codegen, MMIO,
+watchdog lease, timer, mailbox guards and physical recovery qualification remain
+separate work; no target reset behavior is admitted.
 
 [verified] The disabled fixed-Trio v2 service contract is integrated after
 independent review. It validates the actual retained target ELF, flat image,
@@ -89,9 +93,15 @@ project blob, source/object evidence and original audit against operator-owned
 trust anchors. Review found and corrected acceptance of an invalid zero entry
 address; startup must now be inside the fixed executable section. Coordinator
 integration checks pass 137 tests plus six subtests; independent combined
-checks pass 375 tests with one expected skip. This supplies neither a worker nor
-an API route. Private worker/API integration remains the next dependency, and
-all service, package, installation and hardware capability flags stay false.
+checks pass 375 tests with one expected skip. The separate private API/factory is also integrated after independent review:
+392 tests and six subtests pass, with one expected skip. Coordinator checks pass
+196 focused tests and 70 combined-tree API/server tests. It remains disabled by
+default and loopback-only, returns no binaries, and retains jobs through verifier
+cancellation and unconfirmed cleanup. The separately reviewed worker is integrated with bounded evidence acquisition,
+operator-owned trust anchors and confirmed cleanup before capacity release.
+Independent worker/API composition checks pass 464 tests with one expected skip.
+Fresh actual worker execution remains the next dependency; package, installation
+and hardware capability flags stay false.
 
 The foundation provides DX7 bank export, ordered MIDI realtime input,
 queue-margin telemetry, offline customization/catalogue and a shared request
@@ -191,9 +201,10 @@ private coordinator checkpoint retains detailed receipts and current lane state.
   when the clock stops. Actual protocol tests preserve first error and retained
   ownership. Test-only ABI fixture expectations now use measured full candidate
   RAM; native and 32-bit runs retain the unchanged budget and refusal policy.
-- Production native-build prerequisite refusal remains; no test-only adapter
-  admits real builds. The private service still needs a genuinely supported
-  native profile and prerequisite integration.
+- The historical native-build prerequisite refusal remains. The separate fixed
+  Trio profile now has reviewed contract, worker and private API source; its
+  first real composed worker/HTTP run is still pending. Test-only adapters do
+  not supply that execution witness or enable installation.
 
 ## Native and physical evidence limits
 
