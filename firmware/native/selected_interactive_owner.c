@@ -50,8 +50,11 @@ static int service(lunar_selected_owner_t *o) {
   if(r<0) { lunar_display_timeout(&o->display); return stop(o); }
   if(r==1 && lunar_display_complete(&o->display,ticket,1)<0) return stop(o);
   if(lunar_display_frame(&o->display,lunar_selected_interactive_draw,NULL,
-                         o->min_draw_frames)<0 ||
-     lunar_display_pump(&o->display)<0) return stop(o);
+                         o->min_draw_frames)<0) return stop(o);
+  /* A Timer/audio fault may interrupt the app draw callback. Retain pixels
+   * without submitting a new row after that fault becomes observable. */
+  if(fault(&o->transport) || lunar_diagnostic_status()) return stop(o);
+  if(lunar_display_pump(&o->display)<0) return stop(o);
   return rendered;
 }
 int lunar_selected_owner_step(lunar_selected_owner_t *o) {

@@ -25,5 +25,6 @@ def test_injected_protocol_and_accepted_scanner(tmp_path, case):
     result = subprocess.run([str(exe)], check=True, capture_output=True, text=True, timeout=10)
     print(result.stdout, end="")
     if case == "owner-fault":
-        result = subprocess.run([str(exe), "reentry"], check=True, capture_output=True, text=True, timeout=10)
-        print(result.stdout, end="")
+        for mode in ["reentry", "draw-fault"]:
+            result = subprocess.run([str(exe), mode], check=True, capture_output=True, text=True, timeout=10)
+            print(result.stdout, end="")
