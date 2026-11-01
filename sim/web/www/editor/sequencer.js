@@ -117,7 +117,14 @@ export function makeSequencer(ctx) {
     noteAdvancedOpen: false, automationAssignOpen: false, follow: true, view: 'Scenes' };
   let disposed = false, pendingFocus = null, suppressNoteClick = false, cancelDrag = null, readError = false;
   let pendingRollNote = -1;
-  let readRevision = 0, readText = null;
+  let readRevision = 0, readText = null, readProjectId;
+  let ownSoloText = null;
+  // Solo's saved mutes belong to one observed project. Unchanged refreshes
+  // and acknowledged edits here keep them; replacement, undo and external
+  // changes discard them rather than restoring an older project's mutes.
+  function syncSolo(text, projectId) {
+    if (state.solo && (projectId !== readProjectId || (text !== readText && text !== ownSoloText))) state.solo = null;
+  }
   let releaseFader = null;
   const meterHold = new Map();
   // Capacity follows the stable workspace, never a grid being replaced by draw().
@@ -242,20 +249,23 @@ export function makeSequencer(ctx) {
       try {
         for (;;) {
           const revision = readRevision;
+          const projectId = ctx.getProjectId?.();
           const doc = await ctx.fetchProject();
+          if (projectId !== ctx.getProjectId?.()) continue;
           if (disposed) return;
           // A native edit can invalidate an older snapshot while it is being
           // read. Consume that invalidation before clearing the dirty flag.
           if (revision !== readRevision) continue;
           const text = JSON.stringify(doc);
+          syncSolo(text, projectId);
           if (readError) announce('');
           // Settlement and content-generation notifications can both request
           // the same snapshot. Replacing unchanged controls loses pointer
           // clicks and number-input selection in the middle of a gesture.
-          if (!force && text === readText) { state.dirty = false; return; }
+          if (!force && text === readText && projectId === readProjectId) { state.dirty = false; return; }
           const selected = state.model && state.note >= 0 ? clip()?.notes[state.note] : null;
           const model = parseSet(doc.set || ['movy1']);
-          state.doc = doc; state.model = model; readText = text; state.dirty = false;
+          state.doc = doc; state.model = model; readText = text; readProjectId = projectId; ownSoloText = null; state.dirty = false;
           if (selected) state.note = (clip()?.notes || []).findIndex(n => n.tick === selected.tick && n.pitch === selected.pitch);
           if (pointerActive) refreshPending = true; else draw();
           return;
@@ -272,13 +282,16 @@ export function makeSequencer(ctx) {
     try {
       if (state.loading) await state.loading;
       const doc = await ctx.fetchProject();
+      syncSolo(JSON.stringify(doc), ctx.getProjectId?.());
+      before.solo = clone(state.solo);
       const model = parseSet(doc.set || ['movy1']);
       if (model.unknown.length) throw new Error('This set has extension lines the native editor cannot preserve. Export a backup and remove those extensions before editing.');
       await change(model, doc);
       const verdict = validateSet(model);
       if (!verdict.valid) throw new Error(verdict.errors.join('; '));
       doc.set = writeSet(model);
-      await ctx.applyProject(doc, label);
+      const applied = await ctx.applyProject(doc, label);
+      ownSoloText = state.solo ? JSON.stringify(applied || doc) : null;
       state.model = model;
       await refresh(true); announce(label);
     } catch (e) { Object.assign(state, before); announce(`Not changed: ${e.message}`, true); await refresh(true); }
