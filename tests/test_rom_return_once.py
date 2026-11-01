@@ -8,6 +8,7 @@ import signal
 import stat
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 
@@ -74,8 +75,19 @@ class FakeSerial:
 
 
 @pytest.fixture
-def inputs(tmp_path):
-    parent = tmp_path / "private"
+def private_tmp_path():
+    # pytest's default /tmp ancestor is intentionally refused by the host on
+    # Linux. Keep real filesystem tests inside the project's owned namespace;
+    # TemporaryDirectory removes each test's inputs and spent records at exit.
+    scratch = host.ROOT / "scratch"
+    scratch.mkdir(mode=0o700, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="rom-return-once-", dir=scratch) as directory:
+        yield Path(directory)
+
+
+@pytest.fixture
+def inputs(private_tmp_path):
+    parent = private_tmp_path / "private"
     parent.mkdir(mode=0o700)
     payload = parent / "payload"
     payload.write_bytes(b"\x80\x00" + bytes(510))
@@ -158,14 +170,14 @@ def test_even_repinned_wrong_manifest_refuses_before_io(inputs, field, value):
 
 
 @pytest.mark.parametrize("damage", ["payload", "digest", "extra", "duplicate", "oversize", "source"])
-def test_local_preflight_refuses_without_io(inputs, monkeypatch, tmp_path, damage):
+def test_local_preflight_refuses_without_io(inputs, monkeypatch, private_tmp_path, damage):
     args, fake = inputs
     if damage == "payload":
         args["payload_path"].write_bytes(bytes(512))
     elif damage == "digest":
         args["_reviewed_image_pin"] = "0" * 64
     elif damage == "source":
-        new_root = tmp_path / "source"
+        new_root = private_tmp_path / "source"
         path = new_root / "firmware/rom-witness-return/manifest.json"
         path.parent.mkdir(parents=True)
         path.write_bytes(b"changed")
