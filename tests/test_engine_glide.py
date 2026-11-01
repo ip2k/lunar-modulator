@@ -476,8 +476,10 @@ def test_a_glide_arrives_on_time_at_the_fm1_rate(renderer, tmp_path):
     mid = next(tm for tm, s in track if s >= 75.0) * 1000
     assert 100.0 <= mid <= 103.0, mid
     assert abs(semi_at(51.5) - 72.0) < 0.15 and abs(semi_at(151.5) - 78.0) < 0.15
-    assert all(abs(s - 81) * 100 < 3 for tm, s in track if 0.203 <= tm <= 0.45)
-    assert all(abs(s - 81) * 100 > 3 for tm, s in track if 0.19 <= tm <= 0.199)
+    settled = [s for tm, s in track if 0.203 <= tm <= 0.45]
+    approaching = [s for tm, s in track if 0.19 <= tm <= 0.199]
+    assert settled and all(abs(s - 81) * 100 < 3 for s in settled)
+    assert approaching and all(abs(s - 81) * 100 > 3 for s in approaching)
 
 
 # Review (2026-10-06): the cases a player or a host reaches that the tests

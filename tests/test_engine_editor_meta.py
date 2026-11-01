@@ -322,12 +322,17 @@ def test_pinned_ids_stay_put(meta):
     """Codes, groups, telemetry sections and the arp's page names never move
     or change; new ones are added (tests/fixtures/editor-meta.json)."""
     pin = json.loads(FIXTURE.read_text())
+    gpl_missing = set()
+    if not meta["build"]["gpl"]:
+        known = json.loads((ENGINES / "known-ids.json").read_text())
+        gpl_missing = {entry["id"] for entry in known["ids"] if entry["reason"] == "gpl"}
     codes = {c["code"]: c["name"] for c in meta["refusals"]["codes"]}
     assert all(codes.get(int(k)) == v for k, v in pin["refusal_codes"].items())
     groups = [g["id"] for g in meta["effect_groups"]]
     assert groups[:len(pin["effect_groups"])] == pin["effect_groups"]
     fx = {e["id"]: e.get("group") for e in meta["engines"]}
-    assert all(fx[k] == v for k, v in pin["effect_group_of"].items() if k in fx)
+    assert set(pin["effect_group_of"]) - gpl_missing <= set(fx)
+    assert all(fx[k] == v for k, v in pin["effect_group_of"].items() if k not in gpl_missing)
     t = meta["telemetry"]
     assert t["version"] >= pin["telemetry"]["version"]
     for want, got in zip(pin["telemetry"]["sections"], t["sections"]):
@@ -339,7 +344,8 @@ def test_pinned_ids_stay_put(meta):
     fixes = {str(c["code"]): c["fix"]["id"] for c in meta["refusals"]["codes"] if "fix" in c}
     assert all(fixes.get(k) == v for k, v in pin["refusal_fix"].items())
     pages = {m["id"]: m["page_names"] for m in _modules(meta)}
-    assert all(pages[k][:len(v)] == v for k, v in pin["page_names"].items() if k in pages)
+    assert set(pin["page_names"]) - gpl_missing <= set(pages)
+    assert all(pages[k][:len(v)] == v for k, v in pin["page_names"].items() if k not in gpl_missing)
     assert "arp" in pages
 
 

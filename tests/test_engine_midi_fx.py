@@ -288,11 +288,13 @@ def test_the_arp_swings_with_the_set_while_stopped(renderer, tmp_path):
         t = [f for f, _ in ons(ev)]
         return [b - a for a, b in zip(t, t[1:])][:6]
     straight = gaps([], name="straight")
+    assert len(straight) == 6, straight
     assert max(straight) - min(straight) <= 1                # 24 ticks each, to a frame
     late = 6 * TICK
     for name, args, script in (("flag", ["--swing", "66"], None),
                                ("set", [], f"#! rate={RATE} block=64 tracks=8 end={BOUND * 70}\n@0 swing 66\n")):
         g = gaps(args, script, name)
+        assert len(g) == len(straight), (name, g)
         assert all(abs(a - (b + late)) <= 1 for a, b in zip(g[0::2], straight[0::2])), (name, g)
         assert all(abs(a - (b - late)) <= 1 for a, b in zip(g[1::2], straight[1::2])), (name, g)
     r = subprocess.run([str(renderer), "--engine", "test-sine", "--swing", "81"], capture_output=True)
