@@ -49,7 +49,8 @@ def _remove_owned_container(docker: str, build_id: str, base: Path) -> bool:
     """
     name = "lunar-private-" + build_id
     try:
-        cid = _read_private_file(base / "input" / "container.id", 65)
+        cid = _read_private_file(base / "input" / "container.id", 65,
+                                 nonblocking_open=True)
         if not _CONTAINER_ID.fullmatch(cid):
             return False
         cid_text = cid.decode("ascii").strip()
@@ -116,8 +117,12 @@ def _receipt_key(path: str, prefix: str, key_prefix: str) -> tuple[str, PurePosi
     return key_prefix + rel.as_posix(), rel
 
 
-def _read_private_file(path: Path, limit: int, expected_size: int | None = None) -> bytes:
-    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+def _read_private_file(path: Path, limit: int, expected_size: int | None = None,
+                       *, nonblocking_open: bool = False) -> bytes:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    if nonblocking_open:
+        flags |= os.O_NONBLOCK  # A planted FIFO must not block before fstat.
+    descriptor = os.open(path, flags)
     with os.fdopen(descriptor, "rb") as stream:
         info = os.fstat(stream.fileno())
         if (not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= limit

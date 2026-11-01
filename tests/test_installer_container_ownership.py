@@ -2,6 +2,8 @@
 """Fake Docker responses for the private service container cleanup boundary."""
 import json
 import hashlib
+import os
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -101,6 +103,17 @@ def test_cidfile_symlink_cannot_redirect_cleanup(tmp_path, monkeypatch):
     monkeypatch.setattr(module, "run_bounded", lambda *_a, **_kw: pytest.fail("no Docker call"))
     assert not module._remove_owned_container("docker", build_id, base)
     assert external.read_text() == CID + "\n"
+
+
+def test_cidfile_fifo_fails_promptly_without_docker(tmp_path, monkeypatch):
+    build_id, base = _owned_root(tmp_path)
+    cidfile = base / "input/container.id"
+    cidfile.unlink()
+    os.mkfifo(cidfile)
+    monkeypatch.setattr(module, "run_bounded", lambda *_a, **_kw: pytest.fail("no Docker call"))
+    started = time.monotonic()
+    assert not module._remove_owned_container("docker", build_id, base)
+    assert time.monotonic() - started < 1.0
 
 
 @pytest.mark.parametrize("change", ["id", "name", "owner", "session", "project", "shape", "inspect_failure"])
