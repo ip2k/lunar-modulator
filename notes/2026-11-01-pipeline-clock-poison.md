@@ -13,8 +13,8 @@ initial millisecond sample. Refusal keeps the first error and permanently retain
 producer/consumer/output slots and context; no retry, replay, free, READY/DONE
 publication, or hardware-path admission is added.
 
-Nine directed actual-candidate fixture modes exercise backend.failed and both raw
-fault-claimed words' target native_ms condition, raw-clock poison before/after
+Nine directed actual-candidate fixture modes exercise backend.failed and raw fault-claimed word [1] through the
+target native_ms condition (the hook checks both words), raw-clock poison before/after
 consume, wait ticket preservation, no work publication, and direct poisoned step.
 The host hook mirrors the target's two poison conditions; it does not execute the
 target MMIO, fault assembly or target volatile-word memory model. Actual candidate
