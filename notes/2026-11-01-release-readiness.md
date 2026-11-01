@@ -30,12 +30,34 @@ TLSF inventory assumption in a source-bundle test. Pages build passed; PR
 deployment was skipped. Do not rerun passing checks to hide that failure.
 
 [verified] Corrections PR #165 is the combined integration candidate on
-`fix/2026-11-01@release-state-corrections`, pushed and remote verified through
-`59084596a4a668220a15d7055b34557a0408c89e`. It is not a release or
-hardware admission. Capture command completion and bounded codec phase 1 are
-now independently reviewed and integrated. A new frozen-source WASM build and
-final exact-head CI remain. Prior-head CI found a 32-bit effect-walk expectation
-mismatch under causal diagnosis; all three browser jobs passed.
+`fix/2026-11-01@release-state-corrections`. Reviewed source is pushed and remote
+verified through `e4061895478b5ead59ad7aeac94a824618970c9f`. It is not a release
+or hardware admission. Capture completion, bounded codec phase 1, fault handling,
+lifecycle cleanup, exact audit proofs and target-derived test expectations are
+integrated. Required exact-head CI and real-Chrome acceptance remain.
+
+[verified] The actual simulator build for frozen source `5c5237b0` passed
+108-case parity, SysEx, MIDI, metadata, 30-second edit stress with zero playback
+underruns, and scripted Chromium/Firefox/WebKit state, sequencer and toolbar
+checks. Generated artifacts were integrated at `b088606e`. Subsequent strict
+native packing changes affect the source digest, so another canonical build is
+required after the next source batch. These scripted results do not establish
+owner visual, device, analog or listening acceptance.
+
+[verified] Pinned musl and compiler-rt sources now close the reviewed native
+math/string/remainder dependencies without substitutes or budget changes.
+Strict installer preparation rejects skipped or repaired JSON fields; the
+combined tree passes 22 focused tests, including the 4096-byte boundary.
+The offline CPU0 publication port is independently reviewed and integrated;
+seven focused tests pass in the combined tree. Its separate actual target link
+and original audit passed. No target startup or hardware profile is enabled.
+
+Persistence phase 2, the offline CPU1 candidate and selected-project startup
+remain separate work. Persistence has conditional component accounting, not a
+full application fit. Selected-project review found unsupported ancillary data
+and future chunk tails could be silently accepted; source corrections and
+independent review are in progress before integration. The private service
+remains gated until its concrete native prerequisites are implemented.
 
 The foundation provides DX7 bank export, ordered MIDI realtime input,
 queue-margin telemetry, offline customization/catalogue and a shared request
