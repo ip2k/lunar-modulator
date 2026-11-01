@@ -1,12 +1,21 @@
 /* SPDX-License-Identifier: MIT */
 #include "diagnostic_transport.h"
 #include <string.h>
+#ifdef LUNAR_DIAGNOSTIC_PI32V2_PUBLICATION
+#define LOAD(p) lunar_pub_load(p)
+#define STORE(p,v) lunar_pub_store((p),(v))
+#else
 #define LOAD(p) atomic_load_explicit((p), memory_order_acquire)
 #define STORE(p,v) atomic_store_explicit((p),(v),memory_order_release)
+#endif
 void lunar_transport_fault(lunar_transport_t *t, uint32_t reason) {
+#ifdef LUNAR_DIAGNOSTIC_PI32V2_PUBLICATION
+  if(t) lunar_pub_fault_first(&t->fault,reason ? reason : LUNAR_TRANSPORT_APP);
+#else
   uint32_t zero=0;
   if(t) atomic_compare_exchange_strong_explicit(&t->fault,&zero,
       reason ? reason : LUNAR_TRANSPORT_APP,memory_order_acq_rel,memory_order_acquire);
+#endif
 }
 static int bad(lunar_transport_t *t, uint32_t reason) {
   lunar_transport_fault(t,reason); return -1;
@@ -76,12 +85,16 @@ int lunar_transport_irq(lunar_transport_t *t,int32_t out[LUNAR_PCM_WORDS]) {
   }
   uint32_t tail=LOAD(&t->pcm_tail),head=LOAD(&t->pcm_head);
   if(tail==head) {
+#ifdef LUNAR_DIAGNOSTIC_PI32V2_PUBLICATION
+    lunar_pub_increment(&t->underruns);
+#else
     atomic_fetch_add_explicit(&t->underruns,1,memory_order_relaxed);
+#endif
     memset(out,0,sizeof(lunar_pcm_t)); return 0;
   }
   memcpy(out,t->pcm[tail&(t->pcm_capacity-1)].word,sizeof(lunar_pcm_t));
   /* A fault observed during copy silences this output too. The target must
-   * separately prove interrupt priority and lock-free atomic code generation. */
+   * separately admit interrupt priority, publication codegen and latency. */
   int failed=LOAD(&t->fault)!=0;
   if(failed) memset(out,0,sizeof(lunar_pcm_t));
   STORE(&t->pcm_tail,tail+1); return failed?-1:1;

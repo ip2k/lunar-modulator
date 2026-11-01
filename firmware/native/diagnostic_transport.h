@@ -1,11 +1,17 @@
-/* SPDX-License-Identifier: MIT. Offline SPSC proof, no target atomic binding. */
+/* SPDX-License-Identifier: MIT. Offline SPSC proof, no admitted target profile. */
 #ifndef LUNAR_DIAGNOSTIC_TRANSPORT_H
 #define LUNAR_DIAGNOSTIC_TRANSPORT_H
 #ifndef LUNAR_DIAGNOSTIC_OFFLINE_PROOF
 #error "transport has no admitted target timing or atomic implementation"
 #endif
 #include <stdint.h>
+#ifdef LUNAR_DIAGNOSTIC_PI32V2_PUBLICATION
+#include "diagnostic_publication_pi32v2.h"
+typedef lunar_publication_word_t lunar_transport_word_t;
+#else
 #include <stdatomic.h>
+typedef _Atomic uint32_t lunar_transport_word_t;
+#endif
 #define LUNAR_PCM_FRAMES 64u
 #define LUNAR_PCM_WORDS (2u * LUNAR_PCM_FRAMES)
 enum { LUNAR_INPUT_KEY, LUNAR_INPUT_BUTTON, LUNAR_INPUT_ENCODER };
@@ -18,7 +24,7 @@ typedef struct {
   lunar_input_t *input;
   lunar_pcm_t *pcm;
   uint32_t input_capacity, pcm_capacity, initialized;
-  _Atomic uint32_t input_head, input_tail, pcm_head, pcm_tail, fault, underruns;
+  lunar_transport_word_t input_head, input_tail, pcm_head, pcm_tail, fault, underruns;
   uint32_t leased, ticket; /* sole main owner; IRQ never reads these */
 } lunar_transport_t;
 /* All storage is caller-owned permanent memory. Power-of-two capacities are
