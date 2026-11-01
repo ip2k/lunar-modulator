@@ -15,6 +15,7 @@ def test_live_pipeline_pcm_and_metadata(tmp_path,sanitize):
     if not cc or not cxx or not shutil.which('make'):
         pytest.skip('native clang toolchain unavailable')
     dev=tmp_path/'devkit';shutil.copytree(ROOT/'firmware/devkit',dev)
+    shutil.copytree(ROOT/'firmware/common',tmp_path/'common')
     live=dev/'renderer_live.c'
     live.write_text(live.read_text()+'\n'+(ROOT/'tests/fixtures/renderer_pipeline/live_replay.c').read_text())
     # The fixture owns main; leave the normal renderer object list intact.
