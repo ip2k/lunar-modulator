@@ -18,7 +18,7 @@ NATIVE := $(ROOT)/firmware/native
 BUILD := $(abspath $(BUILD))
 CPU1_CC := $(TOOLCHAIN)/common/bin/clang
 CPU1_LD := $(TOOLCHAIN)/pi32v2/bin/ld
-CPU1_FLAGS := -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -Os -ffreestanding -fno-builtin -ffunction-sections -fdata-sections -fstack-usage -Wall -Wextra -Werror -Wno-unused-function -I$(NATIVE) -I$(TOOLCHAIN)/pi32v2/include -DLUNAR_NATIVE_PIPELINE_OFFLINE_CANDIDATE=1 -DLUNAR_CPU1_CANDIDATE_STOCK_SPL=1 -DLUNAR_CPU1_CANDIDATE_PI32V2=1
+CPU1_FLAGS := -target pi32v2 -mcpu=r3 -mfprev1 -std=c11 -Os -ffreestanding -fno-builtin -ffunction-sections -fdata-sections -Wall -Wextra -Werror -Wno-unused-function -I$(NATIVE) -I$(TOOLCHAIN)/pi32v2/include -DLUNAR_NATIVE_PIPELINE_OFFLINE_CANDIDATE=1 -DLUNAR_CPU1_CANDIDATE_STOCK_SPL=1 -DLUNAR_CPU1_CANDIDATE_PI32V2=1
 CPU1_NAMES := cpu1_candidate cpu1_candidate_target cpu1_candidate_profile renderer_pipeline_native cpu1_candidate_entry
 CPU1_OBJECTS := $(addprefix $(BUILD)/,$(addsuffix .o,$(CPU1_NAMES)))
 .PHONY: all
@@ -28,6 +28,6 @@ $(BUILD)/%.o: $(NATIVE)/%.c $(wildcard $(NATIVE)/cpu1_candidate*.h) $(NATIVE)/re
 	$(CPU1_CC) $(CPU1_FLAGS) -c $< -o $@
 $(BUILD)/cpu1_candidate_entry.o: $(NATIVE)/cpu1_candidate_entry.S
 	@mkdir -p $(BUILD)
-	$(CPU1_CC) $(filter-out -std=c11 -fstack-usage,$(CPU1_FLAGS)) -c $< -o $@
+	$(CPU1_CC) $(filter-out -std=c11,$(CPU1_FLAGS)) -c $< -o $@
 $(BUILD)/cpu1-offline-candidate.elf: $(CPU1_OBJECTS) $(NATIVE)/cpu1_candidate.ld
 	$(CPU1_LD) -T $(NATIVE)/cpu1_candidate.ld --gc-sections -Map=$(BUILD)/cpu1-offline-candidate.map -o $@ $(CPU1_OBJECTS)
