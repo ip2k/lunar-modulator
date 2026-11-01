@@ -113,6 +113,19 @@ static void guards(void){
  fm1_engine_t copy=*app.unit[0].e;const fm1_engine_t *e=app.unit[0].e;
  memcpy(arena,&copy,sizeof copy);app.unit[0].e=(fm1_engine_t*)arena;
  assert(!fm1_app_state_project_stage(&app,2,&ops,&fake,&w,&r));app.unit[0].e=e;
+ /* fm1_mfx_set accepts caller descriptors: they are known live extents too. */
+ const fm1_midi_fx_t *original_fx=app.mfx.chain[0].slot[0].fx;assert(original_fx);
+ fm1_midi_fx_t fx=*original_fx;assert(fx.engine.n_params);
+ memcpy(arena,&fx,sizeof fx);app.mfx.chain[0].slot[0].fx=(const fm1_midi_fx_t*)arena;
+ assert(!fm1_app_state_project_stage(&app,2,&ops,&fake,&w,&r));assert(!memcmp(arena,&fx,sizeof fx));
+ assert(!fm1_app_state_project_stage(&app,2,&ops,&fake,&w,(fm1_state_report_t*)arena));assert(!memcmp(arena,&fx,sizeof fx));
+ size_t params_bytes=fx.engine.n_params*sizeof(*fx.engine.params);assert(params_bytes<=sizeof arena);
+ memcpy(arena,fx.engine.params,params_bytes);fx.engine.params=(const fm1_param_t*)arena;
+ app.mfx.chain[0].slot[0].fx=&fx;
+ assert(!fm1_app_state_project_stage(&app,2,&ops,&fake,&w,&r));
+ assert(!memcmp(arena,original_fx->engine.params,params_bytes));
+ assert(!fm1_app_state_project_stage(&app,2,&ops,&fake,&w,(fm1_state_report_t*)arena));
+ assert(!memcmp(arena,original_fx->engine.params,params_bytes));app.mfx.chain[0].slot[0].fx=original_fx;
  /* A known aliased report is refused without changing the live source. */
  char title[sizeof app.info.title];memcpy(title,app.info.title,sizeof title);
  assert(!fm1_app_state_project_stage(&app,2,&ops,&fake,&w,(fm1_state_report_t*)&app));assert(!memcmp(title,app.info.title,sizeof title));

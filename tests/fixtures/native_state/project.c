@@ -38,6 +38,22 @@ static void compare(unsigned mode){
  ++cases;
 }
 static void all_modes(void){for(unsigned m=0;m<4;m++)compare(m);}
+/* The shared PROJECT extraction must leave every host-only kind unchanged. */
+static unsigned host_cases;
+static void host_kinds(void) {
+ static const struct {unsigned kind;int arg;} kinds[]={
+  {FM1_STATE_SOUND,0},{FM1_STATE_SOUND,3},{FM1_STATE_FX,-1},{FM1_STATE_FX,0},
+  {FM1_STATE_MODS,0},{FM1_STATE_CLIP,0},{FM1_STATE_CLIP,63},{FM1_STATE_CLIP,-1},
+  {FM1_STATE_SETTINGS,0},{FM1_STATE_SET,0}
+ };
+ for(unsigned k=0;k<sizeof(kinds)/sizeof(kinds[0]);++k)for(int mode=0;mode<4;++mode){
+  fm1_state_report_t r;fm1_app_state_workspace_t w={host_arena,sizeof(host_arena)};
+  memset(&host,0,sizeof(host));
+  int ok=fm1_app_state_save_with_workspace(&app,kinds[k].kind,kinds[k].arg,mode,host_put,&host,&w,&r);
+  if(corpus){assert(fwrite(&ok,sizeof ok,1,corpus)==1);assert(fwrite(&r,sizeof r,1,corpus)==1);assert(fwrite(&host.n,sizeof host.n,1,corpus)==1);assert(fwrite(host.bytes,1,host.n,corpus)==host.n);}
+  ++host_cases;
+ }
+}
 /* Real dense pool fixture reused from the current PROJECT overflow regression. */
 static char text[131072],roundtrip[131072];static size_t text_n;
 static void add(const char *fmt, ...) {
@@ -137,15 +153,16 @@ int main(int argc,char **argv){
  if(argc==2){corpus=fopen(argv[1],"wb");assert(corpus);}
  fm1_app_init(&app,44118);assert(!fm1_app_select(&app,0,fm1_app_find("test-sine")));
  assert(!fm1_app_select(&app,1,fm1_app_find("test-gain")));assert(fm1_app_seq_demo(&app));
- all_modes();
+ all_modes();host_kinds();
  strcpy(app.info.title,"quote\" slash\\ tab\t newline\n");
  app.midi_map.version=1;assert(!fm1_midi_map_add(&app.midi_map,"sound1.param.Pitch","keyboard",0,0,60));
  app.dx7.index=0;app.dx7.loaded[0]=1;memset(app.dx7.voice[0],0,155);memset(app.dx7.voice[0]+145,' ',10);
  for(unsigned k=0;k<16;k++){app.unit[0].value[0]=(float)(k*7);app.sound=(int)(k%4);app.mode=(int)(k%9);all_modes();}
- rich();
+ rich();host_kinds();
  app.seq=NULL;all_modes();
  app.unit[0].e=NULL;all_modes();
  if(corpus)assert(!fclose(corpus));
+ printf("host-only kind oracle cases=%u\n",host_cases);
 #if !FM1_PROJECT_BASELINE
  printf("PROJECT differential cases=%u aux=%zu workspace=%zu reader=%zu\n",cases,fm1_app_state_project_aux_size(),fm1_app_state_workspace_size(FM1_APP_STATE_WORK_PROJECT),fm1_state_bin_reader_size());
 #else

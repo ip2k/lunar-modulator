@@ -465,48 +465,62 @@ static int metronome_on(const fm1_app_t *a) {
   return i.metronome != 0;
 }
 
+/* Shared completion preserves record/error ordering for every host kind. */
+static int collect_end(col_t *c, const char **why) {
+  const fm1_rec_t end = blank(FM1_REC_END);
+  out(c, &end);
+  if (!c->ok) *why = "the writer refused a record";
+  return c->ok;
+}
+
+/* Both host saves and native replay use these exact PROJECT records. Keeping
+ * this entry separate prevents the native closure retaining CLIP's host heap. */
+static int collect_project(fm1_app_t *a, fm1_rec_sink_t sink, void *ctx, const char **why, int stream_set) {
+  col_t c = { sink, ctx, 1 };
+  head_out(&c, FM1_STATE_PROJECT);
+  text_out(&c, FM1_INFO_NAME, a->info.name);
+  text_out(&c, FM1_INFO_TITLE, a->info.title);
+  text_out(&c, FM1_INFO_ABOUT, a->info.about);
+  text_out(&c, FM1_INFO_AUTHOR, a->info.author);
+  text_out(&c, FM1_INFO_LICENCE, a->info.licence);
+  session_out(&c, a);
+  for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
+    const int u = fm1_app_sound_unit(k);
+    unit_out(&c, a, u, FM1_ROLE_SOUND, (unsigned)k, 0);
+    if (a->unit[u].e) level_out(&c, a, k, (unsigned)k);
+    for (int j = 0; j < FM1_APP_INSERTS; ++j) {
+      unit_out(&c, a, fm1_app_insert_unit(k, j), FM1_ROLE_INSERT, (unsigned)k, (unsigned)j);
+    }
+    if (a->unit[u].e) mfx_out(&c, a, k, (unsigned)k);
+  }
+  for (int j = 0; j < FM1_APP_FX_SLOTS; ++j) unit_out(&c, a, 1 + j, FM1_ROLE_MASTER, 0, (unsigned)j);
+  for (unsigned s = 0; s < FM1_DX7_USER_SLOTS; ++s) {
+    if (a->dx7.index >= 0 && a->dx7.loaded[s]) dx7_out(&c, a, s);
+  }
+  mod_out(&c, a, MOD_ALL, 0, NULL);
+  if (g_set_n) {
+    if (stream_set) { if (c.ok && !fm1_state_seq_export(a->seq, sink, ctx)) c.ok = 0; }
+    else lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
+  }
+  if (!g_no_view) view_out(&c, a);
+  if (a->midi_map.version) {
+    fm1_rec_t r = blank(FM1_REC_MIDI_MAP); r.u.map_version = a->midi_map.version; out(&c, &r);
+    for (unsigned i = 0; i < a->midi_map.count; ++i) {
+      const fm1_midi_binding_t *b = &a->midi_map.binding[i];
+      r = blank(FM1_REC_MIDI_BINDING);
+      r.u.binding.target = a->midi_map.text + b->target; r.u.binding.source = a->midi_map.text + b->source;
+      r.u.binding.channel = b->channel; r.u.binding.kind = b->kind; r.u.binding.number = b->number; out(&c, &r);
+    }
+  }
+  return collect_end(&c, why);
+}
+
 /* The records of `kind` into sink: 1, or 0 with *why. */
 static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, void *ctx, const char **why, int stream_set) {
   col_t c = { sink, ctx, 1 };
   switch (kind) {
-    case FM1_STATE_PROJECT: {
-      head_out(&c, kind);
-      text_out(&c, FM1_INFO_NAME, a->info.name);
-      text_out(&c, FM1_INFO_TITLE, a->info.title);
-      text_out(&c, FM1_INFO_ABOUT, a->info.about);
-      text_out(&c, FM1_INFO_AUTHOR, a->info.author);
-      text_out(&c, FM1_INFO_LICENCE, a->info.licence);
-      session_out(&c, a);
-      for (int k = 0; k < FM1_APP_SOUNDS; ++k) {
-        const int u = fm1_app_sound_unit(k);
-        unit_out(&c, a, u, FM1_ROLE_SOUND, (unsigned)k, 0);
-        if (a->unit[u].e) level_out(&c, a, k, (unsigned)k);
-        for (int j = 0; j < FM1_APP_INSERTS; ++j) {
-          unit_out(&c, a, fm1_app_insert_unit(k, j), FM1_ROLE_INSERT, (unsigned)k, (unsigned)j);
-        }
-        if (a->unit[u].e) mfx_out(&c, a, k, (unsigned)k);
-      }
-      for (int j = 0; j < FM1_APP_FX_SLOTS; ++j) unit_out(&c, a, 1 + j, FM1_ROLE_MASTER, 0, (unsigned)j);
-      for (unsigned s = 0; s < FM1_DX7_USER_SLOTS; ++s) {
-        if (a->dx7.index >= 0 && a->dx7.loaded[s]) dx7_out(&c, a, s);
-      }
-      mod_out(&c, a, MOD_ALL, 0, NULL);
-      if (g_set_n) {
-        if (stream_set) { if (c.ok && !fm1_state_seq_export(a->seq, sink, ctx)) c.ok = 0; }
-        else lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
-      }
-      if (!g_no_view) view_out(&c, a);
-      if (a->midi_map.version) {
-        fm1_rec_t r = blank(FM1_REC_MIDI_MAP); r.u.map_version = a->midi_map.version; out(&c, &r);
-        for (unsigned i = 0; i < a->midi_map.count; ++i) {
-          const fm1_midi_binding_t *b = &a->midi_map.binding[i];
-          r = blank(FM1_REC_MIDI_BINDING);
-          r.u.binding.target = a->midi_map.text + b->target; r.u.binding.source = a->midi_map.text + b->source;
-          r.u.binding.channel = b->channel; r.u.binding.kind = b->kind; r.u.binding.number = b->number; out(&c, &r);
-        }
-      }
-      break;
-    }
+    case FM1_STATE_PROJECT:
+      return collect_project(a, sink, ctx, why, stream_set);
     case FM1_STATE_SOUND: {
       const int u = fm1_app_sound_unit(arg);
       int slot;
@@ -592,12 +606,7 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
       *why = "not a kind the app saves";
       return 0;
   }
-  {
-    const fm1_rec_t end = blank(FM1_REC_END);
-    out(&c, &end);
-  }
-  if (!c.ok) *why = "the writer refused a record";
-  return c.ok;
+  return collect_end(&c, why);
 }
 
 static void json_put(void *ctx, const char *b, size_t n) {
@@ -2055,7 +2064,7 @@ static int project_prepare(project_state_t *n, fm1_state_report_t *rep) {
   g_set_n = (uint32_t)set_n;
   n->json = fm1_state_json_project_writer((uint8_t *)n->phase + PROJECT_CODEC, names(), &n->source,
                                           n->phase, project_bytes, n, rep);
-  if (!n->json || !collect(n->app, FM1_STATE_PROJECT, 0, fm1_state_write, n->json, &why, 1)) {
+  if (!n->json || !collect_project(n->app, fm1_state_write, n->json, &why, 1)) {
     if (rep->code == FM1_STATE_OK) refuse_rep(rep, FM1_STATE_BAD, why);
     return 0;
   }
@@ -2259,6 +2268,14 @@ static int project_live_overlap(const fm1_app_t *a, const void *memory, size_t b
     if (overlap(memory, bytes, a->unit[u].mem, a->unit[u].cap) ||
         overlap(memory, bytes, e, e ? sizeof(*e) : 0) ||
         (e && overlap(memory, bytes, e->params, e->n_params * sizeof(*e->params)))) return 1;
+  }
+  for (unsigned c = 0; c < FM1_MFX_CHAINS; ++c) {
+    for (unsigned s = 0; s < FM1_MFX_SLOTS; ++s) {
+      const fm1_midi_fx_t *fx = a->mfx.chain[c].slot[s].fx;
+      if (overlap(memory, bytes, fx, fx ? sizeof(*fx) : 0) ||
+          (fx && overlap(memory, bytes, fx->engine.params,
+                         fx->engine.n_params * sizeof(*fx->engine.params)))) return 1;
+    }
   }
   return 0;
 }
