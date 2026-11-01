@@ -27,7 +27,8 @@ def test_two_pass_binary_codec(tmp_path, sanitize):
         flags += ["-fsanitize=address,undefined", "-fno-omit-frame-pointer"]
     sources = [ROOT / "tests/fixtures/native_state/codec.c"]
     sources += [ROOT / "engines/state" / name for name in (
-        "state_bin.c", "state_movy1.c", "state_names.c", "fm1_num.c", "fm1_deflate.c")]
+        "state_bin.c", "state_movy1.c", "state_names.c", "fm1_num.c", "fm1_deflate.c",
+        "state_json_read.c", "fm1_json.c")]
     with tempfile.TemporaryDirectory(prefix="codec-", dir=tmp_path) as temporary:
         stage = Path(temporary)
         baseline = os.environ.get("FM1_CODEC_BASELINE_SOURCE")
@@ -45,5 +46,5 @@ def test_two_pass_binary_codec(tmp_path, sanitize):
         gold = sorted((ROOT / "tests/fixtures/state/1.0").glob("*.lunarb"))
         result = subprocess.run([str(exe), *map(str, gold)], check=True, capture_output=True,
                                 text=True, timeout=90)
-        assert "cases=361 reports=2c7c6774" in result.stdout
+        assert "cases=387 reports=2a4db010" in result.stdout
         print(result.stdout.strip())
