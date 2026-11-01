@@ -44,6 +44,9 @@
 # build with the other sine is a trial: its module, record and results land
 # in sim/web/build/dx7-<sine>/ (dx7-msfa), and www/ stays as it was. MIT
 # licence, like the rest of this repository.
+# FM1_SSH_CONFIG optionally selects a readable absolute SSH config for both
+# ssh and scp. FM1_DOCKER_CPUS, FM1_DOCKER_CPUSET and FM1_DOCKER_MEMORY set
+# per-container limits (default memory and swap: 8g; no CPU limits).
 set -euo pipefail
 # macOS tar would add AppleDouble ._* files (provenance attributes) to the
 # staged tree, and a scan of www/ then trips over them.
@@ -79,8 +82,43 @@ if [ "$README_SHOTS" = 1 ] && [ "$SCREENSHOT" = 0 ]; then
   exit 2
 fi
 HOST="${FM1_SIM_HOST:?set FM1_SIM_HOST=user@host (a Linux machine with Docker)}"
+SSH_CONFIG=${FM1_SSH_CONFIG:-}
+if [ -n "$SSH_CONFIG" ]; then
+  if [[ "$SSH_CONFIG" != /* ]] || [ ! -f "$SSH_CONFIG" ] || [ ! -r "$SSH_CONFIG" ]; then
+    echo "FM1_SSH_CONFIG must be a readable absolute file" >&2
+    exit 2
+  fi
+fi
+SSH_CMD=(ssh)
+SCP_CMD=(scp)
+if [ -n "$SSH_CONFIG" ]; then
+  SSH_CMD+=(-F "$SSH_CONFIG")
+  SCP_CMD+=(-F "$SSH_CONFIG")
+fi
+DOCKER_CPUS=${FM1_DOCKER_CPUS:-}
+DOCKER_CPUSET=${FM1_DOCKER_CPUSET:-}
+DOCKER_MEMORY=${FM1_DOCKER_MEMORY-8g}
+if [ -n "$DOCKER_CPUS" ] && {
+  ! [[ "$DOCKER_CPUS" =~ ^[0-9]+([.][0-9]+)?$ ]] ||
+  ! python3 -c 'from decimal import Decimal; import sys; sys.exit(0 if Decimal(sys.argv[1]) > 0 else 1)' "$DOCKER_CPUS"; }; then
+  echo "FM1_DOCKER_CPUS must be a positive decimal number" >&2
+  exit 2
+fi
+if [ -n "$DOCKER_CPUSET" ] && {
+  ! [[ "$DOCKER_CPUSET" =~ ^[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*$ ]] ||
+  ! python3 -c 'import sys; sys.exit(0 if all(int(x.split("-")[0]) <= int(x.split("-")[-1]) for x in sys.argv[1].split(",")) else 1)' "$DOCKER_CPUSET"; }; then
+  echo "FM1_DOCKER_CPUSET must contain CPU numbers or ascending ranges" >&2
+  exit 2
+fi
+if ! [[ "$DOCKER_MEMORY" =~ ^[1-9][0-9]*[bBkKmMgG]?$ ]]; then
+  echo "FM1_DOCKER_MEMORY must be a positive Docker byte quantity" >&2
+  exit 2
+fi
+DOCKER_LIMIT_ARGS=(--cgroup-parent=docker-batch.slice "--memory=$DOCKER_MEMORY" "--memory-swap=$DOCKER_MEMORY")
+if [ -n "$DOCKER_CPUS" ]; then DOCKER_LIMIT_ARGS+=("--cpus=$DOCKER_CPUS"); fi
+if [ -n "$DOCKER_CPUSET" ]; then DOCKER_LIMIT_ARGS+=("--cpuset-cpus=$DOCKER_CPUSET"); fi
 # The remote directory defaults to one under the remote user's home.
-REMOTE=${FM1_REMOTE_DIR:-$(ssh "$HOST" 'printf %s "$HOME"')/mvave-fm1/virtual}
+REMOTE=${FM1_REMOTE_DIR:-$("${SSH_CMD[@]}" "$HOST" 'printf %s "$HOME"')/mvave-fm1/virtual}
 
 ROOT=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 SIM=$ROOT/sim/web
@@ -139,7 +177,7 @@ cleanup() {
   status=$?
   trap - EXIT INT TERM
   if [ "$STAGE_VALID" = 1 ]; then
-    if ssh "$HOST" "docker info >/dev/null 2>&1 || exit 1; \
+    if "${SSH_CMD[@]}" "$HOST" "docker info >/dev/null 2>&1 || exit 1; \
       for name in '$MUSL_CONTAINER' '$EMSDK_CONTAINER' '$PLAYWRIGHT_CONTAINER'; do \
         if docker container inspect \"\$name\" >/dev/null 2>&1; then docker rm -f \"\$name\" >/dev/null || exit 1; fi; \
       done; ${MOUNT_GUARD}rm -rf -- $STAGE_Q"; then
@@ -185,7 +223,7 @@ done
 # tree. The remote checks an external-volume mount before mkdir can create a
 # plain directory on the Mac's internal disk in its place.
 REMOTE_Q=$(printf '%q' "$REMOTE")
-STAGE=$(ssh "$HOST" "bash -s -- $REMOTE_Q $RUN_ID" <<'REMOTE_STAGE'
+STAGE=$("${SSH_CMD[@]}" "$HOST" "bash -s -- $REMOTE_Q $RUN_ID" <<'REMOTE_STAGE'
 remote=$1
 run_id=$2
 if [[ "$remote" == /Volumes/* ]]; then
@@ -215,22 +253,23 @@ if [[ "$REMOTE" == /Volumes/* ]]; then
 fi
 STAGE_VALID=1
 LABELS=(--label project=mvave-fm1-firmware --label "session=$SESSION" --label "invocation=$RUN_ID")
+printf -v DOCKER_ARGS '%q ' "${DOCKER_LIMIT_ARGS[@]}" "${LABELS[@]}"
 
 record "stage=$STAGE"
 echo "== staging sources on $HOST:$STAGE"
 if [ -n "$ENGINES_REF" ]; then
-  git -C "$ROOT" archive "$ENGINES_REF" engines | ssh "$HOST" "tar -x -C '$STAGE'"
+  git -C "$ROOT" archive "$ENGINES_REF" engines | "${SSH_CMD[@]}" "$HOST" "tar -x -C '$STAGE'"
 else
   tar -C "$ROOT" --no-xattrs --exclude='engines/build*' --exclude='.DS_Store' -cf - engines \
-    | ssh "$HOST" "tar -x -C '$STAGE'"
+    | "${SSH_CMD[@]}" "$HOST" "tar -x -C '$STAGE'"
 fi
 tar -C "$ROOT" --no-xattrs --exclude='sim/web/build' --exclude='.DS_Store' --exclude='__pycache__' -cf - sim/web \
-  | ssh "$HOST" "tar -x -C '$STAGE'"
+  | "${SSH_CMD[@]}" "$HOST" "tar -x -C '$STAGE'"
 
 echo "== images (by digest)"
 IMAGES=("$ALPINE_IMAGE" "$EMSDK_IMAGE")
 if [ "$SCREENSHOT" = 1 ]; then IMAGES+=("$PLAYWRIGHT_IMAGE"); fi
-DIGESTS=$(ssh "$HOST" bash -s -- "${IMAGES[@]}" <<'REMOTE'
+DIGESTS=$("${SSH_CMD[@]}" "$HOST" bash -s -- "${IMAGES[@]}" <<'REMOTE'
 for i in "$@"; do
   docker image inspect "$i" >/dev/null 2>&1 || docker pull -q "$i" >/dev/null
   d=$(docker image inspect --format '{{index .RepoDigests 0}}' "$i")
@@ -243,7 +282,7 @@ echo "$DIGESTS" | tr ';' '\n'
 record "images=$DIGESTS"
 
 echo "== static musl reference in $ALPINE_IMAGE"
-ssh "$HOST" "docker run --rm --name '$MUSL_CONTAINER' --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -v '$STAGE:/src' -w /src $ALPINE_IMAGE \
+"${SSH_CMD[@]}" "$HOST" "docker run --rm --name '$MUSL_CONTAINER' $DOCKER_ARGS -v '$STAGE:/src' -w /src $ALPINE_IMAGE \
   sh -c 'apk add -q build-base >/dev/null && \
          make -C engines -f Makefile -f /src/sim/web/mk/sim.mk SIM=/src/sim/web \
            BUILD=/src/sim/web/build/musl CC=gcc CXX=g++ EXTRA=-static FM1_GPL_MODS=$GPL_MODS FM1_DX7_SINE=$DX7_SINE -j\$(nproc) \
@@ -251,7 +290,7 @@ ssh "$HOST" "docker run --rm --name '$MUSL_CONTAINER' --cgroup-parent=docker-bat
          s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
 echo "== build and parity in $EMSDK_IMAGE"
-ssh "$HOST" "docker run --rm --name '$EMSDK_CONTAINER' --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' -e FM1_GPL_MODS=$GPL_MODS -e FM1_DX7_SINE=$DX7_SINE \
+"${SSH_CMD[@]}" "$HOST" "docker run --rm --name '$EMSDK_CONTAINER' $DOCKER_ARGS -e ENGINES_REF='${ENGINES_REF:-working tree}' -e FM1_IMAGES='$DIGESTS' -e FM1_GPL_MODS=$GPL_MODS -e FM1_DX7_SINE=$DX7_SINE \
   -v '$STAGE:/src' -w /src $EMSDK_IMAGE \
   sh -c 'bash sim/web/build.sh; s=\$?; chown -R \$(stat -c %u:%g /src) /src; exit \$s'"
 
@@ -259,9 +298,9 @@ if [ "$SCREENSHOT" = 1 ]; then
   echo "== page in headless Chromium ($PLAYWRIGHT_IMAGE)"
   # Seed from the prior shared install when present; this run writes only to
   # its own copy, so offline cached builds and concurrent npm runs both work.
-  ssh "$HOST" "if [ -d '$REMOTE/playwright/node_modules/playwright' ] && [ -d '$REMOTE/playwright/node_modules/axe-core' ]; then \
+  "${SSH_CMD[@]}" "$HOST" "if [ -d '$REMOTE/playwright/node_modules/playwright' ] && [ -d '$REMOTE/playwright/node_modules/axe-core' ]; then \
     mkdir -p '$STAGE/playwright' && cp -a '$REMOTE/playwright/node_modules' '$STAGE/playwright/'; fi"
-  ssh "$HOST" "docker run --rm --name '$PLAYWRIGHT_CONTAINER' --cgroup-parent=docker-batch.slice --memory=8g --memory-swap=8g ${LABELS[*]} --ipc=host \
+  "${SSH_CMD[@]}" "$HOST" "docker run --rm --name '$PLAYWRIGHT_CONTAINER' $DOCKER_ARGS --ipc=host \
     -v '$STAGE/playwright:/pw' -v '$STAGE:/src' -w /pw $PLAYWRIGHT_IMAGE \
     sh -c '[ -d node_modules/playwright ] && [ -d node_modules/axe-core ] || npm install --no-save --no-audit --no-fund $PLAYWRIGHT_NPM $AXE_NPM >/dev/null; \
            PLAYWRIGHT_DIR=/pw node /src/sim/web/test/screenshot.mjs /src/sim/web/www /src/sim/web/build/screenshots; \
@@ -285,14 +324,14 @@ echo "== fetching results"
 # A module with the other DX7 sine than engines/Makefile's default is a trial
 # too: www/ keeps the default sine's module. The claim above owns both paths.
 mkdir -p "$FETCH"
-scp -q "$HOST:$STAGE/sim/web/www/fm1.wasm" "$HOST:$STAGE/sim/web/www/fm1.wasm.json" \
+"${SCP_CMD[@]}" -q "$HOST:$STAGE/sim/web/www/fm1.wasm" "$HOST:$STAGE/sim/web/www/fm1.wasm.json" \
   "$HOST:$STAGE/sim/web/www/meta.json" "$FETCH/"
-scp -q "$HOST:$STAGE/sim/web/build/parity.json" "$FETCH/"
+"${SCP_CMD[@]}" -q "$HOST:$STAGE/sim/web/build/parity.json" "$FETCH/"
 if [ "$SCREENSHOT" = 1 ]; then              # replaced only by a new set
-  scp -q -r "$HOST:$STAGE/sim/web/build/screenshots" "$FETCH/"
+  "${SCP_CMD[@]}" -q -r "$HOST:$STAGE/sim/web/build/screenshots" "$FETCH/"
 fi
 if [ "$README_SHOTS" = 1 ]; then
-  scp -q -r "$HOST:$STAGE/sim/web/build/readme-screenshots" "$FETCH/"
+  "${SCP_CMD[@]}" -q -r "$HOST:$STAGE/sim/web/build/readme-screenshots" "$FETCH/"
 fi
 mkdir -p "$DEST" "$RESULTS"
 for name in fm1.wasm fm1.wasm.json meta.json; do mv -f "$FETCH/$name" "$DEST/$name"; done
