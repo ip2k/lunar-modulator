@@ -5,13 +5,13 @@
  *       any state file (JSON or binary) as canonical JSON. A JSON file's
  *       members are put in context order first (R1-R4, fm1_state.h), so a
  *       hand edit that breaks it is put right rather than refused.
- *   fm1-state pack FILE [-o OUT] [--store] [--without]
+ *   fm1-state pack FILE [-o OUT] [--store] [--without] [--strict]
  *       JSON to the binary container, through canon (--store: no deflate)
  *   fm1-state unpack FILE [-o OUT]
  *       binary to canonical JSON (a binary set to its .movy1 text)
  *   fm1-state from-movy1 FILE.movy1 [-o OUT]
  *       a set as a binary set file (kind 7)
- *   fm1-state records FILE [--pieces N] [--strict]
+ *   fm1-state records FILE [--pieces N]
  *       the records a reader gives, one JSON object a line; --pieces feeds
  *       the JSON reader N bytes at a time, as SysEx pages and flash reads do
  *   fm1-state check FILE [--rate HZ]
@@ -609,7 +609,7 @@ static int nop_cb(void *ctx, const fm1_json_ev_t *ev) {
 static void usage(void) {
   fprintf(stderr,
           "usage: fm1-state canon FILE [-o OUT] [--compact] [--without]\n"
-          "       fm1-state pack FILE [-o OUT] [--store] [--without]\n"
+          "       fm1-state pack FILE [-o OUT] [--store] [--without] [--strict]\n"
           "       fm1-state unpack FILE [-o OUT]\n"
           "       fm1-state from-movy1 FILE.movy1 [-o OUT]\n"
           "       fm1-state records FILE [--pieces N]\n"
@@ -622,7 +622,7 @@ static void usage(void) {
 
 int main(int argc, char **argv) {
   const char *cmd, *file = NULL, *file2 = NULL, *out_path = NULL;
-  int compact = 0, without = 0, store = 0, i, ok;
+  int compact = 0, without = 0, store = 0, strict = 0, i, ok;
   size_t pieces = 0;
   float rate = (float)FM1_STATE_HZ;
   fm1_state_names_t nm;
@@ -636,6 +636,7 @@ int main(int argc, char **argv) {
     else if (strcmp(a, "--compact") == 0) compact = 1;
     else if (strcmp(a, "--without") == 0) without = 1;
     else if (strcmp(a, "--store") == 0) store = 1;
+    else if (strcmp(a, "--strict") == 0) strict = 1;
     else if (strcmp(a, "--pieces") == 0 && i + 1 < argc) pieces = (size_t)strtoul(argv[++i], NULL, 10);
     else if (strcmp(a, "--rate") == 0 && i + 1 < argc) rate = (float)atof(argv[++i]);
     else if (a[0] == '-' && a[1]) { usage(); return 2; }
@@ -644,6 +645,7 @@ int main(int argc, char **argv) {
     else { usage(); return 2; }
   }
   if (strcmp(cmd, "num") == 0) return num_tests();
+  if (strict && (strcmp(cmd, "pack") != 0 || without)) { usage(); return 2; }
   if (strcmp(cmd, "sizes") == 0) {
     printf("{\"tokenizer\":%zu,\"json_reader\":%zu,\"inflater\":%zu,\"json_writer\":%zu,"
            "\"bin_writer\":%zu,\"record\":%zu}\n",
@@ -698,6 +700,13 @@ int main(int argc, char **argv) {
       ok = movy1_records(&in, fm1_state_bin_write, w);
     } else {
       ok = to_canon(&nm, &in, 0, without, 1, &canon, &rep);
+      if (ok && strict && fm1_state_sniff(in.b, in.n) == 2 && (rep.skipped || rep.repaired)) {
+        rep.code = FM1_STATE_BAD;
+        snprintf(rep.what, sizeof(rep.what),
+                 "strict pack refuses %u skipped and %u repaired JSON fields",
+                 rep.skipped, rep.repaired);
+        ok = 0;
+      }
       if (ok) {
         fm1_state_report_t rep2;
         fm1_state_report_init(&rep2);

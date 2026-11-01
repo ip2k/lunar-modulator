@@ -97,7 +97,10 @@ def prepare(profile: Path, tool: Path, out: Path, *, recompress_content=False):
             packed.write_bytes(data)
         else:
             operation = 'from-movy1' if data.startswith(b'movy1\n') else 'pack'
-            command(tool, operation, source, '-o', packed)
+            if operation == 'pack':
+                command(tool, operation, source, '--strict', '-o', packed)
+            else:
+                command(tool, operation, source, '-o', packed)
         record_bytes = command(tool, 'records', packed)
         compression = None
         if recompress_content:
