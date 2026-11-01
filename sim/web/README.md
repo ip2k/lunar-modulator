@@ -1732,8 +1732,13 @@ UBSAN_OPTIONS=suppressions=$PWD/engines/sanitizers/ubsan.supp:halt_on_error=1 \
   unloaded slots; save a `.lunar` project to preserve those. Only the
   arpeggiator's first MIDI-effect slot is on the panel. On the panel the sequencer
   has no Session, scenes, song, Loop view, COPY or a CLEAR tap (docs/15
-  S9), and no sets in the browser or MIDI clock in (S10); the desktop tools
-  have them. Per-voice modulation reaches only the engines with per-note
+  S9), and no sets in the browser (S10); the desktop tools have them.
+  Web MIDI realtime input (F8/FA/FB/FC) follows the saved set's `link 1`
+  preference; `link 0` keeps the internal clock independent. Inputs land at
+  host block boundaries (up to one 128-frame quantum of arrival jitter).
+  Disconnect clears queued input, releases notes, and stops linked transport.
+  A burst exceeding the 1024-message retry queue clears pending input and
+  releases notes with a visible error. Per-voice modulation reaches only the engines with per-note
   offsets; Sophie and Test Sine refuse it (docs/16 MG9).
   Compat mode (Movy's exact behaviour) stays on `fm1-seq` and
   `fm1-render`; the app runs the FM-1's default mode.
