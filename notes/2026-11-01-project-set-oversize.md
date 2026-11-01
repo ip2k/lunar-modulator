@@ -1,55 +1,104 @@
 # PROJECT saves must retain the set or refuse
 
-Personal, non-commercial work. Exact starting commit: da7bd022d8b1244f9668a0498ff3dd866b33d652.
+Personal, non-commercial work. Exact starting commit:
+`da7bd022d8b1244f9668a0498ff3dd866b33d652`.
 
-## Bounded plan, before editing
+## Scope and implementation
 
-[verified] `set_text` returns zero both for absent sequencers and exports at least
-65538 bytes long. PROJECT collection interprets either as absence and succeeds
-without SEQS. The complete app can therefore be saved without its set.
+[verified] `set_text` returned zero both for absent sequencers and exports at
+least 65,538 bytes long. PROJECT collection interpreted either as absence and
+succeeded without SEQS. The source inspection finding became a measured
+regression below; it was not initially a verified default-pool reproducer.
 
-Change only `sim/web/src/fm1_app_state.c` and focused host regression/driver:
-report overflow separately inside the private helper, preflight PROJECT before
-collecting records, and reuse that exported text during collection. Preserve
-workspace interfaces, caps, codecs, absent-set behavior, all valid bytes and
-other format paths. Refuse with TOO_BIG before any external output. No native
-storage, codec rewrite, UI, device or hardware work.
+The plan saved before editing was to distinguish overflow in the private
+helper, preflight PROJECT before collecting records, and reuse that export in
+collection. This is the implemented change. Oversize PROJECT saves now return
+`FM1_STATE_TOO_BIG` before any external output. An absent sequencer still omits
+SEQS. Workspace interfaces, codecs, caps and other format paths are unchanged.
+The existing fitting 65,537-byte behavior is preserved; no buffer/format cap is
+silently reduced. No native storage, codec rewrite, UI or hardware changes.
 
-Build the real app with minimal test engines. Fill its existing sequencer pools
-with a valid oversized set, roundtrip it through the existing importer/exporter,
-and check four PROJECT modes, zero callback calls, app/edit byte snapshots and
-PCM. Use a link-local export fixture for exact boundary lengths only. Compare
-valid output hashes to the exact baseline and demonstrate that the unchanged
-baseline fails the new oversized assertion. Run normal and Clang ASan/UBSan.
+## Focused regression
 
-Rarefaction primary-root status and bounded scope were checked; external worktree
-orientation was refused. Serena was read without changing its shared primary
-project; its helper body reflects that other checkout. Both are insufficient to
-prove this isolated source graph. Direct source/caller/build reads are the
-fallback; no target ABI or hardware claims.
+[verified] Source and tests frozen at
+`9ce42c4b2acdceaaf58210feba4f021d98d82f56`; production source has been unchanged
+since checkpoint `6344680720afe490d78bf60c9109280408b7871c`.
 
-Lifecycle: source worktree is lunar-project-set-oversize-20261101. LAN stage is
-/home/likwid/datasets/lunar/project-set-oversize-20261101; CPU12–15, max4CPU6GiB,
-docker-batch.slice, --rm and task labels. Preserve small logs and remove owned
-source/build intermediates after results. Mac free space before work:1116GiB.
+`tests/test_project_set_oversize.py` builds the actual app with test-sine,
+test-gain and the existing minimal modulation modules, then runs
+`sim/web/test/fm1_project_set_oversize_check.c`. An optional
+`FM1_PROJECT_SET_BASELINE_SOURCE` substitutes only the exact starting state TU
+into an otherwise identical source closure. The export symbol fixture delegates
+to the real exporter except for explicitly selected exact-length tests.
 
-## First measured fixture correction
+The real dense default eight-track set has 1,536 notes, 1,536 locks and 256 trig
+rows and exports 64,920 bytes. It is positive fitting coverage. The real
+oversized set uses supported caller-selected limits in the unchanged 32,768-byte
+app arena: Capture history is disabled and the note pool grows to 1,600; other
+pools remain unchanged. Factory size/create checks prove this fits that arena.
+Its canonical export is 66,456 bytes. Both sets import/export/import/export
+without refused edits or Movy faults. This custom pool case is not claimed to
+be reachable through the default UI; no production limit changes.
 
-[verified] Normal build found the default eight-track pools with 1536 notes,
-1536 locks and256 trig rows export64920 bytes in this dense fixture. That is
-fitting coverage, not an oversized reproducer. The real oversized fixture uses
-supported caller-selected pools in the unchanged32768-byte app arena: disable
-unsaved Capture history and add64 notes (1600 total). Its real canonical export
-is66456 bytes, and import/export/import/export roundtrips without refused edits.
-The fixture states this distinction; no production pool/cap is changed.
+[verified] Fresh normal and Clang ASan/UBSan builds passed:
 
-[verified] First normal run demonstrated old success with one output callback
-and new TOO_BIG with zero callbacks in all four PROJECT modes. Exact synthetic
-65536/65537 export boundaries fit and65538 refuses. Additional final runs will
-cover both host wrappers and explicit caller workspace plus default dense parity.
+- The exact baseline reports success and calls output on the real oversized
+  set, then fails the new refusal assertion (expected RED).
+- The fixed app refuses that set and the exact 65,538-byte fixture with code 7,
+  zero output calls/bytes, in all four PROJECT modes, through both the host
+  wrapper and explicit workspace API.
+- Whole-app and attached edit-history byte snapshots remain unchanged. Live
+  held-note PCM is equal across saves and explicitly required to be nonzero.
+- Subsequent fitting saves succeed, proving refusal releases the workspace.
+- Empty real sets, absent sets, exact 65,536/65,537-byte fixtures and the real
+  default dense set succeed in every mode/API. All four baseline/fixed,
+  normal/sanitized valid-corpus digests are `8bcc4635`.
 
-[verified] Frozen afded052 normal and Clang ASan/UBSan both passed; valid digest
-8bcc4635 matches baseline/fixed. Before final acceptance the PCM assertion is
-strengthened to require a nonzero held voice after any set-import note releases;
-this is a fixture-only change and requires final reruns. Production source is
-unchanged since6344680.
+ASan used `-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer`, leak
+checking and UBSan halt-on-error. No sanitizer diagnostics occurred; the expected
+baseline assertion appears in both logs. The immutable container images and
+source/log SHA256 values are recorded in the private receipt.
+
+The container images have no pytest install. A small runner loaded the actual
+pytest test function, supplied its temporary path, and executed every compile,
+subprocess and assertion. Its only pytest API, the missing-tool skip, was
+replaced with an exception; tools were present. Parent CI still runs normal
+pytest discovery/integration. These focused builds do not prove target ABI,
+WASM integration, the complete engine registry or hardware acceptance.
+
+## Orientation and lifecycle
+
+Rarefaction primary-root status and bounded scope were checked; external
+worktree orientation was refused. Serena instructions/config and bounded helper
+query were read without changing its shared primary project; that body belongs
+to the other checkout. Direct source/caller/build reads were the fallback. No
+claim of complete indexed analysis of this isolated worktree.
+
+LAN work used the preapproved lan-compute skill and existing access docs,
+verified SSH host keys, uniquely reserved CPU 12–15, maximum 4 CPU/6 GiB,
+`docker-batch.slice`, network disabled, `--rm` and task labels. Both closures
+built fresh; no cached engine objects. Data lives in the single owned stage
+`/home/likwid/datasets/lunar/project-set-oversize-20261101`.
+
+Small logs/commands/receipt are mirrored in this worktree's ignored
+`scratch/project-set-oversize-20261101/evidence/`. Independent review and final
+cleanup are recorded below. The source worktree stays available for parent
+integration and is removed after merge. Mac free space before work: 1,116 GiB.
+
+[verified] Independent reviewer audit_effects approved frozen `9ce42c4b` after
+rerunning both original normal/sanitized harnesses and verifying source hashes.
+A private normal shadow fixture captured every valid output callback with its
+length prefix. All 40 operations produced byte-identical baseline/fixed streams:
+1,005,670 bytes, SHA256
+`d5966e351f45ee1eb337e4c63d96d3fd9140e7e4158651eda35c2571cf9fe60f`.
+The reviewer removed its shadow source, object, executables and captures.
+
+[verified] After reviewer release, the owned source, exact baseline TU and all
+normal/sanitized build directories were removed. No task-labelled containers
+remain. CPU 12–15 is released and the next worker was notified. LAN retains
+128 KiB of logs/commands/receipt; the local ignored evidence is 76 KiB. Mac free
+space at handoff is 1,116 GiB. No vendor binaries or build products entered Git.
+
+Next dependency: parent reviews/integrates the frozen branch through required CI
+and pins the final WASM build and future persistence oracle to that integrated
+source. This bounded fix does not make native persistence fit or enable it.
