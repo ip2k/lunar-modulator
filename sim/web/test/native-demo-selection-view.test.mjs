@@ -82,11 +82,11 @@ test('preselects the owner-approved musical default reversibly and submits order
   assert.equal(checkboxes[0].checked, false);
   assert.equal(checkboxes[1].checked, true);
   assert.equal(checkboxes[2].disabled, false);
-  assert.equal(checkboxes[3].disabled, true);
-  assert.equal(checkboxes[4].disabled, true);
-  assert.match(textNodes, /The recorded playback-memory check passed; device playback remains unverified/);
-  assert.match(textNodes, /This arrangement exceeds available playback memory/);
-  assert.match(textNodes, /Unavailable with the current voice count/);
+  assert.equal(checkboxes[3].disabled, false);
+  assert.equal(checkboxes[4].disabled, false);
+  assert.match(textNodes, /Playback memory for this configuration has not been checked/);
+  assert.match(textNodes, /Historical diagnostic results do not establish current fit/);
+  assert.doesNotMatch(textNodes, /The recorded playback-memory check passed|This arrangement exceeds available playback memory|Unavailable with the current voice count/);
   assert.equal(radios[0].disabled, true);
   assert.equal(radios[1].disabled, false);
   assert.equal(radios[1].checked, true);
@@ -139,7 +139,7 @@ test('preselects the owner-approved musical default reversibly and submits order
   assert.equal(root.children[0].removed, true);
 });
 
-test('blocks rejected candidates in controls, event handlers, and request preflight', async () => {
+test('historical allocator failures do not disable selectable requests', async () => {
   const document = new Document();
   const root = new Element('div', document);
   const sent = [];
@@ -149,16 +149,16 @@ test('blocks rejected candidates in controls, event handlers, and request prefli
   const status = nodes.find((node) => node.getAttribute('aria-live') === 'polite');
   const submit = nodes.find((node) => node.tagName === 'BUTTON');
 
-  assert.equal(checkboxes[3].disabled, true);
-  assert.equal(checkboxes[4].disabled, true);
+  assert.equal(checkboxes[3].disabled, false);
+  assert.equal(checkboxes[4].disabled, false);
   checkboxes[3].checked = true;
   await checkboxes[3].dispatch('change');
-  assert.equal(checkboxes[3].checked, false);
-  assert.match(status.textContent, /exceeds available playback memory/);
+  assert.equal(checkboxes[3].checked, true);
+  assert.doesNotMatch(status.textContent, /exceeds available playback memory/);
   assert.equal(submit.disabled, false); // Proposed EH remains selected/startup.
   await submit.dispatch('click');
   assert.equal(sent.length, 1);
-  assert.deepEqual(sent[0].project_ids, ['replacement-showcase-candidate-event-horizon']);
+  assert.deepEqual(sent[0].project_ids, ['replacement-showcase-candidate-event-horizon', 'replacement-showcase-candidate-packet-bloom']);
 });
 
 test('allows removing the approved default and still requires an explicit startup choice', async () => {
