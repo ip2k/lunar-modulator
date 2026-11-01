@@ -30,3 +30,12 @@ malformed-ELF tests plus unchanged v1 request suite pass (63 cases). Receipt
 validator implementation is WIP pending the real author's build and positive /
 causal mutation coverage. This checkpoint does not accept a real native result.
 The layout label is stock-sized-diagnostic, with no protected-package claim.
+
+Second checkpoint: 120 focused cases plus 6 subtests pass. Synthetic ELF
+coherence fixtures and causal mutations cover actual storage overlap, guard
+symbols, flat/blob mismatch after rehashing, retained forbidden symbols, ELF
+table overlap/relocations/strides, missing external anchors and changed actual
+objects/prepared bytes. The original shared ELF/audit implementation is unchanged.
+Actual 7ab target artifacts have arrived; independent positive receipt smoke is
+pending external metadata anchor verification. All capability/admission flags
+remain false.

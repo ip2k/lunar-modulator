@@ -111,13 +111,25 @@ def _elf(raw):
     stride, count, names = struct.unpack_from("<HHH", raw, 46)
     if stride != 40 or not 1 <= count <= 4096 or names >= count or shoff + count * stride > len(raw):
         raise ValueError("invalid ELF section table")
+    payloads, symbol_count = [], 0
     for index in range(count):
         row = struct.unpack_from("<10I", raw, shoff + index * stride)
         _, kind, _, _, offset, size, link, _, _, entry = row
-        if kind != SHT_NOBITS and offset + size > len(raw):
-            raise ValueError("ELF section exceeds file")
+        if kind != SHT_NOBITS and size:
+            if offset < 52 or offset + size > len(raw):
+                raise ValueError("ELF section exceeds file")
+            payloads.append((offset, offset + size))
+        # This fully linked fixed profile has no retained relocation sections.
+        if kind in (4, 9):
+            raise ValueError("unexpected linked ELF relocations")
         if kind == 2 and (entry != 16 or size % 16 or size // 16 > 100000 or link >= count):
             raise ValueError("invalid ELF symbol table")
+        if kind == 2:
+            symbol_count += size // 16
+    payloads.sort()
+    if (symbol_count > 100000 or any(a[1] > b[0] for a, b in zip(payloads, payloads[1:]))
+            or any(start < shoff + count * stride and shoff < end for start, end in payloads)):
+        raise ValueError("overlapping or excessive ELF tables")
     try:
         result = Elf(raw, "selected-trio.elf")
     except (ValueError, IndexError, struct.error) as error:
@@ -205,7 +217,17 @@ def validate_receipt(request_raw: bytes, receipt_raw: bytes, *, app: bytes, elf:
         "combined_licence gpl_sources prepared_input_manifest renderer_input state_tool_input".split())
     if set(receipt) != expected_keys:
         raise ValueError("unsupported selected Trio receipt schema")
-    _same(receipt["compile_flags"], list(trusted.compile_flags), "compiler flags")
+    flag_prefix = ["-target", "pi32v2", "-mcpu=r3", "-mfprev1", "-Oz", "-ffreestanding",
+                   "-fno-builtin", "-ffunction-sections", "-fdata-sections",
+                   "-DFM1_APP_EXTERNAL_ARENAS=1", "-DNDEBUG", "-D_GNU_SOURCE", "-D_XOPEN_SOURCE=700",
+                   "-DFM1_APP_STATE_EXTERNAL_WORKSPACE=1", "-D_LIBCPP_HAS_NO_THREADS",
+                   "-D_LIBCPP_DISABLE_EXTERN_TEMPLATE"]
+    flags = list(trusted.compile_flags)
+    if (flags[:16] != flag_prefix or len(flags) != 20 or flags[16] != "-isystem"
+            or flags[18] != "-isystem" or not all(type(f) is str and f for f in flags)
+            or type(trusted.compiler_version) is not str or not trusted.compiler_version):
+        raise ValueError("unsupported trusted compiler recipe")
+    _same(receipt["compile_flags"], flags, "compiler flags")
     _same(receipt["compiler_version"], trusted.compiler_version, "compiler version")
     for field in ("source_commit", "source_tree_oid"):
         if not re.fullmatch(r"[0-9a-f]{40}", getattr(trusted, field)):
@@ -242,7 +264,9 @@ def validate_receipt(request_raw: bytes, receipt_raw: bytes, *, app: bytes, elf:
         raise ValueError("invalid bounded private evidence")
     _same(receipt.get("prepared_input_manifest"), {k: _sha(v) for k, v in files.items()}, "prepared inputs")
     rows = receipt.get("objects")
-    if not isinstance(rows, list) or any(not isinstance(r, dict) or set(r) != {"path", "sha256"} for r in rows):
+    if not isinstance(rows, list) or any(not isinstance(r, dict) or set(r) != {"path", "sha256"}
+            or not isinstance(r["path"], str) or not _relative(r["path"])
+            or not isinstance(r["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", r["sha256"]) for r in rows):
         raise ValueError("invalid object inventory")
     if len(rows) != len(objects) or len({r["path"] for r in rows}) != len(rows):
         raise ValueError("duplicate or missing object evidence")
