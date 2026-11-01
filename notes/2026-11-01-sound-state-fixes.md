@@ -114,3 +114,16 @@ At this lane's current source:
   → `0ed13125172c18145b163d210bc77146f4b465a9ff87e07770940486daad2e1c`.
 - `fm1_edit_check.c`: `37bf68b09485a8757efad4fc9667c0122d0461ceb4b04cc36a1340c3fe2d6f47`
   → `16eaf5196c82fc8c89ac318dcfcb96a4ae5a0bf5464d55dd3aab28cf884383a4`.
+
+## Follow-up A6/A7 (in progress)
+
+The coordinator authorized two further app-state audit fixes after independent
+A2/A3 checkpoint `64d499ed5750d7364447d99d25db0937b8d020c2`.
+[verified] Focused RED checks on that unchanged application source returned
+392 failures: six invalid headers changed the whole live app, all 384 PCM
+continuation blocks differed from controls, and a real allocation refusal in the
+second clip merge still reported success without inserting the clip. The
+fault-only harness wraps the merge and realloc at link time; it fails realloc
+inside the chosen real merge, rather than replacing application behavior.
+First-merge allocation refusal already preserved app state. Source fixes and
+final validation remain pending at this regression checkpoint.
