@@ -102,6 +102,7 @@ static void check_candidate(unsigned mode) {
   const uint8_t *bytes=fake.slot[chosen]+HEADER;
   assert(get32(fake.slot[chosen]+8)==expected_n && !memcmp(bytes,expected,expected_n));
   source_t source={bytes,expected_n}; fm1_state_report_t r;
+  fm1_state_report_init(&r);
   records=params=views=sessions=sets=0;
   assert(fm1_state_bin_read_workspace(scan_memory,sizeof scan_memory,
       scan_read,&source,expected_n,decoded,NULL,&r,0));
