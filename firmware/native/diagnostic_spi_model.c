@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 #include "diagnostic_spi_model.h"
 #include "diagnostic_display.h"
-enum { SELECT=1, CLEAR, LOW, FENCE, LAUNCH, WAIT, DESELECT };
+enum { SELECT=1, CLEAR, ACK_FENCE, LOW, FENCE, LAUNCH, WAIT, DESELECT };
 static const uint8_t commands[3] = {0x2a,0x2b,0x2c};
 static int fail(lunar_spi_model_t *m, uint32_t reason) {
   if(m && !m->fault) m->fault=reason;
@@ -46,6 +46,9 @@ int lunar_spi_model_step(lunar_spi_model_t *m,uint32_t *ticket) {
     m->phase=CLEAR; break;
   case CLEAR:
     if(m->ops.clear_done(m->ops.ctx)) return fail(m,LUNAR_SPI_IO);
+    m->phase=ACK_FENCE; break;
+  case ACK_FENCE:
+    if(m->ops.barrier(m->ops.ctx)) return fail(m,LUNAR_SPI_IO);
     m->phase=LOW; break;
   case LOW:
     r=m->ops.done(m->ops.ctx);

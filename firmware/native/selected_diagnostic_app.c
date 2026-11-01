@@ -99,6 +99,7 @@ int lunar_selected_interactive_render(void *unused, int32_t *pcm) {
 }
 const uint16_t *lunar_selected_interactive_draw(void *unused, uint32_t frames) {
   (void)unused;
-  return ready && !fault ? fm1_app_draw(&app, frames) : NULL;
+  if (!ready || fault || !fm1_app_draw(&app, frames)) return NULL;
+  return app.tft.px;
 }
 #endif
