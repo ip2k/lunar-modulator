@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.seq_helpers import ENGINES, RENDER, seq_tools  # noqa: F401
+from tests.seq_helpers import ENGINES, RENDER, SEQ_CHECK, seq_tools  # noqa: F401
 
 FIX = Path(__file__).resolve().parent / "fixtures" / "movy"
 SCRIPTS = sorted(FIX.glob("*.verbs"))
@@ -185,10 +185,10 @@ def test_random_compat(seq_tools, tmp_path, script):
 
 
 @pytest.mark.parametrize("script", RANDOM, ids=lambda p: p.stem)
-def test_random_default_mode_runs_clean(tmp_path, script):
+def test_random_default_mode_runs_clean(seq_tools, tmp_path, script):
     """The FM-1 default on the same scripts: the checking build (index
     invariants) runs them to the end, with every note closed."""
-    got, _ = run_seq(ENGINES / "build" / "fm1-seq-check", script, tmp_path)
+    got, _ = run_seq(SEQ_CHECK, script, tmp_path)
     sounding = {}
     for e in got:
         if e["kind"] in ("on", "off"):
