@@ -37,9 +37,10 @@
  *     in slots 2-4 are left out and counted as skipped.
  *
  * Sources are fm1_state.h's read callbacks, so RAM, a page's buffer and
- * flash look the same. The writer's memory (fm1_state_json_writer_size,
- * about 477 KB) and the buffers below are static: one save or load at a
- * time, on the thread that owns the app.
+ * flash look the same. Scratch is explicitly caller-owned below, or supplied
+ * by the legacy host wrappers: one synchronous operation at a time, on the
+ * thread that owns the app. The full codecs still need large workspaces;
+ * external ownership alone does not make persistence fit native RAM.
  *
  * C99. MIT licence, like the rest of this repository.
  */
@@ -52,6 +53,29 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Native builds may remove the legacy host default arena. Set consistently
+ * for the state implementation; the old save/pack/check/load wrappers then
+ * refuse before callbacks/output or app mutation. MIDI-map-only updates need
+ * no large workspace. This does not expose persistence in the native UI. */
+#ifndef FM1_APP_STATE_EXTERNAL_WORKSPACE
+#define FM1_APP_STATE_EXTERNAL_WORKSPACE 0
+#endif
+#if FM1_APP_STATE_EXTERNAL_WORKSPACE != 0 && FM1_APP_STATE_EXTERNAL_WORKSPACE != 1
+#error FM1_APP_STATE_EXTERNAL_WORKSPACE_must_be_0_or_1
+#endif
+
+typedef struct fm1_app_state_workspace {
+  void *memory;
+  size_t bytes;
+} fm1_app_state_workspace_t;
+
+enum {
+  FM1_APP_STATE_WORK_SAVE = 1,
+  FM1_APP_STATE_WORK_PACK = 2,
+  FM1_APP_STATE_WORK_LOAD = 3       /* both check and load */
+};
+size_t fm1_app_state_workspace_size(unsigned operation);
 
 /* Atomic mapping-only update; minimal project envelope with browser.midiMap. */
 int fm1_app_midi_map_set(fm1_app_t *a, const uint8_t *bytes, size_t len, fm1_state_report_t *rep);
@@ -125,6 +149,32 @@ int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put
  * thread is handed binary and never parses JSON (stage ED13). 1, or 0 with
  * rep's code. */
 int fm1_app_state_pack(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx, fm1_state_report_t *rep);
+
+/* Explicit workspace forms preserve the codecs, caps and atomicity above.
+ * Supply at least workspace_size(operation) bytes at a 16-byte-aligned address.
+ * Storage is borrowed exclusively until return, including every synchronous
+ * rd/put callback. The put bytes are valid only during that callback; copy them
+ * before return. No callback may retain workspace pointers, reenter a state
+ * operation, or access live workspace except its supplied put bytes. Custom
+ * rd/put contexts and their backing input/output allocations MUST NOT overlap
+ * workspace; their opaque allocation extents cannot be inferred. Known
+ * fm1_app_state_mem_read input overlap is checked, as are app/engine arenas,
+ * opts/report and the workspace descriptor. Invalid/busy storage refuses
+ * before callbacks, output or app mutation. If report itself overlaps scratch,
+ * it is left untouched. Calls from multiple threads require external exclusion.
+ * Input must remain stable across all check/load passes, as with host wrappers.
+ */
+int fm1_app_state_save_with_workspace(fm1_app_t *a, unsigned kind, int arg, int binary,
+                                      fm1_put_t put, void *ctx,
+                                      const fm1_app_state_workspace_t *w, fm1_state_report_t *rep);
+int fm1_app_state_pack_with_workspace(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx,
+                                      const fm1_app_state_workspace_t *w, fm1_state_report_t *rep);
+int fm1_app_state_check_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
+                                       const fm1_app_load_opts_t *o,
+                                       const fm1_app_state_workspace_t *w, fm1_app_state_report_t *rep);
+int fm1_app_state_load_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
+                                      const fm1_app_load_opts_t *o,
+                                      const fm1_app_state_workspace_t *w, fm1_app_state_report_t *rep);
 
 /* A source over a buffer (ctx: an fm1_app_state_mem_t). */
 typedef struct fm1_app_state_mem {

@@ -64,3 +64,11 @@ reads; Rarefaction primary checkout lacks root compile DB and cross-file
 callers are incomplete. Current shared Serena selection ready, unchanged.
 External worktree examined directly at exact base. Callback/codec/clip and
 build-source checks supplement semantic results; no whole-index claim.
+
+[verified] Actual pi32v2 baseline C11 object (vendor clang -target pi32v2
+-mcpu=r3 -mfprev1, no link/hardware): pointer4, plan11596, JSON reader1584,
+record164, arrays983045, default app4957952. Read values from emitted const
+size table using vendor common/bin/objdump, ELF32-pi32v2, not host sizeof.
+Toolchain archive hash freshly checked f686586b...25958; extracted compiler
+is existing SDK-v1213-gpl-int/toolchain/current (internal20250324.1 directory).
+Installer lane independently owns actual archive/tree-binding verification.
