@@ -135,6 +135,14 @@ static void clock_checks(void){
 int main(int argc,char **argv){
  assert(argc==2);const char *mode=argv[1];(void)unused_pointer;
  if(!strcmp(mode,"clock")){clock_checks();goto done;}
+ if(!strcmp(mode,"clock_fraction")){
+  manual=1;raw=UINT32_MAX-10u;initialize();
+  raw+=12000u;assert(cpu1_candidate_ms(&candidate)==0u);
+  raw+=24000u;mock_cpu=1;assert(cpu1_candidate_ms(&candidate)==1u);
+  raw+=12000u;mock_cpu=0;assert(cpu1_candidate_ms(&candidate)==2u);
+  mock_cpu=1;assert(cpu1_candidate_ms(&candidate)==2u);
+  assert(!candidate.clocks[0].remainder && !candidate.clocks[1].remainder);goto done;
+ }
  initialize();
  if(!strcmp(mode,"nested_irq")){
   uint32_t a,b;mock_icfg=0x1234ffefu;
@@ -157,6 +165,10 @@ int main(int argc,char **argv){
   mock_cpu=1;assert(!cpu1_candidate_install_vectors(&candidate));
   assert(!cpu1_candidate_hold(&candidate));assert(!cpu1_candidate_early_hold(&ops));
   assert(!writes && !releases);goto done;
+ }
+ if(!strcmp(mode,"enabled_irq")){
+  mock_icfg=0x100u;assert(!cpu1_candidate_install_vectors(&candidate));
+  assert(candidate.failed && !writes && !releases);goto done;
  }
  if(!strcmp(mode,"early_hold")){
   poke(C1_DBG_MSG,0x003f1234u);uint32_t prior=0;

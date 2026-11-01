@@ -10,7 +10,8 @@ cpu1_candidate lunar_cpu1_candidate __attribute__((section(".candidate_state"),a
  * exception sees claimed!=0 and parks without overwriting its first record. */
 typedef struct {
     volatile uint32_t claimed,vector,reti,rete,sp,usp,ssp,icfg;
-    uint32_t reserved[8];
+    volatile uint32_t complete;
+    uint32_t reserved[7];
 } raw_fault;
 raw_fault lunar_cpu1_raw_fault[2] __attribute__((section(".candidate_fault"),aligned(64)));
 _Static_assert(sizeof(raw_fault)==64,"assembly raw-fault stride");

@@ -55,6 +55,8 @@ Assembly records original USP/SSP/ICFG/SP/RETI/RETE before switching to an emerg
 stack. Per-core first-fault claims park nested faults without overwriting the
 first raw record. Both cores park without display/reset/CPU1 hold. Fault records
 and static control/arena storage remain alive for image lifetime.
+`claimed=1` already forces refusal; `complete=2` distinguishes a fully captured
+raw frame from an incomplete/nested fault. It is not an atomic multiword snapshot.
 
 TIMER4 is configured as OSC 24 MHz, /1 if its source/period is incompatible, without
 system clock-tree changes. Each core owns a separate 32-bit ms accumulator from

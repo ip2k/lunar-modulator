@@ -7,7 +7,7 @@ import sys
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-MODES = ["stream", "clock", "nested_irq", "frozen_clock", "fault_records",
+MODES = ["stream", "clock", "clock_fraction", "enabled_irq", "nested_irq", "frozen_clock", "fault_records",
          "wrong_core", "early_hold", "prepoison", "bad_setup", "no_entry",
          "late_entry", "cleanup_failure", "lifetime", "stalled_launch", "stalled_ready"]
 MODES += [f"write_{kind}_{i}" for kind in ("a", "n") for i in range(1, 65)]

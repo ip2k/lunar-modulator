@@ -77,6 +77,8 @@ candidate_fault_entry:
     [r8++] = r4
     [r8++] = r5
     [r8++] = r6
+    r9 = 2
+    [r8] = r9
     csync
     if (r7 == 0) goto 3f
     sp = _cpu1_fault_top
