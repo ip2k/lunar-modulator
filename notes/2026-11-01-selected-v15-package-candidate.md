@@ -14,9 +14,13 @@ report, expanded-D7000 tuples or identity translation. Legacy packagers,
 request/receipt validators, models, builder and application are unchanged.
 
 The caller supplies an existing owner-only scratch root. Only a fresh private
-child containing the seven bounded references is materialized; it is removed
-before successful return or propagation of a failure. Immutable byte inputs
-prevent repeated inspector reads from observing a changing reference tree.
+child containing the seven bounded references is materialized. Cleanup is
+attempted on success and failure, and must succeed before any candidate is
+returned. A deletion refusal propagates without returning a candidate, but may
+leave the private 0700 child and 0400 references in the known scratch root.
+The operator must inspect that root and remove only the owned child after
+restoring filesystem access; an exception does not confirm deletion. Immutable
+byte inputs prevent repeated inspector reads from observing a changing tree.
 No candidate file is written. The operator owns the returned bytes and their
 private lifetime. No default `/tmp`, implicit input discovery, CLI or route.
 

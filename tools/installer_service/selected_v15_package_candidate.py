@@ -137,8 +137,12 @@ def compose_selected_v15_candidate(*, request_raw: bytes, receipt_raw: bytes,
     """Return bytes only after original v2 and V15 verification both succeed.
 
     scratch_root is an existing operator-owned 0700 directory, outside source.
-    Only a fresh child containing the seven bounded reference files is written;
-    it is removed before returning or raising. No candidate file is written.
+    Only a fresh child containing the seven bounded reference files is written.
+    Cleanup is attempted on success and failure; a candidate is returned only
+    after cleanup succeeds. If deletion is refused, the exception propagates
+    without a candidate and private references may remain in that known root.
+    The operator must inspect the root and remove only the owned child once
+    its filesystem access is restored. No candidate file is written.
     The caller owns the returned bytes and their private lifecycle. The result
     deliberately retains FM-1_015 and must never be offered as an installable
     upgrade, even if another running identity would accept the version number.
