@@ -72,3 +72,17 @@ size table using vendor common/bin/objdump, ELF32-pi32v2, not host sizeof.
 Toolchain archive hash freshly checked f686586b...25958; extracted compiler
 is existing SDK-v1213-gpl-int/toolchain/current (internal20250324.1 directory).
 Installer lane independently owns actual archive/tree-binding verification.
+
+## Implementation checkpoint
+
+[verified] The first focused normal harness run passed against an exact
+pre-change state.c snapshot as well as the modified default/external builds:
+all seven state kinds × four save modes, check/load, JSON pack and PCM hashes
+agree. Added storage span/alignment/app/engine/source/report/descriptor overlap,
+undersize/missing and nested callback guards, canaries and malformed-release
+checks. Review then found and fixed larger load-report tail overlap: an error
+must not write even the codec prefix when any part of that report aliases
+scratch. The new regression and sanitizer run remain pending at this checkpoint.
+The first sanitizer build's staging source was updated during its run; its
+result will not be accepted as final evidence. A fresh stable-source rerun is
+required. No target fit claim; target object/storage proof remains pending.

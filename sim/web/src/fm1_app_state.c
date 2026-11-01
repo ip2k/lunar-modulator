@@ -1987,6 +1987,10 @@ static int workspace_acquire(const fm1_app_state_workspace_t *w, unsigned operat
                               fm1_state_report_t *rep) {
   const size_t need = fm1_app_state_workspace_size(operation);
   unsigned char *at;
+  /* A load report is larger than its codec-report prefix. Do not even write
+   * that prefix when any later part aliases requested or active scratch. */
+  if (overlap(report, report_bytes, g_active_memory, g_active_bytes) ||
+      (w && overlap(report, report_bytes, w->memory, w->bytes))) rep = NULL;
   if (g_busy) return workspace_refuse(rep, w, "state workspace is busy");
   if (!w || !need || !range_valid(w->memory, w->bytes) ||
       ((uintptr_t)w->memory & 15u) || w->bytes < need) {
