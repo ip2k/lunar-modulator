@@ -197,8 +197,29 @@ int fm1_app_state_load_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rct
  * Workspace uses workspace_size(WORK_PROJECT),16-aligned, disjoint from app,
  * engine/sequence/modulation arenas, descriptors/parameters, ops/context/report.
  * Report is also disjoint from those known live objects and the workspace
- * descriptor; an aliased report is left untouched on refusal. The full operation is stopped-
- * audio/offline only; no target pause/deadline or inclusive RAM fit is implied.
+ * descriptor; an aliased report is left untouched on refusal. The full operation
+ * is stopped-audio/offline only; no target pause/deadline is implied.
+ *
+ * Conditional pi32v2 component budget (see the native-project-replay note):
+ * caller supplies the entire 65,536-byte arena; all persistent provider/reader/
+ * manifest and phase scratch live there. Existing app, engine, modulation,
+ * sequencer and editor allocations are borrowed, not included in that arena;
+ * they remain separately charged baseline full-application RAM obligations.
+ * With the measured -Oz profile and external workspace/engine arenas enabled,
+ * the <=98,304-byte incremental budget additionally reserves 11,976 bytes for
+ * the entire state TU, 36 other linked global/alignment bytes, 8,192 stack,
+ * 8,192 safety and at most 4,096 bytes of additional backend/context RAM.
+ * The stack reservation assumes <=4,480 in-library bytes, <=1,024 bytes for
+ * each external getter/backend callback's COMPLETE callee stack, <=512 bytes
+ * for the caller chain/locals, and <=1,024 combined same-stack IRQ/exception
+ * bytes including nesting. No recursion/reentry into this operation is allowed.
+ * Backend buffers/caches and ops/report storage outside the arena and caller
+ * stack count against the 4,096 bytes; candidate file bytes cannot be retained
+ * in RAM outside that allowance. No hidden heap or lazy allocation is covered.
+ * These are caller admission requirements, not enforced limits or proof that
+ * arbitrary callbacks/interrupts satisfy them. Different flags/modules/callers
+ * need a fresh map and stack audit. This component result is not full-product
+ * RAM fit or production storage/UI/hardware admission.
  */
 enum { FM1_APP_STATE_REFUSED = 0, FM1_APP_STATE_COMMITTED = 1,
        FM1_APP_STATE_INDETERMINATE = 2 };
