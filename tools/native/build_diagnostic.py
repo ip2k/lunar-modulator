@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Build one source-bound SDK-free FM6 diagnostic. Never package/install/run it.
+"""Build a fixed source-bound SDK-free diagnostic. Never package/install/run it.
 
 Run in a bounded Linux build container with the pinned JieLi toolchain and
 LLVM libc++ headers mounted read-only. No SDK archives/device headers are used.
@@ -161,12 +161,15 @@ def header_manifest(root):
     return {p.relative_to(root).as_posix(): digest(p)
             for p in sorted(root.rglob('*')) if p.is_file()}
 
-def manifest():
+def manifest(selected=False):
     roots = ['engines', 'sim/web/src', 'sim/web/mk', 'sim/web/third_party',
              'firmware/native', 'firmware/third_party/dinghy',
              'firmware/third_party/compiler-rt', 'firmware/third_party/musl',
              'firmware/third_party/printf', 'tools/jieli/objects.mk',
              'tools/native/build_diagnostic.py', 'tools/jieli/audit_link.py']
+    if selected:
+        roots += ['tools/native/build_selected_trio_diagnostic.py',
+                  'tools/native/prepare_selected_project.py']
     result = {}
     for name in roots:
         p = ROOT / name
@@ -177,7 +180,28 @@ def manifest():
                 result[str(f.relative_to(ROOT))] = digest(f)
     return result
 
-def build(args):
+def diagnostic_plan(selected=False, prepared=None):
+    """One of two private, fixed link plans; the public FM6 CLI has no selector."""
+    if selected and prepared is None:
+        raise ValueError('selected plan requires a freshly prepared source blob')
+    app = ROOT / 'firmware/native' / (
+        'selected_diagnostic_app.c' if selected else 'diagnostic_app.c')
+    extra = [app]
+    if selected:
+        extra += [ROOT / 'firmware/native/selected_project.c',
+                  prepared / 'selected_project_blob.c']
+    extra += [ROOT / 'firmware/native/diagnostic_platform.c',
+              ROOT / 'firmware/native/diagnostic_crt0.S',
+              ROOT / 'firmware/third_party/dinghy/hal/fm1_vec.S',
+              ROOT / 'firmware/third_party/dinghy/hal/fm1_isr.S']
+    return dict(modules='trio' if selected else MODULES,
+                extra=extra,
+                stem='lunar-selected-trio' if selected else 'lunar-diagnostic',
+                profile=('sdk-free-selected-trio-offline-diagnostic-v1' if selected else
+                         'sdk-free-single-fm6-diagnostic-v1'),
+                arena_bytes=16384 if selected else 65536)
+
+def build(args, *, selected=False):
     tc, out, headers = args.toolchain.resolve(), args.out.resolve(), args.cxx_headers.resolve()
     if out.exists():
         raise ValueError('output must be a fresh directory; preserve reports then remove your old build')
@@ -185,7 +209,7 @@ def build(args):
     original_headers = header_manifest(headers)
     for name in ['dinghy', 'compiler-rt', 'musl', 'printf']:
         check_inventory(ROOT / 'firmware/third_party' / name)
-    before = manifest()
+    before = manifest(selected)
     out.mkdir(parents=True)
     log = (out / 'build.log').open('w')
     def run(command, capture=False):
@@ -195,6 +219,17 @@ def build(args):
         if p.returncode:
             raise RuntimeError('command failed; see ' + str(out / 'build.log') + '\n' + p.stdout[-3000:])
         return p.stdout if capture else None
+    prepared = None
+    preparation = None
+    prepared_manifest = None
+    if selected:
+        from tools.native.prepare_selected_project import prepare
+        prepared = out / 'selected_project'
+        preparation = prepare(args.renderer, args.state_tool, prepared)
+        prepared_manifest = header_manifest(prepared)
+        log.write('prepared fixed selected project: ' + preparation['packed_sha256'] + '\n')
+        log.flush()
+    plan = diagnostic_plan(selected, prepared)
     configured = out / 'cxx'
     shutil.copytree(headers, configured)
     p = configured / '__config'
@@ -205,8 +240,11 @@ def build(args):
     p.chmod(0o600)
     p.write_text(config.replace(pthread, '/* Diagnostic: no thread API. */\n'))
     configured_headers = header_manifest(configured)
+    defines = [define for define in DEFINES
+               if not selected or define != '-DFM1_SHAPES_VOICES=8']
     flags = ['-target', 'pi32v2', '-mcpu=r3', '-mfprev1', '-Oz', '-ffreestanding',
-             '-fno-builtin', '-ffunction-sections', '-fdata-sections', *DEFINES,
+             '-fno-builtin', '-ffunction-sections', '-fdata-sections', *defines,
+             *(['-DFM1_APP_STATE_EXTERNAL_WORKSPACE=1'] if selected else []),
              '-D_LIBCPP_HAS_NO_THREADS', '-D_LIBCPP_DISABLE_EXTERN_TEMPLATE',
              '-isystem', str(configured), '-isystem', str(tc / 'pi32v2/include')]
     compiler = tc / 'common/bin/clang'
@@ -214,7 +252,8 @@ def build(args):
     make = ['make', '-s', '-C', ROOT / 'engines', '-f', 'Makefile',
             '-f', ROOT / 'sim/web/mk/sim.mk', '-f', ROOT / 'tools/jieli/objects.mk',
             'SIM=' + str(ROOT / 'sim/web'), 'BUILD=' + str(objdir),
-            'FM1_GPL_MODS=1', 'FM1_MODULES=' + MODULES, 'FM1_DX7_SINE=trunc12',
+            'FM1_GPL_MODS=1', 'FM1_MODULES=' + plan['modules'],
+            *(['FM1_DX7_SINE=trunc12'] if not selected else []),
             'OPT=-Oz', 'CC=' + str(compiler), 'CXX=' + str(compiler),
             'EXTRA=' + ' '.join(flags)]
     objects = [Path(s) for s in run([*make, 'print-objs'], True).splitlines()
@@ -225,15 +264,10 @@ def build(args):
     includes = [ROOT / 'engines/include', ROOT / 'engines/host', ROOT / 'engines/state',
                 ROOT / 'engines/mod', ROOT / 'sim/web/src', ROOT / 'firmware/native',
                 ROOT / 'firmware/third_party/dinghy/hal', ROOT / 'firmware/third_party/dinghy/src',
-                objdir / 'gen']
+                objdir / 'gen', *([prepared] if prepared else [])]
     appflags = flags + [x for d in includes for x in ['-I', str(d)]]
-    extra = [ROOT / 'firmware/native/diagnostic_app.c',
-             ROOT / 'firmware/native/diagnostic_platform.c',
-             ROOT / 'firmware/native/diagnostic_crt0.S',
-             ROOT / 'firmware/third_party/dinghy/hal/fm1_vec.S',
-             ROOT / 'firmware/third_party/dinghy/hal/fm1_isr.S']
     units = []
-    for src in extra:
+    for src in plan['extra']:
         obj = out / (src.stem + '.o'); objects.append(obj)
         units.append([compiler, *appflags, '-c', src, '-o', obj])
     musl = ROOT / 'firmware/third_party/musl'
@@ -256,9 +290,9 @@ def build(args):
                   '-DPRINTF_SUPPORT_WRITEBACK_SPECIFIER=0', '-c', printf, '-o', obj])
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         list(pool.map(run, units))
-    elf = out / 'lunar-diagnostic.elf'
+    elf = out / (plan['stem'] + '.elf')
     run([tc / 'pi32v2/bin/ld', '--gc-sections', '-T', ROOT / 'firmware/native/diagnostic.ld',
-         *objects, '-Map', out / 'lunar-diagnostic.map', '-o', elf])
+         *objects, '-Map', out / (plan['stem'] + '.map'), '-o', elf])
     symbols = run([tc / 'pi32v2/bin/nm', '-S', elf], True)
     (out / 'symbols.txt').write_text(symbols)
     if re.search(r'\bU\s+\S+', symbols): raise ValueError('unresolved target helper')
@@ -280,6 +314,13 @@ def build(args):
                 supervisor_stack_bytes=0x1f00,
                 globals_to_stack_guard_bytes=0x01c74000-image.symbol_value('_bss_end'),
                 flash_bytes=sections['.text']['bytes']+sections['.data']['bytes'])
+    if selected:
+        size['reader_workspace'] = sym('reader_space')
+        size['selected_blob'] = sym('lunar_selected_project_blob')
+        if size['arena']['bytes'] != plan['arena_bytes'] or \
+                size['reader_workspace']['bytes'] != 16384 or \
+                size['selected_blob']['bytes'] != preparation['packed_bytes']:
+            raise ValueError('selected target storage differs from fixed source plan')
     (out / 'size.json').write_text(json.dumps(size, indent=2) + '\n')
     # This linker contract has contiguous XIP text/data load bytes. Export
     # through the existing ELF reader: vendor objcopy requires a different
@@ -292,6 +333,20 @@ def build(args):
                     for name in ['.text', '.data'] for s in image.sections
                     if s['name'] == name and s['type'] != SHT_NOBITS)
     if len(flat) != size['flash_bytes']: raise ValueError('incomplete XIP image')
+    if selected:
+        blob = (prepared / 'selected_project.bin').read_bytes()
+        address = size['selected_blob']['address']
+        matches = [section for section in image.sections
+                   if section['name'] in ('.text', '.data') and
+                   section['addr'] <= address and
+                   address + len(blob) <= section['addr'] + section['size']]
+        if len(matches) != 1:
+            raise ValueError('selected blob not in one loadable target section')
+        section = matches[0]
+        linked = image.data[section['offset'] + address - section['addr']:
+                            section['offset'] + address - section['addr'] + len(blob)]
+        if linked != blob or digest(prepared / 'selected_project.bin') != preparation['packed_sha256']:
+            raise ValueError('linked selected blob differs from strict packed source')
     (out / 'app.bin').write_bytes(flat)
     sources = collect_sources([str(ROOT / 'firmware/native'),
                                str(ROOT / 'firmware/third_party/dinghy')])
@@ -300,15 +355,21 @@ def build(args):
     (out / 'audit.json').write_text(json.dumps(link_audit, indent=2) + '\n')
     if link_audit['n_fail']: raise ValueError('audit_link failure; see audit.json')
     compiler_version = run([compiler, '--version'], True)
-    if manifest() != before: raise ValueError('source inputs changed while building')
+    if manifest(selected) != before: raise ValueError('source inputs changed while building')
+    if selected and (digest(args.renderer) != preparation['renderer_sha256'] or
+                     digest(args.state_tool) != preparation['state_tool_sha256']):
+        raise ValueError('selected host tools changed while building')
+    if selected and header_manifest(prepared) != prepared_manifest:
+        raise ValueError('prepared selected blob/receipt changed while building')
     if toolchain_tree(tc) != toolchain_binding['tree_manifest']:
         raise ValueError('toolchain inputs changed while building')
     if header_manifest(headers) != original_headers or header_manifest(configured) != configured_headers:
         raise ValueError('libc++ header inputs changed while building')
-    report = dict(profile='sdk-free-single-fm6-diagnostic-v1', hardware_admitted=False,
-        release_candidate=False, sdk_archives=[], modules=MODULES.split(','), voices=8,
-        dx7_sine='trunc12', shapes_voices=8, external_arenas=True,
-        arena_bytes=65536, cpu1=False, usb=False, persistence=False, fail_open=False,
+    fm6_fields = {} if selected else dict(voices=8, dx7_sine='trunc12', shapes_voices=8)
+    report = dict(profile=plan['profile'], hardware_admitted=False,
+        release_candidate=False, sdk_archives=[], modules=plan['modules'].split(','),
+        **fm6_fields, external_arenas=True,
+        arena_bytes=plan['arena_bytes'], cpu1=False, usb=False, persistence=False, fail_open=False,
         toolchain_archive_sha256=TOOLCHAIN_SHA256,
         toolchain_binding=toolchain_binding, compiler_version=compiler_version,
         cxx_headers_manifest=original_headers, configured_cxx_headers_manifest=configured_headers,
@@ -317,6 +378,21 @@ def build(args):
         elf_sha256=digest(elf), app_sha256=digest(out / 'app.bin'), sizes=size,
         audit_link=link_audit,
         audit_limit='Symbol closure scan is additional evidence, not audit_link admission or a complete MMIO/callgraph audit.')
+    if selected:
+        report.update(selected_project=preparation, fixed_project_startup=True,
+                      rom_return=False, distribution_reviewed=False,
+                      linked_blob=dict(sha256=preparation['packed_sha256'],
+                                       bytes=preparation['packed_bytes'],
+                                       address=size['selected_blob']['address']),
+                      combined_licence='GPL-3.0-only',
+                      gpl_sources=dict(
+                          dinghy='d44df7db09b98ccad2f1233b8f83f5f09c04829e',
+                          felucca_trio='b0dcd53a251d5f5392fea9478b48244d322eeb2a'),
+                      prepared_input_manifest=prepared_manifest,
+                      renderer_input=dict(path=str(args.renderer.resolve()),
+                                          sha256=preparation['renderer_sha256']),
+                      state_tool_input=dict(path=str(args.state_tool.resolve()),
+                                            sha256=preparation['state_tool_sha256']))
     (out / 'receipt.json').write_text(json.dumps(report, indent=2) + '\n')
     log.close()
     return report
