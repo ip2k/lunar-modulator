@@ -31,9 +31,9 @@ deployment was skipped. Do not rerun passing checks to hide that failure.
 
 [verified] Corrections PR #165 is the combined integration candidate on
 `fix/2026-11-01@release-state-corrections`, pushed and remote verified through
-`50b65a2ea8c4aefde756ef190c8a9ab2ac525ea1`. It is not a release or
-hardware admission. Further reviewed corrections and one fresh combined WASM
-build are required before final exact-head CI and integration.
+`5715d6aa2de6fce5b8b7cb1c4a1118fcefc9c35a`. It is not a release or
+hardware admission. The reviewed Capture, PROJECT-save and inventory fixes are
+integrated; one fresh combined WASM build and final exact-head CI remain.
 
 The foundation provides DX7 bank export, ordered MIDI realtime input,
 queue-margin telemetry, offline customization/catalogue and a shared request
@@ -90,13 +90,15 @@ private coordinator checkpoint retains detailed receipts and current lane state.
 
 ## Current dependent work
 
-- PROJECT saves can currently confuse an absent set with an oversized export
-  and succeed without saving SEQS. A narrow correction is under independent
-  review: preflight before any output, preserve all valid bytes, and refuse
-  oversized state without app/edit/PCM mutation. Tests distinguish the default
-  fitting pool from a supported custom pool that actually exceeds the buffer.
-- The source-bundle inventory test is being corrected against committed inputs,
-  retaining explicit coverage and the separate production prerequisite refusal.
+- [verified] PROJECT saves now distinguish an absent set from an oversized
+  export and refuse before output. Normal and ASan/UBSan preserve app, edit
+  history and nonzero PCM. Independent comparison proves exact output for 40
+  valid operations. The default dense fitting pool and supported custom pool
+  that actually overflows are explicitly distinguished in the evidence note.
+- [verified] The source-bundle test requires all four committed inventories and
+  checks any additional tracked imports. Independent bundle checks pass 41
+  tests with one existing skip; seven service tests confirm production still
+  refuses missing native prerequisites. No selector or startup gate changed.
 - After these fixes, freeze one source and run the actual bounded browser build:
   parity, metadata/SysEx/routing/MIDI, edit-storm, generated provenance and all
   three browser regression sets. No manual acceptance-hash edits.
