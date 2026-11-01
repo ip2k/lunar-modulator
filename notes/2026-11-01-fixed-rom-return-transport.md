@@ -42,6 +42,14 @@ the ROM command returning only when cold-ROM, wiring and UF2 provenance are
 established separately. It is no ABI, execution-duration, or hardware
 qualification proof.
 
+Synchronous BOT waits can run callbacks while core 0 receives CDC bytes. The
+strict path rechecks the same live mount after descriptor, INQUIRY, upload
+and call completion, and rechecks protocol terminal/pending state before
+publishing either BOT success. A causal old-source fixture showed that an
+extra line arriving inside FB06 or FB08 previously produced an OK reply
+followed by a terminal error; the corrected fixture requires only the
+terminal refusal. This bounds late success after a detected in-flight fault.
+
 Offline verification for this source milestone materializes the actual
 pinned upstream C, applies all three tracked patches, and compiles the
 patched protocol and exact host allowlist functions with fake TinyUSB/BOT

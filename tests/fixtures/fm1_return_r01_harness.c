@@ -14,6 +14,7 @@ static bool write_ok = true;
 static bool jump_ok = true;
 static bool fake_connected = true;
 static bool detach_on_write, detach_on_call;
+static bool extra_during_write, extra_during_call;
 static int writes, jumps, terminals;
 static char output[1024];
 static size_t output_len;
@@ -40,12 +41,14 @@ bool jl_rom_mem_write(uint32_t addr, const uint8_t *data, uint16_t len) {
     if (addr != 0x01C02000u || len != 512 || data[0] != 0x80 || data[1] != 0) abort();
     writes++;
     if (detach_on_write) fake_mount = 0;
+    if (extra_during_write) fm1_proto_rx("rr01-call\n", 10);
     return write_ok;
 }
 bool jl_rom_jump(uint32_t addr, uint16_t arg) {
     if (addr != 0x01C02000u || arg != 1) abort();
     jumps++;
     if (detach_on_call) fake_mount = 0;
+    if (extra_during_call) fm1_proto_rx("rr01-call\n", 10);
     return jump_ok;
 }
 
@@ -74,8 +77,10 @@ int main(int argc, char **argv) {
     else if (!strcmp(kind, "extra-payload")) { ready(); upload(false, true); call(); }
     else if (!strcmp(kind, "upload-fail")) { ready(); write_ok = false; upload(false, false); call(); }
     else if (!strcmp(kind, "upload-detach")) { ready(); detach_on_write = true; upload(false, false); call(); }
+    else if (!strcmp(kind, "upload-extra-inflight")) { ready(); extra_during_write = true; upload(false, false); call(); }
     else if (!strcmp(kind, "call-fail")) { ready(); upload(false, false); jump_ok = false; call(); call(); }
     else if (!strcmp(kind, "call-detach")) { ready(); upload(false, false); detach_on_call = true; call(); call(); }
+    else if (!strcmp(kind, "call-extra-inflight")) { ready(); upload(false, false); extra_during_call = true; call(); call(); }
     else if (!strcmp(kind, "no-mount")) {
         fake_mount = 0; ready(); fake_now += 10000000;
         fm1_proto_poll(); fm1_proto_drain(); upload(false, false);

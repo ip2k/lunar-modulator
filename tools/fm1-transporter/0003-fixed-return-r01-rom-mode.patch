@@ -416,10 +416,10 @@ index 9bfcd7e..2eecd2e 100644
 +#endif
 diff --git a/src/return_r01_proto.c b/src/return_r01_proto.c
 new file mode 100644
-index 0000000..8b0f819
+index 0000000..5881b40
 --- /dev/null
 +++ b/src/return_r01_proto.c
-@@ -0,0 +1,230 @@
+@@ -0,0 +1,237 @@
 +// SPDX-License-Identifier: MIT
 +// Fixed return-r01 ROM-only CDC protocol. Never linked into recovery firmware.
 +#include "transporter_proto.h"
@@ -620,8 +620,12 @@ index 0000000..8b0f819
 +            return;
 +        }
 +        bool ok = jl_rom_mem_write(R01_ADDR, payload, R01_LEN);
-+        if (ok) ok = fm1_host_return_upload_complete(ready_mount);
-+        if (!ok) {
++        // Core 0 may reject pipelined/extra CDC bytes while the BOT call
++        // blocks on core 1. A late BOT success cannot restore that session.
++        if (ok && phase == UPLOAD_PENDING && !req_pending)
++            ok = fm1_host_return_upload_complete(ready_mount);
++        if (!ok || phase != UPLOAD_PENDING || req_pending) {
++            req_pending = false;
 +            phase = TERMINAL;
 +            fm1_host_return_terminal();
 +            tx_line("ERR rr01-upload");
@@ -639,7 +643,10 @@ index 0000000..8b0f819
 +            return;
 +        }
 +        bool ok = jl_rom_jump(R01_ADDR, R01_ARG);
-+        if (ok) ok = fm1_host_return_call_complete(ready_mount);
++        if (ok && phase == CALL_PENDING && !req_pending)
++            ok = fm1_host_return_call_complete(ready_mount);
++        if (phase != CALL_PENDING || req_pending) ok = false;
++        req_pending = false;
 +        phase = TERMINAL;
 +        fm1_host_return_terminal();
 +        if (ok) tx_line("OK rr01-call mount=%lu", (unsigned long)ready_mount);
