@@ -1,0 +1,287 @@
+{
+  "phase": "pause",
+  "state": {
+    "trace": [
+      {
+        "at": 30360,
+        "playing": true,
+        "paused": false,
+        "tick": 5585
+      },
+      {
+        "at": 30392,
+        "playing": true,
+        "paused": false,
+        "tick": 5591
+      },
+      {
+        "at": 30424,
+        "playing": true,
+        "paused": false,
+        "tick": 5597
+      },
+      {
+        "at": 30456,
+        "playing": true,
+        "paused": false,
+        "tick": 5603
+      },
+      {
+        "at": 30488,
+        "playing": true,
+        "paused": false,
+        "tick": 5609
+      },
+      {
+        "at": 30520,
+        "playing": true,
+        "paused": false,
+        "tick": 5615
+      },
+      {
+        "at": 30552,
+        "playing": true,
+        "paused": false,
+        "tick": 5621
+      },
+      {
+        "at": 30584,
+        "playing": true,
+        "paused": false,
+        "tick": 5627
+      },
+      {
+        "at": 30616,
+        "playing": true,
+        "paused": false,
+        "tick": 5634
+      },
+      {
+        "at": 30648,
+        "playing": true,
+        "paused": false,
+        "tick": 5640
+      },
+      {
+        "at": 30680,
+        "playing": true,
+        "paused": false,
+        "tick": 5646
+      },
+      {
+        "at": 30711,
+        "playing": true,
+        "paused": false,
+        "tick": 5652
+      },
+      {
+        "at": 30743,
+        "playing": true,
+        "paused": false,
+        "tick": 5658
+      },
+      {
+        "at": 30776,
+        "playing": true,
+        "paused": false,
+        "tick": 5664
+      },
+      {
+        "at": 30807,
+        "playing": true,
+        "paused": false,
+        "tick": 5670
+      },
+      {
+        "at": 30839,
+        "playing": true,
+        "paused": false,
+        "tick": 5677
+      },
+      {
+        "at": 30871,
+        "playing": true,
+        "paused": false,
+        "tick": 5683
+      },
+      {
+        "at": 30903,
+        "playing": true,
+        "paused": false,
+        "tick": 5689
+      },
+      {
+        "at": 30935,
+        "playing": true,
+        "paused": false,
+        "tick": 5695
+      },
+      {
+        "at": 30967,
+        "playing": true,
+        "paused": false,
+        "tick": 5701
+      },
+      {
+        "at": 30999,
+        "playing": true,
+        "paused": false,
+        "tick": 5707
+      },
+      {
+        "at": 31031,
+        "playing": true,
+        "paused": false,
+        "tick": 5713
+      },
+      {
+        "at": 31063,
+        "playing": true,
+        "paused": false,
+        "tick": 5719
+      },
+      {
+        "at": 31094,
+        "playing": true,
+        "paused": false,
+        "tick": 5726
+      },
+      {
+        "at": 31126,
+        "playing": true,
+        "paused": false,
+        "tick": 5732
+      },
+      {
+        "at": 31158,
+        "playing": true,
+        "paused": false,
+        "tick": 5738
+      },
+      {
+        "at": 31192,
+        "playing": true,
+        "paused": false,
+        "tick": 5744
+      },
+      {
+        "at": 31224,
+        "playing": true,
+        "paused": false,
+        "tick": 5750
+      },
+      {
+        "at": 31255,
+        "playing": true,
+        "paused": false,
+        "tick": 5756
+      },
+      {
+        "at": 31286,
+        "playing": true,
+        "paused": false,
+        "tick": 5762
+      },
+      {
+        "at": 31318,
+        "playing": true,
+        "paused": false,
+        "tick": 5768
+      },
+      {
+        "at": 31350,
+        "playing": true,
+        "paused": false,
+        "tick": 5775
+      }
+    ],
+    "transport": {
+      "type": "seq",
+      "paused": false,
+      "playbackFrames": 1326464,
+      "sampleRate": 44100,
+      "metronome": false,
+      "contentGen": 10,
+      "playing": true,
+      "bpm_x100": 12000,
+      "recording": false,
+      "watch_track": 0,
+      "counting_in": false,
+      "following": false,
+      "master_tick": 5775,
+      "scene": 0,
+      "songIndex": 0,
+      "songPass": 0,
+      "songPassBar": 0,
+      "songFollow": true,
+      "songParked": false,
+      "songEnd": 0,
+      "songEntry": 0,
+      "step": 0,
+      "tracks": [
+        {
+          "active": 0,
+          "playing": 0,
+          "posTick": 15,
+          "cycle": 16,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        }
+      ]
+    },
+    "audioContext": "running",
+    "label": "Pause",
+    "disabled": false,
+    "busy": null
+  },
+  "errors": [],
+  "error": "TimeoutError: page.waitForFunction: Timeout 30000ms exceeded."
+}

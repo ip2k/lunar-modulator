@@ -445,7 +445,9 @@ export function makeSequencer(ctx) {
     const playPause = transportMount.querySelector('[data-transport-play-pause]');
     if (playPause) {
       const label = transport.playing ? 'Pause' : transport.paused ? 'Resume' : 'Play';
-      playPause.textContent = transport.playing ? 'Ⅱ' : '▶';
+      const icon = transport.playing ? 'Ⅱ' : '▶';
+      // WebKit can lose a click if its text node changes during the press.
+      if (playPause.textContent !== icon) playPause.textContent = icon;
       playPause.setAttribute('aria-label', label);
       playPause.title = label;
       playPause.disabled = state.busy;
