@@ -61,6 +61,10 @@ def test_actual_selected_project_stage(tmp_path):
         result = subprocess.run([str(exe), mode], check=True,
                                 text=True, capture_output=True, timeout=60)
         print(result.stdout, end="")
+    # ASan enlarges global symbols with redzones. Check allocation/symbol
+    # compatibility in the normal build; all runtime cases above stay sanitized.
+    if sanitized:
+        return
     # Opt-in alone grows the shared cold-reader/stage allocation. Compile the
     # original profile too: its 16-KiB reader and absent stage API must remain.
     default = build / "default.o"
