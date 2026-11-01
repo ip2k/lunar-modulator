@@ -1,0 +1,57 @@
+diff --git a/src/jieli_uboot.c b/src/jieli_uboot.c
+index 8f0997b..e673ab6 100644
+--- a/src/jieli_uboot.c
++++ b/src/jieli_uboot.c
+@@ -108,2 +108,7 @@ static bool cmd_exec(uint16_t cmd, const uint8_t *args, uint8_t nargs) {
+     }
++    if (got != sizeof(resp)) {
++        dlog("JL: cmd %04X short response (%lu/%u)", cmd,
++             (unsigned long)got, (unsigned)sizeof(resp));
++        return false;
++    }
+     uint16_t echo = (uint16_t)(resp[0] << 8 | resp[1]);
+diff --git a/src/pio_host.c b/src/pio_host.c
+index e61b4df..cca19de 100644
+--- a/src/pio_host.c
++++ b/src/pio_host.c
+@@ -58,2 +58,5 @@ static CFG_TUSB_MEM_ALIGN msc_csw_t csw;
+ 
++_Static_assert(sizeof(msc_cbw_t) == 31, "BOT CBW must be 31 wire bytes");
++_Static_assert(sizeof(msc_csw_t) == 13, "BOT CSW must be 13 wire bytes");
++
+ void fm1_pio_host_start(void) {
+@@ -225,2 +228,3 @@ static bool bot_cmd(uint8_t daddr, const uint8_t *cdb, uint8_t cdb_len, bool in,
+                     uint16_t len, uint32_t *got) {
++    if (!cdb || !cdb_len || cdb_len > sizeof(cbw.command) || (len && !buf)) return false;
+     memset(&cbw, 0, sizeof(cbw));
+@@ -234,9 +238,20 @@ static bool bot_cmd(uint8_t daddr, const uint8_t *cdb, uint8_t cdb_len, bool in,
+ 
+-    if (!edpt_sync(daddr, ep_out, &cbw, sizeof(cbw), NULL)) {
+-        dlog("HOST: CBW not accepted");
++    uint32_t actual = 0;
++    if (!edpt_sync(daddr, ep_out, &cbw, sizeof(cbw), &actual) || actual != sizeof(cbw)) {
++        dlog("HOST: CBW incomplete (%lu/%u)", (unsigned long)actual, (unsigned)sizeof(cbw));
+         return false;
+     }
+-    if (len && !edpt_sync(daddr, in ? ep_in : ep_out, buf, len, got)) return false;
+-    if (!edpt_sync(daddr, ep_in, &csw, sizeof(csw), NULL)) {
+-        dlog("HOST: no CSW");
++    if (len) {
++        actual = 0;
++        bool ok = edpt_sync(daddr, in ? ep_in : ep_out, buf, len, &actual);
++        if (got) *got = actual;
++        if (!ok || actual != len) {
++            dlog("HOST: data incomplete (%lu/%u)", (unsigned long)actual, (unsigned)len);
++            return false;
++        }
++    }
++    memset(&csw, 0, sizeof(csw));
++    actual = 0;
++    if (!edpt_sync(daddr, ep_in, &csw, sizeof(csw), &actual) || actual != sizeof(csw)) {
++        dlog("HOST: CSW incomplete (%lu/%u)", (unsigned long)actual, (unsigned)sizeof(csw));
+         return false;
+@@ -249,3 +264,3 @@ static bool bot_cmd(uint8_t daddr, const uint8_t *cdb, uint8_t cdb_len, bool in,
+     }
+-    if (csw.status != 0) {
++    if (csw.status != 0 || csw.data_residue != 0) {
+         dlog("HOST: CSW status %u residue %lu", csw.status, (unsigned long)csw.data_residue);
