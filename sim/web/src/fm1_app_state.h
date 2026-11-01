@@ -207,7 +207,7 @@ int fm1_app_state_load_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rct
  * they remain separately charged baseline full-application RAM obligations.
  * With the measured -Oz profile and external workspace/engine arenas enabled,
  * the <=98,304-byte incremental budget additionally reserves 11,976 bytes for
- * the entire state TU, 36 other linked global/alignment bytes, 8,192 stack,
+ * the entire state TU, 44 other linked global/alignment bytes, 8,192 stack,
  * 8,192 safety and at most 4,096 bytes of additional backend/context RAM.
  * The stack reservation assumes <=4,484 in-library bytes, <=1,024 bytes for
  * each external getter/backend callback's COMPLETE callee stack, <=512 bytes

@@ -85,7 +85,9 @@ int native_state_probe(fm1_app_t *app,
 
 [verified] The component link has193,068 text/rodata bytes,8 data and408 BSS;
 the BSS includes380 retained state-TU bytes and alignment. These totals exclude
-caller-owned arena and app baseline allocations. No unresolved symbols remain.
+caller-owned arena and app baseline allocations. The actual RAM span is424 bytes,
+including8 bytes between data and BSS; that gap is charged below. No unresolved
+symbols remain.
 The unchanged SDK-free link audit passes12 checks/0 pending. No allocator,
 `sscanf`, host CLIP extractor, old stack-backed binary reader or old pull JSON
 reader is retained. This probe has no startup/IRQ/storage/backend or installation
@@ -126,12 +128,12 @@ The conditional profile reserves:
 | --- | ---: |
 | Complete caller-owned PROJECT arena | 65,536 |
 | Whole app-state TU BSS, including discarded host load plan | 11,976 |
-| Other linked globals and alignment | 36 |
+| Other linked globals and alignment | 44 |
 | Stack reservation | 8,192 |
 | Separate safety reserve | 8,192 |
 | Maximum extra backend/context/ops/report/cache RAM | 4,096 |
-| Total | **98,028** |
-| Remaining below98,304 | **276** |
+| Total | **98,036** |
+| Remaining below98,304 | **268** |
 
 The8,192 stack reservation requires: library<=4,484; each external getter/backend
 callback's complete nested callee closure<=1,024; caller chain and locals<=512;
