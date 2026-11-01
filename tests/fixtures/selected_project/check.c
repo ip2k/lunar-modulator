@@ -1,19 +1,27 @@
 /* Offline current-app oracle for the selected native PROJECT adapter. MIT. */
 #include "selected_project.h"
 #include "fm1_app_state.h"
+#include "fm1_edit.h"
 #include "selected_project_blob.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
-static fm1_app_t selected_app, oracle_app, before_app;
+static fm1_app_t selected_app, oracle_app, before_app, no_room_app;
 static unsigned char selected_arena[FM1_APP_SOUND_BYTES] FM1_APP_ALIGN16;
 static unsigned char oracle_arena[FM1_APP_SOUND_BYTES] FM1_APP_ALIGN16;
+static unsigned char small_arena[16] FM1_APP_ALIGN16;
 static fm1_app_arena_t selected_arenas[FM1_APP_UNITS], oracle_arenas[FM1_APP_UNITS];
 static unsigned char reader_space[16384] FM1_APP_ALIGN16;
 static unsigned char oracle_space[655360] FM1_APP_ALIGN16;
 static unsigned char packed[FM1_STATE_BIN_MAX], damaged[FM1_STATE_BIN_MAX];
+static fm1_edit_t foreign_edit;
+
+static void unexpected_mod_callback(void *ctx, uint64_t frame, const char *line) {
+  (void)ctx; (void)frame; (void)line;
+  assert(0 && "cold diagnostic called an external hook");
+}
 
 static size_t load_file(const char *name, unsigned char *out) {
   FILE *file = fopen(name, "rb");
@@ -73,6 +81,76 @@ int main(int argc, char **argv) {
     assert(!memcmp(&selected_app, &before_app, sizeof selected_app));
     for (size_t i = 0; i < sizeof selected_arena; ++i) assert(selected_arena[i] == 0);
   }
+
+  /* A freshly initialized app can have an external editor attached. This
+   * deliberately narrower diagnostic refuses it before writing even an
+   * aliased refusal report or using aliased reader scratch. */
+  selected_app.edit = &foreign_edit;
+  memset(&foreign_edit, 0x5a, sizeof foreign_edit);
+  memcpy(&before_app, &selected_app, sizeof selected_app);
+  assert(!lunar_selected_project_load(&selected_app, packed, (uint32_t)end,
+      reader_space, sizeof reader_space, (fm1_state_report_t *)(void *)&foreign_edit));
+  assert(!memcmp(&selected_app, &before_app, sizeof selected_app));
+  for (size_t i = 0; i < sizeof foreign_edit; ++i)
+    assert(((const unsigned char *)&foreign_edit)[i] == 0x5a);
+  assert(!lunar_selected_project_load(&selected_app, packed, (uint32_t)end,
+      &foreign_edit, sizeof foreign_edit, &result));
+  assert(!memcmp(&selected_app, &before_app, sizeof selected_app));
+  for (size_t i = 0; i < sizeof foreign_edit; ++i)
+    assert(((const unsigned char *)&foreign_edit)[i] == 0x5a);
+  selected_app.edit = NULL;
+
+  /* Neither the parser nor the report may write redirected live storage. */
+  fm1_seq_t *saved_seq = selected_app.seq;
+  selected_app.seq = (fm1_seq_t *)(void *)reader_space;
+  memset(reader_space, 0x5a, sizeof reader_space);
+  memcpy(&before_app, &selected_app, sizeof selected_app);
+  assert(!lunar_selected_project_load(&selected_app, packed, (uint32_t)end,
+      reader_space, sizeof reader_space, &result));
+  assert(!memcmp(&selected_app, &before_app, sizeof selected_app));
+  for (size_t i = 0; i < sizeof reader_space; ++i) assert(reader_space[i] == 0x5a);
+  selected_app.seq = saved_seq;
+  fm1_mod_t *saved_mod = selected_app.mod;
+  selected_app.mod = (fm1_mod_t *)(void *)reader_space;
+  memcpy(&before_app, &selected_app, sizeof selected_app);
+  assert(!lunar_selected_project_load(&selected_app, packed, (uint32_t)end,
+      reader_space, sizeof reader_space, &result));
+  assert(!memcmp(&selected_app, &before_app, sizeof selected_app));
+  for (size_t i = 0; i < sizeof reader_space; ++i) assert(reader_space[i] == 0x5a);
+  selected_app.mod = saved_mod;
+  void *saved_mfx = selected_app.mfx.chain[0].slot[0].self;
+  selected_app.mfx.chain[0].slot[0].self = reader_space;
+  memcpy(&before_app, &selected_app, sizeof selected_app);
+  assert(!lunar_selected_project_load(&selected_app, packed, (uint32_t)end,
+      reader_space, sizeof reader_space, &result));
+  assert(!memcmp(&selected_app, &before_app, sizeof selected_app));
+  for (size_t i = 0; i < sizeof reader_space; ++i) assert(reader_space[i] == 0x5a);
+  selected_app.mfx.chain[0].slot[0].self = saved_mfx;
+  selected_app.on_mod = unexpected_mod_callback;
+  memcpy(&before_app, &selected_app, sizeof selected_app);
+  assert(!lunar_selected_project_load(&selected_app, packed, (uint32_t)end,
+      reader_space, sizeof reader_space, &result));
+  assert(!memcmp(&selected_app, &before_app, sizeof selected_app));
+  selected_app.on_mod = NULL;
+  memcpy(&before_app, &selected_app, sizeof selected_app);
+
+  /* A valid file cannot bypass the real app's constructor/arena admission. */
+  for (int size_case = 0; size_case < 2; ++size_case) {
+    fm1_app_arena_t no_room_arenas[FM1_APP_UNITS] = {{0}};
+    if (size_case) {
+      no_room_arenas[0].mem = small_arena;
+      no_room_arenas[0].bytes = sizeof small_arena;
+    }
+    assert(!fm1_app_init_arenas(&no_room_app, FM1_APP_RAM_RATE, no_room_arenas));
+    memcpy(&before_app, &no_room_app, sizeof no_room_app);
+    assert(!lunar_selected_project_load(&no_room_app, lunar_selected_project_blob,
+        lunar_selected_project_blob_bytes,
+        reader_space, sizeof reader_space, &result));
+    assert(result.code == FM1_STATE_NO_ROOM);
+    assert(!memcmp(&no_room_app, &before_app, sizeof no_room_app));
+    for (size_t i = 0; i < sizeof small_arena; ++i) assert(small_arena[i] == 0);
+  }
+  memcpy(&before_app, &selected_app, sizeof selected_app);
 
   int selected_ok = lunar_selected_project_load(&selected_app, lunar_selected_project_blob,
       lunar_selected_project_blob_bytes,
