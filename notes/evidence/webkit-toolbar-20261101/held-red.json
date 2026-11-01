@@ -1,0 +1,408 @@
+{
+  "phase": "pause",
+  "state": {
+    "events": [
+      {
+        "at": 1309,
+        "type": "pointerdown",
+        "capture": true,
+        "target": "<button class=\"sq-button\" type=\"button\" data-midi-id=\"seq:transport:play-pause\" data-testid=\"seq-play\" aria-label=\"Play\" title=\"Play\" data-transport-play-pause=\"\">\u25b6</button>",
+        "connected": true,
+        "detail": 1
+      },
+      {
+        "at": 1309,
+        "type": "mousedown",
+        "capture": true,
+        "target": "<button class=\"sq-button\" type=\"button\" data-midi-id=\"seq:transport:play-pause\" data-testid=\"seq-play\" aria-label=\"Play\" title=\"Play\" data-transport-play-pause=\"\">\u25b6</button>",
+        "connected": true,
+        "detail": 1
+      },
+      {
+        "at": 1309,
+        "type": "pointerup",
+        "capture": true,
+        "target": "<button class=\"sq-button\" type=\"button\" data-midi-id=\"seq:transport:play-pause\" data-testid=\"seq-play\" aria-label=\"Play\" title=\"Play\" data-transport-play-pause=\"\">\u25b6</button>",
+        "connected": true,
+        "detail": 1
+      },
+      {
+        "at": 1309,
+        "type": "mouseup",
+        "capture": true,
+        "target": "<button class=\"sq-button\" type=\"button\" data-midi-id=\"seq:transport:play-pause\" data-testid=\"seq-play\" aria-label=\"Play\" title=\"Play\" data-transport-play-pause=\"\">\u25b6</button>",
+        "connected": true,
+        "detail": 1
+      },
+      {
+        "at": 1309,
+        "type": "click",
+        "capture": true,
+        "target": "<button class=\"sq-button\" type=\"button\" data-midi-id=\"seq:transport:play-pause\" data-testid=\"seq-play\" aria-label=\"Play\" title=\"Play\" data-transport-play-pause=\"\">\u25b6</button>",
+        "connected": true,
+        "detail": 1
+      },
+      {
+        "at": 1310,
+        "type": "seq-line",
+        "text": "resume"
+      },
+      {
+        "at": 1380,
+        "type": "pointerdown",
+        "capture": true,
+        "target": "<button class=\"sq-button\" type=\"button\" data-midi-id=\"seq:transport:play-pause\" data-testid=\"seq-play\" aria-label=\"Pause\" title=\"Pause\" data-transport-play-pause=\"\">\u2161</button>",
+        "connected": true,
+        "detail": 1
+      },
+      {
+        "at": 1380,
+        "type": "mousedown",
+        "capture": true,
+        "target": "<button class=\"sq-button\" type=\"button\" data-midi-id=\"seq:transport:play-pause\" data-testid=\"seq-play\" aria-label=\"Pause\" title=\"Pause\" data-transport-play-pause=\"\">\u2161</button>",
+        "connected": true,
+        "detail": 1
+      },
+      {
+        "at": 1532,
+        "type": "pointerup",
+        "capture": true,
+        "target": "<button class=\"sq-button\" type=\"button\" data-midi-id=\"seq:transport:play-pause\" data-testid=\"seq-play\" aria-label=\"Pause\" title=\"Pause\" data-transport-play-pause=\"\">\u2161</button>",
+        "connected": true,
+        "detail": 1
+      },
+      {
+        "at": 1532,
+        "type": "mouseup",
+        "capture": true,
+        "target": "<button class=\"sq-button\" type=\"button\" data-midi-id=\"seq:transport:play-pause\" data-testid=\"seq-play\" aria-label=\"Pause\" title=\"Pause\" data-transport-play-pause=\"\">\u2161</button>",
+        "connected": true,
+        "detail": 1
+      }
+    ],
+    "trace": [
+      {
+        "at": 3520,
+        "playing": true,
+        "paused": false,
+        "tick": 423
+      },
+      {
+        "at": 3553,
+        "playing": true,
+        "paused": false,
+        "tick": 429
+      },
+      {
+        "at": 3584,
+        "playing": true,
+        "paused": false,
+        "tick": 435
+      },
+      {
+        "at": 3616,
+        "playing": true,
+        "paused": false,
+        "tick": 441
+      },
+      {
+        "at": 3648,
+        "playing": true,
+        "paused": false,
+        "tick": 448
+      },
+      {
+        "at": 3680,
+        "playing": true,
+        "paused": false,
+        "tick": 454
+      },
+      {
+        "at": 3712,
+        "playing": true,
+        "paused": false,
+        "tick": 460
+      },
+      {
+        "at": 3744,
+        "playing": true,
+        "paused": false,
+        "tick": 466
+      },
+      {
+        "at": 3775,
+        "playing": true,
+        "paused": false,
+        "tick": 472
+      },
+      {
+        "at": 3807,
+        "playing": true,
+        "paused": false,
+        "tick": 478
+      },
+      {
+        "at": 3840,
+        "playing": true,
+        "paused": false,
+        "tick": 484
+      },
+      {
+        "at": 3871,
+        "playing": true,
+        "paused": false,
+        "tick": 490
+      },
+      {
+        "at": 3903,
+        "playing": true,
+        "paused": false,
+        "tick": 497
+      },
+      {
+        "at": 3935,
+        "playing": true,
+        "paused": false,
+        "tick": 503
+      },
+      {
+        "at": 3967,
+        "playing": true,
+        "paused": false,
+        "tick": 509
+      },
+      {
+        "at": 3999,
+        "playing": true,
+        "paused": false,
+        "tick": 515
+      },
+      {
+        "at": 4031,
+        "playing": true,
+        "paused": false,
+        "tick": 521
+      },
+      {
+        "at": 4063,
+        "playing": true,
+        "paused": false,
+        "tick": 527
+      },
+      {
+        "at": 4095,
+        "playing": true,
+        "paused": false,
+        "tick": 533
+      },
+      {
+        "at": 4126,
+        "playing": true,
+        "paused": false,
+        "tick": 540
+      },
+      {
+        "at": 4159,
+        "playing": true,
+        "paused": false,
+        "tick": 546
+      },
+      {
+        "at": 4191,
+        "playing": true,
+        "paused": false,
+        "tick": 552
+      },
+      {
+        "at": 4223,
+        "playing": true,
+        "paused": false,
+        "tick": 558
+      },
+      {
+        "at": 4255,
+        "playing": true,
+        "paused": false,
+        "tick": 564
+      },
+      {
+        "at": 4289,
+        "playing": true,
+        "paused": false,
+        "tick": 570
+      },
+      {
+        "at": 4320,
+        "playing": true,
+        "paused": false,
+        "tick": 576
+      },
+      {
+        "at": 4351,
+        "playing": true,
+        "paused": false,
+        "tick": 582
+      },
+      {
+        "at": 4383,
+        "playing": true,
+        "paused": false,
+        "tick": 589
+      },
+      {
+        "at": 4414,
+        "playing": true,
+        "paused": false,
+        "tick": 595
+      },
+      {
+        "at": 4446,
+        "playing": true,
+        "paused": false,
+        "tick": 601
+      },
+      {
+        "at": 4479,
+        "playing": true,
+        "paused": false,
+        "tick": 607
+      },
+      {
+        "at": 4510,
+        "playing": true,
+        "paused": false,
+        "tick": 613
+      }
+    ],
+    "transport": {
+      "type": "seq",
+      "paused": false,
+      "playbackFrames": 140928,
+      "sampleRate": 44100,
+      "metronome": false,
+      "contentGen": 10,
+      "playing": true,
+      "bpm_x100": 12000,
+      "recording": false,
+      "watch_track": 0,
+      "counting_in": false,
+      "following": false,
+      "master_tick": 613,
+      "scene": 0,
+      "songIndex": 0,
+      "songPass": 0,
+      "songPassBar": 0,
+      "songFollow": true,
+      "songParked": false,
+      "songEnd": 0,
+      "songEntry": 0,
+      "step": 9,
+      "tracks": [
+        {
+          "active": 0,
+          "playing": 0,
+          "posTick": 229,
+          "cycle": 2,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        },
+        {
+          "active": 0,
+          "playing": 255,
+          "posTick": 0,
+          "cycle": 1,
+          "muted": false
+        }
+      ]
+    },
+    "audioContext": "running",
+    "label": "Pause",
+    "disabled": false,
+    "busy": null,
+    "iconMutationsDuringPausePress": [
+      {
+        "at": 1381,
+        "type": "mutation",
+        "kind": "childList",
+        "attr": null,
+        "label": "Pause",
+        "connected": true
+      },
+      {
+        "at": 1414,
+        "type": "mutation",
+        "kind": "childList",
+        "attr": null,
+        "label": "Pause",
+        "connected": true
+      },
+      {
+        "at": 1457,
+        "type": "mutation",
+        "kind": "childList",
+        "attr": null,
+        "label": "Pause",
+        "connected": true
+      },
+      {
+        "at": 1478,
+        "type": "mutation",
+        "kind": "childList",
+        "attr": null,
+        "label": "Pause",
+        "connected": true
+      },
+      {
+        "at": 1508,
+        "type": "mutation",
+        "kind": "childList",
+        "attr": null,
+        "label": "Pause",
+        "connected": true
+      }
+    ]
+  },
+  "errors": [],
+  "error": "TimeoutError: page.waitForFunction: Timeout 3000ms exceeded."
+}
