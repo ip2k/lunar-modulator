@@ -235,7 +235,7 @@ private coordinator checkpoint retains detailed receipts and current lane state.
   After the CLI cleanup, the combined exact 42604fb0 check passes both tests
   normally (12.75 seconds) and with Clang ASan/UBSan (30.58 seconds), including
   instrumented preparation tools and leak detection. No separate uninstrumented
-  preparer remains. Target aggregate fit is the next separate dependency.
+  preparer remains. The separate aggregate target layout now passes below.
 - [verified] CLI process buffers now release on normal, refusal and error exits.
   Independent source-bound normal and Clang ASan/UBSan checks pass 28 actual CLI
   invocations per tool, including the exact module-independent regression body;
@@ -247,6 +247,27 @@ private coordinator checkpoint retains detailed receipts and current lane state.
   but neither that witness nor test adapters enable public installation.
 
 ## Native and physical evidence limits
+
+[verified] The combined selected application, interactive owner and offline
+PROJECT staging fit in one actual target build from `cd68165e`. Independent
+artifact review found all retained functions and storage, no undefined symbols,
+and the original audit with zero failures or pending rows. Actual sections are
+283,144 bytes of text and 329,280 bytes of BSS, leaving 113,088 bytes between
+BSS and the stack guard. One 239,360-byte app/frame and one shared 65,536-byte
+reader/PROJECT arena are allocated. The inherited DMA audio and LCD row buffers
+remain separately counted alongside the producer PCM slots and owner row.
+Reserved stacks are not runtime high-water measurements. Immutable zero
+qualification still refuses startup before hardware initialization; this is
+static layout/link closure, not a functional target binding or installation.
+
+[verified] The selected-v2 private V15 composer is integrated with independent
+review: 51 focused tests and five causal probes pass; combined integration
+passes 269 tests with 17 skips. It validates independently pinned inputs and
+returns verified candidate bytes in private memory only. No endpoint, download,
+transport or install capability is enabled. These tests use synthetic donors;
+real protected V15 decoding awaits the owner's explicit approval and remaining
+independent reference pins. Cleanup failure returns no candidate and may retain
+the private staging child for operator recovery.
 
 [verified] The fresh e267 native diagnostic uses a fixed FM6 eight-voice
 arrangement and links without SDK archives. Original audit: 12 pass, no pending
