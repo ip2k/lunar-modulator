@@ -21,6 +21,8 @@ from .provenance import make_diagnostic_provenance, sha256 as provenance_sha256
 MAX_BODY_BYTES = MAX_REQUEST_BYTES
 MAX_ARTIFACT_BYTES = 1048576
 MAX_ELF_BYTES = 16 * 1024 * 1024
+SELECTED_RECORD_CAP = 4
+SELECTED_MAX_PRIVATE_EVIDENCE_BYTES = 16 * 1024 * 1024
 OPAQUE_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 WAVETABLE_PROFILE = "compressed-required-banks-flash-plaits-v1"
@@ -659,7 +661,7 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
 
 def create_selected_trio_app(*, adapter: JobAdapter, template: WorkerTemplate,
         source_commit: str, source_tree_oid: str, verify_result: Callable,
-        enable_private_builds: bool = False, queue_cap: int = 1, record_cap: int = 64,
+        enable_private_builds: bool = False, queue_cap: int = 1, record_cap: int = SELECTED_RECORD_CAP,
         retention_seconds: int = 3600, clock=time.monotonic) -> FastAPI:
     """Explicit private offline API; callback uses host-owned per-job trust state.
 
@@ -673,6 +675,8 @@ def create_selected_trio_app(*, adapter: JobAdapter, template: WorkerTemplate,
     if (not isinstance(source_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", source_commit)
             or not isinstance(source_tree_oid, str) or not re.fullmatch(r"[0-9a-f]{40}", source_tree_oid)):
         raise ValueError("selected Trio requires pinned source identity")
+    if type(record_cap) is not int or not 1 <= record_cap <= SELECTED_RECORD_CAP:
+        raise ValueError("selected Trio retains at most four jobs")
     if not callable(verify_result):
         raise ValueError("selected Trio requires host-owned result verification")
 
@@ -688,7 +692,7 @@ def create_selected_trio_app(*, adapter: JobAdapter, template: WorkerTemplate,
             evidence = result.private_evidence
             if (type(evidence) is not dict or not evidence or len(evidence) > 10000
                     or any(type(k) is not str or type(v) is not bytes for k, v in evidence.items())
-                    or sum(map(len, evidence.values())) > profile.MAX_EVIDENCE):
+                    or sum(map(len, evidence.values())) > SELECTED_MAX_PRIVATE_EVIDENCE_BYTES):
                 raise ValueError("bounded selected private evidence required")
             summary = verify_result(build_id, canonical_request(admission.request), result)
             expected = dict(version=2, profile_id=profile.SELECTED_TRIO_PROFILE,
@@ -699,7 +703,8 @@ def create_selected_trio_app(*, adapter: JobAdapter, template: WorkerTemplate,
                 elf_sha256=hashlib.sha256(result.elf).hexdigest(), artifact_bytes=len(result.artifact),
                 app_budget_bytes=profile.APP_BUDGET, remaining_bytes=profile.APP_BUDGET-len(result.artifact),
                 internal_dependencies=["arp"], **profile.DENIED)
-            if type(summary) is not dict or canonical_request(summary) != canonical_request(expected):
+            if (type(summary) is not dict or set(summary) != set(expected)
+                    or canonical_request(summary) != canonical_request(expected)):
                 raise ValueError("selected result summary differs from admitted inputs")
             return expected
         except Exception as error:
@@ -729,31 +734,47 @@ def _create_job_app(*, adapter, template, request_validator, result_verifier,
         raise ValueError("retention_seconds must be between 60 and 86400")
     verification_slot = threading.BoundedSemaphore(1)
     verification_executor = None
+    closing = offload_verification
 
     @asynccontextmanager
     async def lifespan(_app):
-        nonlocal verification_executor
+        nonlocal verification_executor, closing
+        if offload_verification:
+            with lock:
+                closing = False
         try:
             yield
         finally:
+            if offload_verification:
+                with lock:
+                    closing = True
             if verification_executor is not None:
                 await asyncio.to_thread(verification_executor.shutdown, wait=True, cancel_futures=True)
                 verification_executor = None
             shutdown = getattr(adapter, "shutdown", None)
             if callable(shutdown):
                 await asyncio.to_thread(shutdown)
+            if callable(shutdown) or offload_verification:
                 # Workers are drained before removing only this process's jobs.
                 # A failed drain keeps evidence in place for recovery.
                 with lock:
                     for build_id in tuple(admissions):
-                        adapter.delete(build_id)
-                        admissions.pop(build_id, None)
+                        delete_admission(build_id)
 
     app = FastAPI(title=title, docs_url=None,
                   redoc_url=None, openapi_url=None, lifespan=lifespan)
     admissions: dict[str, Admission] = {}
     verifying: set[str] = set()
     lock = threading.Lock()
+
+    def delete_admission(build_id):
+        adapter.delete(build_id)
+        if not offload_verification or adapter.get(build_id) is None:
+            admissions.pop(build_id, None)
+            return True
+        # Selected recovery state stays capacity-accounted until owned cleanup
+        # is confirmed. A no-op delete must never permit unbounded retention.
+        return False
 
     async def read_bounded_json(request: Request):
         media = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
@@ -789,6 +810,8 @@ def _create_job_app(*, adapter, template, request_validator, result_verifier,
         digest = hashlib.sha256(data).hexdigest()
         build_id = secrets.token_urlsafe(24)
         with lock:
+            if offload_verification and closing:
+                return JSONResponse({"detail": "build service unavailable"}, 503)
             now = clock()
             expired = []
             for existing_id, existing in admissions.items():
@@ -797,8 +820,7 @@ def _create_job_app(*, adapter, template, request_validator, result_verifier,
                 if terminal and existing_id not in verifying and now - existing.created_at >= retention_seconds:
                     expired.append(existing_id)
             for existing_id in expired:
-                adapter.delete(existing_id)
-                admissions.pop(existing_id, None)
+                delete_admission(existing_id)
             if len(admissions) >= record_cap:
                 return JSONResponse({"detail": "build record capacity is full"}, 429,
                                     headers={"Retry-After": str(retention_seconds)})
@@ -827,13 +849,14 @@ def _create_job_app(*, adapter, template, request_validator, result_verifier,
         if not OPAQUE_ID.fullmatch(build_id):
             return JSONResponse({"detail": "build not found"}, 404)
         with lock:
+            if offload_verification and closing:
+                return JSONResponse({"detail": "build service unavailable"}, 503)
             admission = admissions.get(build_id)
             if admission is not None and build_id not in verifying and clock() - admission.created_at >= retention_seconds:
                 expiring = adapter.get(build_id)
                 if expiring is None or expiring.status in ("succeeded", "failed"):
-                    adapter.delete(build_id)
-                    admissions.pop(build_id, None)
-                    admission = None
+                    if delete_admission(build_id):
+                        admission = None
             snapshot = adapter.get(build_id) if admission is not None else None
         if admission is None or snapshot is None:
             return JSONResponse({"detail": "build not found"}, 404)

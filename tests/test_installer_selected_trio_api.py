@@ -125,7 +125,7 @@ def test_shared_bounded_json_refusals(raw,status,headers):
     ("elf_sha256","0"*64),("receipt_sha256","0"*64),("artifact_bytes",True),
     ("app_budget_bytes",1048576),("remaining_bytes",0),("profile_id","other"),
     ("runtime_mode","diagnostic"),("internal_dependencies",[]),("installable",True),
-    ("package_admitted",True),("rom_return",True),("extra_claim","safe")])
+    ("package_admitted",True),("rom_return",True),("extra_claim","safe"),("set_ids",[])])
 def test_self_claimed_summary_must_match_admitted_inputs(field,value):
     adapter=Adapter()
     adapter.mutation=lambda result:{**result,field:value}
@@ -193,3 +193,113 @@ def test_one_verification_slot_keeps_event_loop_responsive_and_defers_expiry():
             finally:release.set()
             assert pending.result(timeout=3).status_code==200
         assert client.get(PATH+"/"+identifier).status_code==404
+
+
+def test_selected_capacity_and_evidence_limits_are_separate_from_legacy():
+    from tools.installer_service.api import SELECTED_MAX_PRIVATE_EVIDENCE_BYTES
+    with pytest.raises(ValueError,match="four jobs"): app(Adapter(),record_cap=5)
+    adapter=Adapter()
+    with TestClient(app(adapter),base_url="http://localhost") as client:
+        identifier=submit(client); result=adapter.complete(identifier)
+        adapter.complete(identifier,replace(result,private_evidence={"large":b"x"*(SELECTED_MAX_PRIVATE_EVIDENCE_BYTES+1)}))
+        assert client.get(PATH+"/"+identifier).status_code==502
+        assert not adapter.calls
+
+
+def test_unconfirmed_cleanup_keeps_record_capacity_until_actual_delete():
+    now=[0]
+    class RecoveryAdapter(Adapter):
+        unconfirmed=True
+        def delete(self,identifier):
+            if not self.unconfirmed: super().delete(identifier)
+    adapter=RecoveryAdapter()
+    with TestClient(app(adapter,clock=lambda:now[0],retention_seconds=60),base_url="http://localhost") as client:
+        identifiers=[]
+        for _ in range(4):
+            identifier=submit(client);identifiers.append(identifier);adapter.fail(identifier)
+        assert client.post(PATH,json=request()).status_code==429
+        now[0]=61
+        assert client.get(PATH+"/"+identifiers[0]).json()["status"]=="failed"
+        assert client.post(PATH,json=request()).status_code==429
+        assert len(adapter.jobs)==4
+        adapter.unconfirmed=False
+        assert client.get(PATH+"/"+identifiers[0]).status_code==404
+        submit(client)
+
+
+def test_cancelled_http_waiter_does_not_release_verification_or_cleanup_early(monkeypatch):
+    import asyncio
+    from tools.installer_service import api
+    adapter=Adapter();entered=threading.Event();release=threading.Event();draining=threading.Event()
+    class ObservedExecutor(ThreadPoolExecutor):
+        def shutdown(self,*args,**kwargs):
+            draining.set()
+            return super().shutdown(*args,**kwargs)
+    monkeypatch.setattr(api,"ThreadPoolExecutor",ObservedExecutor)
+    def blocked(value):
+        entered.set()
+        if not release.wait(5): raise AssertionError("test must release verifier")
+        return value
+    adapter.mutation=blocked
+    selected_app=app(adapter)
+    async def cancelled_get(identifier):
+        # Invoke ASGI through TestClient's portal to cancel the HTTP waiter while
+        # the real executor callback is running. No listener or socket is used.
+        path=PATH+"/"+identifier
+        scope=dict(type="http",asgi={"version":"3.0"},http_version="1.1",method="GET",
+            scheme="http",path=path,raw_path=path.encode(),query_string=b"",root_path="",
+            headers=[(b"host",b"localhost")],client=("127.0.0.1",1),server=("localhost",80))
+        async def receive():
+            await asyncio.Future()
+        async def send(_): pass
+        await selected_app(scope,receive,send)
+    with ThreadPoolExecutor(max_workers=1) as observer:
+        def release_on_shutdown():
+            assert draining.wait(3)
+            assert "shutdown" not in adapter.events and "delete" not in adapter.events
+            assert client.post(PATH,json=request()).status_code==503
+            assert client.get(PATH+"/"+identifier).status_code==503
+            release.set()
+        with TestClient(selected_app,base_url="http://localhost") as client:
+            identifier=submit(client);adapter.complete(identifier)
+            pending=client.portal.start_task_soon(cancelled_get,identifier)
+            assert entered.wait(2)
+            assert pending.cancel()
+            assert client.get(PATH+"/"+identifier).status_code==503
+            watcher=observer.submit(release_on_shutdown)
+        watcher.result(timeout=3)
+    assert adapter.events[-2:]==["shutdown","delete"]
+
+
+def test_legacy_factory_stays_v1_only():
+    from tools.installer_service.api import create_app
+    legacy=create_app(adapter=Adapter(),template=TEMPLATE,module_kinds={"trio":"sound"},
+                      project_ids={"init-starter-trio"})
+    with TestClient(legacy) as client:
+        assert client.post("/api/v1/builds",json=request()).status_code==422
+        assert client.post(PATH,json=request()).status_code==404
+        value=request(version=1)
+        for key in ("profile_id","runtime_mode","flash_layout"): value.pop(key)
+        assert client.post("/api/v1/builds",json=value).status_code==202
+
+
+
+def test_selected_requires_active_lifespan_and_can_restart_cleanly():
+    adapter=Adapter(); selected_app=app(adapter)
+    client=TestClient(selected_app,base_url="http://localhost")
+    assert client.post(PATH,json=request()).status_code==503
+    assert not adapter.submissions
+    client.close()
+    for _ in range(2):
+        with TestClient(selected_app,base_url="http://localhost") as running:
+            identifier=submit(running);adapter.complete(identifier)
+            assert running.get(PATH+"/"+identifier).status_code==200
+        assert not adapter.jobs
+
+
+def test_selected_deletes_owned_records_even_for_adapter_without_shutdown_method():
+    adapter=FakeJobAdapter(1)
+    selected_app=create_selected_trio_app(adapter=adapter,template=TEMPLATE,
+        source_commit=COMMIT,source_tree_oid=TREE,verify_result=lambda *_:None,enable_private_builds=True)
+    with TestClient(selected_app,base_url="http://localhost") as client: submit(client)
+    assert not adapter.jobs and not adapter.submissions
