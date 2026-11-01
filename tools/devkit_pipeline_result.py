@@ -12,7 +12,15 @@ Optional ready_running_min/ready_running_samples measure music pre-acquire
 queue depth only while produced < total. Unlike ready_min, they exclude the
 final output drain. They include the slot being acquired, exclude the DMA ring,
 and are sampled minima, not continuous low-water marks. A zero sample count
-means no running minimum was measured. Older logs retain their old summary.
+means no running minimum was measured. Older logs retain their counter and
+latency summaries.
+Buffered acceptance additionally requires the versioned LUNAR_PIPELINE_RESULT
+terminal receipt and the matching finish/preroll/idle/completion receipts.
+Only reason=per_block_deadline may be waived, with every case count correct.
+Legacy logs still expose counters, means and latency, but their acceptance
+fields are false: a failure_line plus late blocks cannot identify the failure.
+Historical evidence needs review against its exact source and raw receipts;
+current source line numbers do not identify an older image's failure.
 Ticks are the 24 MHz timer: 34,829 ticks (1,451 us) per 64-frame block.
 
 The worst-block vector is each case's maximum producer block split at the
@@ -75,9 +83,10 @@ FRAMES_PER_BLOCK = 64
 DAC_RATE_HZ = 44100  # renderer_pipeline_dac.c: dac_set_sample_rate(44100)
 DMA_WINDOWS = 3  # the DAC ring the driver checks: DAC_LEN 192 frames
 IDLE_QUIET_MS = 250  # zero-idle wait inside elapsed_ms, after the last block
+CASE_BLOCKS = 5513  # renderer_pipeline_dac.c, each of four cases per cycle
 
 
-def buffered_rule(end, cases, soak, ready, final_lines):
+def buffered_rule(end, cases, soak, ready, final_lines, terminal, preroll, idle, devkit):
     """Whole-run summary under the buffered rule; the analog capture is separate.
 
     The receipts are cumulative over the run, so one end-of-run set covers the
@@ -87,7 +96,8 @@ def buffered_rule(end, cases, soak, ready, final_lines):
     those that ran a whole block. A per-block producer or consumer overrun is
     not an underrun while the queue covers it: the firmware's own end check
     still applies the old per-block deadline and prints failure_line and
-    complete=0 for it, which this summary reports but does not count.
+    complete=0 for it. Only the typed terminal reason can identify this
+    exception; missing/unknown contracts and unrelated failures fail closed.
     """
     total = soak['total']
     blocks = sum(c['blocks'] for c in cases)
@@ -129,7 +139,33 @@ def buffered_rule(end, cases, soak, ready, final_lines):
     run_ms = soak['elapsed_ms'] - IDLE_QUIET_MS
     lifetime = ready.get('lifetime_ms') if ready else None
     fail_line = [r['failure_line'] for r in final_lines if 'failure_line' in r]
-    late_only = bool(fail_line) and all(underrun_checks.values()) and any(c['p_late'] or c['c_late'] for c in cases)
+    reports = [r for r in final_lines if r.get('case') == 4]
+    finals = [r for r in final_lines if r.get('final') == 1]
+    finish = reports[0] if len(reports) == 1 else {}
+    terminal, preroll, idle, devkit = terminal or {}, preroll or {}, idle or {}, devkit or {}
+    cycles = soak.get('cycles')
+    any_late = any(c['p_late'] or c['c_late'] for c in cases)
+    deadline = terminal.get('result') == 'FAIL' and terminal.get('reason') == 'per_block_deadline'
+    clean = terminal.get('result') == 'PASS' and terminal.get('reason') == 'none'
+    completion_checks = dict(
+        typed_terminal=terminal.get('contract') == 1,
+        terminal_outcome=((deadline and any_late and len(fail_line) == 1 and devkit.get('complete') == 0) or
+                          (clean and not any_late and not fail_line and devkit.get('complete') == 1)),
+        sdk_finish=(len(reports) == 1 and len(finals) == 1 and
+                    all(finish.get(k) == total for k in
+                        ('produced', 'consumed', 'harvested', 'output_retired', 'parent_blocks')) and
+                    all(finish.get(k) == 0 for k in ('error0', 'error1', 'parent_wrong')) and
+                    finish.get('exited') == 1),
+        preroll_music=preroll.get('phase') == 2 and preroll.get('zeros', 0) > 0,
+        idle_running=(idle.get('idle') == 1 and idle.get('idle_callbacks', 0) >= 100 and
+                      devkit.get('idle') == 1),
+        case_counts=(isinstance(cycles, int) and 1 <= cycles <= 57 and
+                     soak['cases'] == soak['expected_cases'] == 4 * cycles and
+                     total == 4 * cycles * CASE_BLOCKS and
+                     all(c['blocks'] == cycles * CASE_BLOCKS for c in cases)),
+        budget_overflow_zero=terminal.get('budget_overflow') == 0)
+    completion_pass = all(completion_checks.values())
+    late_only = deadline and completion_pass and all(underrun_checks.values())
     return dict(
         rule_mean_ticks=RULE_MEAN_TICKS, blocks=total, audio_s=round(audio_s, 1),
         audio_min=round(audio_s / 60, 2), elapsed_ms=soak['elapsed_ms'],
@@ -142,10 +178,11 @@ def buffered_rule(end, cases, soak, ready, final_lines):
         mean_checks=mean_checks, means_pass=all(mean_checks.values()), queue_latency=queue,
         firmware_failure_line=fail_line[0] if fail_line else None,
         firmware_failure_is_per_block_deadline_only=late_only if fail_line else None,
+        firmware_result=terminal or None, completion_checks=completion_checks, completion_pass=completion_pass,
         soak_30_min=audio_s >= 1800,
-        pass_timing=all(underrun_checks.values()) and all(mean_checks.values()) and (not fail_line or late_only),
-        pass_soak_receipts=(audio_s >= 1800 and all(underrun_checks.values()) and all(mean_checks.values())
-                            and (not fail_line or late_only)),
+        pass_timing=all(underrun_checks.values()) and all(mean_checks.values()) and completion_pass,
+        pass_soak_receipts=(audio_s >= 1800 and all(underrun_checks.values()) and
+                            all(mean_checks.values()) and completion_pass),
         note='Receipts only: the KA6 analog capture, the host replay of the case hashes and fold, '
              'and the worst-block explanation remain separate gates')
 
@@ -318,7 +355,12 @@ def parse(data, sys_clk=None):
         ready = [r for r in pipeline if r.get('ready') == 1]
         if len(ready) > 1:
             raise ValueError('Require at most one LUNAR_PIPELINE ready receipt')
-        result['buffered'] = buffered_rule(end, service, soak, ready[0] if ready else None, pipeline)
+        complete = [r for r in rows('LUNAR_DEVKIT') if 'complete' in r]
+        if len(complete) > 1:
+            raise ValueError('Require at most one LUNAR_DEVKIT complete receipt')
+        result['buffered'] = buffered_rule(end, service, soak, ready[0] if ready else None, pipeline,
+            one('LUNAR_PIPELINE_RESULT', required=False), one('LUNAR_PREROLL161', required=False),
+            one('LUNAR_DAC173', required=False), complete[0] if complete else None)
     if clock:
         result['clock360'] = clock
 
