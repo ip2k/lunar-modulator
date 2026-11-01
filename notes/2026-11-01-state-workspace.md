@@ -252,3 +252,19 @@ line/data/sequence/MIDI and compression lifetimes first.
 Lifecycle close: verified no lane containers running, removed all owned Aeon
 staged source/build/Python/object products, retained only112KiB evidence, and
 explicitly released CPU12–15 directly to sound_state_fixes for its unique stage.
+
+Integration handoff: PR168 https://github.com/ip2k/lunar-modulator/pull/168 is
+stacked on PR165's fix/2026-11-01@release-state-corrections branch. Merged its
+exact bb9187f393f5c5b48ae782ef31a137928f91c167 base without conflicts, producing
+039083f569ed010d5628672c9bf7d423f9bdeaa2, pushed and remote SHA verified.
+The state.c/h delta from behaviorally tested/reviewed d3330cf5 is comments only;
+the correction base's separately owned JSON-reader changes require stacked CI.
+Parent owns final integration/review/CI/merge. No more heavy jobs from this lane.
+The proposed457456-byte bound is only future explicit scratch: it excludes
+unchanged plan BSS, existing clip-helper heap and caller/reader stack, and is not
+a total RAM or fit promise. Only the existing481244-byte target writer was
+measured; the proposed replacement has not been implemented.
+Local cleanup retained108KiB small evidence only; Mac1117GiB free. Aeon retained
+112KiB small evidence only; no lane containers or reproducible products remain.
+Unmerged clean source worktree is deliberately retained for review and removed
+by coordinator after integration.
