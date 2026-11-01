@@ -51,12 +51,13 @@ compares the selected applier to that app's actual general state loader: all
 14 values, level, info, and a 64-frame PCM block agree. A corrupted CRC and
 five structurally valid but unsupported variants (missing parameter, extra
 info, wrong engine, out-of-range parameter, missing level) refuse before any
-app or arena mutation. A second provisional run used the strict CLI from
-`532eae0187cb221534f91a0c95f49254a436d2cc` (binary SHA-256
-`c06f98336629978d17c06cdd11143e47c0f07eeec2f3ab02e0be4c49d45fb3f4`)
-to prepare the exact 597-byte C blob. The host fixture linked that generated
+app or arena mutation. The corrected strict CLI from reviewed, pushed
+`0a87f806ed8f8c5771bf443249b75f3220d10553` (binary SHA-256
+`3716f07c9e7af72d8573e297b720c7863f0849ba4ac7c92e82c97aebfb85c278`)
+was used to prepare the exact 597-byte C blob. The host fixture linked that generated
 symbol and passed its bytes to the applier; the general current-app loader
-consumed the matching binary file. The 1-test provisional pytest run passed.
+consumed the matching binary file. The 1-test provisional pytest run passed
+after the strict tool correction; the earlier c06f binary proof is superseded.
 Normal CI cannot pass until the reviewed bounded reader and strict packer
 are integrated into the branch; after integration, rerun without provisional
 environment variables. Exact commands and small logs are retained in ignored
@@ -66,13 +67,13 @@ environment variables. Exact commands and small logs are retained in ignored
 
 Review/integrate the shared bounded reader before treating this GREEN as
 accepted. A dedicated host-only `tools/native/prepare_selected_project.py`
-now generates a fixed-source packed C blob and receipt, but its intended
-`fm1-state pack --strict --store` command is in a separate source lane and is
-absent from this branch's current CLI (the baseline refuses with exit 2,
-cleaning its fresh output). The baseline CLI's unstrict `--store` bytes
+now generates a fixed-source packed C blob and receipt. Its required
+`fm1-state pack --strict --store` command is independently reviewed in a
+separate source lane and is absent from this branch's base CLI (the baseline
+refuses with exit 2, cleaning its fresh output). The baseline CLI's unstrict `--store` bytes
 independently match the pinned Python container SHA-256; this is format
 evidence only, not a replacement for strict validation. Once the strict
-packer is reviewed and integrated, rerun the builder with exact compiled
+packer and bounded reader are integrated, rerun the builder with exact compiled
 renderer/tool. The provisional host link test already proves the generated
 symbol is the bytes the applier reads. Its receipt records source/export/container/tool
 hashes and flags native link/RAM, installability, hardware and distribution
