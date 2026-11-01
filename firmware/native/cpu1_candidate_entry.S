@@ -25,8 +25,8 @@ _candidate_start:
     r0 = sp
     call lunar_cpu1_candidate_target_early_hold
     if (r0 == 0) goto candidate_park
-    r1 = [sp++]
-    r0 = [sp++]
+    {r1} = [sp++]
+    {r0} = [sp++]
     call lunar_cpu1_candidate_cstart
 candidate_park:
     csync
