@@ -1,0 +1,9 @@
+# Committed Wasm source-record CI gate, 2026-11-01
+
+Base for this branch: `951ca6eb053c7fde82cd17baed949fd43528dab0`. The committed `fm1.wasm.json` records both engine and simulator source digests. Previously `test_committed_wasm_matches_its_build_record` failed CI only for a stale simulator digest; engine-only drift warned and could leave an old module and bypass the separate licence-list check. The release gate now fails CI for either stale digest. Local runs retain the warning.
+
+RED-first check: a new test invokes the actual committed-module gate with `CI=true`, a copied record digest map, and only `engines` changed. It failed before the gate change because the gate emitted only a warning. The matching-record control invokes the same gate and passes. After the change both focused tests pass. No source files, generated Wasm, record, or hash inputs were mutated in the fixture.
+
+At this branch's base, the real committed record is stale against **both** current digest values, and the updated gate fails under `CI=true` as intended. The coordinator's combined Wasm regeneration must update `fm1.wasm` and `fm1.wasm.json`; then rerun the real CI gate on the integrated head. This branch by itself is not a green release candidate. The GPL licence-list test still warns and returns on a stale engine record when run alone, but the full CI source-record gate now fails on that state. `source_hash.py`'s opening description still says only sim inputs fail CI and should be updated with the combined source-record review; its hashing algorithm was intentionally untouched here.
+
+Lifecycle: only small pytest runs with bytecode and pytest cache disabled. The isolated worktree can be removed after integrated and backed up. No build, browser, audio, device, or generated-artifact operation occurred.
