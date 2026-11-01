@@ -37,6 +37,8 @@ static unsigned trigger,seen;
 static uint8_t scan_raw[11];
 static uint32_t fake_gpio[8][8];
 static unsigned accepted;
+static unsigned frozen, frozen_feeds, frozen_transfers, frozen_observation_done;
+static uint32_t frozen_tick, frozen_last_tick;
 
 /* Actual scanner implementation with fake GPIO reads and time, not a second
  * decoder. Keep its static state in this same platform fixture TU. */
@@ -119,7 +121,7 @@ static void fm1_irq_init(void) {
 static void fm1_input_init(void) {
   assert(irq_init_calls==1 && !dma_starts && !(f.icfg&0x100u));
   actual_input_init();inject("scan-init");
-  if(!strcmp(mode,"positive") || !strcmp(mode,"wrap")) {
+  if(!strcmp(mode,"positive") || !strcmp(mode,"wrap") || frozen) {
     accepted_key(77,18,1);
     lunar_input_t event={77,LUNAR_INPUT_KEY,4,1};reference_input(&event);
   }
@@ -217,6 +219,22 @@ static void lunar_audio_owner_test_iteration(void) {
       assert(word(&PLATFORM->owner.transport.fault)==LUNAR_TRANSPORT_OVERFLOW);return;
     }
   }
+  if(frozen) {
+    if(iterations==1) {
+      frozen_feeds=f.feed;frozen_transfers=f.transfers;
+      frozen_last_tick=return_policy.last_tick;
+      frozen_tick=frozen_last_tick+(frozen==2?1u:0u);
+      f.now=frozen_tick;
+      assert((uint32_t)(f.now-return_policy.last_tick)<target_q.policy.max_phase_ticks/2u);
+    }
+    assert(f.now==frozen_tick && return_policy.last_tick==frozen_last_tick);
+    assert(f.feed==frozen_feeds && f.transfers==frozen_transfers && !f.reset);
+    assert(return_policy.state==LUNAR_SR_ARMED && !tail_calls && !stop_calls);
+    /* External observation limit only: no elapsed-time assertion, software
+     * escape, or simulated hardware-watchdog reset/terminal callback. */
+    if(iterations==100) { frozen_observation_done=1;longjmp(stopped,2); }
+    audio_irq();reference_pending();return;
+  }
   if(!strcmp(mode,"clock-back")) { f.now=return_policy.last_tick-1;return; }
   if(iterations==120) {
     assert(tail_calls==1 && nonzero>0 && f.feed>3);
@@ -249,12 +267,31 @@ static void lunar_audio_owner_test_iteration(void) {
 }
 int main(int argc,char **argv) {
   assert(argc>=2);mode=argv[1];trigger=argc==3?(unsigned)atoi(argv[2]):0;
+  frozen=!strcmp(mode,"clock-frozen-zero")?1u:!strcmp(mode,"clock-frozen-subcadence")?2u:0u;
   fresh_target();f.allow_halt=1;f.icfg&=~0x100u;
   target_q.policy.max_phase_ticks=1000000;target_q.policy.lease_ticks=2000000;
   if(!strcmp(mode,"wrap")) f.now=UINT32_MAX-200000;
   if(!strcmp(mode,"unqualified")) memset(&target_q,0,sizeof target_q);
   init_reference();
   if(!setjmp(stopped)) { lunar_diagnostic_cstart();assert(0); }
+  if(frozen) {
+    assert(frozen_observation_done && iterations==100 && nonzero && return_policy.backstop_armed);
+    assert(return_policy.state==LUNAR_SR_ARMED && (f.icfg&0x100u));
+    assert(!tail_calls && !stop_calls && !f.reset && !f.halts);
+    assert(f.feed==frozen_feeds && f.transfers==frozen_transfers);
+    /* Still-running IRQs consume exact queued blocks, then zero on empty.
+     * Do not call main again: it would separately observe this underrun. */
+    uint64_t frames=lunar_diagnostic_state()->frames;
+    assert(word(&PLATFORM->owner.transport.pcm_head)-word(&PLATFORM->owner.transport.pcm_tail)==2);
+    audio_irq();audio_irq();audio_irq();
+    assert(lunar_diagnostic_state()->frames==frames);
+    assert(word(&PLATFORM->owner.transport.underruns)==1);
+    assert(return_policy.state==LUNAR_SR_ARMED && !stop_calls && !tail_calls && !f.reset);
+    assert(f.feed==frozen_feeds && f.transfers==frozen_transfers);
+    printf("audio owner %s observations=%u blocks=%u nonzero=%u no-feed/no-tail/no-terminal/no-reset; exact PCM then empty zero passed\n",
+        mode,iterations,consumed,nonzero);
+    return 0;
+  }
   assert(return_policy.state==LUNAR_SR_TERMINAL && !(f.icfg&0x100u));
   if(!strcmp(mode,"unqualified")) {
     assert(!irq_init_calls && !prepare_calls && !dma_starts && !irq_enables && !f.transfers);

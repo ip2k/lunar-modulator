@@ -32,18 +32,27 @@ The new profile leaves the first reset delay before DMA. It services the second
 No app work, P33 phase feed or busy delay runs between DMA start and IRQ enable.
 The existing source-reported Timer4 frequency remains an unqualified assumption.
 
-Preparation reentry and early IRQ access poison the attempt. Every meaningful
+Preparation reentry and early IRQ access poison the attempt once preparation has
+started. The earlier IRQ-init/bootstrap interval requires IRQ-off entry; the tests
+do not prove that assumption on hardware. Every meaningful
 startup callback has a post-call poison check, including IRQ enable. Late or
 regressed observed main ticks refuse before a health feed or codec-tail write;
 main health cadence is half the qualified maximum phase interval, with a strictly
-positive tick delta. An underrun zeros output and increments the existing counter;
+positive tick delta. A clock frozen at the last policy tick or at a nonzero delta
+below cadence does not invoke further policy progress. There is no finite software
+escape or loop-count timing guarantee: termination then depends solely on an
+independently qualified hardware watchdog and lease, including independence from
+the failed Timer4 clock. No subsequent feed occurs; a not-yet-due codec tail stays
+pending. This explicit fallback is a source contract, not watchdog qualification. An underrun zeros output and increments the existing counter;
 this finite diagnostic stops on its first main observation rather than hiding it
 with continued feeds. Queue-full producer backpressure alone is not a fault.
 
 Terminal publication precedes IRQ masking and best-effort DMA stop. Buffers,
 context and leases remain permanent, even after stop or late IRQ. There is no
 retry, reinitialization, live pause or claim that clearing DMA enable proves bus
-quiescence. The existing fault/return policy remains authoritative.
+quiescence. The existing fault/return policy remains authoritative. Poison is checked at named
+boundaries, not atomically against every possible IRQ between a check and a feed.
+The separately qualified masked-feed and IRQ budgets remain prerequisites.
 
 `FRONTEND_READY` is the same numeric phase as the compatibility name `LCD_READY`.
 The new profile means prepared audio and explicitly disabled display; the legacy
@@ -63,9 +72,14 @@ Directed runs cover genuine startup halves/queue contents, immediate IRQ after
 readiness, actual scanner key/detent hooks, all 41 matrix IDs and seven encoders,
 clock wrap, main feed cadence, queue backpressure, underrun, overflow, early IRQ,
 startup callback fault/reentry, deferred tail fault, and late IRQ after terminal.
-Each normal and ASan/UBSan configuration runs 21 actual-app process cases.
+Each normal and ASan/UBSan configuration now runs 23 actual-app process cases.
 The positive/wrap cases compare 122 consumed blocks, including nonzero held-note
-PCM; tail writes occur once. Leak detection is enabled for the preparer and app.
+PCM; tail writes occur once. Two directed frozen-clock cases observe 100 harness
+iterations at last_tick and last_tick+1 (below cadence), then exit externally.
+They assert no subsequent feed, P33 transfer, tail, software terminal or reset,
+compare exact queued nonzero PCM, and consume to empty to check zero-safe IRQ
+ownership. The observation count has no time-unit meaning; the harness neither
+invokes a C watchdog-reset surrogate nor proves a finite production escape. Leak detection is enabled for the preparer and app.
 The original publication test supplies the separate mid-copy-fault and scalar
 ICFG-restoration proof; the new fixture does not claim to model an interrupt at
 every instruction. Legacy interactive/display and offline-stage fixtures are
@@ -87,8 +101,10 @@ python3 -m pytest -o addopts= -q -s -p no:cacheprovider \
 ```
 
 Local bounded legacy return/aggregate checks passed 13 tests; the new complete-plan
-and legacy-HAL normalized statement-order checks passed two. Development actual-app
-normal and sanitizer checks passed before the final frozen rerun. Final exact-source
+and legacy-HAL normalized statement-order checks passed two. The exact `5b5ea1dc` batch passed 25 normal checks and five actual-app sanitizer
+checks. The later clock-contract delta changes comments, documentation and focused
+fixture coverage only; its separate normal/sanitizer receipt supersedes only that
+fixture. Production behavior and the other frozen results remain unchanged. Final exact-source
 receipts and result logs are retained privately in the performance worktree under
 `scratch/devkit-20261023/audit-20261101/selected-audio-owner-binding/`.
 The first development fixture omitted a prototype; that compile failure is not a

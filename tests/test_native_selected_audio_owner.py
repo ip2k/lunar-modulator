@@ -53,7 +53,8 @@ def test_actual_selected_audio_owner(tmp_path):
     assert receipt["packed_bytes"] == 597 and not receipt["hardware_admitted"]
     exe = build / "proof-check"
     subprocess.run([*cmd, str(exe)], check=True, timeout=300)
-    modes = [(m,) for m in ("positive", "wrap", "unqualified", "empty", "overflow", "clock-back")]
+    modes = [(m,) for m in ("positive", "wrap", "unqualified", "empty", "overflow", "clock-back",
+                            "clock-frozen-zero", "clock-frozen-subcadence")]
     modes += [("fault", str(n)) for n in range(1, 8)]
     modes += [("reenter", str(n)) for n in range(2, 8)]
     modes += [("early-irq", str(n)) for n in (2, 3)]

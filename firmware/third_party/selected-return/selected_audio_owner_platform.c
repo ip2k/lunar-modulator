@@ -110,7 +110,10 @@ static void main_step(void) {
     lunar_selected_return_fault(&return_policy,LUNAR_SR_FAULT);
   uint32_t now=fm1_ticks();
   /* Health cadence is evidence-relative, never a feed in a fast full-queue
-   * spin or an IRQ. The policy independently checks configuration/deadline. */
+   * spin or an IRQ. The policy checks configuration/deadline when called.
+   * A clock frozen below cadence cannot provide a finite software escape:
+   * no further feed occurs, and termination depends on the independently
+   * qualified hardware watchdog/lease. No loop-count timing is assumed. */
   uint32_t elapsed=(uint32_t)(now-return_policy.last_tick);
   /* Do not discard an already invalid observation just because a later P33
    * callback/read advances the clock again. No feed or codec-tail write. */
