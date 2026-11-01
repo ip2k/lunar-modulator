@@ -486,9 +486,9 @@ static int diff(const buf_t *a, const buf_t *b) {
   size_t i, j;
   unsigned *t;
   int differ = 0;
-  if (!x || !y) return 2;
+  if (!x || !y) { free(x); free(y); return 2; }
   t = (unsigned *)calloc((nx + 1) * (ny + 1), sizeof(unsigned));
-  if (!t) return 2;
+  if (!t) { free(x); free(y); return 2; }
   for (i = nx; i-- > 0;) {
     for (j = ny; j-- > 0;) {
       t[i * (ny + 1) + j] = same_line(&x[i], &y[j]) ? t[(i + 1) * (ny + 1) + j + 1] + 1
@@ -622,12 +622,12 @@ static void usage(void) {
 
 int main(int argc, char **argv) {
   const char *cmd, *file = NULL, *file2 = NULL, *out_path = NULL;
-  int compact = 0, without = 0, store = 0, strict = 0, i, ok;
+  int compact = 0, without = 0, store = 0, strict = 0, i, ok, rc = 2;
   size_t pieces = 0;
   float rate = (float)FM1_STATE_HZ;
   fm1_state_names_t nm;
   fm1_state_report_t rep;
-  buf_t in, out;
+  buf_t in = {0}, out = {0};
   if (argc < 2) { usage(); return 2; }
   cmd = argv[1];
   for (i = 2; i < argc; ++i) {
@@ -662,20 +662,20 @@ int main(int argc, char **argv) {
   if (!file) { usage(); return 2; }
   fm1_state_names_default(&nm);
   fm1_state_report_init(&rep);
-  memset(&out, 0, sizeof(out));
-  if (!read_file(file, &in)) return 2;
+  if (!read_file(file, &in)) goto cleanup;
 
   if (strcmp(cmd, "json-check") == 0) {
     fm1_json_t p;
     fm1_json_init(&p, nop_cb, NULL);
     ok = fm1_json_feed(&p, in.b, in.n) && fm1_json_end(&p);
     if (!ok) fprintf(stderr, "%s at %u:%u\n", fm1_json_error(p.err), p.line, p.col);
-    return ok ? 0 : 1;
+    rc = ok ? 0 : 1;
+    goto cleanup;
   }
   if (strcmp(cmd, "canon") == 0 || strcmp(cmd, "unpack") == 0) {
     if (strcmp(cmd, "unpack") == 0 && fm1_state_sniff(in.b, in.n) != 1) {
       fprintf(stderr, "%s: not a binary state file\n", file);
-      return 2;
+      goto cleanup;
     }
     if (fm1_state_sniff(in.b, in.n) == 1 && in.n >= 11 && in.b[10] == FM1_STATE_SET) {
       lines_t l;
@@ -685,15 +685,16 @@ int main(int argc, char **argv) {
     } else {
       ok = to_canon(&nm, &in, compact, without, 1, &out, &rep);
     }
-    if (!ok) { print_report(stderr, &rep); return 1; }
-    return write_out(out_path, &out) ? 0 : 2;
+    if (!ok) { print_report(stderr, &rep); rc = 1; goto cleanup; }
+    rc = write_out(out_path, &out) ? 0 : 2;
+    goto cleanup;
   }
   if (strcmp(cmd, "pack") == 0 || strcmp(cmd, "from-movy1") == 0) {
     buf_t canon;
     void *mem = calloc(1, fm1_state_bin_writer_size());
     static const uint8_t version[3] = { 0, 1, 0 };
     fm1_state_writer_t *w;
-    if (!mem) return 3;
+    if (!mem) { rc = 3; goto cleanup; }
     w = fm1_state_bin_writer(mem, store ? 0u : FM1_STATE_BIN_DEFLATE, FM1_STATE_WRITER_DESKTOP, version,
                              buf_put, &out, &rep);
     if (strcmp(cmd, "from-movy1") == 0) {
@@ -716,16 +717,18 @@ int main(int argc, char **argv) {
       free(canon.b);
     }
     free(mem);
-    if (!ok) { print_report(stderr, &rep); return 1; }
-    return write_out(out_path, &out) ? 0 : 2;
+    if (!ok) { print_report(stderr, &rep); rc = 1; goto cleanup; }
+    rc = write_out(out_path, &out) ? 0 : 2;
+    goto cleanup;
   }
   if (strcmp(cmd, "records") == 0) {
     fm1_state_printer_t p;
     fm1_state_printer_init(&p, file_put, stdout);
     ok = read_any(&nm, &in, fm1_state_print, &p, &rep, pieces);
     fflush(stdout);
-    if (!ok) { print_report(stderr, &rep); return 1; }
-    return 0;
+    if (!ok) { print_report(stderr, &rep); rc = 1; goto cleanup; }
+    rc = 0;
+    goto cleanup;
   }
   if (strcmp(cmd, "check") == 0) {
     check_t c;
@@ -750,17 +753,26 @@ int main(int argc, char **argv) {
     printf("{\"ram_instances\":%zu,\"ram_budget\":%u,\"report\":", c.ram, FM1_STATE_RAM_BUDGET);
     print_report(stdout, &rep);
     printf("}\n");
-    return ok ? 0 : 1;
+    rc = ok ? 0 : 1;
+    goto cleanup;
   }
   if (strcmp(cmd, "diff") == 0) {
-    buf_t in2, a, b;
+    buf_t in2 = {0}, a = {0}, b = {0};
     fm1_state_report_t rep2;
-    if (!file2 || !read_file(file2, &in2)) { usage(); return 2; }
+    if (!file2 || !read_file(file2, &in2)) { usage(); goto diff_cleanup; }
     fm1_state_report_init(&rep2);
-    if (!to_canon(&nm, &in, 0, 1, 1, &a, &rep)) { print_report(stderr, &rep); return 2; }
-    if (!to_canon(&nm, &in2, 0, 1, 1, &b, &rep2)) { print_report(stderr, &rep2); return 2; }
-    return diff(&a, &b);
+    if (!to_canon(&nm, &in, 0, 1, 1, &a, &rep)) { print_report(stderr, &rep); goto diff_cleanup; }
+    if (!to_canon(&nm, &in2, 0, 1, 1, &b, &rep2)) { print_report(stderr, &rep2); goto diff_cleanup; }
+    rc = diff(&a, &b);
+diff_cleanup:
+    free(in2.b);
+    free(a.b);
+    free(b.b);
+    goto cleanup;
   }
   usage();
-  return 2;
+cleanup:
+  free(in.b);
+  free(out.b);
+  return rc;
 }
