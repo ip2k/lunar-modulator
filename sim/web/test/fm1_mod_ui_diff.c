@@ -1,11 +1,15 @@
 /* Offline differential oracle for the MATRIX destination storage change.
  * Link a symbol-renamed baseline fm1_mod_ui.c alongside the current object. */
 #include "fm1_mod_ui.h"
+#include "fm1_app.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef NDEBUG
+#error "The differential oracle requires assertions"
+#endif
 int old_fm1_mod_ui_dests(const fm1_mod_ui_env_t *, fm1_mod_dest_t *, int);
 void old_fm1_mod_ui_matrix_knob(const fm1_mod_ui_env_t *, fm1_mod_ui_t *, int, int, uint64_t, fm1_mod_ui_say_t *);
 void old_fm1_mod_ui_matrix_algorithm(const fm1_mod_ui_env_t *, fm1_mod_ui_t *, int, fm1_mod_ui_say_t *);
@@ -80,6 +84,43 @@ static void kind(unsigned p, int k) {
   assert(fm1_mod_set_kind(env[0].m, p, k) == fm1_mod_set_kind(env[1].m, p, k));
 }
 static void reset_ui(void) { fm1_mod_ui_init(&ui[0]); ui[1] = ui[0]; }
+static void fm6_identity(void) {
+  static fm1_app_t app;
+  fm1_mod_slot_t s;
+  unsigned i;
+  int dx7 = fm1_app_find("dx7"), macro = fm1_app_find("macro");
+  assert(dx7 >= 0 && macro >= 0);
+  fm1_app_init(&app, 44118);
+  assert(fm1_app_select(&app, 0, dx7) == 0);
+  assert(app.unit[0].e == &app.dx7.engine && app.unit[0].e != fm1_engines[dx7]);
+  fm1_mod_ui_init(&app.mui);
+  memset(&s, 0, sizeof s); s.via = FM1_MOD_NONE;
+  for (i = 0; i < FM1_MOD_SLOTS; ++i) assert(fm1_mod_set_slot(app.mod, i, &s));
+  s.src = FM1_MOD_SRC_VEL; s.dst_unit = FM1_MOD_SOUND; s.dst = 2;
+  s.flags = FM1_MOD_SLOT_ON; s.amount = 1234;
+  assert(fm1_mod_set_slot(app.mod, 0, &s));       /* FM6 Brightness: ON */
+  s.flags = 0; assert(fm1_mod_set_slot(app.mod, 1, &s)); /* Brightness: OFF */
+  s.flags = FM1_MOD_SLOT_ON; s.dst = 5;
+  assert(fm1_mod_set_slot(app.mod, 2, &s));       /* shared Volume */
+  assert(fm1_app_select(&app, 0, macro) == 0);
+  for (i = 0; i < 2; ++i) {
+    assert(fm1_mod_get_slot(app.mod, i, &s));
+    assert(!(s.flags & FM1_MOD_SLOT_ON) && s.dst == 2 && s.amount == 1234);
+    assert(app.mui.aim[i] == dx7 + 1);
+    assert(((app.mui.aim_on >> i) & 1u) == (i == 0));
+  }
+  assert(fm1_mod_get_slot(app.mod, 2, &s));
+  assert((s.flags & FM1_MOD_SLOT_ON) && s.dst == 7 && s.amount == 1234);
+  assert(!app.mui.aim[2]);
+  assert(fm1_app_select(&app, 0, dx7) == 0);
+  for (i = 0; i < 3; ++i) {
+    assert(fm1_mod_get_slot(app.mod, i, &s));
+    assert(((s.flags & FM1_MOD_SLOT_ON) != 0) == (i != 1));
+    assert(s.dst == (i == 2 ? 5 : 2) && s.amount == 1234);
+    assert(!app.mui.aim[i] && !((app.mui.aim_on >> i) & 1u));
+  }
+  puts("PASS: live FM6 descriptor cable disable/re-aim/restore (ON and OFF)");
+}
 int main(void) {
   fm1_host_t host = { FM1_ENGINE_API_VERSION, 44118, 64 };
   void *mem[2];
@@ -155,5 +196,6 @@ int main(void) {
   printf("PASS: %lu layouts, %lu events, %.3f CPU seconds\n", layouts, events,
          (double)(clock() - start) / CLOCKS_PER_SEC);
   for (k = 0; k < 2; ++k) { fm1_mod_destroy(env[k].m); free(mem[k]); }
+  fm6_identity();
   return 0;
 }

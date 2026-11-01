@@ -72,3 +72,31 @@ project/session labels, --rm containers. No full WASM build: fm1_mod_ui.c
 source hash changes require the coordinator's next integration rebuild.
 FM6 descriptor identity is an additional authorized follow-up, not included
 in this stack behavior comparison.
+
+## Incremental FM6 identity regression [verified]
+
+The app uses an app-owned copy of the `dx7` descriptor to supply live bank
+names. Registry pointer comparison failed for it. Switching from FM6
+Brightness (UID2) to Macro left that ON cable active at Macro's unrelated
+Harmonics UID2. `registry_index` now recognizes stable engine IDs as well as
+registry pointers; name matching still reads the live descriptor passed in.
+
+The focused harness uses actual `fm1_app_init`/`fm1_app_select`, asserts FM6's
+app-owned descriptor differs from its registry pointer, and proves:
+
+- ON Brightness switches OFF and remembers FM6 identity on Macro selection;
+- originally OFF Brightness remains OFF across Macro and the return to FM6;
+- shared Volume maps FM6 UID5 → Macro UID7 → FM6 UID5;
+- returning to FM6 clears remembered identity and restores the original ON
+  state and destination UID, preserving amount.
+
+Red check before the fix failed at the required OFF-state assertion. Green
+checks: normal differential (986 layouts / 492,640 events, 1.297 CPU seconds),
+ASan+UBSan differential (same events, 3.366 CPU seconds), live FM6 app
+regression, and all 49 existing modulation tests. No hardware or audio output.
+Rarefaction orient/scope and Serena find_symbol confirmed the pointer-only
+helper before editing; Rarefaction fallback C type/caller indexing was incomplete
+and slow (65/106 seconds), so exact source/runtime tests supplied the evidence.
+
+This incremental fix also changes fm1_mod_ui.c and requires the coordinator's
+next complete WASM source-hash rebuild. No generated hashes were edited.
