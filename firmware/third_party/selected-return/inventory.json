@@ -81,16 +81,16 @@
   },
   "owned_files": {
     "firmware/third_party/selected-return/selected_return.c": {
-      "sha256": "14f10b4c0d9f55d8a50236bbb0aab2e58c13a634fba91a7507d1302c1cd12438",
-      "modification": "new offline proof; actual policy and register-only test fixture"
+      "sha256": "27933f1ca834fef3d3de6b7f5ca0419c12db795e53a25039c93c2fec93969278",
+      "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/selected_return.h": {
-      "sha256": "a4a6a2c7f0f91cecf6540c3615f709e6b240cac9e4c2b8e447c7440343e8a4b7",
-      "modification": "new offline proof; actual policy and register-only test fixture"
+      "sha256": "b5bf1c1f43f4ce78346c7c985aaf432e3a10632339ded758599c6ddba5159b62",
+      "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/UPSTREAM.md": {
-      "sha256": "ddeb81aa89361def8127318c9e7fc0e7547254fbd7064f136c8833586d484495",
-      "modification": "new offline proof; actual policy and register-only test fixture"
+      "sha256": "4156b0175ef82763afdc9a34988e1babf1c25d5e292bd5c08628c1caa0857be1",
+      "modification": "new separately guarded unqualified target binding candidate"
     },
     "firmware/third_party/selected-return/LICENSE": {
       "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
@@ -103,12 +103,63 @@
     "tests/fixtures/selected_return/check.c": {
       "sha256": "a57adf1f9d37a56f0854e820ea99c9676020c2747a705cfee6c050d6ec30d665",
       "modification": "new offline proof; actual policy and register-only test fixture"
+    },
+    "firmware/third_party/selected-return/selected_return_pi32v2.c": {
+      "sha256": "cc8d059e366e3d3f068ead05c4827e7869d13732da16ec5d0780678930694207",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "firmware/third_party/selected-return/selected_return_pi32v2.h": {
+      "sha256": "b24b9df02343b9dff1932b726d33ddc12e76a7b3d890541a3cea02b7d1fe087f",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "firmware/third_party/selected-return/selected_return_platform.c": {
+      "sha256": "dfd59d57a9c5100e2afb6258c9f180d2313093b1aa1c9e96e6b58485e5ba7998",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "firmware/third_party/selected-return/selected_return_candidate.ld": {
+      "sha256": "a4a178074ba3e0a9d89748a8ddab7a0f6fb8790acc7cd2fcfec8136748bdd0c9",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "tests/test_selected_return_target.py": {
+      "sha256": "7957b12185f82fd2e300373db1bd68ce0e785c7990d90ec7825f819ae6e99462",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "tests/fixtures/selected_return_target/check.c": {
+      "sha256": "27749933c7d6bcd18100f0e03358aeac5438928171b5981b3b40443a86ce2803",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "tools/native/build_selected_trio_return_candidate.py": {
+      "sha256": "aa15b099f7ddbf04ff6f2bd54d9689c8e9813ef899bc3b09ff94cb676437e50b",
+      "modification": "new separately guarded unqualified target binding candidate"
     }
   },
   "files": {
-    "selected_return.c": "14f10b4c0d9f55d8a50236bbb0aab2e58c13a634fba91a7507d1302c1cd12438",
-    "selected_return.h": "a4a6a2c7f0f91cecf6540c3615f709e6b240cac9e4c2b8e447c7440343e8a4b7",
+    "selected_return.c": "27933f1ca834fef3d3de6b7f5ca0419c12db795e53a25039c93c2fec93969278",
+    "selected_return.h": "b5bf1c1f43f4ce78346c7c985aaf432e3a10632339ded758599c6ddba5159b62",
+    "selected_return_pi32v2.c": "cc8d059e366e3d3f068ead05c4827e7869d13732da16ec5d0780678930694207",
+    "selected_return_pi32v2.h": "b24b9df02343b9dff1932b726d33ddc12e76a7b3d890541a3cea02b7d1fe087f",
+    "selected_return_platform.c": "dfd59d57a9c5100e2afb6258c9f180d2313093b1aa1c9e96e6b58485e5ba7998",
+    "selected_return_candidate.ld": "a4a178074ba3e0a9d89748a8ddab7a0f6fb8790acc7cd2fcfec8136748bdd0c9",
     "LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
-    "UPSTREAM.md": "ddeb81aa89361def8127318c9e7fc0e7547254fbd7064f136c8833586d484495"
+    "UPSTREAM.md": "4156b0175ef82763afdc9a34988e1babf1c25d5e292bd5c08628c1caa0857be1"
+  },
+  "target_binding_base": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
+  "target_binding_provenance": {
+    "firmware/native/diagnostic_platform.c": {
+      "revision": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
+      "sha256": "938de5d01d10d686cd9128f26298819ef3bad73e0c363408ac9425971358490e"
+    },
+    "firmware/native/diagnostic.ld": {
+      "revision": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
+      "sha256": "16cf0b8ebe82ce2481c25a44605a4e9ea4230b034bb785c28363a8db48c980ae"
+    },
+    "firmware/third_party/dinghy/hal/fm1_irq.h": {
+      "revision": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
+      "sha256": "34b51dce696aded43e4c17d7f2151b958c319fe34f84a0763f273143406bc416"
+    },
+    "firmware/third_party/dinghy/hal/fm1_time.h": {
+      "revision": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
+      "sha256": "e83c725eae2ec5a163771ca2b8f1c0779354456f2e20a32febc7b6755758a97d"
+    }
   }
 }
