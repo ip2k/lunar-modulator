@@ -664,10 +664,10 @@ index 0000000..13ca661
 +void dlog(const char *fmt, ...) { (void)fmt; }
 diff --git a/src/return_r01_proto.c b/src/return_r01_proto.c
 new file mode 100644
-index 0000000..bd4503c
+index 0000000..27dc148
 --- /dev/null
 +++ b/src/return_r01_proto.c
-@@ -0,0 +1,320 @@
+@@ -0,0 +1,328 @@
 +// SPDX-License-Identifier: MIT
 +// Fixed return-r01 ROM-only CDC protocol. Never linked into recovery firmware.
 +#include "transporter_proto.h"
@@ -702,6 +702,14 @@ index 0000000..bd4503c
 +} phase_t;
 +
 +static critical_section_t state_lock;
++// SDK critical_section_exit can reload its shared save field after STLB on
++// RP2350. Keep this invocation's mask in a register before releasing the lock.
++static void state_lock_exit(void) {
++    uint32_t saved = state_lock.save;
++    __asm__ __volatile__("" : "+r"(saved) : : "memory");
++    spin_unlock(state_lock.spin_lock, saved);
++}
++
 +static phase_t phase;
 +static char rx_line[RX_LINE_MAX];
 +static unsigned rx_len;
@@ -723,7 +731,7 @@ index 0000000..bd4503c
 +bool fm1_proto_live(void) {
 +    critical_section_enter_blocking(&state_lock);
 +    bool live = phase != TERMINAL;
-+    critical_section_exit(&state_lock);
++    state_lock_exit();
 +    return live;
 +}
 +
@@ -753,7 +761,7 @@ index 0000000..bd4503c
 +    if (!n) return;
 +    critical_section_enter_blocking(&state_lock);
 +    (void)tx_enqueue_locked(line, n); // full queue yields host timeout, never false OK
-+    critical_section_exit(&state_lock);
++    state_lock_exit();
 +}
 +
 +void fm1_proto_drain(void) {
@@ -767,7 +775,7 @@ index 0000000..bd4503c
 +        req_pending = false;
 +        tx_tail = tx_head;
 +    }
-+    critical_section_exit(&state_lock);
++    state_lock_exit();
 +    if (!live) {
 +        return;
 +    }
@@ -781,7 +789,7 @@ index 0000000..bd4503c
 +        if (n > sizeof(chunk)) n = sizeof(chunk);
 +        if (n > avail) n = avail;
 +        for (uint32_t i = 0; i < n; i++) chunk[i] = tx[(tx_tail + i) & (TX_SIZE - 1)];
-+        critical_section_exit(&state_lock);
++        state_lock_exit();
 +        if (!n) break;
 +        uint32_t accepted = tud_cdc_n_write(DATA_ITF, chunk, n);
 +        if (accepted > n) accepted = n;
@@ -789,7 +797,7 @@ index 0000000..bd4503c
 +        // A simultaneous terminal/disconnect may have discarded the ring.
 +        // Never advance into that new state after the unlocked USB call.
 +        if (tx_tail == copied_tail) tx_tail += accepted;
-+        critical_section_exit(&state_lock);
++        state_lock_exit();
 +        if (!accepted) break;
 +    }
 +    tud_cdc_n_write_flush(DATA_ITF);
@@ -798,7 +806,7 @@ index 0000000..bd4503c
 +        if (phase == READY_REPLY) phase = READY;
 +        else if (phase == UPLOADED_REPLY) phase = UPLOADED;
 +    }
-+    critical_section_exit(&state_lock);
++    state_lock_exit();
 +}
 +
 +static void fail_rx_locked(void) {
@@ -862,7 +870,7 @@ index 0000000..bd4503c
 +        req_phase = queued;
 +        req_pending = true;
 +    }
-+    critical_section_exit(&state_lock);
++    state_lock_exit();
 +}
 +
 +static bool exact_payload(void) {
@@ -880,7 +888,7 @@ index 0000000..bd4503c
 +              tx_enqueue_locked(line, n);
 +    if (ok) phase = next;
 +    else { phase = TERMINAL; req_pending = false; }
-+    critical_section_exit(&state_lock);
++    state_lock_exit();
 +    return ok;
 +}
 +
@@ -888,7 +896,7 @@ index 0000000..bd4503c
 +    critical_section_enter_blocking(&state_lock);
 +    phase = TERMINAL;
 +    req_pending = false;
-+    critical_section_exit(&state_lock);
++    state_lock_exit();
 +    fm1_host_return_terminal();
 +    tx_line("%s", reply);
 +}
@@ -904,7 +912,7 @@ index 0000000..bd4503c
 +    pending = req_pending;
 +    request = req_phase;
 +    if (pending) req_pending = false;
-+    critical_section_exit(&state_lock);
++    state_lock_exit();
 +
 +    if (current == TERMINAL || (request == TERMINAL && pending)) {
 +        fm1_host_return_terminal();
@@ -923,7 +931,7 @@ index 0000000..bd4503c
 +                    req_phase = READY_PENDING;
 +                    req_pending = true;
 +                }
-+                critical_section_exit(&state_lock);
++                state_lock_exit();
 +                return;
 +            }
 +            finish_error("ERR rr01-ready");
@@ -949,7 +957,7 @@ index 0000000..bd4503c
 +        critical_section_enter_blocking(&state_lock);
 +        bool claimed = phase == UPLOAD_PENDING && !req_pending && connected &&
 +                       fm1_host_return_claim_upload(ready_mount);
-+        critical_section_exit(&state_lock);
++        state_lock_exit();
 +        if (!claimed) {
 +            finish_error("ERR rr01-upload");
 +            return;
@@ -968,7 +976,7 @@ index 0000000..bd4503c
 +        critical_section_enter_blocking(&state_lock);
 +        bool claimed = phase == CALL_PENDING && !req_pending && connected &&
 +                       fm1_host_return_claim_call(ready_mount);
-+        critical_section_exit(&state_lock);
++        state_lock_exit();
 +        if (!claimed) {
 +            finish_error("ERR rr01-call");
 +            return;
