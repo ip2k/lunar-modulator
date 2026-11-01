@@ -1,19 +1,18 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "56a0968d6bdf7231020c80c4e16101e476e650b19fdc6a824d1987ec52cc864f",
-  "wasm_bytes": 1623341,
+  "wasm_sha256": "72e7ada150bb4b7dd385839fa9ae49cf15c5fd673cdfb027c3931b63ca21a13e",
+  "wasm_bytes": 1624973,
   "sources_sha256": {
-    "engines": "56317b46a4e7ed65647fc1aad18f44902446930b369dfaf67e3c7a6b676f00f6",
-    "sim": "5a642b62c0238ab6687bfd69db61f3802d984cff6893a51a6b40f30429fae220"
+    "engines": "872562d992cbe9f0c07f523eef9852ca6a250955e2e98e01a966f9a46d0dd58a",
+    "sim": "a75ce3f4d69d2f9c33f7abb2f7c0139d1f3e03f28fb58afb1e262e2be8d7093e"
   },
-  "engines": "working tree",
-  "built": "2026-10-29T10:01:52Z",
+  "engines": "1294fc54cc8f51ad82315bac6578838610ad4746",
+  "built": "2026-11-01T10:07:06Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
-    "alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
-    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
+    "alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f",
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
   ],
   "imports": [],
   "gpl_mods": 1,
@@ -94,7 +93,7 @@
     "passed": true
   },
   "dx7_sysex": {
-    "passed": 18,
+    "passed": 19,
     "failed": 0,
     "cases": [
       {
@@ -168,6 +167,10 @@
       {
         "name": "each voice sounds the same from the bank as from its single dump",
         "pass": true
+      },
+      {
+        "name": "complete bank export is canonical, checksummed and byte exact",
+        "pass": true
       }
     ]
   },
@@ -182,10 +185,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.05875199999999836,
-      "p99_ms": 0.09451000000001386,
-      "max_ms": 0.3429840000000013,
-      "edit_us_per_quantum": 7.949073493859847
+      "p50_ms": 0.06042600000000675,
+      "p99_ms": 0.09534300000001394,
+      "max_ms": 0.30866999999999933,
+      "edit_us_per_quantum": 8.097335944299498
     },
     "check": {
       "params": 474,
