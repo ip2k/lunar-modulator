@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: MIT. Injected host facade, no hardware binding. */
 #include "selected_interactive_owner.h"
+#include "diagnostic_api.h"
 static int stop(lunar_selected_platform_t *p) {
   lunar_transport_fault(&p->owner.transport,LUNAR_TRANSPORT_APP);
   return -1;
@@ -23,19 +24,48 @@ int lunar_selected_platform_start(lunar_selected_platform_t *p,
   p->started=1;
   return 0;
 }
+static int poisoned(lunar_selected_platform_t *p) {
+#ifdef LUNAR_DIAGNOSTIC_PI32V2_PUBLICATION
+  uint32_t f=lunar_pub_load(&p->owner.transport.fault);
+#else
+  uint32_t f=atomic_load_explicit(&p->owner.transport.fault,memory_order_acquire);
+#endif
+  return f || lunar_diagnostic_status();
+}
+int lunar_selected_platform_prepare_audio(lunar_selected_platform_t *p,
+    const lunar_selected_audio_prepare_ops_t *ops,lunar_input_t *input,uint32_t ni,
+    lunar_pcm_t *pcm,uint32_t np,uint32_t initial,uint32_t max_events) {
+  if(!p) return -1;
+  if(p->initialized) return stop(p);
+  p->initialized=1; p->preparing=1;
+  if(!ops || !ops->scan_init || !ops->scan_tick || !ops->audio_prepare) return stop(p);
+  p->ops=(lunar_selected_platform_ops_t){ops->scan_init,ops->scan_tick,NULL,ops->ctx};
+  if(lunar_selected_owner_init_audio(&p->owner,input,ni,pcm,np,initial,max_events) ||
+     poisoned(p) || ops->scan_init(ops->ctx) || poisoned(p) ||
+     lunar_selected_owner_step(&p->owner)!=1 || poisoned(p) ||
+     ops->audio_prepare(ops->ctx) || poisoned(p)) return stop(p);
+  p->preparing=0;
+  p->started=1;
+  return 0;
+}
 int lunar_selected_platform_main(lunar_selected_platform_t *p) {
+  if(p && p->preparing) return stop(p);
   return p && p->started ? lunar_selected_owner_step(&p->owner) : -1;
 }
 void lunar_selected_platform_timer(lunar_selected_platform_t *p) {
+  if(p && p->preparing) { (void)stop(p); return; }
   if(p && p->started) { ++p->scan; p->ops.scan_tick(p->ops.ctx); }
 }
 int lunar_selected_platform_audio(lunar_selected_platform_t *p,int32_t *out) {
+  if(p && p->preparing) (void)stop(p);
   /* Even before admission/following a startup failure, output is zeroed. */
   return lunar_transport_irq(p && p->started ? &p->owner.transport : NULL,out);
 }
 void lunar_selected_platform_matrix(lunar_selected_platform_t *p,unsigned id,int down) {
+  if(p && p->preparing) { (void)stop(p); return; }
   if(p && p->started) (void)lunar_transport_matrix(&p->owner.transport,p->scan,id,down);
 }
 void lunar_selected_platform_encoder(lunar_selected_platform_t *p,unsigned id,int delta) {
+  if(p && p->preparing) { (void)stop(p); return; }
   if(p && p->started) (void)lunar_transport_encoder(&p->owner.transport,p->scan,id,delta);
 }

@@ -68,33 +68,46 @@ static uint32_t spi_ticks(void *ctx) {
   (void)poisoned(o);
   return r;
 }
-int lunar_selected_owner_init(lunar_selected_owner_t *o,lunar_input_t *input,uint32_t ni,
+static int init(lunar_selected_owner_t *o,lunar_input_t *input,uint32_t ni,
     lunar_pcm_t *pcm,uint32_t np,uint32_t initial,uint32_t max_events,
-    uint32_t min_frames,const lunar_spi_model_ops_t *ops,uint32_t ticks,uint32_t steps) {
+    uint32_t min_frames,const lunar_spi_model_ops_t *ops,uint32_t ticks,uint32_t steps,
+    int audio_only) {
   if(!o) return -1;
   if(o->initialized) return stop(o);
   o->initialized=1;
-  if(!max_events || !min_frames ||
-     lunar_transport_init(&o->transport,input,ni,pcm,np,initial) ||
-     lunar_spi_model_init(&o->spi,ops,ticks,steps)) return stop(o);
-  o->injected_spi=*ops;
-  o->spi.ops=(lunar_spi_model_ops_t){pins,clear_done,done,barrier,launch,
-      /* Function name differs from the tick-budget argument below. */
-      spi_ticks,o};
-  if(lunar_display_init(&o->display,LUNAR_DISPLAY_HOST_MOCK,lunar_spi_model_submit,&o->spi) ||
-     lunar_diagnostic_init()) return stop(o);
+  if(!max_events || (!audio_only && !min_frames) ||
+     lunar_transport_init(&o->transport,input,ni,pcm,np,initial)) return stop(o);
+  o->audio_only=(uint32_t)audio_only;
+  if(!audio_only) {
+    if(lunar_spi_model_init(&o->spi,ops,ticks,steps)) return stop(o);
+    o->injected_spi=*ops;
+    o->spi.ops=(lunar_spi_model_ops_t){pins,clear_done,done,barrier,launch,spi_ticks,o};
+    if(lunar_display_init(&o->display,LUNAR_DISPLAY_HOST_MOCK,
+                         lunar_spi_model_submit,&o->spi)) return stop(o);
+  }
+  if(lunar_diagnostic_init()) return stop(o);
   o->max_events=max_events; o->min_draw_frames=min_frames;
   return 0;
+}
+int lunar_selected_owner_init(lunar_selected_owner_t *o,lunar_input_t *input,uint32_t ni,
+    lunar_pcm_t *pcm,uint32_t np,uint32_t initial,uint32_t max_events,
+    uint32_t min_frames,const lunar_spi_model_ops_t *ops,uint32_t ticks,uint32_t steps) {
+  return init(o,input,ni,pcm,np,initial,max_events,min_frames,ops,ticks,steps,0);
+}
+int lunar_selected_owner_init_audio(lunar_selected_owner_t *o,lunar_input_t *input,uint32_t ni,
+    lunar_pcm_t *pcm,uint32_t np,uint32_t initial,uint32_t max_events) {
+  return init(o,input,ni,pcm,np,initial,max_events,0,NULL,0,0,1);
 }
 static int service(lunar_selected_owner_t *o) {
   uint32_t ticket;
   int r, rendered;
   if(!o || !o->initialized) return -1;
-  if(fault(&o->transport) || o->display.fault || o->spi.fault) return stop(o);
+  if(o->audio_only>1 || fault(&o->transport) || o->display.fault || o->spi.fault) return stop(o);
   /* Real PCM first. A full queue is backpressure, not a fault or a render. */
   rendered=lunar_transport_produce(&o->transport,o->max_events,
       apply,render,o);
   if(rendered<0 || fault(&o->transport) || lunar_diagnostic_status()) return stop(o);
+  if(o->audio_only) return rendered;
   r=lunar_spi_model_step(&o->spi,&ticket);
   if(fault(&o->transport) || lunar_diagnostic_status()) return stop(o);
   if(r<0) { lunar_display_timeout(&o->display); return stop(o); }
