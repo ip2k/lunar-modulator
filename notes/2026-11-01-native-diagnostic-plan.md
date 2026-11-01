@@ -52,3 +52,9 @@ app232832, arena65536, descriptors112;142112 bytes below first stack guard.
 Vendor objcopy rejected GNU-style default section selection. Export now reuses
 audit_link's existing ELF reader with strict allowed-section and contiguous-load
 assertions, and audits both ELF and exported application bytes. No audit weakening.
+
+Final source review: encoder delta drain now masks ICFG global enable bit8 and
+restores the exact snapshot, following the existing HAL enable convention and
+historical reviewed critical-section pattern. It does not mix CLI with ICFG
+restoration or unconditionally enable nested interrupts. Actual interrupt
+behavior remains a target acceptance item. Final target rebuild required.
