@@ -109,9 +109,13 @@ export function makeResponse(addr, data, flashType = 0) {
   const bytes = Array.from(data);
   if (bytes.length > MAXDATA) throw new RangeError("response exceeds 512-byte protocol maximum");
   const length = bytes.length;
-  const body = [0, 0x59, 0x30, length + 8, 0, 0, flashType,
+  const bodyLength = length + 8;
+  // Local correction: both lengths are u24 little-endian before 7-bit packing.
+  // A one-byte body length silently wraps at payload size 248 and above.
+  const body = [0, 0x59, 0x30, bodyLength & 0xFF, (bodyLength >>> 8) & 0xFF,
+    (bodyLength >>> 16) & 0xFF, flashType,
     addr & 0xFF, (addr >>> 8) & 0xFF, (addr >>> 16) & 0xFF, (addr >>> 24) & 0xFF,
-    length & 0xFF, (length >>> 8) & 0xFF, 0, ...bytes];
+    length & 0xFF, (length >>> 8) & 0xFF, (length >>> 16) & 0xFF, ...bytes];
   let sum = 0;
   for (let i = 6; i < body.length; i += 1) sum += body[i];
   body.push((~sum) & 0xFF);

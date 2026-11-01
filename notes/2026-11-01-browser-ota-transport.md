@@ -14,7 +14,8 @@ The final return value says `application-identity-confirmed`, which is an identi
 
 ## Checks and limits
 
-- [verified] `node --test sim/web/test/native-ota-adapter.test.mjs sim/web/test/native-ota-controller.test.mjs sim/web/test/native-package-admission.test.mjs sim/web/test/installer-page.test.mjs`: 41 passed, 1 optional private-composer test skipped, 0 failed. All protocol and controller ports were synthetic.
+- [verified] `node --test sim/web/test/native-ota-adapter.test.mjs sim/web/test/native-ota-controller.test.mjs sim/web/test/native-package-admission.test.mjs sim/web/test/installer-page.test.mjs`: 43 passed, 1 optional private-composer test skipped, 0 failed. All protocol and controller ports were synthetic.
+- [verified] Independent review caught a response-framing defect inherited by the first port: `length + 8` was placed in one byte, so a 248-byte payload declared zero and a 512-byte payload declared eight. New RED-first tests cover 247, 248, 255, 256, 481 and 512 bytes plus a synthetic full-chunk transfer. The response now encodes the u24 little-endian body and payload lengths. These tests check `body_len + 7 == decoded frame length`, data and checksum.
 - [verified] Rarefaction TypeScript status found the main checkout's `sim/web` project, but orientation could not find the new worktree symbol. Serena's active project was the shared main checkout. Neither was retargeted while parallel work was active; exact historical/current source and bounded tests were used for this slice. This is a code-navigation coverage limit, not a runtime result.
 - [inferred] Web MIDI's port name cannot prove physical USB or identify the mode: `docs/03` reports the same Chrome/macOS name in both modes. This code relies on explicit pair selection and the identity reply. A future release must review how its UI excludes unrelated/Bluetooth devices and how it presents reconnect recovery.
 

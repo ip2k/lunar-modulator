@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  HS_QUERY, Link, MAXDATA, pack7, parseIdentity, parseRequest, serveRequests,
+  HS_QUERY, Link, MAXDATA, makeResponse, pack7, parseIdentity, parseRequest, serveRequests, unpack7,
 } from '../www/third_party/fm1-ota/fm1ota.js';
 import { createNativeOtaAdapter } from '../www/native-ota-adapter.js';
 
@@ -57,6 +57,47 @@ class FakePorts {
 function linkFor(fake, options) {
   return new Link(fake.input, fake.output, options);
 }
+
+function decodedResponse(wire) {
+  assert.equal(wire[0], 0xF0);
+  assert.equal(wire.at(-1), 0xF7);
+  const decoded = unpack7(wire.slice(1, -1));
+  assert.ok(decoded);
+  return decoded;
+}
+
+test('responses encode u24 body lengths and exact decoded frames at chunk boundaries', () => {
+  for (const length of [247, 248, 255, 256, 481, 512]) {
+    const payload = Uint8Array.from({ length }, (_, index) => index & 0xff);
+    const decoded = decodedResponse(makeResponse(0x12345678, payload));
+    const bodyLength = decoded[3] | (decoded[4] << 8) | (decoded[5] << 16);
+    const declaredPayload = decoded[11] | (decoded[12] << 8) | (decoded[13] << 16);
+    assert.equal(bodyLength, length + 8, `body length for ${length}`);
+    assert.equal(bodyLength + 7, decoded.length, `decoded frame geometry for ${length}`);
+    assert.equal(declaredPayload, length, `payload length for ${length}`);
+    assert.deepEqual(decoded.slice(14, -1), Array.from(payload));
+    assert.equal(checksum(decoded.slice(6, -1)), decoded.at(-1));
+  }
+});
+
+test('a full 512-byte fake read receives a structurally valid response before finish', async () => {
+  const image = Uint8Array.from({ length: 512 }, (_, index) => (index * 7) & 0xff);
+  let fake;
+  fake = new FakePorts('FM-1_015', { onSend: () => {
+    if (fake.sends.length === 1) fake.emit(request({ addr: 0xE0000000, length: 8 }));
+  } });
+  const link = linkFor(fake);
+  fake.emit(request({ addr: 0, length: 512 }));
+  const result = await serveRequests(link, image, 0xE0000000,
+    { idleTimeoutMs: 50, hardTimeoutMs: 100, responseDelayMs: 0 });
+  assert.deepEqual(result, { served: 1, finished: true });
+  const decoded = decodedResponse(fake.sends[0]);
+  const bodyLength = decoded[3] | (decoded[4] << 8) | (decoded[5] << 16);
+  assert.equal(bodyLength, 520);
+  assert.equal(bodyLength + 7, decoded.length);
+  assert.deepEqual(decoded.slice(14, -1), Array.from(image));
+  link.close();
+});
 
 test('admission pins one package snapshot across asynchronous verification', async () => {
   const packageBytes = Uint8Array.of(9, 8, 7);
