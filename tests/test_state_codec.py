@@ -513,6 +513,43 @@ def test_strict_pack_preserves_valid_bytes(tool, tmp_path):
     assert binary_strict.read_bytes() == binary_default.read_bytes()
 
 
+def test_state_tool_cli_buffers_across_success_and_refusal(tool, tmp_path):
+    """Exercise CLI owned input/output buffers through process exit (also under LSan)."""
+    source_path = EXAMPLES / "settings.lunar"  # available in both GPL profiles
+    source = source_path.read_bytes()
+    packed = run(tool, "pack", "-", "--strict", "--store", data=source)
+    assert packed.returncode == 0, packed.stderr.decode()
+    assert packed.stdout.startswith(b"\x89Lunar\r\n")
+
+    canonical = run(tool, "canon", source_path)
+    assert canonical.returncode == 0, canonical.stderr.decode()
+    unpacked = run(tool, "unpack", "-", data=packed.stdout)
+    assert unpacked.returncode == 0, unpacked.stderr.decode()
+    assert unpacked.stdout == canonical.stdout
+    packed_path = tmp_path / "project.lunarbin"
+    packed_path.write_bytes(packed.stdout)
+    assert run(tool, "diff", "-", packed_path, data=source).returncode == 0
+    assert run(tool, "records", "-", data=source).returncode == 0
+    settings = b'{"lunar":"1.0","kind":"settings","settings":{}}'
+    assert run(tool, "check", "-", data=settings).returncode == 0
+    assert run(tool, "json-check", "-", data=source).returncode == 0
+
+    movy = (GOLD / "orbit.set.movy1").read_bytes()
+    movy_packed = run(tool, "from-movy1", "-", data=movy)
+    assert movy_packed.returncode == 0, movy_packed.stderr.decode()
+    movy_unpacked = run(tool, "unpack", "-", data=movy_packed.stdout)
+    assert movy_unpacked.returncode == 0, movy_unpacked.stderr.decode()
+    assert movy_unpacked.stdout == movy
+
+    lossy = source.replace(b'"metronome": false', b'"metronomee": false')
+    assert lossy != source
+    refused = run(tool, "pack", "-", "--strict", "--store", data=lossy)
+    assert refused.returncode == 1
+    report = json.loads(refused.stderr)
+    assert report["code"] == "BAD" and report["skipped"] == 1
+    assert not refused.stdout
+
+
 @pytest.mark.parametrize("size", [None, 4096])
 def test_native_prepare_refuses_lossy_project_pack(tool, tmp_path, monkeypatch, size):
     monkeypatch.syspath_prepend(str(ROOT / "tools" / "native"))
