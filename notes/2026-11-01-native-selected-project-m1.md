@@ -63,6 +63,22 @@ are integrated into the branch; after integration, rerun without provisional
 environment variables. Exact commands and small logs are retained in ignored
 `scratch/selected-project-m1/` while review proceeds.
 
+Independent review found that the binary reader can return `code=OK` while
+counting unknown ancillary chunks and known-chunk keys as `skipped`. The
+selected applier now refuses any nonzero `skipped`, `repaired`, `unknown`, or
+`defaulted` count after each pass, before engine selection. The actual-app
+oracle generates both valid unknown-item variants; the previous selected
+source accepts them (RED, assertion at `check.c:71`), while the new source
+refuses them with the exact `2cb13c58` reader (GREEN).
+
+A second review witness is still open: that reader silently skips a trailing
+byte in a newer `UNIT` chunk with `code=OK, skipped=0`. The selected applier
+cannot see that byte in its record callbacks. The actual-app oracle now
+generates this valid future-version variant and is intentionally RED against
+`2cb13c58`; the reader owner is correcting its skip accounting separately.
+The present selected checkpoint must not be called full-record refusal or
+accepted GREEN until a reviewed reader correction makes that oracle pass.
+
 ## Next dependency
 
 Review/integrate the shared bounded reader before treating this GREEN as
