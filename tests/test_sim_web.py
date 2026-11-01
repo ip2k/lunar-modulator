@@ -233,7 +233,9 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     # module's fixed 8 MiB; fm1_app_t is 4,939,984 B natively (clang, 64-bit).
     assert (z["sounds"], z["inserts"], z["master_slots"], z["units"]) == (4, 2, 2, 14)
     assert z["arena_bytes"] == 4 * 512 * 1024 + 10 * 256 * 1024
-    assert z["app_bytes"] <= 4_960_000
+    # Immutable LOCK identities grow the event arena by 6,528 B. Allow the
+    # approved sequencer budget increase (8 KiB), rather than pinning sizeof.
+    assert z["app_bytes"] <= 4_968_192
     assert z["midi_map_bytes"] == 4612  # bounded project preferences outside sequencer arena
     assert z["mod_bytes"] <= z["mod_arena"]
     assert z["seq_need"] == 202 <= z["seq_events"] == 272
