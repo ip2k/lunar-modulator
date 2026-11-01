@@ -561,18 +561,53 @@ class DockerJobAdapter:
                         binding_raw=binding_path.read_bytes(), request=request_bytes,
                         toolchain_manifest=toolchain_manifest, headers_manifest=catalogue_manifest)
             except Exception:
-                self.selected_inputs.pop(build_id, None)
-                if created_base:
-                    shutil.rmtree(base, ignore_errors=True)
+                if getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE:
+                    self._rollback_selected_submission(build_id, base if created_base else None)
+                else:
+                    if created_base:
+                        shutil.rmtree(base, ignore_errors=True)
                 self.semaphore.release()
                 raise
             self.job_dirs[build_id] = base
             self.created[build_id] = self.clock()
             self.jobs[build_id] = WorkerSnapshot("queued")
-            worker = threading.Thread(target=self._run, args=(build_id,), daemon=True,
-                                      name="lunar-build-" + build_id[:8])
-            self.threads[build_id] = worker
-            worker.start()
+            try:
+                worker = threading.Thread(target=self._run, args=(build_id,), daemon=True,
+                                          name="lunar-build-" + build_id[:8])
+                self.threads[build_id] = worker
+                worker.start()
+            except Exception:
+                if getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE:
+                    self.threads.pop(build_id, None)
+                    self._rollback_selected_submission(build_id, base)
+                    self.semaphore.release()
+                raise
+
+    def _rollback_selected_submission(self, build_id: str, base: Path | None) -> None:
+        """Retain ownership/capacity if an unstarted job cannot be removed.
+
+        Called under the admission lock before a worker thread has started.
+        No container exists in this path, so only filesystem removal is pending.
+        """
+        removed = base is None
+        if base is not None:
+            try:
+                shutil.rmtree(base)
+                removed = not base.exists() and not base.is_symlink()
+            except OSError:
+                removed = False
+        if removed:
+            self.jobs.pop(build_id, None)
+            self.job_dirs.pop(build_id, None)
+            self.created.pop(build_id, None)
+            self.selected_inputs.pop(build_id, None)
+            self.selected_verified.pop(build_id, None)
+            self.cleanup_confirmed.discard(build_id)
+        else:
+            self.job_dirs[build_id] = base
+            self.created[build_id] = self.clock()
+            self.jobs[build_id] = WorkerSnapshot("failed")
+            self.cleanup_confirmed.add(build_id)  # No container was launched.
 
     def _command(self, build_id: str, base: Path) -> list[str]:
         cfg = self.config
@@ -954,10 +989,11 @@ class DockerJobAdapter:
                     # Keep the record/capacity on an uncertain removal. The API
                     # confirms absence through get() before forgetting admission.
                     try:
-                        shutil.rmtree(base)
+                        if base.exists() or base.is_symlink():
+                            shutil.rmtree(base)
+                        if base.exists() or base.is_symlink():
+                            return
                     except OSError:
-                        return
-                    if base.exists() or base.is_symlink():
                         return
             self.jobs.pop(build_id, None)
             self.selected_inputs.pop(build_id, None)
