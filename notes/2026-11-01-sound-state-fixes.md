@@ -127,3 +127,12 @@ fault-only harness wraps the merge and realloc at link time; it fails realloc
 inside the chosen real merge, rather than replacing application behavior.
 First-merge allocation refusal already preserved app state. Source fixes and
 final validation remain pending at this regression checkpoint.
+
+[verified] A6 alone removes all 390 set-refusal failures; the two A7 assertions
+still fail as expected. Core parsing precedes app cleanup and has no output
+callbacks. `seq_drop`'s captured automation targets and note counts are indexed
+by app sound identity, `mfx_flush` uses the MIDI effect's own clock/key and its
+chain identity, and `mfx_off` addresses that sound directly. None reads replaced
+core labels/routes, so old targets receive their releases on successful import.
+The six invalid headers now preserve every byte of the live app, its edit
+generation and all 64 continuation blocks each. The set grammar is unchanged.
