@@ -282,17 +282,22 @@ def test_the_arp_swings_with_the_set_while_stopped(renderer, tmp_path):
     fm1-render's --swing without a sequencer, the set's `swing` with one.
     At 66 % an odd 1/16 step starts 6 ticks late, an even one on time."""
     def gaps(args, script=None, name="s"):
-        _, _, ev = mfx_run(renderer, tmp_path, ["--engine", "test-sine", "--mfx", "0:arp", *args,
-                                                *note(BOUND, 60, 100, BOUND * 60)],
+        summary, _, ev = mfx_run(renderer, tmp_path, ["--engine", "test-sine", "--mfx", "0:arp", *args,
+                                                # Six 1/16 intervals need 33,089 frames;
+                                                # keep the key held through all six.
+                                                *note(BOUND, 60, 100, BOUND * 100)],
                            name, script=script)
         t = [f for f, _ in ons(ev)]
+        assert summary["notes_hung"] == 0 and summary["mfx_dropped"] == 0
+        assert sum(e["k"] == "off" for e in ev) == len(t)
         return [b - a for a, b in zip(t, t[1:])][:6]
     straight = gaps([], name="straight")
     assert len(straight) == 6, straight
     assert max(straight) - min(straight) <= 1                # 24 ticks each, to a frame
     late = 6 * TICK
     for name, args, script in (("flag", ["--swing", "66"], None),
-                               ("set", [], f"#! rate={RATE} block=64 tracks=8 end={BOUND * 70}\n@0 swing 66\n")):
+                               # Run through the key release as well as six intervals.
+                               ("set", [], f"#! rate={RATE} block=64 tracks=8 end={BOUND * 120}\n@0 swing 66\n")):
         g = gaps(args, script, name)
         assert len(g) == len(straight), (name, g)
         assert all(abs(a - (b + late)) <= 1 for a, b in zip(g[0::2], straight[0::2])), (name, g)
