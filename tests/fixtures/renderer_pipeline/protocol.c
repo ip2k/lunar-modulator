@@ -254,8 +254,69 @@ static void run_poisoned_wait(int finish) {
      * permanent; no restart/free or callback replay is exercised or permitted. */
     host_cleanup();
 }
+/* Actual worker and queue storage, deterministic hook boundaries. No thread
+ * scheduling race or alternative protocol model determines poison admission. */
+static unsigned poison_clock_at,poison_clock_calls,poison_consumes;
+static uint32_t poison_clock(void) {
+    if(++poison_clock_calls==poison_clock_at) {
+        lunar_pipeline_refuse(703u);lunar_pipeline_refuse(704u);
+    }
+    return poison_clock_calls;
+}
+static int poison_consume(void *w,uint32_t tag,int16_t *pcm,lunar_pipeline_result_t *r) {
+    (void)pcm;CHECK(w==&hw[0] && tag==0 && r->tag==0);
+    CHECK(!lunar_pipeline_error());++poison_consumes;return 1;
+}
+static void *poison_worker(void *p) { (void)p;host_cpu=1;worker(NULL);return NULL; }
+static void run_clock_poison(const char *mode) {
+    clock_gettime(CLOCK_MONOTONIC,&host_epoch);host_cpu=0;
+#ifdef LUNAR_PIPELINE_TEST_HOST_CORE
+    if(!strcmp(mode,"poison_start_ms")) {
+        host_ms_poison=1;CHECK(!lunar_pipeline_core_start(poison_clock));
+        CHECK(lunar_pipeline_error()==702u && s.invoked);
+        CHECK(!host_clock_wake_inits && !host_clock_launches && !host_created);
+        CHECK(!s.ready && !s.bound && !s.produced);return;
+    }
+#endif
+    CHECK(port_wake_init(poison_clock));s.clock=poison_clock;s.bound=1;s.consume=poison_consume;
+    works[0].state=SEALED;works[0].tag=0;works[0].work=&hw[0];
+    unsigned ms_poison=strstr(mode,"_ms")!=NULL;
+#ifdef LUNAR_PIPELINE_TEST_HOST_CORE
+    host_ms_poison=ms_poison;
+#else
+    CHECK(!ms_poison);
+#endif
+    if(strstr(mode,"_clock_start") || !strcmp(mode,"poison_wait_clock") ||
+       !strcmp(mode,"poison_publish_clock"))poison_clock_at=1;
+    if(strstr(mode,"_clock_end"))poison_clock_at=2;
+    if(!strncmp(mode,"poison_wait_",12)) {
+        uint32_t ticket=0;
+        CHECK(lunar_pipeline_wait_check(&ticket)==-1 && ticket==0);
+        CHECK(!poison_consumes && works[0].state==SEALED && outputs[0].state==FREE);
+    } else if(!strcmp(mode,"poison_publish_clock")) {
+        works[0].state=PRODUCING;
+        CHECK(lunar_pipeline_publish(0,1,2)==-1);
+        CHECK(!s.produced && works[0].state==PRODUCING && outputs[0].state==FREE);
+    } else if(!strcmp(mode,"poison_direct_step")) {
+        lunar_pipeline_refuse(705u);CHECK(worker_step()==-1 && !poison_consumes);
+        CHECK(works[0].state==SEALED && outputs[0].state==FREE);
+    } else {
+        CHECK(!pthread_create(&host_worker,NULL,poison_worker,NULL));host_created=1;
+        unsigned t=timer_get_ms();
+        while(!s.exited && timer_get_ms()-t<500u)os_time_dly(1);
+        CHECK(s.exited && !s.consumed);
+        CHECK(poison_consumes==(!strcmp(mode,"poison_worker_clock_end")?1u:0u));
+        CHECK(works[0].state==(ms_poison?SEALED:CONSUMING));
+        CHECK(outputs[0].state==(ms_poison?FREE:RESERVED));
+        host_cleanup();
+    }
+    CHECK(lunar_pipeline_error()==(ms_poison?702u:!strcmp(mode,"poison_direct_step")?705u:703u));
+    CHECK(!lunar_pipeline_ready_outputs() && !s.harvested && !s.output_retired);
+    CHECK(works[0].work==&hw[0]);
+}
 int main(int argc,char **argv) {
     CHECK(argc==2);
+    if(!strncmp(argv[1],"poison_",7)){run_clock_poison(argv[1]);goto report;}
     if(!strcmp(argv[1],"start_stopped_clock_poison") || !strcmp(argv[1],"finish_stopped_clock_poison")) {
         run_poisoned_wait(argv[1][0]=='f');goto report;
     }
