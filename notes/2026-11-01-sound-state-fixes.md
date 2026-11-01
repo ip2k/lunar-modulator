@@ -136,3 +136,17 @@ chain identity, and `mfx_off` addresses that sound directly. None reads replaced
 core labels/routes, so old targets receive their releases on successful import.
 The six invalid headers now preserve every byte of the live app, its edit
 generation and all 64 continuation blocks each. The set grammar is unchanged.
+
+[verified-source] A7 retains pass 1's merged text in the single-operation load
+plan, validates it with the existing bounded sequencer scratch, imports that
+same text in apply, and frees it at every public check/load exit. There is no
+second merge or allocation after mutations begin. Public check frees its copy
+before returning; the existing owner-thread/non-reentrant state API is unchanged.
+An export failure has an explicit refusal message, and the helper receives an
+initialized empty error buffer. No second serialization grammar is introduced.
+[verified] The focused fault harness now returns `failed: 0`, including actual
+first-merge allocation refusal, successful insertion with no second merge, and
+four repeated public checks with unchanged live state. The broader final run,
+including the new normal/ASan fault test, is in progress. Additional coverage
+also includes active arps during invalid imports and successful EOF/whitespace
+tags plus replacement routes.
