@@ -108,8 +108,9 @@ record "host=$HOST remote=$REMOTE run=$RUN_ID base=$(git -C "$ROOT" rev-parse HE
 
 # Resolve the *output* before the expensive build. Different refs can sanitize
 # to the same directory, and GPL variants of the default build share www/.
-# One atomic local claim therefore owns every fetch and publication for that
-# resolved destination pair, including parity and screenshots.
+# Claim each canonical output directory separately: an alias can make DEST
+# equal another run's DEST even when their RESULTS differ. Sort claims to
+# avoid deadlock, then hold them through parity and screenshot publication.
 if [ -n "$ENGINES_REF" ]; then
   DEST=$SIM/build/ref-$(printf '%s' "$ENGINES_REF" | tr -c 'A-Za-z0-9._-' '_')
   if [ "$DX7_SINE" != "$DEFAULT_DX7_SINE" ]; then DEST=$DEST-dx7-$DX7_SINE; fi
@@ -121,16 +122,19 @@ else
   DEST=$SIM/www
   RESULTS=$SIM/build
 fi
-PUBLISH_KEY=$(python3 -c 'import hashlib,pathlib,sys; paths=[str(pathlib.Path(p).resolve()) for p in sys.argv[1:]]; print(hashlib.sha256("\0".join(paths).encode()).hexdigest())' "$DEST" "$RESULTS")
-PUBLISH_LOCK=$SIM/build/publish-locks/$PUBLISH_KEY.lock
-mkdir -p "${PUBLISH_LOCK%/*}"
+# A lock beside each canonical resource also coordinates another checkout that
+# reaches this output through a symlink. No checkout-local lock registry is
+# sufficient for that case.
+PUBLISH_LOCK_LINES=$(python3 -c 'import pathlib,sys; paths=sorted({str(pathlib.Path(p).resolve()) for p in sys.argv[1:]}); print("\n".join(p + ".lunar-publish.lock" for p in paths))' "$DEST" "$RESULTS")
+PUBLISH_TARGET_LOCKS=()
+while IFS= read -r lock; do PUBLISH_TARGET_LOCKS+=("$lock"); done <<< "$PUBLISH_LOCK_LINES"
 STAGE=""
 STAGE_VALID=0
 MOUNT_GUARD=""
 MUSL_CONTAINER=lunar-$RUN_ID-musl
 EMSDK_CONTAINER=lunar-$RUN_ID-emsdk
 PLAYWRIGHT_CONTAINER=lunar-$RUN_ID-playwright
-PUBLISH_LOCK_OWNED=0
+PUBLISH_LOCKS=()
 cleanup() {
   status=$?
   trap - EXIT INT TERM
@@ -146,18 +150,20 @@ cleanup() {
     fi
   fi
   if [ -d "$FETCH" ]; then rm -rf -- "$FETCH"; fi
-  if [ "$PUBLISH_LOCK_OWNED" = 1 ]; then
-    if [ "$(cat "$PUBLISH_LOCK/owner" 2>/dev/null)" = "$RUN_ID" ]; then
-      if rm -- "$PUBLISH_LOCK/owner" && rmdir "$PUBLISH_LOCK"; then
-        record "publication_lock=released"
+  if [ "${#PUBLISH_LOCKS[@]}" -gt 0 ]; then
+    for lock in "${PUBLISH_LOCKS[@]}"; do
+      if [ "$(cat "$lock/owner" 2>/dev/null)" = "$RUN_ID" ]; then
+        if rm -- "$lock/owner" && rmdir "$lock"; then
+          record "publication_lock=released path=$lock"
+        else
+          record "publication_lock=release_failed path=$lock"
+          status=1
+        fi
       else
-        record "publication_lock=release_failed path=$PUBLISH_LOCK"
+        record "publication_lock=owner_mismatch path=$lock"
         status=1
       fi
-    else
-      record "publication_lock=owner_mismatch path=$PUBLISH_LOCK"
-      status=1
-    fi
+    done
   fi
   record "exit=$status"
   exit "$status"
@@ -165,13 +171,15 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
-if ! mkdir "$PUBLISH_LOCK" 2>/dev/null; then
-  record "publication_busy destination=$DEST results=$RESULTS lock=$PUBLISH_LOCK"
-  exit 75
-fi
-printf '%s\n' "$RUN_ID" > "$PUBLISH_LOCK/owner"
-PUBLISH_LOCK_OWNED=1
-record "publication_lock=$PUBLISH_LOCK destination=$DEST results=$RESULTS"
+for lock in "${PUBLISH_TARGET_LOCKS[@]}"; do
+  if ! mkdir "$lock" 2>/dev/null; then
+    record "publication_busy destination=$DEST results=$RESULTS lock=$lock"
+    exit 75
+  fi
+  printf '%s\n' "$RUN_ID" > "$lock/owner"
+  PUBLISH_LOCKS+=("$lock")
+  record "publication_lock=$lock destination=$DEST results=$RESULTS"
+done
 
 # Allocate under the project root without touching any other invocation's src
 # tree. The remote checks an external-volume mount before mkdir can create a

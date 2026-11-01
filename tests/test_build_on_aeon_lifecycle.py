@@ -1,7 +1,6 @@
 """Exercise the remote build wrapper's real shell flow without a LAN build."""
 
 import json
-import hashlib
 import os
 from pathlib import Path
 import shutil
@@ -145,10 +144,23 @@ for source in args[:-1]:
                PYTHONDONTWRITEBYTECODE="1")
     yield base, env, calls, log_dir, trial
 
-    if trial.exists():
+    if trial.is_symlink():
+        trial.unlink()
+    elif trial.exists():
         shutil.rmtree(trial)
     if log_dir.exists():
         for entry in set(log_dir.iterdir()) - logs_before:
+            if entry.suffix == ".log":
+                contents = entry.read_text().splitlines()
+                run = next((field[4:] for field in contents[0].split()
+                            if field.startswith("run=")), None)
+                for line in contents:
+                    if line.startswith("publication_lock=") and " destination=" in line:
+                        lock = Path(line.split("=", 1)[1].split(" destination=", 1)[0])
+                        owner = lock / "owner"
+                        if run and owner.exists() and owner.read_text().strip() == run:
+                            owner.unlink()
+                            lock.rmdir()
             if entry.is_dir():
                 shutil.rmtree(entry)
             else:
@@ -158,9 +170,6 @@ for source in args[:-1]:
     shutil.rmtree(base)
     if not any(base.parent.iterdir()):
         base.parent.rmdir()
-    lock_dir = ROOT / "sim/web/build/publish-locks"
-    if lock_dir.exists() and not any(lock_dir.iterdir()):
-        lock_dir.rmdir()
 
 
 def run_wrapper(env, *args):
@@ -170,6 +179,14 @@ def run_wrapper(env, *args):
 
 def run_logs(log_dir):
     return sorted(log_dir.glob("build-*.log"), key=lambda p: p.stat().st_mtime_ns)
+
+
+def assert_released_claims(log_dir):
+    for log in run_logs(log_dir):
+        for line in log.read_text().splitlines():
+            if line.startswith("publication_lock=") and " destination=" in line:
+                lock = Path(line.split("=", 1)[1].split(" destination=", 1)[0])
+                assert not lock.exists(), f"own claim survived: {lock}"
 
 
 def test_success_and_failed_fetch_preserves_previous_results(fake_remote):
@@ -240,7 +257,7 @@ def test_concurrent_failed_runs_get_distinct_stages_and_cleanup(fake_remote):
 
 
 def test_failed_stage_allocation_never_touches_shared_sources(fake_remote):
-    base, env, calls, _, _ = fake_remote
+    base, env, calls, log_dir, _ = fake_remote
     shared = base / "remote/src"
     shared.mkdir()
     (shared / "owner-data").write_text("keep")
@@ -249,14 +266,12 @@ def test_failed_stage_allocation_never_touches_shared_sources(fake_remote):
     assert (shared / "owner-data").read_text() == "keep"
     assert not (base / "remote/runs").exists()
     assert not calls.exists()  # no image pull or container launch
-    assert not list((ROOT / "sim/web/build/publish-locks").glob("*.lock"))
+    assert_released_claims(log_dir)
 
 
 def test_unknown_publication_owner_is_refused_and_preserved(fake_remote):
     _, env, calls, _, trial = fake_remote
-    canonical = str(trial.resolve())
-    key = hashlib.sha256(f"{canonical}\0{canonical}".encode()).hexdigest()
-    lock = ROOT / "sim/web/build/publish-locks" / f"{key}.lock"
+    lock = Path(str(trial.resolve()) + ".lunar-publish.lock")
     lock.mkdir(parents=True)
     owner = lock / "owner"
     owner.write_text("another-invocation\n")
@@ -309,7 +324,7 @@ def test_same_destination_concurrent_build_refuses_overlap_then_publishes_whole_
     assert retry.returncode == 0, retry.stdout + retry.stderr
     assert_set("B", 1)
     assert any("publication_busy" in log.read_text() for log in run_logs(log_dir))
-    assert not list((ROOT / "sim/web/build/publish-locks").glob("*.lock"))
+    assert_released_claims(log_dir)
     assert not list((base / "remote/runs").iterdir())
 
 
@@ -339,5 +354,71 @@ def test_ref_spellings_that_sanitize_to_one_destination_share_claim(fake_remote)
             first.communicate(timeout=5)
     assert any("publication_busy" in log.read_text() and "ref-HEAD_0" in log.read_text()
                for log in run_logs(log_dir))
-    assert not list((ROOT / "sim/web/build/publish-locks").glob("*.lock"))
+    assert_released_claims(log_dir)
+    assert not list((base / "remote/runs").iterdir())
+
+
+def test_canonical_destination_alias_blocks_different_results_path(fake_remote):
+    base, env, _, log_dir, trial = fake_remote
+    trial.symlink_to(ROOT / "sim/web/www", target_is_directory=True)
+    pause = base / "pause-canonical-alias"
+    first_env = dict(env, FAKE_PAUSE_MUSL=str(pause), FAKE_DOCKER_FAIL="alpine")
+    first = subprocess.Popen(["bash", str(SCRIPT), "--no-screenshot"], cwd=ROOT,
+                             env=first_env, text=True, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    try:
+        import time
+        deadline = time.monotonic() + 10
+        while not pause.with_suffix(".started").exists():
+            assert first.poll() is None
+            assert time.monotonic() < deadline
+            time.sleep(.01)
+        default_sine = "trunc12" if env["FM1_DX7_SINE"] == "msfa" else "msfa"
+        overlap_env = dict(env, FM1_DX7_SINE=default_sine, FAKE_DOCKER_FAIL="alpine")
+        overlap = run_wrapper(overlap_env, "--no-screenshot")
+        assert overlap.returncode == 75, overlap.stdout + overlap.stderr
+        pause.with_suffix(".release").touch()
+        first.communicate(timeout=30)
+        assert first.returncode == 41
+    finally:
+        pause.with_suffix(".release").touch()
+        if first.poll() is None:
+            first.kill()
+            first.communicate(timeout=5)
+        trial.unlink()
+    assert any("publication_busy" in log.read_text() for log in run_logs(log_dir))
+    assert_released_claims(log_dir)
+    assert not list((base / "remote/runs").iterdir())
+
+
+def test_canonical_results_alias_blocks_different_destination(fake_remote):
+    base, env, _, log_dir, trial = fake_remote
+    trial.symlink_to(ROOT / "sim/web/build", target_is_directory=True)
+    pause = base / "pause-results-alias"
+    first_env = dict(env, FAKE_PAUSE_MUSL=str(pause), FAKE_DOCKER_FAIL="alpine")
+    first = subprocess.Popen(["bash", str(SCRIPT), "--no-screenshot"], cwd=ROOT,
+                             env=first_env, text=True, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    try:
+        import time
+        deadline = time.monotonic() + 10
+        while not pause.with_suffix(".started").exists():
+            assert first.poll() is None
+            assert time.monotonic() < deadline
+            time.sleep(.01)
+        default_sine = "trunc12" if env["FM1_DX7_SINE"] == "msfa" else "msfa"
+        overlap_env = dict(env, FM1_DX7_SINE=default_sine, FAKE_DOCKER_FAIL="alpine")
+        overlap = run_wrapper(overlap_env, "--no-screenshot")
+        assert overlap.returncode == 75, overlap.stdout + overlap.stderr
+        pause.with_suffix(".release").touch()
+        first.communicate(timeout=30)
+        assert first.returncode == 41
+    finally:
+        pause.with_suffix(".release").touch()
+        if first.poll() is None:
+            first.kill()
+            first.communicate(timeout=5)
+        trial.unlink()
+    assert any("publication_busy" in log.read_text() for log in run_logs(log_dir))
+    assert_released_claims(log_dir)
     assert not list((base / "remote/runs").iterdir())
