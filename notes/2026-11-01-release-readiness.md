@@ -40,72 +40,119 @@ hardware state from those notes. No hardware action has occurred on this resume.
 - Listening, hardware and publication requirements remain explicit until met.
   Do not call source tests or a dev-kit soak a completed product release.
 
-## Integrated foundation and active lanes
+## Current integration and acceptance
 
-[verified] Integration branch `feature/2026-11-01@milestone-integration` is
-pushed at `1294fc54cc8f51ad82315bac6578838610ad4746`, with remote SHA
-matching. Completed source lanes are queue-margin telemetry, current release
-handoff, DX7 complete-bank export, browser MIDI realtime input, offline
-customization UI/catalogue, and the strict shared build-request contract.
-Independent reviews approved their source changes. No release PR or merge has
-occurred for this foundation yet.
+[verified] Foundation branch `feature/2026-11-01@milestone-integration` is
+pushed at `b831724fcf413720aaa036dac742a382cdfaa93c`. PR #161 is open;
+exact-head CI run 41296360365 succeeded, as did Pages build 41296360432.
+Deployment was skipped for the PR. Full actual WASM rebuild passed 108 parity
+scenarios, metadata/edit parity, SysEx, routing and MIDI realtime checks;
+the 30-second edit storm had zero late quanta or resynchronizations.
 
-- The customization page exports a validated request; it does not install
-  firmware or claim a resource fit. Historical twelve-voice allocator estimates
-  no longer gate the current eight-voice runtime. Generated catalogue deployment
-  and contract tests are included in CI.
-- Complete 32-slot DX7 banks use the core VMEM exporter. Partial banks visibly
-  refuse rather than inventing missing voices.
-- MIDI realtime input preserves message order, Link gating and saved project
-  generation. The first integrated build passed 108 parity scenarios, 19 SysEx
-  tests and five routing tests, then exposed an inaudible test fixture. Selecting
-  its engine before sequencer reset and waiting for the first tick corrected
-  the fixture; sustained sound and Stop silence assertions were strengthened.
-  Actual rebuilt WASM passes all four runtime groups. Full build remains pending.
-- Private installer API/service extraction is active in isolated
-  `lunar-installer-service-20261101`, branch
-  `feature/2026-11-01@installer-service`. It reuses the existing unmerged service,
-  consumes the shared request contract and keeps public installation disabled.
-  Production native build assets and physical acceptance remain separate gates.
-- Astra's source audit is preparing the smallest observable RAM-only FM-1
-  experiment. Existing flash application startup is not a RAM-only payload.
-  No device operation is authorized merely by a source review or run receipt.
-- Optional V226 algorithm1 state proof passed normal and sanitizer runs against
-  both msfa and trunc12 main baselines. It is twelve-voice stretch research,
-  not required for the eight-voice release and not a target timing result.
+The foundation supplies complete DX7 bank export, ordered MIDI realtime input,
+queue-margin telemetry, offline customization/catalogue and a strict shared
+request contract. The public page exports requests and inspects packages;
+it does not build or install firmware or claim resource fit.
 
-Workers use isolated worktrees, explicit pushed refs and exact SHA checks.
-Mac coordinator alone owns hardware. Aeon CPU0–3 runs the full integration
-WASM build in stage `release-integration-r2-20261101`, limited to four CPUs and
-6 GiB; service tests may use CPU4–7. Hera was unreachable on resume; no power
-or infrastructure changes were made.
+Real-Chrome visual review remains pending. The owner approved chrome-browser,
+but browser access was disabled in Work settings when checked. An owner prompt
+is pending. Do not bypass that setting. Preview is loopback-only at
+`http://127.0.0.1:8767/installer.html`, owned exec session 63121 in the
+foundation checkout. Stop it after review or before pausing.
 
-## Immediate next dependencies
+PR #151 has a separately reviewed WebKit action-lock fix at `ca6f3c14`.
+Its exact-head CI 41296941683 is still being checked. Preserve this change
+when combining later sequencer browser fixes; never overwrite action().
 
-1. Complete the full integrated WASM build from exact source `1294fc54`,
-   including metadata, edit storm and generated record. Return generated
-   artifacts only after all gates pass; never hand-edit acceptance hashes.
-2. Review the final CI/Pages/source-hash integration, then open a foundation
-   PR and require exact-head CI and review before its merge commit.
-3. Finish and independently review the extracted private installer service,
-   then bind its results to the same canonical customization request.
-4. Real-Chrome visual/interaction review is pending: the owner approved the
-   chrome-browser skill, but local browser access is disabled in Work settings.
-   Owner has been directly prompted to enable it or leave that gate pending.
-   Loopback preview is running at `http://127.0.0.1:8767/installer.html` from
-   this checkout, owned exec session 63121. Stop it after review or before pause.
-5. Review the fresh RAM-readiness plan before preparing any physical FM-1
-   experiment. No hardware traffic has occurred on this resume. Do not replay
-   historical reset receipts or installer/hardware commands.
+## Release corrections stream
+
+Current coordinator checkout is
+`/Users/likwid/.codex/worktrees/lunar-release-corrections-20261101`, branch
+`fix/2026-11-01@release-state-corrections`, based on the approved foundation.
+Integrated and pushed corrections include:
+
+- MATRIX destination enumeration uses bounded metadata snapshots. Differential
+  tests cover 492,640 events; actual pi32 local frame allocations fell from
+  roughly 6 KiB each to 652/376/404 bytes. This is not whole-stack acceptance.
+- FM6 copied descriptors retain stable engine identity for modulation routes
+  and unchanged SOUND restore; held-note PCM continuation is preserved.
+- Clearing a nonprimary sound releases its owned inserts and emits notices.
+  Replacing an engine still retains its insert chain.
+- Edit text indices reject nonfinite/out-of-range float conversions before
+  casting. Sixteen focused sanitizer cases pass.
+- BAD dropped files remain dismissible; Solo is bound to project identity and
+  observed state; view replacement rejects stale snapshots; reconnect cancels
+  pending edits and rejects old-port acknowledgments. Independent review
+  approved the four fixes. Reconnect tests inject lifecycle events rather
+  than proving a complete physical/audio power cycle.
+- Browser-state regressions are wired into each browser CI job.
+
+A combined full WASM rebuild is required after the current source-fix batch;
+individual host proofs do not make the old generated module current.
+Do not hand-edit generated acceptance hashes.
+
+## Other active lanes and dependencies
+
+- Private installer service extraction is independently approved at
+  `d62044bc`. Dedicated integration branch
+  `feature/2026-11-01@installer-service-integration` adds real service CI
+  dependencies. Production native capability remains unavailable; no daemon,
+  native build, Docker execution or hardware acceptance follows from API tests.
+- SDK-free fixed FM6 diagnostic is pushed at `5add9c0d`, with eight voices,
+  trunc12 and permanent external arenas. Actual pi32 link and unchanged audit
+  pass: flash 210,364 bytes, BSS 300,240. Hardware admission remains false;
+  bootguard, stack bounds, timing and general interactive runtime remain open.
+- Stackless RAM execution witness is pushed at `fd0b33d6` and independently
+  reviewed, with 72 tests passing. PA2 physical ownership, inherited ROM state,
+  optical timing and watchdog/capture bounds remain unresolved. No execution
+  or hardware admission has occurred.
+- New sequencer/modulation fixes are in isolated lanes: offset-loop Capture,
+  immutable queued lock targets, Acid Gen STOP/origin, Divide chronology,
+  Compare crossings and transitive modulation dependencies in sound/FX saves.
+  Application import rejection and state-load merge allocation are being fixed
+  in the existing app-state lane. Keep file ownership separate.
+- Buffered soak parser is being tightened to distinguish terminal failure
+  reasons. Exact historical Oct29 source and raw receipt were checked: its
+  line-370 failure follows successful finish/invariant guards and is consistent
+  with the two allowed producer-late blocks. No evidence that accepted soak
+  was falsely accepted has been found. New unrelated failures must not pass.
+- Python state-reader byte limits and offline browser OTA transport/controller
+  are separate lanes. Package admission stays closed, no MIDI/device traffic.
+
+## Audit and resources
+
+The full audit threshold was exceeded on main. Source partitions are being
+read fully with pinned hashes and reports in the performance checkout's
+`scratch/devkit-20261023/audit-20261101/`. Engine core/effects, app core,
+browser source, sequencer/state, modulation/host, firmware/tools and engine C
+checks are covered. Browser and Python test partitions are still being
+reviewed; aggregate and changed-head reconciliation remain pending. Do not
+claim a completed whole-repository audit or remove uncertain legacy guards.
+
+Aeon has CPUs 0–15. Current heavy lanes use exclusive sets of four CPUs,
+6 GiB, docker-batch.slice and owned lifecycle stages: app-state 12–15 and
+render-state dependency closure 4–7. Ask the coordinator before another heavy
+job; completed browser/matrix/WASM stages are removed. Mac coordinator alone
+owns hardware. No hardware traffic has occurred on this resume.
+
+## Next integration gates
+
+1. Finish and independently review the current correction batch, rebuild
+   actual WASM once for the combined source, run full host and browser gates.
+2. Merge completed PRs only after exact-head CI/review and their applicable
+   visual gates; use merge commits, preserve branch backups, verify main SHA.
+3. Integrate the private service separately, retaining unavailable native and
+   public-install gates. Continue the reviewed SDK-free runtime rather than
+   merging the historical installer branch wholesale.
+4. Resolve native boot/fail-open, RAM/stack, current interactive CPU1 backend,
+   package/update/recovery and physical FM-1 acceptance before release.
+5. Preserve owner listening and publication gates; tests are not a release.
 
 ## Persistence and cleanup
 
-Automation `continue-lunar-dev-board-audio-performance` is ACTIVE again, named
-"Continue Lunar release readiness"; it reads this file and reports meaningful
-milestones or blockers only. Save lane handoffs, small reports and receipts;
-remove owned reproducible build/test artifacts. Retain worktrees until reviewed
-and integrated, then remove them through git. Do not clean another session's
-files. Built-in disk free space at latest checkpoint: 1,122 GiB (floor 500 GiB).
-Build staging and temporary module copies from the failed build were removed;
-small reports/logs are retained. Lane worktrees remain until integration.
-The loopback preview above is the only coordinator-owned live local server.
+The release-readiness heartbeat remains ACTIVE until verified completion or
+owner pause. Save exact source refs, useful logs and actionable handoffs;
+remove owned reproducible stages. Keep worktrees until reviewed/integrated,
+then remove through git without force. Never clean owner or sibling data.
+Latest Mac free space is over 1,120 GiB, above the 500 GiB floor. The loopback
+preview noted above is the only coordinator-owned live local server.
