@@ -45,13 +45,21 @@ SUITE = Path(os.environ.get("FM1_JSONTESTSUITE", ROOT / "reference" / "JSONTestS
 
 
 @pytest.fixture(scope="module")
-def tool(renderer):    # noqa: F811  (make -C engines builds fm1-state too)
+def tool(request):
+    external = os.environ.get("FM1_STATE_TOOL")
+    if external:
+        supplied = Path(external).resolve()
+        assert supplied.is_file()
+        return supplied
+    request.getfixturevalue("renderer")  # make -C engines builds fm1-state too
     assert TOOL.exists()
     return TOOL
 
 
 @pytest.fixture(scope="module")
 def names(tool):
+    if os.environ.get("FM1_STATE_TOOL"):
+        return ls.Names(ls.Names.parse(run(tool, "meta", check=True).stdout.decode()))
     return ls.Names.from_build()
 
 
@@ -505,6 +513,7 @@ def test_native_prepare_refuses_lossy_project_pack(tool, tmp_path, monkeypatch):
     from tools.native.prepare_image_profile import prepare
 
     source = json.loads((EXAMPLES / "init-starters" / "shapes-init.lunar").read_text())
+    valid_source = json.loads(json.dumps(source))
     profile = tmp_path / "profile.json"
     profile.write_text(json.dumps({"version": 1, "engines": ["shapes"],
                                    "content": ["project.lunar"]}))
@@ -518,6 +527,12 @@ def test_native_prepare_refuses_lossy_project_pack(tool, tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="strict pack"):
         prepare(profile, tool, tmp_path / "lossy")
     assert not (tmp_path / "lossy" / "profile.json").exists()
+
+    valid_source["sounds"][0]["params"]["Volume"] = 9999
+    project.write_text(json.dumps(valid_source))
+    with pytest.raises(ValueError, match="strict pack"):
+        prepare(profile, tool, tmp_path / "repaired")
+    assert not (tmp_path / "repaired" / "profile.json").exists()
 
 
 def test_a_file_with_the_arps_own_swing_still_loads(tool, names):
