@@ -463,6 +463,9 @@ def test_repairs_and_skips_are_counted(tool, names, name, text, counts):
     assert report["code"] == "OK", report
     for k, v in counts.items():
         assert report[k] == v, (k, report)
+    rep = ls.read_json(text.encode(), names)[1]
+    for k, v in counts.items():
+        assert getattr(rep, k) == v, k
 
 
 @pytest.mark.parametrize("text,count", [
@@ -515,9 +518,6 @@ def test_native_prepare_refuses_lossy_project_pack(tool, tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="strict pack"):
         prepare(profile, tool, tmp_path / "lossy")
     assert not (tmp_path / "lossy" / "profile.json").exists()
-    rep = ls.read_json(text.encode(), names)[1]
-    for k, v in counts.items():
-        assert getattr(rep, k) == v, k
 
 
 def test_a_file_with_the_arps_own_swing_still_loads(tool, names):
