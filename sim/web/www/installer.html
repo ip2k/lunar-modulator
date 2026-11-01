@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Choose projects · Lunar Modulator</title>
+  <meta name="description" content="Choose demo projects for a future Lunar Modulator image build request.">
+  <!-- Private deployments may set this to enabled only when /api/v1/builds is
+       served on this same origin behind the deployment access controls. -->
+  <meta name="lunar-installer-build-service" content="disabled">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="installer.css">
+  <script type="module" src="installer-page.js"></script>
+</head>
+<body class="installer-page">
+  <header class="top installer-top">
+    <a href="index.html">Lunar Modulator</a>
+    <span>INTERGALACTIC MODULATION STATION</span>
+  </header>
+  <main>
+    <h1>Build a project selection request</h1>
+    <p class="lede">Choose projects to include and select which one should open first. Their order is kept in the request.</p>
+    <section class="installer-status" aria-label="Build service status">
+      <p id="installer-service-notice"><strong>Build service not connected.</strong> This page can export a request for offline review. It does not build or install firmware.</p>
+      <p>Catalogue entries are source choices, not proof of a playable or installable image. Image size, packed dependencies, and device acceptance require separate checks.</p>
+    </section>
+    <p id="installer-load-status" role="status" aria-live="polite">Loading generated project catalogue…</p>
+    <div id="installer-package-inspection"></div>
+    <section class="installer-profile" aria-labelledby="installer-profile-title">
+      <h2 id="installer-profile-title">Private build profile</h2>
+      <label for="installer-build-profile">Runtime check</label>
+      <select id="installer-build-profile">
+        <option value="legacy">Diagnostic · D9000 (default)</option>
+        <option value="song-diagnostic">Song diagnostic · D7000 Hall stage7</option>
+        <option value="continuous">Continuous private link · D7000</option>
+      </select>
+      <p>Continuous mode checks the selected modules and projects with no automatic return timer. Hardware playback, recovery and installation remain unverified. No firmware file is returned.</p>
+    </section>
+    <div id="installer-modules"></div>
+    <div id="installer-selection"></div>
+    <p id="installer-export-status" class="installer-export-status" role="status" aria-live="polite"></p>
+    <button id="installer-cancel-build" class="installer-cancel-build" type="button" hidden>Stop waiting</button>
+  </main>
+</body>
+</html>

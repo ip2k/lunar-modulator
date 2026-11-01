@@ -20,3 +20,6 @@ _site/
 # Share semantic project settings, keep indexes and local memories private.
 /.serena/*
 !/.serena/project.yml
+
+# Generated into static site artifacts from the current source catalogue.
+/sim/web/www/demo-image-catalogue.json
