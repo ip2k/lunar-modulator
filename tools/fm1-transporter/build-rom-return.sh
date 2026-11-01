@@ -74,13 +74,27 @@ docker run --rm --pull=never --network=none --read-only --cap-drop=ALL \
   -v "$FM1T_RETURN_TINYUSB:/sdk/lib/tinyusb:ro" -v "$STAGE/build:/build:rw" \
   "$FM1T_RETURN_IMAGE" sh -ec '
     cmake -S /src -B /build -DPICO_SDK_PATH=/sdk -DPICO_BOARD=pico2_w \
-      -DFM1T_BUILD_RETURN_R01=ON
+      -DFM1T_BUILD_RETURN_R01=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+      -DCMAKE_EXE_LINKER_FLAGS=-Wl,-Map=/build/return-r01.map
     cmake --build /build -j4 --target fm1_transporter_return_r01
+    arm-none-eabi-nm --numeric-sort /build/fm1_transporter_return_r01.elf > /build/return-r01.nm
+    arm-none-eabi-objdump -dr /build/fm1_transporter_return_r01.elf > /build/return-r01.disasm
+    arm-none-eabi-readelf -W -h -S /build/fm1_transporter_return_r01.elf > /build/return-r01.sections
+    arm-none-eabi-size -A /build/fm1_transporter_return_r01.elf > /build/return-r01.size
     cmake --version | head -n1
     arm-none-eabi-gcc --version | head -n1
   ' > "$OUT/build.log" 2>&1
 
 cp "$STAGE/build/fm1_transporter_return_r01.uf2" "$OUT/return-r01-pico2_w.uf2"
-sha256sum "$OUT/return-r01-pico2_w.uf2" > "$OUT/uf2-sha256.txt" 2>/dev/null || \
-  shasum -a 256 "$OUT/return-r01-pico2_w.uf2" > "$OUT/uf2-sha256.txt"
+cp "$STAGE/build/fm1_transporter_return_r01.elf" "$OUT/return-r01.elf"
+for name in return-r01.map return-r01.nm return-r01.disasm return-r01.sections \
+            return-r01.size compile_commands.json CMakeCache.txt; do
+  cp "$STAGE/build/$name" "$OUT/$name"
+done
+(cd "$OUT" && sha256sum return-r01-pico2_w.uf2 return-r01.elf return-r01.map \
+  return-r01.nm return-r01.disasm return-r01.sections return-r01.size \
+  compile_commands.json CMakeCache.txt > artifact-sha256.txt 2>/dev/null) || \
+  (cd "$OUT" && shasum -a 256 return-r01-pico2_w.uf2 return-r01.elf return-r01.map \
+    return-r01.nm return-r01.disasm return-r01.sections return-r01.size \
+    compile_commands.json CMakeCache.txt > artifact-sha256.txt)
 echo "offline fixed return-r01 UF2: $OUT/return-r01-pico2_w.uf2"

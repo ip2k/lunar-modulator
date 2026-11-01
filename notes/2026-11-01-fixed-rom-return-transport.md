@@ -46,12 +46,30 @@ The low D+ observation is a cold-entry precondition, not proof that the
 FM-1 was actually powered off or that the later mount came from mask ROM.
 
 Synchronous BOT waits can run callbacks while core 0 receives CDC bytes. The
-strict path rechecks the same live mount after descriptor, INQUIRY, upload
-and call completion, and rechecks protocol terminal/pending state before
-publishing either BOT success. A causal old-source fixture showed that an
+strict path rechecks the same live mount after each required descriptor,
+INQUIRY, upload and call boundary. The strict protocol serializes phase,
+request and reply publication with a Pico SDK critical section; it never
+holds that lock across BOT, TinyUSB I/O, waiting or formatting. Core 0 owns
+CDC connectivity and copies TX bytes out of the protected ring before
+writing them to TinyUSB. The strict target compiles a no-op log source and
+does not wait for or emit an interactive console log, avoiding the inherited
+volatile cross-core log queue. A causal old-source fixture showed that an
 extra line arriving inside FB06 or FB08 previously produced an OK reply
 followed by a terminal error; the corrected fixture requires only the
-terminal refusal. This bounds late success after a detected in-flight fault.
+terminal refusal. A pthread fake-critical-section case also exercises the
+two cores' in-flight overlap. Upload and call claims pair the live protocol
+check with the audited core-1 host-state claim under that short lock. A
+separate CDC-write callback test verifies that discarding a queued reply
+cannot advance a stale TX ring tail. Bytes already accepted by TinyUSB
+cannot be retracted; host timeout or a later terminal reply is inconclusive.
+These checks bound late success after a detected in-flight fault.
+
+On terminal state the strict core-1 task stops calling TinyUSB's host task,
+and transfer/probe hooks recheck the sticky state before later stages. An
+already submitted transfer may still complete or time out, and PIO/USB
+electrical signaling is not proven silent. The later actual target build
+must retain its ELF, map, disassembly, symbols, compile commands, cache and
+UF2 in one owned output for independent inspection before stage cleanup.
 
 Offline verification for this source milestone materializes the actual
 pinned upstream C, applies all three tracked patches, and compiles the

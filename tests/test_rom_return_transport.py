@@ -50,6 +50,7 @@ def harness():
                            cwd=stage, check=True)
         assert "R01_CALL_BOT" in (stage / "src/pio_host.c").read_text()
         assert "return_r01_proto.c" in (stage / "CMakeLists.txt").read_text()
+        assert "return_r01_log_stub.c" in (stage / "CMakeLists.txt").read_text()
 
         fake = stage / "fake"
         (fake / "pico").mkdir(parents=True)
@@ -60,6 +61,16 @@ def harness():
         (fake / "hardware/sync.h").write_text(
             "#pragma once\n#define __dmb() __sync_synchronize()\n"
         )
+        (fake / "pico/critical_section.h").write_text(
+            "#pragma once\n#include <pthread.h>\n"
+            "typedef struct { pthread_mutex_t mu; } critical_section_t;\n"
+            "static inline void critical_section_init(critical_section_t *s) { "
+            "pthread_mutex_init(&s->mu, 0); }\n"
+            "static inline void critical_section_enter_blocking(critical_section_t *s) { "
+            "pthread_mutex_lock(&s->mu); }\n"
+            "static inline void critical_section_exit(critical_section_t *s) { "
+            "pthread_mutex_unlock(&s->mu); }\n"
+        )
         (fake / "tusb.h").write_text(
             "#pragma once\n#include <stdbool.h>\n#include <stdint.h>\n"
             "bool tud_cdc_n_connected(uint8_t);\n"
@@ -69,7 +80,7 @@ def harness():
         )
         binary = stage / "r01-harness"
         subprocess.run([
-            "cc", "-std=c11", "-Wall", "-Wextra", "-Werror",
+            "cc", "-std=c11", "-Wall", "-Wextra", "-Werror", "-pthread",
             "-DFM1T_RETURN_R01=1", "-I", str(fake), "-I", str(stage),
             str(ROOT / "tests/fixtures/fm1_return_r01_harness.c"), "-o", str(binary),
         ], check=True)
@@ -83,15 +94,20 @@ def harness():
     ("upload-fail", "1 0 1", ("ERR rr01-upload",), ("OK rr01-call",)),
     ("upload-detach", "1 0 1", ("ERR rr01-upload",), ("OK rr01-call",)),
     ("upload-extra-inflight", "1 0 1", ("ERR rr01-upload",), ("OK rr01-upload", "OK rr01-call", "ERR rr01-terminal")),
+    ("concurrent-upload-extra", "1 0 1", ("ERR rr01-upload",), ("OK rr01-upload", "OK rr01-call", "ERR rr01-terminal")),
     ("call-fail", "1 1 1", ("ERR rr01-call",), ("OK rr01-call",)),
     ("call-detach", "1 1 1", ("ERR rr01-call",), ("OK rr01-call",)),
     ("call-extra-inflight", "1 1 1", ("ERR rr01-call",), ("OK rr01-call", "ERR rr01-terminal")),
+    ("concurrent-call-extra", "1 1 1", ("ERR rr01-call",), ("OK rr01-call", "ERR rr01-terminal")),
     ("no-mount", "0 0 1", ("ERR rr01-ready",), ("OK rr01-ready",)),
     ("generic", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
     ("pipelined-ready", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
+    ("premature-next-before-ready-reply", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
     ("pipelined-call", "1 0 1", ("ERR rr01-terminal",), ("OK rr01-call",)),
+    ("premature-call-before-upload-reply", "1 0 1", ("ERR rr01-terminal",), ("OK rr01-upload", "OK rr01-call")),
     ("partial-timeout", "0 0 1", ("OK rr01-ready",), ("OK rr01-upload",)),
     ("cdc-disconnect", "0 0 1", ("OK rr01-ready",), ("OK rr01-upload",)),
+    ("rx-during-cdc-write", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-upload", "OK rr01-call")),
     ("cr", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
 ])
 def test_actual_strict_protocol(harness, case, counts, required, forbidden):
@@ -117,6 +133,29 @@ def test_strict_usb_identity_and_reset_exclusion(harness):
     reset_section = source.split("#if !FM1T_RETURN_R01", 2)[-1]
     assert "rom_reset_usb_boot_extra" in reset_section
     assert "*driver_count = 0;" in reset_section
+
+
+def test_strict_core_ownership_and_retained_build_evidence(harness):
+    stage = Path(harness).parent
+    proto = (stage / "src/return_r01_proto.c").read_text()
+    pio = (stage / "src/pio_host.c").read_text()
+    assert "tud_cdc_n_connected" not in _function(proto, "fm1_proto_poll")
+    assert "critical_section_enter_blocking" in _function(proto, "fm1_proto_rx")
+    assert "critical_section_enter_blocking" in _function(proto, "publish_success")
+    assert "static tuh_xfer_t x;" in _function(pio, "edpt_sync")
+    host_task = _function(pio, "fm1_pio_host_task")
+    assert host_task.index("fm1_proto_poll();") < host_task.index("tuh_task();")
+    probe = _function(pio, "probe_descriptors")
+    assert probe.count("r01_probe_live(daddr)") >= 7
+    optional_log = probe.index("#if !FM1T_RETURN_R01")
+    assert optional_log < probe.index("log_string(daddr") < probe.index("#endif", optional_log)
+    main = (stage / "src/main.c").read_text()
+    assert main.index("fm1_proto_init();") < main.index("tud_init(0);")
+    assert "void log_drain(void) {}" in (stage / "src/return_r01_log_stub.c").read_text()
+    script = (ROOT / "tools/fm1-transporter/build-rom-return.sh").read_text()
+    for name in ("return-r01.elf", "return-r01.map", "return-r01.disasm",
+                 "return-r01.nm", "compile_commands.json", "artifact-sha256.txt"):
+        assert name in script
 
 
 def test_cold_entry_requires_continuously_low_dp(harness):
