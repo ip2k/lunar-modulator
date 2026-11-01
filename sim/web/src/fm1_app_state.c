@@ -2121,7 +2121,7 @@ static int project_run(project_state_t *n, fm1_state_report_t *rep) {
   if (!codec || !project_parse(n, codec, rep)) goto abort_stage;
   fm1_state_report_init(&n->emission);
   if (!fm1_state_bin_plan_match(n->plan, PROJECT_PLAN, project_read, n, total, &n->emission) ||
-      !fm1_state_bin_read(project_read, n, total, project_validate, NULL, &n->emission, 0)) {
+      !fm1_state_bin_read_workspace(n->phase, PROJECT_CODEC, project_read, n, total, project_validate, NULL, &n->emission, 0)) {
     *rep = n->emission; goto abort_stage;
   }
   /* Readback callbacks cannot silently change the source before publication.
@@ -2256,7 +2256,7 @@ int fm1_app_state_project_stage(fm1_app_t *a, unsigned binary,
   }
   fm1_state_report_init(rep);
   if (fm1_state_bin_plan_size() > PROJECT_PLAN || fm1_state_bin_compact_size() > PROJECT_CODEC ||
-      fm1_app_state_project_aux_size() > 8192u || fm1_state_json_project_size() > PROJECT_BYTES-PROJECT_PERSIST-PROJECT_CODEC) {
+      fm1_state_bin_reader_size() > 16384u || fm1_app_state_project_aux_size() > 8192u || fm1_state_json_project_size() > PROJECT_BYTES-PROJECT_PERSIST-PROJECT_CODEC) {
     refuse_rep(rep, FM1_STATE_TOO_BIG, "project workspace budget exceeded"); workspace_release(); return 0;
   }
   n = (project_state_t *)((uint8_t *)w->memory + PROJECT_PLAN); memset(n, 0, sizeof(*n));

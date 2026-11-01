@@ -897,16 +897,28 @@ static int cs_skip(cs_t *c, uint32_t n) {
   return 1;
 }
 
-static int read_browser(br_t *b, cs_t *c) {
-  uint8_t hdr[4], entries[FM1_MIDI_MAP_BINDINGS * 8];
-  char pool[FM1_MIDI_MAP_TEXT];
+/* Large mutually exclusive chunk working sets belong to the caller context.
+ * No serialized layout or format cap changes. */
+typedef struct {
+  fm1_inflate_t z;
+  union {
+    struct { uint8_t entries[FM1_MIDI_MAP_BINDINGS * 8]; char pool[FM1_MIDI_MAP_TEXT]; } browser;
+    struct { uint16_t uid[512]; uint8_t focus[512]; } unit;
+  } chunk;
+} bin_read_workspace_t;
+typedef char reader_workspace_budget[(sizeof(bin_read_workspace_t) <= 16384u) ? 1 : -1];
+size_t fm1_state_bin_reader_size(void) { return sizeof(bin_read_workspace_t); }
+
+static int read_browser(br_t *b, cs_t *c, bin_read_workspace_t *work) {
+  uint8_t hdr[4], *entries = work->chunk.browser.entries;
+  char *pool = work->chunk.browser.pool;
   unsigned count, used;
   fm1_rec_t r;
   if (b->midi_seen++) return bbad(b, "two browser mapping chunks");
   if (!cs_get(c, hdr, 4)) return short_chunk(b);
   if (hdr[0] != FM1_MIDI_MAP_VERSION) return brefuse(b, hdr[0] > 1 ? FM1_STATE_TOO_NEW : FM1_STATE_BAD, "unsupported MIDI mapping version");
   count = hdr[1]; used = get16(hdr + 2);
-  if (count > FM1_MIDI_MAP_BINDINGS || used > sizeof pool) return brefuse(b, FM1_STATE_TOO_BIG, "MIDI map past its cap");
+  if (count > FM1_MIDI_MAP_BINDINGS || used > FM1_MIDI_MAP_TEXT) return brefuse(b, FM1_STATE_TOO_BIG, "MIDI map past its cap");
   if (!cs_get(c, entries, count * 8) || !cs_get(c, (uint8_t *)pool, used)) return short_chunk(b);
   memset(&r, 0, sizeof r); r.type = FM1_REC_MIDI_MAP; r.u.map_version = hdr[0];
   if (!bemit(b, &r)) return 0;
@@ -1211,11 +1223,11 @@ static int unit_place(const br_t *b, unsigned role, unsigned sound, unsigned slo
   return -1;
 }
 
-static int read_unit(br_t *b, cs_t *c) {
+static int read_unit(br_t *b, cs_t *c, bin_read_workspace_t *work) {
   uint8_t h[8];
   /* Bounded by the format's record cap; do not allocate a UID-by-pad map. */
-  uint16_t seen_uid[512];
-  uint8_t seen_focus[512];
+  uint16_t *seen_uid = work->chunk.unit.uid;
+  uint8_t *seen_focus = work->chunk.unit.focus;
   fm1_rec_t r;
   acc_t lv;
   unsigned count, i;
@@ -1550,8 +1562,8 @@ static int tag_of(const uint8_t t[4]) {
   return 0;
 }
 
-int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_sink_t sink, void *sctx,
-                       fm1_state_report_t *rep, int skip_crc) {
+static int bin_read(bin_read_workspace_t *work, fm1_src_read_t rd, void *rctx, uint32_t total,
+                    fm1_rec_sink_t sink, void *sctx, fm1_state_report_t *rep, int skip_crc) {
   uint8_t h[32], e[64];
   br_t b;
   uint32_t hdr, count, esz, dir_end, chunk0, prev_end, i, dcrc = 0;
@@ -1638,7 +1650,7 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
   if (!bemit(&b, &r)) return 0;
   for (i = 0; i < count; ++i) {
     cs_t c;
-    fm1_inflate_t z;
+    fm1_inflate_t *z = &work->z;
     uint32_t off, len;
     int tag, ok;
     acc_t a;
@@ -1662,9 +1674,9 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
       if (len < 4u || rd(rctx, off, u, 4) != 4u) return bbad(&b, "a deflated chunk without its length");
       unpacked = get32(u);
       if (unpacked > kCap[tag]) return brefuse(&b, FM1_STATE_TOO_BIG, "a chunk past its cap");
-      fm1_inflate_init(&z, cs_src, &c, off + 4u, len - 4u, unpacked);
+      fm1_inflate_init(z, cs_src, &c, off + 4u, len - 4u, unpacked);
       c.deflated = 1;
-      c.z = &z;
+      c.z = z;
       c.left = unpacked;
     } else if (len > kCap[tag]) {
       return brefuse(&b, FM1_STATE_TOO_BIG, "a chunk past its cap");
@@ -1683,7 +1695,7 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
           ok = bemit(&b, &a.r);
         }
         break;
-      case CH_UNIT: ok = read_unit(&b, &c); break;
+      case CH_UNIT: ok = read_unit(&b, &c, work); break;
       case CH_DX7V: ok = read_dx7v(&b, &c); break;
       case CH_MODR: ok = read_modr(&b, &c); break;
       case CH_SEQS: ok = read_lines(&b, &c, FM1_LINES_SET); break;
@@ -1696,7 +1708,7 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
         break;
       case CH_BROW:
         if (get16(e + 4) != 1) return brefuse(&b, FM1_STATE_TOO_NEW, "unsupported browser chunk version");
-        ok = read_browser(&b, &c); break;
+        ok = read_browser(&b, &c, work); break;
       case CH_SETG: ok = kv_each(&b, &c, setg_kv, NULL); break;
       default: ok = 0; break;
     }
@@ -1709,9 +1721,9 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
       if (get16(e + 4) == 1u) return bbad(&b, "a chunk longer than its contents");
       if (!cs_skip(&c, c.left)) return bbad(&b, "a chunk ends early");
     }
-    if (c.deflated && !fm1_inflate_done(&z)) {
+    if (c.deflated && !fm1_inflate_done(z)) {
       uint8_t t;
-      if (fm1_inflate_read(&z, &t, 1) != 0 || !fm1_inflate_done(&z)) return bbad(&b, "a deflated chunk that does not end");
+      if (fm1_inflate_read(z, &t, 1) != 0 || !fm1_inflate_done(z)) return bbad(&b, "a deflated chunk that does not end");
     }
   }
   /* What each kind needs, as the JSON reader needs it. */
@@ -1725,4 +1737,17 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
   memset(&r, 0, sizeof(r));
   r.type = FM1_REC_END;
   return bemit(&b, &r);
+}
+
+int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_sink_t sink, void *sctx,
+                       fm1_state_report_t *rep, int skip_crc) {
+  bin_read_workspace_t work;
+  return bin_read(&work, rd, rctx, total, sink, sctx, rep, skip_crc);
+}
+int fm1_state_bin_read_workspace(void *mem, size_t bytes, fm1_src_read_t rd, void *rctx,
+    uint32_t total, fm1_rec_sink_t sink, void *sctx, fm1_state_report_t *rep, int skip_crc) {
+  if (!aligned_block(mem, bytes, sizeof(bin_read_workspace_t)) || !rd || !sink || !rep ||
+      overlaps(rep, sizeof(*rep), mem, bytes) || overlaps(rctx, 1, mem, bytes) || overlaps(sctx, 1, mem, bytes))
+    return block_error(rep, mem, bytes, NULL, 0, "invalid reader workspace");
+  return bin_read((bin_read_workspace_t *)mem, rd, rctx, total, sink, sctx, rep, skip_crc);
 }

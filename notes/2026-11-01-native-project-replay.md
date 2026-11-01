@@ -28,3 +28,13 @@ lease through preflight/begin/replay/internal identity+semantic checks/commit.
 Explicit commit outcomes include indeterminate; no automatic retry. A fixture
 now exercises actual current app host-vs-staged bytes/reports. It is not yet run;
 reader still uses its old stack temporaries and must move to caller context.
+
+[verified, WIP differential] Exact frozen e267d7cd app-state, JSON writer,
+sequence persistence and binary codec translation units were rebuilt alongside
+current source on Aeon CPU0–3/max4CPU6GiB. All76 callback/report/byte streams
+(PROJECT modes0/1/2/3) match exactly, normal and ASan/UBSan. Current native
+staging additionally matches host modes2/3. Host aux7296B, arena65536B.
+The reader now offers the same parser with its large inflater and mutually
+exclusive BROW/UNIT arrays in queried caller storage (<=16384 compile guard);
+old read API remains a wrapper. Neither this narrow corpus nor object sizes
+establish inclusive target memory, stack, transaction or runtime admission.
