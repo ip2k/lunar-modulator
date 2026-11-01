@@ -33,7 +33,7 @@ failure before the edit and passes after it. The remaining manual tests that
 do not build an engine: 15 passed, 7 skipped because Markdown is absent,
 1 deselected (`test_full_build`). An initial broad manual selection accidentally
 reached the renderer fixture; it was interrupted and its 2 MB partial build
-was removed. Native app proof is pending the coordinator's bounded LAN lane.
+was removed. Native app verification then completed on the bounded LAN lane below.
 
 [verified] Rarefaction status/orient/scope and Serena initial/config/find_symbol
 agreed on the representative test body in the shared main checkout. Their root
@@ -42,6 +42,55 @@ no shared activation/restart occurred. Exact base source reads and bounded
 searches in this checkout are authoritative for this change. No graph was built.
 
 No device traffic, firmware/vendor processing or protected-target work occurred.
-The lane's ignored evidence lives under `scratch/ci-ram-spec-fixtures/`; final
-handoff and cleanup status will be recorded there and in the coordinator's
-requested performance evidence directory. Built-in drive free space: 1,114 GiB.
+The lane's ignored evidence lives under `scratch/ci-ram-spec-fixtures/`; the
+coordinator's durable copy is
+`scratch/devkit-20261023/audit-20261101/ci-ram-spec-fixtures/` in the performance
+worktree. Its `HANDOFF.md`, `native-complete.log`, `ram-causal.log`, image/source
+identities and setup logs remain. Built-in drive free space: 1,114 GiB.
+
+
+## Completed native verification
+
+[verified] The exact pushed source
+`efbb6f258951b16043b447f4a46ceba72e20406f` was exported with `git archive`
+(SHA-256 `138e253eb05df6d90bce253491d542461828a4119fdbabcd4d5b52bdd07bafa0`).
+The Aeon run used existing image
+`sha256:54edd6544fdc41ef5573ae26f7aa8e7d1f594e5e4b9b54e2ad2f427f33e392a1`,
+CPU 4–7, four CPUs, 6 GiB memory and 6 GiB memory-plus-swap,
+`docker-batch.slice`, `--rm`, no network and read-only source/dependency inputs.
+The container used explicit Clang compiler settings and project/session labels.
+Its own writable staging was
+`/home/likwid/datasets/lunar/ci-ram-spec-fixtures-20261101/`.
+
+[verified] Final command:
+
+```sh
+python3 -m pytest tests/test_app_state.py \
+  tests/test_manual.py::test_the_specifications_give_the_builds_shares_and_sizes \
+  -o addopts= -q -ra --basetemp=/work/test-tmp
+```
+
+**13 passed, zero skipped, exit 0**. This ran the full app-state file, including
+Sound 2 import/remapping, the full-rack `NO_ROOM` transactional refusal,
+`--without` semantics and the original starter/Deep Bass RAM refusal, plus the
+actual specification check. Direct harness probes report Macro/Room plus Deep
+Bass at 365,528 bytes (95%), and the original starter plus Deep Bass refusing
+at 390,056 bytes (101%). No further source changes were needed.
+
+[verified] Setup attempts and their limits are retained: the image lacks `g++`,
+so GNU make's default failed for the full-renderer fixture until Clang was
+selected explicitly. The image also lacks the declared `jsonschema` test
+dependency and pip; read-only offline wheels unpacked into task-local dependencies
+restored schema coverage. A first dependency attempt missed Python 3.12's
+`typing_extensions` dependency because the download resolver ran on Mac Python
+3.15; supplying that wheel yielded the final complete pass. No container used
+the network. These were test environment corrections, with no source changes.
+
+[verified] No matching container remained after the run. The owned Aeon source
+stage, binaries, test outputs and dependencies, and the downloaded local wheels
+were removed. Small evidence remains; CPU 4–7 and the metadata claim were
+released. The clean source worktree is retained until the coordinator confirms
+the documentation update is integrated. Root reported the source correction
+integrated blob-identically as `0cca920294374b504b147b36e2bc145e50a23963`;
+required integration CI remains the coordinator's gate. No hardware acceptance
+is implied.
