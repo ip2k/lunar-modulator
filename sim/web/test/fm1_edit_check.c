@@ -532,6 +532,102 @@ static void check_locks(void) {
   g_lock_blocks = 900;
 }
 
+/* Invalid public set imports must leave runtime state, not just saved content,
+ * untouched. The existing core parser remains the authority for tag grammar. */
+static void seq_import_live(void) {
+  fm1_seq_cmd_t cmd;
+  fresh(44118.0f);
+  fm1_app_button(&g_a, FM1_BTN_PLAY, 1); fm1_app_button(&g_a, FM1_BTN_PLAY, 0);
+  render(20);
+  unsigned notes = 0;
+  for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k)
+    for (unsigned n = 0; n < 128; ++n) notes += g_a.seq_note_count[k][n];
+  CHECK(notes > 0);
+  /* A queued valid command and visible lock are app-owned state too. */
+  const int64_t bpm[1] = { 150 };
+  fm1_seq_cmd_make(&cmd, FM1_SEQ_V_BPM, 1, bpm);
+  g_a.seq_pending = 1; g_a.seq_pend = cmd;
+  g_a.lock_mask[0] = 1;
+}
+
+static void check_seq_import_refusal(void) {
+  static fm1_app_t before;
+  static float control[64 * 2 * FM1_APP_MAX_FRAMES];
+  static const char *bad[] = {"not-a-set\n", "movy\n", "movy2\n", "mo vy1\n", "", "movy1x"};
+  seq_import_live();
+  for (unsigned b = 0; b < 64; ++b)
+    memcpy(control + b * 2 * FM1_APP_MAX_FRAMES, fm1_app_render(&g_a, FM1_APP_MAX_FRAMES),
+           sizeof(float) * 2 * FM1_APP_MAX_FRAMES);
+  for (unsigned c = 0; c < sizeof bad / sizeof bad[0]; ++c) {
+    seq_import_live();
+    const uint32_t edit_gen = fm1_edit_gen(&g_a);
+    memcpy(&before, &g_a, sizeof before);
+    CHECK(!fm1_app_seq_import(&g_a, bad[c], strlen(bad[c])));
+    CHECK(!memcmp(&before, &g_a, sizeof before));
+    CHECK(fm1_edit_gen(&g_a) == edit_gen);
+    for (unsigned b = 0; b < 64; ++b)
+      CHECK(!memcmp(control + b * 2 * FM1_APP_MAX_FRAMES,
+                    fm1_app_render(&g_a, FM1_APP_MAX_FRAMES), sizeof(float) * 2 * FM1_APP_MAX_FRAMES));
+  }
+}
+
+#ifdef FM1_EDIT_CHECK_CLIP_FAULT
+/* Linker wrappers exercise state_clip.c's real allocation refusal on a chosen
+ * merge. They are never linked into the browser or normal harness. */
+static unsigned g_clip_merges, g_clip_fail_merge;
+static int g_clip_fail_alloc;
+void *__real_realloc(void *p, size_t n);
+void *__wrap_realloc(void *p, size_t n) {
+  return g_clip_fail_alloc ? NULL : __real_realloc(p, n);
+}
+char *__real_fm1_state_clip_into(const char *, size_t, const char *const *, size_t,
+                                unsigned, unsigned, char *, size_t);
+char *__wrap_fm1_state_clip_into(const char *set, size_t n, const char *const *clip, size_t nc,
+                                unsigned t, unsigned sl, char *err, size_t cap) {
+  char *out;
+  ++g_clip_merges;
+  g_clip_fail_alloc = g_clip_merges == g_clip_fail_merge;
+  out = __real_fm1_state_clip_into(set, n, clip, nc, t, sl, err, cap);
+  g_clip_fail_alloc = 0;
+  return out;
+}
+
+static void check_clip_merge_fault(void) {
+  static const char clip[] = "{\"lunar\":\"1.0\",\"kind\":\"clip\",\"clip\":[\"cl 0 0 4 0 0:40:60:100:0\",\"cp 0 0 1 1 0 0\"]}";
+  static fm1_app_t before;
+  fm1_app_state_mem_t mem = { (const uint8_t *)clip, sizeof clip - 1 };
+  fm1_app_load_opts_t o;
+  fm1_app_state_report_t rep;
+  fm1_seq_clip_info_t ci;
+  fm1_app_load_opts_init(&o); o.flags = FM1_APP_LOAD_QUIET; o.into = 1; o.slot = 7;
+  for (unsigned fault = 1; fault <= 2; ++fault) {
+    seq_import_live();
+    memcpy(&before, &g_a, sizeof before);
+    const uint32_t gen = fm1_edit_gen(&g_a);
+    g_clip_merges = 0; g_clip_fail_merge = fault;
+    const int ok = fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, mem.n, &o, &rep);
+    if (fault == 1) {
+      CHECK(!ok && rep.r.code == FM1_STATE_NO_ROOM);
+      CHECK(!memcmp(&before, &g_a, sizeof before));
+      CHECK(fm1_edit_gen(&g_a) == gen);
+    } else {
+      /* One validated merge must be enough; no allocation can fail in apply. */
+      CHECK(ok && g_clip_merges == 1);
+      CHECK(fm1_seq_get_clip(g_a.seq, 1, 7, &ci) && ci.length_steps == 4 && ci.notes == 1);
+      CHECK(fm1_edit_gen(&g_a) == gen + 1);
+    }
+  }
+  g_clip_fail_merge = 0;
+  /* Public check owns no retained allocation and makes no live changes. */
+  seq_import_live(); memcpy(&before, &g_a, sizeof before);
+  for (unsigned n = 0; n < 4; ++n) {
+    g_clip_merges = 0;
+    CHECK(fm1_app_state_check(&g_a, fm1_app_state_mem_read, &mem, mem.n, &o, &rep));
+    CHECK(g_clip_merges == 1 && !memcmp(&before, &g_a, sizeof before));
+  }
+}
+#endif
+
 /* ---- a project load that goes on playing (A/B) ----------------------------------- */
 
 /* The editor's A/B puts the other project in while the transport runs; with FM1_APP_LOAD_KEEP_TRANSPORT
@@ -1246,6 +1342,10 @@ int fm1_edit_check(void) {
   for (g_sweep_seed = 0; g_sweep_seed < 40; ++g_sweep_seed, ++g_sweeps) hands(g_sweep);
   check_locks();
   check_transport();
+  check_seq_import_refusal();
+#ifdef FM1_EDIT_CHECK_CLIP_FAULT
+  check_clip_merge_fault();
+#endif
   check_midi_map();
   check_sound_restore();
   check_sound_restore_audio();
