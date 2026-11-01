@@ -514,7 +514,7 @@ class JsonReader:
         self.emit({"rec": "info", "key": INFO[key], "text": "".join(out)})
 
     # ---- the document
-    def read(self, tree):
+    def read(self, tree, input_bytes):
         if not isinstance(tree, Obj):
             raise Refused("NOT_LUNAR", "not a JSON object")
         top = 0
@@ -563,6 +563,8 @@ class JsonReader:
                 if v not in NEEDS:
                     self.bad("not a kind of file this build knows")
                 self.kind = v
+                if input_bytes > KIND_CAP[KINDS.index(v)]:
+                    raise Refused("TOO_BIG", "larger than this kind's cap")
                 top = 2
                 self.emit({"rec": "head", "kind": v, "major": MAJOR, "minor": self.minor})
             elif k == "made":
@@ -1314,12 +1316,15 @@ class JsonReader:
 
 def read_json(data, names):
     """Records of a JSON state file; raises Refused. The report rides along
-    on the exception's absence: (records, report)."""
+    on the exception's absence: (records, report). Caps count all UTF-8 bytes,
+    including whitespace, before parsing and once the kind is known."""
     if isinstance(data, str):
         data = data.encode("utf-8")
+    if len(data) > KIND_CAP[1]:
+        raise Refused("TOO_BIG", "larger than any file kind's cap")
     r = JsonReader(names)
     tree = _parse(data)
-    return r.read(tree), r.rep
+    return r.read(tree, len(data)), r.rep
 
 
 # ---- Writing canonical JSON ------------------------------------------------------------------------
@@ -2668,8 +2673,8 @@ def link_fragment(records, names):
 
 
 def read_link(fragment, names):
-    """A #lunar= fragment's records, its inflated text capped at the
-    kind's cap (a decompression bomb stops there)."""
+    """A #lunar= fragment's records. Bound inflation at the largest kind's
+    cap, then enforce the selected kind's JSON byte cap in read_json."""
     data = fragment.split("#lunar=", 1)[-1]
     if len(data) > LINK_CAP:
         raise Refused("TOO_BIG", "past the 32 KiB a link carries")
