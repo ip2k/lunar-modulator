@@ -3,6 +3,8 @@
 import hashlib
 import importlib.util
 import json
+import shutil
+import subprocess
 from pathlib import Path
 import pytest
 
@@ -85,6 +87,21 @@ def test_pipeline_prepares_actual_tracked_sources(tmp_path, monkeypatch, adaptiv
     assert receipt['pipeline_poly47_at_44100'] == poly47
     assert receipt['pipeline_poly47_tolerance'] == ('5e-4' if poly47 else '1e-5')
     assert 'firmware/devkit/renderer_pipeline_worst.h' in receipt['inputs']
+    assert 'firmware/common/renderer_pipeline_core.c' in receipt['inputs']
+    assert 'firmware/common/renderer_pipeline_core.h' in receipt['inputs']
+    assert 'firmware/common/renderer_pipeline_port.h' in receipt['inputs']
+    assert 'firmware/devkit/renderer_pipeline_sdk_platform.h' in receipt['inputs']
+    # Compile the SDK wrapper through its atomic host platform from the prepared
+    # tree. This catches omitted included-core/header dependencies without a
+    # vendor toolchain, SDK execution or a second copy of the state machine.
+    cc = shutil.which('clang') or shutil.which('cc')
+    if cc:
+        subprocess.run([cc, '-std=c11', '-pthread', '-Werror', '-Wno-unknown-pragmas',
+                        '-DLUNAR_PIPELINE_SDK_PLATFORM_HEADER="sdk_shim.h"',
+                        '-I'+str(ROOT/'tests/fixtures/renderer_pipeline'),
+                        '-fsyntax-only', str(out/'lunar-source/firmware/devkit/renderer_pipeline_sdk.c')],
+                       check=True)
+
     assert receipt['pipeline_deadline_ticks'] == 34829
     assert receipt['uart_task_priority'] == 18
     assert not receipt['hardware_acceptance']
@@ -204,7 +221,7 @@ def test_prepared_pipeline_full_pcm_and_faults(tmp_path, sanitize):
     import shutil
     module = load_prepare()
     source = tmp_path/'source'
-    for directory in ('engines', 'sim/web/src', 'sim/web/mk', 'firmware/devkit'):
+    for directory in ('engines', 'sim/web/src', 'sim/web/mk', 'firmware/devkit', 'firmware/common'):
         shutil.copytree(ROOT/directory, source/directory,
             ignore=shutil.ignore_patterns('build', 'build-*', '__pycache__'))
     for directory in ('tests', 'tools'):

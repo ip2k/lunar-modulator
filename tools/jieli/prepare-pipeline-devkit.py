@@ -467,7 +467,7 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
             'prepared_sdk_worker_sha256': sha256(app / 'sdk_worker.c'),
             'prepared_renderer_pipeline_dac_sha256': sha256(staging / 'firmware/devkit/renderer_pipeline_dac.c'),
         })
-    for directory in ('engines', 'sim/web/src', 'sim/web/mk', 'firmware/devkit'):
+    for directory in ('engines', 'sim/web/src', 'sim/web/mk', 'firmware/devkit', 'firmware/common'):
         for path in sorted((staging / directory).rglob('*')):
             if path.is_file():
                 receipt['inputs'][str(path.relative_to(staging))] = sha256(path)
