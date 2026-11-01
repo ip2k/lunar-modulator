@@ -106,6 +106,73 @@ mkdir -p "${LOG%/*}"
 record() { printf '%s\n' "$*" | tee -a "$LOG"; }
 record "host=$HOST remote=$REMOTE run=$RUN_ID base=$(git -C "$ROOT" rev-parse HEAD)"
 
+# Resolve the *output* before the expensive build. Different refs can sanitize
+# to the same directory, and GPL variants of the default build share www/.
+# One atomic local claim therefore owns every fetch and publication for that
+# resolved destination pair, including parity and screenshots.
+if [ -n "$ENGINES_REF" ]; then
+  DEST=$SIM/build/ref-$(printf '%s' "$ENGINES_REF" | tr -c 'A-Za-z0-9._-' '_')
+  if [ "$DX7_SINE" != "$DEFAULT_DX7_SINE" ]; then DEST=$DEST-dx7-$DX7_SINE; fi
+  RESULTS=$DEST
+elif [ "$DX7_SINE" != "$DEFAULT_DX7_SINE" ]; then
+  DEST=$SIM/build/dx7-$DX7_SINE
+  RESULTS=$DEST
+else
+  DEST=$SIM/www
+  RESULTS=$SIM/build
+fi
+PUBLISH_KEY=$(python3 -c 'import hashlib,pathlib,sys; paths=[str(pathlib.Path(p).resolve()) for p in sys.argv[1:]]; print(hashlib.sha256("\0".join(paths).encode()).hexdigest())' "$DEST" "$RESULTS")
+PUBLISH_LOCK=$SIM/build/publish-locks/$PUBLISH_KEY.lock
+mkdir -p "${PUBLISH_LOCK%/*}"
+STAGE=""
+STAGE_VALID=0
+MOUNT_GUARD=""
+MUSL_CONTAINER=lunar-$RUN_ID-musl
+EMSDK_CONTAINER=lunar-$RUN_ID-emsdk
+PLAYWRIGHT_CONTAINER=lunar-$RUN_ID-playwright
+PUBLISH_LOCK_OWNED=0
+cleanup() {
+  status=$?
+  trap - EXIT INT TERM
+  if [ "$STAGE_VALID" = 1 ]; then
+    if ssh "$HOST" "docker info >/dev/null 2>&1 || exit 1; \
+      for name in '$MUSL_CONTAINER' '$EMSDK_CONTAINER' '$PLAYWRIGHT_CONTAINER'; do \
+        if docker container inspect \"\$name\" >/dev/null 2>&1; then docker rm -f \"\$name\" >/dev/null || exit 1; fi; \
+      done; ${MOUNT_GUARD}rm -rf -- $STAGE_Q"; then
+      record "cleanup=ok stage=$STAGE"
+    else
+      record "cleanup=failed stage=$STAGE"
+      status=1
+    fi
+  fi
+  if [ -d "$FETCH" ]; then rm -rf -- "$FETCH"; fi
+  if [ "$PUBLISH_LOCK_OWNED" = 1 ]; then
+    if [ "$(cat "$PUBLISH_LOCK/owner" 2>/dev/null)" = "$RUN_ID" ]; then
+      if rm -- "$PUBLISH_LOCK/owner" && rmdir "$PUBLISH_LOCK"; then
+        record "publication_lock=released"
+      else
+        record "publication_lock=release_failed path=$PUBLISH_LOCK"
+        status=1
+      fi
+    else
+      record "publication_lock=owner_mismatch path=$PUBLISH_LOCK"
+      status=1
+    fi
+  fi
+  record "exit=$status"
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+if ! mkdir "$PUBLISH_LOCK" 2>/dev/null; then
+  record "publication_busy destination=$DEST results=$RESULTS lock=$PUBLISH_LOCK"
+  exit 75
+fi
+printf '%s\n' "$RUN_ID" > "$PUBLISH_LOCK/owner"
+PUBLISH_LOCK_OWNED=1
+record "publication_lock=$PUBLISH_LOCK destination=$DEST results=$RESULTS"
+
 # Allocate under the project root without touching any other invocation's src
 # tree. The remote checks an external-volume mount before mkdir can create a
 # plain directory on the Mac's internal disk in its place.
@@ -134,33 +201,11 @@ if [[ "$STAGE" != "$REMOTE/runs/$RUN_ID".* ]]; then
   exit 1
 fi
 STAGE_Q=$(printf '%q' "$STAGE")
-MOUNT_GUARD=""
 if [[ "$REMOTE" == /Volumes/* ]]; then
   volume=${REMOTE#/Volumes/}; volume=${volume%%/*}
   MOUNT_GUARD="mountpoint -q '/Volumes/$volume' && "
 fi
-MUSL_CONTAINER=lunar-$RUN_ID-musl
-EMSDK_CONTAINER=lunar-$RUN_ID-emsdk
-PLAYWRIGHT_CONTAINER=lunar-$RUN_ID-playwright
-cleanup() {
-  status=$?
-  trap - EXIT INT TERM
-  if ssh "$HOST" "docker info >/dev/null 2>&1 || exit 1; \
-    for name in '$MUSL_CONTAINER' '$EMSDK_CONTAINER' '$PLAYWRIGHT_CONTAINER'; do \
-      if docker container inspect \"\$name\" >/dev/null 2>&1; then docker rm -f \"\$name\" >/dev/null || exit 1; fi; \
-    done; ${MOUNT_GUARD}rm -rf -- $STAGE_Q"; then
-    record "cleanup=ok stage=$STAGE"
-  else
-    record "cleanup=failed stage=$STAGE"
-    status=1
-  fi
-  if [ -d "$FETCH" ]; then rm -rf -- "$FETCH"; fi
-  record "exit=$status"
-  exit "$status"
-}
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
+STAGE_VALID=1
 LABELS=(--label project=mvave-fm1-firmware --label "session=$SESSION" --label "invocation=$RUN_ID")
 
 record "stage=$STAGE"
@@ -230,19 +275,7 @@ echo "== fetching results"
 # to build/ref-<ref>/, so www/fm1.wasm always matches this working tree and
 # build/ keeps this tree's parity and screenshots.
 # A module with the other DX7 sine than engines/Makefile's default is a trial
-# too: www/ keeps the default sine's module.
-if [ -n "$ENGINES_REF" ]; then
-  DEST=$SIM/build/ref-$(printf '%s' "$ENGINES_REF" | tr -c 'A-Za-z0-9._-' '_')
-  if [ "$DX7_SINE" != "$DEFAULT_DX7_SINE" ]; then DEST=$DEST-dx7-$DX7_SINE; fi
-  RESULTS=$DEST
-elif [ "$DX7_SINE" != "$DEFAULT_DX7_SINE" ]; then
-  DEST=$SIM/build/dx7-$DX7_SINE
-  RESULTS=$DEST
-else
-  DEST=$SIM/www
-  RESULTS=$SIM/build
-fi
-record "destination=$DEST results=$RESULTS"
+# too: www/ keeps the default sine's module. The claim above owns both paths.
 mkdir -p "$FETCH"
 scp -q "$HOST:$STAGE/sim/web/www/fm1.wasm" "$HOST:$STAGE/sim/web/www/fm1.wasm.json" \
   "$HOST:$STAGE/sim/web/www/meta.json" "$FETCH/"

@@ -57,8 +57,7 @@ if "-cf" in sys.argv:
     with tarfile.open(fileobj=sys.stdout.buffer, mode="w|"):
         pass
 elif "-x" in sys.argv:
-    with tarfile.open(fileobj=sys.stdin.buffer, mode="r|"):
-        pass
+    sys.stdin.buffer.read()  # drain git archive as well as the empty fake tar
 else:
     raise SystemExit("unexpected tar operation")
 """)
@@ -86,6 +85,14 @@ elif args[:1] == ["run"]:
             if time.monotonic() > deadline:
                 raise SystemExit("concurrent run did not reach barrier")
             time.sleep(.01)
+    if "alpine:3.22" in args and os.environ.get("FAKE_PAUSE_MUSL"):
+        pause = pathlib.Path(os.environ["FAKE_PAUSE_MUSL"])
+        pause.with_suffix(".started").touch()
+        deadline = time.monotonic() + 10
+        while not pause.with_suffix(".release").exists():
+            if time.monotonic() > deadline:
+                raise SystemExit("first build was not released")
+            time.sleep(.01)
     if os.environ.get("FAKE_DOCKER_FAIL") == "alpine" and "alpine:3.22" in args:
         if os.environ.get("FAKE_DOCKER_LEFTOVER"):
             pathlib.Path(os.environ["FAKE_CONTAINERS"], name).touch()
@@ -95,11 +102,15 @@ elif args[:1] == ["run"]:
         build = pathlib.Path(stage, "sim/web/build")
         www.mkdir(parents=True, exist_ok=True)
         build.mkdir(parents=True, exist_ok=True)
-        (www / "fm1.wasm").write_bytes(b"fake wasm")
-        (www / "fm1.wasm.json").write_text(json.dumps(dict(
-            wasm_bytes=9, parity=True, gpl_mods=1, dx7_sine="msfa", licences=[])))
-        (www / "meta.json").write_text("{}")
-        (build / "parity.json").write_text("{}")
+        marker = os.environ.get("FAKE_ARTIFACT_MARKER")
+        (www / "fm1.wasm").write_bytes((marker + ":wasm").encode() if marker else b"fake wasm")
+        gpl = int(next(a.split("=", 1)[1] for a in args if a.startswith("FM1_GPL_MODS=")))
+        record = dict(wasm_bytes=9, parity=True, gpl_mods=gpl, dx7_sine="msfa", licences=[])
+        if marker:
+            record["marker"] = marker
+        (www / "fm1.wasm.json").write_text(json.dumps(record))
+        (www / "meta.json").write_text(json.dumps(dict(marker=marker)) if marker else "{}")
+        (build / "parity.json").write_text(json.dumps(dict(marker=marker)) if marker else "{}")
     if "mcr.microsoft.com/playwright:v1.63.0-noble" in args:
         assert pathlib.Path(stage, "playwright/node_modules/playwright").is_dir()
         assert pathlib.Path(stage, "playwright/node_modules/axe-core").is_dir()
@@ -146,6 +157,9 @@ for source in args[:-1]:
     shutil.rmtree(base)
     if not any(base.parent.iterdir()):
         base.parent.rmdir()
+    lock_dir = ROOT / "sim/web/build/publish-locks"
+    if lock_dir.exists() and not any(lock_dir.iterdir()):
+        lock_dir.rmdir()
 
 
 def run_wrapper(env, *args):
@@ -193,9 +207,12 @@ def test_concurrent_failed_runs_get_distinct_stages_and_cleanup(fake_remote):
     base, env, calls, log_dir, _ = fake_remote
     env.update(FAKE_WAIT_FOR_TWO="1", FAKE_DOCKER_FAIL="alpine",
                FAKE_DOCKER_LEFTOVER="1")
-    processes = [subprocess.Popen(["bash", str(SCRIPT), "--no-screenshot"], cwd=ROOT,
-                                  env=env, text=True, stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE) for _ in range(2)]
+    # Different destinations may build together; the same destination may not.
+    commands = [["bash", str(SCRIPT), "--no-screenshot"],
+                ["bash", str(SCRIPT), "--no-screenshot", "--engines-ref", "HEAD"]]
+    processes = [subprocess.Popen(command, cwd=ROOT, env=env, text=True,
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                 for command in commands]
     try:
         results = [process.communicate(timeout=30) for process in processes]
     finally:
@@ -231,3 +248,77 @@ def test_failed_stage_allocation_never_touches_shared_sources(fake_remote):
     assert (shared / "owner-data").read_text() == "keep"
     assert not (base / "remote/runs").exists()
     assert not calls.exists()  # no image pull or container launch
+    assert not list((ROOT / "sim/web/build/publish-locks").glob("*.lock"))
+
+
+def test_same_destination_concurrent_build_refuses_overlap_then_publishes_whole_set(fake_remote):
+    base, env, calls, log_dir, trial = fake_remote
+    pause = base / "pause-a"
+    first_env = dict(env, FAKE_ARTIFACT_MARKER="A", FAKE_PAUSE_MUSL=str(pause),
+                     FM1_GPL_MODS="0")
+    first = subprocess.Popen(["bash", str(SCRIPT), "--no-screenshot"], cwd=ROOT,
+                             env=first_env, text=True, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    try:
+        import time
+        deadline = time.monotonic() + 10
+        while not pause.with_suffix(".started").exists():
+            assert first.poll() is None
+            assert time.monotonic() < deadline
+            time.sleep(.01)
+        second_env = dict(env, FAKE_ARTIFACT_MARKER="B", FM1_GPL_MODS="1")
+        overlap = run_wrapper(second_env, "--no-screenshot")
+        assert overlap.returncode == 75, overlap.stdout + overlap.stderr
+        pause.with_suffix(".release").touch()
+        first_output = first.communicate(timeout=30)
+        assert first.returncode == 0, first_output
+    finally:
+        pause.with_suffix(".release").touch()
+        if first.poll() is None:
+            first.kill()
+            first.communicate(timeout=5)
+
+    def assert_set(marker, gpl):
+        assert (trial / "fm1.wasm").read_bytes() == f"{marker}:wasm".encode()
+        record = json.loads((trial / "fm1.wasm.json").read_text())
+        assert (record["marker"], record["gpl_mods"]) == (marker, gpl)
+        assert json.loads((trial / "meta.json").read_text())["marker"] == marker
+        assert json.loads((trial / "parity.json").read_text())["marker"] == marker
+
+    assert_set("A", 0)
+    retry = run_wrapper(second_env, "--no-screenshot")
+    assert retry.returncode == 0, retry.stdout + retry.stderr
+    assert_set("B", 1)
+    assert any("publication_busy" in log.read_text() for log in run_logs(log_dir))
+    assert not list((ROOT / "sim/web/build/publish-locks").glob("*.lock"))
+    assert not list((base / "remote/runs").iterdir())
+
+
+def test_ref_spellings_that_sanitize_to_one_destination_share_claim(fake_remote):
+    base, env, _, log_dir, _ = fake_remote
+    pause = base / "pause-alias"
+    first_env = dict(env, FAKE_PAUSE_MUSL=str(pause), FAKE_DOCKER_FAIL="alpine")
+    first = subprocess.Popen(["bash", str(SCRIPT), "--no-screenshot",
+                              "--engines-ref", "HEAD~0"], cwd=ROOT, env=first_env,
+                             text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        import time
+        deadline = time.monotonic() + 10
+        while not pause.with_suffix(".started").exists():
+            assert first.poll() is None
+            assert time.monotonic() < deadline
+            time.sleep(.01)
+        overlap = run_wrapper(env, "--no-screenshot", "--engines-ref", "HEAD^0")
+        assert overlap.returncode == 75, overlap.stdout + overlap.stderr
+        pause.with_suffix(".release").touch()
+        first.communicate(timeout=30)
+        assert first.returncode == 41
+    finally:
+        pause.with_suffix(".release").touch()
+        if first.poll() is None:
+            first.kill()
+            first.communicate(timeout=5)
+    assert any("publication_busy" in log.read_text() and "ref-HEAD_0" in log.read_text()
+               for log in run_logs(log_dir))
+    assert not list((ROOT / "sim/web/build/publish-locks").glob("*.lock"))
+    assert not list((base / "remote/runs").iterdir())
