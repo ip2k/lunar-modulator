@@ -407,34 +407,96 @@ static int takes(const fm1_param_t *p) {
   return !(p->flags & FM1_PARAM_NOLOCK) && ((p->flags & FM1_PARAM_INPUT) || fm1_param_modulatable(p));
 }
 
-static void add_dest(fm1_mod_dest_t *out, int cap, int *n, unsigned unit, int gate, unsigned dst,
-                     unsigned index) {
-  if (*n >= cap) return;
-  memset(&out[*n], 0, sizeof out[*n]);
-  out[*n].unit = (uint8_t)unit;
-  out[*n].gate = (uint8_t)gate;
-  out[*n].dst = (uint16_t)dst;
-  out[*n].index = (int16_t)index;
-  ++*n;
+/* A snapshot of the immutable metadata, not a materialized destination list.
+ * In particular, opening a destination picker may first commit a KIND picker:
+ * retain the pre-commit enumeration just as the original list did. */
+typedef struct dest_group {
+  const fm1_param_t *params;
+  uint16_t count, gates, first, end;
+  uint8_t unit, module;
+} dest_group_t;
+typedef struct dest_list {
+  dest_group_t group[N_SINKS + FM1_MOD_POSITIONS];
+  int n, groups;
+} dest_list_t;
+
+static int dest_param(const dest_group_t *g, unsigned i) {
+  return g->module ? takes(&g->params[i]) : fm1_param_modulatable(&g->params[i]);
+}
+
+static void dest_list(const fm1_mod_ui_env_t *env, dest_list_t *list) {
+  unsigned pos, i;
+  list->n = list->groups = 0;
+  for (pos = 0; pos < N_SINKS + FM1_MOD_POSITIONS; ++pos) {
+    dest_group_t g;
+    unsigned count = 0;
+    memset(&g, 0, sizeof g);
+    g.module = pos >= N_SINKS;
+    g.unit = g.module ? FM1_MOD_MODULE + pos - N_SINKS : kSinks[pos].unit;
+    if (g.module) {
+      const fm1_mod_kind_t *kd = kind_at(env->m, pos - N_SINKS);
+      if (!kd) continue;
+      g.params = kd->params;
+      count = kd->n_params;
+      g.gates = kd->n_gate_in;
+    } else g.params = unit_params(env, g.unit, &count);
+    g.count = g.params ? (uint16_t)count : 0;
+    g.first = (uint16_t)list->n;
+    for (i = 0; i < g.count; ++i) if (dest_param(&g, i)) ++list->n;
+    list->n += g.gates;
+    g.end = (uint16_t)list->n;
+    if (g.end != g.first) list->group[list->groups++] = g;
+  }
+}
+
+/* Resolve in one small group; scans at most its parameter count. Popup
+ * rendering performs this for only the visible rows, never for every item. */
+static void dest_at(const dest_list_t *list, int at, fm1_mod_dest_t *d) {
+  int k;
+  unsigned i;
+  memset(d, 0, sizeof *d);
+  for (k = 0; k < list->groups; ++k) {
+    const dest_group_t *g = &list->group[k];
+    if (at >= g->end) continue;
+    at -= g->first;
+    d->unit = g->unit;
+    for (i = 0; i < g->count; ++i) {
+      if (!dest_param(g, i)) continue;
+      if (at-- == 0) {
+        d->dst = g->params[i].uid;
+        d->index = (int16_t)i;
+        return;
+      }
+    }
+    d->gate = 1;
+    d->dst = (uint16_t)at;
+    d->index = (int16_t)at;
+    return;
+  }
 }
 
 int fm1_mod_ui_dests(const fm1_mod_ui_env_t *env, fm1_mod_dest_t *out, int cap) {
-  int n = 0;
-  unsigned g, i, pos;
-  for (g = 0; g < N_SINKS; ++g) {
-    unsigned cnt;
-    const fm1_param_t *ps = unit_params(env, kSinks[g].unit, &cnt);
-    for (i = 0; ps && i < cnt; ++i) {
-      if (fm1_param_modulatable(&ps[i])) add_dest(out, cap, &n, kSinks[g].unit, 0, ps[i].uid, i);
+  /* Public bulk enumeration remains linear and retains its capped count. */
+  dest_list_t list;
+  int k, n = 0;
+  unsigned i;
+  dest_list(env, &list);
+  for (k = 0; k < list.groups && n < cap; ++k) {
+    const dest_group_t *g = &list.group[k];
+    for (i = 0; i < g->count && n < cap; ++i) {
+      if (!dest_param(g, i)) continue;
+      memset(&out[n], 0, sizeof out[n]);
+      out[n].unit = g->unit;
+      out[n].dst = g->params[i].uid;
+      out[n++].index = (int16_t)i;
     }
-  }
-  for (pos = 0; pos < FM1_MOD_POSITIONS; ++pos) {
-    const fm1_mod_kind_t *kd = kind_at(env->m, pos);
-    if (!kd) continue;
-    for (i = 0; i < kd->n_params; ++i) {
-      if (takes(&kd->params[i])) add_dest(out, cap, &n, FM1_MOD_MODULE + pos, 0, kd->params[i].uid, i);
+    for (i = 0; i < g->gates && n < cap; ++i) {
+      memset(&out[n], 0, sizeof out[n]);
+      out[n].unit = g->unit;
+      out[n].gate = 1;
+      out[n].dst = (uint16_t)i;
+      out[n++].index = (int16_t)i;
     }
-    for (i = 0; i < kd->n_gate_in; ++i) add_dest(out, cap, &n, FM1_MOD_MODULE + pos, 1, i, i);
   }
   return n;
 }
@@ -1250,41 +1312,45 @@ static int index_of_source(const uint8_t *list, int n, unsigned src) {
   return -1;
 }
 
-static int dest_index(const fm1_mod_dest_t *list, int n, const fm1_mod_slot_t *s) {
-  const uint8_t gate = (s->flags & FM1_MOD_SLOT_GATE_DST) != 0;
+static int dest_index(const dest_list_t *list, const fm1_mod_slot_t *s) {
   int k;
+  unsigned i;
   if (!fm1_mod_ui_has_dst(s)) return -1;
-  for (k = 0; k < n; ++k) {
-    if (list[k].unit == s->dst_unit && list[k].dst == s->dst && list[k].gate == gate) return k;
+  for (k = 0; k < list->groups; ++k) {
+    const dest_group_t *g = &list->group[k];
+    int at = g->first;
+    if (g->unit != s->dst_unit) continue;
+    for (i = 0; i < g->count; ++i) {
+      if (!dest_param(g, i)) continue;
+      if (!(s->flags & FM1_MOD_SLOT_GATE_DST) && g->params[i].uid == s->dst) return at;
+      ++at;
+    }
+    if ((s->flags & FM1_MOD_SLOT_GATE_DST) && s->dst < g->gates) return at + s->dst;
   }
   return -1;
 }
 
-static void say_dest(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *list, int n, int k,
+static void say_dest(const fm1_mod_ui_env_t *env, const dest_list_t *list, int k,
                      fm1_mod_ui_say_t *say) {
   int r;
-  say_list(say, "Destination", n, k, FM1_LIST_FACE_DEST);
+  say_list(say, "Destination", list->n, k, FM1_LIST_FACE_DEST);
   for (r = 0; r < say->n; ++r) {
-    /* By its full name (D9: the face holds every one), a sound's "S<n>"
-     * in that sound's colour. */
-    const fm1_mod_dest_t *d = &list[say->first + r];
-    const int g = d->unit >= FM1_MOD_MODULE && d->unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS
-                      ? -1
-                      : sink_group(d->unit);
-    fm1_mod_ui_dest_name(env, d, 1, say->line[r], sizeof say->line[r]);
+    fm1_mod_dest_t d;
+    int g;
+    dest_at(list, say->first + r, &d);
+    g = d.unit >= FM1_MOD_MODULE && d.unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS
+                      ? -1 : sink_group(d.unit);
+    fm1_mod_ui_dest_name(env, &d, 1, say->line[r], sizeof say->line[r]);
     say->tag[r] = (uint8_t)(group_sound(g) + 1);
   }
 }
 
-static int group_of(const fm1_mod_dest_t *d) { return d->unit; }
-
-/* Where the current sound's parameters start in the list (0 if it has
- * none: an empty sound). */
-static int current_sound_at(const fm1_mod_ui_env_t *env, const fm1_mod_dest_t *list, int n) {
+static int current_sound_at(const fm1_mod_ui_env_t *env, const dest_list_t *list) {
   const unsigned unit = fm1_mod_sound_unit(env->sound < FM1_MOD_SOUNDS ? env->sound : 0u);
   int k;
-  for (k = 0; k < n; ++k) {
-    if (list[k].unit == unit && !list[k].gate) return k;
+  for (k = 0; k < list->groups; ++k) {
+    const dest_group_t *g = &list->group[k];
+    if (g->unit == unit) return g->first;
   }
   return 0;
 }
@@ -1304,21 +1370,23 @@ void fm1_mod_ui_matrix_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int kn
   u->field = (int8_t)(knob + 4 * u->mpage);
   u->field_until = hint_until;
   if (u->mpage == 0 && knob == 1) {                /* KNOB2: the destination picker */
-    fm1_mod_dest_t list[FM1_MOD_UI_MAX_DESTS];
-    const int n = fm1_mod_ui_dests(env, list, FM1_MOD_UI_MAX_DESTS);
+    dest_list_t list;
+    int n;
+    dest_list(env, &list);
+    n = list.n;
     if (!n) return;
     if (u->picker != FM1_MOD_PICK_DEST || u->pick_at != i) {
       fm1_mod_ui_commit(env, u);
       u->picker = FM1_MOD_PICK_DEST;
       u->pick_at = (uint8_t)i;
-      u->pick = (int16_t)dest_index(list, n, &s);
+      u->pick = (int16_t)dest_index(&list, &s);
       if (u->pick < 0) {                           /* a new cable: at the current sound */
-        const int at = current_sound_at(env, list, n);
+        const int at = current_sound_at(env, &list);
         u->pick = (int16_t)(delta > 0 ? at - 1 : at);
       }
     }
     u->pick = (int16_t)clampi(u->pick + delta, 0, n - 1);
-    say_dest(env, list, n, u->pick, say);
+    say_dest(env, &list, u->pick, say);
     return;
   }
   if (fm1_mod_ui_empty(u, env->m, i)) {            /* a fresh slot: nothing in it */
@@ -1380,30 +1448,22 @@ void fm1_mod_ui_matrix_knob(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int kn
 void fm1_mod_ui_matrix_algorithm(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u, int delta,
                                  fm1_mod_ui_say_t *say) {
   if (u->picker == FM1_MOD_PICK_DEST) {            /* jump between groups */
-    fm1_mod_dest_t list[FM1_MOD_UI_MAX_DESTS];
-    const int n = fm1_mod_ui_dests(env, list, FM1_MOD_UI_MAX_DESTS);
+    dest_list_t list;
+    int n;
+    dest_list(env, &list);
+    n = list.n;
     int k, at = clampi(u->pick, 0, n - 1);
     if (!n) return;
-    for (k = 0; k < (delta > 0 ? delta : -delta); ++k) {
-      const int g = group_of(&list[at]);
-      if (delta > 0) {
-        int j = at;
-        while (j < n && group_of(&list[j]) == g) ++j;
-        if (j < n) at = j;
-      } else {
-        int j = at;
-        while (j > 0 && group_of(&list[j]) == g) --j;     /* the group before */
-        if (group_of(&list[j]) != g) {
-          const int pg = group_of(&list[j]);
-          while (j > 0 && group_of(&list[j - 1]) == pg) --j;
-          at = j;
-        } else {
-          at = 0;
-        }
-      }
+    for (k = 0; k < list.groups && at >= list.group[k].end; ++k) {}
+    if (delta > 0) {
+      const int to = delta < list.groups - k ? k + delta : list.groups - 1;
+      if (to != k) at = list.group[to].first;
+    } else if (delta < 0) {
+      const int to = delta < -k ? 0 : k + delta;
+      at = list.group[to].first;
     }
     u->pick = (int16_t)at;
-    say_dest(env, list, n, at, say);
+    say_dest(env, &list, at, say);
     return;
   }
   if (delta & 1) u->mpage ^= 1u;
@@ -1436,12 +1496,15 @@ int fm1_mod_ui_commit(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u) {
            fm1_mod_kind_at(env->m, u->pick_at) == kind;
   }
   if (p == FM1_MOD_PICK_DEST) {
-    fm1_mod_dest_t list[FM1_MOD_UI_MAX_DESTS];
-    const int n = fm1_mod_ui_dests(env, list, FM1_MOD_UI_MAX_DESTS);
+    dest_list_t list;
+    int n;
+    dest_list(env, &list);
+    n = list.n;
     const unsigned i = u->pick_at;
     fm1_mod_slot_t s;
+    fm1_mod_dest_t d;
     if (u->pick < 0 || u->pick >= n || !fm1_mod_get_slot(env->m, i, &s)) return 0;
-    if (dest_index(list, n, &s) == u->pick) return 0;
+    if (dest_index(&list, &s) == u->pick) return 0;
     if (!fm1_mod_ui_has_dst(&s)) {                 /* the cable is new: on, at its amount */
       if (fm1_mod_ui_empty(u, env->m, i)) {
         memset(&s, 0, sizeof s);
@@ -1450,9 +1513,10 @@ int fm1_mod_ui_commit(const fm1_mod_ui_env_t *env, fm1_mod_ui_t *u) {
       }
       s.flags = (uint8_t)(s.flags | FM1_MOD_SLOT_ON);
     }
-    s.dst_unit = list[u->pick].unit;
-    s.dst = list[u->pick].dst;
-    s.flags = (uint8_t)(list[u->pick].gate ? s.flags | FM1_MOD_SLOT_GATE_DST
+    dest_at(&list, u->pick, &d);
+    s.dst_unit = d.unit;
+    s.dst = d.dst;
+    s.flags = (uint8_t)(d.gate ? s.flags | FM1_MOD_SLOT_GATE_DST
                                            : s.flags & ~FM1_MOD_SLOT_GATE_DST);
     u->srcset &= ~(1u << i);
     return fm1_mod_ui_set_slot(env, u, i, &s);
