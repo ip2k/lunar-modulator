@@ -35,7 +35,7 @@ index 761cde1..b67a1e8 100644
 +    target_compile_definitions(fm1_transporter_return_r01 PRIVATE FM1T_RETURN_R01=1)
 +endif()
 diff --git a/src/main.c b/src/main.c
-index 4a16e1b..81529d6 100644
+index 4a16e1b..bc515e6 100644
 --- a/src/main.c
 +++ b/src/main.c
 @@ -28,10 +28,12 @@
@@ -70,8 +70,8 @@ index 4a16e1b..81529d6 100644
      recovery_init();
 -#if FM1T_HOST_ONLY
 +#if FM1T_RETURN_R01
-+    if (recovery_target_attached()) {
-+        dlog("RETURN-R01: D+ already pulled up at startup; refusing cold entry");
++    if (!recovery_target_detached_stable(50)) {
++        dlog("RETURN-R01: D+ not continuously low before cold entry; refusing");
 +        for (;;) tight_loop_contents();
 +    }
 +    fm1_host_return_arm_cold();
@@ -414,6 +414,44 @@ index 9bfcd7e..2eecd2e 100644
 +bool fm1_host_return_call_complete(uint32_t generation);
 +void fm1_host_return_terminal(void);
 +#endif
+diff --git a/src/recovery.c b/src/recovery.c
+index e6a843e..49b288e 100644
+--- a/src/recovery.c
++++ b/src/recovery.c
+@@ -351,6 +351,17 @@ bool recovery_target_attached(void) {
+     return true;
+ }
+ 
++#if FM1T_RETURN_R01
++bool recovery_target_detached_stable(uint32_t ms) {
++    uint64_t deadline = time_us_64() + (uint64_t)ms * 1000;
++    while (time_us_64() < deadline) {
++        if (dp()) return false;
++        sleep_us(100);
++    }
++    return true;
++}
++#endif
++
+ void recovery_pulses_only(uint32_t ms) {
+     dlog("PULSE: %lu ms of 1 ms pulses for an already attached target", (unsigned long)ms);
+     pulse_start();
+diff --git a/src/recovery.h b/src/recovery.h
+index 3812f9f..736324b 100644
+--- a/src/recovery.h
++++ b/src/recovery.h
+@@ -21,6 +21,11 @@ void recovery_init(void);
+ // True if something already pulls D+ up at boot: a running FM-1 application,
+ // or a ROM UBOOT left waiting. The key is pointless then; go straight to host.
+ bool recovery_target_attached(void);
++#if FM1T_RETURN_R01
++// Strict cold candidate: D+ must remain low for the entire sampling window.
++// This is electrical observation, not proof that the target is powered off.
++bool recovery_target_detached_stable(uint32_t ms);
++#endif
+ 
+ // Waits until nothing pulls D+ up (e.g. the loader's watchdog reset fired).
+ bool recovery_wait_detached(uint32_t timeout_ms);
 diff --git a/src/return_r01_proto.c b/src/return_r01_proto.c
 new file mode 100644
 index 0000000..5881b40

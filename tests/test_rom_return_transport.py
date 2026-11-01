@@ -22,7 +22,7 @@ PATCHES = (
 )
 SOURCES = (
     "CMakeLists.txt", "pio/usb_key.pio", "src/recovery.c", "src/main.c",
-    "src/pio_host.c", "src/pio_host.h", "src/jieli_uboot.c",
+    "src/pio_host.c", "src/pio_host.h", "src/recovery.h", "src/jieli_uboot.c",
     "src/jieli_uboot.h", "src/transporter_proto.h", "src/usb_device.c",
 )
 
@@ -117,6 +117,29 @@ def test_strict_usb_identity_and_reset_exclusion(harness):
     reset_section = source.split("#if !FM1T_RETURN_R01", 2)[-1]
     assert "rom_reset_usb_boot_extra" in reset_section
     assert "*driver_count = 0;" in reset_section
+
+
+def test_cold_entry_requires_continuously_low_dp(harness):
+    stage = Path(harness).parent
+    source = (stage / "src/recovery.c").read_text()
+    assert "recovery_target_detached_stable(50)" in (stage / "src/main.c").read_text()
+    code = (
+        "#include <stdbool.h>\n#include <stdint.h>\n"
+        "static uint64_t now; static int samples; static int high_at;\n"
+        "static uint64_t time_us_64(void) { return now; }\n"
+        "static bool dp(void) { return samples++ == high_at; }\n"
+        "static void sleep_us(unsigned n) { now += n; }\n"
+        + _function(source, "recovery_target_detached_stable") + "\n"
+        "int main(void) { high_at = 10; if (recovery_target_detached_stable(50)) return 1; "
+        "now = 0; samples = 0; high_at = -1; "
+        "return recovery_target_detached_stable(50) && samples == 500 ? 0 : 2; }\n"
+    )
+    path = stage / "actual_cold_entry.c"
+    path.write_text(code)
+    binary = stage / "actual_cold_entry"
+    subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Werror",
+                    str(path), "-o", str(binary)], check=True)
+    subprocess.run([str(binary)], check=True)
 
 
 def test_recipe_refuses_unpinned_inputs_before_output():

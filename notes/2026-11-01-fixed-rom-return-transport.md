@@ -17,7 +17,8 @@ and CRC32 `E6FACC35`. The final UF2 SHA is deliberately unset until an
 independently reviewed build produces it; the compile-time
 `rr01-pico-v1` marker cannot attest the flashed image.
 
-The strict variant requires the target D+ to be low at Pico startup, then
+The strict variant requires the target D+ to remain low for a continuous
+50 ms electrical observation at Pico startup, then
 runs one cold USB_KEY handoff and accepts only one exact ROM VID/PID and
 36-byte INQUIRY identity. Its CDC data interface accepts three fixed lines:
 `rr01-ready`, `rr01-upload` plus exactly 512 plaintext bytes, and
@@ -41,6 +42,8 @@ permanently spent. A matching complete call reply is bounded evidence of
 the ROM command returning only when cold-ROM, wiring and UF2 provenance are
 established separately. It is no ABI, execution-duration, or hardware
 qualification proof.
+The low D+ observation is a cold-entry precondition, not proof that the
+FM-1 was actually powered off or that the later mount came from mask ROM.
 
 Synchronous BOT waits can run callbacks while core 0 receives CDC bytes. The
 strict path rechecks the same live mount after descriptor, INQUIRY, upload
