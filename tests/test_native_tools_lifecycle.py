@@ -122,3 +122,73 @@ def test_inventory_uses_project_scratch_and_cleans_on_exit(tmp_path, monkeypatch
         inventory.verify(kit, source)
     assert destinations and not destinations[0].parent.exists()
     assert list(scratch.iterdir()) == []
+
+
+@pytest.mark.parametrize("create_result", ["returned-id", "ambiguous-failure"])
+@pytest.mark.parametrize("cancellation", ["false", "raises", "confirmed", "metadata-write-failure"])
+def test_mounted_inputs_survive_until_container_cleanup_confirmed(
+        setup_build, monkeypatch, create_result, cancellation):
+    source, toolchain, catalogue, private, request = setup_build
+    monkeypatch.setattr(wrapper, "_toolchain_manifest", lambda path: b'{}')
+    def git_run(command, **kw):
+        if command[1] == "clone":
+            (Path(command[-1]) / "input").write_bytes(b"source")
+        return SimpleNamespace(stdout="a" * 40 if kw.get("text") else b"")
+    monkeypatch.setattr(wrapper.subprocess, "run", git_run)
+    image_run = wrapper._run
+    def docker_run(docker, args, **kw):
+        if args[0] == "create":
+            if create_result == "ambiguous-failure":
+                raise RuntimeError("injected ambiguous create")
+            return b"b" * 64
+        return image_run(docker, args)
+    monkeypatch.setattr(wrapper, "_run", docker_run)
+    def inspect(*args):
+        raise RuntimeError("injected inspection failure")
+    monkeypatch.setattr(wrapper, "_inspect", inspect)
+    monkeypatch.setattr(wrapper, "_retain_failure_log", lambda *args: None)
+    cancellations = []
+    def cancel(name, **kw):
+        cancellations.append(name)
+        if cancellation == "raises":
+            raise OSError("injected cleanup failure")
+        return cancellation == "confirmed"
+    monkeypatch.setattr(wrapper, "cancel_owned_container", cancel)
+    if cancellation == "metadata-write-failure":
+        def write_failure(*args):
+            raise OSError("injected recovery write failure")
+        monkeypatch.setattr(wrapper, "_write_exclusive", write_failure)
+    expected_error = OSError if cancellation in ("raises", "metadata-write-failure") else ValueError if cancellation == "false" else RuntimeError
+    expected_message = "injected cleanup failure" if cancellation == "raises" else "inputs retained" if cancellation == "false" else "injected"
+    with pytest.raises(expected_error, match=expected_message):
+        wrapper.run_build(request_path=request, toolchain_path=toolchain,
+                          catalogue_path=catalogue, output_path=private / "result", source_root=source)
+    assert len(cancellations) == 1
+    recovery_path = private / "result" / "container-cleanup-unconfirmed.json"
+    if cancellation == "confirmed":
+        assert sorted(path.name for path in private.iterdir()) == ["result"]
+        assert not recovery_path.exists()
+    else:
+        # These are potential live container mounts, including an uncertain create.
+        assert len(list(private.iterdir())) == 4
+        if cancellation == "metadata-write-failure":
+            assert not recovery_path.exists()
+            assert next(private.glob("*.request.json")).read_bytes() == b'{}'
+            assert (next(private.glob(".result-source-*")) / "input").read_bytes() == b"source"
+            assert (next(private.glob(".result-catalogue-*")) / "input").read_bytes() == b"catalogue"
+            return
+        recovery = json.loads(recovery_path.read_bytes())
+        assert recovery["container_name"] == cancellations[0]
+        assert recovery["container_id"] == ("b" * 64 if create_result == "returned-id" else None)
+        assert recovery["cleanup_confirmed"] is False
+        assert recovery["ownership_verified"] is False
+        assert recovery["create_attempted"] is True
+        assert recovery["hardware_admitted"] is False and recovery["installable"] is False
+        assert recovery["source_commit"] == "a" * 40
+        assert recovery["owner_label"] == {"lan.owner": cancellations[0]}
+        assert Path(recovery["request_copy"]).read_bytes() == b'{}'
+        assert (Path(recovery["source_snapshot"]) / "input").read_bytes() == b"source"
+        assert (Path(recovery["catalogue_snapshot"]) / "input").read_bytes() == b"catalogue"
+        assert Path(recovery["toolchain_root"]) == toolchain
+        assert Path(recovery["output_root"]) == private / "result"
+        assert recovery_path.stat().st_mode & 0o077 == 0

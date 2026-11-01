@@ -464,10 +464,46 @@ def run_build(*, request_path: Path,
                 _retain_failure_log(docker_binary, container_id, output)
             raise
         finally:
-            cleanup_confirmed = cancel_owned_container(container_name, cwd=source,
-                                                         docker=docker_binary)
+            cleanup_confirmed = False
+            cleanup_error = None
+            try:
+                cleanup_confirmed = cancel_owned_container(container_name, cwd=source,
+                                                            docker=docker_binary) is True
+            except BaseException as error:
+                cleanup_error = error
+                raise
+            finally:
+                if not cleanup_confirmed:
+                    # A failed/ambiguous create may still have installed mounts.
+                    # Keep every acquired input until exact owned absence is proven.
+                    temporary.pop_all()
+                    _write_exclusive(output / "container-cleanup-unconfirmed.json", canonical({
+                        "schema": 1,
+                        "cleanup_confirmed": False,
+                        "cleanup_error_type": type(cleanup_error).__name__ if cleanup_error else None,
+                        "create_attempted": True,
+                        "container_name": container_name,
+                        "container_id": container_id,
+                        "owner_label": {"lan.owner": container_name},
+                        "docker_binary": str(docker_binary),
+                        "source_root": str(source),
+                        "ownership_verified": False,
+                        "source_commit": commit,
+                        "request_sha256": sha(request_raw),
+                        "request_copy": str(request_copy),
+                        "source_snapshot": str(snapshot),
+                        "catalogue_snapshot": str(catalogue_snapshot),
+                        "toolchain_root": str(toolchain),
+                        "output_root": str(output),
+                        "recovery": "Inspect the expected name and owner label; never delete by name alone. "
+                                    "Preserve inputs until exact owned container absence is confirmed.",
+                        "hardware_admitted": False,
+                        "hardware_tested": False,
+                        "installable": False,
+                    }))
             if not cleanup_confirmed:
-                raise ValueError("could not confirm exact owned container cleanup")
+                raise ValueError("could not confirm exact owned container cleanup; inputs retained; "
+                                 "see " + str(output / "container-cleanup-unconfirmed.json"))
 
 
 def main():
