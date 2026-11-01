@@ -10,7 +10,8 @@ MODES = ('stream', 'missing_irq', 'wrong_core', 'stale_ack', 'launch_fail',
          'late_entry', 'timeout', 'setup_fail', 'late_ready',
          'entered_before_ready', 'clock_wrap', 'irq_reinit', 'bad_argument',
          'late_launch_fail', 'deadline', 'prepoison_before_irq',
-         'prepoison_after_irq', 'invalid_api_before_start', 'poison_direct_core_start')
+         'prepoison_after_irq', 'invalid_api_before_start', 'poison_direct_core_start',
+         'hook_poison_ready', 'hook_abort_ready')
 
 @pytest.mark.parametrize('sanitize', [False, True])
 def test_native_lifecycle(tmp_path, sanitize):

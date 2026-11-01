@@ -97,6 +97,10 @@ static int port_launch(void (*entry)(void *), void *arg) {
         if(launch_context.aborted ||
            (uint32_t)(native_ms()-first)>=LUNAR_NATIVE_STARTUP_MS)goto refused;
         if(launch_context.ready && launch_context.entered) {
+            /* The clock hook above may synchronously latch abort/poison after
+             * the timeout expression's first aborted read. Recheck before RUN.
+             * This is not an atomic grant against arbitrary concurrent faults. */
+            if(launch_context.aborted || lunar_pipeline_error())goto refused;
             launch_context.command=N_RUN; port_fence(); return 0;
         }
         native_delay(1);

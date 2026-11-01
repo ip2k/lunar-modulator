@@ -5,6 +5,16 @@
 #include <string.h>
 static struct { uint32_t tag; } arena[2];
 static _Atomic unsigned callbacks, clock_calls;
+static unsigned hook_injected,hook_saw_run;
+static int native_hook_ready(void) { return launch_context.ready; }
+static void native_hook_poison(void) {
+    if(host_cpu==0 && launch_context.command==N_RUN)hook_saw_run=1;
+    if(host_cpu==0 && launch_context.ready && launch_context.command==N_PUBLISHED && !hook_injected) {
+        hook_injected=1;
+        if(mode_hook_abort)launch_context.aborted=1;
+        lunar_pipeline_refuse(0x9123);
+    }
+}
 static uint32_t ticks(void) { ++clock_calls; return (uint32_t)(host_ns()/1000u); }
 static int consume(void *work,uint32_t tag,int16_t *pcm,lunar_pipeline_result_t *result) {
     assert(setup_finished && launch_context.command==N_RUN);
@@ -79,6 +89,8 @@ int main(int argc,char **argv) {
         if(!strcmp(mode,"bad_argument"))mode_bad_argument=1;
         if(!strcmp(mode,"late_launch_fail"))mode_late_launch_fail=1;
         if(!strcmp(mode,"deadline"))mode_deadline=1;
+        if(!strcmp(mode,"hook_poison_ready"))mode_hook_poison=1;
+        if(!strcmp(mode,"hook_abort_ready"))mode_hook_abort=1;
         if(!strcmp(mode,"late_ready") || !strcmp(mode,"entered_before_ready"))mode_hold_setup=1;
         if(!strcmp(mode,"clock_wrap"))host_ms_offset=UINT32_MAX-5;
         pthread_t observer;int observed=!strcmp(mode,"entered_before_ready");
@@ -93,6 +105,11 @@ int main(int argc,char **argv) {
             assert(lunar_pipeline_error());
         } else {
             assert(!ok && lunar_pipeline_error() && !callbacks);
+            if(mode_hook_poison || mode_hook_abort) {
+                assert(hook_injected && launch_context.ready && launch_context.entered);
+                assert(!hook_saw_run && launch_context.command!=N_RUN && lunar_pipeline_error()==0x9123);
+                assert(launch_calls==1);
+            }
             if(!strcmp(mode,"late_entry")) {
                 assert(host_argument==&launch_context);host_cpu=1;
                 host_entry(host_argument);host_cpu=0;
