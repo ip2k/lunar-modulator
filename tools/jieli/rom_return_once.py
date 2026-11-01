@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Fixed return-r01 host, currently disabled pending a reviewed strict UF2 pin.
+"""Fixed return-r01 host for one reviewed offline strict Pico image.
 
 No discovery, generic transporter, retry, recovery or post-call commands.
 An exact reply is transport evidence only, never flashed-image/ROM attestation.
+The image pin does not authorize device traffic or qualify target execution.
 """
 from __future__ import annotations
 
@@ -28,9 +29,10 @@ PAYLOAD_SHA256 = "898b7737d69e351e54b406aebda27652c04413344d19dfb698a8642e33b698
 BUILD_ID = "rr01-pico-v1"
 USB = dict(vid=0x2E8A, pid=0x000A, product="Lunar fixed ROM return-r01",
            data_interface=2, data_interface_string="Return-r01 fixed data")
-# Set only in a separately reviewed source update after the strict UF2 build.
+# Exact firmware/rom-witness-return/reviewed-pico-image.json bytes, derived from
+# the independently reviewed ff1fed64 offline build. Not flashed attestation.
 # No CLI/environment option can populate or bypass this trust anchor.
-REVIEWED_IMAGE_MANIFEST_SHA256 = None
+REVIEWED_IMAGE_MANIFEST_SHA256 = "84f294a2140e4425f764e5597c9618d9c571f4952b3d2baed3c78938d30dc5a7"
 IO_SECONDS = 5.0
 READY_SECONDS = 10.0
 MAX_LINE = 96
