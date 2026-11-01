@@ -9,7 +9,9 @@ import copy
 import hashlib
 import os
 from pathlib import Path
+import struct
 import subprocess
+import zlib
 
 from tools import lunar_state as state
 from tools.native.prepare_selected_project import prepare
@@ -20,8 +22,58 @@ SOURCE_SHA256 = "46541967e4fa7321f4efe1105632de3613064a2fbcf7d71490cb647247a97c1
 PACKED_SHA256 = "dc3c50d8da761fdfe36d17e1368d99f40740652192f14649230a9f8d7e3d58d4"
 
 
+def _with_unsupported_binary_data(packed, *, kind):
+    """Keep all known records intact while adding one valid skipped item."""
+    header = bytearray(packed[:32])
+    count = struct.unpack_from("<H", header, 14)[0]
+    assert struct.unpack_from("<HH", header, 12)[0] == 32
+    assert struct.unpack_from("<H", header, 16)[0] == 20
+    entries = []
+    unit_tail_added = False
+    for i in range(count):
+        tag, version, flags, offset, size, _crc = struct.unpack_from(
+            "<4sHHIII", packed, 32 + 20 * i
+        )
+        payload = packed[offset:offset + size]
+        if tag == b"info" and kind == "unknown-info-key":
+            data = bytearray(payload)
+            struct.pack_into("<H", data, 0, struct.unpack_from("<H", data, 0)[0] + 1)
+            data += struct.pack("<HBBH", 999, 1, 0, 0)
+            payload = bytes(data)
+        if tag == b"UNIT" and kind == "newer-unit-tail" and not unit_tail_added:
+            version += 1
+            payload += b"\x7f"
+            unit_tail_added = True
+        entries.append((tag, version, flags, payload))
+    if kind == "unknown-ancillary":
+        entries.append((b"xtra", 1, 0, b"junk"))
+    if kind == "newer-unit-tail":
+        assert unit_tail_added
+    struct.pack_into("<H", header, 14, len(entries))
+    directory = bytearray()
+    chunks = bytearray()
+    first = (32 + len(entries) * 20 + 4 + 3) & ~3
+    for tag, version, flags, payload in entries:
+        chunks += bytes((-len(chunks)) & 3)
+        offset = first + len(chunks)
+        directory += struct.pack("<4sHHIII", tag, version, flags, offset,
+                                 len(payload), zlib.crc32(payload))
+        chunks += payload
+    total = first + len(chunks)
+    struct.pack_into("<I", header, 20, total)
+    struct.pack_into("<I", header, 28, zlib.crc32(header[:28]))
+    return bytes(header + directory + struct.pack("<I", zlib.crc32(directory)) + chunks)
+
+
 def _makefile(tmp_path):
     sibling = os.environ.get("LUNAR_SELECTED_PARSER_ROOT")
+    selected_impl = Path(os.environ.get(
+        "LUNAR_SELECTED_IMPL_SOURCE", ROOT / "firmware/native/selected_project.c"
+    )).resolve()
+    if "LUNAR_SELECTED_IMPL_SOURCE" in os.environ:
+        assert hashlib.sha256(selected_impl.read_bytes()).hexdigest() == os.environ[
+            "LUNAR_SELECTED_IMPL_SHA256"
+        ]
     rules = []
     include = ""
     if sibling:
@@ -42,7 +94,7 @@ def _makefile(tmp_path):
     rules += [
         f"PROOF := {ROOT}",
         f"PROOF_BLOB := {tmp_path / 'prepared'}",
-        "$(BUILD)/proof/selected_project.o: $(PROOF)/firmware/native/selected_project.c",
+        f"$(BUILD)/proof/selected_project.o: {selected_impl}",
         "\t@mkdir -p $(dir $@)",
         f"\t$(CC) $(SIM_CFLAGS) {include}-I$(PROOF)/engines/state -I$(PROOF)/firmware/native -c $< -o $@",
         "$(BUILD)/proof/check.o: $(PROOF)/tests/fixtures/selected_project/check.c",
@@ -111,6 +163,16 @@ def test_native_selected_trio_matches_current_app_and_refuses_extra_records(tmp_
         data = state.write_bin(copy.deepcopy(changed), deflate_chunks=False)
         reread, bin_report = state.read_bin(data)
         assert bin_report.code == "OK" and reread
+        path = tmp_path / f"{label}.lunarbin"
+        path.write_bytes(data)
+        refused.append(path)
+    for label in ("unknown-ancillary", "unknown-info-key", "newer-unit-tail"):
+        data = _with_unsupported_binary_data(packed, kind=label)
+        reread, bin_report = state.read_bin(data)
+        assert bin_report.code == "OK"
+        if label != "newer-unit-tail":
+            assert bin_report.skipped == 1
+        assert len(reread) == len(records)
         path = tmp_path / f"{label}.lunarbin"
         path.write_bytes(data)
         refused.append(path)
