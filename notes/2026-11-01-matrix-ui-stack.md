@@ -100,3 +100,23 @@ and slow (65/106 seconds), so exact source/runtime tests supplied the evidence.
 
 This incremental fix also changes fm1_mod_ui.c and requires the coordinator's
 next complete WASM source-hash rebuild. No generated hashes were edited.
+
+## Handoff and lifecycle
+
+Implementation/test head `2aa61d98335475c9285f5ab20624296b693ae994` pushed
+and verified on origin `fix/2026-11-01@matrix-ui-stack`; preceding coherent
+commits are `c3f05e1b` and `3f5c10f3`. Final fixture recompilation/rerun and
+actual pi32 compilation pass after the identity fix; the three pi32 local
+allocations remain 652/376/404 bytes.
+
+Remote task stage was deleted after checking no task-labelled container was
+running. No container/build output remains there. Owned local scratch retains
+28 KiB of logs and the target compilation command only, under
+`scratch/matrix-stack-20261101`; baseline source/assembly intermediates were
+removed. Worktree stays registered for coordinator integration and must be
+removed after merge. Mac free space: 1121 GiB at handoff.
+
+Next: coordinator reviews/cherry-picks this branch, performs the required full
+WASM build/parity/hash generation on the integrated source, and runs project
+review/CI gates. There is no whole-target-stack execution or device acceptance
+claim, and no remaining owner decision for these fixes.
