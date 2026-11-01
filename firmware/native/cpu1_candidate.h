@@ -3,6 +3,9 @@
 #define LUNAR_CPU1_CANDIDATE_H
 #include <stdint.h>
 #include <stddef.h>
+#if defined(LUNAR_CPU1_CANDIDATE_HOST) && LUNAR_CPU1_CANDIDATE_HOST != 1
+#error Select host atomics explicitly with value 1
+#endif
 #ifdef LUNAR_CPU1_CANDIDATE_HOST
 #include <stdatomic.h>
 typedef _Atomic uint32_t cpu1_word;
@@ -53,7 +56,7 @@ typedef struct {
  const cpu1_ops *ops;
  cpu1_layout layout;
  cpu1_word prepared,vectors,attempted,failed,setup_nonce,launch_ok,held;
- uint32_t saved[8],saved_mask,cleanup_failed,prior_debug;
+ uint32_t saved[8],saved_mask,cleanup_failed,prior_debug,prior_debug_valid;
  void (*entry)(void *);
  void *argument;
  cpu1_clock clocks[2] __attribute__((aligned(64)));
@@ -61,6 +64,7 @@ typedef struct {
 } cpu1_candidate;
 /* All storage is permanent. No reset/retry/free API, including after failure. */
 int cpu1_candidate_early_hold(const cpu1_ops *);
+int cpu1_candidate_early_hold_record(const cpu1_ops *,uint32_t *);
 int cpu1_candidate_prepare(cpu1_candidate *,const cpu1_ops *,const cpu1_layout *);
 int cpu1_candidate_install_vectors(cpu1_candidate *);
 int cpu1_candidate_launch(cpu1_candidate *,void (*)(void *),void *);

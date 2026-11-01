@@ -16,9 +16,11 @@ static int access(const cpu1_ops *o,uint32_t desired){
  return rd(o,C1_ACCESS,&v) && (v&1u)==(desired&1u);
 }
 /* Registers/local stack only: usable before C storage initialization. */
-int cpu1_candidate_early_hold(const cpu1_ops *o){
- uint32_t was,en,con;int ok=1,have_en=0;
+int cpu1_candidate_early_hold_record(const cpu1_ops *o,uint32_t *prior_debug){
+ uint32_t was,en,con,debug;int ok=1,have_en=0;
  if(!o || o->cpu(o->context)!=0)return 0;
+ if(!rd(o,C1_DBG_MSG,&debug))return 0;
+ if(prior_debug)*prior_debug=debug;
  if(!rd(o,C1_ACCESS,&was))return 0;
  if(!access(o,1)){access(o,was);return 0;}
  if(rd(o,C1_DBG_EN,&en))have_en=1;else ok=0;
@@ -38,6 +40,7 @@ int cpu1_candidate_early_hold(const cpu1_ops *o){
  if(!access(o,was))ok=0;
  sync(o);return ok;
 }
+int cpu1_candidate_early_hold(const cpu1_ops *o){return cpu1_candidate_early_hold_record(o,0);}
 static int fail(cpu1_candidate *s){s->failed=1;sync(s->ops);return 0;}
 static int cpu0(cpu1_candidate *s){return s->ops && s->ops->cpu(s->ops->context)==0;}
 int cpu1_candidate_prepare(cpu1_candidate *s,const cpu1_ops *o,const cpu1_layout *l){
@@ -69,17 +72,24 @@ static int save(cpu1_candidate *s,unsigned n){
 static int cleanup(cpu1_candidate *s){
  int ok=1;const cpu1_ops *o=s->ops;
  if(s->saved_mask&~1u){
-  if(!access(o,1))ok=0;
-  /* An earlier write may have failed before launch unprotected this slot.
-   * Restore it under an explicitly open top guard, including partial setup. */
-  if((s->saved_mask&0x82u)==0x82u &&
-     !wr(o,C1_TOP,s->saved[1]&~4u))ok=0;
-  /* Entry slot is restored only after setup ACK or terminal hold. */
-  for(unsigned n=2;n<8;++n)if(s->saved_mask&(1u<<n)){
-   if(!wr(o,saved_addresses[n],s->saved[n]))ok=0;
+  int unlocked=access(o,1),entry_open=0;
+  if(!unlocked)ok=0;
+  if(unlocked){
+   /* An earlier write may have failed before launch unprotected this slot.
+    * Never attempt a protected write after an unconfirmed unlock/open. */
+   if((s->saved_mask&0x82u)==0x82u){uint32_t top;
+    if(!wr(o,C1_TOP,s->saved[1]&~4u))ok=0;
+    entry_open=rd(o,C1_TOP,&top) && !(top&4u);
+    if(!entry_open)ok=0;
+   }
+   /* Entry slot is restored only after setup ACK or terminal hold. */
+   for(unsigned n=2;n<8;++n)if(s->saved_mask&(1u<<n)){
+    if(n==7 && !entry_open){ok=0;continue;}
+    if(!wr(o,saved_addresses[n],s->saved[n]))ok=0;
+   }
+   /* Restore top protection after the entry word, never before it. */
+   if((s->saved_mask&2u) && !wr(o,C1_TOP,s->saved[1]))ok=0;
   }
-  /* Restore top protection after the entry word, never before it. */
-  if((s->saved_mask&2u) && !wr(o,C1_TOP,s->saved[1]))ok=0;
  }
  if((s->saved_mask&1u) && !access(o,s->saved[0]))ok=0;
  sync(o);if(!ok){s->cleanup_failed=1;fail(s);}return ok;
@@ -94,6 +104,8 @@ int cpu1_candidate_install_vectors(cpu1_candidate *s){
   if(!wr(s->ops,C1_VECTORS+4u*i,i==1?s->layout.exception:s->layout.unexpected))goto done;
  for(unsigned i=0;i<32u;++i)if(!wr(s->ops,C1_IRQ0+4u*i,0))goto done;
  if(!wr(s->ops,C1_PENDING0,255u))goto done;
+ /* Only exception source 1, priority 7; ordinary delivery remains disabled. */
+ if(!wr(s->ops,C1_IRQ0,0xf0u))goto done;
  sync(s->ops);
  for(unsigned i=0;i<128u;++i){uint32_t v;
   if(!rd(s->ops,C1_VECTORS+4u*i,&v) || v!=(i==1?s->layout.exception:s->layout.unexpected))goto done;
@@ -107,7 +119,10 @@ done:
 int cpu1_candidate_hold(cpu1_candidate *s){
  if(!cpu0(s))return 0;
  s->failed=1;sync(s->ops);
- if(!rd(s->ops,C1_DBG_MSG,&s->prior_debug))s->cleanup_failed=1;
+ if(!s->prior_debug_valid){
+  if(!rd(s->ops,C1_DBG_MSG,&s->prior_debug))s->cleanup_failed=1;
+  else s->prior_debug_valid=1;
+ }
  int ok=cpu1_candidate_early_hold(s->ops);
  if(ok)s->held=1;else s->cleanup_failed=1;
  sync(s->ops);return ok;
@@ -121,6 +136,7 @@ int cpu1_candidate_launch(cpu1_candidate *s,void (*entry)(void *),void *argument
  if(!access(o,1))goto done;
  for(unsigned i=0;i<32u;++i)if(!wr(o,C1_IRQ1+4u*i,0))goto done;
  if(!wr(o,C1_PENDING1,255u))goto done;
+ if(!wr(o,C1_IRQ1,0xf0u))goto done;
  if(!wr(o,C1_PC_H0,UINT32_MAX) || !wr(o,C1_PC_L0,0) ||
     !wr(o,C1_PC_H1,UINT32_MAX) || !wr(o,C1_PC_L1,0) ||
     !wr(o,C1_TOP,s->saved[1]&~4u) || !wr(o,C1_ENTRY,s->layout.entry) ||

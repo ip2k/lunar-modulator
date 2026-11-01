@@ -14,13 +14,13 @@ static _Thread_local uint32_t mock_icfg;
 static cpu1_candidate candidate;
 static _Atomic uint32_t regs[1280],vectors[128],divider;
 static _Atomic unsigned reads,writes,releases,worker_created;
-static _Atomic unsigned setup_bad,no_entry,late_entry,cleanup_bad,do_shutdown;
-static _Atomic unsigned fail_write_at,ambiguous_write;
+static _Atomic unsigned setup_bad,no_entry,late_entry,cleanup_bad,do_shutdown,hang_ready;
+static _Atomic unsigned fail_write_at,fail_read_at,ambiguous_write;
 static _Atomic unsigned write_failure_count,run_seen,callbacks;
 static pthread_t worker_thread;
 static struct timespec epoch;
-static unsigned manual;
-static uint32_t raw;
+static _Atomic unsigned manual;
+static _Atomic uint32_t raw;
 static uint32_t *unused_pointer;
 static cpu1_word *reg_at(uint32_t address){
  if(address==C1_DIV)return &divider;
@@ -30,7 +30,9 @@ static cpu1_word *reg_at(uint32_t address){
 }
 static uint32_t peek(uint32_t a){return *reg_at(a);}
 static void poke(uint32_t a,uint32_t v){*reg_at(a)=v;}
-static int read32(void *ctx,uint32_t a,uint32_t *v){(void)ctx;++reads;*v=peek(a);return 1;}
+static int read32(void *ctx,uint32_t a,uint32_t *v){
+ (void)ctx;if(++reads==fail_read_at)return 0;*v=peek(a);return 1;
+}
 static void *worker_main(void *unused){(void)unused;mock_cpu=1;mock_icfg=0;cpu1_candidate_secondary(&candidate);return NULL;}
 static int write32(void *ctx,uint32_t a,uint32_t v){
  (void)ctx;unsigned n=++writes;
@@ -67,11 +69,11 @@ static int registers(void *ctx,cpu1_registers *r){
  if(setup_bad)r->ssp=0x01c14008u;return 1;
 }
 static const cpu1_ops ops={NULL,read32,write32,cpu,ticks,mock_fence,pause_cpu,irq_get,irq_set,registers};
-#define LUNAR_NATIVE_PIPELINE_TEST_PLATFORM_HEADER "cpu1_candidate_platform.h"
+#define LUNAR_NATIVE_PIPELINE_TEST_PLATFORM_HEADER "cpu1_candidate_mock_platform.h"
 #include "renderer_pipeline_native.c"
 static void native_delay(unsigned ms){
  if(mock_cpu==1 && (do_shutdown || s.exited))pthread_exit(NULL);
- if(!cpu1_candidate_delay(&candidate,ms))lunar_pipeline_refuse(0xc103);
+ if(!cpu1_candidate_delay(&candidate,ms))native_refuse(0xc103);
 }
 static void initialize(void){
  assert(!clock_gettime(CLOCK_MONOTONIC,&epoch));
@@ -151,21 +153,33 @@ int main(int argc,char **argv){
   assert(!writes && !releases);goto done;
  }
  if(!strcmp(mode,"wrong_core")){
-  mock_cpu=1;assert(!cpu1_candidate_install_vectors(&candidate));assert(!writes && !releases);goto done;
+  mock_cpu=1;assert(!cpu1_candidate_install_vectors(&candidate));
+  assert(!cpu1_candidate_hold(&candidate));assert(!cpu1_candidate_early_hold(&ops));
+  assert(!writes && !releases);goto done;
  }
  if(!strcmp(mode,"early_hold")){
   assert(cpu1_candidate_early_hold(&ops));assert(peek(C1_CON)==2u);
   assert(peek(C1_DBG_EN)==0x003f0040u && !peek(C1_ACCESS));goto done;
  }
+ if(!strncmp(mode,"vector_",7)){
+  ambiguous_write=mode[7]=='a';fail_write_at=(unsigned)strtoul(mode+9,NULL,10);
+  assert(!cpu1_candidate_install_vectors(&candidate));
+  assert(candidate.failed && !candidate.vectors && !candidate.attempted && !releases);
+  assert(!cpu1_candidate_launch(&candidate,NULL,NULL));goto done;
+ }
  assert(cpu1_candidate_install_vectors(&candidate));
+ assert(peek(C1_IRQ0)==0xf0u && peek(C1_IRQ0+60u)==0u && peek(C1_ENTRY)==candidate.layout.unexpected);
  if(!strcmp(mode,"prepoison"))lunar_pipeline_refuse(77);
  if(!strcmp(mode,"bad_setup"))setup_bad=1;
  if(!strcmp(mode,"no_entry"))no_entry=1;
  if(!strcmp(mode,"late_entry"))late_entry=1;
  if(!strcmp(mode,"cleanup_failure"))cleanup_bad=1;
- if(!strncmp(mode,"partial_",8)){
-  fail_write_at=writes+(unsigned)strtoul(mode+8,NULL,10);ambiguous_write=1;no_entry=1;
+ if(!strcmp(mode,"stalled_ready"))hang_ready=1;
+ if(!strcmp(mode,"stalled_launch")){manual=1;no_entry=1;}
+ if(!strncmp(mode,"write_",6)){
+  fail_write_at=writes+(unsigned)strtoul(mode+8,NULL,10);ambiguous_write=mode[6]=='a';no_entry=1;
  }
+ if(!strncmp(mode,"read_",5)){fail_read_at=reads+(unsigned)strtoul(mode+5,NULL,10);no_entry=1;}
  assert(lunar_pipeline_native_primary_irq_ready() || !strcmp(mode,"prepoison"));
  int ok=lunar_pipeline_native_start(ticks_callback);
  if(!strcmp(mode,"stream")){
@@ -177,7 +191,8 @@ int main(int argc,char **argv){
  }else{
   assert(!ok && !callbacks && !run_seen);
   if(!strcmp(mode,"late_entry")){mock_cpu=1;cpu1_candidate_secondary(&candidate);mock_cpu=0;assert(!launch_context.ready);}
-  if(strcmp(mode,"cleanup_failure"))restored();else assert(candidate.cleanup_failed);
+  if(!strcmp(mode,"cleanup_failure"))assert(candidate.cleanup_failed);
+  if(!candidate.cleanup_failed)restored();
   unsigned before=releases;assert(!lunar_pipeline_native_start(ticks_callback));assert(releases==before);
  }
  do_shutdown=1;
