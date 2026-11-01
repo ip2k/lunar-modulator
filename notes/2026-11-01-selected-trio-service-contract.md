@@ -56,7 +56,7 @@ host tools. Raw SDK/header inputs remained there; none were copied here.
 Test command uses existing service venv, `PYTHONDONTWRITEBYTECODE=1`, pytest
 `-o addopts='' -q -p no:cacheprovider --basetemp=scratch/selected-trio-contract/pytest`,
 with selected_trio_profile, request_contract, service, server, native_profile,
-trusted_policy and audit_link test files. Result: 362 passed, 1 pre-existing
+trusted_policy and audit_link test files. Result: 363 passed, 1 pre-existing
 retained-native-input skip, 6 subtests passed; existing Starlette deprecation
 warning. Fixtures prove request/receipt refusal, changed actual bytes, table/name
 bounds, storage overlap, guard/blob/audit mismatches and unchanged v1 behavior.
@@ -78,3 +78,7 @@ SDK copying or heavy local job occurred in this lane. The next dependency is
 independent review, then a separately authorized bounded worker adapter with
 trusted input acquisition and existing bounded process capture, still disabled
 until its own actual receipt and lifecycle/security checks pass.
+
+Independent review requested pinning the accepted audit_limit prose to the exact
+builder disclaimer, preventing that field from smuggling a complete-safety claim.
+The fixed comparison and causal refusal regression are included; no gate changes.

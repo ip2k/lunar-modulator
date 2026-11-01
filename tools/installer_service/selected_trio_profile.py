@@ -25,6 +25,8 @@ SOURCE_SHA256 = "46541967e4fa7321f4efe1105632de3613064a2fbcf7d71490cb647247a97c1
 PACKED_SHA256 = "dc3c50d8da761fdfe36d17e1368d99f40740652192f14649230a9f8d7e3d58d4"
 ARCHIVE_SHA256 = "f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958"
 APP_BUDGET = 0x8DFBC
+AUDIT_LIMIT = ("Symbol closure scan is additional evidence, not audit_link admission "
+               "or a complete MMIO/callgraph audit.")
 MAX_RECEIPT = 4 * 1024 * 1024
 MAX_ELF = 16 * 1024 * 1024
 MAX_EVIDENCE = 256 * 1024 * 1024
@@ -257,7 +259,7 @@ def validate_receipt(request_raw: bytes, receipt_raw: bytes, *, app: bytes, elf:
             arena_bytes=16384, cpu1=False, usb=False, persistence=False, fail_open=False,
             fixed_project_startup=True, rom_return=False, distribution_reviewed=False,
             combined_licence="GPL-3.0-only", gpl_sources=GPL_SOURCES,
-            toolchain_archive_sha256=ARCHIVE_SHA256).items():
+            toolchain_archive_sha256=ARCHIVE_SHA256, audit_limit=AUDIT_LIMIT).items():
         _same(receipt.get(field), expected, field)
     # This profile must not borrow old FM6 or timed/expanded profile fields.
     if any(k in receipt for k in ("voices", "dx7_sine", "shapes_voices", "runtime_configuration", "flash_layout")):
