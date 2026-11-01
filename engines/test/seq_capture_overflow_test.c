@@ -97,6 +97,30 @@ int main(void) {
   assert(sq_clips(s)[0].length_steps == 32); /* representable Movy growth kept */
   roundtrip(s);
   ++cases;
+  /* Keep the exact largest fresh window, and refuse only past its end. */
+  for (unsigned extra = 0; extra < 2; ++extra) {
+    s = fresh(0, 0, 0);
+    input(s, 0, 0, 67, 1);
+    s->master_tick = SQ_MAX_STEPS * SQ_TPS + extra;
+    if (extra) refused_unchanged(s);
+    else {
+      assert(sq_capture_commit(s, 0) == 1 && s->cap_len == 0);
+      assert(sq_clips(s)[0].length_steps == SQ_MAX_STEPS && s->stats.refused == 0);
+      assert(fm1_seq_get_note(s, 0, 0, 0, &x) && x.gate == SQ_MAX_STEPS * SQ_TPS);
+      roundtrip(s);
+    }
+    ++cases;
+  }
+  /* A held note does not age out until another input arrives. Its end
+   * may be near UINT32_MAX: neither endpoint addition nor bar rounding
+   * may wrap a too-long fresh take back into the addressable window. */
+  for (unsigned elapsed = 0; elapsed < 2; ++elapsed) {
+    s = fresh(0, 0, 0);
+    input(s, elapsed ? 383 : 0, elapsed ? 383 : 0, 67, 1);
+    s->master_tick = UINT32_MAX;
+    refused_unchanged(s);
+    ++cases;
+  }
   /* Compatibility keeps its historical oversized window in both modes. */
   for (unsigned compat = 1; compat <= 2; ++compat) {
     s = fresh(compat, 240, 0);

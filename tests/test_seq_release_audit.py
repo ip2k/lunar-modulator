@@ -50,4 +50,4 @@ def test_playing_capture_overflow_is_transactional(tmp_path, checking):
                    cwd=ROOT, check=True)
     result = subprocess.run([str(exe)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-    assert "8 cases" in result.stdout
+    assert "12 cases" in result.stdout
