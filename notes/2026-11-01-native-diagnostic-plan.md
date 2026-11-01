@@ -45,3 +45,10 @@ receipt and stack limitations remain pending. Fixed encoder mapping uses current
 panel KNOB1..KNOB4 (3..6); selectors/algorithm/buttons are inaccessible, HOME guard
 rejects invalid mode before dispatch, so MATRIX's large local arrays are not a
 legal control path. This is not a general app stack bound.
+
+Target r5: link and unchanged audit_link passed (12 checks, zero failures or
+pending). Actual target .text210344/.data4/.bss300240/.noinit64 bytes;
+app232832, arena65536, descriptors112;142112 bytes below first stack guard.
+Vendor objcopy rejected GNU-style default section selection. Export now reuses
+audit_link's existing ELF reader with strict allowed-section and contiguous-load
+assertions, and audits both ELF and exported application bytes. No audit weakening.

@@ -18,7 +18,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from tools.jieli.audit_link import Elf, SHF_ALLOC, audit, collect_sources
+from tools.jieli.audit_link import Elf, SHF_ALLOC, SHT_NOBITS, audit, collect_sources
 MODULES = 'dx7,arp,lfo,env,chance'
 TOOLCHAIN_SHA256 = 'f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958'
 DEFINES = ['-DFM1_APP_EXTERNAL_ARENAS=1', '-DFM1_SHAPES_VOICES=8',
@@ -152,12 +152,24 @@ def build(args):
                 globals_to_stack_guard_bytes=0x01c74000-image.symbol_value('_bss_end'),
                 flash_bytes=sections['.text']['bytes']+sections['.data']['bytes'])
     (out / 'size.json').write_text(json.dumps(size, indent=2) + '\n')
+    # This linker contract has contiguous XIP text/data load bytes. Export
+    # through the existing ELF reader: vendor objcopy requires a different
+    # section-selection CLI from GNU objcopy. Reject unexpected load sections.
+    if set(sections) != {'.text', '.data', '.bss', '.noinit'}:
+        raise ValueError('unexpected allocated diagnostic section')
+    if image.symbol_value('_data_load') != sections['.text']['address'] + sections['.text']['bytes']:
+        raise ValueError('noncontiguous diagnostic XIP load image')
+    flat = b''.join(image.data[s['offset']:s['offset']+s['size']]
+                    for name in ['.text', '.data'] for s in image.sections
+                    if s['name'] == name and s['type'] != SHT_NOBITS)
+    if len(flat) != size['flash_bytes']: raise ValueError('incomplete XIP image')
+    (out / 'app.bin').write_bytes(flat)
     sources = collect_sources([str(ROOT / 'firmware/native'),
                                str(ROOT / 'firmware/third_party/dinghy')])
-    link_audit = audit([(str(elf), image)], [], True, sources=sources, runtime='sdk-free')
+    link_audit = audit([(str(elf), image)], [('app.bin', flat)], True,
+                       sources=sources, runtime='sdk-free')
     (out / 'audit.json').write_text(json.dumps(link_audit, indent=2) + '\n')
     if link_audit['n_fail']: raise ValueError('audit_link failure; see audit.json')
-    run([tc / 'common/bin/objcopy', '-O', 'binary', elf, out / 'app.bin'])
     if manifest() != before: raise ValueError('source inputs changed while building')
     report = dict(profile='sdk-free-single-fm6-diagnostic-v1', hardware_admitted=False,
         release_candidate=False, sdk_archives=[], modules=MODULES.split(','), voices=8,
