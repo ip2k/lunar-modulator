@@ -31,7 +31,7 @@ deployment was skipped. Do not rerun passing checks to hide that failure.
 
 [verified] Corrections PR #165 is the combined integration candidate on
 `fix/2026-11-01@release-state-corrections`. Reviewed source is pushed and remote
-verified through `e4061895478b5ead59ad7aeac94a824618970c9f`. It is not a release
+verified through `a68a9e31c8c2ec3a4327b9a6029a7eede3767d31`. It is not a release
 or hardware admission. Capture completion, bounded codec phase 1, fault handling,
 lifecycle cleanup, exact audit proofs and target-derived test expectations are
 integrated. Required exact-head CI and real-Chrome acceptance remain.
@@ -52,12 +52,21 @@ The offline CPU0 publication port is independently reviewed and integrated;
 seven focused tests pass in the combined tree. Its separate actual target link
 and original audit passed. No target startup or hardware profile is enabled.
 
-Persistence phase 2, the offline CPU1 candidate and selected-project startup
-remain separate work. Persistence has conditional component accounting, not a
-full application fit. Selected-project review found unsupported ancillary data
-and future chunk tails could be silently accepted; source corrections and
-independent review are in progress before integration. The private service
-remains gated until its concrete native prerequisites are implemented.
+[verified] Persistence phase 2 and the offline CPU1 candidate are integrated.
+The exact-root persistence component linked 134 pi32 objects, passed the original
+12-check audit and preserved old PROJECT output normally and under sanitizers;
+549 transaction fault cases passed per build. Its conditional incremental memory
+charge is 98,036 of 98,304 bytes. This excludes borrowed application storage and
+assumes bounded callbacks, caller frames, IRQ nesting and backend allocations;
+it is not full application fit or storage admission.
+
+[verified] The cold selected-project loader is independently approved and
+integrated. It accepts the fixed starter Trio project only, checks both parses
+and all soft-loss counters before application mutation, and refuses redirected
+live state. Generated project bytes feed the actual-app oracle. The combined
+no-override proof is running. General project loading, native startup and service
+activation remain unsupported. An offline selected-Trio target lane is preparing
+source; it has no reset import, hardware activation or ROM-return claim.
 
 The foundation provides DX7 bank export, ordered MIDI realtime input,
 queue-margin telemetry, offline customization/catalogue and a shared request
@@ -92,7 +101,8 @@ pending; do not bypass the setting. The owned loopback preview is
 - Explicit aligned state workspaces preserve host behavior and guard aliases,
   reentry and lifetime. Actual pi32 object evidence removes a 917,536-byte
   default arena in external-workspace mode. The 481,244-byte JSON writer is
-  still too large for native persistence; workspace APIs alone do not solve it.
+  was too large for native persistence. The integrated streamed path now has a
+  separately bounded component proof; workspace APIs alone were insufficient.
 - The renderer protocol now has a shared core and explicit platform ports,
   preserving the SDK wake paths. Native lifecycle tests cover publication,
   readiness, timeout, late entry and poison refusal. The production native
@@ -138,12 +148,13 @@ private coordinator checkpoint retains detailed receipts and current lane state.
   reentry refuse; root combined-tree normal/sanitizer tests pass. Target compact
   scratch is 43,788 bytes plus a 1,072-byte manifest, not a complete native save
   memory or stack bound. PROJECT provider/emitter and fake transactions remain
-  active work. No SAVE UI or real storage is bound.
+  integrated with independent review and exact-root component evidence above.
+  No SAVE UI or real storage is bound.
 - The offline CPU1 candidate has host adapter/core fault tests; separate target
-  CRT/link/profile and compiler inspection remain. Production enable stays
+  CRT/link/profile and compiler inspection pass for the offline candidate only. Production enable stays
   rejected and hardware admission is false.
 - The offline panel proof covers actual-app display/control/PCM and threaded
-  publication, pending independent review. Default startup/HAL/profile stays
+  publication, independently reviewed and integrated. Default startup/HAL/profile stays
   unchanged and hardware LCD completion remains unbound.
 - [verified] Docker cleanup now requires immutable ID plus expected ownership
   labels, refuses unsafe CID files and retains unconfirmed jobs/evidence. Build
@@ -173,10 +184,11 @@ high-water or closed call-chain proof. It has blank LCD/limited HOME controls,
 no persistence, pipeline, USB, bootguard or full interactive runtime. Later
 source changes require new target evidence before admission.
 
-Last successful full browser build source is e267d7cd. Module SHA
-12a607b8cc78e35d8c4bee299dc0ed386e16676c510142dc95aa172a28c61c92
-and its actual build record are integrated. Later codec/Capture source changes
-require regeneration; historical passing artifacts do not validate newer C.
+Last successful full browser build source is `5c5237b0`, integrated at
+`b088606e`. The actual module SHA is
+`1562f4d6660c2df9a333dc796905cb497f39002b7c4389a54a677026ec010fa4`.
+Later persistence and packing changes require regeneration. A canonical build
+and acceptance batch is running from frozen `a68a9e31`; no result is claimed yet.
 
 No device traffic occurred during this release-coordination resume. The physical
 FM-1 boots recovered stock V15; D1–D4 and docs/17 still govern firmware-changing
