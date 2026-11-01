@@ -515,12 +515,13 @@ def test_strict_pack_preserves_valid_bytes(tool, tmp_path):
 
 def test_state_tool_cli_buffers_across_success_and_refusal(tool, tmp_path):
     """Exercise CLI owned input/output buffers through process exit (also under LSan)."""
-    source = (EXAMPLES / "init-starters" / "trio-init.lunar").read_bytes()
+    source_path = EXAMPLES / "settings.lunar"  # available in both GPL profiles
+    source = source_path.read_bytes()
     packed = run(tool, "pack", "-", "--strict", "--store", data=source)
     assert packed.returncode == 0, packed.stderr.decode()
     assert packed.stdout.startswith(b"\x89Lunar\r\n")
 
-    canonical = run(tool, "canon", EXAMPLES / "init-starters" / "trio-init.lunar")
+    canonical = run(tool, "canon", source_path)
     assert canonical.returncode == 0, canonical.stderr.decode()
     unpacked = run(tool, "unpack", "-", data=packed.stdout)
     assert unpacked.returncode == 0, unpacked.stderr.decode()
@@ -540,7 +541,7 @@ def test_state_tool_cli_buffers_across_success_and_refusal(tool, tmp_path):
     assert movy_unpacked.returncode == 0, movy_unpacked.stderr.decode()
     assert movy_unpacked.stdout == movy
 
-    lossy = source.replace(b'"Volume": 0.7', b'"Volumee": 0.7')
+    lossy = source.replace(b'"metronome": false', b'"metronomee": false')
     assert lossy != source
     refused = run(tool, "pack", "-", "--strict", "--store", data=lossy)
     assert refused.returncode == 1
