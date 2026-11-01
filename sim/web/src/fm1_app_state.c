@@ -11,6 +11,8 @@
 
 #include "fm1_state_mod.h"
 #include "state_clip.h"
+#include "state_json_project.h"
+#include "state_seq_export.h"
 
 #define DX7_USER0 (FM1_APP_DX7_PATCHES - (int)FM1_DX7_USER_SLOTS)
 #define SET_CAP FM1_STATE_CAP_MOVY1           /* the format's full 64 KiB text cap */
@@ -464,7 +466,7 @@ static int metronome_on(const fm1_app_t *a) {
 }
 
 /* The records of `kind` into sink: 1, or 0 with *why. */
-static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, void *ctx, const char **why) {
+static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, void *ctx, const char **why, int stream_set) {
   col_t c = { sink, ctx, 1 };
   switch (kind) {
     case FM1_STATE_PROJECT: {
@@ -489,7 +491,10 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
         if (a->dx7.index >= 0 && a->dx7.loaded[s]) dx7_out(&c, a, s);
       }
       mod_out(&c, a, MOD_ALL, 0, NULL);
-      if (g_set_n) lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
+      if (g_set_n) {
+        if (stream_set) { if (c.ok && !fm1_state_seq_export(a->seq, sink, ctx)) c.ok = 0; }
+        else lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
+      }
       if (!g_no_view) view_out(&c, a);
       if (a->midi_map.version) {
         fm1_rec_t r = blank(FM1_REC_MIDI_MAP); r.u.map_version = a->midi_map.version; out(&c, &r);
@@ -658,7 +663,7 @@ static int state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put_
   if (kind == FM1_STATE_SET) {         /* binary only: straight to the container */
     fm1_state_writer_t *b = fm1_state_bin_writer(g_bw, bflags, FM1_STATE_WRITER_SIM, version,
                                                  bin_put, NULL, rep);
-    if (!b || !collect(a, kind, arg, fm1_state_bin_write, b, &why)) {
+    if (!b || !collect(a, kind, arg, fm1_state_bin_write, b, &why, 0)) {
       if (rep->code == FM1_STATE_OK) refuse_rep(rep, FM1_STATE_BAD, why);
       return 0;
     }
@@ -667,7 +672,7 @@ static int state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put_
     g_json_n = 0;
     g_json_over = 0;
     w = fm1_state_json_writer(g_jw, names(), 0, json_put, NULL, rep);
-    if (!w || !collect(a, kind, arg, fm1_state_write, w, &why)) {
+    if (!w || !collect(a, kind, arg, fm1_state_write, w, &why, 0)) {
       if (rep->code == FM1_STATE_OK) refuse_rep(rep, FM1_STATE_BAD, why);
       return 0;
     }
@@ -1957,6 +1962,183 @@ static int midi_map_set(fm1_app_t *a, const uint8_t *bytes, size_t len, fm1_stat
   return 1;
 }
 
+/* ====================== bounded offline PROJECT stage ==================== */
+#define PROJECT_BYTES 65536u
+#define PROJECT_PERSIST 8192u
+#define PROJECT_PLAN 2048u
+#define PROJECT_CODEC 49152u
+
+typedef struct project_state {
+  fm1_app_t *app;
+  const fm1_app_state_stage_t *stage;
+  void *ctx, *phase, *plan;
+  fm1_state_writer_t *json;
+  fm1_state_json_project_t source;
+  fm1_state_json_reader_t reader;
+  fm1_state_report_t collection, emission, canonical;
+  uint8_t data[FM1_MOD_DATA_MAX], input[256], near[40];
+  uint32_t bytes, hash, expected_bytes, expected_hash, near_at;
+  unsigned input_n, near_n, bridge, ok;
+} project_state_t;
+typedef char project_persist_fits[(ALIGNED_BYTES(sizeof(project_state_t)) + PROJECT_PLAN <= PROJECT_PERSIST) ? 1 : -1];
+size_t fm1_app_state_project_aux_size(void) {
+  return ALIGNED_BYTES(sizeof(project_state_t)) + ALIGNED_BYTES(fm1_state_json_project_size());
+}
+
+typedef struct { unsigned unit; fm1_rec_sink_t sink; void *ctx; } project_params_t;
+static int project_param(void *ctx, const fm1_rec_t *r) {
+  project_params_t *p = ctx;
+  if (r->type != FM1_REC_PARAM || (r->role == FM1_ROLE_MODULE && r->slot + 32u != p->unit)) return 1;
+  return p->sink(p->ctx, r);
+}
+static void project_params(void *ctx, unsigned unit, fm1_rec_sink_t sink, void *sctx) {
+  project_state_t *n = ctx;
+  project_params_t p = {unit, sink, sctx};
+  col_t c = {project_param, &p, 1};
+  if (unit < 4) unit_out(&c, n->app, fm1_app_sound_unit((int)unit), FM1_ROLE_SOUND, unit, 0);
+  else if (unit < 12) unit_out(&c, n->app, fm1_app_insert_unit((int)((unit-4)/2), (int)((unit-4)%2)),
+                              FM1_ROLE_INSERT, (unit-4)/2, (unit-4)%2);
+  else if (unit < 28) { if ((unit-12)%4 == 0) mfx_out(&c, n->app, (int)((unit-12)/4), (unit-12)/4); }
+  else if (unit < 30) unit_out(&c, n->app, 1 + (int)(unit-28), FM1_ROLE_MASTER, 0, unit-28);
+  else if (unit >= 32 && unit < 40) fm1_state_mod_collect(n->app->mod, n->app->mod_seed, 1, project_param, &p);
+}
+static const uint8_t *project_voice(void *ctx, unsigned slot) {
+  const project_state_t *n = ctx;
+  return slot < FM1_DX7_USER_SLOTS && n->app->dx7.index >= 0 && n->app->dx7.loaded[slot] ? n->app->dx7.voice[slot] : NULL;
+}
+static int project_data(void *ctx, unsigned pos, fm1_rec_t *out) {
+  project_state_t *n = ctx;
+  *out = blank(FM1_REC_DATA); out->slot = (uint8_t)pos; out->piece = 3;
+  out->u.data.n = fm1_mod_get_data(n->app->mod, pos, n->data, sizeof(n->data), &out->u.data.version);
+  out->u.data.b = n->data;
+  return out->u.data.n != 0;
+}
+static int project_cable(void *ctx, unsigned slot, fm1_rec_t *out) {
+  const project_state_t *n = ctx;
+  *out = blank(FM1_REC_CABLE); out->slot = (uint8_t)slot;
+  return fm1_mod_get_slot(n->app->mod, slot, &out->u.cable.s) &&
+         (out->u.cable.s.dst || (out->u.cable.s.flags & FM1_MOD_SLOT_GATE_DST));
+}
+static int project_lines(void *ctx, fm1_rec_sink_t sink, void *sctx) {
+  const project_state_t *n = ctx;
+  return n->app->seq && fm1_state_seq_export(n->app->seq, sink, sctx);
+}
+static void project_bytes(void *ctx, const char *bytes, size_t len) {
+  project_state_t *n = ctx;
+  size_t at = 0;
+  if (len > UINT32_MAX - n->bytes) { n->ok = 0; return; }
+  n->hash = fm1_state_crc32(n->hash, (const uint8_t *)bytes, len);
+  if (n->bridge == 2) {
+    for (size_t i = 0; i < len && n->near_n < sizeof(n->near); ++i) {
+      if (n->bytes + i >= n->near_at) n->near[n->near_n++] = (uint8_t)bytes[i];
+    }
+  } else if (n->bridge == 1 && n->ok) {
+    while (at < len && n->ok) {
+      size_t take = sizeof(n->input) - n->input_n;
+      if (take > len - at) take = len - at;
+      memcpy(n->input + n->input_n, bytes + at, take); n->input_n += (unsigned)take; at += take;
+      if (n->input_n == sizeof(n->input)) {
+        n->ok = (unsigned)fm1_state_json_feed(&n->reader, n->input, sizeof(n->input)); n->input_n = 0;
+      }
+    }
+  }
+  n->bytes += (uint32_t)len;
+}
+static void project_bridge(project_state_t *n, unsigned mode) {
+  n->bridge = mode; n->bytes = n->hash = 0; n->input_n = n->near_n = 0; n->ok = 1;
+}
+static int project_prepare(project_state_t *n, fm1_state_report_t *rep) {
+  const char *why = "";
+  size_t set_n = n->app->seq ? fm1_seq_export_movy1(n->app->seq, NULL, 0) : 0;
+  fm1_state_report_init(rep); rep->kind = FM1_STATE_PROJECT;
+  if (set_n >= SET_BYTES) return refuse_rep(rep, FM1_STATE_TOO_BIG, "the set text does not fit its buffer");
+  g_set_n = (uint32_t)set_n;
+  n->json = fm1_state_json_project_writer((uint8_t *)n->phase + PROJECT_CODEC, names(), &n->source,
+                                          n->phase, project_bytes, n, rep);
+  if (!n->json || !collect(n->app, FM1_STATE_PROJECT, 0, fm1_state_write, n->json, &why, 1)) {
+    if (rep->code == FM1_STATE_OK) refuse_rep(rep, FM1_STATE_BAD, why);
+    return 0;
+  }
+  n->collection = *rep; project_bridge(n, 0);
+  if (!fm1_state_json_project_emit(n->json, project_bytes, n, rep)) return 0;
+  if (!n->ok || n->bytes > JSON_CAP) return refuse_rep(rep, FM1_STATE_TOO_BIG, "larger than the file cap");
+  return 1;
+}
+static int project_same(project_state_t *n, const fm1_state_report_t *canonical) {
+  return n->bytes == n->expected_bytes && n->hash == n->expected_hash &&
+         !memcmp(canonical, &n->canonical, sizeof(*canonical));
+}
+static int project_parse(project_state_t *n, fm1_state_writer_t *codec, fm1_state_report_t *rep) {
+  int emitted;
+  n->emission = n->collection;
+  fm1_state_json_begin(&n->reader, names(), fm1_state_bin_write, codec, rep);
+  project_bridge(n, 1);
+  emitted = fm1_state_json_project_emit(n->json, project_bytes, n, &n->emission);
+  if (n->ok && n->input_n) n->ok = (unsigned)fm1_state_json_feed(&n->reader, n->input, n->input_n);
+  if (n->ok) n->ok = (unsigned)fm1_state_json_end(&n->reader);
+  if (!emitted || !project_same(n, &n->emission)) return refuse_rep(rep, FM1_STATE_BAD, "project source changed");
+  if (!n->ok) {
+    /* Pull reader reports40 source bytes at near_at, even beyond the failed
+     * 256-byte feed. Regenerate deterministically without touching its report. */
+    n->near_at = rep->near_at; n->emission = n->collection; project_bridge(n, 2);
+    if (!fm1_state_json_project_emit(n->json, project_bytes, n, &n->emission) ||
+        !project_same(n, &n->emission)) return refuse_rep(rep, FM1_STATE_BAD, "project source changed");
+    for (unsigned i = 0; i < n->near_n; ++i) {
+      unsigned char c = n->near[i];
+      rep->near[i] = (char)(c >= 0x20 && c < 0x7f ? c : (c == '\n' || c == '\t' ? ' ' : '?'));
+    }
+    rep->near[n->near_n] = 0;
+    return 0;
+  }
+  return 1;
+}
+static uint32_t project_write(void *ctx, uint32_t off, const uint8_t *bytes, uint32_t nbytes) {
+  project_state_t *n = ctx;
+  return n->stage->write(n->ctx, off, bytes, nbytes);
+}
+static uint32_t project_read(void *ctx, uint32_t off, uint8_t *bytes, uint32_t nbytes) {
+  project_state_t *n = ctx;
+  return n->stage->read(n->ctx, off, bytes, nbytes);
+}
+static int project_validate(void *ctx, const fm1_rec_t *r) { (void)ctx; (void)r; return 1; }
+static int project_run(project_state_t *n, fm1_state_report_t *rep) {
+  static const uint8_t version[3] = {0, 1, 0};
+  fm1_state_writer_t *codec;
+  uint32_t total;
+  int result;
+  if (!project_prepare(n, rep)) return 0;
+  n->canonical = *rep; n->expected_bytes = n->bytes; n->expected_hash = n->hash;
+  codec = fm1_state_bin_preflight(n->phase, PROJECT_CODEC, n->plan, PROJECT_PLAN,
+                                 FM1_STATE_WRITER_SIM, version, rep);
+  if (!codec || !project_parse(n, codec, rep)) return 0;
+  total = fm1_state_bin_plan_total(n->plan, PROJECT_PLAN);
+  if (!n->stage->begin(n->ctx, total)) return refuse_rep(rep, FM1_STATE_STOPPED, "the stage did not begin");
+  if (!project_prepare(n, rep) || !project_same(n, rep)) {
+    if (rep->code == FM1_STATE_OK) refuse_rep(rep, FM1_STATE_BAD, "project source changed");
+    goto abort_stage;
+  }
+  codec = fm1_state_bin_replay(n->phase, PROJECT_CODEC, n->plan, PROJECT_PLAN, project_write, n, rep);
+  if (!codec || !project_parse(n, codec, rep)) goto abort_stage;
+  fm1_state_report_init(&n->emission);
+  if (!fm1_state_bin_plan_match(n->plan, PROJECT_PLAN, project_read, n, total, &n->emission) ||
+      !fm1_state_bin_read(project_read, n, total, project_validate, NULL, &n->emission, 0)) {
+    *rep = n->emission; goto abort_stage;
+  }
+  /* Readback callbacks cannot silently change the source before publication.
+   * Exclusive ownership is still mandatory; a CRC is not a concurrency lock. */
+  if (!project_prepare(n, &n->emission) || !project_same(n, &n->emission)) {
+    refuse_rep(rep, FM1_STATE_BAD, "project source changed"); goto abort_stage;
+  }
+  result = n->stage->commit(n->ctx);
+  if (result == FM1_APP_STATE_COMMITTED) return result;
+  if (result == FM1_APP_STATE_REFUSED) return refuse_rep(rep, FM1_STATE_STOPPED, "the commit was refused");
+  refuse_rep(rep, FM1_STATE_STOPPED, "commit outcome is indeterminate; rescan required");
+  return FM1_APP_STATE_INDETERMINATE;
+abort_stage:
+  n->stage->abort(n->ctx);
+  return 0;
+}
+
 /* ====================== explicit scratch ownership ====================== */
 
 size_t fm1_app_state_workspace_size(unsigned operation) {
@@ -1964,6 +2146,7 @@ size_t fm1_app_state_workspace_size(unsigned operation) {
     case FM1_APP_STATE_WORK_SAVE: return SAVE_BYTES;
     case FM1_APP_STATE_WORK_PACK: return PACK_BYTES;
     case FM1_APP_STATE_WORK_LOAD: return LOAD_BYTES;
+    case FM1_APP_STATE_WORK_PROJECT: return PROJECT_BYTES;
     default: return 0;
   }
 }
@@ -2031,6 +2214,7 @@ static int workspace_acquire(const fm1_app_state_workspace_t *w, unsigned operat
   g_busy = 1;
   g_active_memory = w->memory;
   g_active_bytes = w->bytes;
+  if (operation == FM1_APP_STATE_WORK_PROJECT) return 1;
   at = w->memory;
   g_w = at; at += W_BYTES;
   g_clip = NULL; g_seq_scratch = NULL; g_json = NULL; g_bin = NULL; g_set = NULL;
@@ -2053,6 +2237,38 @@ static void workspace_release(void) {
   g_json = NULL; g_bin = NULL; g_set = NULL;
   g_active_memory = NULL; g_active_bytes = 0;
   g_busy = 0;
+}
+
+int fm1_app_state_project_stage(fm1_app_t *a, unsigned binary,
+    const fm1_app_state_stage_t *stage, void *ctx,
+    const fm1_app_state_workspace_t *w, fm1_state_report_t *rep) {
+  fm1_state_report_t own;
+  project_state_t *n;
+  int result;
+  if (!rep) rep = &own;
+  if (!workspace_acquire(w, FM1_APP_STATE_WORK_PROJECT, a, NULL, NULL, NULL, rep, sizeof(*rep), rep)) return 0;
+  if (!a || !stage || !stage->begin || !stage->write || !stage->read || !stage->commit || !stage->abort ||
+      (binary != 2 && binary != 3) || overlap(stage, sizeof(*stage), w->memory, w->bytes) ||
+      overlap(ctx, 1, w->memory, w->bytes) ||
+      (a->seq && (overlap(a->seq, 1, w->memory, w->bytes) ||
+                  overlap(a->seq, fm1_seq_instance_size(a->seq), w->memory, w->bytes)))) {
+    workspace_refuse(rep, w, "invalid project stage ownership or callbacks"); workspace_release(); return 0;
+  }
+  fm1_state_report_init(rep);
+  if (fm1_state_bin_plan_size() > PROJECT_PLAN || fm1_state_bin_compact_size() > PROJECT_CODEC ||
+      fm1_app_state_project_aux_size() > 8192u || fm1_state_json_project_size() > PROJECT_BYTES-PROJECT_PERSIST-PROJECT_CODEC) {
+    refuse_rep(rep, FM1_STATE_TOO_BIG, "project workspace budget exceeded"); workspace_release(); return 0;
+  }
+  n = (project_state_t *)((uint8_t *)w->memory + PROJECT_PLAN); memset(n, 0, sizeof(*n));
+  n->app = a; n->stage = stage; n->ctx = ctx; n->plan = w->memory;
+  n->phase = (uint8_t *)w->memory + PROJECT_PERSIST;
+  n->source.ctx = n; n->source.params = project_params; n->source.voice = project_voice;
+  n->source.data = project_data; n->source.cable = project_cable; n->source.lines = project_lines;
+  n->source.midi_map = &a->midi_map;
+  g_no_view = binary == 3;
+  result = project_run(n, rep);
+  workspace_release();
+  return result;
 }
 
 int fm1_app_state_save_with_workspace(fm1_app_t *a, unsigned kind, int arg, int binary,

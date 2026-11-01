@@ -21,3 +21,10 @@ closure remain required. No whole-document retention is planned for native.
 Private design/active handoff: performance scratch/devkit-20261023/native-save-20261101.
 Rarefaction sibling root is rejected; Serena absolute write_doc boundaries agree
 with direct source. Shared active roots unchanged. Exact source is authority.
+
+WIP continuation: current-app PROJECT-only adapter now shares collection,
+canonical emission and the existing256B-cadence push reader. It holds the busy
+lease through preflight/begin/replay/internal identity+semantic checks/commit.
+Explicit commit outcomes include indeterminate; no automatic retry. A fixture
+now exercises actual current app host-vs-staged bytes/reports. It is not yet run;
+reader still uses its old stack temporaries and must move to caller context.

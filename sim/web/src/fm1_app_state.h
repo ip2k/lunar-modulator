@@ -73,7 +73,8 @@ typedef struct fm1_app_state_workspace {
 enum {
   FM1_APP_STATE_WORK_SAVE = 1,
   FM1_APP_STATE_WORK_PACK = 2,
-  FM1_APP_STATE_WORK_LOAD = 3       /* both check and load */
+  FM1_APP_STATE_WORK_LOAD = 3,      /* both check and load */
+  FM1_APP_STATE_WORK_PROJECT = 4    /* bounded offline PROJECT stage */
 };
 size_t fm1_app_state_workspace_size(unsigned operation);
 
@@ -175,6 +176,43 @@ int fm1_app_state_check_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rc
 int fm1_app_state_load_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
                                       const fm1_app_load_opts_t *o,
                                       const fm1_app_state_workspace_t *w, fm1_app_state_report_t *rep);
+
+/* Offline PROJECT-only staging, modes2/3 with current simulator metadata.
+ * No production storage/UI binding. One synchronous call holds the same busy
+ * guard through preflight, begin, replay, mandatory identity+semantic readback
+ * and commit. Caller exclusively owns all app/registry/getter/sequence/storage
+ * state throughout; no concurrent audio/control/ISR mutation is allowed.
+ * This is structural file validation, not app-load/rate/RAM admission.
+ *
+ * begin returns1 only after opening an uncommitted stage; on0 it cleans itself.
+ * write returns exactly n, read up to n (0 means no progress). Before commit,
+ * failure invokes abort once. commit closes its handle and returns one of the
+ * result codes below; INDETERMINATE requires rescan, never automatic retry or
+ * abort. A physically completed commit can return INDETERMINATE.
+ *
+ * All callbacks are synchronous and may not reenter state operations, mutate
+ * source/workspace/ops, retain pointers or alias workspace with their context
+ * or backing allocations. Known pointers/objects are checked; opaque backing
+ * extents remain caller responsibility. Source hashes are not locks/security.
+ * Workspace uses workspace_size(WORK_PROJECT),16-aligned, disjoint from app,
+ * engine/sequence arenas, ops/context/report. The full operation is stopped-
+ * audio/offline only; no target pause/deadline or inclusive RAM fit is implied.
+ */
+enum { FM1_APP_STATE_REFUSED = 0, FM1_APP_STATE_COMMITTED = 1,
+       FM1_APP_STATE_INDETERMINATE = 2 };
+typedef struct fm1_app_state_stage {
+  int (*begin)(void *ctx, uint32_t total);
+  fm1_state_write_at_t write;
+  fm1_src_read_t read;
+  int (*commit)(void *ctx);
+  void (*abort)(void *ctx);
+} fm1_app_state_stage_t;
+int fm1_app_state_project_stage(fm1_app_t *app, unsigned binary,
+    const fm1_app_state_stage_t *stage, void *ctx,
+    const fm1_app_state_workspace_t *workspace, fm1_state_report_t *report);
+/* Queried total small provider/emitter/JSON-reader storage, excluding codec,
+ * manifest and callback-owned storage. Target closure still requires a map. */
+size_t fm1_app_state_project_aux_size(void);
 
 /* A source over a buffer (ctx: an fm1_app_state_mem_t). */
 typedef struct fm1_app_state_mem {
