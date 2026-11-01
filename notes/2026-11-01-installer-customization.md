@@ -80,3 +80,33 @@ No daemon, container, download or heavyweight build was created. Mac free space
 was 1128 GiB at start (500 GiB floor retained). Remove this owned worktree with
 `git worktree remove` after integration once coordinator has preserved this
 handoff and verified backups. Parent receives exact pushed SHA in exit report.
+
+## Review correction — historical allocation evidence
+
+Reviewer found ID-only labels and rejection gates imported from a historical
+216064-byte, 12-voice allocator experiment. The source note
+`notes/2026-10-14-installer-chooser-preflight.md` in the source branch explicitly
+limits those results to its measured ordered project/module vector [verified].
+They do not establish current fit for selectable runtime/module configurations.
+Removed the old pass/fail map and unconditional request/control rejection.
+Every project now reports playback-memory fit pending, explicitly stating that
+historical diagnostics do not establish current fit. Source dependency validation
+still rejects omitted required modules; package admission stays unavailable.
+Regression cases exercise legacy, song-diagnostic and continuous requests with
+changed module selections, and show neither stale acceptance nor stale rejection.
+The view test confirms former rejected candidates can be selected for offline
+review without gaining an image admission capability.
+
+The title and heading now read “Customize Lunar Modulator”. Runtime choices live
+inside a collapsed native `details` element named “Advanced diagnostic options”;
+option labels describe the diagnostic purpose and preserve internal values.
+The build-service-unavailable notice and diagnostic limits remain visible.
+Actual Chrome visual inspection remains blocked by local browser access being
+disabled in Work settings, as reported by coordinator; this source/test correction
+does not claim visual acceptance.
+
+Review-correction validation: complete focused Node suites passed again (77 pass,
+one optional private fixture skipped, zero failures); HTML parser audit confirmed
+collapsed details (no `open`), preserved runtime option values, disabled service
+marker, matching customization title/heading and no raw layout IDs in labels.
+`git diff --check` passed. No Python source changed in this correction.

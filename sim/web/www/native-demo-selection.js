@@ -6,30 +6,15 @@ import {
 } from './native-build-selection.js';
 
 const fail = (message) => { throw new TypeError(message); };
-const RESERVATIONS = Object.freeze({
-  'replacement-showcase-candidate-event-horizon': Object.freeze({
-    status: 'allocator-fit',
-    label: 'The recorded playback-memory check passed; device playback remains unverified.',
-  }),
-  'replacement-showcase-candidate-afterglow-relay': Object.freeze({
-    status: 'allocator-fit',
-    label: 'The recorded playback-memory check passed; device playback remains unverified.',
-  }),
-  'replacement-showcase-candidate-packet-bloom': Object.freeze({
-    status: 'rejected',
-    label: 'This arrangement exceeds available playback memory.',
-  }),
-  'replacement-showcase-candidate-satellite-hearts': Object.freeze({
-    status: 'rejected',
-    label: 'Unavailable with the current voice count.',
-  }),
+// Historical allocator experiments used one fixed module vector and a 12-voice
+// diagnostic profile. They cannot establish fit for these selectable requests.
+const PENDING_RESERVATION = Object.freeze({
+  status: 'pending',
+  label: 'Playback memory for this configuration has not been checked. Historical diagnostic results do not establish current fit.',
 });
 
-function reservationFor(project) {
-  return RESERVATIONS[project.id] || Object.freeze({
-    status: 'pending',
-    label: 'Current-profile allocation reservation has not been established.',
-  });
+function reservationFor() {
+  return PENDING_RESERVATION;
 }
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -129,11 +114,6 @@ export function buildNativeDemoSelectionRequest(catalogue, profile, projectIds, 
     fail('Select one to eight known native demo project IDs');
   }
   if (new Set(projectIds).size !== projectIds.length) fail('Duplicate selected demo project ID');
-  const rejected = projectIds.filter((id) => reservationFor({ id }).status === 'rejected');
-  if (rejected.length) {
-    const names = rejected.map((id) => catalogue.projects.find((project) => project.id === id)?.title || id);
-    fail(`Unavailable under the current profile: ${names.join(', ')}`);
-  }
   const missingByGroup = Object.fromEntries(BUILDER_GROUPS.map((group) => [group, new Set()]));
   for (const id of projectIds) {
     const project = catalogue.projects.find((item) => item.id === id);

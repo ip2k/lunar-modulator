@@ -139,11 +139,11 @@ test('keeps replacement candidates pending and confines source/dependency metada
   assert.match(candidate.owner_disposition, /owner musical acceptance pending/);
   assert.deepEqual(Object.keys(candidate).sort(),
     ['category', 'default_candidate', 'duration_estimate', 'id', 'owner_disposition', 'reservation', 'title'].sort());
-  assert.equal(candidate.reservation.status, 'rejected');
-  assert.equal(candidate.reservation.label, 'This arrangement exceeds available playback memory.');
+  assert.equal(candidate.reservation.status, 'pending');
+  assert.match(candidate.reservation.label, /Historical diagnostic results do not establish current fit/);
 
-  assert.throws(() => buildNativeDemoSelectionRequest(catalogue, profile,
-    ['replacement-showcase-candidate-packet-bloom'], 0), /Unavailable under the current profile/);
+  assert.doesNotThrow(() => buildNativeDemoSelectionRequest(catalogue, profile,
+    ['replacement-showcase-candidate-packet-bloom'], 0));
   assert.equal('source_path' in candidate, false);
   assert.equal('source_sha256' in candidate, false);
   assert.equal('dependency_validation' in candidate, false);
@@ -167,29 +167,28 @@ test('request is immutable and snapshots arrays without paths, hashes or depende
   assert.equal('dependencies' in request, false);
 });
 
-test('allocator dispositions apply only to exact replacement IDs and rejected projects fail closed', () => {
+test('historical allocator outcomes never establish current fit or reject changed profiles and modules', () => {
   const extra = [
     { ...projects[0], id: 'replacement-showcase-candidate-afterglow-relay', title: 'Afterglow Relay' },
     { ...projects[1], id: 'replacement-showcase-candidate-event-horizon', title: 'Event Horizon' },
     { ...projects[2], id: 'replacement-showcase-candidate-satellite-hearts', title: 'Satellite Hearts' },
-    { ...projects[1], id: 'legacy-example-neon-transit', title: 'Neon Transit' },
   ];
   const expanded = { ...catalogue, projects: [...projects, ...extra] };
-  const view = describeNativeDemoCatalogue(expanded);
-  const statusOf = (id) => view.projects.find((project) => project.id === id).reservation.status;
-  assert.equal(statusOf('replacement-showcase-candidate-event-horizon'), 'allocator-fit');
-  assert.equal(statusOf('replacement-showcase-candidate-afterglow-relay'), 'allocator-fit');
-  assert.equal(statusOf('replacement-showcase-candidate-satellite-hearts'), 'rejected');
-  assert.equal(statusOf('legacy-example-neon-transit'), 'pending');
-  assert.doesNotThrow(() => buildNativeDemoSelectionRequest(expanded, profile,
-    ['replacement-showcase-candidate-event-horizon'], 0));
-  assert.doesNotThrow(() => buildNativeDemoSelectionRequest(expanded, profile,
-    ['replacement-showcase-candidate-afterglow-relay'], 0));
-  assert.throws(() => buildNativeDemoSelectionRequest(expanded, profile,
-    ['replacement-showcase-candidate-satellite-hearts'], 0), /Unavailable/);
-  assert.equal(expanded.full_song_default.status, 'pending');
+  for (const selectedProfile of [d7000Profile,
+    { ...d7000Profile, midi: ['arp'], modulation: [] }]) {
+    for (const runtime_mode of [undefined, 'song-diagnostic', 'continuous']) {
+      const configuration = runtime_mode ? { flash_layout: 'expanded-d7000', runtime_mode } : undefined;
+      for (const project of expanded.projects) {
+        const before = describeNativeDemoCatalogue(expanded).projects.find((row) => row.id === project.id);
+        assert.equal(before.reservation.status, 'pending');
+        assert.match(before.reservation.label, /has not been checked/);
+        const request = buildNativeDemoSelectionRequest(expanded, selectedProfile, [project.id], 0, [], configuration);
+        assert.deepEqual(request.project_ids, [project.id]);
+        assert.equal(describeNativeDemoCatalogue(expanded).projects.find((row) => row.id === project.id).reservation.status, 'pending');
+      }
+    }
+  }
 });
-
 
 test('preflights source dependencies for selected projects but ignores unrelated modules', () => {
   const needsSound = { ...projects[1], source_module_dependencies: {
