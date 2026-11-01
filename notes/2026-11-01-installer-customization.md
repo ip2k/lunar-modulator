@@ -74,7 +74,8 @@ package admission remain separate incomplete milestones.
 Worktree: `/Users/likwid/.codex/worktrees/lunar-installer-customization-20261101`.
 Small test logs remain under ignored `scratch/installer-customization-20261101`;
 pytest temp outputs and exporter temporary/build directories are removed after
-checks. Exporter TemporaryDirectory cleans its Make-generated headers on exit.
+checks. Exporter TemporaryDirectory under ignored `scratch/native-image-catalogue/`
+cleans its Make-generated headers on exit.
 No daemon, container, download or heavyweight build was created. Mac free space
 was 1128 GiB at start (500 GiB floor retained). Remove this owned worktree with
 `git worktree remove` after integration once coordinator has preserved this
