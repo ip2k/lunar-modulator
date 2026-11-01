@@ -1,6 +1,6 @@
 # Bounded native state codec work — 2026-11-01
 
-WIP; offline codec phase, not persistence or native admission. Personal MIT work.
+Offline codec phase, not persistence or native admission. Personal MIT work.
 Base e267d7cd58efef29afb2c0c38562f4878e8106f5 includes the independently reviewed
 PROJECT oversized-SEQS refusal. Later phases must add current PROJECT canonical
 replay and an offline fake transaction. Production SAVE/UI/storage stays unbound.
@@ -24,12 +24,21 @@ zero gaps and exact extent. Semantic validation and commit are separate gates.
 The manifest is immutable and must outlive both phases/readback. Source ownership
 must cover the entire transaction; CRCs are not locks or authentication.
 
-[verified, host only] Initial 361 cases compare full reports, first failing
+[verified, host only] 387 cases compare full reports, first failing
 record and byte output with the ordinary writer AND with state_bin.c compiled
 from exact base e267d7cd. Includes raw/typed/fragmented lines, logical/tag/file
 caps, module data, FM6 voices, BROW, golden binary files, short sink writes and
 readback corruption. Initial host sizes: compact43856, manifest1072, host289616.
-Sanitized and native resource proof are pending at this WIP checkpoint. No
+Normal and ASan/UBSan runs pass against the exact old TU. JSON-driven refusal
+reports also match line/column/path/offset/near and counters, including delayed
+chunk-cap errors. Host DEFLATED bytes/reports match the old TU on directed cases.
+
+[verified, target object only] Existing pinned pi32v2 clang (r3/fprev1, -Oz)
+compiled state_bin.c: compact43784, manifest1072, host289548 bytes, read from
+vendor objdump return immediates. The compiler rejects -fstack-usage; exact
+disassembly is retained privately for subsequent call-chain accounting. Two
+unchanged read_browser signed-comparison warnings were retained with
+-Wno-error=sign-compare. No other warnings. No
 native budget/ABI/stack/link/real-storage/atomic-live-load claim is made.
 
 MIT historical cccd21cc5dc82859ed8a5d84f0a7a40646d07353 informed the small

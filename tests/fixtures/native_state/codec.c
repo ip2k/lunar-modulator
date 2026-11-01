@@ -19,7 +19,7 @@ int baseline_write(void *, const fm1_rec_t *);
 typedef struct { uint8_t b[FM1_STATE_BIN_MAX]; uint32_t n, calls, fail, partial, short_read; } image_t;
 static image_t host_image, candidate, input;
 static _Alignas(16) uint8_t compact[49152], plan[8192], plan_copy[8192];
-static uint8_t *host_memory;
+static uint8_t *host_memory, *current_host_memory;
 static const uint8_t version[3] = {0, 1, 0};
 static unsigned cases;
 static uint32_t report_digest;
@@ -150,6 +150,18 @@ static void compare(const spec_t *s, int faults) {
   assert(fm1_state_bin_plan_match(plan, sizeof(plan), read_at, &candidate, candidate.n, &rep));
   candidate.short_read = 0;
   if (!faults) return;
+  {
+    image_t *x = &input;
+    fm1_state_report_t old_report, new_report;
+    fm1_state_writer_t *old_writer, *new_writer;
+    reset_image(x, 0); reset_image(&candidate, 0);
+    fm1_state_report_init(&old_report); fm1_state_report_init(&new_report);
+    old_writer = baseline_writer(host_memory, FM1_STATE_BIN_DEFLATE, 1, version, put, x, &old_report);
+    new_writer = fm1_state_bin_writer(current_host_memory, FM1_STATE_BIN_DEFLATE, 1, version, put, &candidate, &new_report);
+    assert(generate(s, baseline_write, old_writer) == generate(s, fm1_state_bin_write, new_writer));
+    assert(!memcmp(&old_report, &new_report, sizeof(old_report)));
+    assert(x->n == candidate.n && !memcmp(x->b, candidate.b, x->n));
+  }
   for (k = 1; k <= calls; ++k) {
     unsigned partial;
     for (partial = 0; partial < 2; ++partial) {
@@ -197,6 +209,36 @@ static void guards(void) {
   assert(!candidate.calls || candidate.b[0] == 0xa5); /* header was never published */
 }
 
+/* JSON input drives the ordinary parser positions/counters into the same
+ * report as the writer, as app save does. Deferred cap failures must retain
+ * line/column/path/offset/near and the exact first failing record. */
+static void json_report(unsigned lines, unsigned width) {
+  fm1_state_names_t names;
+  fm1_state_report_t a, b;
+  fm1_state_writer_t *h, *c;
+  unsigned i;
+  int x, y;
+  memset(&names, 0, sizeof(names)); reset_image(&input, 0);
+  put(&input, "{\"lunar\":\"1.0\",\"kind\":\"clip\",\"clip\":[", 37);
+  for (i = 0; i < lines; ++i) {
+    unsigned j;
+    if (i) put(&input, ",", 1);
+    put(&input, "\"", 1);
+    for (j = 0; j < width; ++j) put(&input, "x", 1);
+    put(&input, "\"", 1);
+  }
+  put(&input, "]}\n", 3);
+  fm1_state_report_init(&a); fm1_state_report_init(&b); reset_image(&host_image, 0);
+  h = baseline_writer(host_memory, 0, 1, version, put, &host_image, &a);
+  c = fm1_state_bin_preflight(compact, sizeof(compact), plan, sizeof(plan), 1, version, &b);
+  x = fm1_state_json_read(&names, read_at, &input, baseline_write, h, &a);
+  y = fm1_state_json_read(&names, read_at, &input, fm1_state_bin_write, c, &b);
+  assert(x == y && !memcmp(&a, &b, sizeof(a)));
+  if (!x) assert(!fm1_state_bin_plan_total(plan, sizeof(plan)));
+  report_digest = fm1_state_crc32(report_digest, (const uint8_t *)&a, sizeof(a));
+  ++cases;
+}
+
 static void golden(const char *path) {
   FILE *f = fopen(path, "rb"); fm1_state_report_t a, b, parse;
   fm1_state_writer_t *h, *c;
@@ -224,6 +266,7 @@ int main(int argc, char **argv) {
   spec_t s = {FM1_STATE_SET, 0, 0, 0, 0};
   assert(fm1_state_bin_compact_size() <= sizeof(compact)); assert(fm1_state_bin_plan_size() <= sizeof(plan));
   host_memory = malloc(baseline_writer_size()); assert(host_memory);
+  current_host_memory = malloc(fm1_state_bin_writer_size()); assert(current_host_memory);
   for (i = 0; i < sizeof(widths)/sizeof(widths[0]); ++i) for (j = 0; j < sizeof(counts)/sizeof(counts[0]); ++j) {
     s.width = widths[i]; s.n = counts[j]; s.kind = FM1_STATE_SET; s.fragment = 0; compare(&s, i == 2 && j == 1);
     s.fragment = 1; compare(&s, 0); s.fragment = 0; s.kind = FM1_STATE_CLIP; compare(&s, 0);
@@ -236,9 +279,23 @@ int main(int argc, char **argv) {
       if (s.mode == 2 || s.mode == 3 || s.mode == 1) { ++s.width; compare(&s, 0); }
     }
   }
+  {
+    const spec_t boundary[] = {
+      {FM1_STATE_PROJECT, 2, 64, 0, 0}, {FM1_STATE_PROJECT, 2, 65, 0, 0},
+      {FM1_STATE_PROJECT, 2, 24, 506, 0}, {FM1_STATE_PROJECT, 2, 24, 507, 0},
+      {FM1_STATE_PROJECT, 4, 32, 0, 0}, {FM1_STATE_PROJECT, 4, 33, 0, 0},
+      {FM1_STATE_PROJECT, 4, 409, 0, 0}, {FM1_STATE_PROJECT, 4, 410, 0, 0},
+      {FM1_STATE_PROJECT, 3, 16, 4091, 0}, {FM1_STATE_PROJECT, 3, 16, 4092, 0},
+      {0, 0, 0, 0, 0}, {FM1_STATE_DX7BANK, 1, 1, 1, 0},
+      {FM1_STATE_SETTINGS, 6, 204, 0, 0}, {FM1_STATE_SETTINGS, 6, 205, 0, 0}
+    };
+    for (i = 0; i < sizeof(boundary)/sizeof(boundary[0]); ++i) compare(&boundary[i], 0);
+  }
   guards();
+  for (i = 1; i <= 5; ++i) { json_report(i, 8190); json_report(i, 4093); }
+  json_report(1, 16384); json_report(1, 16385);
   for (i = 1; i < (unsigned)argc; ++i) golden(argv[i]);
   printf("codec cases=%u reports=%08x compact=%zu plan=%zu host=%zu\n", cases, report_digest,
       fm1_state_bin_compact_size(), fm1_state_bin_plan_size(), fm1_state_bin_writer_size());
-  free(host_memory); return 0;
+  free(current_host_memory); free(host_memory); return 0;
 }
