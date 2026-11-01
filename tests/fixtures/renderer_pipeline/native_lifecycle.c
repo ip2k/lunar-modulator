@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: MIT. Actual adapter/core, fault injection at backend. */
+#define _POSIX_C_SOURCE 200809L
 #define LUNAR_NATIVE_PIPELINE_TEST_PLATFORM_HEADER "native_platform.h"
 #include "renderer_pipeline_native.c"
 #include <assert.h>
@@ -34,7 +35,8 @@ static void stream(void) {
         lunar_pipeline_completion_t completion;
         assert(lunar_pipeline_reserve_work(tag,&work)==1);
         assert(work==&arena[tag%2]);arena[tag%2].tag=tag;
-        assert(lunar_pipeline_publish(tag,ticks(),ticks())==1);
+        uint32_t p_start=ticks(),p_end=ticks();
+        assert(lunar_pipeline_publish(tag,p_start,p_end)==1);
         wait_until(tag+1);
         int h=0,o=0;
         for(unsigned i=0;i<3000 && (!h || !o);++i) {
