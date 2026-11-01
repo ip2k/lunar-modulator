@@ -22,6 +22,52 @@ static int render(void *ctx,int32_t *pcm) {
   lunar_selected_owner_t *o=ctx;
   return fault(&o->transport) ? -1 : lunar_selected_interactive_render(NULL,pcm);
 }
+/* Bridge every injected hook boundary to owner poison. A fault published by
+ * a hook may not advance the protocol or release a source lease afterward. */
+static int poisoned(lunar_selected_owner_t *o) {
+  if(fault(&o->transport) || lunar_diagnostic_status()) {
+    if(!o->spi.fault) o->spi.fault=LUNAR_SPI_IO;
+    return 1;
+  }
+  return o->spi.fault!=0;
+}
+static int pins(void *ctx,int selected,int data) {
+  lunar_selected_owner_t *o=ctx;
+  if(poisoned(o)) return -1;
+  int r=o->injected_spi.pins(o->injected_spi.ctx,selected,data);
+  return poisoned(o)?-1:r;
+}
+static int clear_done(void *ctx) {
+  lunar_selected_owner_t *o=ctx;
+  if(poisoned(o)) return -1;
+  int r=o->injected_spi.clear_done(o->injected_spi.ctx);
+  return poisoned(o)?-1:r;
+}
+static int done(void *ctx) {
+  lunar_selected_owner_t *o=ctx;
+  if(poisoned(o)) return -1;
+  int r=o->injected_spi.done(o->injected_spi.ctx);
+  return poisoned(o)?-1:r;
+}
+static int barrier(void *ctx) {
+  lunar_selected_owner_t *o=ctx;
+  if(poisoned(o)) return -1;
+  int r=o->injected_spi.barrier(o->injected_spi.ctx);
+  return poisoned(o)?-1:r;
+}
+static int launch(void *ctx,const uint8_t *bytes,size_t n) {
+  lunar_selected_owner_t *o=ctx;
+  if(poisoned(o)) return -1;
+  int r=o->injected_spi.launch(o->injected_spi.ctx,bytes,n);
+  return poisoned(o)?-1:r;
+}
+static uint32_t spi_ticks(void *ctx) {
+  lunar_selected_owner_t *o=ctx;
+  if(poisoned(o)) return 0;
+  uint32_t r=o->injected_spi.ticks(o->injected_spi.ctx);
+  (void)poisoned(o);
+  return r;
+}
 int lunar_selected_owner_init(lunar_selected_owner_t *o,lunar_input_t *input,uint32_t ni,
     lunar_pcm_t *pcm,uint32_t np,uint32_t initial,uint32_t max_events,
     uint32_t min_frames,const lunar_spi_model_ops_t *ops,uint32_t ticks,uint32_t steps) {
@@ -30,8 +76,12 @@ int lunar_selected_owner_init(lunar_selected_owner_t *o,lunar_input_t *input,uin
   o->initialized=1;
   if(!max_events || !min_frames ||
      lunar_transport_init(&o->transport,input,ni,pcm,np,initial) ||
-     lunar_spi_model_init(&o->spi,ops,ticks,steps) ||
-     lunar_display_init(&o->display,LUNAR_DISPLAY_HOST_MOCK,lunar_spi_model_submit,&o->spi) ||
+     lunar_spi_model_init(&o->spi,ops,ticks,steps)) return stop(o);
+  o->injected_spi=*ops;
+  o->spi.ops=(lunar_spi_model_ops_t){pins,clear_done,done,barrier,launch,
+      /* Function name differs from the tick-budget argument below. */
+      spi_ticks,o};
+  if(lunar_display_init(&o->display,LUNAR_DISPLAY_HOST_MOCK,lunar_spi_model_submit,&o->spi) ||
      lunar_diagnostic_init()) return stop(o);
   o->max_events=max_events; o->min_draw_frames=min_frames;
   return 0;

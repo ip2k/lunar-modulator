@@ -11,6 +11,7 @@ typedef struct {
   lunar_transport_t transport;
   lunar_diagnostic_display_t display;
   lunar_spi_model_t spi;
+  lunar_spi_model_ops_t injected_spi;
   uint32_t initialized, max_events, min_draw_frames, stepping;
 } lunar_selected_owner_t;
 /* All objects, callback contexts and queue storage are zeroed, permanent and
