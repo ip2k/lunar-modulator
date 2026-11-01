@@ -18,7 +18,7 @@ from tests.seq_helpers import (ENGINES, SEQ_CHECK, TPB, TPS, Script, ccs, clip, 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "movy"
 RATE = 44118                      # the FM-1's rate
 THR = RATE * 6000                 # clock threshold, frames x bpm_x100 x PPQN per tick
-HALF_BUDGET = 72 * 1024 // 2      # docs/13 §5: about half of 72 KiB at 4-8 tracks
+SEQ_BUDGET = 44 * 1024           # immutable lock snapshots, approved 2026-11-01
 
 
 def fm1(tracks=8, block=128):
@@ -866,7 +866,7 @@ def sizes(tool):
 
 
 def test_memory_figures_for_four_and_eight_tracks(seq_tools):
-    """The owner's budget: about half of docs/13's 72 KiB at the reduced
+    """The approved 44 KiB sequencer allocation at the reduced
     track count, Capture included (the owner's decision of 2026-10-01: 256
     packed events, on by default). These are the figures engines/seq.md and
     docs/13 §10 report; a change to the layout must update all three. The
@@ -875,7 +875,7 @@ def test_memory_figures_for_four_and_eight_tracks(seq_tools):
     z = sizes(seq_tools)
     assert z["tracks"]["4"] == 18192
     assert z["tracks"]["8"] == 32080
-    assert z["tracks"]["8"] + 272 * z["event_bytes"] + z["cmd_bytes"] + 1024 + 20 <= HALF_BUDGET
+    assert z["tracks"]["8"] + 272 * z["event_bytes"] + z["cmd_bytes"] + 1024 + 20 <= SEQ_BUDGET
     assert z["no_capture"]["4"] == 15120
     assert z["no_capture"]["8"] == 29008
     for t in range(1, 17):

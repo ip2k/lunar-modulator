@@ -88,7 +88,7 @@ describe the gestures.
 | In what order? | **S1:** one shared, heap-free C99 host bridge, extracted from `fm1-render` with no change in behaviour. **S2:** the app hosts the sequencer with no UI and proves parity. **S3–S10:** the UI, one PR per stage. S7 (engine API v2) is split into a silent stage, S7a, which lands before the lock UI (S8), and an audio-changing one, S7b, best merged before S8 too. |
 | When is it playable? | In S3, PLAY/STOP plays a demo pattern and SEQ shows the grid. In S4, patterns can be made on the panel. |
 | How is it checked? | **Parity:** the module equals `fm1-render` built to JavaScript and against musl exactly, and against glibc within 1 LSB. **Oracle:** every oracle script played through the app equals `fm1-render`. **Gestures:** panel traces replay through `fm1-render` byte for byte. **Layout:** every new screen passes the layout check. **Staleness:** CI's gate covers the new inputs (§6). |
-| What does it cost in RAM? | At 8 tracks, at most 36,620 B of the 36,864 B half budget since S6 (272 events and the click), leaving 244 B. At 4 tracks, at most 22,732 B (§2.6). |
+| What does it cost in RAM? | At 8 tracks, at most 43,156 B of the approved 45,056 B budget (272 immutable-target events and the click), leaving 1,900 B. At 4 tracks, at most 29,268 B (§2.6). |
 | What does the owner decide? | 24 decisions (§8). S1 needs none. S2 needs one constant. |
 | What is left out? | Compat mode in the app, undo (until M4/D14, or O16), MIDI out (O18), and anything on an FM-1. Several sound units, first left out (O10), are in since 2026-10-02 (§3.16). |
 
@@ -277,28 +277,31 @@ The hold threshold is ⌈0.3 · rate⌉ frames on `a->frames`: 13,236 at
 
 ### 2.6 Memory
 
-**Against the half budget.** The owner's budget for the sequencer is about
-half of docs/13 §5's 72 KiB, 36,864 B (docs/13 §10).
+**Against the sequencer budget.** The 2026-11-01 release fix intentionally
+raises the former 36 KiB allocation to 44 KiB (45,056 B). Each queued LOCK
+now retains its exact label and base after later lane edits, adding 6,528 B
+to the 272-event buffer. This allocation does not establish aggregate native
+runtime RAM acceptance, which remains an integration check.
 
 | Item | 4 tracks | 8 tracks | Note |
 | --- | --- | --- | --- |
-| Sequencer instance, Capture 256 × 12 B included | 18,184 | 32,072 | [verified: `fm1-seq --sizes`, 2026-10-11; native track names add 16 B per track to the 18,120 / 31,944 B E1 layout] |
-| Event buffer, 272 × 12 B (256 until S6) | 3,264 | 3,264 | The minimum is 72 events (864 B). The measured worst is 193 events (2,316 B) in seq_bench's burst, and at most 7 per 64-frame block over the 34 oracle scripts [verified 2026-10-01]. Beside the 64 gates' note-offs the core keeps room for, that burst needs 257, one more than 256; S6 raised the buffer to 272, which holds it [verified 2026-10-02: `fm1-render --events`, tests/test_seq_render.py] |
+| Sequencer instance, Capture 256 × 12 B included | 18,192 | 32,080 | [verified: bounded native layout test, 2026-11-01; includes native track names and elapsed playback frames] |
+| Event buffer, 272 × 36 B (256 events until S6) | 9,792 | 9,792 | The minimum is 72 events (2,592 B). The measured worst is 193 events in seq_bench's burst. Beside the 64 gates' note-offs the core keeps room for, that burst needs 257 events; S6 raised the buffer to 272. Label/base snapshots increase bytes per event, not event count. |
 | Pending command record | 240 | 240 | One `fm1_seq_cmd_t` [verified 2026-10-01: sizeof]. It stands in for the FM-1's command ring, whose compact record is still to be designed |
 | UI state | ≤ 1,024 | ≤ 1,024 | asserted; 552 B at S6 |
 | Metronome click voice (S6, O11) | 20 | 20 | `fm1_seq_click_t`, asserted |
-| **Total** | **≤ 22,732 (61.7 %)** | **≤ 36,620 (99.3 %)** | |
-| Spare | 14,132 | 244 | docs/13 §5's 12,288 B undo ring fits only at 4 tracks |
+| **Total** | **≤ 29,268 (65.0 %)** | **≤ 43,156 (95.8 %)** | |
+| Spare | 15,788 | 1,900 | docs/13 §5's 12,288 B undo ring fits only at 4 tracks |
 | Stack during a stopped Capture's tempo search | about 1.55 KB | about 1.55 KB | transient [verified: engines/seq.md 286] |
 
-Without Capture the instance is 15,112 B at 4 tracks and 29,000 B at 8
-[verified: `fm1-seq --sizes`, 2026-10-11]. The instance holds no pointers, so its size is the
+Without Capture the instance is 15,120 B at 4 tracks and 29,008 B at 8
+[verified: native layout, 2026-11-01]. The instance holds no pointers, so its size is the
 same in 32-bit and 64-bit builds.
 
 **Simulator only, not FM-1 RAM:**
 - **Fixed arena:** 32,768 B. A test asserts that `fm1_seq_size(8 tracks)` ≤
   `FM1_APP_SEQ_BYTES`. A second test asserts that `fm1_seq_size(8)` + events +
-  pending record + `sizeof(fm1_seq_ui_t)` ≤ 36,864.
+  pending record + the 1,024-byte UI bound + click voice ≤ 45,056.
 - **Text buffer:** 65,536 B of BSS in fm1_web.c (§2.7).
 - **`fm1_app_t`:** 1,168,288 B natively today [verified: sim/web/README.md
   144]. It grows by about 37 KB [inferred]. Multi-sound (§3.16) makes it
