@@ -979,27 +979,43 @@ class DockerJobAdapter:
         with self.lock:
             if build_id in self.cleanup_unconfirmed:
                 return  # Keep both the job and its exact private evidence for recovery.
+            worker = self.threads.get(build_id)
+            proc = self.processes.get(build_id)
+            if ((worker is not None and worker.is_alive()) or
+                    (proc is not None and proc.poll() is None)):
+                return  # A live producer may still use or recreate these paths.
+            snapshot = self.jobs.get(build_id)
+            if (getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE
+                    and snapshot is not None
+                    and (snapshot.status in ("queued", "running")
+                         or build_id not in self.cleanup_confirmed)):
+                return
             base = self.job_dirs.get(build_id)
-            if getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE:
-                snapshot = self.jobs.get(build_id)
-                if snapshot is not None and (snapshot.status in ("queued", "running") or
-                                             build_id not in self.cleanup_confirmed):
-                    return
-                if base is not None:
-                    # Keep the record/capacity on an uncertain removal. The API
-                    # confirms absence through get() before forgetting admission.
+            if base is None and snapshot is not None:
+                return  # Missing ownership metadata is not proof of removal.
+            if base is not None:
+                # Keep ownership and capacity until absence is confirmed. Hold
+                # the lifecycle lock so another submit/finalizer cannot reuse
+                # this ID while removal is in progress. lstat distinguishes an
+                # absent entry from a symlink or an inaccessible directory.
+                try:
                     try:
-                        if base.exists() or base.is_symlink():
-                            shutil.rmtree(base)
-                        if base.exists() or base.is_symlink():
-                            return
-                    except OSError:
+                        base.lstat()
+                    except FileNotFoundError:
+                        pass
+                    else:
+                        shutil.rmtree(base)
+                    try:
+                        base.lstat()
+                    except FileNotFoundError:
+                        pass
+                    else:
                         return
+                except OSError:
+                    return
             self.jobs.pop(build_id, None)
             self.selected_inputs.pop(build_id, None)
             self.selected_verified.pop(build_id, None)
             self.created.pop(build_id, None)
             self.cleanup_confirmed.discard(build_id)
-            base = self.job_dirs.pop(build_id, None)
-        if base is not None:
-            shutil.rmtree(base, ignore_errors=True)
+            self.job_dirs.pop(build_id, None)

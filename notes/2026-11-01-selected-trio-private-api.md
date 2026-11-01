@@ -62,3 +62,39 @@ No actual HTTP listener/container/native execution acceptance is claimed here.
 Preparatory independent review identified request canonicalization dropping an
 unknown empty set_ids field from result summaries. Summary validation now requires
 the exact expected key set before comparing values; a causal regression refuses it.
+
+Independent composition review found that the old API base's adapter dropped
+ownership before ignored removal. That correction was reviewed at 127ee69d, but
+it is not the integrated-worker evidence. This follow-up is based exactly on
+7847dcdf and changes only its actual adapter delete method, focused tests and
+this note. The integrated selected worker already retained maps for no-op/error
+removal; those positive cases are preserved. New causal cases on that exact
+integrated baseline exposed missing-owner release, live worker/process deletion,
+inaccessible-entry refusal before removal and a redundant second removal
+(six failures).
+
+The composed method retains jobs, job_dirs, created, selected_inputs and
+selected_verified until lstat confirms the exact owned entry is absent, under
+the lifecycle lock. No-op/error/symlink/inaccessible entries retain recovery
+state. Missing owned-path metadata is not absence. Live threads/processes refuse
+removal; selected terminal-state/confirmed-container checks remain. Trust maps
+are released only after this shared confirmation, and there is no second
+rmtree. No Docker operation or service capability is introduced.
+
+Production-method API tests use record_cap=1 and prove both trust maps remain
+on no-op/error/missing-owner failure, block admission, and release after an
+explicit successful recovery. Missing ownership requires restoration of the
+recorded fixture path; the API does not invent cleanup authority. Shutdown,
+cancelled-waiter drain, symlink/permission guards and lock serialization are
+covered with synthetic submission/results and the actual delete method.
+RED/GREEN logs live under scratch/cleanup-composition; disposable basetemps are
+removed after checks. The existing integrated worker and legacy regression
+suites are included. No listener, container, target/native build, device traffic,
+private donor data or production activation was used. Public/package/install/
+release/hardware/distribution gates remain unchanged. Source is frozen for
+independent composed review before parent integration.
+
+Composed ten-suite result: 484 passed, one expected retained-input skip, six
+subtests. Existing selected-worker tests are included; every other worker/API
+production path is byte-unchanged from 7847dcdf. No framework, flag, licence,
+profile or native prerequisite changed. Final log: scratch/cleanup-composition/final.log.
