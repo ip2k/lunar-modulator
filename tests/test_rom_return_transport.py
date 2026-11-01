@@ -103,8 +103,10 @@ def harness():
     ("generic", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
     ("pipelined-ready", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
     ("premature-next-before-ready-reply", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready",)),
+    ("split-next-before-ready-reply", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-ready", "OK rr01-upload")),
     ("pipelined-call", "1 0 1", ("ERR rr01-terminal",), ("OK rr01-call",)),
     ("premature-call-before-upload-reply", "1 0 1", ("ERR rr01-terminal",), ("OK rr01-upload", "OK rr01-call")),
+    ("split-call-before-upload-reply", "1 0 1", ("ERR rr01-terminal",), ("OK rr01-upload", "OK rr01-call")),
     ("partial-timeout", "0 0 1", ("OK rr01-ready",), ("OK rr01-upload",)),
     ("cdc-disconnect", "0 0 1", ("OK rr01-ready",), ("OK rr01-upload",)),
     ("rx-during-cdc-write", "0 0 1", ("ERR rr01-terminal",), ("OK rr01-upload", "OK rr01-call")),
@@ -264,3 +266,52 @@ def pio_harness(harness):
 ])
 def test_actual_strict_pio_allowlist_and_identity(pio_harness, case, expected):
     assert subprocess.check_output([str(pio_harness), case], text=True).strip() == expected
+
+
+@pytest.fixture(scope="module")
+def boundary_harness(harness):
+    stage = Path(harness).parent
+    source = (stage / "src/pio_host.c").read_text()
+    start = source.index("typedef enum {")
+    end = source.index("} r01_host_phase_t;", start) + len("} r01_host_phase_t;")
+    names = (
+        "r01_probe_live", "fm1_host_return_terminal", "xfer_done",
+        "edpt_sync", "probe_descriptors", "fm1_pio_host_task",
+    )
+    (stage / "actual_boundary_functions.inc").write_text(
+        source[start:end] + "\nstatic r01_host_phase_t r01_phase;\n"
+        + "\n\n".join(_function(source, name) for name in names) + "\n"
+    )
+    binary = stage / "r01-boundaries"
+    subprocess.run([
+        "cc", "-std=c11", "-Wall", "-Wextra", "-Werror", "-DFM1T_RETURN_R01=1",
+        "-I", str(stage),
+        str(ROOT / "tests/fixtures/fm1_return_r01_boundaries.c"), "-o", str(binary),
+    ], check=True)
+    return binary
+
+
+@pytest.mark.parametrize("case,expected", [
+    ("valid", "1 2 2 0"),
+    ("device-terminal", "1 0 0 1"),
+    ("header-terminal", "1 1 0 1"),
+    ("config-terminal", "1 2 0 1"),
+    ("out-open-terminal", "1 2 1 1"),
+    ("malformed-tail", "1 2 0 0"),
+    ("malformed-crossing", "1 2 0 0"),
+    ("malformed-small-total", "1 1 0 0"),
+    ("malformed-large-total", "1 1 0 0"),
+    ("malformed-header-len", "1 1 0 0"),
+    ("malformed-header-kind", "1 1 0 0"),
+    ("malformed-second-header", "1 2 0 0"),
+    ("malformed-short-interface", "1 2 0 0"),
+    ("malformed-short-endpoint", "1 2 0 0"),
+    ("endpoint-preterminal", "endpoint-preterminal"),
+    ("endpoint-submit-terminal", "endpoint-submit-terminal"),
+    ("endpoint-task-terminal", "endpoint-task-terminal"),
+    ("endpoint-valid", "endpoint-valid"),
+    ("task-preterminal", "task-preterminal"),
+    ("task-dispatch-terminal", "task-dispatch-terminal"),
+])
+def test_actual_strict_descriptor_endpoint_and_task_boundaries(boundary_harness, case, expected):
+    assert subprocess.check_output([str(boundary_harness), case], text=True).strip() == expected

@@ -100,7 +100,7 @@ index 4a16e1b..ff18248 100644
          fm1_proto_drain();
      }
 diff --git a/src/pio_host.c b/src/pio_host.c
-index cca19de..8a43f2b 100644
+index cca19de..e20d569 100644
 --- a/src/pio_host.c
 +++ b/src/pio_host.c
 @@ -34,6 +34,7 @@
@@ -319,7 +319,7 @@ index cca19de..8a43f2b 100644
  static void log_string(uint8_t daddr, const char *what, uint8_t idx) {
      if (!idx) return;
      uint16_t s[64];
-@@ -288,40 +410,63 @@ static void log_string(uint8_t daddr, const char *what, uint8_t idx) {
+@@ -288,40 +410,83 @@ static void log_string(uint8_t daddr, const char *what, uint8_t idx) {
      a[n] = 0;
      dlog("  %s: \"%s\"", what, a);
  }
@@ -372,18 +372,38 @@ index cca19de..8a43f2b 100644
 +    if (!r01_probe_live(daddr)) return false;
 +#endif
      uint16_t total = ((tusb_desc_configuration_t *)cfg_buf)->wTotalLength;
++#if FM1T_RETURN_R01
++    // Refuse truncated/oversized records before the existing descriptor walk
++    // casts them to interface and endpoint structs. No clipped parse is safe.
++    if (total < sizeof(tusb_desc_configuration_t) || total > sizeof(cfg_buf) ||
++        cfg_buf[0] < sizeof(tusb_desc_configuration_t) ||
++        cfg_buf[1] != TUSB_DESC_CONFIGURATION) return false;
++#else
      if (total > sizeof(cfg_buf)) total = sizeof(cfg_buf);
++#endif
      if (tuh_descriptor_get_configuration_sync(daddr, 0, cfg_buf, total) != XFER_RESULT_SUCCESS) {
          dlog("HOST: configuration descriptor (%u bytes) read failed", total);
          return false;
      }
 +#if FM1T_RETURN_R01
 +    if (!r01_probe_live(daddr)) return false;
++    if (cfg_buf[0] < sizeof(tusb_desc_configuration_t) ||
++        cfg_buf[1] != TUSB_DESC_CONFIGURATION ||
++        ((tusb_desc_configuration_t *)cfg_buf)->wTotalLength != total) return false;
++    for (uint16_t off = 0; off < total;) {
++        if (total - off < 2 || cfg_buf[off] < 2 || cfg_buf[off] > total - off)
++            return false;
++        uint8_t kind = cfg_buf[off + 1];
++        if ((kind == TUSB_DESC_INTERFACE && cfg_buf[off] < sizeof(tusb_desc_interface_t)) ||
++            (kind == TUSB_DESC_ENDPOINT && cfg_buf[off] < sizeof(tusb_desc_endpoint_t)))
++            return false;
++        off += cfg_buf[off];
++    }
 +#endif
  
      dlog("CONFIGURATION DESCRIPTOR (%u bytes), bConfigurationValue=%u", total,
           ((tusb_desc_configuration_t *)cfg_buf)->bConfigurationValue);
-@@ -360,10 +505,20 @@ static bool probe_descriptors(uint8_t daddr) {
+@@ -360,10 +525,20 @@ static bool probe_descriptors(uint8_t daddr) {
          return false;
      }
  
@@ -405,7 +425,7 @@ index cca19de..8a43f2b 100644
      ep_in = bulk_in->bEndpointAddress;
      ep_out = bulk_out->bEndpointAddress;
      dlog("HOST: MSC bulk OUT=%02X IN=%02X", ep_out, ep_in);
-@@ -374,7 +529,13 @@ static bool probe_inquiry(uint8_t daddr) {
+@@ -374,7 +549,13 @@ static bool probe_inquiry(uint8_t daddr) {
      static const uint8_t inquiry[6] = {0x12, 0, 0, 0, 36, 0};
      uint32_t got = 0;
  
@@ -420,7 +440,7 @@ index cca19de..8a43f2b 100644
          dlog("INQUIRY failed (got %lu bytes)", (unsigned long)got);
          return false;
      }
-@@ -387,6 +548,10 @@ static bool probe_inquiry(uint8_t daddr) {
+@@ -387,6 +568,10 @@ static bool probe_inquiry(uint8_t daddr) {
      memcpy(rev, &data_buf[32], 4);
      rev[4] = 0;
      dlog("INQUIRY OK: vendor=\"%s\" product=\"%s\" rev=\"%s\"", vendor, product, rev);
@@ -431,7 +451,7 @@ index cca19de..8a43f2b 100644
      return true;
  }
  
-@@ -400,9 +565,14 @@ static void get_max_lun(uint8_t daddr) {
+@@ -400,9 +585,14 @@ static void get_max_lun(uint8_t daddr) {
  //--------------------------------------------------------------------+
  
  void fm1_pio_host_command(char c) {
@@ -446,7 +466,7 @@ index cca19de..8a43f2b 100644
  static void run_command(uint8_t daddr, char c) {
      static const uint8_t tur[6] = {0};
      uint32_t got = 0;
-@@ -462,43 +632,85 @@ static void run_command(uint8_t daddr, char c) {
+@@ -462,43 +652,85 @@ static void run_command(uint8_t daddr, char c) {
          break;
      }
  }
@@ -534,7 +554,7 @@ index cca19de..8a43f2b 100644
          } else {
              next_inquiry_us = time_us_64() + INQUIRY_RETRY_MS * 1000ull;
          }
-@@ -506,6 +718,7 @@ void fm1_pio_host_task(void) {
+@@ -506,6 +738,7 @@ void fm1_pio_host_task(void) {
  
      fm1_proto_poll();
  
@@ -542,7 +562,7 @@ index cca19de..8a43f2b 100644
      char c = pending_cmd;
      if (c) {
          pending_cmd = 0;
-@@ -516,7 +729,9 @@ void fm1_pio_host_task(void) {
+@@ -516,7 +749,9 @@ void fm1_pio_host_task(void) {
              dlog("> %c ignored: no UBOOT mounted", c);
          }
      }
@@ -552,7 +572,7 @@ index cca19de..8a43f2b 100644
      if (!daddr && now - unmounted_since_us > REATTACH_AFTER_MS * 1000ull) {
          // Pico-PIO-USB inverts the pad input (GPIO_OVERRIDE_INVERT), so a
          // pulled-up D+ reads as 0 here. With nothing mounted there is no bus
-@@ -538,6 +753,7 @@ void fm1_pio_host_task(void) {
+@@ -538,6 +773,7 @@ void fm1_pio_host_task(void) {
          }
          unmounted_since_us = now;   // re-check after another interval
      }
@@ -634,7 +654,7 @@ index 0000000..13ca661
 +void dlog(const char *fmt, ...) { (void)fmt; }
 diff --git a/src/return_r01_proto.c b/src/return_r01_proto.c
 new file mode 100644
-index 0000000..edfdbc2
+index 0000000..3b071df
 --- /dev/null
 +++ b/src/return_r01_proto.c
 @@ -0,0 +1,313 @@
@@ -789,8 +809,8 @@ index 0000000..edfdbc2
 +            continue;
 +        }
 +        // A request cannot be pipelined or followed by extra bytes.
-+        if (queue || req_pending || phase == READY_PENDING || phase == UPLOAD_PENDING ||
-+            phase == CALL_PENDING) {
++        if (queue || req_pending || phase == READY_PENDING || phase == READY_REPLY ||
++            phase == UPLOAD_PENDING || phase == UPLOADED_REPLY || phase == CALL_PENDING) {
 +            fail_rx_locked();
 +            break;
 +        }

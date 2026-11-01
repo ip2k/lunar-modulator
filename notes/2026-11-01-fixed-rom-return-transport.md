@@ -64,6 +64,15 @@ cannot advance a stale TX ring tail. Bytes already accepted by TinyUSB
 cannot be retracted; host timeout or a later terminal reply is inconclusive.
 These checks bound late success after a detected in-flight fault.
 
+Reply phases reject even a partial next command, so bytes received before a
+reply drains cannot be completed as a new command afterward. Strict descriptor
+parsing validates the full configuration walk and each interface/endpoint
+record length before casting, refusing malformed short or truncated records.
+The fake TinyUSB harness executes the actual patched descriptor, endpoint and
+host-task functions with terminal callbacks at each transfer boundary. Old
+source accepted forged short interface/endpoint records and opened both bulk
+endpoints; the corrected source refuses them before endpoint submission.
+
 On terminal state the strict core-1 task stops calling TinyUSB's host task,
 and transfer/probe hooks recheck the sticky state before later stages. An
 already submitted transfer may still complete or time out, and PIO/USB

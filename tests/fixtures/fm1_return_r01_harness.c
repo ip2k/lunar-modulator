@@ -140,6 +140,13 @@ int main(int argc, char **argv) {
         fm1_proto_rx("rr01-ready\n", 11); fm1_proto_poll();
         fm1_proto_rx("rr01-upload\n", 12); fm1_proto_poll(); fm1_proto_drain();
     }
+    else if (!strcmp(kind, "split-next-before-ready-reply")) {
+        fm1_proto_rx("rr01-ready\n", 11); fm1_proto_poll();
+        fm1_proto_rx("rr01-up", 7);
+        if (phase != TERMINAL) abort();
+        fm1_proto_poll(); fm1_proto_drain();
+        fm1_proto_rx("load\n", 5); fm1_proto_poll(); fm1_proto_drain();
+    }
     else if (!strcmp(kind, "pipelined-call")) {
         ready(); upload(false, false); feed("rr01-call\nrr01-call\n", 20);
     }
@@ -148,6 +155,15 @@ int main(int argc, char **argv) {
         uint8_t input[524] = {0}; memcpy(input, "rr01-upload\n", 12); input[12] = 0x80;
         fm1_proto_rx((const char *)input, sizeof(input)); fm1_proto_poll();
         fm1_proto_rx("rr01-call\n", 10); fm1_proto_poll(); fm1_proto_drain();
+    }
+    else if (!strcmp(kind, "split-call-before-upload-reply")) {
+        ready();
+        uint8_t input[524] = {0}; memcpy(input, "rr01-upload\n", 12); input[12] = 0x80;
+        fm1_proto_rx((const char *)input, sizeof(input)); fm1_proto_poll();
+        fm1_proto_rx("rr01-ca", 7);
+        if (phase != TERMINAL) abort();
+        fm1_proto_poll(); fm1_proto_drain();
+        fm1_proto_rx("ll\n", 3); fm1_proto_poll(); fm1_proto_drain();
     }
     else if (!strcmp(kind, "partial-timeout")) {
         ready(); feed("rr01-upload\n\x80\0", 14); fake_now += 6000000;
