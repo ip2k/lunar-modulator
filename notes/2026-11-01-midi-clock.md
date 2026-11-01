@@ -65,3 +65,45 @@ No new scratch/build products, containers, downloaded data, or hardware state
 left behind. Owned worktree retained for parent integration; parent removes it
 with `git worktree remove` after integration. Mac Data volume had 1129 GiB free
 at start (500 GiB floor satisfied).
+
+## Actual runtime follow-up: Stop fixture corrected
+
+[verified, 2026-11-01] The coordinator's actual integrated build at source
+`492d5079def4cf28e51460bdb97a7f9c225a2841` passed 108 parity scenarios, 19
+SysEx checks and five routing checks, then failed the new runtime fixture's
+`Fixture must sound before Stop` assertion [reported: build handoff at
+`lunar-tonight-20261101/scratch/release-integration-build-20261101/HANDOFF.md`].
+
+Two fixture defects were confirmed against source and an actual targeted WASM
+rebuild; neither required an implementation change:
+
+1. `fm1w_seq_reset` picks the default route based on whether an engine is
+   already loaded. The fixture reset before loading Test Sine, leaving the
+   track on its default MIDI route. It now loads the engine before reset.
+2. After Start, the core emits tick-zero notes when the first musical tick is
+   crossed. At 125 BPM/48 kHz that is about 240 frames; the fixture examined
+   only 128 frames. It now renders 512 frames before checking audibility.
+
+[verified] Stop proof is stronger: a 768-tick gate must sound before Stop and
+remain audible for another 48,000 frames without Stop; following FC and another
+48,000 frames, the output must be silent. Audible assertions were retained.
+
+[verified] Built only `fm1.wasm` from integration `492d5079` on Aeon in
+`emscripten/emsdk:6.0.10`, image ID
+`sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65`.
+Docker used `--rm`, `docker-batch.slice`, CPUs 0–3, 4 CPU, 6 GiB RAM/swap,
+network disabled and labels `project=lunar`, `session=midi-clock-runtime-20261101`.
+The partial module SHA-256 was
+`72e7ada150bb4b7dd385839fa9ae49cf15c5fd673cdfb027c3931b63ca21a13e`
+(the same as the coordinator's original build). The corrected runtime test
+passed all four groups on the actual module, including native reserve refusal,
+content-generation stability, linked/internal clock selection, Start/Continue
+and sounding-gate Stop. Five routing/worklet tests also passed again.
+
+Evidence remains locally in `scratch/midi-clock-runtime-20261101/`:
+`build.log`, `runtime.log` (initial failure), `runtime-passed.log`. The partial
+module, remote source/object staging, and local module copy were removed after
+recording the result; no labelled container remained. Mac free space: 1123 GiB.
+This is targeted runtime verification, not a full release build: the parent
+must cherry-pick this fixture-only correction and rerun its complete build to
+generate an eligible WASM/meta/record set and finish the integration gates.

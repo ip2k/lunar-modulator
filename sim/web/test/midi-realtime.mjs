@@ -12,10 +12,11 @@ const fm1 = await instantiateFm1(await readFile(process.argv[2] || new URL('../w
 const ex = fm1.exports;
 assert.equal(typeof ex.fm1w_seq_realtime, 'function', 'Rebuild actual WASM with the realtime bridge first');
 ex.fm1w_init(48000);
-assert.equal(ex.fm1w_seq_reset(8), 0);
 const catalog = JSON.parse(fm1.string(ex.fm1w_catalog()));
 const sine = catalog.findIndex(e => e.id === 'test-sine'); assert.ok(sine>=0);
 assert.equal(ex.fm1w_select(0,sine),0);
+// Default routing is chosen at reset, so load the engine before resetting.
+assert.equal(ex.fm1w_seq_reset(8), 0);
 ex.fm1w_master(.5,0);
 const p = new Processor(); p.fm1 = fm1; p.sendState = () => {};
 const line = text => {
@@ -53,9 +54,15 @@ assert.equal(ex.fm1w_seq_dropped(), 0, 'No native events dropped');
 console.log('PASS linked native clock, tempo, Start versus Continue, and Stop');
 // Sounding sequencer gates: Stop should match the native Stop verb exactly,
 // including its note-offs. The fixture has no post-stop effects.
-line('tog 0 0 60 100'); render(); rt(0xfa); rt(0xf8); render(64);
+line('tog 0 0 60 100; slen 0 0 0 -1 768'); render(); rt(0xfa); rt(0xf8);
+// The core fires tick-zero notes when the first musical tick is crossed,
+// not at Start itself. Feed enough native frames to cross that boundary.
+render(512);
 const sounding = new Float32Array(fm1.memory.buffer, ex.fm1w_render(64),128);
 assert.ok(sounding.some(x => Math.abs(x)>1e-4), 'Fixture must sound before Stop');
+render(48000);
+const held = new Float32Array(fm1.memory.buffer, ex.fm1w_render(64),128);
+assert.ok(held.some(x => Math.abs(x)>1e-4), 'Long gate must remain audible without Stop');
 rt(0xfc); render(48000);
 const out = new Float32Array(fm1.memory.buffer, ex.fm1w_render(64),128);
 assert.ok(out.every(x => Math.abs(x)<1e-6), 'Stop releases sequencer notes');
