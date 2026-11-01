@@ -62,14 +62,18 @@ def harness():
             "#pragma once\n#define __dmb() __sync_synchronize()\n"
         )
         (fake / "pico/critical_section.h").write_text(
-            "#pragma once\n#include <pthread.h>\n"
-            "typedef struct { pthread_mutex_t mu; } critical_section_t;\n"
+            "#pragma once\n#include <pthread.h>\n#include <stdint.h>\n"
+            "typedef pthread_mutex_t spin_lock_t;\n"
+            "typedef struct { spin_lock_t mu; spin_lock_t *spin_lock; "
+            "uint32_t save; } critical_section_t;\n"
+            "static inline void spin_unlock(spin_lock_t *lock, uint32_t save) { "
+            "(void)save; pthread_mutex_unlock(lock); }\n"
             "static inline void critical_section_init(critical_section_t *s) { "
-            "pthread_mutex_init(&s->mu, 0); }\n"
+            "pthread_mutex_init(&s->mu, 0); s->spin_lock = &s->mu; }\n"
             "static inline void critical_section_enter_blocking(critical_section_t *s) { "
-            "pthread_mutex_lock(&s->mu); }\n"
+            "pthread_mutex_lock(s->spin_lock); s->save = 0; }\n"
             "static inline void critical_section_exit(critical_section_t *s) { "
-            "pthread_mutex_unlock(&s->mu); }\n"
+            "spin_unlock(s->spin_lock, s->save); }\n"
         )
         (fake / "tusb.h").write_text(
             "#pragma once\n#include <stdbool.h>\n#include <stdint.h>\n"
@@ -120,6 +124,50 @@ def test_actual_strict_protocol(harness, case, counts, required, forbidden):
         assert part in result
     for part in forbidden:
         assert part not in result
+
+
+@pytest.mark.parametrize("sanitized", [False, True])
+def test_saved_mask_snapshot_survives_other_core_after_unlock(harness, sanitized):
+    stage = Path(harness).parent
+    source = (stage / "src/return_r01_proto.c").read_text()
+    assert "critical_section_exit(&state_lock)" not in source
+    assert source.count("state_lock_exit();") == 13
+    helper = _function(source, "state_lock_exit")
+    program = stage / ("lock_exit_asan.c" if sanitized else "lock_exit.c")
+    program.write_text(
+        "#include <pthread.h>\n#include <stdint.h>\n"
+        "typedef struct { pthread_mutex_t mu; } spin_lock_t;\n"
+        "typedef struct { spin_lock_t *spin_lock; uint32_t save; } critical_section_t;\n"
+        "static critical_section_t state_lock;\n"
+        "static pthread_t contender; static uint32_t observed, replacement;\n"
+        "static void spin_unlock(spin_lock_t *lock, uint32_t saved);\n"
+        + helper + "\n"
+        "static void *replace_save(void *unused) {\n"
+        "  (void)unused; pthread_mutex_lock(&state_lock.spin_lock->mu);\n"
+        "  state_lock.save = replacement;\n"
+        "  pthread_mutex_unlock(&state_lock.spin_lock->mu); return 0;\n"
+        "}\n"
+        "static void spin_unlock(spin_lock_t *lock, uint32_t saved) {\n"
+        "  pthread_mutex_unlock(&lock->mu); pthread_join(contender, 0);\n"
+        "  observed = saved;\n"
+        "}\n"
+        "static int once(uint32_t original, uint32_t next) {\n"
+        "  spin_lock_t lock; pthread_mutex_init(&lock.mu, 0);\n"
+        "  state_lock.spin_lock = &lock; pthread_mutex_lock(&lock.mu);\n"
+        "  state_lock.save = original; replacement = next;\n"
+        "  if (pthread_create(&contender, 0, replace_save, 0)) return 0;\n"
+        "  state_lock_exit();\n"
+        "  int ok = observed == original && state_lock.save == next;\n"
+        "  pthread_mutex_destroy(&lock.mu); return ok;\n"
+        "}\n"
+        "int main(void) { return once(0, 1) && once(1, 0) ? 0 : 1; }\n"
+    )
+    binary = stage / ("lock_exit_asan" if sanitized else "lock_exit")
+    command = ["cc", "-std=c11", "-O3", "-Wall", "-Wextra", "-Werror", "-pthread"]
+    if sanitized:
+        command += ["-fsanitize=address,undefined", "-fno-omit-frame-pointer"]
+    subprocess.run(command + [str(program), "-o", str(binary)], check=True)
+    subprocess.run([str(binary)], check=True)
 
 
 def test_default_recipe_and_generic_paths_are_untouched():
