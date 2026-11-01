@@ -32,7 +32,7 @@ void fm1_alnk0_irq(void) {
      * from this ISR. Timer5 can resume before app mutation/render. */
     for (unsigned e = 3; e <= 6; ++e) {
       uint32_t icfg = fm1_icfg();
-      fm1_irq_off();
+      fm1_icfg_set(icfg & ~0x100u);
       int delta = fm1_in.enc_steps[e];
       fm1_in.enc_steps[e] = 0;
       fm1_icfg_set(icfg);
