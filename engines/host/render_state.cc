@@ -530,19 +530,39 @@ void UnitRecs(std::vector<Rec> *v, const UnitOut &u, unsigned role, unsigned sou
 }
 
 // The runtime's modules and the cables of `keep`, remapped by `code` and
-// `src` (a sound file's own codes); only the modules those cables use. A
-// module's pattern data is held with its record (Hold copies the bytes).
+// `src` (a sound file's own codes), including their upstream module patch.
+// A module's pattern data is held with its record (Hold copies the bytes).
 void ModRecs(std::vector<Rec> *v, const Have &h, bool with_seed, bool all,
              bool (*keep)(const fm1_mod_slot_t &, unsigned), unsigned arg,
              unsigned (*code)(unsigned, unsigned), unsigned (*src)(unsigned, unsigned)) {
   std::vector<Rec> m;
   fm1_state_mod_collect(h.mod, h.seed, with_seed, Hold, &m);
-  bool used[8] = { false };
-  for (size_t i = 0; i < m.size(); ++i) {
-    if (m[i].r.type != FM1_REC_CABLE || (!all && !keep(m[i].r.u.cable.s, arg))) continue;
-    const fm1_mod_slot_t &s = m[i].r.u.cable.s;
-    if (s.src >= FM1_MOD_SRC_MODULE && s.src != FM1_MOD_NONE) used[(s.src - FM1_MOD_SRC_MODULE) / 8u] = true;
-    if (s.via >= FM1_MOD_SRC_MODULE && s.via != FM1_MOD_NONE) used[(s.via - FM1_MOD_SRC_MODULE) / 8u] = true;
+  bool used[FM1_MOD_POSITIONS] = { false };
+  std::vector<bool> cables(m.size(), all);
+  // A retained module needs all of its incoming parameter and gate cables,
+  // including disabled routes that the user can enable later. Walk backwards
+  // from the selected sinks, never forwards to unrelated sinks. Each changing
+  // pass adds a module; one final pass retains even system-only incoming
+  // cables. Eight positions bound cycles without recursion or reordering.
+  for (unsigned pass = 0; !all && pass <= FM1_MOD_POSITIONS; ++pass) {
+    bool changed = false;
+    for (size_t i = 0; i < m.size(); ++i) {
+      if (m[i].r.type != FM1_REC_CABLE) continue;
+      const fm1_mod_slot_t &s = m[i].r.u.cable.s;
+      const bool upstream = s.dst_unit >= FM1_MOD_MODULE &&
+          s.dst_unit < FM1_MOD_MODULE + FM1_MOD_POSITIONS &&
+          used[s.dst_unit - FM1_MOD_MODULE];
+      if (!keep(s, arg) && !upstream) continue;
+      cables[i] = true;
+      const unsigned sources[] = { s.src, s.via };
+      for (unsigned j = 0; j < 2; ++j) {
+        if (sources[j] < FM1_MOD_SRC_MODULE ||
+            sources[j] >= FM1_MOD_SRC_MODULE + 8u * FM1_MOD_POSITIONS) continue;
+        const unsigned pos = (sources[j] - FM1_MOD_SRC_MODULE) / 8u;
+        if (!used[pos]) { used[pos] = true; changed = true; }
+      }
+    }
+    if (!changed) break;
   }
   for (size_t i = 0; i < m.size(); ++i) {
     fm1_rec_t r = m[i].r;
@@ -552,7 +572,7 @@ void ModRecs(std::vector<Rec> *v, const Have &h, bool with_seed, bool all,
       continue;
     }
     if (r.type == FM1_REC_CABLE) {
-      if (!all && !keep(r.u.cable.s, arg)) continue;
+      if (!cables[i]) continue;
       if (code) r.u.cable.s.dst_unit = static_cast<uint8_t>(code(r.u.cable.s.dst_unit, arg));
       if (src) {
         if (r.u.cable.s.src < FM1_MOD_SRC_SYSTEM) r.u.cable.s.src = static_cast<uint8_t>(src(r.u.cable.s.src, arg));
