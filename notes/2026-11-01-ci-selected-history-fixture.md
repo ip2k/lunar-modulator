@@ -16,4 +16,4 @@ Only `tests/test_installer_selected_trio_profile.py` and this dated note are cha
 
 ## Verification
 
-`tests/test_installer_selected_trio_profile.py` passed in the isolated worktree's Python 3.13 environment (pytest 9.2.0 and the pinned installer test requirements). `git diff --check` passed. A depth-1 clone check is next; the CI failure in `scratch/ci-6ece-macos/job.log` confirms the old test failed at `git ls-tree` with exit 128 for the absent historical commit.
+`tests/test_installer_selected_trio_profile.py` passed (120 tests) in the isolated worktree's Python 3.13 environment (pytest 9.2.0 and the pinned installer test requirements). It also passed in a depth-1 clone after confirming `7ab2810420999629d170531a6f2f78fd44a8484f` was absent from that clone. The CI failure in `scratch/ci-6ece-macos/job.log` confirms the old test failed at `git ls-tree` with exit 128 for that absent historical commit. `git diff --check` passed. The temporary clone and test environment were removed after verification.
