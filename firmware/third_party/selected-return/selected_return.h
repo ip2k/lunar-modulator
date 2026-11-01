@@ -45,7 +45,11 @@ _Static_assert(LUNAR_SR_MAILBOX_BEGIN>=0x01c7fd50u && LUNAR_SR_MAILBOX_END<=0x01
                "outside retained-state ceiling and below vectors");
 enum { LUNAR_SR_FRESH, LUNAR_SR_BOOTSTRAP, LUNAR_SR_ARMED,
        LUNAR_SR_RUNNING, LUNAR_SR_TERMINAL };
-enum { LUNAR_SR_APP_READY=1, LUNAR_SR_LCD_READY, LUNAR_SR_IO_READY, LUNAR_SR_MAIN };
+/* Phase2 means the selected frontend is ready: completed LCD setup in the
+ * legacy profile; explicitly disabled display plus prepared real PCM in the
+ * audio-only profile. This alias changes no phase order or qualification. */
+enum { LUNAR_SR_APP_READY=1, LUNAR_SR_FRONTEND_READY,
+       LUNAR_SR_LCD_READY=LUNAR_SR_FRONTEND_READY, LUNAR_SR_IO_READY, LUNAR_SR_MAIN };
 enum { LUNAR_SR_QUALIFICATION=1, LUNAR_SR_CLOCK, LUNAR_SR_MAILBOX,
        LUNAR_SR_WATCHDOG, LUNAR_SR_P33, LUNAR_SR_INIT, LUNAR_SR_PHASE,
        LUNAR_SR_DEADLINE, LUNAR_SR_FAULT, LUNAR_SR_REENTRY };
@@ -96,7 +100,7 @@ _Static_assert(sizeof(uint32_t)==4 && _Alignof(lunar_selected_return_t)>=4,
  */
 int lunar_selected_return_prepare(lunar_selected_return_t *,
     const lunar_selected_return_io_t *,const lunar_selected_return_qualification_t *);
-/* Report completed APP, LCD, IO phases once in order, then each MAIN iteration.
+/* Report completed APP, FRONTEND (legacy LCD), IO phases once in order, then each MAIN iteration.
  * Call before/after bounded risky work as the future startup contract requires.
  * A new qualified advancing tick within max_phase and a successful phase are
  * required for each feed. Check deadline BEFORE feed. Missed full counter wraps

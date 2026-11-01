@@ -215,3 +215,11 @@ volatile widths/ordering, saved ICFG and terminal visibility, NOLOAD mailbox,
 reachable calls and source/artifact bindings, no unresolved helpers, original
 security audit and RAM/text/stack fit. Physical observations and source/codegen
 review are separate gates. No hard 20-second enumeration label is supported.
+
+The separately named audio-only owner candidate reuses the permanent selected
+app and aggregate queues. Its new GPL platform binds accepted scanner events
+and PCM copy/zero IRQs; rendering stays in main. It omits all LCD/SPI work.
+FRONTEND_READY names phase2 truthfully for this explicit display-disabled
+profile; LCD_READY remains its legacy numeric alias. No phase order, deadline,
+P33 policy or immutable zero target qualification changes. The legacy candidate
+and its initializer remain separate. See the dated selected-audio-owner note.

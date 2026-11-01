@@ -197,7 +197,9 @@ def header_manifest(root):
     return {p.relative_to(root).as_posix(): digest(p)
             for p in sorted(root.rglob('*')) if p.is_file()}
 
-def manifest(selected=False, *, return_candidate=False, aggregate_layout=False):
+def manifest(selected=False, *, return_candidate=False, aggregate_layout=False, audio_owner=False):
+    if audio_owner and not (selected and return_candidate and aggregate_layout):
+        raise ValueError('audio owner requires the complete selected aggregate return plan')
     if aggregate_layout and not (selected and return_candidate):
         raise ValueError('aggregate layout requires fixed selected return plan')
     roots = ['engines', 'sim/web/src', 'sim/web/mk', 'sim/web/third_party',
@@ -217,6 +219,8 @@ def manifest(selected=False, *, return_candidate=False, aggregate_layout=False):
                   'tools/native/build_selected_trio_return_candidate.py']
     if aggregate_layout:
         roots += ['tools/native/build_selected_trio_aggregate_layout.py']
+    if audio_owner:
+        roots += ['tools/native/build_selected_trio_audio_owner.py']
     result = {}
     for name in roots:
         p = ROOT / name
@@ -228,10 +232,12 @@ def manifest(selected=False, *, return_candidate=False, aggregate_layout=False):
     return result
 
 def diagnostic_plan(selected=False, prepared=None, *, return_candidate=False,
-                    aggregate_layout=False):
+                    aggregate_layout=False, audio_owner=False):
     """One of two private, fixed link plans; the public FM6 CLI has no selector."""
     if return_candidate and not selected:
         raise ValueError('return candidate requires fixed selected plan')
+    if audio_owner and not (selected and return_candidate and aggregate_layout):
+        raise ValueError('audio owner requires the complete selected aggregate return plan')
     if aggregate_layout and not (selected and return_candidate):
         raise ValueError('aggregate layout requires fixed selected return plan')
     if selected and prepared is None:
@@ -269,11 +275,19 @@ def diagnostic_plan(selected=False, prepared=None, *, return_candidate=False,
                     profile='sdk-free-selected-trio-aggregate-layout-experiment-v1',
                     undefined_root='lunar_selected_aggregate_layout_roots',
                     reader_bytes=65536)
+    if audio_owner:
+        plan['extra'] = [package / 'selected_audio_owner_platform.c'
+                         if p == package / 'selected_return_platform.c' else p
+                         for p in plan['extra']]
+        plan.update(stem='lunar-selected-trio-audio-owner',
+                    profile='sdk-free-selected-trio-audio-owner-candidate-v1')
     return plan
 
-def build(args, *, selected=False, return_candidate=False, aggregate_layout=False):
+def build(args, *, selected=False, return_candidate=False, aggregate_layout=False, audio_owner=False):
     if return_candidate and not selected:
         raise ValueError('return candidate requires fixed selected plan')
+    if audio_owner and not (selected and return_candidate and aggregate_layout):
+        raise ValueError('audio owner requires the complete selected aggregate return plan')
     if aggregate_layout and not (selected and return_candidate):
         raise ValueError('aggregate layout requires fixed selected return plan')
     tc, out, headers = args.toolchain.resolve(), args.out.resolve(), args.cxx_headers.resolve()
@@ -286,7 +300,7 @@ def build(args, *, selected=False, return_candidate=False, aggregate_layout=Fals
     if return_candidate:
         check_inventory(ROOT / 'firmware/third_party/selected-return')
     before = manifest(selected, return_candidate=return_candidate,
-                      aggregate_layout=aggregate_layout)
+                      aggregate_layout=aggregate_layout, audio_owner=audio_owner)
     out.mkdir(parents=True)
     log = (out / 'build.log').open('w')
     def run(command, capture=False):
@@ -305,7 +319,7 @@ def build(args, *, selected=False, return_candidate=False, aggregate_layout=Fals
         log.write('prepared fixed selected project: ' + preparation['packed_sha256'] + '\n')
         log.flush()
     plan = diagnostic_plan(selected, prepared, return_candidate=return_candidate,
-                           aggregate_layout=aggregate_layout)
+                           aggregate_layout=aggregate_layout, audio_owner=audio_owner)
     configured = out / 'cxx'
     shutil.copytree(headers, configured)
     p = configured / '__config'
@@ -324,6 +338,7 @@ def build(args, *, selected=False, return_candidate=False, aggregate_layout=Fals
              *(['-DLUNAR_SELECTED_RETURN_OFFLINE_PROOF=1',
                 '-DLUNAR_SELECTED_RETURN_PI32V2_BINDING=1'] if return_candidate else []),
              *(AGGREGATE_DEFINES if aggregate_layout else []),
+             *(['-DLUNAR_SELECTED_AUDIO_OWNER_PROOF=1'] if audio_owner else []),
              '-D_LIBCPP_HAS_NO_THREADS', '-D_LIBCPP_DISABLE_EXTERN_TEMPLATE',
              '-isystem', str(configured), '-isystem', str(tc / 'pi32v2/include')]
     compiler = tc / 'common/bin/clang'
@@ -463,7 +478,7 @@ def build(args, *, selected=False, return_candidate=False, aggregate_layout=Fals
     if link_audit['n_fail']: raise ValueError('audit_link failure; see audit.json')
     compiler_version = run([compiler, '--version'], True)
     if manifest(selected, return_candidate=return_candidate,
-                aggregate_layout=aggregate_layout) != before:
+                aggregate_layout=aggregate_layout, audio_owner=audio_owner) != before:
         raise ValueError('source inputs changed while building')
     if selected and (digest(args.renderer) != preparation['renderer_sha256'] or
                      digest(args.state_tool) != preparation['state_tool_sha256']):
@@ -513,6 +528,10 @@ def build(args, *, selected=False, return_candidate=False, aggregate_layout=Fals
         report.update(aggregate_layout_experiment=True,
                       target_interactive_binding=False, storage_backend=False,
                       aggregate_limit='Compile/link layout only; injected owner callbacks have no target binding, live storage exclusion or whole-chain stack proof.')
+    if audio_owner:
+        report.update(audio_owner_candidate=True, target_interactive_binding=True,
+                      display_binding=False, live_save=False,
+                      aggregate_limit='Retained audio-only main-owner binding plus offline stage closure; immutable zero qualification refuses startup. No execution, DMA visibility, deadline or whole-chain stack admission.')
     (out / 'receipt.json').write_text(json.dumps(report, indent=2) + '\n')
     log.close()
     return report

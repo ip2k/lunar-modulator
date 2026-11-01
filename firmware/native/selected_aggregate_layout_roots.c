@@ -25,7 +25,7 @@
 #error "aggregate layout cannot admit pending render pipeline work"
 #endif
 
-#include "selected_interactive_owner.h"
+#include "selected_owner_storage.h"
 #include "selected_interactive_app.h"
 #include "diagnostic_api.h"
 
