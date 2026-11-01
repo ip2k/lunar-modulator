@@ -13,28 +13,40 @@
 #include "state_clip.h"
 
 #define DX7_USER0 (FM1_APP_DX7_PATCHES - (int)FM1_DX7_USER_SLOTS)
-#define SET_CAP FM1_STATE_CAP_MOVY1           /* a set's text: 53,208 B at most at 8 tracks */
+#define SET_CAP FM1_STATE_CAP_MOVY1           /* the format's full 64 KiB text cap */
 #define JSON_CAP FM1_STATE_CAP_PROJECT        /* the largest JSON file */
-/* The JSON writer's document (476,664 B on a 64-bit build) and, once the
- * JSON is written, the binary writer's file (284,920 B); never both at once,
- * so they share. Pass 1's rate check creates engines in it too. */
+/* The JSON writer's document and, once JSON is written, the binary writer's
+ * file never coexist, so they share. Pass 1's rate check creates engines in
+ * it too. Actual target sizes are recorded in the state-workspace note. */
 #define W_BYTES (480u * 1024u)
 #define CLIP_LINES 512u
 
-static unsigned char g_w[W_BYTES] FM1_APP_ALIGN16;
+#define ALIGNED_BYTES(n) (((n) + 15u) & ~(size_t)15u)
+#define JSON_BYTES (JSON_CAP + 1u)
+#define BIN_BYTES FM1_STATE_BIN_MAX
+#define SET_BYTES (SET_CAP + 2u)
+#define SAVE_BYTES (W_BYTES + ALIGNED_BYTES(JSON_BYTES) + BIN_BYTES + ALIGNED_BYTES(SET_BYTES))
+#define PACK_BYTES (W_BYTES + ALIGNED_BYTES(JSON_BYTES) + BIN_BYTES)
+#define LOAD_BYTES (W_BYTES + ALIGNED_BYTES(SET_BYTES))
+typedef char load_scratch_fits[(ALIGNED_BYTES(FM1_STATE_CAP_CLIP + 2u) +
+                               FM1_APP_SEQ_BYTES <= W_BYTES) ? 1 : -1];
+
+#if !FM1_APP_STATE_EXTERNAL_WORKSPACE
+static unsigned char g_default_workspace[SAVE_BYTES] FM1_APP_ALIGN16;
+#endif
+/* Views into the active caller workspace. One operation on the owning thread;
+ * callbacks cannot acquire this shared plan/scratch recursively. */
+static unsigned char *g_w;
 #define g_jw g_w
 #define g_bw g_w
-static char g_clip[FM1_STATE_CAP_CLIP + 2];
-static char g_json[JSON_CAP + 1];
-static uint32_t g_json_n;
-static int g_json_over;
-static uint8_t g_bin[FM1_STATE_BIN_MAX];
-static uint32_t g_bin_n;
-static int g_bin_over;
-static char g_set[SET_CAP + 2];
-static uint32_t g_set_n;
-static int g_set_over;
-static unsigned char g_seq_scratch[FM1_APP_SEQ_BYTES] FM1_APP_ALIGN16;
+static char *g_clip, *g_json, *g_set;
+static uint8_t *g_bin;
+static unsigned char *g_seq_scratch;
+static uint32_t g_json_n, g_bin_n, g_set_n;
+static int g_json_over, g_bin_over, g_set_over;
+static int g_busy;
+static const void *g_active_memory;
+static size_t g_active_bytes;
 
 static const fm1_state_names_t *names(void) {
   static fm1_state_names_t nm;
@@ -328,8 +340,8 @@ static uint32_t set_text(const fm1_app_t *a) {
   size_t n;
   g_set_n = 0;
   if (!a->seq) return 0;
-  n = fm1_seq_export_movy1(a->seq, g_set, sizeof g_set);
-  if (n >= sizeof g_set) return 0;
+  n = fm1_seq_export_movy1(a->seq, g_set, SET_BYTES);
+  if (n >= SET_BYTES) return 0;
   g_set_n = (uint32_t)n;
   return g_set_n;
 }
@@ -590,7 +602,7 @@ static void json_put(void *ctx, const char *b, size_t n) {
 
 static void bin_put(void *ctx, const char *b, size_t n) {
   (void)ctx;
-  if (g_bin_n + n > sizeof g_bin) {
+  if (g_bin_n + n > BIN_BYTES) {
     g_bin_over = 1;
     return;
   }
@@ -612,7 +624,7 @@ static int refuse_rep(fm1_state_report_t *rep, unsigned code, const char *what) 
   return 0;
 }
 
-int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put_t put, void *ctx,
+static int state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put_t put, void *ctx,
                        fm1_state_report_t *rep) {
   static const uint8_t version[3] = { 0, 1, 0 };
   const char *why = "";
@@ -627,7 +639,7 @@ int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put
     put(ctx, g_set, g_set_n);
     return 1;
   }
-  if (fm1_state_json_writer_size() > sizeof g_jw || fm1_state_bin_writer_size() > sizeof g_bw) {
+  if (fm1_state_json_writer_size() > W_BYTES || fm1_state_bin_writer_size() > W_BYTES) {
     return refuse_rep(rep, FM1_STATE_TOO_BIG, "the writer does not fit its buffer");
   }
   g_bin_n = 0;
@@ -666,11 +678,11 @@ int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put
   return 1;
 }
 
-int fm1_app_state_pack(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx, fm1_state_report_t *rep) {
+static int state_pack(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx, fm1_state_report_t *rep) {
   static const uint8_t version[3] = { 0, 1, 0 };
   fm1_state_writer_t *b;
   fm1_state_report_init(rep);
-  if (fm1_state_bin_writer_size() > sizeof g_bw) return refuse_rep(rep, FM1_STATE_TOO_BIG, "the writer does not fit");
+  if (fm1_state_bin_writer_size() > W_BYTES) return refuse_rep(rep, FM1_STATE_TOO_BIG, "the writer does not fit");
   g_bin_n = 0;
   g_bin_over = 0;
   {
@@ -1018,7 +1030,7 @@ static int rate_ok(const fm1_app_t *a, const fm1_engine_t *e) {
     memo_rate = a->host.sample_rate;
   }
   if (index >= 0 && index < 256 && memo[index]) return memo[index] > 0;
-  if (e->instance_size(&a->host) > sizeof g_bw) {
+  if (e->instance_size(&a->host) > W_BYTES) {
     ok = 1;
   } else {
     void *self;
@@ -1359,7 +1371,7 @@ static int plan_finish(plan_t *p) {
   if (p->has_set || p->kind == FM1_STATE_SET) {
     fm1_seq_t *s;
     fm1_seq_info_t info;
-    if (!a->seq || fm1_seq_size(&a->seq_lim) > sizeof g_seq_scratch) {
+    if (!a->seq || fm1_seq_size(&a->seq_lim) > FM1_APP_SEQ_BYTES) {
       return refuse_load(p, FM1_STATE_BAD, "No sequencer", "The simulator has no sequencer to load a set into.%s", "");
     }
     s = fm1_seq_create(g_seq_scratch, &a->seq_lim, (uint32_t)(a->host.sample_rate + 0.5f));
@@ -1382,7 +1394,7 @@ static int plan_finish(plan_t *p) {
     size_t n = 0;
     uint32_t at = 0, set_n;
     char *clip_copy = g_clip;
-    if (!a->seq || fm1_seq_size(&a->seq_lim) > sizeof g_seq_scratch ||
+    if (!a->seq || fm1_seq_size(&a->seq_lim) > FM1_APP_SEQ_BYTES ||
         t < 0 || t >= (int)a->seq_lim.tracks || sl < 0 || sl >= 8) {
       return refuse_load(p, FM1_STATE_BAD, "No such slot", "A clip loads into a track and a slot.%s", "");
     }
@@ -1781,7 +1793,7 @@ static int check(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total, co
   return plan_finish(p);
 }
 
-int fm1_app_state_check(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
+static int state_check(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
                         const fm1_app_load_opts_t *o, fm1_app_state_report_t *rep) {
   fm1_app_load_opts_t none;
   if (!o) {
@@ -1794,7 +1806,7 @@ int fm1_app_state_check(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t to
   return ok;
 }
 
-int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
+static int state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
                        const fm1_app_load_opts_t *o, fm1_app_state_report_t *rep) {
   fm1_app_load_opts_t none;
   plan_t *p = &g_plan;
@@ -1921,7 +1933,7 @@ static int midi_only_sink(void *ctx, const fm1_rec_t *r) {
   if (code != FM1_STATE_OK) { rep->code = (uint8_t)code; snprintf(rep->what, sizeof rep->what, "invalid MIDI map update"); return 0; }
   return 1;
 }
-int fm1_app_midi_map_set(fm1_app_t *a, const uint8_t *bytes, size_t len, fm1_state_report_t *rep) {
+static int midi_map_set(fm1_app_t *a, const uint8_t *bytes, size_t len, fm1_state_report_t *rep) {
   fm1_state_json_reader_t reader;
   fm1_state_report_init(rep);
   memset(&g_plan.midi_map, 0, sizeof g_plan.midi_map);
@@ -1932,4 +1944,182 @@ int fm1_app_midi_map_set(fm1_app_t *a, const uint8_t *bytes, size_t len, fm1_sta
   if (!g_plan.midi_map.version) { rep->code = FM1_STATE_BAD; snprintf(rep->what, sizeof rep->what, "a MIDI map update needs midiMap"); return 0; }
   a->midi_map = g_plan.midi_map;
   return 1;
+}
+
+/* ====================== explicit scratch ownership ====================== */
+
+size_t fm1_app_state_workspace_size(unsigned operation) {
+  switch (operation) {
+    case FM1_APP_STATE_WORK_SAVE: return SAVE_BYTES;
+    case FM1_APP_STATE_WORK_PACK: return PACK_BYTES;
+    case FM1_APP_STATE_WORK_LOAD: return LOAD_BYTES;
+    default: return 0;
+  }
+}
+
+static int range_valid(const void *p, size_t n) {
+  return p && n && n - 1u <= UINTPTR_MAX - (uintptr_t)p;
+}
+
+static int overlap(const void *a, size_t n, const void *b, size_t m) {
+  uintptr_t x, y;
+  if (!a || !b || !n || !m) return 0;
+  if (!range_valid(a, n) || !range_valid(b, m)) return 1;
+  x = (uintptr_t)a; y = (uintptr_t)b;
+  return x <= y ? y - x < n : x - y < m;
+}
+
+/* Invalid output/report ownership cannot be used to report an error by writing
+ * into an active or overlapping workspace. Leave that report untouched. */
+static int workspace_refuse(fm1_state_report_t *rep, const fm1_app_state_workspace_t *w,
+                            const char *why) {
+  if (rep && !overlap(rep, sizeof *rep, g_active_memory, g_active_bytes) &&
+      (!w || !overlap(rep, sizeof *rep, w->memory, w->bytes))) {
+    fm1_state_report_init(rep);
+    refuse_rep(rep, FM1_STATE_BAD, why);
+  }
+  return 0;
+}
+
+static int workspace_acquire(const fm1_app_state_workspace_t *w, unsigned operation,
+                              const fm1_app_t *a, fm1_src_read_t rd, void *rctx,
+                              const fm1_app_load_opts_t *opts, void *report, size_t report_bytes,
+                              fm1_state_report_t *rep) {
+  const size_t need = fm1_app_state_workspace_size(operation);
+  unsigned char *at;
+  /* A load report is larger than its codec-report prefix. Do not even write
+   * that prefix when any later part aliases requested or active scratch. */
+  if (overlap(report, report_bytes, g_active_memory, g_active_bytes) ||
+      (w && overlap(report, report_bytes, w->memory, w->bytes))) rep = NULL;
+  if (g_busy) return workspace_refuse(rep, w, "state workspace is busy");
+  if (!w || !need || !range_valid(w->memory, w->bytes) ||
+      ((uintptr_t)w->memory & 15u) || w->bytes < need) {
+    return workspace_refuse(rep, w, "state workspace is missing, misaligned or too small");
+  }
+  if (overlap(w->memory, w->bytes, w, sizeof *w) ||
+      overlap(w->memory, w->bytes, report, report_bytes) ||
+      overlap(w->memory, w->bytes, opts, opts ? sizeof *opts : 0) ||
+      overlap(w->memory, w->bytes, a, a ? sizeof *a : 0) ||
+      (a && overlap(w->memory, w->bytes, a->edit, a->edit ? sizeof *a->edit : 0))) {
+    return workspace_refuse(rep, w, "state workspace overlaps live storage");
+  }
+  if (a) {
+    for (int u = 0; u < FM1_APP_UNITS; ++u) {
+      if (overlap(w->memory, w->bytes, a->unit[u].mem, a->unit[u].cap)) {
+        return workspace_refuse(rep, w, "state workspace overlaps an engine arena");
+      }
+    }
+  }
+  if (rd == fm1_app_state_mem_read) {
+    const fm1_app_state_mem_t *m = rctx;
+    if (!m || overlap(w->memory, w->bytes, m, sizeof *m) ||
+        overlap(w->memory, w->bytes, m->b, m->n)) {
+      return workspace_refuse(rep, w, "state workspace overlaps its source");
+    }
+  }
+  g_busy = 1;
+  g_active_memory = w->memory;
+  g_active_bytes = w->bytes;
+  at = w->memory;
+  g_w = at; at += W_BYTES;
+  g_clip = NULL; g_seq_scratch = NULL; g_json = NULL; g_bin = NULL; g_set = NULL;
+  if (operation == FM1_APP_STATE_WORK_LOAD) {
+    /* rate_ok finishes before clip/seq validation begins. The clip copy and
+     * scratch sequencer themselves must coexist and do not alias. */
+    g_clip = (char *)g_w;
+    g_seq_scratch = g_w + ALIGNED_BYTES(FM1_STATE_CAP_CLIP + 2u);
+    g_set = (char *)at;
+  } else {
+    g_json = (char *)at; at += ALIGNED_BYTES(JSON_BYTES);
+    g_bin = at; at += BIN_BYTES;
+    if (operation == FM1_APP_STATE_WORK_SAVE) g_set = (char *)at;
+  }
+  return 1;
+}
+
+static void workspace_release(void) {
+  g_w = NULL; g_clip = NULL; g_seq_scratch = NULL;
+  g_json = NULL; g_bin = NULL; g_set = NULL;
+  g_active_memory = NULL; g_active_bytes = 0;
+  g_busy = 0;
+}
+
+int fm1_app_state_save_with_workspace(fm1_app_t *a, unsigned kind, int arg, int binary,
+                                      fm1_put_t put, void *ctx,
+                                      const fm1_app_state_workspace_t *w, fm1_state_report_t *rep) {
+  int ok;
+  if (!workspace_acquire(w, FM1_APP_STATE_WORK_SAVE, a, NULL, NULL, NULL, rep,
+                         rep ? sizeof *rep : 0, rep)) return 0;
+  ok = state_save(a, kind, arg, binary, put, ctx, rep);
+  workspace_release();
+  return ok;
+}
+
+int fm1_app_state_pack_with_workspace(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx,
+                                      const fm1_app_state_workspace_t *w, fm1_state_report_t *rep) {
+  int ok;
+  if (!workspace_acquire(w, FM1_APP_STATE_WORK_PACK, NULL, rd, rctx, NULL, rep,
+                         rep ? sizeof *rep : 0, rep)) return 0;
+  ok = state_pack(rd, rctx, put, ctx, rep);
+  workspace_release();
+  return ok;
+}
+
+int fm1_app_state_check_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
+                                       const fm1_app_load_opts_t *o,
+                                       const fm1_app_state_workspace_t *w, fm1_app_state_report_t *rep) {
+  int ok;
+  if (!workspace_acquire(w, FM1_APP_STATE_WORK_LOAD, a, rd, rctx, o, rep,
+                         rep ? sizeof *rep : 0, rep ? &rep->r : NULL)) return 0;
+  ok = state_check(a, rd, rctx, total, o, rep);
+  workspace_release();
+  return ok;
+}
+
+int fm1_app_state_load_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
+                                      const fm1_app_load_opts_t *o,
+                                      const fm1_app_state_workspace_t *w, fm1_app_state_report_t *rep) {
+  int ok;
+  if (!workspace_acquire(w, FM1_APP_STATE_WORK_LOAD, a, rd, rctx, o, rep,
+                         rep ? sizeof *rep : 0, rep ? &rep->r : NULL)) return 0;
+  ok = state_load(a, rd, rctx, total, o, rep);
+  workspace_release();
+  return ok;
+}
+
+static const fm1_app_state_workspace_t *default_workspace(void) {
+#if FM1_APP_STATE_EXTERNAL_WORKSPACE
+  return NULL;
+#else
+  static const fm1_app_state_workspace_t w = { g_default_workspace, sizeof g_default_workspace };
+  return &w;
+#endif
+}
+
+int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary,
+                       fm1_put_t put, void *ctx, fm1_state_report_t *rep) {
+  return fm1_app_state_save_with_workspace(a, kind, arg, binary, put, ctx, default_workspace(), rep);
+}
+
+int fm1_app_state_pack(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx, fm1_state_report_t *rep) {
+  return fm1_app_state_pack_with_workspace(rd, rctx, put, ctx, default_workspace(), rep);
+}
+
+int fm1_app_state_check(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
+                        const fm1_app_load_opts_t *o, fm1_app_state_report_t *rep) {
+  return fm1_app_state_check_with_workspace(a, rd, rctx, total, o, default_workspace(), rep);
+}
+
+int fm1_app_state_load(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
+                       const fm1_app_load_opts_t *o, fm1_app_state_report_t *rep) {
+  return fm1_app_state_load_with_workspace(a, rd, rctx, total, o, default_workspace(), rep);
+}
+
+int fm1_app_midi_map_set(fm1_app_t *a, const uint8_t *bytes, size_t len, fm1_state_report_t *rep) {
+  int ok;
+  if (g_busy) return workspace_refuse(rep, NULL, "state workspace is busy");
+  g_busy = 1;
+  ok = midi_map_set(a, bytes, len, rep);
+  workspace_release();
+  return ok;
 }
