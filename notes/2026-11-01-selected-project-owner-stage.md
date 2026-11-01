@@ -8,9 +8,10 @@ interactive checkpoint A). The codec, cold selected loader, owner scheduler and
 builders are unchanged.
 
 `LUNAR_SELECTED_PROJECT_STAGE_PROOF` additionally requires the explicit offline
-and selected interactive proof flags. The caller exclusively owns the app and
-stops all owner/IRQ/render/input/display access for the complete synchronous
-call. The boolean operation guard rejects same-thread reentry; it is not a lock
+and selected interactive proof flags. The caller uses a never-started, exclusively
+owned app, or a future caller-proven shutdown excluding all owner/IRQ/render/
+input/display access for the complete synchronous call. Checkpoint A has no stop
+API; merely omitting owner/IRQ calls does not satisfy its live-owner contract. The boolean operation guard rejects same-thread reentry; it is not a lock
 or proof of a target pause. No mutable app pointer is exported.
 
 The private aligned startup reader allocation becomes 65,536 bytes only under

@@ -198,20 +198,29 @@ int main(int argc,char **argv) {
     assert(!lunar_diagnostic_state()->store_ready);
     printf("selected actual-app modes2/3 bytes/full reports/shared reader/PCM; %u operations %u partial faults, %u guarded hook calls passed\n",operations,faults,guard_checks);
   } else {
-    inject_fault=(unsigned)atoi(argv[1]);assert(inject_fault>=1&&inject_fault<=6);
-    expected_save(2);reset_candidate();probe_reentry=1;
+    unsigned scenario=(unsigned)atoi(argv[1]);assert(scenario>=1&&scenario<=8);
+    expected_save(2);reset_candidate();
+    unsigned operation_count=0;
+    if(scenario>=7) {
+      assert(stage_save(2,&r)==1);operation_count=fake.operations;reset_candidate();
+      /* Fault at commit plus a backend whose publication result is already
+       * definitively refused (header) or indeterminate (marker). */
+      fake.fail=operation_count-(scenario==7);
+    }
+    inject_fault=scenario>=7?4:scenario;probe_reentry=1;
     if(inject_fault==5)fake.fail=2; /* opened write failure -> abort hook */
     if(inject_fault==6) { lunar_diagnostic_fault(77);injected=1; }
     int result=stage_save(2,&r);
     assert(injected && lunar_diagnostic_status()==77 && !fake.open);
-    if(inject_fault==4) assert(result==2&&fake.commits==1&&!fake.aborts&&scan()==1);
+    if(scenario>=7) assert(result==(scenario==7?0:2)&&fake.commits==1&&!fake.aborts&&scan()==0);
+    else if(inject_fault==4) assert(result==2&&fake.commits==1&&!fake.aborts&&scan()==1);
     else { assert(result==0&&!fake.commits&&scan()==0);assert(fake.aborts==(inject_fault==6?0:1)); }
     unsigned calls=callbacks;
     assert(!lunar_selected_interactive_stage(2,&selected_ops,&fake,&r)&&callbacks==calls);
     int32_t pcm[128];memset(pcm,0x5a,sizeof pcm);
     assert(lunar_selected_interactive_render(NULL,pcm)==-1);
     for(unsigned i=0;i<128;++i)assert(!pcm[i]);
-    printf("selected actual-app sticky fault at phase%u: result%d callbacks%u commits%u aborts%u\n",inject_fault,result,callbacks,fake.commits,fake.aborts);
+    printf("selected actual-app sticky fault at phase%u: result%d callbacks%u commits%u aborts%u\n",scenario,result,callbacks,fake.commits,fake.aborts);
   }
   return 0;
 }

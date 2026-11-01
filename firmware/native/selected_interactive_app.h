@@ -14,10 +14,11 @@ int lunar_selected_interactive_render(void *, int32_t *);
 const uint16_t *lunar_selected_interactive_draw(void *, uint32_t min_frames);
 #ifdef LUNAR_SELECTED_PROJECT_STAGE_PROOF
 #include "fm1_app_state.h"
-/* Explicit offline operation only: caller stops and excludes all owner main,
- * Timer/audio producers/consumers and app/display access before entry and until
- * return. No live pause, IRQ lock or deadline is implemented by this flag or
- * the reentry guard. Never call while the interactive owner is being serviced.
+/* Explicit offline operation only: use a never-started, exclusively-owned app,
+ * or a future caller-proven shutdown excluding all owner main, Timer/audio
+ * producers/consumers and app/display access before entry and until return.
+ * Checkpoint A has no stop API. This flag/reentry guard implements no live
+ * pause, IRQ lock or deadline. Never call while its live owner is running.
  *
  * Stages the actual private app using one 64-KiB arena previously used by cold
  * startup. Modes2/3 and callbacks obey fm1_app_state_project_stage's complete

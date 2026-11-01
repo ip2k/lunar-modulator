@@ -57,7 +57,7 @@ def test_actual_selected_project_stage(tmp_path):
     assert receipt["packed_bytes"] == 597 and not receipt["hardware_admitted"]
     exe = build / "proof-check"
     subprocess.run([*cmd, str(exe)], check=True, timeout=300)
-    for mode in ["positive", "1", "2", "3", "4", "5", "6"]:
+    for mode in ["positive", "1", "2", "3", "4", "5", "6", "7", "8"]:
         result = subprocess.run([str(exe), mode], check=True,
                                 text=True, capture_output=True, timeout=60)
         print(result.stdout, end="")
