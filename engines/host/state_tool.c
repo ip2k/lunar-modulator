@@ -700,7 +700,7 @@ int main(int argc, char **argv) {
       ok = movy1_records(&in, fm1_state_bin_write, w);
     } else {
       ok = to_canon(&nm, &in, 0, without, 1, &canon, &rep);
-      if (ok && strict && fm1_state_sniff(in.b, in.n) == 2 && (rep.skipped || rep.repaired)) {
+      if (ok && strict && fm1_state_sniff(in.b, in.n) != 1 && (rep.skipped || rep.repaired)) {
         rep.code = FM1_STATE_BAD;
         snprintf(rep.what, sizeof(rep.what),
                  "strict pack refuses %u skipped and %u repaired JSON fields",

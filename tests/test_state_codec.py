@@ -472,11 +472,16 @@ def test_repairs_and_skips_are_counted(tool, names, name, text, counts):
     (SND % ('"Unison": 1', ""), "skipped"),
     (SND % ('"Shape": 999', ""), "repaired"),
 ])
-def test_strict_pack_refuses_loss_while_default_remains_compatible(tool, tmp_path, text, count):
+@pytest.mark.parametrize("size", [None, 4095, 4096, 4097])
+def test_strict_pack_refuses_loss_while_default_remains_compatible(tool, tmp_path, text, count, size):
+    data = text.encode()
+    if size is not None:
+        assert len(data) < size
+        data += b" " * (size - len(data))
     default = tmp_path / "default.lunarbin"
     strict = tmp_path / "strict.lunarbin"
-    assert run(tool, "pack", "-", "-o", default, data=text.encode()).returncode == 0
-    refused = run(tool, "pack", "-", "--strict", "-o", strict, data=text.encode())
+    assert run(tool, "pack", "-", "-o", default, data=data).returncode == 0
+    refused = run(tool, "pack", "-", "--strict", "-o", strict, data=data)
     assert refused.returncode == 1
     report = json.loads(refused.stderr.decode().splitlines()[-1])
     assert report["code"] == "BAD" and report[count] == 1
