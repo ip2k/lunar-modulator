@@ -429,3 +429,48 @@ def test_worker_evidence_json_and_existing_bytes_share_one_budget():
     with pytest.raises(ValueError, match="byte bound"):
         captured.retain_bytes("log", b"0123456789")
     assert list(captured.values) == ["request.json"] and captured.total == 7
+
+
+@pytest.mark.parametrize("failure", ["input_preparation", "thread_start"])
+def test_submit_rollback_failure_retains_owned_record_and_capacity(config, monkeypatch, failure):
+    job = adapter.DockerJobAdapter(config)
+    original_remove = adapter.shutil.rmtree
+    def refuse_remove(*args, **kwargs):
+        raise PermissionError("injected rollback removal refusal")
+    monkeypatch.setattr(adapter.shutil, "rmtree", refuse_remove)
+    if failure == "input_preparation":
+        monkeypatch.setattr(adapter, "selected_external_inputs",
+                            lambda *args: (_ for _ in ()).throw(ValueError("injected input failure")))
+        expected = ValueError
+    else:
+        monkeypatch.setattr(adapter.threading.Thread, "start",
+                            lambda self: (_ for _ in ()).throw(RuntimeError("injected thread failure")))
+        expected = RuntimeError
+    for index in range(4):
+        build_id = str(index) * 32
+        with pytest.raises(expected, match="injected"):
+            submit(job, build_id)
+        assert job.get(build_id).status == "failed"
+        assert job.job_dirs[build_id].is_dir() and build_id not in job.threads
+        assert build_id in job.cleanup_confirmed
+        assert (build_id in job.selected_inputs) is (failure == "thread_start")
+    with pytest.raises(QueueFull):
+        submit(job, "4" * 32)
+    monkeypatch.setattr(adapter.shutil, "rmtree", original_remove)
+    for build_id in list(job.jobs):
+        job.delete(build_id)
+    assert not job.jobs and not job.selected_inputs and list(config.runtime_root.iterdir()) == []
+    # Rollback released the execution semaphore as well as cleaning records.
+    assert job.semaphore.acquire(blocking=False)
+    job.semaphore.release()
+
+
+def test_selected_delete_can_confirm_already_absent_owned_storage(config, monkeypatch):
+    monkeypatch.setattr(adapter.threading.Thread, "start", lambda self: None)
+    job = adapter.DockerJobAdapter(config)
+    build_id = "a" * 32
+    submit(job, build_id)
+    finish_without_docker(job, build_id)
+    adapter.shutil.rmtree(job.job_dirs[build_id])
+    job.delete(build_id)
+    assert job.get(build_id) is None and build_id not in job.selected_inputs

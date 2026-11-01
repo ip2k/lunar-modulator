@@ -59,10 +59,17 @@ launches no process and reads no external file. Envelope validation claims are
 never trust anchors. The composing API must drain in-flight verification before
 expiry, deletion or shutdown. A selected job remains present, retains its trust
 state, and consumes capacity when container cleanup or owned filesystem removal
-cannot be confirmed. The API confirms `adapter.get(id)` is absent before releasing
+cannot be confirmed. The same ownership rule covers input preparation or thread
+startup failure: an unremoved partial job is retained as failed and consumes
+capacity. No container has launched in that rollback path; deletion may retry
+its pending filesystem cleanup. A staging failure returns before the API records
+admission, so these retained failed records are private operator recovery state,
+identified by the adapter's owned runtime directory and job map. They still count
+toward the four-record limit; they are not automatically expired through an API
+admission that never existed. The API confirms `adapter.get(id)` is absent before releasing
 its corresponding admission record.
 
-Local focused validation passed: 322 tests, one existing skip. It includes actual
+Local focused validation passed: 325 tests, one existing skip. It includes actual
 small subprocess timeout/overflow/descendant checks, synthetic pi32 ELF plus actual
 byte collection and full pure receipt validation, changed input/receipt refusals,
 pure callback checks, read-spy evidence-budget checks, and causal failed-deletion
