@@ -1,5 +1,6 @@
 /* State workspace ownership/equivalence regression. Host-only, MIT. */
 #include "fm1_app_state.h"
+#include "fm1_edit.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -9,6 +10,9 @@
 #define FM1_WORKSPACE_BASELINE 0
 #endif
 static fm1_app_t app, loaded, before;
+#if FM1_APP_EXTERNAL_ARENAS
+static unsigned char engine_storage[2][FM1_APP_UNITS][65536] FM1_APP_ALIGN16;
+#endif
 static unsigned char scratch[1024 * 1024 + 32] FM1_APP_ALIGN16;
 typedef struct output { unsigned char b[262144]; size_t n; unsigned calls; int nested; } output_t;
 static output_t saved, other, packed;
@@ -52,7 +56,16 @@ static void put(void *ctx, const char *s, size_t n) {
 #endif
 }
 static void setup(fm1_app_t *a) {
+#if FM1_APP_EXTERNAL_ARENAS
+  fm1_app_arena_t arenas[FM1_APP_UNITS];
+  unsigned i = a == &app ? 0 : 1;
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    arenas[u].mem = engine_storage[i][u]; arenas[u].bytes = sizeof engine_storage[i][u];
+  }
+  assert(!fm1_app_init_arenas(a, 44118, arenas));
+#else
   fm1_app_init(a, 44118);
+#endif
   assert(!fm1_app_select(a, 0, fm1_app_find("test-sine")));
   assert(!fm1_app_select(a, 1, fm1_app_find("test-gain")));
   assert(!fm1_app_select(a, fm1_app_insert_unit(0, 0), fm1_app_find("test-gain")));
@@ -100,6 +113,19 @@ static int pack(const output_t *in, output_t *o) {
 #endif
 }
 #if !FM1_WORKSPACE_BASELINE
+typedef struct nested_source { fm1_app_state_mem_t memory; unsigned calls; } nested_source_t;
+static uint32_t nested_read(void *ctx, uint32_t off, uint8_t *bytes, uint32_t n) {
+  nested_source_t *s = ctx;
+  if (!s->calls++) {
+    fm1_state_report_t r;
+    fm1_app_state_workspace_t w = {scratch + 16, sizeof scratch - 32};
+    size_t old_n = other.n;
+    assert(!fm1_app_state_save_with_workspace(&app, FM1_STATE_PROJECT, 0, 0, put, &other, &w, &r));
+    assert(!fm1_app_midi_map_set(&app, s->memory.b, s->memory.n, &r));
+    assert(other.n == old_n && !memcmp(&app, &before, sizeof app));
+  }
+  return fm1_app_state_mem_read(&s->memory, off, bytes, n);
+}
 static void invalid_storage(void) {
   fm1_app_state_workspace_t w = workspace(FM1_APP_STATE_WORK_SAVE), bad = w;
   fm1_state_report_t r;
@@ -115,6 +141,14 @@ static void invalid_storage(void) {
   bad = w; bad.memory = (void *)(UINTPTR_MAX & ~(uintptr_t)15); REFUSE(&bad);
   bad = w; bad.memory = &app; REFUSE(&bad);
   bad = w; bad.memory = app.unit[0].mem; REFUSE(&bad);
+  {
+    fm1_edit_t copy;
+    fm1_edit_attach(&app, w.memory, 0);
+    memcpy(&copy, app.edit, sizeof copy); memcpy(&before, &app, sizeof app);
+    REFUSE(&w);
+    assert(!memcmp(app.edit, &copy, sizeof copy));
+    fm1_edit_attach(&app, NULL, 0); memcpy(&before, &app, sizeof app);
+  }
   /* A genuine external engine arena, independently of the app object. */
   app.unit[0].mem = w.memory; app.unit[0].cap = 16;
   memcpy(&before, &app, sizeof app); REFUSE(&w);
@@ -168,6 +202,13 @@ static void invalid_storage(void) {
   assert(!check_load(&app, &saved, 0, 1));
   assert(!memcmp(&app, &before, sizeof app));
   assert(save(&app, FM1_STATE_PROJECT, 0, 0, &saved));
+  {
+    nested_source_t source = {{saved.b, (uint32_t)saved.n}, 0};
+    fm1_app_state_workspace_t load = workspace(FM1_APP_STATE_WORK_LOAD);
+    assert(fm1_app_state_check_with_workspace(&app, nested_read, &source, (uint32_t)saved.n, NULL, &load, &lr));
+    assert(source.calls && !memcmp(&app, &before, sizeof app));
+    canaries(&load);
+  }
 }
 #endif
 int main(void) {
@@ -179,13 +220,10 @@ int main(void) {
     for (int binary = 0; binary < 4; ++binary) {
       assert(save(&app, kinds[k], arg, binary, &saved));
       assert(saved.n && saved.calls == 1); hash(saved.b, saved.n);
-      /* Raw movy text is a separate set import path; binary SET is checked here. */
-      if (kinds[k] != FM1_STATE_SET || binary) {
-        setup(&loaded);
-        assert(check_load(&loaded, &saved, kinds[k], 0));
-        assert(check_load(&loaded, &saved, kinds[k], 1));
-        assert(save(&loaded, FM1_STATE_PROJECT, 0, 0, &other)); hash(other.b, other.n);
-      }
+      setup(&loaded);
+      assert(check_load(&loaded, &saved, kinds[k], 0));
+      assert(check_load(&loaded, &saved, kinds[k], 1));
+      assert(save(&loaded, FM1_STATE_PROJECT, 0, 0, &other)); hash(other.b, other.n);
       if (!binary && kinds[k] != FM1_STATE_SET) {
         assert(pack(&saved, &packed)); hash(packed.b, packed.n);
       }

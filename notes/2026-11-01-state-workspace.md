@@ -86,3 +86,11 @@ scratch. The new regression and sanitizer run remain pending at this checkpoint.
 The first sanitizer build's staging source was updated during its run; its
 result will not be accepted as final evidence. A fresh stable-source rerun is
 required. No target fit claim; target object/storage proof remains pending.
+
+Independent review found the attached host-owned edit object's extent is known
+and live across project loads. Reject overlap with a->edit as well as app and
+unit arenas; added a real fm1_edit_attach regression checking full edit/app
+bytes and zero output. Source freeze for final evidence includes this fix.
+The first GCC ASan baseline executable stayed at one CPU for more than five
+minutes and was stopped; it is inconclusive. Final sanitizer verification will
+use the existing clang ASan image, with per-executable 180-second timeouts.

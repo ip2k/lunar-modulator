@@ -158,7 +158,7 @@ int fm1_app_state_pack(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx, 
  * operation, or access live workspace except its supplied put bytes. Custom
  * rd/put contexts and their backing input/output allocations MUST NOT overlap
  * workspace; their opaque allocation extents cannot be inferred. Known
- * fm1_app_state_mem_read input overlap is checked, as are app/engine arenas,
+ * fm1_app_state_mem_read input overlap is checked, as are app/edit/engine arenas,
  * opts/report and the workspace descriptor. Invalid/busy storage refuses
  * before callbacks, output or app mutation. If report itself overlaps scratch,
  * it is left untouched. Calls from multiple threads require external exclusion.

@@ -1999,7 +1999,8 @@ static int workspace_acquire(const fm1_app_state_workspace_t *w, unsigned operat
   if (overlap(w->memory, w->bytes, w, sizeof *w) ||
       overlap(w->memory, w->bytes, report, report_bytes) ||
       overlap(w->memory, w->bytes, opts, opts ? sizeof *opts : 0) ||
-      overlap(w->memory, w->bytes, a, a ? sizeof *a : 0)) {
+      overlap(w->memory, w->bytes, a, a ? sizeof *a : 0) ||
+      (a && overlap(w->memory, w->bytes, a->edit, a->edit ? sizeof *a->edit : 0))) {
     return workspace_refuse(rep, w, "state workspace overlaps live storage");
   }
   if (a) {
