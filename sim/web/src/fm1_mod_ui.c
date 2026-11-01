@@ -1092,7 +1092,11 @@ static int param_named(const fm1_engine_t *e, const char *name) {
 static int registry_index(const fm1_engine_t *e) {
   size_t k;
   for (k = 0; e && k < fm1_engine_count; ++k) {
-    if (fm1_engines[k] == e) return (int)k;
+    /* Hosts may copy a descriptor to supply live preset names (FM6's
+     * user bank). Its stable id retains registry identity; callers still
+     * use the live descriptor's metadata to resolve the parameter name. */
+    if (fm1_engines[k] == e ||
+        (e->id && fm1_engines[k]->id && strcmp(fm1_engines[k]->id, e->id) == 0)) return (int)k;
   }
   return -1;
 }
