@@ -1,0 +1,69 @@
+{
+  "profile": "sdk-free-single-fm6-diagnostic-v1",
+  "hardware_admitted": false,
+  "release_candidate": false,
+  "sdk_archives": [],
+  "modules": [
+    "dx7",
+    "arp",
+    "lfo",
+    "env",
+    "chance"
+  ],
+  "voices": 8,
+  "dx7_sine": "trunc12",
+  "external_arenas": true,
+  "arena_bytes": 65536,
+  "cpu1": false,
+  "usb": false,
+  "persistence": false,
+  "fail_open": false,
+  "toolchain_archive_sha256": "f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958",
+  "elf_sha256": "9cd8ffc1e430e735a7952b9bcdecc98cfd89d1be08133aef1c4324e7cc25940b",
+  "app_sha256": "30d7fdfe5cce6c1c17079ad4356523757c8be3a768e1c8f4d811e450509e5d3f",
+  "sizes": {
+    "sections": {
+      ".text": {
+        "address": 33554720,
+        "bytes": 210360
+      },
+      ".data": {
+        "address": 29392896,
+        "bytes": 4
+      },
+      ".bss": {
+        "address": 29392912,
+        "bytes": 300240
+      },
+      ".noinit": {
+        "address": 29868032,
+        "bytes": 64
+      }
+    },
+    "app": {
+      "address": 29458464,
+      "bytes": 232832
+    },
+    "arena": {
+      "address": 29392928,
+      "bytes": 65536
+    },
+    "descriptors": {
+      "address": 29691304,
+      "bytes": 112
+    },
+    "user_stack_bytes": 24320,
+    "supervisor_stack_bytes": 7936,
+    "globals_to_stack_guard_bytes": 142112,
+    "flash_bytes": 210364
+  },
+  "source_commit": "eb131d68b9d03572389e0ba9ac4012ffdca49bca",
+  "source_manifest_sha256": "83fdabec7cd3a5729e1057e1d71fe55328af0e61a7dfbb20bc0f8c4030227bd7",
+  "source_files": 738,
+  "objects": 127,
+  "audit_link": {
+    "checks": 12,
+    "n_fail": 0,
+    "n_pending": 0
+  }
+}

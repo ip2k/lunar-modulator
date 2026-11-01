@@ -8,5 +8,5 @@ rp2040-pio-emulator
 adafruit-circuitpython-pioasm
 jsonschema
 
-# Offline installer request validation.
--r tools/installer_service/requirements-contract.txt
+# Offline installer API and request validation, including the real ASGI test client.
+-r tools/installer_service/requirements-test.txt
