@@ -50,8 +50,22 @@ static void setup(void) {
   fm1_edit_attach(&app, &edit, 0);
   fm1_app_note_on(&app, 60, 100);
 }
-static void dense_set(void) {
+static void dense_set(int oversized) {
   fm1_seq_stats_t st;
+  /* Supported caller-selected pools, in the app's existing fixed arena.
+   * Capture is runtime history, not saved set data. Trade it for 64 notes;
+   * neither the production arena nor any format limit changes. */
+  fm1_seq_limits_t lim;
+  fm1_seq_limits_default(&lim, 8);
+  if (oversized) {
+    lim.capture = 0;
+    lim.notes += 64;
+  }
+  assert(fm1_seq_size(&lim) <= sizeof app.seq_mem);
+  app.seq_lim = lim;
+  app.seq = fm1_seq_create(app.seq_mem, &lim, 44118);
+  assert(app.seq);
+  app.seq_host.seq = app.seq;
   text_n = 0;
   add("movy1\nbpm 12000\nswing 99\nlink 1\nkey 11 1\ndq 100\nsg");
   for (unsigned i = 0; i < 64; ++i) add(" 7");
@@ -64,8 +78,8 @@ static void dense_set(void) {
     for (unsigned l = 0; l < 8; ++l) add("au %u %u 127 ABCDEFGHIJKLMNOPQRSTUVW\n", t, l);
     for (unsigned c = 0; c < 8; ++c) {
       add("cl %u %u 256 0 ", t, c);
-      for (unsigned i = 0; i < 24; ++i)
-        add("%s65535:65535:127:127:%u", i ? ";" : "", 232 + i);
+      for (unsigned i = 0; i < 24u + (unsigned)oversized; ++i)
+        add("%s65535:65535:127:127:%u", i ? ";" : "", 232u - (unsigned)oversized + i);
       add("\ncp %u %u 255 255 -36 100\nlk %u %u ", t, c, t, c);
       for (unsigned i = 0; i < 24; ++i) add("%s7:%u:127", i ? ";" : "", 232 + i);
       add("\ntg %u %u ", t, c);
@@ -76,10 +90,11 @@ static void dense_set(void) {
   assert(fm1_app_seq_import(&app, text, text_n));
   fm1_seq_get_stats(app.seq, &st);
   assert(!st.refused && !st.movy_faults);
-  assert(st.notes_used == 1536 && st.locks_used == 1536 && st.trigs_used == 256);
+  assert(st.notes_used == 1536u + 64u * (unsigned)oversized && st.locks_used == 1536 && st.trigs_used == 256);
   text_n = fm1_real_seq_export_movy1(app.seq, text, sizeof text);
   printf("real set bytes=%zu notes=%u locks=%u trigs=%u\n", text_n, st.notes_used, st.locks_used, st.trigs_used);
-  assert(text_n >= 65538 && text_n < sizeof text);
+  fflush(stdout);
+  assert((text_n >= 65538) == oversized && text_n < sizeof text);
   /* A real current-app set, not a fabricated length: export/import/export
    * roundtrips at the original pool/format limits without refused edits. */
   assert(fm1_app_seq_import(&app, text, text_n));
@@ -96,17 +111,20 @@ static void attempt(int mode, int should_fit) {
   memcpy(&before, &app, sizeof app); memcpy(&edit_before, &edit, sizeof edit);
   memcpy(pcm, fm1_app_render(&app, 64), sizeof pcm);
   memcpy(&app, &before, sizeof app); memcpy(&edit, &edit_before, sizeof edit);
-  output_n = calls = 0;
-  int ok = fm1_app_state_save_with_workspace(&app, FM1_STATE_PROJECT, 0, mode, put, NULL, &w, &r);
-  printf("mode=%d length=%zu ok=%d code=%u calls=%u bytes=%zu what=%s\n", mode,
-         export_length ? export_length : text_n, ok, r.code, calls, output_n, r.what);
-  fflush(stdout);
-  assert(!memcmp(&before, &app, sizeof app) && !memcmp(&edit_before, &edit, sizeof edit));
-  if (should_fit) {
-    assert(ok && r.code == FM1_STATE_OK && calls && output_n);
-    hash(output, output_n);
-  } else {
-    assert(!ok && r.code == FM1_STATE_TOO_BIG && !calls && !output_n);
+  for (int legacy = 0; legacy < 2; ++legacy) {
+    output_n = calls = 0;
+    int ok = legacy ? fm1_app_state_save(&app, FM1_STATE_PROJECT, 0, mode, put, NULL, &r) :
+      fm1_app_state_save_with_workspace(&app, FM1_STATE_PROJECT, 0, mode, put, NULL, &w, &r);
+    printf("mode=%d api=%s length=%zu ok=%d code=%u calls=%u bytes=%zu what=%s\n", mode, legacy ? "host" : "workspace",
+           export_length ? export_length : text_n, ok, r.code, calls, output_n, r.what);
+    fflush(stdout);
+    assert(!memcmp(&before, &app, sizeof app) && !memcmp(&edit_before, &edit, sizeof edit));
+    if (should_fit) {
+      assert(ok && r.code == FM1_STATE_OK && calls && output_n);
+      hash(output, output_n);
+    } else {
+      assert(!ok && r.code == FM1_STATE_TOO_BIG && !calls && !output_n);
+    }
   }
   assert(!memcmp(pcm, fm1_app_render(&app, 64), sizeof pcm));
   memcpy(&app, &before, sizeof app); memcpy(&edit, &edit_before, sizeof edit);
@@ -122,10 +140,13 @@ int main(int argc, char **argv) {
     assert(!fm1_app_seq_reset(&app, 8));
     for (export_length = 65536; export_length <= 65537; ++export_length)
       for (int mode = 0; mode < 4; ++mode) attempt(mode, 1);
+    export_length = 0;
+    dense_set(0);
+    for (int mode = 0; mode < 4; ++mode) attempt(mode, 1);
     printf("valid digest=%08x\n", digest);
     return 0;
   }
-  dense_set();
+  dense_set(1);
   for (int mode = 0; mode < 4; ++mode) attempt(mode, 0);
   export_length = 65538;
   for (int mode = 0; mode < 4; ++mode) attempt(mode, 0);
