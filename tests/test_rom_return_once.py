@@ -100,17 +100,79 @@ def inputs(private_tmp_path):
                 _serial_factory=lambda port: fake), fake
 
 
-def test_production_and_cli_are_disabled_before_files_or_serial(inputs, monkeypatch):
+def test_unset_pin_and_unreviewed_cli_manifest_refuse_before_serial(inputs, monkeypatch):
     args, fake = inputs
-    assert host.REVIEWED_IMAGE_MANIFEST_SHA256 is None
-    monkeypatch.setattr(host, "_read_file", lambda *a: pytest.fail("UNSET pin read an input"))
-    args.pop("_reviewed_image_pin")
-    with pytest.raises(ValueError, match="UNSET"):
-        host._run_once(**args)
+    with monkeypatch.context() as patch:
+        patch.setattr(host, "_read_file", lambda *a: pytest.fail("UNSET pin read an input"))
+        with pytest.raises(ValueError, match="UNSET"):
+            host._run_once(**dict(args, _reviewed_image_pin=None))
+    # The CLI has the real pin; an invented fixture manifest must fail before
+    # campaign allocation or the serial factory, with no private-seam bypass.
+    monkeypatch.setattr(host, "_Campaign", lambda *a: pytest.fail("unreviewed CLI allocated a campaign"))
     with pytest.raises(SystemExit) as caught:
         host.main(["--port", args["port"], "--campaign", str(args["campaign"]), "--payload", str(args["payload_path"]),
                    "--reviewed-image-manifest", str(args["image_manifest"])])
     assert caught.value.code == 1 and not fake.writes and not args["campaign"].exists()
+
+
+REVIEWED_IMAGE = host.ROOT / "firmware/rom-witness-return/reviewed-pico-image.json"
+
+
+def test_reviewed_image_matches_recipe_and_patch_inventory():
+    image = json.loads(REVIEWED_IMAGE.read_bytes())
+    source = host.ROOT / "tools/fm1-transporter"
+    build_manifest = source / "return-r01-build-manifest.json"
+    assert host._sha(build_manifest.read_bytes()) == image["pico_build_manifest_sha256"]
+    assert host._sha((source / "build-rom-return.sh").read_bytes()) == image["recipe_sha256"]
+    for name in json.loads(build_manifest.read_bytes())["patches"]:
+        assert host._sha((source / name).read_bytes()) == image["patch_sha256"][name[:4]]
+
+
+def test_exact_reviewed_image_preflight_and_default_pin_flow(inputs):
+    args, fake = inputs
+    raw = REVIEWED_IMAGE.read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == host.REVIEWED_IMAGE_MANIFEST_SHA256
+    args["image_manifest"] = REVIEWED_IMAGE
+    args.pop("_reviewed_image_pin")
+    payload, image = host._preflight(args["payload_path"], REVIEWED_IMAGE,
+                                     _reviewed_image_pin=host.REVIEWED_IMAGE_MANIFEST_SHA256)
+    assert payload == b"\x80\x00" + bytes(510)
+    assert image["strict_source_commit"] == "ff1fed64c180a4e604f21bf6d34146f295f7f859"
+    assert image["uf2"] == dict(bytes=144384, sha256="fecc4f116e212bed5906e7519a93ffe4907e1c93229307c43736b97f85dcbfaf")
+    result = host._run_once(**args)  # Real default pin; only transport is fake.
+    assert result["transport_return_evidence"] is True and len(fake.writes) == 3
+    assert all(result[key] is False for key in ("hardware_admitted", "flashed_image_verified",
+               "rom_abi_qualified", "fetch_coherence_qualified", "watchdog_lease_qualified", "installable"))
+    receipt = json.loads((args["campaign"] / "campaign.json").read_text())
+    assert receipt["reviewed_image_manifest_sha256"] == host.REVIEWED_IMAGE_MANIFEST_SHA256
+    assert receipt["uf2"] == image["uf2"] and receipt["flashed_image_verified"] is False
+    with pytest.raises(FileExistsError):
+        host._run_once(**args)
+    assert len(fake.writes) == 3
+
+
+@pytest.mark.parametrize("field", ["strict_source_commit", "recipe_sha256", "pico_build_manifest_sha256",
+    "patch_sha256", "uf2_sha256", "uf2_bytes", "contract_sha256", "source_base", "payload_sha256", "board",
+    "approval", "whitespace"])
+def test_reviewed_identity_mutation_refuses_with_real_pin_before_io(inputs, field):
+    args, fake = inputs
+    image = json.loads(REVIEWED_IMAGE.read_bytes())
+    if field == "patch_sha256":
+        image[field]["0003"] = "0" * 64
+    elif field.startswith("uf2_"):
+        image["uf2"][field.removeprefix("uf2_")] = "0" * 64 if field.endswith("sha256") else 144896
+    elif field == "approval":
+        image["approved"] = True
+    elif field != "whitespace":
+        image[field] = "pico" if field == "board" else "0" * len(image[field])
+    raw = (json.dumps(image, indent=2) + "\n").encode()
+    if field == "whitespace":
+        raw += b"\n"
+    args["image_manifest"].write_bytes(raw)
+    args.pop("_reviewed_image_pin")
+    with pytest.raises(ValueError, match="manifest digest mismatch"):
+        host._run_once(**args)
+    assert not fake.writes and not args["campaign"].exists()
 
 
 def test_complete_fixed_flow_is_durable_and_spent(inputs, monkeypatch):
