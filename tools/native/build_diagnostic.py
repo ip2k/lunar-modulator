@@ -10,11 +10,14 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
-from pathlib import Path
+import os
+from pathlib import Path, PurePosixPath
 import re
 import shutil
+import stat
 import subprocess
 import sys
+import tarfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -24,14 +27,139 @@ TOOLCHAIN_SHA256 = 'f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa822
 DEFINES = ['-DFM1_APP_EXTERNAL_ARENAS=1', '-DFM1_SHAPES_VOICES=8',
            '-DNDEBUG', '-D_GNU_SOURCE', '-D_XOPEN_SOURCE=700']
 
+def stream_digest(stream):
+    result = hashlib.sha256()
+    for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+        result.update(chunk)
+    return result.hexdigest()
+
 def digest(p):
-    return hashlib.sha256(p.read_bytes()).hexdigest()
+    with p.open('rb') as stream:
+        return stream_digest(stream)
+
+def toolchain_tree(root):
+    """Record the actual read-only input tree, including executable/link identity."""
+    result = {}
+    if not root.is_dir():
+        raise ValueError('toolchain must be an extracted directory')
+    for directory, dirs, files in os.walk(root, followlinks=False):
+        for name in sorted(dirs + files):
+            path = Path(directory) / name
+            relative = path.relative_to(root).as_posix()
+            mode = path.lstat().st_mode
+            if stat.S_ISLNK(mode):
+                try:
+                    target = path.resolve(strict=True)
+                except (OSError, RuntimeError) as error:
+                    raise ValueError('unresolvable toolchain link: ' + relative) from error
+                if not target.is_relative_to(root):
+                    raise ValueError('toolchain link escapes tree: ' + relative)
+                result[relative] = dict(kind='symlink', target=os.readlink(path))
+            elif stat.S_ISDIR(mode):
+                result[relative] = dict(kind='directory')
+            elif stat.S_ISREG(mode):
+                result[relative] = dict(kind='file', bytes=path.stat().st_size,
+                                        execute_bits=mode & 0o111, sha256=digest(path))
+            else:
+                raise ValueError('nonregular toolchain input: ' + relative)
+    return result
+
+def bind_toolchain(root, archive):
+    """Compare every extracted input with the pinned archive, without extracting it.
+
+    A hash of an unrelated archive is not provenance for --toolchain. Directory,
+    file bytes, executable bits and internal symlink identities must all match.
+    Inputs must remain read-only throughout the build; a final snapshot detects
+    ordinary changes, not a hostile filesystem changing and restoring inputs.
+    """
+    actual = toolchain_tree(root)
+    expected, hardlinks, archive_root = {}, {}, None
+
+    def parts(name):
+        path = PurePosixPath(name)
+        if path.is_absolute() or '..' in path.parts or not path.parts:
+            raise ValueError('unsafe toolchain archive path: ' + name)
+        return path.parts
+
+    try:
+        with archive.open('rb') as stream:
+            if stream_digest(stream) != TOOLCHAIN_SHA256:
+                raise ValueError('toolchain archive differs from pinned source')
+            stream.seek(0)
+            with tarfile.open(fileobj=stream, mode='r|*') as contents:
+                for member in contents:
+                    path = parts(member.name)
+                    if archive_root is None:
+                        archive_root = path[0]
+                    if path[0] != archive_root:
+                        raise ValueError('toolchain archive has multiple roots')
+                    if len(path) == 1:
+                        if not member.isdir():
+                            raise ValueError('toolchain archive root must be a directory')
+                        continue
+                    name = '/'.join(path[1:])
+                    if name in expected or name in hardlinks:
+                        raise ValueError('duplicate toolchain archive member: ' + name)
+                    if member.isdir():
+                        expected[name] = dict(kind='directory')
+                    elif member.isfile() and not member.issparse():
+                        with contents.extractfile(member) as data:
+                            expected[name] = dict(kind='file', bytes=member.size,
+                                execute_bits=member.mode & 0o111, sha256=stream_digest(data))
+                    elif member.issym():
+                        expected[name] = dict(kind='symlink', target=member.linkname)
+                    elif member.islnk():
+                        target = parts(member.linkname)
+                        if target[0] != archive_root or len(target) < 2:
+                            raise ValueError('toolchain hardlink escapes archive root: ' + name)
+                        hardlinks[name] = '/'.join(target[1:])
+                    else:
+                        raise ValueError('unsupported toolchain archive member: ' + name)
+            # Recheck this same open file after parsing; no path replacement can
+            # substitute the archive between pin validation and member reads.
+            stream.seek(0)
+            if stream_digest(stream) != TOOLCHAIN_SHA256:
+                raise ValueError('toolchain archive changed during verification')
+    except (OSError, tarfile.TarError) as error:
+        raise ValueError('cannot verify toolchain archive: ' + str(error)) from error
+    if not expected and not hardlinks:
+        raise ValueError('empty toolchain archive')
+    while hardlinks:
+        resolved = [name for name, target in hardlinks.items() if target in expected]
+        if not resolved:
+            raise ValueError('unresolved toolchain hardlink')
+        for name in resolved:
+            target = expected[hardlinks.pop(name)]
+            if target['kind'] != 'file':
+                raise ValueError('toolchain hardlink must refer to a regular file: ' + name)
+            expected[name] = target.copy()
+    # Tar producers may omit directory entries. Reject conflicting ancestors
+    # instead of treating an archive path through a symlink as a real directory.
+    for name in list(expected):
+        for ancestor in PurePosixPath(name).parents:
+            if ancestor == PurePosixPath('.'):
+                continue
+            parent = expected.setdefault(str(ancestor), dict(kind='directory'))
+            if parent['kind'] != 'directory':
+                raise ValueError('non-directory toolchain archive ancestor: ' + str(ancestor))
+    different = sorted(name for name in expected.keys() | actual.keys()
+                       if expected.get(name) != actual.get(name))
+    if different:
+        raise ValueError('toolchain tree differs from pinned archive: ' + ', '.join(different[:8]))
+    tree_hash = hashlib.sha256(json.dumps(actual, sort_keys=True,
+                                         separators=(',', ':')).encode()).hexdigest()
+    return dict(schema=1, archive_sha256=TOOLCHAIN_SHA256,
+                archive_root=archive_root, tree_sha256=tree_hash, tree_manifest=actual)
 
 def check_inventory(directory):
     record = json.loads((directory / 'inventory.json').read_text())
     for name, expected in record['files'].items():
         if digest(directory / name) != expected:
             raise ValueError('source pin mismatch: ' + str(directory / name))
+
+def header_manifest(root):
+    return {p.relative_to(root).as_posix(): digest(p)
+            for p in sorted(root.rglob('*')) if p.is_file()}
 
 def manifest():
     roots = ['engines', 'sim/web/src', 'sim/web/mk', 'sim/web/third_party',
@@ -53,8 +181,8 @@ def build(args):
     tc, out, headers = args.toolchain.resolve(), args.out.resolve(), args.cxx_headers.resolve()
     if out.exists():
         raise ValueError('output must be a fresh directory; preserve reports then remove your old build')
-    if digest(args.toolchain_archive) != TOOLCHAIN_SHA256:
-        raise ValueError('toolchain archive differs from pinned source')
+    toolchain_binding = bind_toolchain(tc, args.toolchain_archive)
+    original_headers = header_manifest(headers)
     for name in ['dinghy', 'compiler-rt', 'musl', 'printf']:
         check_inventory(ROOT / 'firmware/third_party' / name)
     before = manifest()
@@ -76,6 +204,7 @@ def build(args):
         raise ValueError('libc++ expected exactly one generated pthread configuration')
     p.chmod(0o600)
     p.write_text(config.replace(pthread, '/* Diagnostic: no thread API. */\n'))
+    configured_headers = header_manifest(configured)
     flags = ['-target', 'pi32v2', '-mcpu=r3', '-mfprev1', '-Oz', '-ffreestanding',
              '-fno-builtin', '-ffunction-sections', '-fdata-sections', *DEFINES,
              '-D_LIBCPP_HAS_NO_THREADS', '-D_LIBCPP_DISABLE_EXTERN_TEMPLATE',
@@ -170,14 +299,19 @@ def build(args):
                        sources=sources, runtime='sdk-free')
     (out / 'audit.json').write_text(json.dumps(link_audit, indent=2) + '\n')
     if link_audit['n_fail']: raise ValueError('audit_link failure; see audit.json')
+    compiler_version = run([compiler, '--version'], True)
     if manifest() != before: raise ValueError('source inputs changed while building')
+    if toolchain_tree(tc) != toolchain_binding['tree_manifest']:
+        raise ValueError('toolchain inputs changed while building')
+    if header_manifest(headers) != original_headers or header_manifest(configured) != configured_headers:
+        raise ValueError('libc++ header inputs changed while building')
     report = dict(profile='sdk-free-single-fm6-diagnostic-v1', hardware_admitted=False,
         release_candidate=False, sdk_archives=[], modules=MODULES.split(','), voices=8,
         dx7_sine='trunc12', shapes_voices=8, external_arenas=True,
         arena_bytes=65536, cpu1=False, usb=False, persistence=False, fail_open=False,
         toolchain_archive_sha256=TOOLCHAIN_SHA256,
-        compiler_version=run([compiler, '--version'], True),
-        cxx_headers_manifest={str(p.relative_to(headers)):digest(p) for p in headers.rglob('*') if p.is_file()},
+        toolchain_binding=toolchain_binding, compiler_version=compiler_version,
+        cxx_headers_manifest=original_headers, configured_cxx_headers_manifest=configured_headers,
         source_manifest=before, compile_flags=flags,
         objects=[dict(path=str(p.relative_to(out)), sha256=digest(p)) for p in objects],
         elf_sha256=digest(elf), app_sha256=digest(out / 'app.bin'), sizes=size,
