@@ -12,6 +12,7 @@ from pathlib import Path
 import subprocess
 
 from tools import lunar_state as state
+from tools.native.prepare_selected_project import prepare
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "engines/state/examples/init-starters/trio-init.lunar"
@@ -40,14 +41,18 @@ def _makefile(tmp_path):
         ]
     rules += [
         f"PROOF := {ROOT}",
+        f"PROOF_BLOB := {tmp_path / 'prepared'}",
         "$(BUILD)/proof/selected_project.o: $(PROOF)/firmware/native/selected_project.c",
         "\t@mkdir -p $(dir $@)",
         f"\t$(CC) $(SIM_CFLAGS) {include}-I$(PROOF)/engines/state -I$(PROOF)/firmware/native -c $< -o $@",
         "$(BUILD)/proof/check.o: $(PROOF)/tests/fixtures/selected_project/check.c",
         "\t@mkdir -p $(dir $@)",
-        f"\t$(CC) $(SIM_CFLAGS) {include}-I$(PROOF)/engines/state -I$(PROOF)/firmware/native -c $< -o $@",
+        f"\t$(CC) $(SIM_CFLAGS) {include}-I$(PROOF_BLOB) -I$(PROOF)/engines/state -I$(PROOF)/firmware/native -c $< -o $@",
+        "$(BUILD)/proof/selected_project_blob.o: $(PROOF_BLOB)/selected_project_blob.c",
+        "\t@mkdir -p $(dir $@)",
+        "\t$(CC) $(SIM_CFLAGS) -I$(PROOF_BLOB) -c $< -o $@",
         "$(BUILD)/proof-check: $(SIM_APP_OBJ) $(SIM_ENGINE_OBJ) $(SIM_META_OBJ) "
-        "$(BUILD)/proof/selected_project.o $(BUILD)/proof/check.o",
+        "$(BUILD)/proof/selected_project.o $(BUILD)/proof/selected_project_blob.o $(BUILD)/proof/check.o",
         "\t$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm -pthread",
     ]
     path = tmp_path / "proof.mk"
@@ -59,14 +64,25 @@ def test_native_selected_trio_matches_current_app_and_refuses_extra_records(tmp_
     build = tmp_path / "build"
     fragment = _makefile(tmp_path)
     render, proof = build / "fm1-render", build / "proof-check"
-    subprocess.run([
+    local_tool = build / "fm1-state"
+    strict_tool = Path(os.environ.get("LUNAR_SELECTED_STRICT_TOOL", local_tool))
+    expected_tool_hash = os.environ.get("LUNAR_SELECTED_STRICT_SHA256")
+    base_cmd = [
         "make", "-s", "-C", str(ROOT / "engines"), "-f", "Makefile",
         "-f", str(ROOT / "sim/web/mk/sim.mk"), "-f", str(fragment),
         f"SIM={ROOT / 'sim/web'}", f"BUILD={build}",
         "FM1_MODULES=trio", "FM1_GPL_MODS=1", "FM1_DX7_SINE=trunc12",
         "OPT=-O1", "EXTRA=-DFM1_APP_EXTERNAL_ARENAS=1 -DFM1_APP_STATE_EXTERNAL_WORKSPACE=1",
-        "-j4", str(render), str(proof),
-    ], check=True, timeout=300)
+        "-j4",
+    ]
+    subprocess.run([*base_cmd, str(render), *([] if strict_tool != local_tool else [str(local_tool)])],
+                   check=True, timeout=300)
+    if expected_tool_hash:
+        assert hashlib.sha256(strict_tool.read_bytes()).hexdigest() == expected_tool_hash
+    receipt = prepare(render, strict_tool, tmp_path / "prepared")
+    assert receipt["packed_sha256"] == PACKED_SHA256
+    assert not receipt["installable"] and not receipt["hardware_admitted"]
+    subprocess.run([*base_cmd, str(proof)], check=True, timeout=300)
 
     source = SOURCE.read_bytes()
     assert hashlib.sha256(source).hexdigest() == SOURCE_SHA256
@@ -75,7 +91,8 @@ def test_native_selected_trio_matches_current_app_and_refuses_extra_records(tmp_
     assert report.code == "OK"
     assert (report.skipped, report.repaired, report.unknown) == (0, 0, 0)
     assert len([r for r in records if r["rec"] == "param"]) == 14
-    packed = state.write_bin(records, deflate_chunks=False)
+    packed = (tmp_path / "prepared/selected_project.bin").read_bytes()
+    assert packed == state.write_bin(records, deflate_chunks=False)
     assert hashlib.sha256(packed).hexdigest() == PACKED_SHA256
     accepted = tmp_path / "trio.lunarbin"
     accepted.write_bytes(packed)

@@ -1,6 +1,7 @@
 /* Offline current-app oracle for the selected native PROJECT adapter. MIT. */
 #include "selected_project.h"
 #include "fm1_app_state.h"
+#include "selected_project_blob.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -44,6 +45,8 @@ int main(int argc, char **argv) {
   fm1_app_load_opts_t opts;
   assert(argc >= 2);
   end = load_file(argv[1], packed);
+  assert(lunar_selected_project_blob_bytes == end);
+  assert(!memcmp(lunar_selected_project_blob, packed, end));
   selected_arenas[0].mem = selected_arena;
   selected_arenas[0].bytes = sizeof selected_arena;
   oracle_arenas[0].mem = oracle_arena;
@@ -71,7 +74,8 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < sizeof selected_arena; ++i) assert(selected_arena[i] == 0);
   }
 
-  int selected_ok = lunar_selected_project_load(&selected_app, packed, (uint32_t)end,
+  int selected_ok = lunar_selected_project_load(&selected_app, lunar_selected_project_blob,
+      lunar_selected_project_blob_bytes,
       reader_space, sizeof reader_space, &result);
   if (!selected_ok) fprintf(stderr, "selected refusal: code=%u records=%u what=%s\n",
       result.code, result.records, result.what);
