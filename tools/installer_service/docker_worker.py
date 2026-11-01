@@ -426,7 +426,8 @@ def _selected_capture(command: list[str], *, timeout=600) -> bytes:
     overflow = any(n > cap for n in result.observed.values())
     if overflow or result.failure_reason or result.returncode:
         # Private fixed destination; no stdout leak and no truncated success.
-        (RESULT / "diagnostic.log").write_bytes(result.logs["stdout"] + result.logs["stderr"])
+        diagnostic = result.logs["stdout"] + result.logs["stderr"]
+        (RESULT / "diagnostic.log").write_bytes(diagnostic[:1024 * 1024])
         raise ValueError("selected command refused: " +
                          ("output_limit" if overflow else result.failure_reason or "nonzero_exit"))
     return result.logs["stdout"]
@@ -463,6 +464,45 @@ def verify_selected_request(request_bytes: bytes) -> None:
         raise ValueError("unsupported selected worker request")
 
 
+class SelectedEvidence:
+    """Charge every retained byte and entry before acquiring another file."""
+    def __init__(self, *, max_bytes=SELECTED_EVIDENCE_CAP, max_files=8192):
+        self.max_bytes = max_bytes
+        self.max_files = max_files
+        self.values: dict[str, bytes] = {}
+        self.total = 0
+
+    def remaining(self, name: str) -> int:
+        if name in self.values or len(self.values) >= self.max_files:
+            raise ValueError("selected evidence exceeds entry bound")
+        return self.max_bytes - self.total
+
+    def retain_bytes(self, name: str, raw: bytes) -> None:
+        remaining = self.remaining(name)
+        if not raw or len(raw) > remaining:
+            raise ValueError("selected evidence exceeds byte bound")
+        self.values[name] = raw
+        self.total += len(raw)
+
+    def retain_file(self, name: str, path: Path, limit: int) -> bytes:
+        remaining = self.remaining(name)
+        # regular_file checks the actual file size against this remaining
+        # budget before opening/reading it. Count refusal also precedes I/O.
+        raw = regular_file(path, min(limit, remaining))
+        self.retain_bytes(name, raw)
+        return raw
+
+    def retain_json(self, name: str, value) -> None:
+        remaining = self.remaining(name)
+        encoded = bytearray()
+        for part in json.JSONEncoder(sort_keys=True).iterencode(value):
+            raw = part.encode()
+            if len(raw) > remaining - len(encoded):
+                raise ValueError("selected evidence exceeds byte bound")
+            encoded.extend(raw)
+        self.retain_bytes(name, bytes(encoded))
+
+
 def run_selected_trio(request_bytes: bytes) -> None:
     verify_selected_imports(SOURCE)
     from tools.jieli.audit_link import collect_sources
@@ -473,9 +513,13 @@ def run_selected_trio(request_bytes: bytes) -> None:
             binding.get("profile_id") != SELECTED_TRIO_PROFILE or
             binding.get("request_sha256") != hashlib.sha256(request_bytes).hexdigest()):
         raise ValueError("selected host binding differs from request")
+    captured = SelectedEvidence()
+    captured.retain_bytes("request.json", request_bytes)
+    captured.retain_bytes("host-bindings.json", binding_raw)
     before = selected_external_inputs(SOURCE, TOOLCHAIN, TOOLCHAIN_ARCHIVE, CXX_HEADERS)
     host_command, target_command = selected_build_commands()
     host_log = _selected_capture(host_command)
+    captured.retain_bytes("host-build.log", host_log or b"\n")
     host = SCRATCH / "host"
     renderer, state = host / "fm1-render", host / "fm1-state"
     renderer_bytes = regular_file(renderer, 64 * 1024 * 1024)
@@ -483,6 +527,7 @@ def run_selected_trio(request_bytes: bytes) -> None:
     metadata = _selected_capture([str(renderer), "--meta"], timeout=90)
     if metadata != _selected_capture([str(state), "meta"], timeout=90) or len(metadata) > 1048576:
         raise ValueError("fixed host tools have mismatched or excessive metadata")
+    captured.retain_bytes("metadata.json", metadata)
     version = _selected_capture([str(TOOLCHAIN / "common/bin/clang"), "--version"], timeout=90)
     try:
         _selected_capture(target_command, timeout=1200)
@@ -490,7 +535,9 @@ def run_selected_trio(request_bytes: bytes) -> None:
         log = OUTPUT / "build/build.log"
         if log.is_file() and not log.is_symlink():
             with log.open("rb") as stream:
-                (RESULT / "failed-build.log").write_bytes(stream.read(16 * 1024 * 1024))
+                diagnostic = RESULT / "diagnostic.log"
+                used = diagnostic.stat().st_size if diagnostic.is_file() else 0
+                (RESULT / "failed-build.log").write_bytes(stream.read(SELECTED_EVIDENCE_CAP - used))
         raise
     if selected_external_inputs(SOURCE, TOOLCHAIN, TOOLCHAIN_ARCHIVE, CXX_HEADERS) != before:
         raise ValueError("selected external inputs changed while building")
@@ -498,23 +545,22 @@ def run_selected_trio(request_bytes: bytes) -> None:
             regular_file(state, 64 * 1024 * 1024) != state_bytes:
         raise ValueError("fresh host tools changed while building")
     build = OUTPUT / "build"
-    evidence = {"request.json": request_bytes, "host-bindings.json": binding_raw,
-                "image_receipt.json": regular_file(build / "receipt.json", SELECTED_RECEIPT_CAP),
-                "metadata.json": metadata, "host-build.log": host_log or b"\n",
-                "build.log": regular_file(build / "build.log", 16 * 1024 * 1024)}
+    captured.retain_file("image_receipt.json", build / "receipt.json", SELECTED_RECEIPT_CAP)
+    captured.retain_file("build.log", build / "build.log", SELECTED_EVIDENCE_CAP)
     anchors = dict(before, compiler_version=version.decode(), compile_flags=selected_compile_flags(),
                    host_tools=dict(renderer=hashlib.sha256(renderer_bytes).hexdigest(),
                                    state_tool=hashlib.sha256(state_bytes).hexdigest(),
                                    metadata=hashlib.sha256(metadata).hexdigest()),
                    audit_sources=collect_sources([str(SOURCE / "firmware/native"),
                                                  str(SOURCE / "firmware/third_party/dinghy")]))
-    evidence["anchors.json"] = json.dumps(anchors, sort_keys=True).encode()
-    for path in sorted(build.rglob("*.o")):
-        evidence["objects/" + path.relative_to(build).as_posix()] = regular_file(path, 16 * 1024 * 1024)
+    captured.retain_json("anchors.json", anchors)
+    # Iterate lazily: the entry ceiling must stop acquisition before an
+    # unbounded sorted list of output paths or object bytes is constructed.
+    for path in build.rglob("*.o"):
+        captured.retain_file("objects/" + path.relative_to(build).as_posix(), path, SELECTED_EVIDENCE_CAP)
     for name in ("selected_project.bin", "selected_project_blob.c", "selected_project_blob.h", "receipt.json"):
-        evidence["prepared/" + name] = regular_file(build / "selected_project" / name, SELECTED_RECEIPT_CAP)
-    if len(evidence) > 8192 or sum(map(len, evidence.values())) > SELECTED_EVIDENCE_CAP:
-        raise ValueError("selected evidence exceeds bounded capture")
+        captured.retain_file("prepared/" + name, build / "selected_project" / name, SELECTED_RECEIPT_CAP)
+    evidence = captured.values
     destination = RESULT / "evidence"
     destination.mkdir(mode=0o700)
     manifest = {}

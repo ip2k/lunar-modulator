@@ -74,4 +74,7 @@ def test_executed_capture_helper_is_bound_by_source_manifest(tmp_path, monkeypat
     second = builder.manifest(True)
     key = 'tools/installer_service/process_capture.py'
     assert first[key] != second[key]
-    assert first['tools/installer_service/__init__.py'] == second['tools/installer_service/__init__.py']
+    init_key = 'tools/installer_service/__init__.py'
+    assert first[init_key] == second[init_key]
+    (helper.parent / '__init__.py').write_bytes(b'changed package initialization')
+    assert builder.manifest(True)[init_key] != second[init_key]
