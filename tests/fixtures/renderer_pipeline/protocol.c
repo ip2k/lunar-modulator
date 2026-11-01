@@ -240,13 +240,32 @@ static void run_fault(const char *mode) {
     if(!park_callback){unsigned t=timer_get_ms();while(!s.exited && timer_get_ms()-t<500u)os_time_dly(1);CHECK(s.exited);}
     host_cleanup();
 }
+static void run_poisoned_wait(int finish) {
+    if(finish){setup();CHECK(produce(0));drain(1);host_hold_exit=1;}
+    else {clock_gettime(CLOCK_MONOTONIC,&host_epoch);host_cpu=0;host_suspend_worker=1;}
+    host_frozen_ms=123u;host_stopped_ms=1;host_delay_poison=1;
+    CHECK((finish?lunar_pipeline_sdk_finish():lunar_pipeline_sdk_start(protocol_clock))==0);
+    CHECK(lunar_pipeline_error()==701u && host_delay_calls==1);
+    CHECK(s.invoked && s.stop && !s.exited && calls==(unsigned)finish);
+    CHECK(s.produced==(unsigned)finish && s.consumed==(unsigned)finish &&
+          s.harvested==(unsigned)finish && s.output_retired==(unsigned)finish);
+    if(!finish)CHECK(!s.ready && !s.bound);
+    /* Harness-only cancellation follows assertions. Target storage remains
+     * permanent; no restart/free or callback replay is exercised or permitted. */
+    host_cleanup();
+}
 int main(int argc,char **argv) {
-    CHECK(argc==2);setup();
+    CHECK(argc==2);
+    if(!strcmp(argv[1],"start_stopped_clock_poison") || !strcmp(argv[1],"finish_stopped_clock_poison")) {
+        run_poisoned_wait(argv[1][0]=='f');goto report;
+    }
+    setup();
     if(!strcmp(argv[1],"stream"))run_stream();
     else if(!strcmp(argv[1],"work_full"))run_work_full();
     else if(!strcmp(argv[1],"output_full"))run_output_full(0);
     else if(!strcmp(argv[1],"output_full_descheduled"))run_output_full(200);
     else run_fault(argv[1]);
+report:
     printf("LUNAR_PIPELINE_HOST PASS mode=%s calls=%u produced=%u consumed=%u harvested=%u retired=%u\n",argv[1],atomic_load(&calls),s.produced,s.consumed,s.harvested,s.output_retired);
     return 0;
 }
