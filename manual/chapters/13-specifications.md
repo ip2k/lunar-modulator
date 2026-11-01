@@ -50,7 +50,7 @@ takes on its own (100 % is all the memory meter allows, 379 KB), as a 32-bit
 build lays it out at 44,118 samples a second, as in the simulator and on the
 FM-1, rounded up as the meter rounds, with the size itself in brackets
 (1 KB is 1,024 bytes). The screen shows the share only. The meter adds up
-the chain in use, with the sequencer's own, 10 % (36 KB), and modulation's,
+the chain in use, with the sequencer's own, 12 % (44 KB), and modulation's,
 7 % (26 KB), and is the one to trust if the two ever differ.
 
 | Engine or effect | Voices | Share of memory (size) |
