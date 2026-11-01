@@ -4324,6 +4324,17 @@ static void seq_flush(fm1_app_t *a) {
   }
 }
 
+/* Realtime is transport input, not a content edit. Keep the same event-room
+ * reserve and pending-command order as text input, without bumping seq_gen. */
+int fm1_app_seq_realtime(fm1_app_t *a, uint8_t status) {
+  PIPELINE_GUARD(!pipeline_busy());
+  if (!a->seq || (status != 0xF8 && status != 0xFA && status != 0xFB && status != 0xFC)) return 1;
+  seq_flush(a);
+  if (a->seq_pending || !seq_fits(a)) return 0;
+  fm1_seq_host_realtime(&a->seq_host, status);
+  return 1;
+}
+
 static int is_blank(char c) { return c == ' ' || c == '\t'; }
 
 size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len) {

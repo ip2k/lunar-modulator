@@ -25,7 +25,11 @@ const line = text => {
 };
 const info = () => [...new Uint32Array(fm1.memory.buffer, ex.fm1w_seq_info(), ex.fm1w_seq_words())];
 const render = (frames=64) => { for (let off=0; off<frames; off+=64) { p.drainInputs(); ex.fm1w_render(Math.min(64,frames-off)); } };
-const rt = status => p.dispatch({type:'rt',status});
+const rt = status => {
+  const gen = ex.fm1w_seq_gen();
+  p.dispatch({type:'rt',status});
+  assert.equal(ex.fm1w_seq_gen(), gen, 'Realtime must not change content generation');
+};
 line('link 0; bpm 12000; play'); render(4096);
 const before = info();
 for (const status of [0xfa,0xfb,0xfc,0xf8]) rt(status);
@@ -57,3 +61,20 @@ const out = new Float32Array(fm1.memory.buffer, ex.fm1w_render(64),128);
 assert.ok(out.every(x => Math.abs(x)<1e-6), 'Stop releases sequencer notes');
 assert.equal(ex.fm1w_seq_dropped(),0);
 console.log('PASS Stop releases sounding native sequencer notes');
+// Fill the native event reserve with transport toggles without rendering.
+// The next realtime must report backpressure and leave content generation alone.
+line('play'); render();
+const toggles = new TextEncoder().encode('pause; resume');
+let refused = false;
+for (let i=0;i<512;++i) {
+  new Uint8Array(fm1.memory.buffer, ex.fm1w_text_buf(), toggles.length).set(toggles);
+  if (ex.fm1w_seq_text(toggles.length) !== toggles.length) { refused=true; break; }
+}
+assert.equal(refused,true,'Fixture must fill the native event-room reserve');
+const gen = ex.fm1w_seq_gen();
+assert.equal(ex.fm1w_seq_realtime(0xf8),0,'Realtime waits for native event room');
+assert.equal(ex.fm1w_seq_gen(),gen,'Refused realtime must not change content generation');
+render(); assert.equal(ex.fm1w_seq_realtime(0xf8),1);
+assert.equal(ex.fm1w_seq_gen(),gen);
+assert.equal(ex.fm1w_seq_dropped(),0);
+console.log('PASS native event-room backpressure preserves content generation');
