@@ -107,7 +107,10 @@ static void stream(void){
  for(uint32_t tag=0;tag<24u;++tag){
   void *work=NULL;const int16_t *pcm=NULL;const lunar_pipeline_result_t *result=NULL;
   lunar_pipeline_completion_t completion;assert(lunar_pipeline_reserve_work(tag,&work)==1);
-  arena[tag%2].tag=tag;assert(lunar_pipeline_publish(tag,ticks(NULL),ticks(NULL))==1);
+  arena[tag%2].tag=tag;
+  uint32_t p_start=ticks(NULL);
+  uint32_t p_end=ticks(NULL);
+  assert(lunar_pipeline_publish(tag,p_start,p_end)==1);
   int h=0,o=0;uint32_t start=ticks(NULL);
   while(!h || !o){
    if(!h)h=lunar_pipeline_harvest(&completion);

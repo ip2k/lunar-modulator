@@ -56,7 +56,10 @@ void lunar_cpu1_candidate_cstart(uint32_t boot_argument,uint32_t early_debug) {
         lunar_pipeline_completion_t completion;
         if(lunar_pipeline_reserve_work(tag,&arena)!=1)terminal(4);
         work[tag%2u].tag=tag;
-        if(lunar_pipeline_publish(tag,lunar_cpu1_candidate_ticks(),lunar_cpu1_candidate_ticks())!=1)terminal(5);
+        /* C does not order function arguments: sample in full expressions. */
+        uint32_t p_start=lunar_cpu1_candidate_ticks();
+        uint32_t p_end=lunar_cpu1_candidate_ticks();
+        if(lunar_pipeline_publish(tag,p_start,p_end)!=1)terminal(5);
         int harvested=0,output=0;unsigned polls=0;
         uint32_t first=cpu1_candidate_ms(&lunar_cpu1_candidate);
         while(!harvested || !output) {
