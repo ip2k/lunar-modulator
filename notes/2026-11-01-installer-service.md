@@ -28,3 +28,9 @@ Rarefaction Python status ready at absolute main checkout; Serena remains at the
 ## Lifecycle
 
 Tests/logs under ignored `scratch/installer-service-20261101/`; pytest temporary data removed by runner finally blocks. No daemon/container/download or target compiler will be launched for validation. Keep only small logs and source notes; remove owned worktree after parent integration and verified backup. Built-in free space1125GiB before extraction, above500GiB floor. No new agent spawned.
+
+## Extraction checkpoint
+
+Imported the bounded existing service/native-Python/packager closure from `cccd21cc`, plus proven `probe_artifact.py` dependency. API imports the parent-owned finite-number request contract (`08b4d6c3`, parent upstream `7e193faa`), rather than retaining its duplicate model. Adapted package test imports for main's `tests` package and one native catalogue-refusal test to a synthetic source inventory; no missing runtime source was fabricated. Docker worker and trusted attestation policy now agree on4CPU/6GiB (historical8GiB tuples are not claimed current). Added real harmless-child capture tests; no target compiler or Docker command executed.
+
+WIP checkpoint: initial collection failures were environment/test-import setup, corrected with worktree `.venv` (22 pinned/current constrained test packages,20MiB) and package-qualified import. Focused11suite run is still in progress with one failure to diagnose. New concurrent pipe capture retains at most1MiB per stream, drains concurrently, enforces a deadline and kills its owned process group, including descendants holding pipes after parent exit. First capture regression uncovered a macOS repeated killpg permission edge after cleanup; avoid issuing duplicate kill signals to the already-killed group. Remaining work: diagnose suite result, launcher with explicit private/runtime prerequisite gates, deeper capture/queue/security verification and final review handoff.
