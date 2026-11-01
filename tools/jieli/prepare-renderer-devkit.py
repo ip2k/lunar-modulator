@@ -1100,7 +1100,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     shutil.copyfile(source / "firmware/devkit/renderer_timing.h", app / "renderer_timing.h")
     shutil.copyfile(source / "firmware/devkit/arithmetic_probe.h", app / "arithmetic_probe.h")
     staging = out / "lunar-source"
-    for directory in ("engines", "sim/web/src", "sim/web/mk", "firmware/devkit"):
+    for directory in ("engines", "sim/web/src", "sim/web/mk", "firmware/devkit", "firmware/common"):
         shutil.copytree(source / directory, staging / directory,
                         ignore=shutil.ignore_patterns("build", "build-*", ".git", "__pycache__", ".DS_Store", "._*"))
     narrow_inputs = {}
@@ -1643,7 +1643,7 @@ def prepare_renderer(sdk, source, out, timing_only=False, profile=False, hot_ram
     receipt["prepared_app_main_sha256"] = hashlib.sha256(main.read_bytes()).hexdigest()
     receipt["prepared_link_script_sha256"] = hashlib.sha256((out / "cpu/wl82/sdk_ld_sfc.c").read_bytes()).hexdigest()
     # The experiment keeps its exact source provenance in private build storage.
-    for directory in ("engines", "sim/web/src", "sim/web/mk", "firmware/devkit"):
+    for directory in ("engines", "sim/web/src", "sim/web/mk", "firmware/devkit", "firmware/common"):
         for p in sorted((staging / directory).rglob("*")):
             if p.is_file():
                 receipt["inputs"][str(p.relative_to(staging))] = hashlib.sha256(p.read_bytes()).hexdigest()

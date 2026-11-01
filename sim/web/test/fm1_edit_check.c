@@ -238,6 +238,9 @@ static void check_refusals(void) {
   CHECK(refused_cleanly("cable any 64 255 0 1 1 1000 0", FM1_REFUSE_NO_ROOM));
   /* RATE: at 96 kHz the Plaits-based engines refuse the host. */
   fresh(96000.0f);
+  /* Leave room for the attempted instance: the revised sequencer budget
+   * must not mask the engine's rate refusal with a RAM refusal first. */
+  CHECK(edit_line("unit master 0 0 -", 5, NULL) == 0);
   CHECK(refused_cleanly("unit sound 1 0 macro", FM1_REFUSE_RATE));
   /* ARENA: a module that does not fit the runtime's arena, if any kind is
    * that large; an effect larger than an insert's arena at 96 kHz. */
@@ -532,6 +535,116 @@ static void check_locks(void) {
   g_lock_blocks = 900;
 }
 
+/* Invalid public set imports must leave runtime state, not just saved content,
+ * untouched. The existing core parser remains the authority for tag grammar. */
+static void seq_import_live(void) {
+  fm1_seq_cmd_t cmd;
+  fresh(44118.0f);
+  CHECK(fm1_app_unit_select(&g_a, 1, fm1_app_find("test-sine")) == 0);
+  fm1_app_arp_set_on(&g_a, 1, 1);
+  fm1_app_unit_note_on(&g_a, 1, 72, 100);
+  fm1_app_button(&g_a, FM1_BTN_PLAY, 1); fm1_app_button(&g_a, FM1_BTN_PLAY, 0);
+  render(20);
+  unsigned notes = 0;
+  for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k)
+    for (unsigned n = 0; n < 128; ++n) notes += g_a.seq_note_count[k][n];
+  CHECK(notes > 0);
+  /* A queued valid command and visible lock are app-owned state too. */
+  const int64_t bpm[1] = { 150 };
+  fm1_seq_cmd_make(&cmd, FM1_SEQ_V_BPM, 1, bpm);
+  g_a.seq_pending = 1; g_a.seq_pend = cmd;
+  g_a.lock_mask[0] = 1;
+}
+
+static void check_seq_import_refusal(void) {
+  static fm1_app_t before;
+  static float control[64 * 2 * FM1_APP_MAX_FRAMES];
+  static const char *bad[] = {"not-a-set\n", "movy\n", "movy2\n", "mo vy1\n", "", "movy1x"};
+  seq_import_live();
+  for (unsigned b = 0; b < 64; ++b)
+    memcpy(control + b * 2 * FM1_APP_MAX_FRAMES, fm1_app_render(&g_a, FM1_APP_MAX_FRAMES),
+           sizeof(float) * 2 * FM1_APP_MAX_FRAMES);
+  for (unsigned c = 0; c < sizeof bad / sizeof bad[0]; ++c) {
+    seq_import_live();
+    const uint32_t edit_gen = fm1_edit_gen(&g_a);
+    memcpy(&before, &g_a, sizeof before);
+    CHECK(!fm1_app_seq_import(&g_a, bad[c], strlen(bad[c])));
+    CHECK(!memcmp(&before, &g_a, sizeof before));
+    CHECK(fm1_edit_gen(&g_a) == edit_gen);
+    for (unsigned b = 0; b < 64; ++b)
+      CHECK(!memcmp(control + b * 2 * FM1_APP_MAX_FRAMES,
+                    fm1_app_render(&g_a, FM1_APP_MAX_FRAMES), sizeof(float) * 2 * FM1_APP_MAX_FRAMES));
+  }
+  /* Accepted EOF/whitespace tags keep the core grammar, and old sound notes
+   * are released even when the replacement routes that track elsewhere. */
+  static const char *good[] = { "movy1", " \tmovy1 \r\n", "movy1\nrt 0 1 1\n" };
+  for (unsigned c = 0; c < sizeof good / sizeof good[0]; ++c) {
+    seq_import_live();
+    CHECK(fm1_app_seq_import(&g_a, good[c], strlen(good[c])));
+    CHECK(!g_a.seq_pending && !g_a.lock_mask[0] && !g_a.seq_host.n && !g_a.seq_last_n);
+    for (unsigned k = 0; k < FM1_APP_SOUNDS; ++k)
+      for (unsigned n = 0; n < 128; ++n) CHECK(!g_a.seq_note_count[k][n]);
+    if (c == 2) CHECK(fm1_app_unit_of_track(&g_a, 0) == 1);
+  }
+}
+
+#ifdef FM1_EDIT_CHECK_CLIP_FAULT
+/* Linker wrappers exercise state_clip.c's real allocation refusal on a chosen
+ * merge. They are never linked into the browser or normal harness. */
+static unsigned g_clip_merges, g_clip_fail_merge;
+static int g_clip_fail_alloc;
+void *__real_realloc(void *p, size_t n);
+void *__wrap_realloc(void *p, size_t n) {
+  return g_clip_fail_alloc ? NULL : __real_realloc(p, n);
+}
+char *__real_fm1_state_clip_into(const char *, size_t, const char *const *, size_t,
+                                unsigned, unsigned, char *, size_t);
+char *__wrap_fm1_state_clip_into(const char *set, size_t n, const char *const *clip, size_t nc,
+                                unsigned t, unsigned sl, char *err, size_t cap) {
+  char *out;
+  ++g_clip_merges;
+  g_clip_fail_alloc = g_clip_merges == g_clip_fail_merge;
+  out = __real_fm1_state_clip_into(set, n, clip, nc, t, sl, err, cap);
+  g_clip_fail_alloc = 0;
+  return out;
+}
+
+static void check_clip_merge_fault(void) {
+  static const char clip[] = "{\"lunar\":\"1.0\",\"kind\":\"clip\",\"clip\":[\"cl 0 0 4 0 0:40:60:100:0\",\"cp 0 0 1 1 0 0\"]}";
+  static fm1_app_t before;
+  fm1_app_state_mem_t mem = { (const uint8_t *)clip, sizeof clip - 1 };
+  fm1_app_load_opts_t o;
+  fm1_app_state_report_t rep;
+  fm1_seq_clip_info_t ci;
+  fm1_app_load_opts_init(&o); o.flags = FM1_APP_LOAD_QUIET; o.into = 1; o.slot = 7;
+  for (unsigned fault = 1; fault <= 2; ++fault) {
+    seq_import_live();
+    memcpy(&before, &g_a, sizeof before);
+    const uint32_t gen = fm1_edit_gen(&g_a);
+    g_clip_merges = 0; g_clip_fail_merge = fault;
+    const int ok = fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, mem.n, &o, &rep);
+    if (fault == 1) {
+      CHECK(!ok && rep.r.code == FM1_STATE_NO_ROOM);
+      CHECK(!memcmp(&before, &g_a, sizeof before));
+      CHECK(fm1_edit_gen(&g_a) == gen);
+    } else {
+      /* One validated merge must be enough; no allocation can fail in apply. */
+      CHECK(ok && g_clip_merges == 1);
+      CHECK(fm1_seq_get_clip(g_a.seq, 1, 7, &ci) && ci.length_steps == 4 && ci.notes == 1);
+      CHECK(fm1_edit_gen(&g_a) == gen + 1);
+    }
+  }
+  g_clip_fail_merge = 0;
+  /* Public check owns no retained allocation and makes no live changes. */
+  seq_import_live(); memcpy(&before, &g_a, sizeof before);
+  for (unsigned n = 0; n < 4; ++n) {
+    g_clip_merges = 0;
+    CHECK(fm1_app_state_check(&g_a, fm1_app_state_mem_read, &mem, mem.n, &o, &rep));
+    CHECK(g_clip_merges == 1 && !memcmp(&before, &g_a, sizeof before));
+  }
+}
+#endif
+
 /* ---- a project load that goes on playing (A/B) ----------------------------------- */
 
 /* The editor's A/B puts the other project in while the transport runs; with FM1_APP_LOAD_KEEP_TRANSPORT
@@ -546,42 +659,53 @@ static void check_sound_restore(void) {
   fm1_app_load_opts_t o;
   fm1_state_report_t r;
   fm1_mod_slot_t cable, got;
-  fresh(44118.0f);
-  CHECK(fm1_app_select(&g_a, fm1_app_sound_unit(1), fm1_app_find("macro")) == 0);
-  memset(&cable, 0, sizeof cable);
-  cable.src = FM1_MOD_SRC_MODULE; cable.via = FM1_MOD_NONE;
-  cable.dst_unit = (uint8_t)fm1_mod_sound_unit(1); cable.dst = 2;
-  cable.flags = FM1_MOD_SLOT_ON; cable.amount = 1000;
-  CHECK(fm1_mod_set_slot(g_a.mod, 0, &cable));
-  CHECK(fm1_app_state_save(&g_a, FM1_STATE_SOUND, 1, 1, fm1_edit_check_put, &len, &r));
-  CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
-  mem.b = buf; mem.n = len;
-  fm1_app_load_opts_init(&o); o.into = 1;
-  o.flags = FM1_APP_LOAD_QUIET | FM1_APP_LOAD_RESTORE_SOUND;
-  for (unsigned n = 0; n < 12; ++n) {
-    unsigned modules = 0, cables = 0;
-    CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
-    for (unsigned i = 0; i < FM1_MOD_POSITIONS; ++i) modules += fm1_mod_kind_at(g_a.mod, i) >= 0;
-    for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
-      CHECK(fm1_mod_get_slot(g_a.mod, i, &got)); cables += got.dst != 0;
+  static const char *engines[] = { "macro",
+#if FM1_WITH_DX7
+    "dx7",
+#endif
+  };
+  for (unsigned engine = 0; engine < sizeof engines / sizeof engines[0]; ++engine) {
+    len = 0;
+    fresh(44118.0f);
+    CHECK(fm1_app_select(&g_a, fm1_app_sound_unit(1), fm1_app_find(engines[engine])) == 0);
+    memset(&cable, 0, sizeof cable);
+    cable.src = FM1_MOD_SRC_MODULE; cable.via = FM1_MOD_NONE;
+    cable.dst_unit = (uint8_t)fm1_mod_sound_unit(1); cable.dst = 2;
+    cable.flags = FM1_MOD_SLOT_ON; cable.amount = 1000;
+    CHECK(fm1_mod_set_slot(g_a.mod, 0, &cable));
+    CHECK(fm1_app_state_save(&g_a, FM1_STATE_SOUND, 1, 1, fm1_edit_check_put, &len, &r));
+    CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
+    mem.b = buf; mem.n = len;
+    fm1_app_load_opts_init(&o); o.into = 1;
+    o.flags = FM1_APP_LOAD_QUIET | FM1_APP_LOAD_RESTORE_SOUND;
+    fm1_app_unit_note_on(&g_a, 1, 60, 100);
+    for (unsigned n = 0; n < 12; ++n) {
+      unsigned modules = 0, cables = 0;
+      CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+      for (unsigned i = 0; i < FM1_MOD_POSITIONS; ++i) modules += fm1_mod_kind_at(g_a.mod, i) >= 0;
+      for (unsigned i = 0; i < FM1_MOD_SLOTS; ++i) {
+        CHECK(fm1_mod_get_slot(g_a.mod, i, &got)); cables += got.dst != 0;
+      }
+      CHECK(modules == 5 && cables == 1);
+      CHECK(g_a.note_count[1][60] == 1);
+      CHECK(fm1_mod_get_slot(g_a.mod, 0, &got) && got.src == cable.src && got.amount == cable.amount);
+      render(4);
     }
-    CHECK(modules == 5 && cables == 1);
-    CHECK(fm1_mod_get_slot(g_a.mod, 0, &got) && got.src == cable.src && got.amount == cable.amount);
-    render(4);
+    /* A changed shared source must not be overwritten by a sound restore. */
+    cable.dst_unit = FM1_MOD_SOUND;
+    CHECK(fm1_mod_set_slot(g_a.mod, 1, &cable));
+    CHECK(fm1_mod_set_param(g_a.mod, 0, 0, fm1_mod_param_base(g_a.mod, 0, 0) + 0.1f));
+    {
+      const uint32_t hash = fm1_edit_state_hash(&g_a);
+      CHECK(!fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+      CHECK(rep.r.code == FM1_STATE_NO_ROOM && fm1_edit_state_hash(&g_a) == hash);
+    }
+    /* An ordinary external import still remaps instead of replacing identities. */
+    o.flags = FM1_APP_LOAD_QUIET;
+    CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+    CHECK(fm1_mod_kind_at(g_a.mod, 5) >= 0);
+    CHECK(!g_a.note_count[1][60]);
   }
-  /* A changed shared source must not be overwritten by a sound restore. */
-  cable.dst_unit = FM1_MOD_SOUND;
-  CHECK(fm1_mod_set_slot(g_a.mod, 1, &cable));
-  CHECK(fm1_mod_set_param(g_a.mod, 0, 0, fm1_mod_param_base(g_a.mod, 0, 0) + 0.1f));
-  {
-    const uint32_t hash = fm1_edit_state_hash(&g_a);
-    CHECK(!fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
-    CHECK(rep.r.code == FM1_STATE_NO_ROOM && fm1_edit_state_hash(&g_a) == hash);
-  }
-  /* An ordinary external import still remaps instead of replacing identities. */
-  o.flags = FM1_APP_LOAD_QUIET;
-  CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
-  CHECK(fm1_mod_kind_at(g_a.mod, 5) >= 0);
 }
 
 /* A/B of a complete, unchanged sound is audio transparent: retained voices,
@@ -591,7 +715,10 @@ static void check_sound_restore_audio(void) {
   static const char *projects[] = {
     "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7}}],\"mix\":{\"levels\":[100,0,0,0]}}",
     "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7},\"inserts\":[{\"engine\":\"filter\"},{\"engine\":\"drive\"}]}],\"mix\":{\"levels\":[100,0,0,0]}}",
-    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7},\"midi_fx\":[{\"engine\":\"arp\",\"on\":true}]}],\"mix\":{\"levels\":[100,0,0,0]}}"
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"test-sine\",\"params\":{\"Volume\":0.7},\"midi_fx\":[{\"engine\":\"arp\",\"on\":true}]}],\"mix\":{\"levels\":[100,0,0,0]}}",
+#if FM1_WITH_DX7
+    "{\"lunar\":\"1.0\",\"kind\":\"project\",\"sounds\":[{\"engine\":\"dx7\"}],\"mix\":{\"levels\":[100,0,0,0]}}"
+#endif
   };
   static uint8_t buf[FM1_STATE_BIN_MAX];
   static float control[128 * 2 * FM1_APP_MAX_FRAMES];
@@ -615,10 +742,18 @@ static void check_sound_restore_audio(void) {
       CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
       fm1_app_unit_note_on(&g_a, 0, 69, 100);
       render(50);
+      const fm1_engine_t *live = g_a.unit[0].e;
+      const size_t bytes = g_a.unit[0].bytes, ram = g_a.unit[0].ram;
+      if (c != 2) CHECK(g_a.note_count[0][69] == 1);
       if (restore) {
         mem.b = buf; mem.n = len;
         o.into = 0; o.flags |= FM1_APP_LOAD_RESTORE_SOUND;
         CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+        if (c != 2) CHECK(g_a.note_count[0][69] == 1);
+        CHECK(g_a.unit[0].e == live && g_a.unit[0].bytes == bytes && g_a.unit[0].ram == ram);
+#if FM1_WITH_DX7
+        if (c == 3) CHECK(live == &g_a.dx7.engine && live->params == g_a.dx7.params);
+#endif
       }
       float energy = 0;
       for (unsigned b = 0; b < 128; ++b) {
@@ -652,6 +787,20 @@ static void check_sound_restore_audio(void) {
         CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, mem.n, &o, &rep));
         CHECK(fm1_app_get_param(&g_a, 0, 0) == 0.7f);
       }
+#if FM1_WITH_DX7
+      if (restore && c == 3) {
+        /* A genuinely different engine and a sparse FM6 file still recreate. */
+        CHECK(fm1_app_unit_select(&g_a, 0, fm1_app_find("macro")) == 0);
+        fm1_app_unit_note_on(&g_a, 0, 69, 100);
+        CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &o, &rep));
+        CHECK(g_a.unit[0].e == &g_a.dx7.engine && !g_a.note_count[0][69]);
+        fm1_app_unit_note_on(&g_a, 0, 69, 100);
+        mem.b = (const uint8_t *)"{\"lunar\":\"1.0\",\"kind\":\"sound\",\"sound\":{\"engine\":\"dx7\"}}";
+        mem.n = strlen((const char *)mem.b);
+        CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, mem.n, &o, &rep));
+        CHECK(!g_a.note_count[0][69]);
+      }
+#endif
     }
   }
 }
@@ -975,6 +1124,56 @@ static void check_empty_sound_insert(void) {
   CHECK(fm1_app_select(&g_a, unit, -1) == 0);  /* clearing remains harmless */
   CHECK(fm1_app_unit_select(&g_a, sound, fm1_app_find("test-sine")) == 0);
   CHECK(fm1_app_select(&g_a, unit, fm1_app_find("comp")) == 0);
+  const int second = fm1_app_insert_unit(sound, 1), parent = fm1_app_sound_unit(sound);
+  CHECK(fm1_app_select(&g_a, second, fm1_app_find("drive")) == 0);
+  fm1_app_set_param(&g_a, unit, 0, g_a.unit[unit].e->params[0].min);
+  const float value = fm1_app_get_param(&g_a, unit, 0);
+  /* Replacing an engine preserves its chain; clearing the parent clears it. */
+  CHECK(fm1_app_unit_select(&g_a, sound, fm1_app_find("macro")) == 0);
+  CHECK(g_a.unit[unit].e && fm1_app_get_param(&g_a, unit, 0) == value);
+  CHECK(fm1_app_unit_select(&g_a, sound, fm1_app_find("test-sine")) == 0);
+  CHECK(fm1_app_unit_route(&g_a, 2, sound) == FM1_APP_SEQ_APPLIED);
+  fm1_app_unit_set_level(&g_a, sound, 37);
+  fm1_app_unit_note_on(&g_a, sound, 60, 100);
+  fm1_app_unit_note_on(&g_a, 0, 64, 100);
+  const size_t before = fm1_app_ram(&g_a);
+  const size_t freed = g_a.unit[parent].ram + g_a.unit[unit].ram + g_a.unit[second].ram + FM1_APP_MIX_BLOCK_BYTES;
+  const uint32_t gen = fm1_edit_gen(&g_a);
+  CHECK(edit_line("unit sound 3 0 -", 1, NULL) == 0);
+  CHECK(!g_a.unit[parent].e && !g_a.unit[unit].e && !g_a.unit[second].e);
+  CHECK(!g_a.unit[unit].self && !g_a.unit[unit].bytes && !g_a.unit[unit].ram && g_a.unit[unit].index == -1);
+  CHECK(!g_a.unit[second].self && !g_a.unit[second].bytes && !g_a.unit[second].ram && g_a.unit[second].index == -1);
+  CHECK(fm1_app_ram(&g_a) == before - freed);
+  CHECK(!g_a.note_count[sound][60] && g_a.note_count[0][64] == 1);
+  CHECK(fm1_app_unit_of_track(&g_a, 2) == sound && fm1_app_unit_level(&g_a, sound) == 37);
+  {
+    fm1_change_t ring[FM1_EDIT_RING];
+    unsigned clears = 0;
+    const uint32_t n = fm1_edit_changes(&g_a, gen, ring, FM1_EDIT_RING);
+    for (uint32_t i = 0; i < n && n != FM1_EDIT_RESYNC; ++i) {
+      if (ring[i].rec[0] == FM1_REC_UNIT && ring[i].rec[2] == sound && !ring[i].rec[4]) ++clears;
+    }
+    CHECK(n != FM1_EDIT_RESYNC && clears == 3);
+  }
+  /* Both codecs represent the same intentional empty state. Persisted routes
+   * and levels survive; note state is intentionally absent from state files. */
+  fm1_app_all_notes_off(&g_a);
+  const uint32_t empty_hash = fm1_edit_state_hash(&g_a);
+  for (int binary = 0; binary < 2; ++binary) {
+    static uint8_t buf[FM1_STATE_BIN_MAX];
+    uint32_t len = 0;
+    fm1_state_report_t rep;
+    fm1_app_state_report_t loaded;
+    fm1_app_load_opts_t opts;
+    fm1_app_state_mem_t mem;
+    CHECK(fm1_app_state_save(&g_a, FM1_STATE_PROJECT, 0, binary, fm1_edit_check_put, &len, &rep));
+    CHECK(len <= sizeof buf); memcpy(buf, fm1_edit_check_buf(), len);
+    mem.b = buf; mem.n = len;
+    fm1_app_load_opts_init(&opts); opts.flags = FM1_APP_LOAD_QUIET;
+    CHECK(fm1_app_state_load(&g_a, fm1_app_state_mem_read, &mem, len, &opts, &loaded));
+    CHECK(!g_a.unit[parent].e && !g_a.unit[unit].e && !g_a.unit[second].e);
+    CHECK(fm1_edit_state_hash(&g_a) == empty_hash);
+  }
 }
 
 static void check_gate_readout(void) {
@@ -1160,6 +1359,10 @@ int fm1_edit_check(void) {
   for (g_sweep_seed = 0; g_sweep_seed < 40; ++g_sweep_seed, ++g_sweeps) hands(g_sweep);
   check_locks();
   check_transport();
+  check_seq_import_refusal();
+#ifdef FM1_EDIT_CHECK_CLIP_FAULT
+  check_clip_merge_fault();
+#endif
   check_midi_map();
   check_sound_restore();
   check_sound_restore_audio();

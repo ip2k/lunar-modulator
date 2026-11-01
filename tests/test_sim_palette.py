@@ -134,6 +134,32 @@ def test_it_catches_the_files_disagreeing(files):
                                              "#define RP_ROSE"), css, "RP_PINE")
 
 
+def test_it_requires_screen_tokens_and_defined_colour_aliases(files):
+    header, css = files
+    text_definition = next(line for line in header.splitlines(keepends=True)
+                           if line.startswith("#define RP_TEXT "))
+    _fails(header.replace(text_definition, ""), css, "RP_TEXT")
+    _fails(header.replace("#define C_SELECT RP_IRIS", "#define C_SELECT LUNAR_IRIS"),
+           css, "C_SELECT")
+    _fails(header.replace("#define C_SELECT RP_IRIS", "#define C_SELECT C_UNKNOWN"),
+           css, "C_SELECT")
+    _fails(header.replace("#define C_BG RP_BASE", "#define C_BG RP_UNKNOWN"),
+           css, "C_BG")
+    for bad in ("BOGUS", "(RP_BASE)", ""):
+        _fails(header.replace("#define C_BG RP_BASE", "#define C_BG " + bad),
+               css, "C_BG")
+    _fails(header.replace("#define C_SELECT RP_IRIS",
+                          "#define C_SELECTION_ALIAS C_SELECT\n#define C_SELECT C_SELECTION_ALIAS"),
+           css, "C_SELECT")
+
+
+def test_it_accepts_a_defined_colour_alias(files):
+    header, css = files
+    header = header.replace("#define C_SELECT RP_IRIS",
+                            "#define C_PALETTE_SELECTION RP_IRIS\n#define C_SELECT C_PALETTE_SELECTION")
+    assert P.check(header, css) == []
+
+
 def test_it_catches_a_broken_rule(files, monkeypatch):
     header, css = files
     # a sound colour moved next to love

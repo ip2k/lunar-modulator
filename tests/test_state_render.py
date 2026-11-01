@@ -159,7 +159,7 @@ def test_a_project_round_trips(names, tmp_path):
     assert got == want
 
 
-def test_refusals(tmp_path):
+def test_refusals(renderer, tmp_path):
     # The example fits since stage A1 (Macro for the bass); with Shapes it does not.
     heavy = json.loads((EXAMPLES / "first-orbit.lunar").read_text())
     heavy["sounds"][1]["engine"] = "shapes"
@@ -192,7 +192,7 @@ def _set_text():
 
 
 @pytest.mark.parametrize("tool", ["fm1-render", "fm1-seq"])
-def test_clips_into_a_set_and_out(tmp_path, tool):
+def test_clips_into_a_set_and_out(renderer, tmp_path, tool):
     """A clip goes into a track and a slot, its lanes matched by label (the
     same label, else a free lane), and comes out as it went in."""
     set_path = tmp_path / "set.movy1"
@@ -216,7 +216,7 @@ def test_clips_into_a_set_and_out(tmp_path, tool):
         assert out_set.read_text() == set_path.read_text()
 
 
-def test_fm1_seq_loads_a_projects_set_and_a_binary_set(tmp_path):
+def test_fm1_seq_loads_a_projects_set_and_a_binary_set(renderer, tmp_path):
     out = tmp_path / "out.movy1"
     run(SEQ, "--tracks", "8", "--load", EXAMPLES / "first-orbit.lunar", "--export", out)
     assert out.read_text() == _set_text()

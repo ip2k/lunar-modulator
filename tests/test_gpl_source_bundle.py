@@ -266,13 +266,26 @@ def test_generated_link_sources_fail_closed(tmp_path, mutation, message):
     with pytest.raises(ValueError,match=message):
         build_bundle(src,tup,prov,manifest,anchor,tmp_path/'bad.tgz',generated_link_root=generated)
 
-@pytest.mark.skipif(not (ROOT / "firmware/third_party/musl/inventory.json").is_file(),
-                    reason="native runtime inventories are absent from main; production startup refuses them")
 def test_runtime_inventories_are_selected():
-    # The native runtime builders hash every inventory row, including notices.
+    # Four pinned imports are committed today. The private build service still
+    # refuses startup without TLSF and tinf (test_installer_server.py). Check
+    # every committed inventory, including any later imports, without treating
+    # absent components as source-bundle inputs.
+    committed = {'musl', 'dinghy', 'compiler-rt', 'printf'}
+    tracked = set(subprocess.check_output(
+        ['git', '-C', str(ROOT), 'ls-tree', '-r', '--name-only', 'HEAD', '--',
+         'firmware/third_party'], text=True).splitlines())
     for component in ('musl','dinghy','compiler-rt','printf','tlsf','tinf','arduino-midi'):
         directory=ROOT/'firmware/third_party'/component
-        inventory=json.loads((directory/'inventory.json').read_text())
+        inventory_path=directory/'inventory.json'
+        relative=inventory_path.relative_to(ROOT).as_posix()
+        if component in committed:
+            assert relative in tracked, f'missing committed inventory: {component}'
+        if relative not in tracked:
+            continue
+        assert inventory_path.is_file(), f'missing tracked inventory: {component}'
+        assert _selected(relative)
+        inventory=json.loads(inventory_path.read_text())
         for name in inventory['files']:
             assert _selected((directory/name).relative_to(ROOT).as_posix())
 

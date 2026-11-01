@@ -220,7 +220,7 @@ export function makeProject(ctx) {
     const head = v.ok ? `Load “${arrival.title}” into ${t.words}?` : arrival.title ? `“${arrival.title}” cannot go into ${t.words}.` : `Nothing loads into ${t.words}.`;
     // What the target holds now and what the file brings (§9, mockup 06): read from the mirror and the file's own
     // canonical JSON; what fits, and what the RAM comes to, is C's (the verdict above).
-    const gone = holdsWords(t), come = arrival.bytes ? broughtWords(arrival.bytes, t) : '';
+    const gone = holdsWords(t), come = arrival.bytes && v.report.code !== 'BAD' ? broughtWords(arrival.bytes, t) : '';
     const lines = [gone ? ['Replaces', gone] : null, come ? ['Brings', come] : null].filter(Boolean);
     return el('section', `ed-arrive ${v.ok ? 'is-ok' : 'is-no'}`, { 'aria-label': 'Drop', role: 'region' }, [
       el('p', 'ed-arrive-h', { text: head }),
@@ -259,7 +259,7 @@ export function makeProject(ctx) {
     const mod = j.mod ? `${plural((j.mod.rack || []).length, 'module')} and ${plural((j.mod.cables || []).length, 'cable')}` : '';
     const title = typeof j.title === 'string' && j.title ? `“${j.title.slice(0, 40)}”` : '';
     if (j.kind === 'sound' && j.sound) {
-      const ins = (j.sound.inserts || []).map((u, i) => (u && u.engine ? `In${i + 1} ${nm(u.engine)}` : null)).filter(Boolean);
+      const ins = (Array.isArray(j.sound.inserts) ? j.sound.inserts : []).map((u, i) => (u && u.engine ? `In${i + 1} ${nm(u.engine)}` : null)).filter(Boolean);
       return said(title, [nm(j.sound.engine), ...ins].filter(Boolean).join(', '), mod);
     }
     if (j.kind === 'fx' && Array.isArray(j.chain)) {

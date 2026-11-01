@@ -1,0 +1,174 @@
+{
+  "base": "c7f7abdf1c87ad43a54f4c0c13850e390ee5f013",
+  "historical_fm1_sys": {
+    "revision": "fad3a965f9aa9949069a3d864047eaca5ddf0be8",
+    "path": "firmware/third_party/dinghy/hal/fm1_sys.h",
+    "sha256": "5d56781274406b0a1bf816c66d86c0b0b23b49757cc6f5644df566127827a9a7"
+  },
+  "design_sha256": "35325f0628fd2c288fc73e4bd3110392d781b5cc06aa21e1fc5f02439514a2f3",
+  "review_sha256": "c370174053ae55a8f017d3b91a1c5b90f546dc58d257c80c67ca6d939e33d59b",
+  "inputs": {
+    "firmware/native/diagnostic_crt0.S": {
+      "sha256": "7e3be31bb0636ee86bff5d5fae1b4917b038c508565bec98f346686a0b359f8d",
+      "matches_prior_review": true
+    },
+    "firmware/native/diagnostic_platform.c": {
+      "sha256": "938de5d01d10d686cd9128f26298819ef3bad73e0c363408ac9425971358490e",
+      "matches_prior_review": true
+    },
+    "firmware/native/diagnostic.ld": {
+      "sha256": "16cf0b8ebe82ce2481c25a44605a4e9ea4230b034bb785c28363a8db48c980ae",
+      "matches_prior_review": true
+    },
+    "firmware/third_party/dinghy/UPSTREAM.md": {
+      "sha256": "d2a9ee344327c7b8a2915d694e0356ca1e155b986cef95c5b55d9db774ae4edd",
+      "matches_prior_review": true
+    },
+    "firmware/third_party/dinghy/inventory.json": {
+      "sha256": "6d221c0e3cb37c71874d53852faa6a2a1e9ad0fe903d085b7e4ff1d02d4244e4",
+      "matches_prior_review": true
+    },
+    "firmware/third_party/dinghy/hal/fm1_time.h": {
+      "sha256": "e83c725eae2ec5a163771ca2b8f1c0779354456f2e20a32febc7b6755758a97d",
+      "matches_prior_review": true
+    },
+    "firmware/third_party/dinghy/hal/fm1_irq.h": {
+      "sha256": "34b51dce696aded43e4c17d7f2151b958c319fe34f84a0763f273143406bc416",
+      "matches_prior_review": true
+    },
+    "firmware/third_party/dinghy/hal/fm1_audio.h": {
+      "sha256": "22351440699748546e932098e3016c618d6137dd0ae34557e08a107641d4e62e",
+      "matches_prior_review": true
+    },
+    "firmware/third_party/dinghy/hal/fm1_timer.h": {
+      "sha256": "1ec236ce4a75a5b94b9c16999dcdf7d71e4e0c5e0d2f14dbfb87bbaf025e1004",
+      "matches_prior_review": true
+    },
+    "firmware/third_party/dinghy/hal/fm1_lcd_hw.h": {
+      "sha256": "4fc3318a703fd55200153442acac4eb33ef56ff8e2eb82ba18ed0a3b9e655c1e",
+      "matches_prior_review": true
+    },
+    "firmware/third_party/dinghy/src/lcd.c": {
+      "sha256": "b69f0c3d6a5b61c883a35b50ddd6582811bd620a45268543e923fb8849caaac4",
+      "matches_prior_review": true
+    },
+    "firmware/third_party/dinghy/hal/fm1_input.h": {
+      "sha256": "7579aa8e061e4b23a86aee693f1d6004dc552b888457ea507f1ba3d941465241",
+      "matches_prior_review": true
+    },
+    "tools/native/runtime_mode.py": {
+      "sha256": "24398cda9a68886d9557256f428ca2ee3e47e57ec1483672c8adaedf08fd598c",
+      "matches_prior_review": true
+    },
+    "tools/native/build_diagnostic.py": {
+      "sha256": "e1af89e9ebab9b3556182b962beefcd99773e4c6dd82374e51b03ea36a745585",
+      "matches_prior_review": true
+    },
+    "notes/2026-10-05-softkey-efuse.md": {
+      "sha256": "1a1337dc883998c2e7335503e351843ad3725a7151ab4ba579e468f406a3fc66",
+      "matches_prior_review": true
+    },
+    "docs/07-recovery-and-risk.md": {
+      "sha256": "c1435c46f7e777b2f3b37b416d7781f004c87ae54a3d5af842c2b703bc1973dc",
+      "matches_prior_review": true
+    }
+  },
+  "license": "GPL-3.0-only",
+  "upstream": {
+    "url": "https://github.com/zvenson/dinghy",
+    "revision": "d44df7db09b98ccad2f1233b8f83f5f09c04829e",
+    "historical_lunar_carry": "cccd21cc5dc82859ed8a5d84f0a7a40646d07353"
+  },
+  "owned_files": {
+    "firmware/third_party/selected-return/selected_return.c": {
+      "sha256": "a9fd786bc0739374cbb1eefa4c2bffa4e6521727840bb1c54b8476611fbcdcdf",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "firmware/third_party/selected-return/selected_return.h": {
+      "sha256": "b5bf1c1f43f4ce78346c7c985aaf432e3a10632339ded758599c6ddba5159b62",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "firmware/third_party/selected-return/UPSTREAM.md": {
+      "sha256": "72c9cfe90fb1cf05cf2633048939e7cb1dc693715061586426ebcfead376ebb3",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "firmware/third_party/selected-return/LICENSE": {
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "modification": "unchanged GPL licence copy"
+    },
+    "tests/test_selected_return.py": {
+      "sha256": "41ccd0790db96bd8e32400091fe2e35c08f9f2d7909aaee4e72eccd843d693e6",
+      "modification": "new offline proof; actual policy and register-only test fixture"
+    },
+    "tests/fixtures/selected_return/check.c": {
+      "sha256": "a57adf1f9d37a56f0854e820ea99c9676020c2747a705cfee6c050d6ec30d665",
+      "modification": "new offline proof; actual policy and register-only test fixture"
+    },
+    "firmware/third_party/selected-return/selected_return_pi32v2.c": {
+      "sha256": "c67f12b6e47373f5a2444cd3d484aaa853947116c6a06c75cb24960646be02f2",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "firmware/third_party/selected-return/selected_return_pi32v2.h": {
+      "sha256": "afbcb44b905574a41bb8059451f53cf29729ebdbe99e1cc42036e0c007942177",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "firmware/third_party/selected-return/selected_return_platform.c": {
+      "sha256": "5dfa13afab28d0b7bfde7667693eecf6040cf788f55fedcbcd70608132f67d20",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "firmware/third_party/selected-return/selected_return_candidate.ld": {
+      "sha256": "a4a178074ba3e0a9d89748a8ddab7a0f6fb8790acc7cd2fcfec8136748bdd0c9",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "tests/test_selected_return_target.py": {
+      "sha256": "730918b0a69483ffe46cf8632c1234c1f1e6fd8d6004953ed9bdc3fd77ea38ce",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "tests/fixtures/selected_return_target/check.c": {
+      "sha256": "0a5bd661c72bc2f959d7eed82a8590445ff5b78570dc981ae54d86f7d082b7ec",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "tools/native/build_selected_trio_return_candidate.py": {
+      "sha256": "aa15b099f7ddbf04ff6f2bd54d9689c8e9813ef899bc3b09ff94cb676437e50b",
+      "modification": "new separately guarded unqualified target binding candidate"
+    },
+    "tests/fixtures/selected_return_target/platform_check.c": {
+      "sha256": "03568899a630ab9457c9cfefc6f400101da6b69daf544d0c280fe625f2540a99",
+      "modification": "host-only actual candidate startup proof through typed HAL shims"
+    },
+    "tests/fixtures/selected_return_target/platform_hal.h": {
+      "sha256": "e50f3fc7ff4b2b8ea95673a3b234c602edfb207c3b0417838beeeefe01475d32",
+      "modification": "host-only actual candidate startup proof through typed HAL shims"
+    }
+  },
+  "files": {
+    "selected_return.c": "a9fd786bc0739374cbb1eefa4c2bffa4e6521727840bb1c54b8476611fbcdcdf",
+    "selected_return.h": "fe5a95c97e980fc75fe0cc55637ff801ba84f7a149aec3b41e86311de26d22cf",
+    "selected_return_pi32v2.c": "c67f12b6e47373f5a2444cd3d484aaa853947116c6a06c75cb24960646be02f2",
+    "selected_return_pi32v2.h": "afbcb44b905574a41bb8059451f53cf29729ebdbe99e1cc42036e0c007942177",
+    "selected_return_platform.c": "5dfa13afab28d0b7bfde7667693eecf6040cf788f55fedcbcd70608132f67d20",
+    "selected_return_candidate.ld": "a4a178074ba3e0a9d89748a8ddab7a0f6fb8790acc7cd2fcfec8136748bdd0c9",
+    "LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "UPSTREAM.md": "0dcf907de1036809a9393d29e04f6bd08491d8ceffe2e86a82fc0e623f5af0ef",
+    "selected_audio_owner_platform.c": "f0d154e0737d11bf0096093ccd247c45a6ffbdc7f092d68de3abe0b3a8d556b4"
+  },
+  "target_binding_base": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
+  "target_binding_provenance": {
+    "firmware/native/diagnostic_platform.c": {
+      "revision": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
+      "sha256": "938de5d01d10d686cd9128f26298819ef3bad73e0c363408ac9425971358490e"
+    },
+    "firmware/native/diagnostic.ld": {
+      "revision": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
+      "sha256": "16cf0b8ebe82ce2481c25a44605a4e9ea4230b034bb785c28363a8db48c980ae"
+    },
+    "firmware/third_party/dinghy/hal/fm1_irq.h": {
+      "revision": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
+      "sha256": "34b51dce696aded43e4c17d7f2151b958c319fe34f84a0763f273143406bc416"
+    },
+    "firmware/third_party/dinghy/hal/fm1_time.h": {
+      "revision": "e5acacea04b42f75feed8332d1a091ff5ce73f21",
+      "sha256": "e83c725eae2ec5a163771ca2b8f1c0779354456f2e20a32febc7b6755758a97d"
+    }
+  }
+}

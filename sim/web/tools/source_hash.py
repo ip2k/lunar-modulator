@@ -25,8 +25,8 @@ their bytes, in sorted path order:
            differently with only a warning
 
 build-on-aeon.sh records both in www/fm1.wasm.json; tests/test_sim_web.py
-warns when the tree has moved on since, and fails in CI when the sim's own
-inputs have. MIT licence.
+warns locally when either source tree has moved on, and fails in CI for
+either stale digest. MIT licence.
 """
 import hashlib
 import json

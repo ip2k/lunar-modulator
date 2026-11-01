@@ -100,6 +100,19 @@ typedef struct {
   uint32_t off, len, crc;
 } bdir_t;
 
+/* A plan is independent of the scratch reused by replay/readback. No pointers
+ * or native padding enter the container. The seal detects accidental plan
+ * damage; neither it nor the record CRC provides source ownership or security. */
+struct fm1_state_bin_plan {
+  uint32_t ready, records, trace;
+  uint8_t head[32];
+  bdir_t dir[FM1_STATE_CHUNKS];
+  uint32_t seal;
+};
+#define BIN_PLAN_READY 0x504C4E31u
+#define BIN_CHUNK_BYTES 65536u
+#define BIN_SMALL_CHUNK (FM1_MOVY1_LINE_MAX + 3u)
+
 typedef struct bin_writer {
   fm1_put_t put;
   void *ctx;
@@ -120,7 +133,14 @@ typedef struct bin_writer {
   size_t count_at;            /* where the open chunk's count goes */
   unsigned count;
   size_t cn;
-  uint8_t chunk[65536];
+  uint8_t *chunk, *body, *zout;
+  uint32_t *zscratch;
+  size_t chunk_bytes;
+  unsigned pass, ended, active;
+  uint32_t stream_crc, trace, records;
+  fm1_state_bin_plan_t *planning;
+  const fm1_state_bin_plan_t *expected;
+  fm1_state_write_at_t write_at;
   uint8_t info_key;
   uint16_t info_n;
   char info[FM1_INFO_KEYS * 128];
@@ -130,35 +150,59 @@ typedef struct bin_writer {
   uint16_t data_n;
   uint8_t data[FM1_STATE_DATA_ONE];
   size_t body_n;
-  uint8_t body[FM1_STATE_BIN_MAX];
-  uint8_t zout[65536 + 8];
-  uint32_t zscratch[FM1_DEFLATE_SCRATCH / 4u];
 } bin_writer_t;
 
-size_t fm1_state_bin_writer_size(void) { return sizeof(bin_writer_t); }
+typedef struct {
+  bin_writer_t w;
+  uint8_t chunk[BIN_CHUNK_BYTES], body[FM1_STATE_BIN_MAX];
+  uint8_t zout[BIN_CHUNK_BYTES + 8];
+  uint32_t zscratch[FM1_DEFLATE_SCRATCH / 4u];
+} bin_host_t;
+typedef struct {
+  bin_writer_t w;
+  uint8_t chunk[BIN_SMALL_CHUNK];
+} bin_compact_t;
+typedef char compact_writer_budget[(sizeof(bin_compact_t) <= 49152u) ? 1 : -1];
 
-fm1_state_writer_t *fm1_state_bin_writer(void *mem, unsigned flags, unsigned writer,
-                                         const uint8_t version[3], fm1_put_t put, void *ctx,
-                                         fm1_state_report_t *rep) {
-  bin_writer_t *w = (bin_writer_t *)mem;
-  if (!w) return NULL;
-  memset(w, 0, offsetof(bin_writer_t, chunk));   /* the buffers need no clearing, their counts do */
+size_t fm1_state_bin_writer_size(void) { return sizeof(bin_host_t); }
+size_t fm1_state_bin_compact_size(void) { return sizeof(bin_compact_t); }
+size_t fm1_state_bin_plan_size(void) { return sizeof(fm1_state_bin_plan_t); }
+
+static void init_writer(bin_writer_t *w, unsigned flags, unsigned writer,
+                        const uint8_t version[3], void *ctx, fm1_state_report_t *rep) {
+  memset(w, 0, offsetof(bin_writer_t, info));
   w->info_n = 0;
   w->line_n = 0;
   w->data_n = 0;
   w->body_n = 0;
-  w->put = put;
   w->ctx = ctx;
   w->rep = rep;
   w->flags = flags;
   w->writer = writer;
   if (version) memcpy(w->version, version, 3);
+}
+
+fm1_state_writer_t *fm1_state_bin_writer(void *mem, unsigned flags, unsigned writer,
+                                         const uint8_t version[3], fm1_put_t put, void *ctx,
+                                         fm1_state_report_t *rep) {
+  bin_host_t *h = (bin_host_t *)mem;
+  bin_writer_t *w;
+  if (!h) return NULL;
+  w = &h->w;
+  init_writer(w, flags, writer, version, ctx, rep);
+  w->put = put;
+  w->chunk = h->chunk;
+  w->chunk_bytes = sizeof(h->chunk);
+  w->body = h->body;
+  w->zout = h->zout;
+  w->zscratch = h->zscratch;
   return (fm1_state_writer_t *)(void *)w;
 }
 
 static int berr(bin_writer_t *w, unsigned code, const char *what) {
   if (!w->err) {
     w->err = 1;
+    if (w->planning) w->planning->ready = 0;
     if (w->rep && w->rep->code == FM1_STATE_OK) {
       w->rep->code = (uint8_t)code;
       set_what(w->rep, what);
@@ -167,12 +211,28 @@ static int berr(bin_writer_t *w, unsigned code, const char *what) {
   return 0;
 }
 
+/* Preserve the ordinary writer's logical 64 KiB failure point. Non-line
+ * chunks larger than the retained prefix cannot be valid (their tag caps are
+ * <=16 KiB), but are counted until close_chunk performs the original check. */
 static int cput(bin_writer_t *w, const void *b, size_t n) {
-  if (w->cn + n > sizeof(w->chunk)) return berr(w, FM1_STATE_TOO_BIG, "a chunk past its cap");
-  memcpy(w->chunk + w->cn, b, n);
+  size_t keep = n;
+  if (n > BIN_CHUNK_BYTES - w->cn) return berr(w, FM1_STATE_TOO_BIG, "a chunk past its cap");
+  if (w->cn >= w->chunk_bytes) keep = 0;
+  else if (keep > w->chunk_bytes - w->cn) keep = w->chunk_bytes - w->cn;
+  if (keep) memcpy(w->chunk + w->cn, b, keep);
   w->cn += n;
   return 1;
 }
+
+static int staged_put(bin_writer_t *w, uint32_t off, const uint8_t *b, size_t n) {
+  const uint32_t total = get32(w->expected->head + 20);
+  if (w->err) return 0;
+  if (off > total || n > total - off) return berr(w, FM1_STATE_BAD, "replay differs from its plan");
+  if (n && w->write_at(w->ctx, off, b, (uint32_t)n) != n)
+    return berr(w, FM1_STATE_STOPPED, "the staged sink stopped");
+  return !w->err;             /* a callback may have attempted a nested record */
+}
+
 static int cput8(bin_writer_t *w, unsigned v) { const uint8_t b = (uint8_t)v; return cput(w, &b, 1); }
 static int cput16(bin_writer_t *w, unsigned v) { uint8_t b[2]; put16(b, v); return cput(w, b, 2); }
 static int cput32(bin_writer_t *w, uint32_t v) { uint8_t b[4]; put32(b, v); return cput(w, b, 4); }
@@ -226,7 +286,7 @@ static int close_chunk(bin_writer_t *w) {
   if (w->n_chunks >= FM1_STATE_CHUNKS) return berr(w, FM1_STATE_TOO_BIG, "too many chunks");
   stored = w->cn;
   if ((w->flags & FM1_STATE_BIN_DEFLATE) && w->cn >= 16u) {
-    const size_t z = fm1_deflate(w->chunk, w->cn, w->zout + 4, sizeof(w->zout) - 4u, w->zscratch);
+    const size_t z = fm1_deflate(w->chunk, w->cn, w->zout + 4, BIN_CHUNK_BYTES + 4u, w->zscratch);
     if (z && (z + 4u) * 4u <= w->cn * 3u) {
       put32(w->zout, (uint32_t)w->cn);
       src = w->zout;
@@ -235,16 +295,35 @@ static int close_chunk(bin_writer_t *w) {
     }
   }
   pad = (4u - (w->body_n & 3u)) & 3u;
-  if (w->body_n + pad + stored > sizeof(w->body)) return berr(w, FM1_STATE_TOO_BIG, "past 96 KiB");
-  memset(w->body + w->body_n, 0, pad);
+  if (w->body_n + pad + stored > FM1_STATE_BIN_MAX) return berr(w, FM1_STATE_TOO_BIG, "past 96 KiB");
+  if (!w->pass) memset(w->body + w->body_n, 0, pad);
+  else if (w->pass == 2 && pad) {
+    static const uint8_t zero[4] = {0};
+    const uint32_t base = 36u + 20u * get16(w->expected->head + 14);
+    if (!staged_put(w, base + (uint32_t)w->body_n, zero, pad)) return 0;
+  }
   w->body_n += pad;
   d = &w->dir[w->n_chunks++];
   d->tag = w->cur;
   d->flags = flags;
   d->off = (uint32_t)w->body_n;
   d->len = (uint32_t)stored;
-  d->crc = fm1_state_crc32(0, src, stored);
-  memcpy(w->body + w->body_n, src, stored);
+  d->pad_ = 0;
+  d->crc = w->pass && (w->cur == CH_SEQS || w->cur == CH_CLIP)
+             ? w->stream_crc : fm1_state_crc32(0, src, stored);
+  if (!w->pass) memcpy(w->body + w->body_n, src, stored);
+  else if (w->pass == 2) {
+    const bdir_t *e;
+    const unsigned count = get16(w->expected->head + 14);
+    const uint32_t base = 36u + 20u * count;
+    if (w->n_chunks > count) return berr(w, FM1_STATE_BAD, "replay differs from its plan");
+    e = &w->expected->dir[w->n_chunks - 1u];
+    if (d->tag != e->tag || d->flags != e->flags || d->off != e->off ||
+        d->len != e->len || d->crc != e->crc)
+      return berr(w, FM1_STATE_BAD, "replay differs from its plan");
+    if (w->cur != CH_SEQS && w->cur != CH_CLIP &&
+        !staged_put(w, base + d->off, src, stored)) return 0;
+  }
   w->body_n += stored;
   w->cur = 0;
   w->cn = 0;
@@ -260,6 +339,7 @@ static int open_chunk(bin_writer_t *w, unsigned ch) {
   if (!close_chunk(w)) return 0;
   if (!((kKinds[ch] >> w->kind) & 1u)) return berr(w, FM1_STATE_BAD, "a record this kind of file does not hold");
   w->cur = (uint8_t)ch;
+  w->stream_crc = 0;
   w->cn = 0;
   w->count = 0;
   switch (ch) {
@@ -274,9 +354,25 @@ static int open_chunk(bin_writer_t *w, unsigned ch) {
 }
 
 static int flush_line(bin_writer_t *w) {
-  size_t n;
-  n = fm1_movy1_encode(w->line, w->line_n, w->chunk + w->cn, sizeof(w->chunk) - w->cn);
+  size_t n, cap = BIN_CHUNK_BYTES - w->cn;
+  uint8_t *dst = w->chunk;
+  if (!w->pass) dst += w->cn;
+  else if (cap > w->chunk_bytes) cap = w->chunk_bytes;
+  n = fm1_movy1_encode(w->line, w->line_n, dst, cap);
   if (!n) return berr(w, FM1_STATE_TOO_BIG, "a set past its cap");
+  if (w->pass) {
+    w->stream_crc = fm1_state_crc32(w->stream_crc, dst, n);
+    if (w->pass == 2) {
+      const unsigned count = get16(w->expected->head + 14);
+      const size_t pad = (4u - (w->body_n & 3u)) & 3u;
+      const uint32_t off = 36u + 20u * count + (uint32_t)(w->body_n + pad + w->cn);
+      const bdir_t *e;
+      if (w->n_chunks >= count) return berr(w, FM1_STATE_BAD, "replay differs from its plan");
+      e = &w->expected->dir[w->n_chunks];
+      if (e->tag != w->cur || w->cn > e->len || n > e->len - w->cn ||
+          !staged_put(w, off, dst, n)) return berr(w, FM1_STATE_BAD, "replay differs from its plan");
+    }
+  }
   w->cn += n;
   return 1;
 }
@@ -305,7 +401,21 @@ static int assemble(bin_writer_t *w) {
   head[26] = w->version[1];
   head[27] = w->version[2];
   put32(head + 28, fm1_state_crc32(0, head, 28));
-  w->put(w->ctx, (const char *)head, 32);
+  if (w->pass == 1) {
+    fm1_state_bin_plan_t *p = w->planning;
+    p->records = w->records;
+    p->trace = w->trace;
+    memcpy(p->head, head, sizeof(head));
+    memcpy(p->dir, w->dir, w->n_chunks * sizeof(bdir_t));
+    p->ready = BIN_PLAN_READY;
+    p->seal = fm1_state_crc32(0, (const uint8_t *)p, offsetof(fm1_state_bin_plan_t, seal));
+    w->ended = 1;
+    return 1;
+  }
+  if (w->pass == 2 && (memcmp(head, w->expected->head, sizeof(head)) ||
+      w->records != w->expected->records || w->trace != w->expected->trace))
+    return berr(w, FM1_STATE_BAD, "replay differs from its plan");
+  if (!w->pass) w->put(w->ctx, (const char *)head, 32);
   for (i = 0; i < w->n_chunks; ++i) {
     const bdir_t *d = &w->dir[i];
     memcpy(ent, kTag[d->tag], 4);
@@ -315,19 +425,23 @@ static int assemble(bin_writer_t *w) {
     put32(ent + 12, d->len);
     put32(ent + 16, d->crc);
     dcrc = fm1_state_crc32(dcrc, ent, 20);
-    w->put(w->ctx, (const char *)ent, 20);
+    if (!w->pass) w->put(w->ctx, (const char *)ent, 20);
+    else if (!staged_put(w, 32u + 20u * i, ent, 20)) return 0;
   }
   put32(ent, dcrc);
-  w->put(w->ctx, (const char *)ent, 4);
+  if (!w->pass) w->put(w->ctx, (const char *)ent, 4);
+  else if (!staged_put(w, 32u + 20u * w->n_chunks, ent, 4)) return 0;
   if (base > dir_end) {
     static const char zero[4] = { 0, 0, 0, 0 };
     w->put(w->ctx, zero, base - dir_end);
   }
-  w->put(w->ctx, (const char *)w->body, w->body_n);
+  if (!w->pass) w->put(w->ctx, (const char *)w->body, w->body_n);
+  else if (!staged_put(w, 0, head, 32)) return 0;
+  w->ended = 1;
   return 1;
 }
 
-int fm1_state_bin_write(void *wv, const fm1_rec_t *r) {
+static int bin_record(void *wv, const fm1_rec_t *r) {
   bin_writer_t *w = (bin_writer_t *)wv;
   if (w->err) return 0;
   if (!w->has_head && r->type != FM1_REC_HEAD) return berr(w, FM1_STATE_BAD, "the head record comes first");
@@ -484,6 +598,204 @@ int fm1_state_bin_write(void *wv, const fm1_rec_t *r) {
 }
 
 
+/* Hash record values, not padding, addresses or unused union members. Record
+ * fragmentation/order are included as well as the final per-chunk identity. */
+static uint32_t record_trace(uint32_t crc, const fm1_rec_t *r) {
+  uint8_t b[4], prefix[5];
+  prefix[0] = r->type; prefix[1] = r->role; prefix[2] = r->sound;
+  prefix[3] = r->slot; prefix[4] = r->piece;
+  crc = fm1_state_crc32(crc, prefix, sizeof(prefix));
+#define TRACE_WORD(v) do { put32(b, (uint32_t)(v)); crc = fm1_state_crc32(crc, b, 4); } while (0)
+#define TRACE_BYTES(p, n) do { size_t tn_ = (n); TRACE_WORD(tn_); \
+  crc = fm1_state_crc32(crc, (const uint8_t *)(p), tn_); } while (0)
+#define TRACE_STRING(p) TRACE_BYTES(p, strlen(p))
+  switch (r->type) {
+    case FM1_REC_HEAD: TRACE_WORD(r->u.head.kind); TRACE_WORD(r->u.head.major); TRACE_WORD(r->u.head.minor); break;
+    case FM1_REC_INFO: TRACE_WORD(r->u.info.key); TRACE_BYTES(r->u.info.s, r->u.info.n); break;
+    case FM1_REC_SESSION:
+      TRACE_WORD(r->u.session.current); TRACE_WORD(r->u.session.octave); TRACE_WORD(r->u.session.transpose);
+      TRACE_WORD(r->u.session.has_key); TRACE_WORD(r->u.session.root); TRACE_STRING(r->u.session.scale); break;
+    case FM1_REC_UNIT: case FM1_REC_MODULE: TRACE_STRING(r->u.unit.id); break;
+    case FM1_REC_ON: TRACE_WORD(r->u.on); break;
+    case FM1_REC_PARAM:
+      TRACE_WORD(r->u.param.uid); TRACE_WORD(r->u.param.focus); TRACE_WORD(r->u.param.vtype);
+      TRACE_WORD(r->u.param.bits); break;
+    case FM1_REC_LEVEL: TRACE_WORD(r->u.level); break;
+    case FM1_REC_DX7: TRACE_BYTES(r->u.dx7.vced, 155); break;
+    case FM1_REC_SEED: TRACE_WORD(r->u.seed); break;
+    case FM1_REC_DATA: TRACE_WORD(r->u.data.version); TRACE_BYTES(r->u.data.b, r->u.data.n); break;
+    case FM1_REC_CABLE: {
+      const fm1_mod_slot_t *c = &r->u.cable.s;
+      TRACE_WORD(c->src); TRACE_WORD(c->via); TRACE_WORD(c->dst_unit); TRACE_WORD(c->flags);
+      TRACE_WORD(c->dst); TRACE_WORD(c->amount); TRACE_WORD(c->offset); TRACE_WORD(c->uid);
+      TRACE_STRING(r->u.cable.name); break;
+    }
+    case FM1_REC_LINE: TRACE_WORD(r->u.line.which); TRACE_BYTES(r->u.line.s, r->u.line.n); break;
+    case FM1_REC_VIEW:
+      TRACE_WORD(r->u.view.mode); TRACE_WORD(r->u.view.has);
+      TRACE_BYTES(r->u.view.v, FM1_VIEW_KEYS); break;
+    case FM1_REC_SETTING:
+      TRACE_WORD(r->u.setting.key); TRACE_WORD(r->u.setting.is_bool); TRACE_WORD(r->u.setting.value); break;
+    case FM1_REC_MIDI_MAP: TRACE_WORD(r->u.map_version); break;
+    case FM1_REC_MIDI_BINDING:
+      TRACE_STRING(r->u.binding.target); TRACE_STRING(r->u.binding.source);
+      TRACE_WORD(r->u.binding.channel); TRACE_WORD(r->u.binding.kind); TRACE_WORD(r->u.binding.number); break;
+    default: break;
+  }
+#undef TRACE_STRING
+#undef TRACE_BYTES
+#undef TRACE_WORD
+  return crc;
+}
+
+int fm1_state_bin_write(void *wv, const fm1_rec_t *r) {
+  bin_writer_t *w = (bin_writer_t *)wv;
+  int ok;
+  if (!w->pass) return bin_record(w, r);
+  if (w->err) return 0;
+  if (w->active) return berr(w, FM1_STATE_BAD, "a reentrant compact writer");
+  if (w->ended) return berr(w, FM1_STATE_BAD, "a record after end");
+  if (w->records == UINT32_MAX) return berr(w, FM1_STATE_TOO_BIG, "too many replay records");
+  w->active = 1;
+  /* END seals/compares the trace inside assemble. Other records are hashed
+   * only after validation, so an oversized fragment need not be readable. */
+  if (r->type == FM1_REC_END) {
+    ++w->records;
+    w->trace = record_trace(w->trace, r);
+  }
+  ok = bin_record(w, r);
+  if (ok && !w->err && r->type != FM1_REC_END) {
+    ++w->records;
+    w->trace = record_trace(w->trace, r);
+  }
+  w->active = 0;
+  return ok && !w->err;
+}
+
+static int plan_error(fm1_state_report_t *rep, unsigned code, const char *what) {
+  if (rep && rep->code == FM1_STATE_OK) { rep->code = (uint8_t)code; set_what(rep, what); }
+  return 0;
+}
+static int aligned_block(const void *p, size_t n, size_t need) {
+  return p && !((uintptr_t)p & 15u) && n >= need && n - 1u <= UINTPTR_MAX - (uintptr_t)p;
+}
+static int overlaps(const void *a, size_t an, const void *b, size_t bn) {
+  const uintptr_t x = (uintptr_t)a, y = (uintptr_t)b;
+  if (!a || !b || !an || !bn) return 0;
+  if (an - 1u > UINTPTR_MAX - x || bn - 1u > UINTPTR_MAX - y) return 1;
+  return x <= y ? y - x < an : x - y < bn;
+}
+/* Never report an ownership error by writing into either protected block. */
+static int block_error(fm1_state_report_t *rep, const void *a, size_t an,
+                       const void *b, size_t bn, const char *what) {
+  if (overlaps(rep, sizeof(*rep), a, an) || overlaps(rep, sizeof(*rep), b, bn)) return 0;
+  return plan_error(rep, FM1_STATE_BAD, what);
+}
+static int plan_valid(const void *pv, size_t n) {
+  const fm1_state_bin_plan_t *p = (const fm1_state_bin_plan_t *)pv;
+  uint32_t end = 0;
+  unsigned count, i;
+  if (!aligned_block(p, n, sizeof(*p)) || p->ready != BIN_PLAN_READY ||
+      p->seal != fm1_state_crc32(0, (const uint8_t *)p, offsetof(fm1_state_bin_plan_t, seal))) return 0;
+  count = get16(p->head + 14);
+  if (!count || count > FM1_STATE_CHUNKS) return 0;
+  for (i = 0; i < count; ++i) {
+    const bdir_t *d = &p->dir[i];
+    if (!d->tag || d->tag >= CH_COUNT || d->flags || d->off != ((end + 3u) & ~3u) ||
+        d->len > kCap[d->tag]) return 0;
+    end = d->off + d->len;
+  }
+  return end + 36u + 20u * count == get32(p->head + 20) && get32(p->head + 20) <= FM1_STATE_BIN_MAX;
+}
+
+fm1_state_writer_t *fm1_state_bin_preflight(void *mem, size_t bytes,
+    void *plan, size_t plan_bytes, unsigned writer, const uint8_t version[3], fm1_state_report_t *rep) {
+  bin_compact_t *c = (bin_compact_t *)mem;
+  fm1_state_bin_plan_t *p = (fm1_state_bin_plan_t *)plan;
+  if (!aligned_block(c, bytes, sizeof(*c)) || !aligned_block(p, plan_bytes, sizeof(*p)) ||
+      overlaps(c, bytes, p, plan_bytes) ||
+      overlaps(rep, sizeof(*rep), c, bytes) || overlaps(rep, sizeof(*rep), p, plan_bytes) ||
+      overlaps(version, 3, c, bytes) || overlaps(version, 3, p, plan_bytes)) {
+    block_error(rep, c, bytes, p, plan_bytes, "invalid compact workspace"); return NULL;
+  }
+  memset(p, 0, sizeof(*p));
+  init_writer(&c->w, 0, writer, version, NULL, rep);
+  c->w.chunk = c->chunk;
+  c->w.chunk_bytes = sizeof(c->chunk);
+  c->w.pass = 1;
+  c->w.planning = p;
+  return (fm1_state_writer_t *)(void *)&c->w;
+}
+fm1_state_writer_t *fm1_state_bin_replay(void *mem, size_t bytes,
+    const void *plan, size_t plan_bytes, fm1_state_write_at_t write_at, void *ctx, fm1_state_report_t *rep) {
+  bin_compact_t *c = (bin_compact_t *)mem;
+  const fm1_state_bin_plan_t *p = (const fm1_state_bin_plan_t *)plan;
+  if (!aligned_block(c, bytes, sizeof(*c)) ||
+      overlaps(c, bytes, p, plan_bytes) ||
+      overlaps(rep, sizeof(*rep), c, bytes) || overlaps(rep, sizeof(*rep), p, plan_bytes) ||
+      overlaps(ctx, 1, c, bytes) || overlaps(ctx, 1, p, plan_bytes) ||
+      !plan_valid(p, plan_bytes) || !write_at) {
+    block_error(rep, c, bytes, p, plan_bytes, "invalid compact replay"); return NULL;
+  }
+  init_writer(&c->w, 0, p->head[24], p->head + 25, ctx, rep);
+  c->w.chunk = c->chunk;
+  c->w.chunk_bytes = sizeof(c->chunk);
+  c->w.pass = 2;
+  c->w.expected = p;
+  c->w.write_at = write_at;
+  return (fm1_state_writer_t *)(void *)&c->w;
+}
+uint32_t fm1_state_bin_plan_total(const void *plan, size_t plan_bytes) {
+  return plan_valid(plan, plan_bytes) ? get32(((const fm1_state_bin_plan_t *)plan)->head + 20) : 0;
+}
+
+static int read_exact(fm1_src_read_t rd, void *ctx, uint32_t off, uint8_t *b, uint32_t n) {
+  while (n) {
+    uint32_t got = rd(ctx, off, b, n);
+    if (!got || got > n) return 0;
+    off += got; b += got; n -= got;
+  }
+  return 1;
+}
+int fm1_state_bin_plan_match(const void *plan, size_t plan_bytes,
+    fm1_src_read_t rd, void *ctx, uint32_t total, fm1_state_report_t *rep) {
+  const fm1_state_bin_plan_t *p = (const fm1_state_bin_plan_t *)plan;
+  uint8_t buf[64], ent[20];
+  uint32_t dcrc = 0, end, base;
+  unsigned count, i;
+  if (overlaps(rep, sizeof(*rep), p, plan_bytes) || overlaps(ctx, 1, p, plan_bytes) ||
+      !rd || !plan_valid(p, plan_bytes) || total != get32(p->head + 20))
+    return block_error(rep, p, plan_bytes, NULL, 0, "invalid planned readback");
+  if (!read_exact(rd, ctx, 0, buf, 32) || memcmp(buf, p->head, 32)) goto mismatch;
+  count = get16(p->head + 14); base = 36u + 20u * count; end = base;
+  for (i = 0; i < count; ++i) {
+    const bdir_t *d = &p->dir[i];
+    uint32_t off = base + d->off, left = d->len, crc = 0;
+    memcpy(ent, kTag[d->tag], 4); put16(ent + 4, 1); put16(ent + 6, d->flags);
+    put32(ent + 8, off); put32(ent + 12, d->len); put32(ent + 16, d->crc);
+    dcrc = fm1_state_crc32(dcrc, ent, 20);
+    if (!read_exact(rd, ctx, 32u + 20u * i, buf, 20) || memcmp(buf, ent, 20)) goto mismatch;
+    if (off > end) {
+      uint32_t j;
+      if (!read_exact(rd, ctx, end, buf, off - end)) goto mismatch;
+      for (j = 0; j < off - end; ++j) if (buf[j]) goto mismatch;
+    }
+    while (left) {
+      uint32_t n = left < sizeof(buf) ? left : (uint32_t)sizeof(buf);
+      if (!read_exact(rd, ctx, off, buf, n)) goto mismatch;
+      crc = fm1_state_crc32(crc, buf, n); off += n; left -= n;
+    }
+    if (crc != d->crc) goto mismatch;
+    end = off;
+  }
+  put32(ent, dcrc);
+  if (!read_exact(rd, ctx, base - 4u, buf, 4) || memcmp(buf, ent, 4) || end != total) goto mismatch;
+  return 1;
+mismatch:
+  return plan_error(rep, FM1_STATE_BAD, "readback differs from its plan");
+}
+
+
 /* ======================================================================= */
 /* Reader                                                                  */
 /* ======================================================================= */
@@ -585,16 +897,28 @@ static int cs_skip(cs_t *c, uint32_t n) {
   return 1;
 }
 
-static int read_browser(br_t *b, cs_t *c) {
-  uint8_t hdr[4], entries[FM1_MIDI_MAP_BINDINGS * 8];
-  char pool[FM1_MIDI_MAP_TEXT];
+/* Large mutually exclusive chunk working sets belong to the caller context.
+ * No serialized layout or format cap changes. */
+typedef struct {
+  fm1_inflate_t z;
+  union {
+    struct { uint8_t entries[FM1_MIDI_MAP_BINDINGS * 8]; char pool[FM1_MIDI_MAP_TEXT]; } browser;
+    struct { uint16_t uid[512]; uint8_t focus[512]; } unit;
+  } chunk;
+} bin_read_workspace_t;
+typedef char reader_workspace_budget[(sizeof(bin_read_workspace_t) <= 16384u) ? 1 : -1];
+size_t fm1_state_bin_reader_size(void) { return sizeof(bin_read_workspace_t); }
+
+static int read_browser(br_t *b, cs_t *c, bin_read_workspace_t *work) {
+  uint8_t hdr[4], *entries = work->chunk.browser.entries;
+  char *pool = work->chunk.browser.pool;
   unsigned count, used;
   fm1_rec_t r;
   if (b->midi_seen++) return bbad(b, "two browser mapping chunks");
   if (!cs_get(c, hdr, 4)) return short_chunk(b);
   if (hdr[0] != FM1_MIDI_MAP_VERSION) return brefuse(b, hdr[0] > 1 ? FM1_STATE_TOO_NEW : FM1_STATE_BAD, "unsupported MIDI mapping version");
   count = hdr[1]; used = get16(hdr + 2);
-  if (count > FM1_MIDI_MAP_BINDINGS || used > sizeof pool) return brefuse(b, FM1_STATE_TOO_BIG, "MIDI map past its cap");
+  if (count > FM1_MIDI_MAP_BINDINGS || used > FM1_MIDI_MAP_TEXT) return brefuse(b, FM1_STATE_TOO_BIG, "MIDI map past its cap");
   if (!cs_get(c, entries, count * 8) || !cs_get(c, (uint8_t *)pool, used)) return short_chunk(b);
   memset(&r, 0, sizeof r); r.type = FM1_REC_MIDI_MAP; r.u.map_version = hdr[0];
   if (!bemit(b, &r)) return 0;
@@ -899,11 +1223,11 @@ static int unit_place(const br_t *b, unsigned role, unsigned sound, unsigned slo
   return -1;
 }
 
-static int read_unit(br_t *b, cs_t *c) {
+static int read_unit(br_t *b, cs_t *c, bin_read_workspace_t *work) {
   uint8_t h[8];
   /* Bounded by the format's record cap; do not allocate a UID-by-pad map. */
-  uint16_t seen_uid[512];
-  uint8_t seen_focus[512];
+  uint16_t *seen_uid = work->chunk.unit.uid;
+  uint8_t *seen_focus = work->chunk.unit.focus;
   fm1_rec_t r;
   acc_t lv;
   unsigned count, i;
@@ -1238,8 +1562,8 @@ static int tag_of(const uint8_t t[4]) {
   return 0;
 }
 
-int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_sink_t sink, void *sctx,
-                       fm1_state_report_t *rep, int skip_crc) {
+static int bin_read(bin_read_workspace_t *work, fm1_src_read_t rd, void *rctx, uint32_t total,
+                    fm1_rec_sink_t sink, void *sctx, fm1_state_report_t *rep, int skip_crc) {
   uint8_t h[32], e[64];
   br_t b;
   uint32_t hdr, count, esz, dir_end, chunk0, prev_end, i, dcrc = 0;
@@ -1326,7 +1650,7 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
   if (!bemit(&b, &r)) return 0;
   for (i = 0; i < count; ++i) {
     cs_t c;
-    fm1_inflate_t z;
+    fm1_inflate_t *z = &work->z;
     uint32_t off, len;
     int tag, ok;
     acc_t a;
@@ -1350,9 +1674,9 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
       if (len < 4u || rd(rctx, off, u, 4) != 4u) return bbad(&b, "a deflated chunk without its length");
       unpacked = get32(u);
       if (unpacked > kCap[tag]) return brefuse(&b, FM1_STATE_TOO_BIG, "a chunk past its cap");
-      fm1_inflate_init(&z, cs_src, &c, off + 4u, len - 4u, unpacked);
+      fm1_inflate_init(z, cs_src, &c, off + 4u, len - 4u, unpacked);
       c.deflated = 1;
-      c.z = &z;
+      c.z = z;
       c.left = unpacked;
     } else if (len > kCap[tag]) {
       return brefuse(&b, FM1_STATE_TOO_BIG, "a chunk past its cap");
@@ -1371,7 +1695,7 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
           ok = bemit(&b, &a.r);
         }
         break;
-      case CH_UNIT: ok = read_unit(&b, &c); break;
+      case CH_UNIT: ok = read_unit(&b, &c, work); break;
       case CH_DX7V: ok = read_dx7v(&b, &c); break;
       case CH_MODR: ok = read_modr(&b, &c); break;
       case CH_SEQS: ok = read_lines(&b, &c, FM1_LINES_SET); break;
@@ -1384,7 +1708,7 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
         break;
       case CH_BROW:
         if (get16(e + 4) != 1) return brefuse(&b, FM1_STATE_TOO_NEW, "unsupported browser chunk version");
-        ok = read_browser(&b, &c); break;
+        ok = read_browser(&b, &c, work); break;
       case CH_SETG: ok = kv_each(&b, &c, setg_kv, NULL); break;
       default: ok = 0; break;
     }
@@ -1396,10 +1720,13 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
     if (c.left) {
       if (get16(e + 4) == 1u) return bbad(&b, "a chunk longer than its contents");
       if (!cs_skip(&c, c.left)) return bbad(&b, "a chunk ends early");
+      /* Forward-compatible decoding omitted one extension, even though its
+       * known records remain usable. Strict callers must see that loss. */
+      ++rep->skipped;
     }
-    if (c.deflated && !fm1_inflate_done(&z)) {
+    if (c.deflated && !fm1_inflate_done(z)) {
       uint8_t t;
-      if (fm1_inflate_read(&z, &t, 1) != 0 || !fm1_inflate_done(&z)) return bbad(&b, "a deflated chunk that does not end");
+      if (fm1_inflate_read(z, &t, 1) != 0 || !fm1_inflate_done(z)) return bbad(&b, "a deflated chunk that does not end");
     }
   }
   /* What each kind needs, as the JSON reader needs it. */
@@ -1413,4 +1740,17 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
   memset(&r, 0, sizeof(r));
   r.type = FM1_REC_END;
   return bemit(&b, &r);
+}
+
+int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_sink_t sink, void *sctx,
+                       fm1_state_report_t *rep, int skip_crc) {
+  bin_read_workspace_t work;
+  return bin_read(&work, rd, rctx, total, sink, sctx, rep, skip_crc);
+}
+int fm1_state_bin_read_workspace(void *mem, size_t bytes, fm1_src_read_t rd, void *rctx,
+    uint32_t total, fm1_rec_sink_t sink, void *sctx, fm1_state_report_t *rep, int skip_crc) {
+  if (!aligned_block(mem, bytes, sizeof(bin_read_workspace_t)) || !rd || !sink || !rep ||
+      overlaps(rep, sizeof(*rep), mem, bytes) || overlaps(rctx, 1, mem, bytes) || overlaps(sctx, 1, mem, bytes))
+    return block_error(rep, mem, bytes, NULL, 0, "invalid reader workspace");
+  return bin_read((bin_read_workspace_t *)mem, rd, rctx, total, sink, sctx, rep, skip_crc);
 }

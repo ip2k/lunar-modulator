@@ -9,36 +9,39 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 MODES = ('stream', 'output_full', 'output_full_descheduled', 'reserve_twice', 'publish_wrong', 'acquire_twice',
          'retire_wrong', 'callback_failure', 'retire_failure', 'timeout_late',
-         'guard_park', 'finish_pending')
+         'guard_park', 'finish_pending', 'work_full', 'double_start', 'double_bind',
+         'wrong_core', 'tag_wrap', 'clock_wrap', 'lifetime', 'result_tag',
+         'finish_leased', 'finish_done_pending', 'start_stopped_clock_poison', 'finish_stopped_clock_poison')
+
+CLOCK_MODES = ('poison_worker_clock_start', 'poison_worker_clock_end', 'poison_wait_clock',
+               'poison_publish_clock', 'poison_direct_step')
+HOST_CLOCK_MODES = ('poison_worker_ms', 'poison_wait_ms', 'poison_start_ms')
 
 @pytest.mark.parametrize('sanitize', [False, True])
-def test_native_pipeline_protocol(tmp_path, sanitize):
+@pytest.mark.parametrize('adapter', ['sdk', 'host'])
+def test_native_pipeline_protocol(tmp_path, sanitize, adapter):
     cc = os.environ.get('CC') or shutil.which('clang') or shutil.which('cc')
     if not cc:
         pytest.skip('C compiler unavailable')
-    text = (ROOT / 'firmware/devkit/renderer_pipeline_sdk.c').read_text()
-    for name in ('app_config.h', 'system/includes.h', 'os/os_api.h', 'asm/includes.h'):
-        anchor = f'#include "{name}"'
-        assert text.count(anchor) == 1
-        text = text.replace(anchor, '/* SDK provided by host shim. */')
-    assert text.count('volatile uint32_t') == 9
-    text = text.replace('volatile uint32_t', '_Atomic uint32_t')
-    text = text.replace('volatile int', '_Atomic int')
-    fence = '__asm__ volatile("csync;" ::: "memory");'
-    assert text.count(fence) == 2
-    text = text.replace(fence, 'atomic_thread_fence(memory_order_seq_cst);')
-    text = '\n'.join(x for x in text.splitlines() if not x.startswith('#pragma code_seg'))
-    (tmp_path / 'backend.c').write_text(text)
-    for name in ('protocol.c', 'sdk_shim.h'):
-        shutil.copyfile(ROOT / 'tests/fixtures/renderer_pipeline' / name, tmp_path / name)
-    shutil.copyfile(ROOT / 'firmware/devkit/renderer_pipeline_sdk.h', tmp_path / 'renderer_pipeline_sdk.h')
+    # Compile actual shared source, never a rewritten/duplicated state machine.
+    fixture = ROOT / 'tests/fixtures/renderer_pipeline'
     flags = ['-fsanitize=address,undefined', '-fno-omit-frame-pointer'] if sanitize else []
     exe = tmp_path / 'protocol'
     subprocess.run([cc, '-std=c11', '-O1', '-g', '-pthread', '-Wall', '-Wextra', '-Werror',
-                    *flags, str(tmp_path / 'protocol.c'), '-o', str(exe)], check=True)
+                    *flags, '-Wno-unknown-pragmas', '-Wno-unused-function',
+                    '-DLUNAR_PIPELINE_SDK_PLATFORM_HEADER="sdk_shim.h"',
+                    *(['-DLUNAR_PIPELINE_TEST_HOST_CORE=1'] if adapter == 'host' else []),
+                    '-I'+str(fixture), '-I'+str(ROOT/'firmware/devkit'),
+                    '-I'+str(ROOT/'firmware/common'), str(fixture/'protocol.c'), '-o', str(exe)], check=True)
     env = dict(os.environ, ASAN_OPTIONS='halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1')
-    for mode in MODES:
-        subprocess.run([str(exe), mode], check=True, env=env, timeout=15)
+    for mode in MODES + CLOCK_MODES + (HOST_CLOCK_MODES if adapter == 'host' else ()):
+        result = subprocess.run([str(exe), mode], check=True, env=env, timeout=2 if 'stopped_clock_poison' in mode else 15,
+                                capture_output=True, text=True)
+        assert f'LUNAR_PIPELINE_HOST PASS mode={mode} ' in result.stdout
+        if adapter == 'sdk' and mode in ('stream', 'work_full', 'output_full', 'output_full_descheduled'):
+            assert 'LUNAR_PIPELINE ready=1 lifetime_ms=2100000 stack_words=1536 priority=16 outputs=8' in result.stdout
+            assert 'LUNAR_PIPELINE final=1 ' in result.stdout
+            assert result.stdout.count('LUNAR_PIPELINE_WAKE core=') == 2
 
 @pytest.mark.parametrize('worker', ['', 'LUNAR_DEVKIT_FM6_PAIR', 'LUNAR_DEVKIT_FM6_SDK', 'LUNAR_DEVKIT_QUEUE_SDK', 'LUNAR_DEVKIT_ENGINE_QUEUE'])
 def test_pipeline_build_owns_one_worker(worker):
@@ -69,3 +72,14 @@ def test_pipeline_public_header(tmp_path, language):
     subprocess.run([compiler, '-std=c++11' if language == 'c++' else '-std=c11',
                     '-Wall', '-Wextra', '-Werror', '-fsyntax-only',
                     '-I' + str(ROOT / 'firmware/devkit'), str(client)], check=True)
+
+
+def test_core_requires_an_explicit_port(tmp_path):
+    cc = os.environ.get('CC') or shutil.which('cc')
+    if not cc:
+        pytest.skip('C compiler unavailable')
+    result = subprocess.run([cc, '-std=c11', '-fsyntax-only',
+                             str(ROOT/'firmware/common/renderer_pipeline_core.c')],
+                            capture_output=True, text=True)
+    assert result.returncode != 0
+    assert 'Supply an explicit pipeline port' in result.stderr

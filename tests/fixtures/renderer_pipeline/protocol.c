@@ -1,6 +1,10 @@
-/* Includes a GENERATED atomic-word copy of the actual native backend. */
+/* Compile the ACTUAL unchanged core via two distinct atomic host adapters. */
 #include "sdk_shim.h"
-#include "backend.c"
+#ifdef LUNAR_PIPELINE_TEST_HOST_CORE
+#include "host_core.c"
+#else
+#include "renderer_pipeline_sdk.c"
+#endif
 #include <string.h>
 #define N 2000u
 #define CHECK(x) do { if(!(x)){fprintf(stderr,"FAIL %s:%d: %s\n",__FILE__,__LINE__,#x);exit(2);} }while(0)
@@ -12,7 +16,7 @@ static _Atomic uint32_t calls, callback_entered, callback_release;
 static _Atomic uint32_t protocol_ticks=1000u;
 static uint32_t protocol_clock(void) { return atomic_load(&protocol_ticks); }
 static _Atomic uint32_t seen[N], retired_count[N];
-static int callback_failure,retire_failure,slow_callback,park_callback;
+static int callback_failure,retire_failure,slow_callback,park_callback,wrong_result_tag;
 static uint32_t next_harvest,next_output;
 static int16_t expected_sample(uint32_t tag,unsigned i) { return (int16_t)((tag*17u+i)%32000u); }
 static int consume(void *ptr,uint32_t tag,int16_t *pcm,lunar_pipeline_result_t *r) {
@@ -24,6 +28,7 @@ static int consume(void *ptr,uint32_t tag,int16_t *pcm,lunar_pipeline_result_t *
     if(slow_callback)while(!atomic_load(&callback_release))os_time_dly(1);
     if(callback_failure)return 0;
     for(unsigned i=0;i<LUNAR_PIPELINE_OUTPUT_SAMPLES;++i)pcm[i]=expected_sample(tag,i);
+    if(wrong_result_tag)r->tag=tag+1u;
     r->case_index=tag/5513u;r->case_block=tag%5513u;r->hash=tag^0x12345678u;
     r->case_total=tag+1;r->user[0]=w->cookie;
     return 1;
@@ -50,9 +55,9 @@ static int produce(uint32_t tag) {
     int published=lunar_pipeline_publish(tag,start,protocol_clock());
     /* An injected callback may poison the worker before publish returns. The
      * slot was still published once; both schedules must retain its ownership. */
-    if(callback_failure || park_callback)
+    if(callback_failure || park_callback || wrong_result_tag)
         CHECK(published==1 || (published==-1 &&
-            lunar_pipeline_error()==(park_callback?700u:E_CALLBACK)));
+            lunar_pipeline_error()==(park_callback?700u:wrong_result_tag?E_TAG:E_CALLBACK)));
     else CHECK(published==1);
     lunar_pipeline_sdk_parent_block();return 1;
 }
@@ -129,9 +134,61 @@ static void expect_poison(void) {
     CHECK(lunar_pipeline_harvest(&c)==-1);
     CHECK(s.produced==before);
 }
+static void run_work_full(void) {
+    slow_callback=1;CHECK(produce(0));
+    unsigned t=timer_get_ms();
+    while(!callback_entered && timer_get_ms()-t<500u)os_time_dly(1);
+    CHECK(callback_entered && produce(1));
+    void *p=(void*)1;
+    CHECK(lunar_pipeline_reserve_work(2,&p)==0 && !p);
+    CHECK(s.produced==2 && hw[0].tag==0 && hw[1].tag==1 && calls==1);
+    atomic_store(&callback_release,1);drain(2);
+    CHECK(lunar_pipeline_sdk_finish()==1);host_cleanup();
+}
 static void run_fault(const char *mode) {
     void *p=NULL;const int16_t *pcm=NULL;const lunar_pipeline_result_t *result=NULL;uint32_t ticket=0;
-    if(!strcmp(mode,"reserve_twice")) {
+    if(!strcmp(mode,"double_start")) {
+        CHECK(lunar_pipeline_sdk_start(protocol_clock)==0 && s.invoked==1);
+        CHECK(lunar_pipeline_error()==E_API);
+    } else if(!strcmp(mode,"double_bind")) {
+        CHECK(lunar_pipeline_bind(&hw[0],&hw[1],consume,retire)==-1);
+        CHECK(lunar_pipeline_error()==E_BIND);
+    } else if(!strcmp(mode,"wrong_core")) {
+        host_cpu=2;lunar_pipeline_sdk_parent_block();host_cpu=0;
+        CHECK(lunar_pipeline_error()==E_CORE && s.parent_wrong==1);
+    } else if(!strcmp(mode,"tag_wrap")) {
+        s.produced=UINT32_MAX;
+        CHECK(lunar_pipeline_reserve_work(UINT32_MAX,&p)==-1);
+        CHECK(lunar_pipeline_error()==E_TAG && works[0].state==FREE);
+    } else if(!strcmp(mode,"clock_wrap")) {
+        atomic_store(&protocol_ticks,UINT32_MAX);
+        CHECK(lunar_pipeline_wait_check(&ticket)==1 && ticket==UINT32_MAX);
+        atomic_store(&protocol_ticks,0);
+        CHECK(lunar_pipeline_wait_check(&ticket)==1);
+        /* Encoded sentinel starts one tick early at UINT32_MAX. */
+        atomic_store(&protocol_ticks,LUNAR_PIPELINE_PROTOCOL_TICKS-2u);
+        CHECK(lunar_pipeline_wait_check(&ticket)==-1);
+        CHECK(lunar_pipeline_error()==E_TIMEOUT);
+    } else if(!strcmp(mode,"lifetime")) {
+        atomic_store(&host_ms_offset,LUNAR_PIPELINE_LIFETIME_MS);
+        CHECK(lunar_pipeline_wait_check(&ticket)==-1);
+        CHECK(lunar_pipeline_error()==E_LIFETIME);
+    } else if(!strcmp(mode,"result_tag")) {
+        wrong_result_tag=1;CHECK(produce(0));wait_error();
+        CHECK(lunar_pipeline_error()==E_TAG);
+        CHECK(works[0].state==CONSUMING && outputs[0].state==RESERVED);
+        CHECK(!s.consumed && !s.harvested && !s.output_retired);
+    } else if(!strcmp(mode,"finish_leased")) {
+        CHECK(produce(0));while(!acquire_one(&pcm))wait_ok(&ticket,harvest_one());
+        while(!next_harvest)wait_ok(&ticket,harvest_one());
+        CHECK(lunar_pipeline_sdk_finish()==0 && outputs[0].state==LEASED);
+        CHECK(s.harvested==1 && !s.output_retired && pcm[0]==expected_sample(0,0));
+    } else if(!strcmp(mode,"finish_done_pending")) {
+        CHECK(produce(0));
+        while(works[0].state!=DONE)wait_ok(&ticket,0);
+        CHECK(lunar_pipeline_sdk_finish()==0 && works[0].state==DONE);
+        CHECK(!s.harvested && outputs[0].state==READY && !retired_count[0]);
+    } else if(!strcmp(mode,"reserve_twice")) {
         CHECK(lunar_pipeline_reserve_work(0,&p)==1);CHECK(lunar_pipeline_reserve_work(0,&p)==-1);
         CHECK(works[0].state==PRODUCING && s.produced==0);
     } else if(!strcmp(mode,"publish_wrong")) {
@@ -183,12 +240,93 @@ static void run_fault(const char *mode) {
     if(!park_callback){unsigned t=timer_get_ms();while(!s.exited && timer_get_ms()-t<500u)os_time_dly(1);CHECK(s.exited);}
     host_cleanup();
 }
+static void run_poisoned_wait(int finish) {
+    if(finish){setup();CHECK(produce(0));drain(1);host_hold_exit=1;}
+    else {clock_gettime(CLOCK_MONOTONIC,&host_epoch);host_cpu=0;host_suspend_worker=1;}
+    host_frozen_ms=123u;host_stopped_ms=1;host_delay_poison=1;
+    CHECK((finish?lunar_pipeline_sdk_finish():lunar_pipeline_sdk_start(protocol_clock))==0);
+    CHECK(lunar_pipeline_error()==701u && host_delay_calls==1);
+    CHECK(s.invoked && s.stop && !s.exited && calls==(unsigned)finish);
+    CHECK(s.produced==(unsigned)finish && s.consumed==(unsigned)finish &&
+          s.harvested==(unsigned)finish && s.output_retired==(unsigned)finish);
+    if(!finish)CHECK(!s.ready && !s.bound);
+    /* Harness-only cancellation follows assertions. Target storage remains
+     * permanent; no restart/free or callback replay is exercised or permitted. */
+    host_cleanup();
+}
+/* Actual worker and queue storage, deterministic hook boundaries. No thread
+ * scheduling race or alternative protocol model determines poison admission. */
+static unsigned poison_clock_at,poison_clock_calls,poison_consumes;
+static uint32_t poison_clock(void) {
+    if(++poison_clock_calls==poison_clock_at) {
+        lunar_pipeline_refuse(703u);lunar_pipeline_refuse(704u);
+    }
+    return poison_clock_calls;
+}
+static int poison_consume(void *w,uint32_t tag,int16_t *pcm,lunar_pipeline_result_t *r) {
+    (void)pcm;CHECK(w==&hw[0] && tag==0 && r->tag==0);
+    CHECK(!lunar_pipeline_error());++poison_consumes;return 1;
+}
+static void *poison_worker(void *p) { (void)p;host_cpu=1;worker(NULL);return NULL; }
+static void run_clock_poison(const char *mode) {
+    clock_gettime(CLOCK_MONOTONIC,&host_epoch);host_cpu=0;
+#ifdef LUNAR_PIPELINE_TEST_HOST_CORE
+    if(!strcmp(mode,"poison_start_ms")) {
+        host_ms_poison=1;CHECK(!lunar_pipeline_core_start(poison_clock));
+        CHECK(lunar_pipeline_error()==702u && s.invoked);
+        CHECK(!host_clock_wake_inits && !host_clock_launches && !host_created);
+        CHECK(!s.ready && !s.bound && !s.produced);return;
+    }
+#endif
+    CHECK(port_wake_init(poison_clock));s.clock=poison_clock;s.bound=1;s.consume=poison_consume;
+    works[0].state=SEALED;works[0].tag=0;works[0].work=&hw[0];
+    unsigned ms_poison=strstr(mode,"_ms")!=NULL;
+#ifdef LUNAR_PIPELINE_TEST_HOST_CORE
+    host_ms_poison=ms_poison;
+#else
+    CHECK(!ms_poison);
+#endif
+    if(strstr(mode,"_clock_start") || !strcmp(mode,"poison_wait_clock") ||
+       !strcmp(mode,"poison_publish_clock"))poison_clock_at=1;
+    if(strstr(mode,"_clock_end"))poison_clock_at=2;
+    if(!strncmp(mode,"poison_wait_",12)) {
+        uint32_t ticket=0;
+        CHECK(lunar_pipeline_wait_check(&ticket)==-1 && ticket==0);
+        CHECK(!poison_consumes && works[0].state==SEALED && outputs[0].state==FREE);
+    } else if(!strcmp(mode,"poison_publish_clock")) {
+        works[0].state=PRODUCING;
+        CHECK(lunar_pipeline_publish(0,1,2)==-1);
+        CHECK(!s.produced && works[0].state==PRODUCING && outputs[0].state==FREE);
+    } else if(!strcmp(mode,"poison_direct_step")) {
+        lunar_pipeline_refuse(705u);CHECK(worker_step()==-1 && !poison_consumes);
+        CHECK(works[0].state==SEALED && outputs[0].state==FREE);
+    } else {
+        CHECK(!pthread_create(&host_worker,NULL,poison_worker,NULL));host_created=1;
+        unsigned t=timer_get_ms();
+        while(!s.exited && timer_get_ms()-t<500u)os_time_dly(1);
+        CHECK(s.exited && !s.consumed);
+        CHECK(poison_consumes==(!strcmp(mode,"poison_worker_clock_end")?1u:0u));
+        CHECK(works[0].state==(ms_poison?SEALED:CONSUMING));
+        CHECK(outputs[0].state==(ms_poison?FREE:RESERVED));
+        host_cleanup();
+    }
+    CHECK(lunar_pipeline_error()==(ms_poison?702u:!strcmp(mode,"poison_direct_step")?705u:703u));
+    CHECK(!lunar_pipeline_ready_outputs() && !s.harvested && !s.output_retired);
+    CHECK(works[0].work==&hw[0]);
+}
 int main(int argc,char **argv) {
-    CHECK(argc==2);setup();
+    CHECK(argc==2);
+    if(!strncmp(argv[1],"poison_",7)){run_clock_poison(argv[1]);goto report;}
+    if(!strcmp(argv[1],"start_stopped_clock_poison") || !strcmp(argv[1],"finish_stopped_clock_poison")) {
+        run_poisoned_wait(argv[1][0]=='f');goto report;
+    }
+    setup();
     if(!strcmp(argv[1],"stream"))run_stream();
+    else if(!strcmp(argv[1],"work_full"))run_work_full();
     else if(!strcmp(argv[1],"output_full"))run_output_full(0);
     else if(!strcmp(argv[1],"output_full_descheduled"))run_output_full(200);
     else run_fault(argv[1]);
+report:
     printf("LUNAR_PIPELINE_HOST PASS mode=%s calls=%u produced=%u consumed=%u harvested=%u retired=%u\n",argv[1],atomic_load(&calls),s.produced,s.consumed,s.harvested,s.output_retired);
     return 0;
 }

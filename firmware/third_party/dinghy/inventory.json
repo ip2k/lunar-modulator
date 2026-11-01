@@ -5,11 +5,11 @@
     "LICENSING.md": "fbc41ac1ebb1742580aa4b14d9b1840508c4ee4b05d9ea6e9022bd2f546ca36a",
     "hal/fm1_cc.h": "46c533a0926ba9298ae36705f857ed609a61b95511ba7f0d1800857b4760dd73",
     "hal/fm1_gpio.h": "5e3937e32a3b4b9b9ae622c5b42c8819ec8a16f2d76dbddec91654703c77a216",
-    "hal/fm1_input.h": "7579aa8e061e4b23a86aee693f1d6004dc552b888457ea507f1ba3d941465241",
+    "hal/fm1_input.h": "09272b5c51818853409b6956a558017012ad8c26bcb87aea7678b10a584cac03",
     "hal/fm1_time.h": "e83c725eae2ec5a163771ca2b8f1c0779354456f2e20a32febc7b6755758a97d",
     "hal/fm1_timer.h": "1ec236ce4a75a5b94b9c16999dcdf7d71e4e0c5e0d2f14dbfb87bbaf025e1004",
     "hal/fm1_irq.h": "34b51dce696aded43e4c17d7f2151b958c319fe34f84a0763f273143406bc416",
-    "hal/fm1_audio.h": "22351440699748546e932098e3016c618d6137dd0ae34557e08a107641d4e62e",
+    "hal/fm1_audio.h": "126aca5f887ec4eb6544c456f250adf8d4b32a786b95f383822a2fc33af22e8d",
     "hal/fm1_lcd_hw.h": "4fc3318a703fd55200153442acac4eb33ef56ff8e2eb82ba18ed0a3b9e655c1e",
     "hal/fm1_vec.S": "8f9e787871332f522157d561dc3cfe8906ed0abf160139ed5819cfdeab66f01a",
     "hal/fm1_isr.S": "5e45c960577354184efa3bf984a1c14bffb0c5967cbdb643e1f4c9cc196105c5",
@@ -19,6 +19,14 @@
     "hal/fm1_irq.h": {
       "reason": "Diagnostic recursive fault halts; no automatic core reset. Historical independent source reused; other fault capture unchanged.",
       "sha256": "34b51dce696aded43e4c17d7f2151b958c319fe34f84a0763f273143406bc416"
+    },
+    "hal/fm1_input.h": {
+      "reason": "Default-no-op observers at accepted key edges and nonzero detents only; existing debounce, decoder and aggregate behavior retained. Host-only selected owner proof, not a target binding.",
+      "sha256": "09272b5c51818853409b6956a558017012ad8c26bcb87aea7678b10a584cac03"
+    },
+    "hal/fm1_audio.h": {
+      "reason": "Split prepare/start/final-PC6 helpers for opt-in audio owner; legacy initializer retains original sequence and both delays. No hardware qualification.",
+      "sha256": "126aca5f887ec4eb6544c456f250adf8d4b32a786b95f383822a2fc33af22e8d"
     }
   },
   "selection_note": "2026-11-01 diagnostic only; excludes flash, OTA, sys/reboot, recovery, USB and app sources."

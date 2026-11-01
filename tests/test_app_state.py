@@ -214,7 +214,10 @@ def refused(tools, tmp_path, start, spec, code, *flags):  # noqa: F811
 
 
 def test_each_kind_loads_into_its_target(tools, tmp_path):  # noqa: F811
-    out = sim(tools, "--start", "--load", f"s2:{EX / 'deep-bass.sound.lunar'}",
+    # The full Shapes sound fits beside Macro and Room; Macro + Plate now
+    # exceeds RAM with the sequencer's immutable-target event allocation.
+    out = sim(tools, "--engine", "macro", "--fx", "room",
+              "--load", f"s2:{EX / 'deep-bass.sound.lunar'}",
               "--save", f"sound2:{tmp_path / 's.lunar'}")
     assert out["load"]["ok"] == 1 and out["load"]["kind"] == "sound", out["load"]
     s = canon.loads((tmp_path / "s.lunar").read_text())
@@ -297,6 +300,9 @@ def test_every_refusal_changes_nothing(tools, tmp_path):  # noqa: F811
     r = refused(tools, tmp_path, ["--start"], p, "RAM")
     assert r["percent"] > 100 and r["message"] == f"Needs {r['percent']}% of the FM-1's RAM."
     assert r["screen"][1] == f"Needs {r['percent']}% RAM"
+    # The original starter + Shapes combination also refuses transactionally;
+    # its RAM refusal must not be mistaken for the rack-capacity refusal below.
+    refused(tools, tmp_path, ["--start"], f"s2:{EX / 'deep-bass.sound.lunar'}", "RAM")
     # The rate: Plaits' engines refuse a host above 47,872 Hz.
     out = sim(tools, "--rate", "96000", "--start", "--load", EX / "first-orbit.lunar")
     assert out["load"]["code"] == "RATE" and "96 kHz" in out["load"]["message"]
@@ -313,7 +319,11 @@ def test_every_refusal_changes_nothing(tools, tmp_path):  # noqa: F811
     full["mod"]["cables"] = []
     (tmp_path / "full.mods.lunar").write_text(json.dumps(full))
     base = tmp_path / "base.lunar"
-    sim(tools, "--start", "--load", tmp_path / "full.mods.lunar", "--save", f"project:{base}")
+    # Leave RAM for the incoming Shapes sound so the full rack is the only
+    # obstacle. Keep its inserts, LFO and cable intact, including remapping.
+    out = sim(tools, "--engine", "macro", "--fx", "room",
+              "--load", tmp_path / "full.mods.lunar", "--save", f"project:{base}")
+    assert out["load"]["ok"] == 1, out["load"]
     r = refused(tools, tmp_path, ["--load", base], f"s2:{EX / 'deep-bass.sound.lunar'}", "NO_ROOM")
     assert r["message"].startswith("The rack is full (8 of 8)")
     out = sim(tools, "--load", base, "--load", f"s2:{EX / 'deep-bass.sound.lunar'}", "--without")

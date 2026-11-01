@@ -24,8 +24,9 @@
  *   - track, 4 bits: input for a track past the instance's (at most 16) is
  *     refused before it is stamped.
  *   - clip tick, 14 bits: a playhead stays below its clip's loop end, at most
- *     (255 + 256) steps of 24 ticks, 12,264 (a take written into an empty
- *     clip whose loop starts late makes it 256 steps long from there).
+ *     (255 + 256) steps of 24 ticks, 12,264 in compatibility mode (a take
+ *     into an empty late clip can make it 256 steps long from there).
+ *     Native playing Capture refuses windows beyond step 255 as a whole.
  *   - frame, 25 bits from a base: every use is a difference between two
  *     events of the ring (or of a frozen take), and the 8-bar window keeps
  *     those within 8 bars at the slowest tempo: 96 s at 20 BPM, 4,235,328
@@ -578,6 +579,68 @@ static int commit_stopped(fm1_seq_t *s, unsigned t) {
   return wrote;
 }
 
+/* The same FIFO note-off pairing as commit_playing's used bits, without
+ * changing the ring. At this on, count earlier ons still awaiting an off;
+ * that many subsequent offs include this on's own. Later ons queue behind
+ * it. Two bounded scans per on need no stack array or pool scratch. */
+static uint32_t playing_note_end(fm1_seq_t *s, unsigned t, unsigned at) {
+  const uint8_t pitch = cap_pitch(ring_at(s, at));
+  unsigned pending = 0, j;
+  for (j = 0; j <= at; ++j) {
+    const sq_cap_t *e = ring_at(s, j);
+    if (cap_track(e) != t || cap_pitch(e) != pitch) continue;
+    if (cap_on(e)) ++pending;
+    else if (pending) --pending;
+  }
+  for (j = at + 1u; j < s->cap_len; ++j) {
+    const sq_cap_t *e = ring_at(s, j);
+    if (cap_track(e) == t && cap_pitch(e) == pitch && !cap_on(e) && --pending == 0)
+      return cap_tick(s, e);
+  }
+  return (uint32_t)s->master_tick;
+}
+
+/* Native notes, saved windows, and both editors address steps 0..255.
+ * Check the whole take before ensure_exists, pairing scratch, or any write.
+ * Keep Movy's growth for takes which fit; never truncate a later candidate
+ * after committing an earlier one. */
+static int playing_fits(fm1_seq_t *s, unsigned t, unsigned clip,
+                        uint32_t first_abs) {
+  const sq_clip_t *c = &sq_clips(s)[clip];
+  const uint32_t start = sq_start_ticks(c);
+  const uint32_t span = c->length_steps ? sq_len_ticks(c) : SQ_TPB;
+  const int fresh = c->seg[SQ_K_NOTES].len == 0;
+  uint32_t span_end = 0;
+  unsigned i;
+  if ((uint32_t)c->loop_start + c->length_steps > SQ_MAX_STEPS) return 0;
+  for (i = 0; i < s->cap_len; ++i) {
+    const sq_cap_t *e = ring_at(s, i);
+    uint32_t tick;
+    if (cap_track(e) != t || !cap_on(e)) continue;
+    if (fresh) {
+      const uint32_t at = cap_tick(s, e), end = playing_note_end(s, t, i);
+      const uint32_t gate = end > at ? end - at : 1u;
+      const uint32_t phase = start + first_abs % SQ_TPB;
+      const uint32_t offset = at > first_abs ? at - first_abs : 0;
+      const uint32_t max_end = ((SQ_MAX_STEPS - c->loop_start) / SQ_BAR_STEPS) * SQ_TPB;
+      /* Bound operands before adding or rounding: a held note can remain
+       * in the ring until the next input even near the 32-bit tick limit. */
+      if (phase > max_end || offset > max_end - phase) return 0;
+      tick = phase + offset;
+      if (gate > max_end - tick) return 0;
+      if (tick + gate > span_end) span_end = tick + gate;
+    } else {
+      tick = start + (cap_clip_tick(e) + span - start % span) % span;
+    }
+    if (sq_anchor_step(s, tick, c->scale_num, c->scale_den) >= SQ_MAX_STEPS) return 0;
+  }
+  if (fresh) {
+    const uint32_t bars = (span_end + SQ_TPB - 1u) / SQ_TPB;
+    if ((uint32_t)c->loop_start + bars * SQ_BAR_STEPS > SQ_MAX_STEPS) return 0;
+  }
+  return 1;
+}
+
 /* capture_commit_playing (engine.rs 1524-1618): the take lands where it was
  * heard; a fresh clip keeps the bar phase and launches on the bar. */
 static int commit_playing(fm1_seq_t *s, unsigned t) {
@@ -589,7 +652,6 @@ static int commit_playing(fm1_seq_t *s, unsigned t) {
   int fresh, have = 0, wrote = 0;
   const int transpose = sq_active_transpose(s, t);
   unsigned i, j;
-  sq_clip_ensure_exists(s, clip);
   fresh = sq_clips(s)[clip].seg[SQ_K_NOTES].len == 0;
   span = sq_len_ticks(&sq_clips(s)[clip]);
   if (span == 0) span = 1;
@@ -604,6 +666,11 @@ static int commit_playing(fm1_seq_t *s, unsigned t) {
     }
   }
   if (!have) return 0;
+  if (!s->lim.compat && !playing_fits(s, t, clip, first_abs)) {
+    ++s->stats.refused;
+    return -1;                 /* keep the take for a representable destination */
+  }
+  sq_clip_ensure_exists(s, clip);
   first_phase = first_abs % SQ_TPB;
   for (i = 0; i < s->cap_len; ++i) cap_set_used(ring_at(s, i), 0);
   for (i = 0; i < s->cap_len; ++i) {
@@ -625,6 +692,12 @@ static int commit_playing(fm1_seq_t *s, unsigned t) {
     if (gate < 1) gate = 1;
     tick = fresh ? loop_start + first_phase + (at > first_abs ? at - first_abs : 0)
                  : cap_clip_tick(&ev) % span;
+    if (!fresh && !s->lim.compat) {
+      /* The packed playhead is an absolute clip tick. Fold relative to the
+       * window's origin, not zero (D11 silences anchors outside it). The
+       * extra span also covers a take spanning a queued clip's launch. */
+      tick = loop_start + (cap_clip_tick(&ev) + span - loop_start % span) % span;
+    }
     stored = (int32_t)cap_pitch(&ev) - transpose;
     step = sq_anchor_step(s, tick, snum, sden);
     sq_clip_add_raw(s, clip, step, sq_unswing(s, tick, step, snum, sden), gate,
@@ -659,6 +732,7 @@ int sq_capture_commit(fm1_seq_t *s, unsigned t) {
     return 0;
   }
   wrote = s->playing ? commit_playing(s, t) : commit_stopped(s, t);
+  if (wrote < 0) return 0;      /* transactional native refusal: keep history */
   sq_capture_clear(s);
   if (wrote) {
     ++s->capture_gen;

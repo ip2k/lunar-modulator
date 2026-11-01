@@ -152,12 +152,15 @@ def test_the_arp_on_another_sound(tools):
 def test_the_ram_meter_refuses_an_arp_that_would_not_fit(tools):
     """A chain at the budget's edge: the arp's tap is refused with a popup
     that says what the chain would need (a percentage past 100, never
-    bytes), and the arp stays off. Room + Ensemble and a Diffuse insert keep
-    Macro + Shapes just inside the unchanged budget, including the native
-    sequencer automation queues and the MIDI-learn map; allocating the arp
-    crosses the bound."""
-    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "room", "--fx", "ensemble",
-             "--insert", "0:diffuse"]
+    bytes), and the arp stays off. Room and a Diffuse insert keep Macro +
+    Shapes just inside the unchanged budget, including immutable lock events,
+    native automation queues and the MIDI-learn map; allocating the arp
+    crosses the bound. The former fixture's extra Ensemble no longer fits
+    even before enabling the arp, and remains an explicit refusal witness."""
+    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "room", "--insert", "0:diffuse"]
+    oversized = subprocess.run([str(tools["sim"]), *chain, "--fx", "ensemble", "--seconds", "0.1"],
+                               capture_output=True, text=True)
+    assert oversized.returncode == 1 and "diffuse as insert 0 of sound unit 0 (-4)" in oversized.stderr
     before = sim(tools, *chain, seconds=0.1)
     z = json.loads(subprocess.run([str(tools["sim"]), "--sizes"], check=True, capture_output=True,
                                   text=True).stdout)
@@ -165,10 +168,12 @@ def test_the_ram_meter_refuses_an_arp_that_would_not_fit(tools):
     assert before["ram"] + need > z["ram_budget"] >= before["ram"], "the chain is not at the edge"
     s = sim(tools, *chain, "--button", "0.1:ARP", seconds=0.3)
     assert s["arp"]["on"][0] == 0 and s["mode"] == 0
+    assert s["ram"] == before["ram"], "a refused tap must not allocate the arp"
     pct = -(-(before["ram"] + need) * 100 // z["ram_budget"])
     assert pct > 100 and s["popup"] == ["Arp", "does not fit", f"needs {pct}% of RAM"]
     held = sim(tools, *chain, "--button", "0.1:ARP:0.7", seconds=1.0)
     assert held["arp"]["on"][0] == 0 and held["popup"][:2] == ["Arp", "does not fit"]
+    assert held["ram"] == before["ram"], "a refused hold must not allocate the arp"
 
 
 def record_script(tmp_path, end):

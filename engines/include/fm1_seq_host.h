@@ -190,7 +190,7 @@ void fm1_seq_host_bind(fm1_seq_host_t *h, const fm1_engine_t *e);
  * every lane against the bound engine. Returns the import's result. */
 int fm1_seq_host_import(fm1_seq_host_t *h, const char *txt, size_t len);
 
-/* The uid a lane's locks go to: 0 when the lane is unlabelled or its label
+/* The uid the current lane label names: 0 when the lane is unlabelled or its label
  * names no parameter of the bound engine. Always the label's own parameter,
  * even for a label set past the bridge (above). A NOLOCK parameter's uid is
  * returned, so a UI can say why its locks are refused. */
@@ -235,8 +235,8 @@ uint32_t fm1_seq_host_advance(fm1_seq_host_t *h, uint32_t frames);
 /* Plays the block's events into `sink` and empties the buffer. Only
  * note-ons, note-offs and locks of tracks routed to the engine reach it;
  * clicks, clock, Start, Stop and MIDI-routed tracks are the host's to send
- * elsewhere (or log). A lock goes to the parameter whose uid its lane
- * resolved to (binding sink->engine first if it is not the bound one); a
+ * elsewhere (or log). A lock goes to the parameter its immutable event
+ * label names (binding sink->engine first if it is not the bound one); a
  * lock on a lane that names no parameter of sink->engine is skipped, one on
  * a NOLOCK parameter is refused and counted, and neither splits the block.
  * The engine renders

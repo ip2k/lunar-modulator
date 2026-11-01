@@ -239,8 +239,10 @@ enum fm1_app_profile_stage {
 
 /* What else the RAM meter counts on the FM-1 besides the instances
  * (fm1_app_ram): the sequencer's instance, its event buffer,
- * its pending command record and its UI state's bound (36,216 B at 8
- * tracks), and one 64-frame stereo block (512 B) for each sound unit past
+ * its pending command record, UI state's bound and click (43,156 B at 8
+ * tracks: 32,080 + 9,792 + 240 + 1,024 + 20). MIDI mapping, automation
+ * queues/caches, modulation and active MIDI effects are counted separately,
+ * as is one 64-frame stereo block (512 B) for each sound unit past
  * the first, which renders and runs its inserts there before the mix (the
  * first renders in the output block) [inferred: the firmware's layout]. */
 #define FM1_APP_MIX_BLOCK_BYTES (2u * FM1_APP_MAX_FRAMES * 4u)
@@ -257,23 +259,17 @@ enum {
 /* A sound unit's level into the mix, in percent (100: unity, as before). */
 #define FM1_APP_LEVEL_MAX 100.0f
 
-/* The sequencer (docs/15 §2.5 and §2.6). Its instance takes the FM-1's
- * default limits (fm1_seq_limits_default) for FM1_APP_SEQ_TRACKS tracks:
- * 32,072 B at 8 tracks, Capture included, the same on 32- and 64-bit
- * builds. Every block's commands and events share one buffer of
- * FM1_APP_SEQ_EVENTS (3,264 B). With the pending command record (240 B),
- * the UI state (fm1_seq_ui_t, at most 1,024 B) and the metronome's click
- * voice (20 B) that is 36,620 B of the sequencer's 36,864 B budget, half of
- * docs/13 §5's 72 KiB. The track count is the owner's decision O3 (docs/15
- * §8, answered 2026-10-02): 8, the count the firmware will use (4 would
- * have left room for docs/13's undo ring). The buffer was 256 events until
- * stage S6: one short of the worst burst measured, seq_bench's 193 events
- * in a block beside the 64 gates' note-offs the core keeps room for (257);
- * 272 holds it whole, and fits the budget at 8 tracks. */
+/* The sequencer (docs/15 §2.5 and §2.6). At eight default tracks its
+ * instance is 32,080 B (Capture included), within the 32,768-byte arena.
+ * Commands/events share 272 immutable-target events (9,792 B at 36 B each).
+ * Pending command (240 B), UI bound (1,024 B) and click voice (20 B) make
+ * 43,156 B of the revised 44 KiB implementation budget. Aggregate
+ * native runtime RAM fit is checked separately. The buffer holds the S6
+ * measured worst burst of 257 events, including gate note-offs. */
 #define FM1_APP_SEQ_TRACKS 8
 #define FM1_APP_SEQ_BYTES 32768u      /* the instance's arena */
 #define FM1_APP_SEQ_EVENTS 272u       /* the block's event buffer, in events */
-#define FM1_APP_SEQ_BUDGET 36864u     /* the sequencer's share of FM-1 RAM */
+#define FM1_APP_SEQ_BUDGET 45056u     /* the sequencer's share of FM-1 RAM */
 #define FM1_APP_SEQ_UI_BYTES 1024u    /* the SEQ mode UI state's bound */
 
 /* Modulation (docs/16 MG3): the runtime's memory (fm1_mod_size(), the same
@@ -301,11 +297,11 @@ enum {
 
 /* What fm1_app_seq_cmd did with a command. */
 enum {
-  FM1_APP_SEQ_REFUSED = -1,   /* no sequencer */
-  FM1_APP_SEQ_BUSY = 0,       /* a held command waits already: send it again
+  FM1_APP_SEQ_REFUSED = FM1_SEQ_UI_CMD_REFUSED,   /* no sequencer */
+  FM1_APP_SEQ_BUSY = FM1_SEQ_UI_CMD_BUSY,       /* a held command waits already: send it again
                                  after the next fm1_app_render */
-  FM1_APP_SEQ_APPLIED = 1,    /* applied now: its events lead the next block */
-  FM1_APP_SEQ_HELD = 2        /* too little room this block: held, and applied
+  FM1_APP_SEQ_APPLIED = FM1_SEQ_UI_CMD_APPLIED,    /* applied now: its events lead the next block */
+  FM1_APP_SEQ_HELD = FM1_SEQ_UI_CMD_HELD        /* too little room this block: held, and applied
                                  at the start of the next block, before any
                                  other sequencer input */
 };
@@ -486,6 +482,7 @@ typedef struct fm1_app {
   float lock_shown[FM1_APP_SOUNDS][FM1_APP_MAX_PARAMS];   /* the last lock of each */
   uint32_t lock_mask[FM1_APP_SOUNDS];     /* parameter, for the screen; never in value[] */
   int seq_pending;               /* seq_pend waits for room (event-room rule) */
+  uint8_t seq_pend_ui_capture;    /* only this held CAP completes panel feedback */
   fm1_seq_cmd_t seq_pend;
   uint64_t seq_dropped_before;   /* events dropped by instances since replaced */
   uint64_t seq_held, seq_busy;   /* commands held for room, and refused */
@@ -696,14 +693,16 @@ const float *fm1_app_render(fm1_app_t *a, uint32_t frames);
  * `len` when the whole line went in, less when the room ran out before an
  * op (the caller sends the rest, from there, after the next render, before
  * anything newer), 0 while a held command waits. A line with a leading
- * "#<n>;" batch tag goes in whole or not at all (the tag is the core's). */
+ * "#<n>;" batch tag goes in whole or not at all (the tag is the core's).
+ * Consumed bytes report admission, not semantic edit success. */
 size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len);
 /* Realtime transport input, without changing content generation. 1 consumed
  * (including unknown status/no sequencer), 0 retry after rendering for room. */
 int fm1_app_seq_realtime(fm1_app_t *a, uint8_t status);
 
 /* One typed command (the UI's): FM1_APP_SEQ_APPLIED, _HELD, _BUSY or
- * _REFUSED. */
+ * _REFUSED. These report admission; a core edit may still refuse its data
+ * (stats.refused). Panel Capture reports that case through its popup. */
 int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c);
 
 /* Live notes for recording and Capture (velocity 0 releases), at frame 0

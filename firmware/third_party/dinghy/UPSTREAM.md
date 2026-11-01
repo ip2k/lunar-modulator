@@ -22,3 +22,14 @@ SDK-free GPL distribution is possible subject to the combined licences and
 complete corresponding source requirements. This source import and offline link
 are not device or release admission. No target performance or hardware claim is
 established by the historical source's earlier tests.
+
+[verified: source, 2026-11-01] Optional default-no-op accepted key/detent hooks
+in `fm1_input.h` publish ordered observations for a separate host-only owner
+proof. They do not change default scan/debounce/aggregate behavior or admit a
+hardware runtime. `inventory.json` pins this intentional local modification.
+
+[verified: source, 2026-11-01] The optional audio-only owner selection factors
+`fm1_audio_init` into prepare, start and final-PC6 helpers. Its legacy wrapper
+retains the original register order and both5ms waits. The separately guarded
+owner selection defers the post-start PC6 write while main services audio;
+this is not physical codec/timing or DMA visibility qualification.

@@ -96,13 +96,27 @@ def test_cli_always_binds_loopback_with_one_worker(tmp_path, monkeypatch):
                                   "proxy_headers": False, "server_header": False})]
 
 
-def test_current_audit_capability_refusal_precedes_worker_and_native_checks(tmp_path, monkeypatch):
+def test_missing_audit_capability_refuses_before_native_checks(tmp_path, monkeypatch):
+    audit_path = tmp_path / "tools/jieli/audit_link.py"
+    audit_path.parent.mkdir(parents=True)
+    audit_path.write_text("def audit(elves, flat_images, linked, sources=None, runtime='sdk'):\n    pass\n")
+    actual_check_native_audit = server.check_native_audit
+    monkeypatch.setattr(server, "check_native_audit", lambda _root: actual_check_native_audit(tmp_path))
     monkeypatch.setattr(server, "check_native_prerequisites", lambda *_: pytest.fail("audit must refuse first"))
     monkeypatch.setattr(server, "DockerJobAdapter", lambda *_args, **_kw: pytest.fail("must not create adapter"))
     with pytest.raises(ValueError, match="native audit prerequisites are unavailable") as error:
         server.create_private_app(replace(config(tmp_path), enable_private_builds=True))
     for missing in ("relative_call_payloads", "stub_call_boundary_patterns", "--objdump"):
         assert missing in str(error.value)
+
+
+def test_current_audit_capability_reaches_native_prerequisite_refusal(tmp_path, monkeypatch):
+    server.check_native_audit(server.ROOT)
+    monkeypatch.setattr(server, "DockerJobAdapter", lambda *_args, **_kw: pytest.fail("must not create adapter"))
+    commit = subprocess.run(["git", "-C", str(server.ROOT), "rev-parse", "HEAD"],
+                            capture_output=True, text=True, check=True, timeout=5).stdout.strip()
+    with pytest.raises(ValueError, match="native build prerequisites are unavailable"):
+        server.create_private_app(replace(config(tmp_path), source_commit=commit, enable_private_builds=True))
 
 
 def test_audit_capability_gate_rejects_unsafe_path_without_importing_it(tmp_path):
@@ -113,3 +127,65 @@ def test_audit_capability_gate_rejects_unsafe_path_without_importing_it(tmp_path
     (directory / "audit_link.py").symlink_to(outside)
     with pytest.raises(ValueError, match="audit_link.py"):
         server.check_native_audit(tmp_path)
+
+
+def selected_config(tmp_path):
+    return server.SelectedTrioServiceConfig(server.ROOT, "a"*40, tmp_path,
+                                            tmp_path/"archive",tmp_path,tmp_path)
+
+
+def test_selected_service_defaults_disabled_before_any_dependency(tmp_path,monkeypatch):
+    monkeypatch.setattr(server,"check_native_audit",lambda *_:pytest.fail("must refuse first"))
+    with pytest.raises(ValueError,match="explicit operator enablement"):
+        server.create_selected_trio_private_app(selected_config(tmp_path))
+
+
+def test_selected_factory_requires_checkout_and_worker_callback(tmp_path,monkeypatch):
+    config=replace(selected_config(tmp_path),enable_private_builds=True)
+    with pytest.raises(ValueError,match="pinned source checkout"):
+        server.create_selected_trio_private_app(replace(config,source_root=tmp_path))
+    monkeypatch.setattr(server,"check_native_audit",lambda *_:None)
+    monkeypatch.setattr(server,"check_profile_prerequisites",lambda *_:None)
+    monkeypatch.setattr(server,"DockerJobAdapter",FakeJobAdapter)
+    monkeypatch.setattr(server,"DockerWorkerConfig",lambda **_:pytest.fail("must refuse before construction"))
+    with pytest.raises(ValueError,match="worker prerequisites are unavailable"):
+        server.create_selected_trio_private_app(config)
+
+
+def test_selected_missing_source_refuses_before_worker(tmp_path,monkeypatch):
+    monkeypatch.setattr(server,"DockerJobAdapter",lambda *_a,**_k:pytest.fail("must refuse first"))
+    monkeypatch.setattr(server,"check_native_audit",lambda *_:None)
+    def refuse(*_):raise ValueError("selected source missing")
+    monkeypatch.setattr(server,"check_profile_prerequisites",refuse)
+    with pytest.raises(ValueError,match="selected source missing"):
+        server.create_selected_trio_private_app(replace(selected_config(tmp_path),enable_private_builds=True))
+
+
+def test_selected_factory_uses_only_profile_specific_inputs_no_legacy_gate_or_catalogue(tmp_path,monkeypatch):
+    calls=[]
+    monkeypatch.setattr(server,"check_native_audit",lambda root:calls.append(("audit",root)))
+    monkeypatch.setattr(server,"check_profile_prerequisites",lambda *args:calls.append(("selected",args)))
+    monkeypatch.setattr(server,"check_native_prerequisites",lambda *_:pytest.fail("legacy gate cannot admit selected"))
+    monkeypatch.setattr(server,"load_trusted_catalogue",lambda *_a,**_k:pytest.fail("no selected catalogue cache"))
+    def worker(**values):
+        calls.append(("worker",values))
+        assert "catalogue_root" not in values
+        assert values["profile_id"]==server.SELECTED_TRIO_PROFILE
+        return SimpleNamespace(source_tree_oid="b"*40,**values)
+    monkeypatch.setattr(server,"DockerWorkerConfig",worker)
+    class SelectedAdapter(FakeJobAdapter):
+        def __init__(self,worker,capacity):
+            super().__init__(capacity)
+        def verify_selected_trio_result(self,*_):pytest.fail("queued jobs do not verify")
+    monkeypatch.setattr(server,"DockerJobAdapter",SelectedAdapter)
+    config=replace(selected_config(tmp_path),enable_private_builds=True)
+    app=server.create_selected_trio_private_app(config)
+    with TestClient(app,base_url="http://127.0.0.1") as client:
+        request=dict(version=2,profile_id=server.SELECTED_TRIO_PROFILE,runtime_mode="offline",
+            flash_layout="stock-sized-diagnostic",engines=["trio"],effects=[],midi=[],
+            modulation=[],project_ids=["init-starter-trio"],startup_index=0)
+        assert client.post("/api/v2/offline-builds",json=request).status_code==202
+        assert client.post("/api/v1/builds",json=request).status_code==404
+        assert client.get("/docs").status_code==404
+        assert client.get("/",headers={"Host":"attacker.invalid"}).status_code==400
+    assert [call[0] for call in calls]==["audit","selected","worker"]

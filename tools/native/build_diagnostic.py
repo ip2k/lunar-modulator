@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Build one source-bound SDK-free FM6 diagnostic. Never package/install/run it.
+"""Build a fixed source-bound SDK-free diagnostic. Never package/install/run it.
 
 Run in a bounded Linux build container with the pinned JieLi toolchain and
 LLVM libc++ headers mounted read-only. No SDK archives/device headers are used.
@@ -22,10 +22,46 @@ import tarfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from tools.jieli.audit_link import Elf, SHF_ALLOC, SHT_NOBITS, audit, collect_sources
+from tools.installer_service.process_capture import run_bounded
+
+# The selected target's complete measured build log is about 3.1 MiB.
+# Bound each command/stream independently, including nm and disassembly.
+MAX_COMMAND_OUTPUT = 16 * 1024 * 1024
+COMMAND_TIMEOUT = 600
+
+def _run_logged(command, log, capture=False):
+    result = run_bounded([str(x) for x in command], cwd=ROOT,
+                         timeout_seconds=COMMAND_TIMEOUT,
+                         max_stream_bytes=MAX_COMMAND_OUTPUT)
+    output = (result.logs["stdout"] + result.logs["stderr"]).decode(errors="replace")
+    log.write("$ " + " ".join(map(str, command)) + "\n" + output); log.flush()
+    overflow = any(n > MAX_COMMAND_OUTPUT for n in result.observed.values())
+    reason = "output_limit" if overflow else result.failure_reason
+    if reason or result.returncode:
+        raise RuntimeError("command refused (" + (reason or "nonzero_exit") +
+                           "); see " + str(log.name) + "\n" + output[-3000:])
+    return output if capture else None
+
 MODULES = 'dx7,arp,lfo,env,chance'
 TOOLCHAIN_SHA256 = 'f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958'
 DEFINES = ['-DFM1_APP_EXTERNAL_ARENAS=1', '-DFM1_SHAPES_VOICES=8',
            '-DNDEBUG', '-D_GNU_SOURCE', '-D_XOPEN_SOURCE=700']
+AGGREGATE_DEFINES = [
+    '-DLUNAR_SELECTED_INTERACTIVE_PROOF=1',
+    '-DLUNAR_DIAGNOSTIC_OFFLINE_PROOF=1',
+    '-DLUNAR_SELECTED_PROJECT_STAGE_PROOF=1',
+    '-DLUNAR_DIAGNOSTIC_PI32V2_PUBLICATION=1',
+    '-DLUNAR_DIAGNOSTIC_CPU0_ONLY=1',
+]
+
+
+def undefined_root_option(help_text, symbol):
+    """Require a documented linker root option before any aggregate compile."""
+    if re.search(r'(?m)^\s*-u(?:[\s,<]|$)', help_text):
+        return ['-u', symbol]
+    if re.search(r'(?m)^\s*--undefined(?:[=\s,<]|$)', help_text):
+        return ['--undefined=' + symbol]
+    raise ValueError('target linker does not advertise -u/--undefined root support')
 
 def stream_digest(stream):
     result = hashlib.sha256()
@@ -161,12 +197,30 @@ def header_manifest(root):
     return {p.relative_to(root).as_posix(): digest(p)
             for p in sorted(root.rglob('*')) if p.is_file()}
 
-def manifest():
+def manifest(selected=False, *, return_candidate=False, aggregate_layout=False, audio_owner=False):
+    if audio_owner and not (selected and return_candidate and aggregate_layout):
+        raise ValueError('audio owner requires the complete selected aggregate return plan')
+    if aggregate_layout and not (selected and return_candidate):
+        raise ValueError('aggregate layout requires fixed selected return plan')
     roots = ['engines', 'sim/web/src', 'sim/web/mk', 'sim/web/third_party',
              'firmware/native', 'firmware/third_party/dinghy',
              'firmware/third_party/compiler-rt', 'firmware/third_party/musl',
              'firmware/third_party/printf', 'tools/jieli/objects.mk',
-             'tools/native/build_diagnostic.py', 'tools/jieli/audit_link.py']
+             'tools/native/build_diagnostic.py', 'tools/jieli/audit_link.py',
+             'tools/installer_service/process_capture.py',
+             'tools/installer_service/__init__.py']
+    if selected:
+        roots += ['tools/native/build_selected_trio_diagnostic.py',
+                  'tools/native/prepare_selected_project.py']
+    if return_candidate:
+        if not selected:
+            raise ValueError('return candidate requires fixed selected plan')
+        roots += ['firmware/third_party/selected-return',
+                  'tools/native/build_selected_trio_return_candidate.py']
+    if aggregate_layout:
+        roots += ['tools/native/build_selected_trio_aggregate_layout.py']
+    if audio_owner:
+        roots += ['tools/native/build_selected_trio_audio_owner.py']
     result = {}
     for name in roots:
         p = ROOT / name
@@ -177,7 +231,65 @@ def manifest():
                 result[str(f.relative_to(ROOT))] = digest(f)
     return result
 
-def build(args):
+def diagnostic_plan(selected=False, prepared=None, *, return_candidate=False,
+                    aggregate_layout=False, audio_owner=False):
+    """One of two private, fixed link plans; the public FM6 CLI has no selector."""
+    if return_candidate and not selected:
+        raise ValueError('return candidate requires fixed selected plan')
+    if audio_owner and not (selected and return_candidate and aggregate_layout):
+        raise ValueError('audio owner requires the complete selected aggregate return plan')
+    if aggregate_layout and not (selected and return_candidate):
+        raise ValueError('aggregate layout requires fixed selected return plan')
+    if selected and prepared is None:
+        raise ValueError('selected plan requires a freshly prepared source blob')
+    app = ROOT / 'firmware/native' / (
+        'selected_diagnostic_app.c' if selected else 'diagnostic_app.c')
+    extra = [app]
+    if selected:
+        extra += [ROOT / 'firmware/native/selected_project.c',
+                  prepared / 'selected_project_blob.c']
+    package = ROOT / 'firmware/third_party/selected-return'
+    if return_candidate:
+        extra += [package / 'selected_return.c', package / 'selected_return_pi32v2.c']
+    extra += [package / 'selected_return_platform.c' if return_candidate else
+              ROOT / 'firmware/native/diagnostic_platform.c',
+              ROOT / 'firmware/native/diagnostic_crt0.S',
+              ROOT / 'firmware/third_party/dinghy/hal/fm1_vec.S',
+              ROOT / 'firmware/third_party/dinghy/hal/fm1_isr.S']
+    plan = dict(modules='trio' if selected else MODULES,
+                extra=extra,
+                stem='lunar-selected-trio' if selected else 'lunar-diagnostic',
+                profile=('sdk-free-selected-trio-offline-diagnostic-v1' if selected else
+                         'sdk-free-single-fm6-diagnostic-v1'),
+                arena_bytes=16384 if selected else 65536)
+    if return_candidate:
+        plan.update(stem='lunar-selected-trio-return-candidate',
+                    profile='sdk-free-selected-trio-return-binding-candidate-v1',
+                    linker=package / 'selected_return_candidate.ld')
+    if aggregate_layout:
+        plan['extra'] += [ROOT / 'firmware/native' / (name + '.c') for name in (
+            'selected_interactive_owner', 'selected_interactive_platform',
+            'diagnostic_transport', 'diagnostic_display',
+            'diagnostic_spi_model', 'selected_aggregate_layout_roots')]
+        plan.update(stem='lunar-selected-trio-aggregate-layout',
+                    profile='sdk-free-selected-trio-aggregate-layout-experiment-v1',
+                    undefined_root='lunar_selected_aggregate_layout_roots',
+                    reader_bytes=65536)
+    if audio_owner:
+        plan['extra'] = [package / 'selected_audio_owner_platform.c'
+                         if p == package / 'selected_return_platform.c' else p
+                         for p in plan['extra']]
+        plan.update(stem='lunar-selected-trio-audio-owner',
+                    profile='sdk-free-selected-trio-audio-owner-candidate-v1')
+    return plan
+
+def build(args, *, selected=False, return_candidate=False, aggregate_layout=False, audio_owner=False):
+    if return_candidate and not selected:
+        raise ValueError('return candidate requires fixed selected plan')
+    if audio_owner and not (selected and return_candidate and aggregate_layout):
+        raise ValueError('audio owner requires the complete selected aggregate return plan')
+    if aggregate_layout and not (selected and return_candidate):
+        raise ValueError('aggregate layout requires fixed selected return plan')
     tc, out, headers = args.toolchain.resolve(), args.out.resolve(), args.cxx_headers.resolve()
     if out.exists():
         raise ValueError('output must be a fresh directory; preserve reports then remove your old build')
@@ -185,16 +297,29 @@ def build(args):
     original_headers = header_manifest(headers)
     for name in ['dinghy', 'compiler-rt', 'musl', 'printf']:
         check_inventory(ROOT / 'firmware/third_party' / name)
-    before = manifest()
+    if return_candidate:
+        check_inventory(ROOT / 'firmware/third_party/selected-return')
+    before = manifest(selected, return_candidate=return_candidate,
+                      aggregate_layout=aggregate_layout, audio_owner=audio_owner)
     out.mkdir(parents=True)
     log = (out / 'build.log').open('w')
     def run(command, capture=False):
-        p = subprocess.run([str(x) for x in command], text=True,
-                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        log.write('$ ' + ' '.join(map(str, command)) + '\n' + p.stdout); log.flush()
-        if p.returncode:
-            raise RuntimeError('command failed; see ' + str(out / 'build.log') + '\n' + p.stdout[-3000:])
-        return p.stdout if capture else None
+        return _run_logged(command, log, capture)
+    root_option = (undefined_root_option(
+        run([tc / 'pi32v2/bin/ld', '--help'], True),
+        'lunar_selected_aggregate_layout_roots') if aggregate_layout else [])
+    prepared = None
+    preparation = None
+    prepared_manifest = None
+    if selected:
+        from tools.native.prepare_selected_project import prepare
+        prepared = out / 'selected_project'
+        preparation = prepare(args.renderer, args.state_tool, prepared)
+        prepared_manifest = header_manifest(prepared)
+        log.write('prepared fixed selected project: ' + preparation['packed_sha256'] + '\n')
+        log.flush()
+    plan = diagnostic_plan(selected, prepared, return_candidate=return_candidate,
+                           aggregate_layout=aggregate_layout, audio_owner=audio_owner)
     configured = out / 'cxx'
     shutil.copytree(headers, configured)
     p = configured / '__config'
@@ -205,8 +330,15 @@ def build(args):
     p.chmod(0o600)
     p.write_text(config.replace(pthread, '/* Diagnostic: no thread API. */\n'))
     configured_headers = header_manifest(configured)
+    defines = [define for define in DEFINES
+               if not selected or define != '-DFM1_SHAPES_VOICES=8']
     flags = ['-target', 'pi32v2', '-mcpu=r3', '-mfprev1', '-Oz', '-ffreestanding',
-             '-fno-builtin', '-ffunction-sections', '-fdata-sections', *DEFINES,
+             '-fno-builtin', '-ffunction-sections', '-fdata-sections', *defines,
+             *(['-DFM1_APP_STATE_EXTERNAL_WORKSPACE=1'] if selected else []),
+             *(['-DLUNAR_SELECTED_RETURN_OFFLINE_PROOF=1',
+                '-DLUNAR_SELECTED_RETURN_PI32V2_BINDING=1'] if return_candidate else []),
+             *(AGGREGATE_DEFINES if aggregate_layout else []),
+             *(['-DLUNAR_SELECTED_AUDIO_OWNER_PROOF=1'] if audio_owner else []),
              '-D_LIBCPP_HAS_NO_THREADS', '-D_LIBCPP_DISABLE_EXTERN_TEMPLATE',
              '-isystem', str(configured), '-isystem', str(tc / 'pi32v2/include')]
     compiler = tc / 'common/bin/clang'
@@ -214,7 +346,8 @@ def build(args):
     make = ['make', '-s', '-C', ROOT / 'engines', '-f', 'Makefile',
             '-f', ROOT / 'sim/web/mk/sim.mk', '-f', ROOT / 'tools/jieli/objects.mk',
             'SIM=' + str(ROOT / 'sim/web'), 'BUILD=' + str(objdir),
-            'FM1_GPL_MODS=1', 'FM1_MODULES=' + MODULES, 'FM1_DX7_SINE=trunc12',
+            'FM1_GPL_MODS=1', 'FM1_MODULES=' + plan['modules'],
+            *(['FM1_DX7_SINE=trunc12'] if not selected else []),
             'OPT=-Oz', 'CC=' + str(compiler), 'CXX=' + str(compiler),
             'EXTRA=' + ' '.join(flags)]
     objects = [Path(s) for s in run([*make, 'print-objs'], True).splitlines()
@@ -225,15 +358,11 @@ def build(args):
     includes = [ROOT / 'engines/include', ROOT / 'engines/host', ROOT / 'engines/state',
                 ROOT / 'engines/mod', ROOT / 'sim/web/src', ROOT / 'firmware/native',
                 ROOT / 'firmware/third_party/dinghy/hal', ROOT / 'firmware/third_party/dinghy/src',
-                objdir / 'gen']
+                objdir / 'gen', *([prepared] if prepared else []),
+                *([ROOT / 'firmware/third_party/selected-return'] if return_candidate else [])]
     appflags = flags + [x for d in includes for x in ['-I', str(d)]]
-    extra = [ROOT / 'firmware/native/diagnostic_app.c',
-             ROOT / 'firmware/native/diagnostic_platform.c',
-             ROOT / 'firmware/native/diagnostic_crt0.S',
-             ROOT / 'firmware/third_party/dinghy/hal/fm1_vec.S',
-             ROOT / 'firmware/third_party/dinghy/hal/fm1_isr.S']
     units = []
-    for src in extra:
+    for src in plan['extra']:
         obj = out / (src.stem + '.o'); objects.append(obj)
         units.append([compiler, *appflags, '-c', src, '-o', obj])
     musl = ROOT / 'firmware/third_party/musl'
@@ -256,9 +385,10 @@ def build(args):
                   '-DPRINTF_SUPPORT_WRITEBACK_SPECIFIER=0', '-c', printf, '-o', obj])
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         list(pool.map(run, units))
-    elf = out / 'lunar-diagnostic.elf'
-    run([tc / 'pi32v2/bin/ld', '--gc-sections', '-T', ROOT / 'firmware/native/diagnostic.ld',
-         *objects, '-Map', out / 'lunar-diagnostic.map', '-o', elf])
+    elf = out / (plan['stem'] + '.elf')
+    run([tc / 'pi32v2/bin/ld', '--gc-sections', *root_option, '-T',
+         plan.get('linker', ROOT / 'firmware/native/diagnostic.ld'),
+         *objects, '-Map', out / (plan['stem'] + '.map'), '-o', elf])
     symbols = run([tc / 'pi32v2/bin/nm', '-S', elf], True)
     (out / 'symbols.txt').write_text(symbols)
     if re.search(r'\bU\s+\S+', symbols): raise ValueError('unresolved target helper')
@@ -280,11 +410,42 @@ def build(args):
                 supervisor_stack_bytes=0x1f00,
                 globals_to_stack_guard_bytes=0x01c74000-image.symbol_value('_bss_end'),
                 flash_bytes=sections['.text']['bytes']+sections['.data']['bytes'])
+    if selected:
+        size['reader_workspace'] = sym('reader_space')
+        size['selected_blob'] = sym('lunar_selected_project_blob')
+        if size['arena']['bytes'] != plan['arena_bytes'] or \
+                size['reader_workspace']['bytes'] != plan.get('reader_bytes', 16384) or \
+                size['selected_blob']['bytes'] != preparation['packed_bytes']:
+            raise ValueError('selected target storage differs from fixed source plan')
+    if aggregate_layout:
+        size['aggregate_layout_roots'] = sym(plan['undefined_root'])
+        size['aggregate_platform'] = sym('lunar_selected_aggregate_platform')
+        size['aggregate_input'] = sym('lunar_selected_aggregate_input')
+        size['aggregate_pcm'] = sym('lunar_selected_aggregate_pcm')
+        size['aggregate_retained'] = {name: sym(name) for name in (
+            'lunar_selected_interactive_stage', 'lunar_selected_owner_init',
+            'lunar_selected_owner_step', 'lunar_selected_platform_start',
+            'lunar_selected_platform_main', 'lunar_selected_platform_timer',
+            'lunar_selected_platform_audio', 'lunar_selected_platform_matrix',
+            'lunar_selected_platform_encoder', 'lunar_diagnostic_init')}
+        if size['aggregate_input']['bytes'] != 16 * 8 or \
+                size['aggregate_pcm']['bytes'] != 2 * 512:
+            raise ValueError('aggregate queue storage differs from fixed source plan')
     (out / 'size.json').write_text(json.dumps(size, indent=2) + '\n')
     # This linker contract has contiguous XIP text/data load bytes. Export
     # through the existing ELF reader: vendor objcopy requires a different
     # section-selection CLI from GNU objcopy. Reject unexpected load sections.
-    if set(sections) != {'.text', '.data', '.bss', '.noinit'}:
+    expected_sections = {'.text', '.data', '.bss', '.noinit'}
+    if return_candidate:
+        expected_sections.add('.selected_return_mailbox')
+        mailbox = [s for s in image.sections if s['name']=='.selected_return_mailbox']
+        if len(mailbox)!=1 or mailbox[0]['addr']!=0x01c7fd80 or \
+                mailbox[0]['size']!=16 or mailbox[0]['type']!=SHT_NOBITS:
+            raise ValueError('return mailbox must be exact 16-byte NOLOAD reservation')
+        size['return_mailbox'] = sections['.selected_return_mailbox']
+        size['return_policy'] = sym('return_policy')
+        (out / 'size.json').write_text(json.dumps(size, indent=2) + '\n')
+    if set(sections) != expected_sections:
         raise ValueError('unexpected allocated diagnostic section')
     if image.symbol_value('_data_load') != sections['.text']['address'] + sections['.text']['bytes']:
         raise ValueError('noncontiguous diagnostic XIP load image')
@@ -292,23 +453,47 @@ def build(args):
                     for name in ['.text', '.data'] for s in image.sections
                     if s['name'] == name and s['type'] != SHT_NOBITS)
     if len(flat) != size['flash_bytes']: raise ValueError('incomplete XIP image')
+    if selected:
+        blob = (prepared / 'selected_project.bin').read_bytes()
+        address = size['selected_blob']['address']
+        matches = [section for section in image.sections
+                   if section['name'] in ('.text', '.data') and
+                   section['addr'] <= address and
+                   address + len(blob) <= section['addr'] + section['size']]
+        if len(matches) != 1:
+            raise ValueError('selected blob not in one loadable target section')
+        section = matches[0]
+        linked = image.data[section['offset'] + address - section['addr']:
+                            section['offset'] + address - section['addr'] + len(blob)]
+        if linked != blob or digest(prepared / 'selected_project.bin') != preparation['packed_sha256']:
+            raise ValueError('linked selected blob differs from strict packed source')
     (out / 'app.bin').write_bytes(flat)
     sources = collect_sources([str(ROOT / 'firmware/native'),
-                               str(ROOT / 'firmware/third_party/dinghy')])
+                               str(ROOT / 'firmware/third_party/dinghy'),
+                               *([str(ROOT / 'firmware/third_party/selected-return')]
+                                 if return_candidate else [])])
     link_audit = audit([(str(elf), image)], [('app.bin', flat)], True,
                        sources=sources, runtime='sdk-free')
     (out / 'audit.json').write_text(json.dumps(link_audit, indent=2) + '\n')
     if link_audit['n_fail']: raise ValueError('audit_link failure; see audit.json')
     compiler_version = run([compiler, '--version'], True)
-    if manifest() != before: raise ValueError('source inputs changed while building')
+    if manifest(selected, return_candidate=return_candidate,
+                aggregate_layout=aggregate_layout, audio_owner=audio_owner) != before:
+        raise ValueError('source inputs changed while building')
+    if selected and (digest(args.renderer) != preparation['renderer_sha256'] or
+                     digest(args.state_tool) != preparation['state_tool_sha256']):
+        raise ValueError('selected host tools changed while building')
+    if selected and header_manifest(prepared) != prepared_manifest:
+        raise ValueError('prepared selected blob/receipt changed while building')
     if toolchain_tree(tc) != toolchain_binding['tree_manifest']:
         raise ValueError('toolchain inputs changed while building')
     if header_manifest(headers) != original_headers or header_manifest(configured) != configured_headers:
         raise ValueError('libc++ header inputs changed while building')
-    report = dict(profile='sdk-free-single-fm6-diagnostic-v1', hardware_admitted=False,
-        release_candidate=False, sdk_archives=[], modules=MODULES.split(','), voices=8,
-        dx7_sine='trunc12', shapes_voices=8, external_arenas=True,
-        arena_bytes=65536, cpu1=False, usb=False, persistence=False, fail_open=False,
+    fm6_fields = {} if selected else dict(voices=8, dx7_sine='trunc12', shapes_voices=8)
+    report = dict(profile=plan['profile'], hardware_admitted=False,
+        release_candidate=False, sdk_archives=[], modules=plan['modules'].split(','),
+        **fm6_fields, external_arenas=True,
+        arena_bytes=plan['arena_bytes'], cpu1=False, usb=False, persistence=False, fail_open=False,
         toolchain_archive_sha256=TOOLCHAIN_SHA256,
         toolchain_binding=toolchain_binding, compiler_version=compiler_version,
         cxx_headers_manifest=original_headers, configured_cxx_headers_manifest=configured_headers,
@@ -317,6 +502,36 @@ def build(args):
         elf_sha256=digest(elf), app_sha256=digest(out / 'app.bin'), sizes=size,
         audit_link=link_audit,
         audit_limit='Symbol closure scan is additional evidence, not audit_link admission or a complete MMIO/callgraph audit.')
+    if selected:
+        report.update(selected_project=preparation, fixed_project_startup=True,
+                      rom_return=False, distribution_reviewed=False,
+                      linked_blob=dict(sha256=preparation['packed_sha256'],
+                                       bytes=preparation['packed_bytes'],
+                                       address=size['selected_blob']['address']),
+                      combined_licence='GPL-3.0-only',
+                      gpl_sources=dict(
+                          dinghy='d44df7db09b98ccad2f1233b8f83f5f09c04829e',
+                          felucca_trio='b0dcd53a251d5f5392fea9478b48244d322eeb2a'),
+                      prepared_input_manifest=prepared_manifest,
+                      renderer_input=dict(path=str(args.renderer.resolve()),
+                                          sha256=preparation['renderer_sha256']),
+                      state_tool_input=dict(path=str(args.state_tool.resolve()),
+                                            sha256=preparation['state_tool_sha256']))
+    if return_candidate:
+        report.update(return_binding_candidate=True, physical_qualification=False,
+                      functional_startup_refused=True, fixed_project_startup=False,
+                      nominal_return_threshold_ticks=480000000,
+                      qualification_source='immutable all-zero target record; no override',
+                      return_limit='Candidate codegen/link only: no target execution, measured lease, inherited mailbox permission, P33 timing or ROM-entry claim.')
+        report['gpl_sources']['selected_return']='fad3a965f9aa9949069a3d864047eaca5ddf0be8'
+    if aggregate_layout:
+        report.update(aggregate_layout_experiment=True,
+                      target_interactive_binding=False, storage_backend=False,
+                      aggregate_limit='Compile/link layout only; injected owner callbacks have no target binding, live storage exclusion or whole-chain stack proof.')
+    if audio_owner:
+        report.update(audio_owner_candidate=True, target_interactive_binding=True,
+                      display_binding=False, live_save=False,
+                      aggregate_limit='Retained audio-only main-owner binding plus offline stage closure; immutable zero qualification refuses startup. No execution, DMA visibility, deadline or whole-chain stack admission.')
     (out / 'receipt.json').write_text(json.dumps(report, indent=2) + '\n')
     log.close()
     return report

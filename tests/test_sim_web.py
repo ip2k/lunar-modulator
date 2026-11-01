@@ -213,7 +213,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     """docs/15 §2.6: the 8-track instance (Capture included) fits the 32 KiB
     arena, and with the 272-event buffer (256 until stage S6), the pending
     command record, the UI state's bound and the metronome's click voice it
-    stays inside the sequencer's 36,864 B, half of docs/13 §5's 72 KiB.
+    stays inside the sequencer's 45,056 B, the approved 44 KiB sequencer budget.
     fm1_app_t grew by about 36 KB for the sequencer, to 4.9 MB for
     multi-sound's arenas, and by the modulation runtime's memory, a block's
     writes to the effects and the pages' state (docs/16 MG3). The effect/mixer
@@ -224,16 +224,18 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
     assert z["seq_tracks"] == 8                                   # owner decision O3 (2026-10-02)
     assert (z["seq_bytes_8"], z["seq_bytes_4"]) == (32080, 18192)
     assert z["seq_bytes_8"] <= z["seq_arena"] == 32768
-    assert (z["seq_event_bytes"], z["seq_pending_bytes"], z["seq_click_bytes"]) == (3264, 240, 20)
+    assert (z["seq_event_bytes"], z["seq_pending_bytes"], z["seq_click_bytes"]) == (9792, 240, 20)
     total = (z["seq_bytes_8"] + z["seq_event_bytes"] + z["seq_pending_bytes"] + z["seq_ui_bytes"]
              + z["seq_click_bytes"])
-    assert total == 36628 <= z["seq_budget"] == 36864
+    assert total == 43156 <= z["seq_budget"] == 45056
     # Multi-sound (docs/15 §3.16): four 512 KiB sound arenas and ten 256 KiB
     # effect arenas (two master slots, two inserts per sound), 4.5 MiB of the
     # module's fixed 8 MiB; fm1_app_t is 4,939,984 B natively (clang, 64-bit).
     assert (z["sounds"], z["inserts"], z["master_slots"], z["units"]) == (4, 2, 2, 14)
     assert z["arena_bytes"] == 4 * 512 * 1024 + 10 * 256 * 1024
-    assert z["app_bytes"] <= 4_960_000
+    # Immutable LOCK identities grow the event arena by 6,528 B. Allow the
+    # approved sequencer budget increase (8 KiB), rather than pinning sizeof.
+    assert z["app_bytes"] <= 4_968_192
     assert z["midi_map_bytes"] == 4612  # bounded project preferences outside sequencer arena
     assert z["mod_bytes"] <= z["mod_arena"]
     assert z["seq_need"] == 202 <= z["seq_events"] == 272
@@ -245,7 +247,7 @@ def test_the_sequencer_fits_its_arena_and_budget(tools, tmp_path):
         r, _, _ = sim_run(tools, tmp_path, script, "--tracks", str(tracks), name=f"t{tracks}",
                           tool="render")
         fixed = z["seq_pending_bytes"] + z["seq_ui_bytes"] + z["seq_click_bytes"] + z["mod_bytes"] + z["seq_automation_bytes"] + z["midi_map_bytes"]
-        assert s["ram"] == r["instance_bytes"] + size + 3264 + fixed, "the RAM figure counts the sequencer"
+        assert s["ram"] == r["instance_bytes"] + size + 9792 + fixed, "the RAM figure counts the sequencer"
 
 
 def full_load(stop_at, tracks=8):
@@ -1040,12 +1042,9 @@ def test_committed_wasm_matches_its_build_record():
     """build-on-aeon.sh writes fm1.wasm.json next to the module: its hash, the
     hashes of the sources it was built from, and the parity results.
 
-    When sim/web's own inputs (src/, mk/, build.sh, the parity test) have
-    changed since, the module is stale: a warning locally, a failure in CI
-    (CI=true), so a pull request that changes the simulator carries its
-    rebuilt module. When only engines/ has changed, CI warns too: engine
-    work elsewhere should not need aeon, but rebuild before the module is
-    published."""
+    When the simulator or engine inputs have changed since, the module is
+    stale: a warning locally and a failure in CI (CI=true). A pull request
+    must carry the module and record built from its current source tree."""
     record = json.loads((SIM / "www" / "fm1.wasm.json").read_text(encoding="utf-8"))
     wasm = (SIM / "www" / "fm1.wasm").read_bytes()
     assert hashlib.sha256(wasm).hexdigest() == record["wasm_sha256"]
@@ -1059,12 +1058,31 @@ def test_committed_wasm_matches_its_build_record():
     assert all("@sha256:" in i for i in record["images"]) and len(record["images"]) >= 2
     current = source_hashes()
     stale = [k for k in ("engines", "sim") if current[k] != record["sources_sha256"].get(k)]
-    if "sim" in stale and os.environ.get("CI") == "true":
-        pytest.fail("sim/web changed since www/fm1.wasm was built; rebuild it with "
+    if stale and os.environ.get("CI") == "true":
+        pytest.fail("sim/web/www/fm1.wasm was built from other " + " and ".join(stale) +
+                    " sources; rebuild it with "
                     "sim/web/build-on-aeon.sh and commit www/fm1.wasm and fm1.wasm.json")
     if stale:
         warnings.warn(f"sim/web/www/fm1.wasm was built from other {' and '.join(stale)} "
                       "sources than these; rebuild with sim/web/build-on-aeon.sh")
+
+
+def test_ci_rejects_engine_only_wasm_source_drift(monkeypatch):
+    """Exercise the committed-module gate with only the engine digest changed."""
+    record = json.loads((SIM / "www" / "fm1.wasm.json").read_text(encoding="utf-8"))
+    current = dict(record["sources_sha256"])
+    current["engines"] = "stale-engine-source-digest"
+    monkeypatch.setattr(sys.modules[__name__], "source_hashes", lambda: current)
+    monkeypatch.setenv("CI", "true")
+    with pytest.raises(pytest.fail.Exception, match="engines"):
+        test_committed_wasm_matches_its_build_record()
+
+
+def test_ci_accepts_matching_wasm_source_digests(monkeypatch):
+    record = json.loads((SIM / "www" / "fm1.wasm.json").read_text(encoding="utf-8"))
+    monkeypatch.setattr(sys.modules[__name__], "source_hashes", lambda: dict(record["sources_sha256"]))
+    monkeypatch.setenv("CI", "true")
+    test_committed_wasm_matches_its_build_record()
 
 
 def source_hashes():

@@ -207,6 +207,18 @@ static fm1_seq_t *make(uint64_t *mem) {
   return fm1_seq_create(mem, &lim, 44118u);
 }
 
+/* Handmade events obey the same snapshot contract as sq_emit. */
+static void snapshot_event(const fm1_seq_t *s, fm1_seq_ev_t *e) {
+  fm1_seq_track_info_t tr;
+  memset(e->label, 0, sizeof e->label);
+  e->lane_base = 0;
+  if (e->kind == FM1_SEQ_EV_LOCK && e->a < FM1_SEQ_LANES) {
+    memcpy(e->label, fm1_seq_lane_label(s, e->track, e->a),
+           strlen(fm1_seq_lane_label(s, e->track, e->a)) + 1u);
+    if (fm1_seq_get_track(s, e->track, &tr)) e->lane_base = tr.base[e->a];
+  }
+}
+
 /* The same script through text lines and through typed inputs: identical
  * events, block by block, and the same set at the end. Dispatches the text
  * side into a tracing sink and checks each block's calls against its events. */
@@ -272,7 +284,7 @@ static void inputs_and_dispatch(uint64_t *n_events, uint64_t *n_calls, uint64_t 
           continue;
         }
         if (e->kind == FM1_SEQ_EV_LOCK) {
-          p = fm1_seq_lane_param(&kEngine, fm1_seq_lane_label(a.seq, e->track, e->a));
+          p = fm1_seq_lane_param(&kEngine, e->label);
           if (p < 0) continue;
           if (kParams[p].flags & FM1_PARAM_NOLOCK) {
             ++nolock;
@@ -474,7 +486,7 @@ static void hand_made_block(void) {
 #define EV(fr, k, t, aa, bb)                                                  \
   do {                                                                        \
     ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);  \
-    ev[n].a = (aa); ev[n].b = (bb); ++n;                                      \
+    ev[n].a = (aa); ev[n].b = (bb); snapshot_event(h.seq, &ev[n]); ++n;                                      \
   } while (0)
   EV(0, FM1_SEQ_EV_NOTE_OFF, 0, 60, 0);
   EV(0, FM1_SEQ_EV_LOCK, 0, 0, 127);       /* Timbre 1 */
@@ -552,7 +564,7 @@ static void uids_and_refusals(void) {
 #define EV(fr, k, t, aa, bb)                                                  \
   do {                                                                        \
     ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);  \
-    ev[n].a = (aa); ev[n].b = (bb); ++n;                                      \
+    ev[n].a = (aa); ev[n].b = (bb); snapshot_event(h.seq, &ev[n]); ++n;                                      \
   } while (0)
   EV(5, FM1_SEQ_EV_LOCK, 0, 1, 127);       /* Bank: NOLOCK, refused */
   EV(9, FM1_SEQ_EV_LOCK, 0, 0, 127);       /* Decay, index 3 */
@@ -569,8 +581,10 @@ static void uids_and_refusals(void) {
   n = 0;
   ev[0].tick = 0; ev[0].frame = 0; ev[0].kind = FM1_SEQ_EV_LOCK; ev[0].track = 0;
   ev[0].a = 1; ev[0].b = 127;
+  snapshot_event(h.seq, &ev[0]);
   ev[1] = ev[0];
   ev[1].a = 2;
+  snapshot_event(h.seq, &ev[1]);
   h.n = 2;
   sink.engine = &kOther;
   memset(&tr, 0, sizeof(tr));
@@ -606,9 +620,11 @@ static void uids_and_refusals(void) {
     CHECK(fm1_seq_host_lane_uid(&h, 0, 5) == 1 && fm1_seq_host_lane_uid(&h, 0, 6) == 12);
     ev[0].tick = 0; ev[0].frame = 0; ev[0].kind = FM1_SEQ_EV_LOCK; ev[0].track = 0;
     ev[0].a = 5; ev[0].b = 0;
+    snapshot_event(h.seq, &ev[0]);
     ev[1] = ev[0];
     ev[1].a = 6;
     ev[1].b = 127;
+    snapshot_event(h.seq, &ev[1]);
     h.n = 2;
     sink.engine = &kEngine;
     fm1_seq_set_route(h.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);   /* the import reset it */
@@ -713,7 +729,7 @@ static void hooked_block(void) {
 #define EV(fr, k, t, aa, bb)                                                  \
   do {                                                                        \
     ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);  \
-    ev[n].a = (aa); ev[n].b = (bb); ++n;                                      \
+    ev[n].a = (aa); ev[n].b = (bb); snapshot_event(h.seq, &ev[n]); ++n;                                      \
   } while (0)
     EV(0, FM1_SEQ_EV_NOTE_OFF, 0, 60, 0);
     EV(0, FM1_SEQ_EV_LOCK, 0, 0, 127);       /* Timbre 1, sent as 1.5 */
@@ -803,7 +819,7 @@ static void slots(void) {
   fm1_seq_host_init(&h, s, ev, 16);
   fm1_seq_host_bind(&h, &kEngine);
   CHECK(h.lane_uid[1][0] == 40);
-#define EV(fr, k, t, aa, bb)                                                    do {                                                                            ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);      ev[n].a = (aa); ev[n].b = (bb); ++n;                                        } while (0)
+#define EV(fr, k, t, aa, bb)                                                    do {                                                                            ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);      ev[n].a = (aa); ev[n].b = (bb); snapshot_event(h.seq, &ev[n]); ++n;                                        } while (0)
   EV(0, FM1_SEQ_EV_NOTE_ON, 0, 60, 100);   /* slot 0 */
   EV(8, FM1_SEQ_EV_NOTE_ON, 1, 64, 90);    /* slot 1 */
   EV(8, FM1_SEQ_EV_LOCK, 1, 0, 127);       /* slot 1: kOther's Timbre, index 1 */
@@ -938,7 +954,7 @@ static void hooked_slots(void) {
 #define EV(fr, k, t, aa, bb)                                                  \
   do {                                                                        \
     ev[n].tick = 0; ev[n].frame = (fr); ev[n].kind = (k); ev[n].track = (t);  \
-    ev[n].a = (aa); ev[n].b = (bb); ++n;                                      \
+    ev[n].a = (aa); ev[n].b = (bb); snapshot_event(h.seq, &ev[n]); ++n;                                      \
   } while (0)
   EV(0, FM1_SEQ_EV_NOTE_ON, 0, 60, 100);   /* slot 0 */
   EV(8, FM1_SEQ_EV_NOTE_ON, 1, 64, 90);    /* slot 1 */
@@ -1036,6 +1052,169 @@ static void hook_transport(void) {
   }
 }
 
+/* A lane's queued base reset still belongs to the parameter it released,
+ * including an earlier audition and a later relabel in the same block. */
+static void released_lane_reverts(void) {
+  static const char *const clears[] = {"aclr 0 0", "aclrs 0 0 0", "aclrstep 0 0", "clipdel 0"};
+  static trace_t tr;
+  static float block[2 * BLOCK];
+  for (unsigned typed = 0; typed < 2; ++typed) {
+    for (unsigned path = 0; path < 2; ++path) {
+      for (unsigned clear = 0; clear < 4; ++clear) {
+        fm1_seq_host_t h;
+        fm1_seq_sink_t sink;
+        fm1_seq_slot_t slots[2];
+        fm1_seq_ev_t ev[128];
+        const char *const setup[] = {"tog 0 0 60 100", "alabel 0 0 synth:Timbre",
+                                    "abaseq 0 0 40", "aset 0 0 0 100 1", "play"};
+        memset(&sink, 0, sizeof sink);
+        sink.ctx = &tr; sink.engine = path ? &kOther : &kEngine;
+        sink.render = t_render; sink.note_on = t_on; sink.note_off = t_off; sink.set_param = t_param;
+        memset(slots, 0, sizeof slots);
+        slots[path].sink = &sink; slots[path].block = block;
+        fm1_seq_host_init(&h, make(mem_text), ev, 128);
+        fm1_seq_host_bind(&h, &kEngine);
+        fm1_seq_set_route(h.seq, 0, FM1_SEQ_ROUTE_ENGINE, (uint8_t)path);
+        for (unsigned i = 0; i < sizeof setup / sizeof setup[0]; ++i)
+          fm1_seq_host_line(&h, setup[i], strlen(setup[i]));
+        /* Four blocks reach the first tick at 44,118 Hz / 120 BPM. */
+        for (unsigned i = 0; i < 4; ++i) {
+          fm1_seq_host_advance(&h, BLOCK);
+          memset(&tr, 0, sizeof tr); tr.block = block;
+          if (path) fm1_seq_host_dispatch_slots(&h, BLOCK, slots, 2);
+          else fm1_seq_host_dispatch(&h, BLOCK, block, &sink);
+        }
+        CHECK(tr.n == 2 && tr.calls[0].kind == C_PARAM &&
+              tr.calls[0].value == fm1_seq_lock_value(&sink.engine->params[path], 100));
+        if (typed) {
+          fm1_seq_cmd_t c;
+          CHECK(fm1_seq_parse(clears[clear], strlen(clears[clear]), &c));
+          fm1_seq_host_cmd(&h, &c);
+        } else fm1_seq_host_line(&h, clears[clear], strlen(clears[clear]));
+        CHECK(fm1_seq_host_lane_uid(&h, 0, 0) == 0);
+        memset(&tr, 0, sizeof tr); tr.block = block;
+        if (path) fm1_seq_host_dispatch_slots(&h, BLOCK, slots, 2);
+        else fm1_seq_host_dispatch(&h, BLOCK, block, &sink);
+        CHECK(tr.n >= 1 && tr.calls[tr.n - 1].kind == C_PARAM &&
+              tr.calls[tr.n - 1].index == path &&
+              tr.calls[tr.n - 1].value == fm1_seq_lock_value(&sink.engine->params[path], 40));
+      }
+    }
+  }
+}
+
+/* Several edits before dispatch must not retarget earlier events. In the
+ * slot case Timbre has a different uid/index, and Bank is lockable only
+ * on that engine. Repeat through both command APIs and all dispatch APIs. */
+static uint32_t q_begin(void *ctx, uint32_t frames, const fm1_engine_t *engine,
+                        uint32_t bpm, int playing) {
+  (void)ctx; (void)engine; (void)bpm; (void)playing;
+  return frames;
+}
+static void q_event(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int to_engine) {
+  unsigned *count = (unsigned *)ctx;
+  CHECK(frame == 0 && e->kind == FM1_SEQ_EV_LOCK && to_engine > 0);
+  ++*count;
+}
+static float q_lock(void *ctx, uint16_t index, float value) {
+  (void)ctx; (void)index;
+  return value;
+}
+static void queued_lock_targets(void) {
+  static trace_t tr;
+  static float block[2 * BLOCK];
+  static fm1_seq_ev_t ev[128];
+  for (unsigned typed = 0; typed < 2; ++typed) {
+    for (unsigned path = 0; path < 4; ++path) {
+      fm1_seq_host_t h;
+      fm1_seq_sink_t sink;
+      fm1_seq_slot_t slots[2];
+      fm1_seq_hook_t hook;
+      unsigned hooked = 0;
+      const unsigned slot = path & 1u;
+      const fm1_engine_t *engine = slot ? &kOther : &kEngine;
+      const char *const setup[] = {"tog 0 0 60 100", "alabel 0 0 synth:Timbre",
+                                  "abaseq 0 0 40", "aset 0 0 0 100 1", "play"};
+      const char *const ops[] = {
+        "aset 0 0 0 90", "aclr 0 0",
+        slot ? "alabel 0 0 synth:Bank" : "alabel 0 0 synth:Decay",
+        "abaseq 0 0 30", "aset 0 0 0 80", "aclr 0 0",
+        "alabel 0 0 synth:Timbre", "abaseq 0 0 70", "aset 0 0 0 60", "aclr 0 0"
+      };
+      const uint8_t values[] = {90, 40, 80, 60};
+      const uint8_t bases[] = {40, 40, 30, 70};
+      const uint16_t indices[] = {(uint16_t)slot, (uint16_t)slot,
+                                  (uint16_t)(slot ? 0 : 3), (uint16_t)slot};
+      memset(&sink, 0, sizeof sink);
+      sink.ctx = &tr; sink.engine = engine; sink.render = t_render;
+      sink.note_on = t_on; sink.note_off = t_off; sink.set_param = t_param;
+      memset(slots, 0, sizeof slots);
+      memset(&hook, 0, sizeof hook);
+      hook.ctx = &hooked; hook.begin = q_begin; hook.event = q_event;
+      hook.lock = q_lock;
+      slots[slot].sink = &sink; slots[slot].block = block;
+      fm1_seq_host_init(&h, make(mem_text), ev, 128);
+      fm1_seq_host_bind(&h, &kEngine);
+      fm1_seq_set_route(h.seq, 0, FM1_SEQ_ROUTE_ENGINE, (uint8_t)slot);
+      for (unsigned i = 0; i < sizeof setup / sizeof setup[0]; ++i)
+        fm1_seq_host_line(&h, setup[i], strlen(setup[i]));
+      for (unsigned i = 0; i < 4; ++i) {
+        fm1_seq_host_advance(&h, BLOCK);
+        memset(&tr, 0, sizeof tr); tr.block = block;
+        if (slot) fm1_seq_host_dispatch_slots(&h, BLOCK, slots, 2);
+        else fm1_seq_host_dispatch(&h, BLOCK, block, &sink);
+      }
+      CHECK(tr.n == 2 && tr.calls[0].kind == C_PARAM);
+      for (unsigned i = 0; i < sizeof ops / sizeof ops[0]; ++i) {
+        if (typed) {
+          fm1_seq_cmd_t c;
+          CHECK(fm1_seq_parse(ops[i], strlen(ops[i]), &c));
+          fm1_seq_host_cmd(&h, &c);
+        } else fm1_seq_host_line(&h, ops[i], strlen(ops[i]));
+      }
+      CHECK(fm1_seq_lane_label(h.seq, 0, 0)[0] == '\0');
+      CHECK(h.n == 4);
+      for (unsigned i = 0; i < h.n && i < 4; ++i) {
+        CHECK(ev[i].kind == FM1_SEQ_EV_LOCK && ev[i].b == values[i] &&
+              ev[i].lane_base == bases[i]);
+        CHECK(!strcmp(ev[i].label, i == 2 ? (slot ? "synth:Bank" : "synth:Decay") : "synth:Timbre"));
+      }
+      memset(&tr, 0, sizeof tr); tr.block = block;
+      if (path == 3) fm1_seq_host_dispatch_slots_ticks(&h, BLOCK, slots, 2, &hook);
+      else if (path == 2) fm1_seq_host_dispatch_ticks(&h, BLOCK, block, &sink, &hook);
+      else if (slot) fm1_seq_host_dispatch_slots(&h, BLOCK, slots, 2);
+      else fm1_seq_host_dispatch(&h, BLOCK, block, &sink);
+      CHECK(tr.n == 4);
+      CHECK(hooked == (path >= 2 ? 4u : 0u));
+      for (unsigned i = 0; i < tr.n && i < 4; ++i) {
+        CHECK(tr.calls[i].kind == C_PARAM && tr.calls[i].at == 0 &&
+              tr.calls[i].index == indices[i] &&
+              tr.calls[i].value == fm1_seq_lock_value(&engine->params[indices[i]], values[i]));
+      }
+    }
+  }
+
+  /* No prior dispatch or engine bind can supply a target cache. */
+  {
+    fm1_seq_host_t h;
+    fm1_seq_sink_t sink;
+    const char *const ops[] = {"alabel 0 0 synth:Timbre", "abaseq 0 0 40",
+                               "aset 0 0 0 90", "aclr 0 0"};
+    memset(&sink, 0, sizeof sink);
+    sink.ctx = &tr; sink.engine = &kEngine; sink.render = t_render;
+    sink.note_on = t_on; sink.note_off = t_off; sink.set_param = t_param;
+    fm1_seq_host_init(&h, make(mem_text), ev, 128);
+    fm1_seq_set_route(h.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
+    for (unsigned i = 0; i < sizeof ops / sizeof ops[0]; ++i)
+      fm1_seq_host_line(&h, ops[i], strlen(ops[i]));
+    CHECK(h.engine == NULL && fm1_seq_lane_label(h.seq, 0, 0)[0] == '\0' && h.n == 1);
+    memset(&tr, 0, sizeof tr); tr.block = block;
+    fm1_seq_host_dispatch(&h, BLOCK, block, &sink);
+    CHECK(tr.n == 1 && tr.calls[0].kind == C_PARAM && tr.calls[0].index == 0 &&
+          tr.calls[0].value == fm1_seq_lock_value(&kParams[0], 90));
+  }
+}
+
 int main(void) {
   uint64_t events = 0, calls = 0, inside = 0;
   parsers_and_figures();
@@ -1043,6 +1222,8 @@ int main(void) {
   inputs_and_dispatch(&events, &calls, &inside);
   hand_made_block();
   uids_and_refusals();
+  released_lane_reverts();
+  queued_lock_targets();
   hooked_block();
   slots();
   hooked_slots();

@@ -71,3 +71,42 @@ void lunar_diagnostic_fault(uint32_t reason) {
 }
 uint32_t lunar_diagnostic_status(void) { return fault; }
 const fm1_app_t *lunar_diagnostic_state(void) { return &app; }
+#ifdef LUNAR_DIAGNOSTIC_OFFLINE_PROOF
+/* Recreated DX7 instances start at the global default of 12 voices. The proof
+ * only admits the fixed unit-0 DX7 arrangement and restores its budget before
+ * rendering; other arrangements fail closed, never inherit a larger cap. */
+static int owner_admit(void) {
+  int dx7=fm1_app_find("dx7");
+  if (!ready || fault || dx7<0 || app.unit[0].index!=dx7 || !app.unit[0].e ||
+      !app.unit[0].self || !fm1_dx7_set_voice_limit(app.unit[0].self,8)) {
+    lunar_diagnostic_fault(8); return -1;
+  }
+  return 0;
+}
+int lunar_diagnostic_owner_button(int button,int down) {
+  if(button<0 || button>13 || (down!=0 && down!=1) || owner_admit()) return -1;
+  fm1_app_button(&app,button,down); return owner_admit();
+}
+int lunar_diagnostic_owner_encoder(int encoder,int delta) {
+  if(encoder<0 || encoder>6 || delta< -64 || delta>64 || owner_admit()) return -1;
+  fm1_app_encoder(&app,encoder,delta); return owner_admit();
+}
+int lunar_diagnostic_owner_select(int engine) {
+  if(owner_admit()) return -1;
+  int result=fm1_app_select(&app,0,engine);
+  if(owner_admit()) return -1;
+  return result;
+}
+int lunar_diagnostic_owner_render(int32_t *pcm,uint32_t frames) {
+  if(owner_admit()) {
+    if(pcm && frames<=FM1_APP_MAX_FRAMES) memset(pcm,0,2u*frames*sizeof *pcm);
+    return -1;
+  }
+  return lunar_diagnostic_render(pcm,frames);
+}
+const uint16_t *lunar_diagnostic_owner_draw(void *unused, uint32_t min_frames) {
+  (void)unused;
+  if (!ready || fault || !fm1_app_draw(&app, min_frames)) return NULL;
+  return app.tft.px;
+}
+#endif

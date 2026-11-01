@@ -120,7 +120,9 @@ unsigned fm1w_text_cap(void) { return (unsigned)sizeof g_text; }
 /* The sequencer. fm1w_seq_text applies the first `len` bytes of the text
  * buffer as one script line at the coming block's start and returns the
  * bytes it took (fm1_app_seq_line): fewer than `len` means the rest must
- * wait for the next render. -1 for a length past the buffer. */
+ * wait for the next render. -1 for a length past the buffer. This reports
+ * command admission, not semantic edit success; panel Capture reports a
+ * refused take through the shared app popup and retains its history. */
 int fm1w_seq_text(unsigned len) {
   if (len > sizeof g_text) return -1;
   return (int)fm1_app_seq_line(&g_app, g_text, len);

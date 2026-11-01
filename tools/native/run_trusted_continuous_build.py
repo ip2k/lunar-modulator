@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 import hashlib
 import json
 import os
@@ -340,127 +341,169 @@ def run_build(*, request_path: Path,
     snapshot = output.parent / ("." + output.name + "-source-" + secrets.token_hex(8))
     catalogue_snapshot = output.parent / ("." + output.name + "-catalogue-" + secrets.token_hex(8))
     request_copy = output.parent / ("." + output.name + "-" + secrets.token_hex(8) + ".request.json")
-    fd = os.open(request_copy, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o400)
-    with os.fdopen(fd, "wb") as request_stream:
-        request_stream.write(request_raw)
-        request_stream.flush()
-        os.fsync(request_stream.fileno())
-    catalogue_source_manifest = _toolchain_manifest(catalogue)
-    shutil.copytree(catalogue, catalogue_snapshot, symlinks=True, copy_function=shutil.copy2)
-    catalogue_snapshot_manifest = _toolchain_manifest(catalogue_snapshot)
-    catalogue_fields = _catalogue_snapshot_fields(
-        catalogue, catalogue_snapshot, catalogue_source_manifest, catalogue_snapshot_manifest)
-    subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", "--no-checkout",
-                    str(source), str(snapshot)], stdin=subprocess.DEVNULL,
-                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=120, check=True)
-    subprocess.run(["git", "-C", str(snapshot), "checkout", "--quiet", "--detach", commit],
-                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                   stderr=subprocess.DEVNULL, timeout=120, check=True)
-    snapshot_head = subprocess.run(["git", "-C", str(snapshot), "rev-parse", "HEAD"],
-                                   check=True, stdout=subprocess.PIPE, text=True).stdout.strip()
-    snapshot_status = subprocess.run(["git", "-C", str(snapshot), "status", "--porcelain=v1", "--untracked-files=all"],
-                                     check=True, stdout=subprocess.PIPE).stdout
-    if snapshot_head != commit or snapshot_status:
-        raise ValueError("detached source snapshot is not clean at the requested commit")
-    toolchain_manifest_raw = _toolchain_manifest(toolchain)
-    toolchain_manifest_sha = sha(toolchain_manifest_raw)
-    container_name = container_name or "lunar-continuous-" + secrets.token_hex(12)
-    cmd, mount_args = container_command(docker_binary, container_name, snapshot, request_copy,
-                                        toolchain, catalogue_snapshot, output, commit)
-    mounts = _expected_mounts(mount_args)
-    container_id = None
-    try:
-        raw_id = _run(docker_binary, cmd[len([docker_binary]):], timeout=60).decode("ascii").strip()
-        if not raw_id or len(raw_id) > 128 or any(c not in "0123456789abcdef" for c in raw_id):
-            raise ValueError("Docker returned an invalid container identifier")
-        container_id = raw_id
-        initial = _inspect(docker_binary, container_id)
-        initial_contract = inspected_contract(initial, mounts, commit, container_name, container_id)
-        if initial_contract["state"]["status"] != "created":
-            raise ValueError("new container was not in the created state")
-        _run(docker_binary, ["start", container_id], timeout=30)
-        deadline = monotonic() + timeout_seconds
-        final = initial
-        while True:
-            final = _inspect(docker_binary, container_id)
-            contract = inspected_contract(final, mounts, commit, container_name, container_id)
-            if not contract["state"]["running"]:
-                break
-            if monotonic() >= deadline:
-                raise TimeoutError("continuous build exceeded the fixed time limit")
-            time.sleep(poll_seconds)
-        contract = require_successful_exit(inspected_contract(final, mounts, commit, container_name, container_id))
+    # Register only exclusively created paths; collisions never confer ownership.
+    # ExitStack attempts every cleanup even if another cleanup raises.
+    with ExitStack() as temporary:
+        fd = os.open(request_copy, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o400)
+        temporary.callback(request_copy.unlink, missing_ok=True)
+        with os.fdopen(fd, "wb") as request_stream:
+            request_stream.write(request_raw)
+            request_stream.flush()
+            os.fsync(request_stream.fileno())
+        catalogue_source_manifest = _toolchain_manifest(catalogue)
+        catalogue_snapshot.mkdir(mode=0o700)
+        temporary.callback(_remove_private_snapshot, catalogue_snapshot, output.parent,
+                           "." + output.name + "-catalogue-")
+        shutil.copytree(catalogue, catalogue_snapshot, symlinks=True,
+                        copy_function=shutil.copy2, dirs_exist_ok=True)
+        catalogue_snapshot_manifest = _toolchain_manifest(catalogue_snapshot)
+        catalogue_fields = _catalogue_snapshot_fields(
+            catalogue, catalogue_snapshot, catalogue_source_manifest, catalogue_snapshot_manifest)
+        snapshot.mkdir(mode=0o700)
+        temporary.callback(_remove_private_snapshot, snapshot, output.parent,
+                           "." + output.name + "-source-")
+        subprocess.run(["git", "clone", "--quiet", "--no-hardlinks", "--no-checkout",
+                        str(source), str(snapshot)], stdin=subprocess.DEVNULL,
+                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=120, check=True)
+        subprocess.run(["git", "-C", str(snapshot), "checkout", "--quiet", "--detach", commit],
+                       stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                       stderr=subprocess.DEVNULL, timeout=120, check=True)
+        snapshot_head = subprocess.run(["git", "-C", str(snapshot), "rev-parse", "HEAD"],
+                                       check=True, stdout=subprocess.PIPE, text=True).stdout.strip()
+        snapshot_status = subprocess.run(["git", "-C", str(snapshot), "status", "--porcelain=v1", "--untracked-files=all"],
+                                         check=True, stdout=subprocess.PIPE).stdout
+        if snapshot_head != commit or snapshot_status:
+            raise ValueError("detached source snapshot is not clean at the requested commit")
+        toolchain_manifest_raw = _toolchain_manifest(toolchain)
+        toolchain_manifest_sha = sha(toolchain_manifest_raw)
+        container_name = container_name or "lunar-continuous-" + secrets.token_hex(12)
+        cmd, mount_args = container_command(docker_binary, container_name, snapshot, request_copy,
+                                            toolchain, catalogue_snapshot, output, commit)
+        mounts = _expected_mounts(mount_args)
+        container_id = None
+        try:
+            raw_id = _run(docker_binary, cmd[len([docker_binary]):], timeout=60).decode("ascii").strip()
+            if not raw_id or len(raw_id) > 128 or any(c not in "0123456789abcdef" for c in raw_id):
+                raise ValueError("Docker returned an invalid container identifier")
+            container_id = raw_id
+            initial = _inspect(docker_binary, container_id)
+            initial_contract = inspected_contract(initial, mounts, commit, container_name, container_id)
+            if initial_contract["state"]["status"] != "created":
+                raise ValueError("new container was not in the created state")
+            _run(docker_binary, ["start", container_id], timeout=30)
+            deadline = monotonic() + timeout_seconds
+            final = initial
+            while True:
+                final = _inspect(docker_binary, container_id)
+                contract = inspected_contract(final, mounts, commit, container_name, container_id)
+                if not contract["state"]["running"]:
+                    break
+                if monotonic() >= deadline:
+                    raise TimeoutError("continuous build exceeded the fixed time limit")
+                time.sleep(poll_seconds)
+            contract = require_successful_exit(inspected_contract(final, mounts, commit, container_name, container_id))
 
-        post_commit, post_manifest = _source_manifest(snapshot)
-        if post_commit != commit:
-            raise ValueError("source snapshot commit changed while the build ran")
-        post_toolchain_manifest = _toolchain_manifest(toolchain)
-        if sha(post_toolchain_manifest) != toolchain_manifest_sha:
-            raise ValueError("toolchain tree changed while the container was running")
-        post_catalogue_manifest = _toolchain_manifest(catalogue_snapshot)
-        if post_catalogue_manifest != catalogue_snapshot_manifest:
-            raise ValueError("private catalogue snapshot changed while the container was running")
-        build_output = output / "build"
-        worker_path = snapshot / WORKER_REL
-        worker_sha = sha(worker_path.read_bytes())
-        wrapper_sha = sha((snapshot / "tools/native/run_trusted_continuous_build.py").read_bytes())
-        worker_raw = (output / "worker-provenance.json").read_bytes()
-        worker = _json(worker_raw, "worker provenance")
-        if (worker.get("source_commit") != commit or worker.get("request_sha256") != sha(request_raw)
-                or worker.get("runtime_mode") != "continuous"
-                or worker.get("flash_layout") != "expanded-d7000"
-                or worker.get("hardware_admitted") is not False
-                or worker.get("hardware_tested") is not False
-                or worker.get("installable") is not False):
-            raise ValueError("worker provenance differs from the requested fixed build")
-        invocation = {
-            "schema": 1,
-            "source_commit": commit,
-            "request_sha256": sha(request_raw),
-            "request_mount_source": str(request_copy.resolve()),
-            "image_id": PINNED_IMAGE_ID,
-            "container_id": container_id,
-            "container_name": container_name,
-            "container_command": cmd[1:],
-            "container_inspection": contract,
-            "container_inspection_sha256": sha(canonical(contract)),
-            "post_build_source_tree_sha256": sha(post_manifest),
-            "container_command_sha256": sha(canonical(cmd[1:])),
-            "wrapper_sha256": wrapper_sha,
-            "worker_sha256": worker_sha,
-            "worker_provenance_sha256": sha(worker_raw),
-            "toolchain_tree_sha256": toolchain_manifest_sha,
-            **catalogue_fields,
-            "state_tool_sha256": worker.get("state_tool_sha256"),
-            "resources": DOCKER_POLICY,
-            "exit_code": 0,
-            "hardware_admitted": False,
-            "hardware_tested": False,
-            "installable": False,
-        }
-        _write_exclusive(output / "toolchain-manifest.json", toolchain_manifest_raw)
-        _write_exclusive(output / "catalogue-tree-manifest.json", catalogue_snapshot_manifest)
-        _write_exclusive(output / "container-invocation.json", canonical(invocation))
-        return capture_trusted_build_tuple(snapshot, catalogue_snapshot, build_output, toolchain,
-                                           invocation_path=output / "container-invocation.json",
-                                           worker_source_path=snapshot / WORKER_REL,
-                                           worker_provenance_path=output / "worker-provenance.json",
-                                           wrapper_path=snapshot / WORKER_REL.replace("trusted_continuous_worker.py", "run_trusted_continuous_build.py"))
-    except Exception:
-        # Keep the private output directory and evidence for diagnosis; never reuse it.
-        if container_id is not None:
-            _retain_failure_log(docker_binary, container_id, output)
-        raise
-    finally:
-        cleanup_confirmed = cancel_owned_container(container_name, cwd=source,
-                                                     docker=docker_binary)
-        request_copy.unlink(missing_ok=True)
-        if snapshot.exists() and not snapshot.is_symlink():
-            _remove_private_snapshot(snapshot, output.parent, "." + output.name + "-source-")
-        if catalogue_snapshot.exists() and not catalogue_snapshot.is_symlink():
-            _remove_private_snapshot(catalogue_snapshot, output.parent, "." + output.name + "-catalogue-")
-        if not cleanup_confirmed:
-            raise ValueError("could not confirm exact owned container cleanup")
+            post_commit, post_manifest = _source_manifest(snapshot)
+            if post_commit != commit:
+                raise ValueError("source snapshot commit changed while the build ran")
+            post_toolchain_manifest = _toolchain_manifest(toolchain)
+            if sha(post_toolchain_manifest) != toolchain_manifest_sha:
+                raise ValueError("toolchain tree changed while the container was running")
+            post_catalogue_manifest = _toolchain_manifest(catalogue_snapshot)
+            if post_catalogue_manifest != catalogue_snapshot_manifest:
+                raise ValueError("private catalogue snapshot changed while the container was running")
+            build_output = output / "build"
+            worker_path = snapshot / WORKER_REL
+            worker_sha = sha(worker_path.read_bytes())
+            wrapper_sha = sha((snapshot / "tools/native/run_trusted_continuous_build.py").read_bytes())
+            worker_raw = (output / "worker-provenance.json").read_bytes()
+            worker = _json(worker_raw, "worker provenance")
+            if (worker.get("source_commit") != commit or worker.get("request_sha256") != sha(request_raw)
+                    or worker.get("runtime_mode") != "continuous"
+                    or worker.get("flash_layout") != "expanded-d7000"
+                    or worker.get("hardware_admitted") is not False
+                    or worker.get("hardware_tested") is not False
+                    or worker.get("installable") is not False):
+                raise ValueError("worker provenance differs from the requested fixed build")
+            invocation = {
+                "schema": 1,
+                "source_commit": commit,
+                "request_sha256": sha(request_raw),
+                "request_mount_source": str(request_copy.resolve()),
+                "image_id": PINNED_IMAGE_ID,
+                "container_id": container_id,
+                "container_name": container_name,
+                "container_command": cmd[1:],
+                "container_inspection": contract,
+                "container_inspection_sha256": sha(canonical(contract)),
+                "post_build_source_tree_sha256": sha(post_manifest),
+                "container_command_sha256": sha(canonical(cmd[1:])),
+                "wrapper_sha256": wrapper_sha,
+                "worker_sha256": worker_sha,
+                "worker_provenance_sha256": sha(worker_raw),
+                "toolchain_tree_sha256": toolchain_manifest_sha,
+                **catalogue_fields,
+                "state_tool_sha256": worker.get("state_tool_sha256"),
+                "resources": DOCKER_POLICY,
+                "exit_code": 0,
+                "hardware_admitted": False,
+                "hardware_tested": False,
+                "installable": False,
+            }
+            _write_exclusive(output / "toolchain-manifest.json", toolchain_manifest_raw)
+            _write_exclusive(output / "catalogue-tree-manifest.json", catalogue_snapshot_manifest)
+            _write_exclusive(output / "container-invocation.json", canonical(invocation))
+            return capture_trusted_build_tuple(snapshot, catalogue_snapshot, build_output, toolchain,
+                                               invocation_path=output / "container-invocation.json",
+                                               worker_source_path=snapshot / WORKER_REL,
+                                               worker_provenance_path=output / "worker-provenance.json",
+                                               wrapper_path=snapshot / WORKER_REL.replace("trusted_continuous_worker.py", "run_trusted_continuous_build.py"))
+        except Exception:
+            # Keep the private output directory and evidence for diagnosis; never reuse it.
+            if container_id is not None:
+                _retain_failure_log(docker_binary, container_id, output)
+            raise
+        finally:
+            cleanup_confirmed = False
+            cleanup_error = None
+            try:
+                cleanup_confirmed = cancel_owned_container(container_name, cwd=source,
+                                                            docker=docker_binary) is True
+            except BaseException as error:
+                cleanup_error = error
+                raise
+            finally:
+                if not cleanup_confirmed:
+                    # A failed/ambiguous create may still have installed mounts.
+                    # Keep every acquired input until exact owned absence is proven.
+                    temporary.pop_all()
+                    _write_exclusive(output / "container-cleanup-unconfirmed.json", canonical({
+                        "schema": 1,
+                        "cleanup_confirmed": False,
+                        "cleanup_error_type": type(cleanup_error).__name__ if cleanup_error else None,
+                        "create_attempted": True,
+                        "container_name": container_name,
+                        "container_id": container_id,
+                        "owner_label": {"lan.owner": container_name},
+                        "docker_binary": str(docker_binary),
+                        "source_root": str(source),
+                        "ownership_verified": False,
+                        "source_commit": commit,
+                        "request_sha256": sha(request_raw),
+                        "request_copy": str(request_copy),
+                        "source_snapshot": str(snapshot),
+                        "catalogue_snapshot": str(catalogue_snapshot),
+                        "toolchain_root": str(toolchain),
+                        "output_root": str(output),
+                        "recovery": "Inspect the expected name and owner label; never delete by name alone. "
+                                    "Preserve inputs until exact owned container absence is confirmed.",
+                        "hardware_admitted": False,
+                        "hardware_tested": False,
+                        "installable": False,
+                    }))
+            if not cleanup_confirmed:
+                raise ValueError("could not confirm exact owned container cleanup; inputs retained; "
+                                 "see " + str(output / "container-cleanup-unconfirmed.json"))
 
 
 def main():

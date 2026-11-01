@@ -465,19 +465,45 @@ static int close_overlay(fm1_seq_ui_t *u, const fm1_seq_ui_emit_t *out) {
   return 1;
 }
 
-/* SHIFT + REC: the notes buffered go into the focused track's clip; with
- * none, a toast (Movy's captureButton). The next sync says what it did. */
+/* SHIFT + REC: send once; the host completes this exact CAP when it runs,
+ * which may be later than the next sync. BUSY is not an admitted command. */
 static void capture(fm1_seq_ui_t *u, const fm1_seq_ui_emit_t *out) {
-  int64_t arg[1];
+  fm1_seq_cmd_t c;
+  const int64_t arg = u->track;
+  int result;
+  if (u->cap_sent) return;       /* the admitted request already waits; no retry */
   if (!u->capture_pending) {
     u->toast = FM1_SEQ_TOAST_NOTHING;
     return;
   }
-  arg[0] = u->track;
-  emit(out, FM1_SEQ_V_CAP, 1, arg);
-  u->cap_sent = 1;
-  u->cap_gen_sent = u->capture_gen;
-  u->capture_pending = 0;
+  fm1_seq_cmd_make(&c, FM1_SEQ_V_CAP, 1, &arg);
+  u->cap_sent = 1;              /* arm before a synchronous application callback */
+  result = out && out->cmd ? out->cmd(out->ctx, &c) : FM1_SEQ_UI_CMD_REFUSED;
+  if (result != FM1_SEQ_UI_CMD_APPLIED && result != FM1_SEQ_UI_CMD_HELD) {
+    u->cap_sent = 0;
+    u->toast = FM1_SEQ_TOAST_CAPTURE_BUSY;
+  }
+}
+
+void fm1_seq_ui_capture_begin(fm1_seq_ui_t *u, const fm1_seq_t *s) {
+  fm1_seq_info_t info;
+  fm1_seq_stats_t stats;
+  fm1_seq_get_info(s, &info);
+  fm1_seq_get_stats(s, &stats);
+  u->cap_gen_sent = info.capture_gen;
+  u->cap_refused_sent = stats.refused;
+}
+
+void fm1_seq_ui_capture_end(fm1_seq_ui_t *u, const fm1_seq_t *s) {
+  fm1_seq_info_t info;
+  fm1_seq_stats_t stats;
+  fm1_seq_get_info(s, &info);
+  fm1_seq_get_stats(s, &stats);
+  u->cap_sent = 0;
+  if (info.capture_gen == u->cap_gen_sent) {
+    u->toast = stats.refused != u->cap_refused_sent && info.capture_pending
+                 ? FM1_SEQ_TOAST_CAPTURE_REFUSED : FM1_SEQ_TOAST_NOTHING;
+  } else if (info.capture_mode == FM1_SEQ_UI_CAPTURE_NONE) u->toast = FM1_SEQ_TOAST_CAPTURED;
 }
 
 int fm1_seq_ui_rec_led(const fm1_seq_ui_t *u, uint64_t frame, int held) {
@@ -699,13 +725,6 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
   u->capture_sel = i.capture_sel;
   memcpy(u->capture_cands, i.capture_cands, sizeof u->capture_cands);
   u->capture_gen = i.capture_gen;
-  if (u->cap_sent) {
-    /* The `cap` sent at SHIFT + REC: a take written opens the core's overlay
-     * (a stopped Capture's picker or fitted tempo) or says so. */
-    u->cap_sent = 0;
-    if (i.capture_gen == u->cap_gen_sent) u->toast = FM1_SEQ_TOAST_NOTHING;
-    else if (i.capture_mode == FM1_SEQ_UI_CAPTURE_NONE) u->toast = FM1_SEQ_TOAST_CAPTURED;
-  }
   if (u->srec && i.playing) srec_end(u);     /* a stopped-transport mode, as Movy's */
   if (u->track >= i.tracks) u->track = 0;
   u->tracks = i.tracks;

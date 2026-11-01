@@ -2,9 +2,10 @@
 """Private/local build-service API prototype; no Kubernetes or build execution."""
 from __future__ import annotations
 import asyncio, hashlib, json, re, secrets, threading, time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Callable, Literal, Protocol
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
@@ -14,12 +15,14 @@ from tools.native.flash_layout import app_budget
 from tools.native.runtime_mode import runtime_configuration
 from .request_contract import (BuildRequest, DuplicateKey, GROUPS, MAX_REQUEST_BYTES,
                                canonical_request, decode_json_object, _unique_object, _reject_constant)
-from . import continuous_profile
+from . import continuous_profile, selected_trio_profile
 from .provenance import make_diagnostic_provenance, sha256 as provenance_sha256
 
 MAX_BODY_BYTES = MAX_REQUEST_BYTES
 MAX_ARTIFACT_BYTES = 1048576
 MAX_ELF_BYTES = 16 * 1024 * 1024
+SELECTED_RECORD_CAP = 4
+SELECTED_MAX_PRIVATE_EVIDENCE_BYTES = 16 * 1024 * 1024
 OPAQUE_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 WAVETABLE_PROFILE = "compressed-required-banks-flash-plaits-v1"
@@ -625,12 +628,6 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
                queue_cap: int = 1, record_cap: int = 64,
                retention_seconds: int = 3600, clock=time.monotonic) -> FastAPI:
     """Construct a local API around an injected fixed adapter and trusted catalogue."""
-    if type(queue_cap) is not int or not 1 <= queue_cap <= 4:
-        raise ValueError("queue_cap must be between 1 and 4")
-    if type(record_cap) is not int or not 1 <= record_cap <= 128:
-        raise ValueError("record_cap must be between 1 and 128")
-    if type(retention_seconds) is not int or not 60 <= retention_seconds <= 86400:
-        raise ValueError("retention_seconds must be between 60 and 86400")
     if not module_kinds or not project_ids:
         raise ValueError("trusted module and project catalogues are required")
     set_parents = {} if set_parents is None else set_parents
@@ -638,25 +635,146 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
             or any(not isinstance(key, str) or not isinstance(value, str)
                    or value not in project_ids for key, value in set_parents.items())):
         raise ValueError("trusted companion SET catalogue is malformed")
+
+    def validate(raw):
+        model = BuildRequest.model_validate(decode_json_object(raw, limit=MAX_BODY_BYTES))
+        doc = model.model_dump(mode="json", exclude_defaults=True)
+        for group, kind in zip(GROUPS, ("sound", "audio_fx", "midi_fx", "mod")):
+            if any(module.startswith("test-") or module not in module_kinds or module_kinds[module] != kind
+                   for module in doc[group]):
+                raise ValueError("invalid build request")
+        if (any(project not in project_ids for project in doc["project_ids"])
+                or any(set_id not in set_parents for set_id in doc.get("set_ids", []))
+                or any(set_parents[set_id] not in doc["project_ids"]
+                       or set_parents[set_id] != doc["project_ids"][doc["startup_index"]]
+                       for set_id in doc.get("set_ids", []))):
+            raise ValueError("invalid build request")
+        return doc
+
+    return _create_job_app(adapter=adapter, template=template, request_validator=validate,
+        result_verifier=lambda admission, result, _: _verify_result(admission, result, set_parents),
+        build_path="/api/v1/builds", title="Private Lunar diagnostic build prototype",
+        kind=lambda doc: ("private-continuous-build" if doc.get("runtime_mode") == "continuous"
+                          else "private-diagnostic-build"), queue_cap=queue_cap,
+        record_cap=record_cap, retention_seconds=retention_seconds, clock=clock)
+
+
+def create_selected_trio_app(*, adapter: JobAdapter, template: WorkerTemplate,
+        source_commit: str, source_tree_oid: str, verify_result: Callable,
+        enable_private_builds: bool = False, queue_cap: int = 1, record_cap: int = SELECTED_RECORD_CAP,
+        retention_seconds: int = 3600, clock=time.monotonic) -> FastAPI:
+    """Explicit private offline API; callback uses host-owned per-job trust state.
+
+    The callback must validate only already acquired bounded inputs, without
+    subprocesses or external input acquisition. One executor slot bounds work;
+    callers receive503 while it is occupied. Shutdown drains it before adapter
+    shutdown/deletion, including when the HTTP waiter has been cancelled.
+    """
+    if enable_private_builds is not True:
+        raise ValueError("selected Trio builds require explicit operator enablement")
+    if (not isinstance(source_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", source_commit)
+            or not isinstance(source_tree_oid, str) or not re.fullmatch(r"[0-9a-f]{40}", source_tree_oid)):
+        raise ValueError("selected Trio requires pinned source identity")
+    if type(record_cap) is not int or not 1 <= record_cap <= SELECTED_RECORD_CAP:
+        raise ValueError("selected Trio retains at most four jobs")
+    if not callable(verify_result):
+        raise ValueError("selected Trio requires host-owned result verification")
+
+    def verify(admission, result, build_id):
+        profile = selected_trio_profile
+        try:
+            for raw, maximum in ((result.artifact, profile.APP_BUDGET),
+                                 (result.elf, profile.MAX_ELF),
+                                 (result.receipt, profile.MAX_RECEIPT),
+                                 (result.provenance, profile.MAX_RECEIPT)):
+                if type(raw) is not bytes or not 0 < len(raw) <= maximum:
+                    raise ValueError("bounded selected result bytes required")
+            evidence = result.private_evidence
+            if (type(evidence) is not dict or not evidence or len(evidence) > 10000
+                    or any(type(k) is not str or type(v) is not bytes for k, v in evidence.items())
+                    or sum(map(len, evidence.values())) > SELECTED_MAX_PRIVATE_EVIDENCE_BYTES):
+                raise ValueError("bounded selected private evidence required")
+            summary = verify_result(build_id, canonical_request(admission.request), result)
+            expected = dict(version=2, profile_id=profile.SELECTED_TRIO_PROFILE,
+                runtime_mode="offline", flash_layout="stock-sized-diagnostic",
+                request_sha256=admission.request_sha256, source_commit=source_commit,
+                source_tree_oid=source_tree_oid, receipt_sha256=hashlib.sha256(result.receipt).hexdigest(),
+                artifact_sha256=hashlib.sha256(result.artifact).hexdigest(),
+                elf_sha256=hashlib.sha256(result.elf).hexdigest(), artifact_bytes=len(result.artifact),
+                app_budget_bytes=profile.APP_BUDGET, remaining_bytes=profile.APP_BUDGET-len(result.artifact),
+                internal_dependencies=["arp"], **profile.DENIED)
+            if (type(summary) is not dict or set(summary) != set(expected)
+                    or canonical_request(summary) != canonical_request(expected)):
+                raise ValueError("selected result summary differs from admitted inputs")
+            return expected
+        except Exception as error:
+            # Callback/private evidence errors never disclose paths or raw logs.
+            raise ValueError("selected result verification failed") from error
+
+    app = _create_job_app(adapter=adapter, template=template,
+        request_validator=selected_trio_profile.validate_request, result_verifier=verify,
+        build_path="/api/v2/offline-builds", title="Private Lunar Trio offline build",
+        kind=lambda _: "private-selected-trio-offline-build", queue_cap=queue_cap,
+        record_cap=record_cap, retention_seconds=retention_seconds, clock=clock,
+        offload_verification=True)
+    from starlette.middleware.trustedhost import TrustedHostMiddleware
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
+    return app
+
+
+def _create_job_app(*, adapter, template, request_validator, result_verifier,
+                    build_path, title, kind, queue_cap, record_cap, retention_seconds,
+                    clock, offload_verification=False):
+    """Shared bounded queue and lifecycle; profile policy stays in its factory."""
+    if type(queue_cap) is not int or not 1 <= queue_cap <= 4:
+        raise ValueError("queue_cap must be between 1 and 4")
+    if type(record_cap) is not int or not 1 <= record_cap <= 128:
+        raise ValueError("record_cap must be between 1 and 128")
+    if type(retention_seconds) is not int or not 60 <= retention_seconds <= 86400:
+        raise ValueError("retention_seconds must be between 60 and 86400")
+    verification_slot = threading.BoundedSemaphore(1)
+    verification_executor = None
+    closing = offload_verification
+
     @asynccontextmanager
     async def lifespan(_app):
+        nonlocal verification_executor, closing
+        if offload_verification:
+            with lock:
+                closing = False
         try:
             yield
         finally:
+            if offload_verification:
+                with lock:
+                    closing = True
+            if verification_executor is not None:
+                await asyncio.to_thread(verification_executor.shutdown, wait=True, cancel_futures=True)
+                verification_executor = None
             shutdown = getattr(adapter, "shutdown", None)
             if callable(shutdown):
                 await asyncio.to_thread(shutdown)
+            if callable(shutdown) or offload_verification:
                 # Workers are drained before removing only this process's jobs.
                 # A failed drain keeps evidence in place for recovery.
                 with lock:
                     for build_id in tuple(admissions):
-                        adapter.delete(build_id)
-                        admissions.pop(build_id, None)
+                        delete_admission(build_id)
 
-    app = FastAPI(title="Private Lunar diagnostic build prototype", docs_url=None,
+    app = FastAPI(title=title, docs_url=None,
                   redoc_url=None, openapi_url=None, lifespan=lifespan)
     admissions: dict[str, Admission] = {}
+    verifying: set[str] = set()
     lock = threading.Lock()
+
+    def delete_admission(build_id):
+        adapter.delete(build_id)
+        if not offload_verification or adapter.get(build_id) is None:
+            admissions.pop(build_id, None)
+            return True
+        # Selected recovery state stays capacity-accounted until owned cleanup
+        # is confirmed. A no-op delete must never permit unbounded retention.
+        return False
 
     async def read_bounded_json(request: Request):
         media = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
@@ -677,25 +795,13 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
             if len(body) > MAX_BODY_BYTES:
                 return None, JSONResponse({"detail": "request body is too large"}, 413)
         try:
-            decoded = decode_json_object(bytes(body), limit=MAX_BODY_BYTES)
-            model = BuildRequest.model_validate(decoded)
+            doc = request_validator(bytes(body))
         except (UnicodeDecodeError, json.JSONDecodeError, DuplicateKey, ValueError,
                 ValidationError, RecursionError):
             return None, JSONResponse({"detail": "invalid build request"}, 422)
-        doc = model.model_dump(mode="json", exclude_defaults=True)
-        for group, kind in zip(GROUPS, ("sound", "audio_fx", "midi_fx", "mod")):
-            if any(module.startswith("test-") or module not in module_kinds or module_kinds[module] != kind
-                   for module in doc[group]):
-                return None, JSONResponse({"detail": "invalid build request"}, 422)
-        if (any(project not in project_ids for project in doc["project_ids"])
-                or any(set_id not in set_parents for set_id in doc.get("set_ids", []))
-                or any(set_parents[set_id] not in doc["project_ids"]
-                       or set_parents[set_id] != doc["project_ids"][doc["startup_index"]]
-                       for set_id in doc.get("set_ids", []))):
-            return None, JSONResponse({"detail": "invalid build request"}, 422)
         return doc, None
 
-    @app.post("/api/v1/builds", status_code=202)
+    @app.post(build_path, status_code=202)
     async def submit_build(request: Request):
         doc, error = await read_bounded_json(request)
         if error is not None:
@@ -704,16 +810,17 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
         digest = hashlib.sha256(data).hexdigest()
         build_id = secrets.token_urlsafe(24)
         with lock:
+            if offload_verification and closing:
+                return JSONResponse({"detail": "build service unavailable"}, 503)
             now = clock()
             expired = []
             for existing_id, existing in admissions.items():
                 snapshot = adapter.get(existing_id)
                 terminal = snapshot is None or snapshot.status in ("succeeded", "failed")
-                if terminal and now - existing.created_at >= retention_seconds:
+                if terminal and existing_id not in verifying and now - existing.created_at >= retention_seconds:
                     expired.append(existing_id)
             for existing_id in expired:
-                adapter.delete(existing_id)
-                admissions.pop(existing_id, None)
+                delete_admission(existing_id)
             if len(admissions) >= record_cap:
                 return JSONResponse({"detail": "build record capacity is full"}, 429,
                                     headers={"Retry-After": str(retention_seconds)})
@@ -734,31 +841,58 @@ def create_app(*, adapter: JobAdapter, template: WorkerTemplate,
                 return JSONResponse({"detail": "build service unavailable"}, 503)
             admissions[build_id] = Admission(digest, doc, now, template.image_digest)
         return JSONResponse({"id": build_id, "status": "queued",
-                             "status_url": f"/api/v1/builds/{build_id}"}, 202)
+                             "status_url": f"{build_path}/{build_id}"}, 202)
 
-    @app.get("/api/v1/builds/{build_id}")
+    @app.get(build_path + "/{build_id}")
     async def get_build(build_id: str):
+        nonlocal verification_executor
         if not OPAQUE_ID.fullmatch(build_id):
             return JSONResponse({"detail": "build not found"}, 404)
         with lock:
+            if offload_verification and closing:
+                return JSONResponse({"detail": "build service unavailable"}, 503)
             admission = admissions.get(build_id)
-            if admission is not None and clock() - admission.created_at >= retention_seconds:
+            if admission is not None and build_id not in verifying and clock() - admission.created_at >= retention_seconds:
                 expiring = adapter.get(build_id)
                 if expiring is None or expiring.status in ("succeeded", "failed"):
-                    adapter.delete(build_id)
-                    admissions.pop(build_id, None)
-                    admission = None
+                    if delete_admission(build_id):
+                        admission = None
             snapshot = adapter.get(build_id) if admission is not None else None
         if admission is None or snapshot is None:
             return JSONResponse({"detail": "build not found"}, 404)
         result = {"id": build_id, "status": snapshot.status,
-                  "kind": ("private-continuous-build" if admission.request.get("runtime_mode") == "continuous"
-                           else "private-diagnostic-build")}
+                  "kind": kind(admission.request)}
         if snapshot.status == "succeeded":
             if snapshot.result is None:
                 return JSONResponse({"detail": "build result unavailable"}, 502)
             try:
-                result["result"] = _verify_result(admission, snapshot.result, set_parents)
+                if offload_verification:
+                    if not verification_slot.acquire(blocking=False):
+                        return JSONResponse({"detail": "build verification is busy"}, 503,
+                                            headers={"Retry-After": "1"})
+                    with lock:
+                        verifying.add(build_id)
+                    try:
+                        if verification_executor is None:
+                            verification_executor = ThreadPoolExecutor(max_workers=1,
+                                thread_name_prefix="lunar-offline-verification")
+                        future = verification_executor.submit(result_verifier, admission,
+                                                               snapshot.result, build_id)
+                    except Exception:
+                        with lock:
+                            verifying.discard(build_id)
+                        verification_slot.release()
+                        raise ValueError("build verification unavailable")
+                    # A cancelled HTTP waiter cannot release the slot while its
+                    # verification thread still uses private evidence.
+                    def verified(_):
+                        with lock:
+                            verifying.discard(build_id)
+                        verification_slot.release()
+                    future.add_done_callback(verified)
+                    result["result"] = await asyncio.wrap_future(future)
+                else:
+                    result["result"] = result_verifier(admission, snapshot.result, build_id)
             except (ValueError, TypeError, AttributeError, KeyError, OverflowError):
                 return JSONResponse({"detail": "build result failed verification"}, 502)
         return result

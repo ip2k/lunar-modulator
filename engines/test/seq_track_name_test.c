@@ -28,8 +28,9 @@ int main(void) {
   /* 16 bytes per track added: the NUL uses existing tail alignment padding.
    * The instance plus the host's fixed event/pending/UI/click allocations. */
   assert(sizeof(sq_track_t) == 256u && size == 32080u);
+  assert(sizeof(fm1_seq_ev_t) == 36u);
   assert(size <= 32768u);
-  assert(size + 272u * sizeof(fm1_seq_ev_t) + sizeof(fm1_seq_cmd_t) + 1024u + 20u <= 36864u);
+  assert(size + 272u * sizeof(fm1_seq_ev_t) + sizeof(fm1_seq_cmd_t) + 1024u + 20u <= 45056u);
   arena[32768u / 8u] = UINT64_C(0x123456789abcdef0);
   s = fm1_seq_create(arena, &lim, 44118);
   assert(s);
@@ -96,7 +97,7 @@ int main(void) {
   fm1_seq_export_movy1(s, exported, sizeof exported);
   assert(!strstr(exported, "tn "));
   assert(arena[32768u / 8u] == UINT64_C(0x123456789abcdef0));
-  printf("native track names: instance %zu B; track %zu B; importer %zu B; budget %zu/36864 B\n",
-    size, sizeof(sq_track_t), sizeof(fm1_seq_import_t), size + 3264u + 240u + 1024u + 20u);
+  printf("native track names: instance %zu B; track %zu B; importer %zu B; budget %zu/45056 B\n",
+    size, sizeof(sq_track_t), sizeof(fm1_seq_import_t), size + 272u * sizeof(fm1_seq_ev_t) + 240u + 1024u + 20u);
   return 0;
 }

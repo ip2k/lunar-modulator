@@ -266,7 +266,7 @@ typedef struct fm1_state_report {
                                  "planned", "retired"), "" when no list names it */
   char near[44];              /* the source's first 40 characters there */
   uint32_t near_at;           /* where `near` starts: the member's key, or the offset */
-  uint32_t skipped;           /* members, names and values left out (unknown or unresolvable) */
+  uint32_t skipped;           /* omitted members/names/values, including nonempty newer-chunk tails */
   uint32_t repaired;          /* values clamped, text stripped or cut */
   uint32_t defaulted;         /* values a writer filled in with their default */
   uint32_t unknown;           /* engines and kinds not in this build (UNKNOWN unless allowed) */
@@ -448,6 +448,55 @@ fm1_state_writer_t *fm1_state_bin_writer(void *mem, unsigned flags, unsigned wri
                                          fm1_state_report_t *rep);
 int fm1_state_bin_write(void *w, const fm1_rec_t *r);   /* a sink; the file goes out at END */
 
+/* Bounded plain (never DEFLATED) two-pass writer. Both memory blocks are
+ * caller-owned, 16-aligned, disjoint, and sized by these queries. The plan
+ * stays immutable and alive from successful pass1 END through replay and
+ * readback; scratch can be reused between passes. The source and registries
+ * must be exclusively held stable for the whole transaction. CRCs are not a
+ * lock, authentication, or a collision-proof mutation detector.
+ *
+ * Pass1 has NO output callback. Only a successful END produces a usable plan;
+ * invalid records preserve the ordinary writer's reports/failure positions.
+ * Only then may the caller open an uncommitted transaction. Replay uses the
+ * same fm1_state_bin_write sink; it writes payload at final offsets, directory
+ * next, header last. write_at must synchronously return exactly n on success;
+ * any short/error result poisons replay, even if some bytes reached storage.
+ * No retries, erase, commit, rollback, allocation, source lock or storage
+ * binding is provided here. All callback bytes are borrowed for the call.
+ * Reports, version bytes, records and their referenced source bytes, callback
+ * contexts and backing input/output storage must not overlap either supplied
+ * memory block. Known report/version overlaps and context pointers inside a
+ * block are rejected; opaque context/backing extents are the caller's duty.
+ * Callbacks must not retain bytes, mutate source/plan/scratch, reconstruct an
+ * active writer, or reenter it. A nested record call poisons the outer replay;
+ * its in-flight callback may already have written bytes, so abort the stage.
+ * Other independent instances are allowed; concurrent access to one instance
+ * requires external exclusion. Readback callbacks may not mutate the plan.
+ *
+ * After successful replay END, match the entire staged image to this frozen
+ * plan AND validate with fm1_state_bin_read(skip_crc=0) before an independent
+ * commit. match checks expected header/directory, CRCs, zero gaps and exact
+ * extent, not semantic/load/rate/RAM admission. It accepts bounded short reads
+ * but refuses zero progress. An uncertain outer commit requires a rescan.
+ *
+ * Constructors return NULL on bad size/alignment/overlap/plan, setting BAD
+ * unless report already holds an error. An overlapping report is untouched.
+ * Existing host APIs are unchanged. */
+typedef struct fm1_state_bin_plan fm1_state_bin_plan_t;
+typedef uint32_t (*fm1_state_write_at_t)(void *ctx, uint32_t off,
+                                       const uint8_t *bytes, uint32_t n);
+size_t fm1_state_bin_compact_size(void);
+size_t fm1_state_bin_plan_size(void);
+fm1_state_writer_t *fm1_state_bin_preflight(void *mem, size_t bytes,
+    void *plan, size_t plan_bytes, unsigned writer, const uint8_t version[3],
+    fm1_state_report_t *rep);
+fm1_state_writer_t *fm1_state_bin_replay(void *mem, size_t bytes,
+    const void *plan, size_t plan_bytes, fm1_state_write_at_t write_at, void *ctx,
+    fm1_state_report_t *rep);
+uint32_t fm1_state_bin_plan_total(const void *plan, size_t plan_bytes);
+int fm1_state_bin_plan_match(const void *plan, size_t plan_bytes,
+    fm1_src_read_t rd, void *ctx, uint32_t total, fm1_state_report_t *rep);
+
 /* Reads a binary file from a source; total is its length. A file shorter
  * than its header says, a CRC that does not match, an unknown critical
  * chunk or any length past its cap refuses it before a record is given
@@ -455,6 +504,16 @@ int fm1_state_bin_write(void *w, const fm1_rec_t *r);   /* a sink; the file goes
  * appliers run pass 1 first (§10.1). `skip_crc` is for the fuzz build only. */
 int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_sink_t sink,
                        void *sctx, fm1_state_report_t *rep, int skip_crc);
+/* Same parser and report/callback order with large chunk state in caller memory.
+ * 16-byte aligned, queried-size storage is exclusively owned until return.
+ * Callbacks must not retain record bytes, reenter/reconstruct this workspace,
+ * or alias its extent through opaque source/sink backing. Known report and
+ * context-pointer overlaps are refused without mutating an aliased report.
+ * The app adapter enforces its single synchronous lease around this call. */
+size_t fm1_state_bin_reader_size(void);
+int fm1_state_bin_read_workspace(void *mem, size_t bytes, fm1_src_read_t rd, void *rctx,
+    uint32_t total, fm1_rec_sink_t sink, void *sctx, fm1_state_report_t *rep, int skip_crc);
+
 
 /* Which encoding the bytes start with: 1 binary, 2 JSON (after white
  * space), 3 a movy1 set, 4 DX7 SysEx or a raw bank, 0 none (§11). */

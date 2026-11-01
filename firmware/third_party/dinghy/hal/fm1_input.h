@@ -51,6 +51,15 @@
 #ifndef FM1_INPUT_IDLE
 #define FM1_INPUT_IDLE() ((void)0)
 #endif
+/* Optional accepted-event observer, in scan order and the scanner's context.
+ * Default paths are unchanged. Hooks must be bounded/nonblocking; they must
+ * not call the app or consume aggregate masks/steps. scan is provenance. */
+#ifndef FM1_INPUT_ACCEPTED_KEY
+#define FM1_INPUT_ACCEPTED_KEY(scan, id, down) ((void)0)
+#endif
+#ifndef FM1_INPUT_ACCEPTED_ENCODER
+#define FM1_INPUT_ACCEPTED_ENCODER(scan, id, delta) ((void)0)
+#endif
 #ifndef FM1_LED_US
 #define FM1_LED_US 40u           /* LED on-time per column (brightness vs scan rate) */
 #endif
@@ -205,6 +214,7 @@ static void fm1__key(uint32_t id, uint32_t closed)
         else
             fm1_in.released |= bit;
     }
+    FM1_INPUT_ACCEPTED_KEY(fm1_in.frames, id, !on);
 }
 
 static void fm1__keys(uint32_t p)                  /* the keys of column p, just read */
@@ -273,6 +283,7 @@ static void fm1__frame(void)
             int32_t n = *sub < 0 ? -*sub : *sub;   /* or two forgiven (one click = 4 transitions) */
             n = n >= 2 ? (n + 2) / 4 : 0;
             fm1_in.enc_steps[e] = (int16_t)(fm1_in.enc_steps[e] + (*sub < 0 ? -n : n));
+            if (n) FM1_INPUT_ACCEPTED_ENCODER(fm1_in.frames, e, *sub < 0 ? -n : n);
             *sub = 0;
         }
     }
