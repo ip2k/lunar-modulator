@@ -209,7 +209,7 @@ int fm1_app_state_load_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rct
  * the <=98,304-byte incremental budget additionally reserves 11,976 bytes for
  * the entire state TU, 36 other linked global/alignment bytes, 8,192 stack,
  * 8,192 safety and at most 4,096 bytes of additional backend/context RAM.
- * The stack reservation assumes <=4,480 in-library bytes, <=1,024 bytes for
+ * The stack reservation assumes <=4,484 in-library bytes, <=1,024 bytes for
  * each external getter/backend callback's COMPLETE callee stack, <=512 bytes
  * for the caller chain/locals, and <=1,024 combined same-stack IRQ/exception
  * bytes including nesting. No recursion/reentry into this operation is allowed.
