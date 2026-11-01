@@ -31,18 +31,23 @@ deployment was skipped. Do not rerun passing checks to hide that failure.
 
 [verified] Corrections PR #165 is the combined integration candidate on
 `fix/2026-11-01@release-state-corrections`. Reviewed source is pushed and remote
-verified through `a68a9e31c8c2ec3a4327b9a6029a7eede3767d31`. It is not a release
+verified through `c5381f0c1c137084eb4da55f711635aa979f84ca`. It is not a release
 or hardware admission. Capture completion, bounded codec phase 1, fault handling,
 lifecycle cleanup, exact audit proofs and target-derived test expectations are
 integrated. Required exact-head CI and real-Chrome acceptance remain.
 
-[verified] The actual simulator build for frozen source `5c5237b0` passed
-108-case parity, SysEx, MIDI, metadata, 30-second edit stress with zero playback
-underruns, and scripted Chromium/Firefox/WebKit state, sequencer and toolbar
-checks. Generated artifacts were integrated at `b088606e`. Subsequent strict
-native packing changes affect the source digest, so another canonical build is
-required after the next source batch. These scripted results do not establish
-owner visual, device, analog or listening acceptance.
+[verified] The actual simulator build for frozen source `a68a9e31` passed
+108-case parity, SysEx, MIDI, metadata, a 30-second DSP edit storm with zero
+late blocks/resyncs, and 7,049 browser edits with zero playback underruns.
+Generated artifacts were integrated at `3dbbd3d5`; strict committed-artifact
+provenance passes on the combined tree. Chromium passed the full page suite;
+Firefox/WebKit passed targeted state, sequencer and toolbar checks. A broader
+Firefox editor-map run was interrupted before a verdict and is not claimed as
+passing. Subsequent native-only additions do not change browser source hashes.
+Scripted results do not establish owner visual, device, analog or listening
+acceptance. Exact `3dbbd3d5` CI passed its browser, engine, sanitizer and 32-bit
+jobs; broad Mac/Linux jobs were cancelled by the newer integration push.
+Pages 41318288124 succeeded. Current-head CI remains required.
 
 [verified] Pinned musl and compiler-rt sources now close the reviewed native
 math/string/remainder dependencies without substitutes or budget changes.
@@ -64,9 +69,29 @@ it is not full application fit or storage admission.
 integrated. It accepts the fixed starter Trio project only, checks both parses
 and all soft-loss counters before application mutation, and refuses redirected
 live state. Generated project bytes feed the actual-app oracle. The combined
-no-override proof is running. General project loading, native startup and service
-activation remain unsupported. An offline selected-Trio target lane is preparing
-source; it has no reset import, hardware activation or ROM-return claim.
+no-override actual-app proof passed normally and under ASan/UBSan. The separate
+selected-Trio pi32 diagnostic linked from exact `7ab28104` and passed the original
+12-check audit. Its generated 597-byte project is retained in the actual ELF,
+and initialization precedes audio/IRQ setup. Text is 178,744 bytes; BSS is
+277,760 bytes with 164,608 bytes to the guard. These are static layout results,
+not runtime stack/timing evidence. General project loading, service activation,
+reset/ROM return and hardware acceptance remain unsupported.
+
+[verified] The selected-return policy is independently reviewed and integrated
+as an offline host-only GPL module. Five focused tests pass, including normal
+and sanitized execution of timeout/fault cases and explicit target compile
+refusal. Actual MMIO, watchdog lease, timer, mailbox guards and physical recovery
+qualification remain separate work; no target reset behavior is admitted.
+
+[verified] The disabled fixed-Trio v2 service contract is integrated after
+independent review. It validates the actual retained target ELF, flat image,
+project blob, source/object evidence and original audit against operator-owned
+trust anchors. Review found and corrected acceptance of an invalid zero entry
+address; startup must now be inside the fixed executable section. Coordinator
+integration checks pass 137 tests plus six subtests; independent combined
+checks pass 375 tests with one expected skip. This supplies neither a worker nor
+an API route. Private worker/API integration remains the next dependency, and
+all service, package, installation and hardware capability flags stay false.
 
 The foundation provides DX7 bank export, ordered MIDI realtime input,
 queue-margin telemetry, offline customization/catalogue and a shared request
@@ -100,7 +125,7 @@ pending; do not bypass the setting. The owned loopback preview is
   explicit oversized-chain and ARP refusal witnesses. Production limits stay.
 - Explicit aligned state workspaces preserve host behavior and guard aliases,
   reentry and lifetime. Actual pi32 object evidence removes a 917,536-byte
-  default arena in external-workspace mode. The 481,244-byte JSON writer is
+  default arena in external-workspace mode. The 481,244-byte JSON writer
   was too large for native persistence. The integrated streamed path now has a
   separately bounded component proof; workspace APIs alone were insufficient.
 - The renderer protocol now has a shared core and explicit platform ports,
@@ -136,11 +161,8 @@ private coordinator checkpoint retains detailed receipts and current lane state.
   checks any additional tracked imports. Independent bundle checks pass 41
   tests with one existing skip; seven service tests confirm production still
   refuses missing native prerequisites. No selector or startup gate changed.
-- [verified] The full e267 browser batch passed 108 parity scenarios, metadata,
-  SysEx/routing/MIDI, zero-late/resync DSP storm and Chromium wrapper checks.
-  Browser-state, sequencer UI and toolbar regressions passed all three browsers.
-  Generated artifacts and strict provenance were integrated, but later C changes
-  make them stale. Regenerate from the next reviewed frozen source.
+- [verified] The current actual simulator artifacts and browser acceptance batch
+  are recorded above. Native-only additions do not require another WASM rebuild.
 - [verified] Native codec phase 1 uses the existing encoder with explicit host
   backing and a bounded two-pass plain path. Independent normal and sanitizer
   checks compare 387 cases against the exact old implementation, including
@@ -179,16 +201,21 @@ private coordinator checkpoint retains detailed receipts and current lane state.
 arrangement and links without SDK archives. Original audit: 12 pass, no pending
 rows. Fresh inputs and generated bytes are bound in its private receipt. App
 239,360 bytes, total BSS 306,768, flash 210,804 and 135,584 bytes of gap are
-current for that diagnostic only. Its reserved stacks are not measured runtime
+specific to that frozen diagnostic. Its reserved stacks are not measured runtime
 high-water or closed call-chain proof. It has blank LCD/limited HOME controls,
 no persistence, pipeline, USB, bootguard or full interactive runtime. Later
 source changes require new target evidence before admission.
 
-Last successful full browser build source is `5c5237b0`, integrated at
-`b088606e`. The actual module SHA is
-`1562f4d6660c2df9a333dc796905cb497f39002b7c4389a54a677026ec010fa4`.
-Later persistence and packing changes require regeneration. A canonical build
-and acceptance batch is running from frozen `a68a9e31`; no result is claimed yet.
+Last successful canonical browser build source is `a68a9e31`, integrated at
+`3dbbd3d5`. The actual module SHA is
+`e4d0b94f4e05181afeb74f9a004c7a03f00a1370a2a99be204426ae33ef68755`.
+The strict source record matches the current engine/simulator inputs. The
+selected-Trio target ELF is
+`75960e3e4011da43f26776cf356b23a338b6c5a925f950adcb83689e56612983`;
+its flat application is 178,744 bytes. Full app state occupies 239,360 bytes of
+BSS; that value is not the flash artifact size. Reserved stacks remain
+unmeasured at runtime. No service or installation capability follows from this
+static diagnostic build.
 
 No device traffic occurred during this release-coordination resume. The physical
 FM-1 boots recovered stock V15; D1–D4 and docs/17 still govern firmware-changing
