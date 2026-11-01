@@ -110,3 +110,26 @@ one optional private fixture skipped, zero failures); HTML parser audit confirme
 collapsed details (no `open`), preserved runtime option values, disabled service
 marker, matching customization title/heading and no raw layout IDs in labels.
 `git diff --check` passed. No Python source changed in this correction.
+
+## Discoverability follow-up
+
+Added a native `Customize` link to `installer.html` in the simulator's existing
+information/footer row, beside Cheat Sheet and Copyright Info. It uses existing
+wrapping, spacing and keyboard-focus styles without changing the layout switch,
+JavaScript handlers or CSS. README now explains module/project selection and
+request-file export, with a concise statement that the build service is unavailable
+and customization does not build or install firmware.
+
+Structural HTML checks confirmed exactly one correctly named native link, its
+local target exists, and the existing footer has flex-wrap, 8px gaps and anchor
+focus styling. `git diff --check` passed. Actual wide/narrow rendering and touch
+acceptance remain pending because Work settings disable local browser access;
+no browser restriction was bypassed.
+
+No coordinator merge was necessary: `index.html` and README were identical to
+coordinator `1294fc54` before this incremental edit. Before/after source-hash
+checks (`sim/web/tools/source_hash.py`) were identical: engines
+`872562d992cbe9f0c07f523eef9852ca6a250955e2e98e01a966f9a46d0dd58a`, sim
+`5a642b62c0238ab6687bfd69db61f3802d984cff6893a51a6b40f30429fae220`.
+These hashes exclude index/README; no Wasm input or generated receipt changed.
+No new scratch data, test dependency or daemon was created.

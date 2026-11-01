@@ -68,6 +68,10 @@ cd sim/web/www && python3 -m http.server 8000
 Then open <http://localhost:8000/>. Opening `index.html` as a file does not
 work.
 
+Use **Customize** below the simulator to choose modules and projects, then
+export your selection as a request file. The build service is unavailable;
+customization does not build or install firmware.
+
 ### Controls
 
 Drag a knob up or down, or scroll over it. Click or touch a button or a key.
