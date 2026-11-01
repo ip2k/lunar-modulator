@@ -1,6 +1,7 @@
 """Exercise the remote build wrapper's real shell flow without a LAN build."""
 
 import json
+import hashlib
 import os
 from pathlib import Path
 import shutil
@@ -249,6 +250,24 @@ def test_failed_stage_allocation_never_touches_shared_sources(fake_remote):
     assert not (base / "remote/runs").exists()
     assert not calls.exists()  # no image pull or container launch
     assert not list((ROOT / "sim/web/build/publish-locks").glob("*.lock"))
+
+
+def test_unknown_publication_owner_is_refused_and_preserved(fake_remote):
+    _, env, calls, _, trial = fake_remote
+    canonical = str(trial.resolve())
+    key = hashlib.sha256(f"{canonical}\0{canonical}".encode()).hexdigest()
+    lock = ROOT / "sim/web/build/publish-locks" / f"{key}.lock"
+    lock.mkdir(parents=True)
+    owner = lock / "owner"
+    owner.write_text("another-invocation\n")
+    try:
+        refused = run_wrapper(env, "--no-screenshot")
+        assert refused.returncode == 75, refused.stdout + refused.stderr
+        assert owner.read_text() == "another-invocation\n"
+        assert not calls.exists()
+    finally:
+        owner.unlink()
+        lock.rmdir()
 
 
 def test_same_destination_concurrent_build_refuses_overlap_then_publishes_whole_set(fake_remote):
