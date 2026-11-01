@@ -373,3 +373,15 @@ def test_changed_actual_object_and_prepared_bytes_refuse(evidence):
     files = dict(trusted.prepared_files); files["selected_project_blob.c"] += b"changed"
     with pytest.raises(ValueError, match="prepared inputs"):
         validate((receipt, app, elf, replace(trusted, prepared_files=files)))
+
+
+@pytest.mark.parametrize("failure", ["section_name", "symbol_name", "symbol_section", "wrong_string_table"])
+def test_elf_string_and_symbol_references_are_bounded(evidence, failure):
+    import struct
+    raw = bytearray(evidence[2]); shoff = struct.unpack_from("<I", raw, 32)[0]
+    symbol_offset = struct.unpack_from("<I", raw, shoff + 7*40 + 16)[0]
+    if failure == "section_name": struct.pack_into("<I", raw, shoff + 40, 0xFFFFFFFF)
+    if failure == "symbol_name": struct.pack_into("<I", raw, symbol_offset + 16, 0xFFFFFFFF)
+    if failure == "symbol_section": struct.pack_into("<H", raw, symbol_offset + 16 + 14, 500)
+    if failure == "wrong_string_table": struct.pack_into("<I", raw, shoff + 7*40 + 24, 1)
+    with pytest.raises(ValueError): profile._elf(bytes(raw))
