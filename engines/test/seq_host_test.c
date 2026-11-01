@@ -1193,6 +1193,26 @@ static void queued_lock_targets(void) {
       }
     }
   }
+
+  /* No prior dispatch or engine bind can supply a target cache. */
+  {
+    fm1_seq_host_t h;
+    fm1_seq_sink_t sink;
+    const char *const ops[] = {"alabel 0 0 synth:Timbre", "abaseq 0 0 40",
+                               "aset 0 0 0 90", "aclr 0 0"};
+    memset(&sink, 0, sizeof sink);
+    sink.ctx = &tr; sink.engine = &kEngine; sink.render = t_render;
+    sink.note_on = t_on; sink.note_off = t_off; sink.set_param = t_param;
+    fm1_seq_host_init(&h, make(mem_text), ev, 128);
+    fm1_seq_set_route(h.seq, 0, FM1_SEQ_ROUTE_ENGINE, 0);
+    for (unsigned i = 0; i < sizeof ops / sizeof ops[0]; ++i)
+      fm1_seq_host_line(&h, ops[i], strlen(ops[i]));
+    CHECK(h.engine == NULL && fm1_seq_lane_label(h.seq, 0, 0)[0] == '\0' && h.n == 1);
+    memset(&tr, 0, sizeof tr); tr.block = block;
+    fm1_seq_host_dispatch(&h, BLOCK, block, &sink);
+    CHECK(tr.n == 1 && tr.calls[0].kind == C_PARAM && tr.calls[0].index == 0 &&
+          tr.calls[0].value == fm1_seq_lock_value(&kParams[0], 90));
+  }
 }
 
 int main(void) {

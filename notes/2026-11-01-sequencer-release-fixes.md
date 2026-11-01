@@ -75,3 +75,31 @@ reports unchanged play_sink (240 B) and slots_ticks dispatch (320 B); sq_emit
 remains 0 B. Optimization changes increase some core helper frames by at most
 64 B (delete/paste/range: 48→112 B); fm1_seq_advance drops 480→464 B. This is
 host compiler evidence, not pi32v2 stack/code-generation acceptance.
+
+[verified] Follow-up validation: the first-bind case also dispatches a queued
+lock correctly after release with no prior engine bind/target cache. Both
+Capture and the full host bridge harness pass AddressSanitizer +
+UndefinedBehaviorSanitizer with `-O1 -DSQ_CHECK_INDEX`. A negative control that
+restores only the old current-label host lookup fails as expected. The exact
+36-byte event layout is asserted in the focused arena test.
+
+[verified] `make -C engines -j2 build/fm1-seq build/fm1-seq-check` passes without
+building the DSP engines. Fifteen selected existing core tests pass: memory,
+linear layout, D6 release behavior, native/compat block-size event identity,
+and Movy fixture roundtrips. Their session fixture was replaced in-process
+with the already-built CLI path to avoid its unrelated default all-DSP build;
+the selected test bodies and expectations were unchanged. The command record
+and logs are retained privately under `scratch/seq-release/checks/`.
+
+[verified] A native header-only sizeof probe measures app size
+4,953,584 → 4,960,112 B (+6,528), host bridge unchanged at 400 B, and event
+arena 3,264 → 9,792 B. The new app size exceeds the existing 4,960,000-byte
+host test guard by 112 B; the coordinator must review that guard when adapting
+the app. This is the desktop app's large arena layout, not FM-1 RAM use.
+The two PipelineSlot static objects mentioned above exist only with
+`FM1_APP_RENDER_PIPELINE`; their combined growth is 13,056 B.
+
+Remaining acceptance: coordinator app snapshot dispatch/handmade constructor,
+app FX/mix chronology regressions, intentional desktop guard update, native
+aggregate RAM fit, full CI/review/integration. No builds were flashed and no
+USB, MIDI, device reset/power or audio/listening acceptance was attempted.

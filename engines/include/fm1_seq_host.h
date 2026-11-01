@@ -190,7 +190,7 @@ void fm1_seq_host_bind(fm1_seq_host_t *h, const fm1_engine_t *e);
  * every lane against the bound engine. Returns the import's result. */
 int fm1_seq_host_import(fm1_seq_host_t *h, const char *txt, size_t len);
 
-/* The uid a lane's locks go to: 0 when the lane is unlabelled or its label
+/* The uid the current lane label names: 0 when the lane is unlabelled or its label
  * names no parameter of the bound engine. Always the label's own parameter,
  * even for a label set past the bridge (above). A NOLOCK parameter's uid is
  * returned, so a UI can say why its locks are refused. */
