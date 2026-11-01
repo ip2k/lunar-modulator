@@ -30,6 +30,7 @@ def fake_remote():
     (remote / "playwright/node_modules/axe-core").mkdir()
     (remote / "playwright/owner-cache-marker").write_text("keep")
     calls = base / "docker.jsonl"
+    transports = base / "transports.jsonl"
     barrier = base / "barrier"
     barrier.mkdir()
     containers = base / "containers"
@@ -44,8 +45,12 @@ def fake_remote():
     assert not trial.exists(), "isolated worktree should have no prior trial artifacts"
 
     executable(bin_dir / "ssh", """
-import os, shlex, subprocess, sys
-args = sys.argv[2:]  # host, then the exact script-supplied remote command
+import json, os, shlex, subprocess, sys
+raw = sys.argv[1:]
+with open(os.environ["FAKE_TRANSPORT_CALLS"], "a") as stream:
+    stream.write(json.dumps(["ssh", *raw]) + "\\n")
+args = raw[2:] if raw[:1] == ["-F"] else raw
+args = args[1:]  # host, then the exact script-supplied remote command
 command = args[0] if len(args) == 1 else shlex.join(args)
 if os.environ.get("FAKE_STAGE_FAIL") and command.startswith("bash -s --"):
     raise SystemExit(44)
@@ -123,8 +128,12 @@ else:
     raise SystemExit("unexpected docker operation: " + repr(args))
 """)
     executable(bin_dir / "scp", """
-import os, pathlib, shutil, sys
-args = [a for a in sys.argv[1:] if a not in ("-q", "-r")]
+import json, os, pathlib, shutil, sys
+raw = sys.argv[1:]
+with open(os.environ["FAKE_TRANSPORT_CALLS"], "a") as stream:
+    stream.write(json.dumps(["scp", *raw]) + "\\n")
+args = raw[2:] if raw[:1] == ["-F"] else raw
+args = [a for a in args if a not in ("-q", "-r")]
 if os.environ.get("FAKE_SCP_FAIL") == "parity" and any("parity.json" in a for a in args[:-1]):
     raise SystemExit(43)
 dest = pathlib.Path(args[-1])
@@ -139,9 +148,12 @@ for source in args[:-1]:
     env = os.environ.copy()
     env.update(PATH=f"{bin_dir}:{env['PATH']}", FM1_SIM_HOST="fake@host",
                FM1_REMOTE_DIR=str(remote), FM1_DX7_SINE=trial_sine,
-               FAKE_DOCKER_CALLS=str(calls), FAKE_BARRIER=str(barrier),
+               FAKE_DOCKER_CALLS=str(calls), FAKE_TRANSPORT_CALLS=str(transports),
+               FAKE_BARRIER=str(barrier),
                FAKE_CONTAINERS=str(containers),
                PYTHONDONTWRITEBYTECODE="1")
+    for key in ("FM1_SSH_CONFIG", "FM1_DOCKER_CPUS", "FM1_DOCKER_CPUSET", "FM1_DOCKER_MEMORY"):
+        env.pop(key, None)
     yield base, env, calls, log_dir, trial
 
     if trial.is_symlink():
@@ -219,6 +231,47 @@ def test_success_and_failed_fetch_preserves_previous_results(fake_remote):
     assert any(arg.endswith("/playwright:/pw") for arg in page)
     assert "--memory=8g" in page and "--memory-swap=8g" in page
     assert "--cgroup-parent=docker-batch.slice" in page
+
+
+def test_ssh_config_and_resource_bounds_reach_every_remote_run(fake_remote):
+    base, env, calls, log_dir, _ = fake_remote
+    config = base / "ssh_config"
+    config.write_text("Host fake-host\n  HostName 127.0.0.1\n")
+    env.update(FM1_SSH_CONFIG=str(config), FM1_DOCKER_CPUS="4",
+               FM1_DOCKER_CPUSET="4-7", FM1_DOCKER_MEMORY="6g")
+    result = run_wrapper(env, "--readme-screenshots")
+    assert result.returncode == 0, result.stdout + result.stderr
+    docker_calls = [json.loads(line) for line in calls.read_text().splitlines()]
+    runs = [call for call in docker_calls if call[:1] == ["run"]]
+    assert len(runs) == 3
+    for run in runs:
+        assert {"--cgroup-parent=docker-batch.slice", "--cpus=4",
+                "--cpuset-cpus=4-7", "--memory=6g", "--memory-swap=6g"} <= set(run)
+        assert "--rm" in run
+    transports = [json.loads(line) for line in (base / "transports.jsonl").read_text().splitlines()]
+    assert {call[0] for call in transports} == {"ssh", "scp"}
+    assert all(call[1:3] == ["-F", str(config)] for call in transports)
+    assert_released_claims(log_dir)
+    assert not list((base / "remote/runs").iterdir())
+
+
+@pytest.mark.parametrize("key,value", [
+    ("FM1_SSH_CONFIG", "relative/config"),
+    ("FM1_SSH_CONFIG", "/missing/lunar/ssh_config"),
+    ("FM1_DOCKER_CPUS", "0"),
+    ("FM1_DOCKER_CPUS", "4; touch /tmp/injection"),
+    ("FM1_DOCKER_CPUSET", "7-4"),
+    ("FM1_DOCKER_CPUSET", "4-7;id"),
+    ("FM1_DOCKER_MEMORY", "0g"),
+    ("FM1_DOCKER_MEMORY", "6g;id"),
+])
+def test_malformed_options_fail_before_remote_io(fake_remote, key, value):
+    base, env, calls, _, _ = fake_remote
+    env[key] = value
+    result = run_wrapper(env, "--no-screenshot")
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert not (base / "transports.jsonl").exists()
+    assert not calls.exists()
 
 
 def test_concurrent_failed_runs_get_distinct_stages_and_cleanup(fake_remote):
