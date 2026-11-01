@@ -60,11 +60,20 @@ variables. Exact commands and small logs are retained in ignored
 ## Next dependency
 
 Review/integrate the shared bounded reader before treating this GREEN as
-accepted. Then add a dedicated source-bound selected diagnostic builder and
-receipt, using opt-in native strict pack after its separate review. The
-builder must embed the exact packed bytes actually read by diagnostic startup
-and record source/export/container/toolchain hashes. Review that source and
-the native closure before any target profile or ROM-return glue build. Dinghy
-GPL HAL provenance and private-only/no-redistribution restrictions remain
-mandatory for any later linked target artifact. No service admission or
-hardware assertion follows from this milestone.
+accepted. A dedicated host-only `tools/native/prepare_selected_project.py`
+now generates a fixed-source packed C blob and receipt, but its intended
+`fm1-state pack --strict --store` command is in a separate source lane and is
+absent from this branch's current CLI (the baseline refuses with exit 2,
+cleaning its fresh output). The baseline CLI's unstrict `--store` bytes
+independently match the pinned Python container SHA-256; this is format
+evidence only, not a replacement for strict validation. Once the strict
+packer is reviewed and integrated, rerun the builder with exact compiled
+renderer/tool and add a host link test proving the generated symbol is the
+bytes the applier reads. Its receipt records source/export/container/tool
+hashes and flags native link/RAM, installability, hardware and distribution
+as unproven. A later target builder must add its own toolchain binding and
+resource-fit receipt. Review this source and the native closure before any
+target profile or ROM-return glue build. Dinghy provenance is pinned to
+`d44df7db09b98ccad2f1233b8f83f5f09c04829e` (GPL-3.0-only); no
+redistribution assertion is made. No service admission or hardware assertion
+follows from this milestone.
