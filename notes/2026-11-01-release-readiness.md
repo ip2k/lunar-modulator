@@ -31,25 +31,25 @@ deployment was skipped. Do not rerun passing checks to hide that failure.
 
 [verified] Corrections PR #165 is the combined integration candidate on
 `fix/2026-11-01@release-state-corrections`. Reviewed source is pushed and remote
-verified through `bf7a09546bc52d9b4126d34f543a75650a5c264b`. It is not a release
+verified through `42604fb03dcece54c54b9b0151467ededa79ee0f`. It is not a release
 or hardware admission. Capture completion, streamed PROJECT persistence,
 renderer fault/lifecycle handling, strict native preparation, a private build
 worker/API and the host-only interactive owner are integrated. Required final
-exact-head CI and real-Chrome acceptance remain. Prior head `13426bdc` CI
-41325603135 was superseded without a failed job; Pages 41325603139 succeeded.
+exact-head CI and real-Chrome acceptance remain. Exact 42604fb0 CI
+41328448183 is in progress; Pages 41328448071 succeeded. Superseded CI runs
+were cancelled by later source pushes, without rerunning passing jobs.
 
 [verified] The latest actual canonical simulator build used frozen source
-`5197daae`; its generated record is integrated at `13426bdc`. All 108 JS/musl
+`bf7a0954`; its generated record is integrated at `9a3b097f`. All 108 JS/musl
 parity cases pass; glibc agrees exactly in 105 cases and within one LSB in the
 remaining three. Metadata, SysEx, MIDI and routing checks pass. A 30-second DSP
-edit storm completed 10,341 quanta with zero late blocks or resyncs; 7,049 browser
-edits caused zero playback underruns, and Chromium passed all 99 page checks.
-Coordinator strict record/drift checks pass. Earlier Firefox/WebKit targeted
-state, sequencer and toolbar checks are historical evidence, not a fresh run on
-this pin. Scripted checks do not establish real-Chrome visual, device, analog or
-listening acceptance. The integrated CLI buffer cleanup changes the engine-source digest; a fresh
-actual canonical run is assigned from `bf7a0954`. Until that completes, the
-record is stale for current source. Never edit the source digest manually.
+edit storm completed 10,341 quanta and 82,728 edits with zero late blocks or
+resyncs; Chromium passed all 99 page checks including zero playback underruns.
+Coordinator strict record/drift checks pass. WASM and metadata bytes are
+unchanged; the actual build regenerated source provenance after CLI cleanup.
+Earlier Firefox/WebKit targeted checks are historical evidence, not a fresh run
+on this pin. Scripted checks do not establish real-Chrome visual, device, analog
+or listening acceptance. Never edit the source digest manually.
 
 [verified] Pinned musl and compiler-rt sources now close the reviewed native
 math/string/remainder dependencies without substitutes or budget changes.
@@ -227,10 +227,15 @@ private coordinator checkpoint retains detailed receipts and current lane state.
   The actual rendered frame was inspected without visible label overlap.
   This is host-only: audio readiness during a real startup interrupt, target
   publication, SPI/DMA retirement, memory/stack and deadlines are still open.
-- The next PROJECT composition slice stages the real selected app through the
-  existing transaction codec before any platform or IRQ service starts, under
-  an explicit offline exclusive-owner contract. It does not implement live
-  pause, save through an already-running owner, real storage or the SAVE action.
+- [verified] Reviewed offline PROJECT staging is integrated through the actual
+  selected app and existing transaction codec, before platform/IRQ services
+  start. Exact modes 2/3 bytes, reports, source state and next-block PCM pass,
+  with 546 partial faults, 531 callback guard checks and eight sticky fault
+  outcomes. It does not implement live pause, real storage or the SAVE action.
+  After the CLI cleanup, the combined exact 42604fb0 check passes both tests
+  normally (12.75 seconds) and with Clang ASan/UBSan (30.58 seconds), including
+  instrumented preparation tools and leak detection. No separate uninstrumented
+  preparer remains. Target aggregate fit is the next separate dependency.
 - [verified] CLI process buffers now release on normal, refusal and error exits.
   Independent source-bound normal and Clang ASan/UBSan checks pass 28 actual CLI
   invocations per tool, including the exact module-independent regression body;
@@ -252,8 +257,8 @@ high-water or closed call-chain proof. It has blank LCD/limited HOME controls,
 no persistence, pipeline, USB, bootguard or full interactive runtime. Later
 source changes require new target evidence before admission.
 
-The latest canonical browser build source is `5197daae`, record integrated at
-`13426bdc`. Its actual module SHA is
+The latest canonical browser build source is `bf7a0954`, record integrated at
+`9a3b097f`. Its actual module SHA is
 `e4d0b94f4e05181afeb74f9a004c7a03f00a1370a2a99be204426ae33ef68755`.
 The fresh actual private-worker Trio ELF is
 `4e8df12f6bca03263d077acef9c32a14d437a8e3bc11fc5eaa8cf345cfce60cc`;
