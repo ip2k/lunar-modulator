@@ -123,8 +123,8 @@ remain with the coordinator.
 [verified] Cleanup complete: all own containers exited; exact remote staging
 path removed after collecting small JSON reports. No persistent service,
 installed dependency, compiled artifact or shared cache was created. Retained
-local evidence is about 28 KiB of logs/JSON under the ignored scratch path.
+local evidence is 124 KiB of logs/JSON under the ignored scratch path.
 Worktree remains for parent review; parent should remove it once integrated.
-Mac free space at finish: 1,120 GiB, above the 500 GiB floor. The source commits
+Mac free space at finish: 1,119 GiB, above the 500 GiB floor. The source commits
 above are fully backed up; this final regression/note commit is also pushed
 and its exact remote SHA is reported in the parent handoff.
