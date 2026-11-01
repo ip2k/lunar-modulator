@@ -520,7 +520,7 @@ def test_state_tool_cli_buffers_across_success_and_refusal(tool, tmp_path):
     assert packed.returncode == 0, packed.stderr.decode()
     assert packed.stdout.startswith(b"\x89Lunar\r\n")
 
-    canonical = run(tool, "canon", "-", data=source)
+    canonical = run(tool, "canon", EXAMPLES / "init-starters" / "trio-init.lunar")
     assert canonical.returncode == 0, canonical.stderr.decode()
     unpacked = run(tool, "unpack", "-", data=packed.stdout)
     assert unpacked.returncode == 0, unpacked.stderr.decode()
@@ -529,8 +529,16 @@ def test_state_tool_cli_buffers_across_success_and_refusal(tool, tmp_path):
     packed_path.write_bytes(packed.stdout)
     assert run(tool, "diff", "-", packed_path, data=source).returncode == 0
     assert run(tool, "records", "-", data=source).returncode == 0
-    assert run(tool, "check", "-", data=source).returncode == 0
+    settings = b'{"lunar":"1.0","kind":"settings","settings":{}}'
+    assert run(tool, "check", "-", data=settings).returncode == 0
     assert run(tool, "json-check", "-", data=source).returncode == 0
+
+    movy = (GOLD / "orbit.set.movy1").read_bytes()
+    movy_packed = run(tool, "from-movy1", "-", data=movy)
+    assert movy_packed.returncode == 0, movy_packed.stderr.decode()
+    movy_unpacked = run(tool, "unpack", "-", data=movy_packed.stdout)
+    assert movy_unpacked.returncode == 0, movy_unpacked.stderr.decode()
+    assert movy_unpacked.stdout == movy
 
     lossy = source.replace(b'"Volume": 0.7', b'"Volumee": 0.7')
     assert lossy != source
