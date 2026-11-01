@@ -2,6 +2,7 @@
 #include "fm1_app_state.h"
 #include "fm1_edit.h"
 #include <assert.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -108,8 +109,12 @@ static void attempt(int mode, int should_fit) {
   fm1_state_report_t r;
   fm1_app_state_workspace_t w = {scratch, fm1_app_state_workspace_size(FM1_APP_STATE_WORK_SAVE)};
   assert(w.bytes <= sizeof scratch);
+  fm1_app_note_on(&app, 64, 100);
   memcpy(&before, &app, sizeof app); memcpy(&edit_before, &edit, sizeof edit);
   memcpy(pcm, fm1_app_render(&app, 64), sizeof pcm);
+  float energy = 0;
+  for (unsigned i = 0; i < 128; ++i) energy += fabsf(pcm[i]);
+  assert(energy > 0.001f);  /* PCM equivalence must exercise an audible voice. */
   memcpy(&app, &before, sizeof app); memcpy(&edit, &edit_before, sizeof edit);
   for (int legacy = 0; legacy < 2; ++legacy) {
     output_n = calls = 0;
