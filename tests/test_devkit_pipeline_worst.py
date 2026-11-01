@@ -281,6 +281,49 @@ def test_buffered_summary_of_a_passing_soak():
     assert 43900 < b['rate_hz_estimate'] < 44300
 
 
+@pytest.mark.parametrize('field', ['ready=1', 'lifetime_ms=2100000', 'stack_words=1536',
+                                   'priority=16', 'outputs=8'])
+def test_buffered_soak_requires_complete_ready_receipt(field):
+    text = soak_receipts().replace(field, '')
+    b = result_parser.parse(text, 320)['buffered']
+    assert not b['pass_soak_receipts']
+
+
+def test_buffered_soak_requires_one_ready_receipt():
+    text = soak_receipts()
+    ready = next(line for line in text.splitlines() if line.startswith('LUNAR_PIPELINE ready='))
+    assert not result_parser.parse(text.replace(ready + '\n', ''), 320)['buffered']['pass_soak_receipts']
+    with pytest.raises(ValueError, match='exactly one LUNAR_PIPELINE ready receipt'):
+        result_parser.parse(text + ready + '\n', 320)
+
+
+@pytest.mark.parametrize('old,new', [
+    ('ready=1', 'ready=0'), ('outputs=8', 'outputs=0'), ('outputs=8', 'outputs=7'),
+    ('lifetime_ms=2100000', 'lifetime_ms=1000'),
+    ('stack_words=1536', 'stack_words=0'), ('priority=16', 'priority=oops'),
+])
+def test_buffered_soak_refuses_malformed_or_expired_ready_receipt(old, new):
+    text = soak_receipts().replace(old, new)
+    b = result_parser.parse(text, 320)['buffered']
+    assert not b['pass_soak_receipts']
+
+
+def test_buffered_soak_requires_valid_queue_depth_and_latency():
+    text = soak_receipts().replace('ready_min=1', 'ready_min=9')
+    b = result_parser.parse(text, 320)['buffered']
+    assert not b['pass_soak_receipts']
+    assert b['queue_latency'] is None
+
+
+def test_buffered_fixed12_receipts_keep_their_timing_verdict():
+    text = soak_receipts().replace('fixed=8', 'fixed=12').replace('policy=cap8', 'policy=fixed12')
+    text = text.replace('unit0_limit=8', 'unit0_limit=12')
+    result = result_parser.parse(text, 320)
+    assert result['policy'] == 'fixed12'
+    assert result['buffered']['pass_soak_receipts']
+    assert result['buffered']['queue_latency']['slots'] == 8
+
+
 def test_buffered_summary_of_a_short_run_is_not_a_soak():
     b = result_parser.parse(soak_receipts(cycles=3), 320)['buffered']
     assert b['pass_timing'] and not b['soak_30_min'] and not b['pass_soak_receipts']
