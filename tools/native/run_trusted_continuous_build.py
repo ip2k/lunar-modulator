@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import re
 import shutil
 import stat
 import subprocess
@@ -19,6 +20,10 @@ from capture_trusted_build_tuple import (capture_trusted_build_tuple, canonical,
                                                  _source_manifest, _toolchain_manifest)
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from tools.installer_service.process_capture import run_bounded
+from tools.installer_service.owned_container import cancel_owned_container
 # Aeon image contract v2; historical tuples retain their original image ID.
 PINNED_IMAGE_ID = "sha256:bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495"
 IMAGE_SHA = PINNED_IMAGE_ID.split(":", 1)[1]
@@ -30,6 +35,7 @@ DOCKER_POLICY = {
     "cgroup_parent": "docker-batch.slice",
     "cpus": 4,
     "cpuset_cpus": "4-7",
+    "log_config": {"Type": "json-file", "Config": {"max-size": "1m", "max-file": "1"}},
     "memory": 6442450944,
     "memory_swap": 6442450944,
     "pids_limit": 512,
@@ -69,14 +75,14 @@ def _safe(path: Path, *, directory: bool):
 
 
 def _run(docker: str, args: list[str], *, timeout=30, allow_failure=False) -> bytes:
-    result = subprocess.run([docker, *args], stdin=subprocess.DEVNULL,
-                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                            timeout=timeout, check=False)
-    if len(result.stdout) > MAX_INSPECT:
-        raise ValueError("Docker response exceeds fixed bound")
+    result = run_bounded([docker, *args], cwd=ROOT, timeout_seconds=timeout,
+                         max_stream_bytes=MAX_INSPECT)
+    if (result.failure_reason is not None
+            or any(count > MAX_INSPECT for count in result.observed.values())):
+        raise ValueError("Docker response exceeds fixed capture bound or deadline")
     if result.returncode and not allow_failure:
         raise ValueError("pinned Docker operation failed: " + args[0])
-    return result.stdout
+    return result.logs["stdout"]
 
 
 def _mount(source: Path, destination: str, readonly=True):
@@ -98,9 +104,11 @@ def container_command(docker: str, container_name: str, source: Path, request: P
     cmd = [docker, "create", "--name", container_name,
            "--label", "lan.project=lunar-modulator",
            "--label", "lan.session=continuous-tuple-capture",
+           "--label", "lan.owner=" + container_name,
            "--cgroup-parent=docker-batch.slice", "--network=none",
            "--cpu-quota=400000", "--cpu-period=100000", "--cpuset-cpus=4-7",
            "--memory=6g", "--memory-swap=6g", "--pids-limit=512",
+           "--log-driver=json-file", "--log-opt=max-size=1m", "--log-opt=max-file=1",
            "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges",
            "--user=1003:1003", "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=3221225472",
            "--env", "LUNAR_SOURCE_COMMIT=" + source_commit]
@@ -149,6 +157,7 @@ def inspected_contract(inspect: dict, expected_mounts: list[dict], source_commit
             or host.get("NanoCpus") != 0 or host.get("Memory") != DOCKER_POLICY["memory"]
             or host.get("MemorySwap") != DOCKER_POLICY["memory_swap"]
             or host.get("PidsLimit") != DOCKER_POLICY["pids_limit"]
+            or host.get("LogConfig") != DOCKER_POLICY["log_config"]
             or host.get("Privileged") is not False
             or host.get("Devices") != [] or host.get("DeviceRequests") is not None
             or host.get("CapAdd") is not None
@@ -159,7 +168,8 @@ def inspected_contract(inspect: dict, expected_mounts: list[dict], source_commit
             or host.get("CapDrop") != ["ALL"]
             or host.get("SecurityOpt") != ["no-new-privileges"]
             or host.get("Tmpfs") != DOCKER_POLICY["tmpfs"]
-            or config.get("Labels") != {**PINNED_IMAGE_LABELS, **DOCKER_POLICY["labels"]}
+            or config.get("Labels") != {**PINNED_IMAGE_LABELS, **DOCKER_POLICY["labels"],
+                                         "lan.owner": expected_name}
             or config.get("Entrypoint") is not None
             or config.get("WorkingDir") != ""
             or config.get("Tty") is not False
@@ -184,6 +194,7 @@ def inspected_contract(inspect: dict, expected_mounts: list[dict], source_commit
                  "readonly_rootfs": host.get("ReadonlyRootfs"),
                  "cpu_quota": host.get("CpuQuota"), "cpu_period": host.get("CpuPeriod"),
                  "nano_cpus": host.get("NanoCpus"), "cpuset_cpus": host.get("CpusetCpus"),
+                 "log_config": host.get("LogConfig"),
                  "memory": host.get("Memory"), "memory_swap": host.get("MemorySwap"),
                  "privileged": host.get("Privileged"), "devices": host.get("Devices"),
                  "device_requests": host.get("DeviceRequests"), "cap_add": host.get("CapAdd"),
@@ -274,11 +285,10 @@ def _require_runner_identity():
 def _retain_failure_log(docker: str, container_id: str, output: Path):
     """Keep a private excerpt before cleanup; log failure cannot replace build error."""
     try:
-        result = subprocess.run(
-            [docker, "logs", "--tail", "200", container_id],
-            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, timeout=10, check=False)
-        _write_exclusive(output / "failed-worker.log", result.stdout[:MAX_FAILURE_LOG])
+        result = run_bounded([docker, "logs", "--tail", "200", container_id],
+                             cwd=output, timeout_seconds=10,
+                             max_stream_bytes=MAX_FAILURE_LOG)
+        _write_exclusive(output / "failed-worker.log", result.logs["stdout"])
     except (OSError, subprocess.SubprocessError):
         pass
 
@@ -286,8 +296,10 @@ def _retain_failure_log(docker: str, container_id: str, output: Path):
 def run_build(*, request_path: Path,
               toolchain_path: Path, catalogue_path: Path, output_path: Path,
               source_root: Path = ROOT, docker_binary="docker", timeout_seconds=1200,
-              poll_seconds=1, monotonic=time.monotonic):
+              poll_seconds=1, monotonic=time.monotonic, container_name: str | None = None):
     """Run the single fixed build; caller controls only trusted local input paths."""
+    if container_name is not None and not re.fullmatch(r"lunar-continuous-[0-9a-f]{24}", container_name):
+        raise ValueError("invalid parent-owned continuous container name")
     _require_runner_identity()
     source = _safe(Path(source_root), directory=True)
     request = _safe(Path(request_path), directory=False)
@@ -352,7 +364,7 @@ def run_build(*, request_path: Path,
         raise ValueError("detached source snapshot is not clean at the requested commit")
     toolchain_manifest_raw = _toolchain_manifest(toolchain)
     toolchain_manifest_sha = sha(toolchain_manifest_raw)
-    container_name = "lunar-continuous-" + secrets.token_hex(12)
+    container_name = container_name or "lunar-continuous-" + secrets.token_hex(12)
     cmd, mount_args = container_command(docker_binary, container_name, snapshot, request_copy,
                                         toolchain, catalogue_snapshot, output, commit)
     mounts = _expected_mounts(mount_args)
@@ -440,16 +452,15 @@ def run_build(*, request_path: Path,
             _retain_failure_log(docker_binary, container_id, output)
         raise
     finally:
-        cleanup_target = container_id or container_name
-        if cleanup_target:
-            subprocess.run([docker_binary, "rm", "-f", cleanup_target], stdin=subprocess.DEVNULL,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                           timeout=30, check=False)
+        cleanup_confirmed = cancel_owned_container(container_name, cwd=source,
+                                                     docker=docker_binary)
         request_copy.unlink(missing_ok=True)
         if snapshot.exists() and not snapshot.is_symlink():
             _remove_private_snapshot(snapshot, output.parent, "." + output.name + "-source-")
         if catalogue_snapshot.exists() and not catalogue_snapshot.is_symlink():
             _remove_private_snapshot(catalogue_snapshot, output.parent, "." + output.name + "-catalogue-")
+        if not cleanup_confirmed:
+            raise ValueError("could not confirm exact owned container cleanup")
 
 
 def main():
@@ -458,10 +469,12 @@ def main():
     parser.add_argument("--toolchain", type=Path, required=True)
     parser.add_argument("--catalogue", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--container-name", help="validated parent-owned cancellation target")
     args = parser.parse_args()
     try:
         capture = run_build(request_path=args.request, toolchain_path=args.toolchain,
-                            catalogue_path=args.catalogue, output_path=args.out)
+                            catalogue_path=args.catalogue, output_path=args.out,
+                            container_name=args.container_name)
     except (OSError, ValueError, TimeoutError, subprocess.SubprocessError) as error:
         parser.error(str(error))
     print(json.dumps(capture, sort_keys=True))

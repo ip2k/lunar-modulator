@@ -799,9 +799,11 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
         "create", "--name", container_name,
         "--label", "lan.project=lunar-modulator",
         "--label", "lan.session=continuous-tuple-capture",
+        "--label", "lan.owner=" + invocation.get("container_name", ""),
         "--cgroup-parent=docker-batch.slice", "--network=none",
         "--cpu-quota=400000", "--cpu-period=100000", "--cpuset-cpus=4-7", "--memory=6g",
-        "--memory-swap=6g", "--pids-limit=512", "--read-only",
+        "--memory-swap=6g", "--pids-limit=512",
+        "--log-driver=json-file", "--log-opt=max-size=1m", "--log-opt=max-file=1", "--read-only",
         "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user=1003:1003",
         "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=3221225472",
         "--env", "LUNAR_SOURCE_COMMIT=" + source_commit,
@@ -820,6 +822,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
     expected_resources = {
         "network_mode": "none", "cgroup_parent": "docker-batch.slice", "cpus": 4,
         "cpuset_cpus": "4-7",
+        "log_config": {"Type": "json-file", "Config": {"max-size": "1m", "max-file": "1"}},
         "memory": 6442450944, "memory_swap": 6442450944, "pids_limit": 512,
         "readonly_rootfs": True, "cap_drop": ["ALL"],
         "security_opt": ["no-new-privileges"], "user": "1003:1003",
@@ -835,7 +838,8 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
             or contract.get("command") != ["python3", "/workspace/" + "tools/native/trusted_continuous_worker.py"]
             or contract.get("user") != "1003:1003"
             or contract.get("labels") != {"project": "lunar-modulator", "session": "gplfu",
-                                          "lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"}
+                                          "lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture",
+                                          "lan.owner": invocation.get("container_name")}
             or contract.get("environment_keys") != ["LUNAR_SOURCE_COMMIT", "PATH"]
             or contract.get("environment_sha256") != sha(canonical([
                 "LUNAR_SOURCE_COMMIT=" + source_commit,
@@ -848,6 +852,7 @@ def capture_trusted_build_tuple(root: Path, catalogue: Path, output: Path, toolc
             or host.get("readonly_rootfs") is not True or host.get("cpu_quota") != 400000
             or host.get("cpu_period") != 100000 or host.get("cpuset_cpus") != "4-7"
             or host.get("nano_cpus") != 0
+            or host.get("log_config") != expected_resources["log_config"]
             or host.get("privileged") is not False or host.get("devices") != []
             or host.get("device_requests") is not None or host.get("cap_add") is not None
             or host.get("pid_mode") != "" or host.get("ipc_mode") != "private"

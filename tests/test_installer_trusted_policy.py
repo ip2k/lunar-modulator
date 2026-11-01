@@ -38,10 +38,11 @@ def _fixture(tmp_path):
                    "User": "1003:1003", "Env": ["LUNAR_SOURCE_COMMIT=" + "a" * 40] + PINNED_IMAGE_ENV,
                    "Entrypoint": None, "WorkingDir": "", "Tty": False,
                    "OpenStdin": False, "StdinOnce": False, "AttachStdout": True, "AttachStderr": True,
-                   "Labels": {**PINNED_IMAGE_LABELS, "lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture"}},
+                   "Labels": {**PINNED_IMAGE_LABELS, "lan.project": "lunar-modulator", "lan.session": "continuous-tuple-capture", "lan.owner": "lunar-continuous-" + "a" * 24}},
         "HostConfig": {"NetworkMode": "none", "CgroupParent": "docker-batch.slice",
                        "ReadonlyRootfs": True, "CpuQuota": 400000, "CpuPeriod": 100000,
-                       "NanoCpus": 0, "CpusetCpus": "4-7", "Memory": 6442450944, "MemorySwap": 6442450944, "PidsLimit": 512,
+                       "NanoCpus": 0, "CpusetCpus": "4-7",
+                       "LogConfig": {"Type": "json-file", "Config": {"max-size": "1m", "max-file": "1"}}, "Memory": 6442450944, "MemorySwap": 6442450944, "PidsLimit": 512,
                        "Privileged": False, "Devices": [], "DeviceRequests": None, "CapAdd": None,
                        "PidMode": "", "IpcMode": "private", "UTSMode": "", "UsernsMode": "",
                        "Runtime": "runc", "Binds": None, "AutoRemove": False, "Init": None,
@@ -68,10 +69,12 @@ def test_producer_and_capture_pin_same_aeon_image():
     assert PINNED_IMAGE_ID == "sha256:" + PINNED_TOOLCHAIN_IMAGE
 
 
-@pytest.mark.parametrize("mutation", ["image", "command", "network", "resource", "mount", "privileged", "device", "cap_add", "pid_mode", "ipc_mode", "runtime", "entrypoint", "extra_env", "missing_base_label", "changed_base_label", "extra_label", "wrong_user", "cpuset"])
+@pytest.mark.parametrize("mutation", ["image", "command", "network", "resource", "mount", "privileged", "device", "cap_add", "pid_mode", "ipc_mode", "runtime", "entrypoint", "extra_env", "missing_base_label", "changed_base_label", "extra_label", "wrong_user", "cpuset", "logging"])
 def test_inspection_refuses_changed_container_policy(tmp_path, mutation):
     inspect, expected, _ = _fixture(tmp_path)
-    if mutation == "cpuset":
+    if mutation == "logging":
+        inspect["HostConfig"]["LogConfig"]["Config"]["max-size"] = "20m"
+    elif mutation == "cpuset":
         inspect["HostConfig"]["CpusetCpus"] = "0-3"
     elif mutation == "wrong_user":
         inspect["Config"]["User"] = "1001:1001"
@@ -129,6 +132,8 @@ def test_command_uses_only_operator_owned_worker_and_fixed_image(tmp_path):
     cmd, _ = container_command("docker", "opaque", root, request, toolchain,
                                catalogue, output, "a" * 40)
     assert cmd[-3:] == [PINNED_IMAGE_ID, "python3", "/workspace/" + WORKER_REL]
+    assert "--log-driver=json-file" in cmd
+    assert "--log-opt=max-size=1m" in cmd and "--log-opt=max-file=1" in cmd
     assert "--network=none" in cmd
     assert "--cpuset-cpus=4-7" in cmd
     assert "--memory=6g" in cmd and "--memory-swap=6g" in cmd
@@ -165,3 +170,28 @@ def test_capture_and_producer_resource_attestation_policies_agree():
     assert policies == [DOCKER_POLICY]
     assert DOCKER_POLICY["memory"] == DOCKER_POLICY["memory_swap"] == 6 * 1024**3
     assert DOCKER_POLICY["cpus"] == 4 and DOCKER_POLICY["cpuset_cpus"] == "4-7"
+
+
+def test_native_failure_logs_use_byte_bounded_capture_from_first_byte(tmp_path, monkeypatch):
+    import run_trusted_continuous_build as wrapper
+    from tools.installer_service.process_capture import Capture
+    calls = []
+    def capture(command, **limits):
+        calls.append(command)
+        assert limits == {"cwd": tmp_path, "timeout_seconds": 10,
+                          "max_stream_bytes": wrapper.MAX_FAILURE_LOG}
+        return Capture(0, {"stdout": b"x" * wrapper.MAX_FAILURE_LOG, "stderr": b""},
+                       {"stdout": 100 * wrapper.MAX_FAILURE_LOG, "stderr": 0}, None)
+    monkeypatch.setattr(wrapper, "run_bounded", capture)
+    wrapper._retain_failure_log("synthetic-docker", "b" * 64, tmp_path)
+    assert calls == [["synthetic-docker", "logs", "--tail", "200", "b" * 64]]
+    assert (tmp_path / "failed-worker.log").stat().st_size == wrapper.MAX_FAILURE_LOG
+
+
+def test_native_wrapper_rejects_arbitrary_parent_container_name_before_any_work(tmp_path, monkeypatch):
+    import run_trusted_continuous_build as wrapper
+    monkeypatch.setattr(wrapper, "_require_runner_identity", lambda: pytest.fail("must refuse before work"))
+    with pytest.raises(ValueError, match="parent-owned"):
+        wrapper.run_build(request_path=tmp_path, toolchain_path=tmp_path,
+                          catalogue_path=tmp_path, output_path=tmp_path,
+                          container_name="unrelated-container")

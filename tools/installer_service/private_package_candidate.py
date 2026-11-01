@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import stat
 import subprocess
 import sys
@@ -23,6 +24,7 @@ from .api import Admission, WorkerResult, _reject_constant, _unique_object, _ver
 from .docker_adapter import _IMAGE_ID, _canonical_relative, read_private_evidence
 from .provenance import canonical, sha256
 from .process_capture import run_bounded
+from .owned_container import cancel_owned_container
 
 MAX_REQUEST_BYTES = 65_536
 MAX_EVIDENCE_FILES = 8192
@@ -330,7 +332,8 @@ def _retain_wrapper_failure(root_fd: int, logs: dict[str, bytes],
 def _run_trusted_wrapper(source_root: Path, request_path: Path, toolchain_root: Path,
                          catalogue_root: Path, output_path: Path) -> None:
     wrapper = Path(source_root) / "tools/native/run_trusted_continuous_build.py"
-    command = [sys.executable, str(wrapper), "--request", str(request_path),
+    container_name = "lunar-continuous-" + secrets.token_hex(12)
+    command = [sys.executable, str(wrapper), "--container-name", container_name, "--request", str(request_path),
                "--toolchain", str(toolchain_root), "--catalogue", str(catalogue_root),
                "--out", str(output_path)]
     error = "pinned trusted continuous wrapper refused or failed this request"
@@ -350,15 +353,34 @@ def _run_trusted_wrapper(source_root: Path, request_path: Path, toolchain_root: 
             pass
         else:
             raise ValueError(error)
-        completed = run_bounded(command, cwd=source_root,
-                                timeout_seconds=WRAPPER_TIMEOUT_SECONDS,
-                                max_stream_bytes=MAX_WRAPPER_LOG_BYTES)
+        owner_raw = canonical({"schema": 1, "container_name": container_name,
+                               "owner_label": {"lan.owner": container_name},
+                               "installable": False, "hardware_admitted": False})
+        owner_fd = os.open("trusted-wrapper-owner.json",
+                           os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                           0o600, dir_fd=root_fd)
+        with os.fdopen(owner_fd, "wb") as owner_file:
+            owner_file.write(owner_raw)
+            owner_file.flush()
+            os.fsync(owner_file.fileno())
+        try:
+            completed = run_bounded(command, cwd=source_root,
+                                    timeout_seconds=WRAPPER_TIMEOUT_SECONDS,
+                                    max_stream_bytes=MAX_WRAPPER_LOG_BYTES)
+        except BaseException:
+            # A killed wrapper cannot run its own daemon-container finally block.
+            cancel_owned_container(container_name, cwd=source_root)
+            raise
+        cleanup_confirmed = True
+        if completed.returncode != 0 or completed.failure_reason is not None:
+            cleanup_confirmed = cancel_owned_container(container_name, cwd=source_root)
         if completed.returncode == 0 and completed.failure_reason is None:
             return
         try:
             _retain_wrapper_failure(root_fd, completed.logs, completed.observed,
                                     completed.returncode,
-                                    completed.failure_reason or "nonzero_exit")
+                                    (completed.failure_reason or "nonzero_exit") if cleanup_confirmed
+                                    else "container_cleanup_unconfirmed")
         except (OSError, ValueError):
             pass  # Unsafe/occupied destinations fail closed without overwriting them.
     except (OSError, subprocess.SubprocessError):
@@ -368,6 +390,12 @@ def _run_trusted_wrapper(source_root: Path, request_path: Path, toolchain_root: 
             os.close(root_fd)
     # Neither child output nor private diagnostic paths enter this public error.
     raise ValueError(error) from None
+
+
+def _require_native_capabilities(source_root: Path, commit: str) -> None:
+    from .server import check_native_audit, check_native_prerequisites
+    check_native_audit(source_root)
+    check_native_prerequisites(source_root, commit)
 
 
 def compose_private_candidate(*, request_raw: bytes, service_result: WorkerResult,
@@ -396,6 +424,7 @@ def compose_private_candidate(*, request_raw: bytes, service_result: WorkerResul
             or not parent.is_dir() or stat.S_IMODE(parent.stat().st_mode) & 0o077):
         raise ValueError("private output must be a new child of an owner-only directory")
 
+    _require_native_capabilities(source_root, expected_source_commit)
     _verify_source_binding(source_root, expected_source_commit, service_result)
     summary = _validate_preview(request_raw, request, service_result, service_image_digest,
                                 set_parents, catalogue_root)

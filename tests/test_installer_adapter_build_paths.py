@@ -47,7 +47,7 @@ def test_actual_adapter_command_canonical_paths_and_private_mount_ownership():
     assert "type=bind,src=/host/runtime/input/source.tar,dst=/input/source.tar,readonly" in mounts
     assert not any("dst=/workspace" in item or "dst=/output" in item for item in mounts)
     for flag in ("--pull=never", "--network=none", "--cgroup-parent=docker-batch.slice",
-                 "--cpus=4", "--cpuset-cpus=4-7", "--memory=6g", "--memory-swap=6g", "--pids-limit=512",
+                 "--cpus=4", "--cpuset-cpus=4-7", "--memory=6g", "--log-driver=json-file", "--log-opt=max-size=1m", "--log-opt=max-file=1", "--memory-swap=6g", "--pids-limit=512",
                  "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges"):
         assert flag in command
     assert command[-3:] == [adapter._IMAGE_ID, "python3", "/input/docker_worker.py"]

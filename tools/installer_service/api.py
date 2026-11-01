@@ -396,7 +396,7 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
                     "full_song_default_accepted")
     flash_layout = request.get("flash_layout", "expanded-d9000")
     runtime_mode = request.get("runtime_mode", "diagnostic")
-    selected_budget = app_budget(flash_layout) if flash_layout == "expanded-d7000" else MAX_ARTIFACT_BYTES
+    selected_budget = app_budget(flash_layout)
     continuous = runtime_mode == "continuous"
     lower_receipt = (_continuous_private_build_receipt(admission, result, receipt)
                      if continuous else None)
@@ -417,8 +417,7 @@ def _verify_result(admission: Admission, result: WorkerResult, trusted_set_paren
             or type(receipt.get("app_bytes")) is not int
             or receipt["app_bytes"] != len(result.artifact)
             or type(receipt.get("app_budget_bytes")) is not int
-            or (flash_layout == "expanded-d7000"
-                and receipt["app_budget_bytes"] != app_budget("expanded-d7000"))
+            or receipt["app_budget_bytes"] != selected_budget
             or not 0 < receipt["app_bytes"] <= receipt["app_budget_bytes"]
             or receipt["app_budget_bytes"] > selected_budget
             or receipt["runtime_configuration"].get("runtime_mode") != runtime_mode

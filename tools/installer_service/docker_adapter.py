@@ -446,6 +446,7 @@ class DockerJobAdapter:
             "--label", "lan.session=installer-diagnostic-worker",
             "--cgroup-parent=docker-batch.slice", "--network=none", "--cpuset-cpus=4-7", "--cpus=" + cfg.cpu_limit,
             "--memory=" + cfg.memory_limit, "--memory-swap=" + cfg.memory_limit,
+            "--log-driver=json-file", "--log-opt=max-size=1m", "--log-opt=max-file=1",
             "--pids-limit=512", "--read-only", "--cap-drop=ALL",
             "--security-opt=no-new-privileges",
             *[item for mount in _scratch_tmpfs(cfg.scratch_bytes, cfg.worker_uid, cfg.worker_gid)

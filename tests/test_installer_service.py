@@ -389,7 +389,7 @@ def result_receipt(doc, req_sha, artifact, elf=TEST_ELF):
             "native_playback_verified": False, "sequence_semantics_verified": False},
         "app_sha256": hashlib.sha256(artifact).hexdigest(),
         "elf_sha256": hashlib.sha256(elf).hexdigest(),
-        "app_bytes": len(artifact), "app_budget_bytes": app_budget(flash_layout) if d7000 else 1048576,
+        "app_bytes": len(artifact), "app_budget_bytes": app_budget(flash_layout),
         "installable": False, "hardware_admitted": False, "hardware_tested": False,
         "native_ram_verified": False, "native_playback_verified": False,
         "full_song_default_accepted": False,
@@ -435,7 +435,7 @@ def test_success_verifies_exact_request_and_app_bytes():
     assert result["artifact_sha256"] == hashlib.sha256(b"diagnostic-app").hexdigest()
     assert result["elf_sha256"] == hashlib.sha256(TEST_ELF).hexdigest()
     assert result["elf_bytes"] == len(TEST_ELF)
-    assert result["app_budget_bytes"] == 1048576
+    assert result["app_budget_bytes"] == app_budget("expanded-d9000")
     assert result["remaining_bytes"] == result["app_budget_bytes"] - len(b"diagnostic-app")
     assert result["installable"] is False
     assert result["hardware_tested"] is False
@@ -914,7 +914,7 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     assert (base / "input/docker_worker.py").stat().st_mode & 0o777 == 0o400
     command = adapter._command(build_id, base)
     joined = " ".join(command)
-    for option in ("--pull=never", "--cgroup-parent=docker-batch.slice", "--network=none", "--cpus=4", "--cpuset-cpus=4-7", "--memory=6g",
+    for option in ("--pull=never", "--cgroup-parent=docker-batch.slice", "--network=none", "--cpus=4", "--cpuset-cpus=4-7", "--memory=6g", "--log-driver=json-file", "--log-opt=max-size=1m", "--log-opt=max-file=1",
                    "--memory-swap=6g", "--pids-limit=512", "--read-only",
                    "--cap-drop=ALL", "--security-opt=no-new-privileges",
                    f"--user {config.worker_uid}:{config.worker_gid}"):
@@ -1482,3 +1482,22 @@ def test_submit_collision_preserves_preexisting_recovery_data_and_capacity(tmp_p
     assert collision_id not in adapter.jobs and collision_id not in adapter.job_dirs
     assert adapter.semaphore.acquire(blocking=False)
     adapter.semaphore.release()
+
+
+@pytest.mark.parametrize("budget", [1048576, app_budget("expanded-d9000") + 1,
+                                     app_budget("expanded-d9000") - 1])
+def test_d9000_named_budget_cannot_be_changed_by_receipt(budget):
+    c, adapter = client()
+    accepted = accept_and_succeed(c, adapter, lambda receipt: receipt.update(app_budget_bytes=budget))
+    assert c.get(accepted.json()["status_url"]).status_code == 502
+
+
+def test_d9000_actual_artifact_cannot_exceed_named_layout_budget():
+    c, adapter = client()
+    response = c.post("/api/v1/builds", json=request_doc())
+    identifier = response.json()["id"]
+    _request, digest, _template = adapter.submissions[identifier]
+    artifact = b"x" * (app_budget("expanded-d9000") + 1)
+    receipt = result_receipt(request_doc(), digest, artifact, TEST_ELF)
+    adapter.succeed(identifier, artifact, receipt, TEST_ELF)
+    assert c.get(response.json()["status_url"]).status_code == 502
