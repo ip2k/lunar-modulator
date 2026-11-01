@@ -42,10 +42,26 @@ initialized host app is the byte/report/PCM oracle. Full PROJECT output is
 checked by the shared general reader; the fixed 30-record cold loader remains
 narrow and refuses it without mutation.
 
-Validation is pending at this WIP checkpoint. Planned bounded normal and Clang
-ASan/UBSan proof covers modes 2/3 bytes and complete reports, shared-reader
-records, state/engine preservation and next-block nonzero PCM, partial storage
-faults, hook reentry, sticky app faults and unchanged default allocation/API.
+[verified host] Exact source `6f16d68331f43662b8a788aef3ddca257f791d65`
+passed the focused test in normal Clang and Clang ASan/UBSan builds with leak
+detection enabled. Each run checks modes 2/3 bytes and complete reports against
+the separately initialized actual host app, shared-reader records, unchanged
+full app/engine snapshots and identical next-block nonzero PCM. All 182 storage
+operations were faulted at zero/half/full effect (546 cases); 531 callback calls
+checked reentry refusal. Eight additional app-fault scenarios cover begin,
+write, read, commit, abort, pre-entry poison and commit returning REFUSED or
+INDETERMINATE. No automatic retry occurs. Normal object symbols prove the
+default reader remains 16,384 bytes with no stage API, versus the opt-in shared
+65,536-byte arena. ASan adds global redzones, so allocation-size assertions run
+only in the normal build; all runtime cases run under both.
+
+The first test attempt exposed an uninitialized independent-reader report in
+the fixture; that test setup was corrected. The next run passed all runtime
+cases but counted ASan redzones as allocation bytes; the size assertion was
+corrected as above. Neither required changing production code. The included
+old transaction fixture has an unused renamed main with its existing implicit
+main return, producing a compile warning; that function is never invoked.
+No production diagnostic source warning was introduced.
 No target compile, aggregate RAM/stack proof, physical output or storage
 admission is claimed. The earlier component's 98,036-byte conditional bound is
 not transferred to this new app/Trio/caller composition without fresh accounting.
