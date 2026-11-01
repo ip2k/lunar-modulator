@@ -13,8 +13,16 @@ extern "C" {
 
 /* The caller owns an aligned fm1_state_bin_reader_size() workspace and a
  * stable, immutable packed source for both synchronous passes. The app must
- * have been initialized with external arenas and have no selected units or
- * rendered frames. Every record is validated twice before app mutation.
+ * be freshly initialized by fm1_app_init_arenas with the default embedded
+ * sequencer, modulation and MIDI-FX storage, no editor attachment or external
+ * callbacks, no selected units and no rendered frames. Redirected live state
+ * is refused before the report or reader can be written. This is a cold,
+ * fixed diagnostic entry, not a general live project loader.
+ * The engine and MIDI-FX registries, descriptors, parameter arrays and all
+ * strings they reference must belong to the same immutable build, be stable
+ * through both passes and application, and be disjoint from app, packed
+ * source, reader, report and external engine arenas. Every record is
+ * validated twice before app mutation.
  * A successful record preflight does not guarantee the engine constructor
  * accepts the target rate or that its arena fits; those remain app errors. */
 int lunar_selected_project_load(fm1_app_t *app, const uint8_t *packed,

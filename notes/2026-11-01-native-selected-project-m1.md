@@ -14,9 +14,13 @@ PROJECT through the shared bounded state reader. It accepts the current
 unit with all 14 parameters and level, seven empty sound/effect units, and
 END. It rejects every other record and semantic variant before selecting an
 engine. Two complete reader passes fill and compare fixed plans; no file
-record is applied during either pass. The caller must provide a fresh app,
-external arenas, a separate 16-byte-aligned reader workspace, and exclusively
-stable input. CRCs and two-pass comparison are not authentication or a
+record is applied during either pass. The caller must provide an app freshly
+initialized with default embedded sequencer, modulation, and MIDI-FX storage,
+no editor or external callbacks, external sound arenas, a separate
+16-byte-aligned reader workspace, and exclusively stable input. Redirected
+storage is refused before the report or reader is written. Registry descriptors,
+parameter arrays, and their strings must be stable and disjoint from mutable
+app/input/workspace storage. CRCs and two-pass comparison are not authentication or a
 concurrency lock. Engine constructor/rate/RAM failures remain separate app
 errors; no native RAM fit or target ABI proof is claimed here.
 
@@ -39,7 +43,7 @@ The old static `engines/state/examples/metadata.json` drops all 14 parameters
 yet returns `code=OK` with `skipped=14`, `unknown=1`; production preparation
 must use a fresh exact-build export and reject all soft-success counters.
 
-## Provisional proof and dependency
+## Host proof and dependency
 
 The host oracle test links the fixed reader `state_bin.c` and header from
 onset's frozen `2cb13c5838583517ad0f169ca8240ec3722e1276` as an
@@ -58,10 +62,13 @@ was used to prepare the exact 597-byte C blob. The host fixture linked that gene
 symbol and passed its bytes to the applier; the general current-app loader
 consumed the matching binary file. The 1-test provisional pytest run passed
 after the strict tool correction; the earlier c06f binary proof is superseded.
-Normal CI cannot pass until the reviewed bounded reader and strict packer
-are integrated into the branch; after integration, rerun without provisional
-environment variables. Exact commands and small logs are retained in ignored
-`scratch/selected-project-m1/` while review proceeds.
+The final selected fixture run at this source checkpoint linked the exact
+root-integrated reader `0043fb7a` through `LUNAR_SELECTED_PARSER_ROOT` and
+`LUNAR_SELECTED_PARSER_HEAD`, and used the strict CLI binary SHA above. It
+passed (`integrated-ownership.log`); source review remains pending. Normal CI
+must rerun after the selected branch is composed with both dependencies,
+without external source/tool overrides. Exact commands and small logs are
+retained in ignored `scratch/selected-project-m1/` while review proceeds.
 
 Independent review found that the binary reader can return `code=OK` while
 counting unknown ancillary chunks and known-chunk keys as `skipped`. The
@@ -71,18 +78,30 @@ oracle generates both valid unknown-item variants; the previous selected
 source accepts them (RED, assertion at `check.c:71`), while the new source
 refuses them with the exact `2cb13c58` reader (GREEN).
 
-A second review witness is still open: that reader silently skips a trailing
-byte in a newer `UNIT` chunk with `code=OK, skipped=0`. The selected applier
-cannot see that byte in its record callbacks. The actual-app oracle now
-generates this valid future-version variant and is intentionally RED against
-`2cb13c58`; the reader owner is correcting its skip accounting separately.
-The present selected checkpoint must not be called full-record refusal or
-accepted GREEN until a reviewed reader correction makes that oracle pass.
+A second review witness showed that the provisional reader silently skipped a
+trailing byte in a newer `UNIT` chunk with `code=OK, skipped=0`. The actual-app
+oracle was RED against `2cb13c58`. The corrected bounded reader was reviewed
+and root-integrated at `0043fb7a977a453a1fb91a4e4c3bcfc32081ebad` (source
+blob `60330e9d5fecfa43ba2bb00d60c2625e36c6fb9f`); with that exact source,
+the selected applier refuses the future tail before mutation. This is a
+composition check with an explicit external parser source, pending selected
+source review and integration.
+
+Independent review also demonstrated an external-editor alias that the first
+checkpoint accepted, writing the editor through an aliased report. The old
+source fails the causal oracle at `check.c:92`. The corrected selected entry
+refuses editor attachment and redirected sequencer, modulation, and MIDI-FX
+storage before report initialization or parser scratch access. The actual app
+oracle checks those pre-write refusals, external callback refusal, and a valid
+generated blob with zero or 16-byte sound arena: both arena cases report
+`FM1_STATE_NO_ROOM` without changing the app or arena. Constructor failures
+after successful preflight still have the limited mutation contract stated in
+the header; the normal positive case verifies all 14 values and 64-frame PCM.
 
 ## Next dependency
 
-Review/integrate the shared bounded reader before treating this GREEN as
-accepted. A dedicated host-only `tools/native/prepare_selected_project.py`
+Review/integrate the selected adapter against the already root-integrated
+bounded reader. A dedicated host-only `tools/native/prepare_selected_project.py`
 now generates a fixed-source packed C blob and receipt. Its required
 `fm1-state pack --strict --store` command is independently reviewed in a
 separate source lane and is absent from this branch's base CLI (the baseline
