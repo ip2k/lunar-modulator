@@ -186,7 +186,9 @@ def manifest(selected=False):
              'firmware/native', 'firmware/third_party/dinghy',
              'firmware/third_party/compiler-rt', 'firmware/third_party/musl',
              'firmware/third_party/printf', 'tools/jieli/objects.mk',
-             'tools/native/build_diagnostic.py', 'tools/jieli/audit_link.py']
+             'tools/native/build_diagnostic.py', 'tools/jieli/audit_link.py',
+             'tools/installer_service/process_capture.py',
+             'tools/installer_service/__init__.py']
     if selected:
         roots += ['tools/native/build_selected_trio_diagnostic.py',
                   'tools/native/prepare_selected_project.py']

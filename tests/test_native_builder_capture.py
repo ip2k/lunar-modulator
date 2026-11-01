@@ -60,3 +60,18 @@ def test_preparer_refuses_actual_tool_failures(tmp_path, monkeypatch, failure):
 def test_preparer_returns_exact_stdout():
     prepare = load('prepare_selected_project')
     assert prepare.tool_output(Path(sys.executable), '-c', "import sys;sys.stdout.buffer.write(b'abc\\x00')") == b'abc\0'
+
+
+def test_executed_capture_helper_is_bound_by_source_manifest(tmp_path, monkeypatch):
+    builder = load('build_diagnostic')
+    helper = tmp_path / 'tools/installer_service/process_capture.py'
+    helper.parent.mkdir(parents=True)
+    helper.write_bytes(b'first implementation')
+    (helper.parent / '__init__.py').write_bytes(b'package initialization')
+    monkeypatch.setattr(builder, 'ROOT', tmp_path)
+    first = builder.manifest(True)
+    helper.write_bytes(b'changed implementation')
+    second = builder.manifest(True)
+    key = 'tools/installer_service/process_capture.py'
+    assert first[key] != second[key]
+    assert first['tools/installer_service/__init__.py'] == second['tools/installer_service/__init__.py']

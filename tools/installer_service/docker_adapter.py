@@ -21,7 +21,9 @@ from dataclasses import dataclass, field
 
 from .api import (MAX_ARTIFACT_BYTES, MAX_BODY_BYTES, MAX_ELF_BYTES, QueueFull,
                   WorkerResult, WorkerSnapshot, _unique_object, _reject_constant)
-from .docker_worker import GENERATED_EVIDENCE_PATHS, generated_evidence_paths
+from .docker_worker import (GENERATED_EVIDENCE_PATHS, generated_evidence_paths,
+                            SELECTED_TRIO_PROFILE, selected_external_inputs,
+                            selected_compile_flags, load_selected_builder)
 from .provenance import (make_diagnostic_provenance, sha256 as _sha256,
                          tree_manifest)
 from .process_capture import run_bounded
@@ -39,6 +41,8 @@ _MAX_PRIVATE_EVIDENCE_FILE = 128 * 1024 * 1024
 _MAX_PRIVATE_EVIDENCE_TOTAL = 512 * 1024 * 1024
 _CATALOGUE_MOUNT = "/catalogue/"
 _BUILD_LINK_MOUNT = "/output/build/link/"
+_SELECTED_EVIDENCE_CAP = 16 * 1024 * 1024
+_SELECTED_RETAINED_JOBS = 4
 
 
 def _remove_owned_container(docker: str, build_id: str, base: Path) -> bool:
@@ -136,7 +140,7 @@ def _read_private_file(path: Path, limit: int, expected_size: int | None = None,
 
 def read_private_evidence(result_dir: Path, expected_request: bytes,
                           expected_image_receipt: bytes,
-                          catalogue_root: Path) -> dict[str, bytes]:
+                          catalogue_root: Path | None, *, selected: bool = False) -> dict[str, bytes]:
     """Read a content-addressed, path-safe worker evidence tree into private memory."""
     root = result_dir / "evidence"
     manifest_path = root / "manifest.json"
@@ -152,6 +156,7 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
         raise ValueError("private evidence manifest is malformed")
     if len(manifest) > 8192:
         raise ValueError("private evidence manifest has too many files")
+    aggregate_cap = _SELECTED_EVIDENCE_CAP if selected else _MAX_PRIVATE_EVIDENCE_TOTAL
     declared_total = 0
     checked_rows = []
     for rel, row in manifest.items():
@@ -163,7 +168,7 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
                 or not isinstance(row["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"])):
             raise ValueError("private evidence manifest row is malformed")
         declared_total += row["bytes"]
-        if declared_total > _MAX_PRIVATE_EVIDENCE_TOTAL:
+        if declared_total > aggregate_cap:
             raise ValueError("private evidence manifest exceeds aggregate cap")
         checked_rows.append((rel, path, row))
     evidence: dict[str, bytes] = {}
@@ -191,6 +196,23 @@ def read_private_evidence(result_dir: Path, expected_request: bytes,
         raise ValueError("private evidence request differs from submitted request")
     if evidence.get("image_receipt.json") != expected_image_receipt:
         raise ValueError("private image receipt differs from service result")
+    if selected:
+        required = {"request.json", "host-bindings.json", "image_receipt.json", "anchors.json",
+                    "metadata.json", "host-build.log", "build.log",
+                    *("prepared/" + name for name in ("selected_project.bin", "selected_project_blob.c",
+                                                      "selected_project_blob.h", "receipt.json"))}
+        objects = {name for name in evidence if name.startswith("objects/")}
+        if not objects or any(not name.endswith(".o") for name in objects) or set(evidence) != required | objects:
+            raise ValueError("selected evidence differs from its fixed inventory")
+        actual = set()
+        for path in root.rglob("*"):
+            if path.is_symlink() or not (path.is_file() or path.is_dir()):
+                raise ValueError("selected evidence contains an unsafe entry")
+            if path.is_file():
+                actual.add(path.relative_to(root).as_posix())
+        if actual != set(manifest) | {"manifest.json"}:
+            raise ValueError("selected evidence files differ from manifest")
+        return evidence
     required = {"request.json", "prepared_profile.json", "source_profile.json",
                 "artifact_receipt.json", "build_receipt.json", "image_receipt.json",
                 "catalogue_manifest.json", "linked_objects.json"}
@@ -318,6 +340,10 @@ class DockerWorkerConfig:
     timeout_seconds: int = 1500
     max_log_bytes: int = 1024 * 1024
     max_artifact_bytes: int = MAX_ARTIFACT_BYTES
+    # Operator-owned fixed-profile inputs. The default retains all legacy gates.
+    profile_id: str | None = None
+    toolchain_archive: Path | None = None
+    cxx_headers: Path | None = None
     source_tree_oid: str = field(init=False, repr=False)
 
     def __post_init__(self):
@@ -325,13 +351,41 @@ class DockerWorkerConfig:
             raise ValueError("source must be pinned to a full Git commit")
         if self.image_reference != _IMAGE_ID:
             raise ValueError("worker image must match the reviewed immutable image")
-        if self.catalogue_root is None:
+        selected = self.profile_id == SELECTED_TRIO_PROFILE
+        if self.profile_id not in (None, SELECTED_TRIO_PROFILE):
+            raise ValueError("unsupported fixed worker profile")
+        if not selected and self.catalogue_root is None:
             raise ValueError("fixed verified catalogue cache is required")
-        for field in ("source_root", "toolchain_root", "runtime_root", "catalogue_root"):
+        if selected and (self.toolchain_archive is None or self.cxx_headers is None):
+            raise ValueError("selected worker requires original archive and libc++ headers")
+        if selected:
+            for name in ("toolchain_archive", "cxx_headers"):
+                original = Path(getattr(self, name))
+                if original.absolute() != original.resolve(strict=True):
+                    raise ValueError("selected mount must be canonical")
+        directories = ("source_root", "toolchain_root", "runtime_root") + (
+            ("cxx_headers",) if selected else ("catalogue_root",))
+        for field in directories:
             path = Path(getattr(self, field)).resolve(strict=True)
             if not path.is_dir():
                 raise ValueError(field + " must be an existing directory")
             object.__setattr__(self, field, path)
+        if selected:
+            for name in ("toolchain_archive", "cxx_headers"):
+                original = Path(getattr(self, name))
+                resolved = original.resolve(strict=True)
+                if original.absolute() != resolved or "," in str(resolved) or "\n" in str(resolved):
+                    raise ValueError("selected mount must be canonical and delimiter-free")
+                if name == "toolchain_archive" and not resolved.is_file():
+                    raise ValueError("original toolchain archive must be a regular file")
+                object.__setattr__(self, name, resolved)
+            # Writable job storage must never be nested in, or contain, a
+            # supposedly read-only operator input. Otherwise collecting/deleting
+            # an owned job could mutate an input mounted into another build.
+            for name in ("source_root", "toolchain_root", "cxx_headers", "toolchain_archive"):
+                path = getattr(self, name)
+                if path.is_relative_to(self.runtime_root) or self.runtime_root.is_relative_to(path):
+                    raise ValueError("selected runtime storage overlaps a read-only input")
         runtime_info = self.runtime_root.stat()
         for name, owner_id in (("worker_uid", runtime_info.st_uid),
                                ("worker_gid", runtime_info.st_gid)):
@@ -345,7 +399,7 @@ class DockerWorkerConfig:
             object.__setattr__(self, name, value)
         if runtime_info.st_mode & 0o022:
             raise ValueError("private runtime directory must not be group or world writable")
-        if any("," in str(getattr(self, field)) or "\n" in str(getattr(self, field)) for field in ("source_root", "toolchain_root", "runtime_root", "catalogue_root")):
+        if any("," in str(getattr(self, field)) or "\n" in str(getattr(self, field)) for field in directories):
             raise ValueError("Docker mount path contains unsupported delimiter")
         head = subprocess.run(["git", "-C", str(self.source_root), "rev-parse", "HEAD"],
                               capture_output=True, text=True, timeout=5, check=True).stdout.strip()
@@ -385,6 +439,8 @@ class DockerJobAdapter:
         self.capacity = capacity
         self.clock = clock
         self.jobs: dict[str, WorkerSnapshot] = {}
+        self.selected_inputs: dict[str, dict] = {}
+        self.selected_verified: dict[str, tuple] = {}
         self.created: dict[str, float] = {}
         self.job_dirs: dict[str, Path] = {}
         self.threads: dict[str, threading.Thread] = {}
@@ -406,6 +462,9 @@ class DockerJobAdapter:
             raise ValueError("invalid image pin")
         if self.config.image_reference != template.image_digest:
             raise ValueError("request template differs from pinned worker image")
+        if getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE:
+            from .selected_trio_profile import validate_request
+            validate_request(request_bytes)
         with self.lock:
             if self.cleanup_unconfirmed:
                 raise RuntimeError("prior installer container cleanup is unconfirmed")
@@ -423,6 +482,10 @@ class DockerJobAdapter:
             if build_id in self.jobs:
                 self.semaphore.release()
                 raise ValueError("duplicate build ID")
+            if (getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE and
+                    len(self.jobs) >= _SELECTED_RETAINED_JOBS):
+                self.semaphore.release()
+                raise QueueFull
             created_base = False
             try:
                 base = self.config.runtime_root / build_id
@@ -458,9 +521,16 @@ class DockerJobAdapter:
                 digest_path = request_dir / "docker_worker.sha256"
                 digest_path.write_text(worker_digest + "\n", encoding="ascii")
                 os.chmod(digest_path, 0o400)
-                catalogue_manifest = tree_manifest(self.config.catalogue_root)
+                selected = getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE
+                catalogue_manifest = (tree_manifest(self.config.cxx_headers) if selected else
+                                      tree_manifest(self.config.catalogue_root))
                 toolchain_manifest = tree_manifest(self.config.toolchain_root)
-                for name, raw in (("catalogue-tree-manifest.json", catalogue_manifest),
+                if selected:
+                    external = selected_external_inputs(
+                        self.config.source_root, self.config.toolchain_root,
+                        self.config.toolchain_archive, self.config.cxx_headers)
+                headers_name = "cxx-headers-manifest.json" if selected else "catalogue-tree-manifest.json"
+                for name, raw in ((headers_name, catalogue_manifest),
                                   ("toolchain-tree-manifest.json", toolchain_manifest)):
                     path = request_dir / name
                     path.write_bytes(raw)
@@ -476,11 +546,22 @@ class DockerJobAdapter:
                     "toolchain_manifest_sha256": _sha256(toolchain_manifest),
                     "request_sha256": request_sha256,
                 }
+                if selected:
+                    binding["schema"] = 2
+                    binding["profile_id"] = SELECTED_TRIO_PROFILE
+                    binding["cxx_headers_manifest_sha256"] = binding.pop("catalogue_manifest_sha256")
+                    binding["toolchain_archive_sha256"] = external["toolchain_binding"]["archive_sha256"]
                 binding_path = request_dir / "host-bindings.json"
                 binding_path.write_bytes(json.dumps(binding, sort_keys=True,
                     separators=(",", ":")).encode("ascii"))
                 os.chmod(binding_path, 0o400)
+                if selected:
+                    self.selected_inputs[build_id] = dict(
+                        external=external, binding=json.loads(binding_path.read_bytes()),
+                        binding_raw=binding_path.read_bytes(), request=request_bytes,
+                        toolchain_manifest=toolchain_manifest, headers_manifest=catalogue_manifest)
             except Exception:
+                self.selected_inputs.pop(build_id, None)
                 if created_base:
                     shutil.rmtree(base, ignore_errors=True)
                 self.semaphore.release()
@@ -515,11 +596,123 @@ class DockerJobAdapter:
             "--mount", "type=bind,src=" + str(base / "input" / "source.tar") + ",dst=/input/source.tar,readonly",
             "--mount", "type=bind,src=" + str(base / "input" / "docker_worker.py") + ",dst=/input/docker_worker.py,readonly",
             "--mount", "type=bind,src=" + str(cfg.toolchain_root) + ",dst=/opt/pi32v2,readonly",
-            "--mount", "type=bind,src=" + str(cfg.catalogue_root) + ",dst=/catalogue,readonly",
+            *(["--mount", "type=bind,src=" + str(cfg.toolchain_archive) + ",dst=/opt/lunar-toolchain.tar,readonly",
+               "--mount", "type=bind,src=" + str(cfg.cxx_headers) + ",dst=/opt/original-libcxx,readonly",
+               "--mount", "type=bind,src=" + str(base / "input/host-bindings.json") +
+               ",dst=/input/host-bindings.json,readonly"]
+              if getattr(cfg, "profile_id", None) == SELECTED_TRIO_PROFILE else
+              ["--mount", "type=bind,src=" + str(cfg.catalogue_root) + ",dst=/catalogue,readonly"]),
             "--mount", "type=bind,src=" + str(base / "input" / "request.json") + ",dst=/input/request.json,readonly",
             "--mount", "type=bind,src=" + str(base / "result") + ",dst=/result",
             cfg.image_reference, "python3", "/input/docker_worker.py",
         ]
+
+    def _collect_selected_result(self, build_id, base, artifact, elf, receipt):
+        """Bind actual worker evidence to previously acquired operator inputs."""
+        from .selected_trio_profile import TrustedInputs, validate_receipt
+        saved = self.selected_inputs[build_id]
+        binding = saved["binding"]
+        input_dir = base / "input"
+        request = _read_private_file(input_dir / "request.json", MAX_BODY_BYTES)
+        if (request != saved["request"] or
+                _read_private_file(input_dir / "host-bindings.json", 4 * 1024 * 1024) != saved["binding_raw"]):
+            raise ValueError("selected job binding changed")
+        for name, key in (("source.tar", "source_archive_sha256"),
+                          ("docker_worker.py", "worker_sha256")):
+            if _sha256(_read_private_file(input_dir / name, 128 * 1024 * 1024)) != binding[key]:
+                raise ValueError("selected pinned job input changed")
+        if (tree_manifest(self.config.toolchain_root) != saved["toolchain_manifest"] or
+                tree_manifest(self.config.cxx_headers) != saved["headers_manifest"] or
+                selected_external_inputs(self.config.source_root, self.config.toolchain_root,
+                                         self.config.toolchain_archive, self.config.cxx_headers) != saved["external"]):
+            raise ValueError("selected operator inputs changed during worker execution")
+        evidence = read_private_evidence(base / "result", request, receipt, None, selected=True)
+        if evidence["host-bindings.json"] != saved["binding_raw"]:
+            raise ValueError("worker evidence substituted host bindings")
+        anchors = json.loads(evidence["anchors.json"], object_pairs_hook=_unique_object,
+                             parse_constant=_reject_constant)
+        expected_keys = set(saved["external"]) | {"compile_flags", "compiler_version", "audit_sources", "host_tools"}
+        if not isinstance(anchors, dict) or set(anchors) != expected_keys:
+            raise ValueError("selected worker anchors have an unsupported shape")
+        for name, expected in saved["external"].items():
+            if anchors[name] != expected:
+                raise ValueError("selected worker anchor differs from operator input: " + name)
+        if anchors["compile_flags"] != selected_compile_flags():
+            raise ValueError("selected worker changed fixed compile recipe")
+        # Audit source roots are independently read from the pinned source, not
+        # selected from paths or claims supplied in the worker's receipt.
+        builder = load_selected_builder(self.config.source_root)
+        audit_sources = tuple(builder.collect_sources([
+            str(self.config.source_root / "firmware/native"),
+            str(self.config.source_root / "firmware/third_party/dinghy")]))
+        # collect_sources records absolute names, so compare exact source text,
+        # line and relative source path across the two fixed root namespaces.
+        def normalized(rows, root):
+            return tuple((str(Path(name).relative_to(root)), line, text) for name, line, text in rows)
+        if normalized(anchors["audit_sources"], Path("/workspace")) != normalized(audit_sources, self.config.source_root):
+            raise ValueError("selected worker audit sources differ from pinned source")
+        metadata = evidence["metadata.json"]
+        if len(metadata) > 1048576:
+            raise ValueError("selected host metadata exceeds cap")
+        # These two executable hashes are acquired by the pinned worker from
+        # its freshly built tools before preparing the candidate, not copied
+        # from the receipt being checked. Reproducible host binaries are not
+        # retained in every API record. Metadata bytes are independently held.
+        host_tools = anchors["host_tools"]
+        if (not isinstance(host_tools, dict) or set(host_tools) != {"renderer", "state_tool", "metadata"} or
+                any(type(v) is not str or not re.fullmatch(r"[0-9a-f]{64}", v) for v in host_tools.values()) or
+                host_tools["metadata"] != _sha256(metadata)):
+            raise ValueError("selected worker host-tool anchors are malformed")
+        trusted = TrustedInputs(
+            binding["source_commit"], binding["source_tree_oid"],
+            dict(saved["external"]["source_manifest"]),
+            saved["external"]["toolchain_binding"],
+            dict(saved["external"]["cxx_headers_manifest"]),
+            dict(saved["external"]["configured_cxx_headers_manifest"]), host_tools,
+            {name.removeprefix("prepared/"): raw for name, raw in evidence.items() if name.startswith("prepared/")},
+            {name.removeprefix("objects/"): raw for name, raw in evidence.items() if name.startswith("objects/")},
+            tuple(tuple(row) for row in anchors["audit_sources"]),
+            tuple(selected_compile_flags()), anchors["compiler_version"])
+        summary = validate_receipt(request, receipt, app=artifact, elf=elf, trusted=trusted)
+        provenance = json.dumps(dict(schema=2, profile_id=SELECTED_TRIO_PROFILE,
+            host_bindings=binding, validation=summary), sort_keys=True, separators=(",", ":")).encode()
+        result = WorkerResult(artifact, receipt, elf, provenance, evidence)
+        self.selected_verified[build_id] = (request, trusted, self._selected_result_fingerprint(result))
+        return result
+
+    @staticmethod
+    def _selected_result_fingerprint(result):
+        evidence = result.private_evidence
+        if (type(result.artifact) is not bytes or not 0 < len(result.artifact) <= MAX_ARTIFACT_BYTES or
+                type(result.elf) is not bytes or not 0 < len(result.elf) <= MAX_ELF_BYTES or
+                type(result.receipt) is not bytes or not 0 < len(result.receipt) <= 4 * 1024 * 1024 or
+                type(result.provenance) is not bytes or not 0 < len(result.provenance) <= 4 * 1024 * 1024 or
+                not isinstance(evidence, dict) or not 0 < len(evidence) <= 8192 or
+                any(type(k) is not str or type(v) is not bytes for k, v in evidence.items()) or
+                sum(map(len, evidence.values())) > _SELECTED_EVIDENCE_CAP):
+            raise ValueError("selected result exceeds bounded verification inputs")
+        return (_sha256(result.artifact), _sha256(result.elf), _sha256(result.receipt),
+                _sha256(result.provenance), tuple(sorted((k, _sha256(v)) for k, v in evidence.items())))
+
+    def verify_selected_trio_result(self, build_id, request_bytes, result):
+        """Pure revalidation of a completed job using private, acquired anchors.
+
+        No process, file, mount or external-input acquisition occurs here. A
+        result envelope's validation claims cannot seed its own trusted inputs.
+        The API may call this in its bounded verification executor.
+        """
+        from .selected_trio_profile import validate_receipt
+        with self.lock:
+            snapshot = self.jobs.get(build_id)
+            saved = self.selected_verified.get(build_id)
+            if (getattr(self.config, "profile_id", None) != SELECTED_TRIO_PROFILE or
+                    snapshot is None or snapshot.status != "succeeded" or saved is None or
+                    build_id not in self.cleanup_confirmed or build_id in self.cleanup_unconfirmed):
+                raise ValueError("no verified selected job is available")
+        request, trusted, fingerprint = saved
+        if request_bytes != request or self._selected_result_fingerprint(result) != fingerprint:
+            raise ValueError("selected result differs from the recorded job")
+        return validate_receipt(request, result.receipt, app=result.artifact, elf=result.elf, trusted=trusted)
 
     def _set(self, build_id: str, snapshot: WorkerSnapshot):
         with self.lock:
@@ -607,7 +800,7 @@ class DockerJobAdapter:
             elf_size = elf_path.stat().st_size
             receipt_size = receipt_path.stat().st_size
             if (not 0 < artifact_size <= self.config.max_artifact_bytes
-                    or not 0 < elf_size <= MAX_ELF_BYTES or not 0 < receipt_size <= 65536):
+                    or not 0 < elf_size <= MAX_ELF_BYTES or not 0 < receipt_size <= (4 * 1024 * 1024 if getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE else 65536)):
                 raise ValueError("worker output exceeds configured cap")
             artifact = artifact_path.read_bytes()
             elf = elf_path.read_bytes()
@@ -622,48 +815,58 @@ class DockerJobAdapter:
             expected_binding_keys = {"schema", "source_commit", "source_tree_oid",
                 "source_archive_sha256", "worker_sha256", "worker_image_digest",
                 "catalogue_manifest_sha256", "toolchain_manifest_sha256", "request_sha256"}
-            catalogue_manifest = (input_dir / "catalogue-tree-manifest.json").read_bytes()
-            toolchain_manifest = (input_dir / "toolchain-tree-manifest.json").read_bytes()
-            if (not isinstance(binding, dict) or set(binding) != expected_binding_keys
-                    or type(binding.get("schema")) is not int or binding["schema"] != 1
-                    or binding.get("source_commit") != self.config.source_commit
-                    or binding.get("source_tree_oid") != self.config.source_tree_oid
-                    or binding.get("worker_image_digest") != self.config.image_reference
-                    or _sha256(catalogue_manifest) != binding.get("catalogue_manifest_sha256")
-                    or _sha256(toolchain_manifest) != binding.get("toolchain_manifest_sha256")
-                    or tree_manifest(self.config.catalogue_root) != catalogue_manifest
-                    or tree_manifest(self.config.toolchain_root) != toolchain_manifest
-                    or _sha256((input_dir / "request.json").read_bytes()) != binding.get("request_sha256")
-                    or _sha256((input_dir / "source.tar").read_bytes()) != binding.get("source_archive_sha256")
-                    or _sha256((input_dir / "docker_worker.py").read_bytes()) != binding.get("worker_sha256")):
-                raise ValueError("build provenance inputs changed during worker execution")
-            try:
-                receipt_object = json.loads(receipt.decode("utf-8"), object_pairs_hook=_unique_object,
-                                         parse_constant=_reject_constant)
-            except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
-                raise ValueError("worker image receipt is malformed") from exc
-            if not isinstance(receipt_object, dict):
-                raise ValueError("worker image receipt must be an object")
-            private_evidence = read_private_evidence(
-                result_dir, (input_dir / "request.json").read_bytes(), receipt,
-                self.config.catalogue_root)
-            lower_receipt = None
-            if ((receipt_object.get("runtime_configuration") or {}).get("runtime_mode")
-                    == "continuous"):
-                lower_receipt = json.loads(
-                    private_evidence["build_receipt.json"].decode("utf-8"),
-                    object_pairs_hook=_unique_object, parse_constant=_reject_constant)
-            provenance = make_diagnostic_provenance(
-                bindings={key: value for key, value in binding.items()
-                          if key not in ("request_sha256", "schema")},
-                request_sha256=binding["request_sha256"], artifact=artifact, elf=elf,
-                receipt_raw=receipt, receipt=receipt_object, lower_receipt=lower_receipt)
-            provenance_path = result_dir / "provenance.json"
-            provenance_path.write_bytes(provenance)
-            os.chmod(provenance_path, 0o600)
-            outcome = WorkerSnapshot(
-                "succeeded", WorkerResult(artifact, receipt, elf, provenance, private_evidence))
-        except Exception:
+            if getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE:
+                selected_result = self._collect_selected_result(build_id, base, artifact, elf, receipt)
+                outcome = WorkerSnapshot("succeeded", selected_result)
+            else:
+                catalogue_manifest = (input_dir / "catalogue-tree-manifest.json").read_bytes()
+                toolchain_manifest = (input_dir / "toolchain-tree-manifest.json").read_bytes()
+                if (not isinstance(binding, dict) or set(binding) != expected_binding_keys
+                        or type(binding.get("schema")) is not int or binding["schema"] != 1
+                        or binding.get("source_commit") != self.config.source_commit
+                        or binding.get("source_tree_oid") != self.config.source_tree_oid
+                        or binding.get("worker_image_digest") != self.config.image_reference
+                        or _sha256(catalogue_manifest) != binding.get("catalogue_manifest_sha256")
+                        or _sha256(toolchain_manifest) != binding.get("toolchain_manifest_sha256")
+                        or tree_manifest(self.config.catalogue_root) != catalogue_manifest
+                        or tree_manifest(self.config.toolchain_root) != toolchain_manifest
+                        or _sha256((input_dir / "request.json").read_bytes()) != binding.get("request_sha256")
+                        or _sha256((input_dir / "source.tar").read_bytes()) != binding.get("source_archive_sha256")
+                        or _sha256((input_dir / "docker_worker.py").read_bytes()) != binding.get("worker_sha256")):
+                    raise ValueError("build provenance inputs changed during worker execution")
+                try:
+                    receipt_object = json.loads(receipt.decode("utf-8"), object_pairs_hook=_unique_object,
+                                             parse_constant=_reject_constant)
+                except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+                    raise ValueError("worker image receipt is malformed") from exc
+                if not isinstance(receipt_object, dict):
+                    raise ValueError("worker image receipt must be an object")
+                private_evidence = read_private_evidence(
+                    result_dir, (input_dir / "request.json").read_bytes(), receipt,
+                    self.config.catalogue_root)
+                lower_receipt = None
+                if ((receipt_object.get("runtime_configuration") or {}).get("runtime_mode")
+                        == "continuous"):
+                    lower_receipt = json.loads(
+                        private_evidence["build_receipt.json"].decode("utf-8"),
+                        object_pairs_hook=_unique_object, parse_constant=_reject_constant)
+                provenance = make_diagnostic_provenance(
+                    bindings={key: value for key, value in binding.items()
+                              if key not in ("request_sha256", "schema")},
+                    request_sha256=binding["request_sha256"], artifact=artifact, elf=elf,
+                    receipt_raw=receipt, receipt=receipt_object, lower_receipt=lower_receipt)
+                provenance_path = result_dir / "provenance.json"
+                provenance_path.write_bytes(provenance)
+                os.chmod(provenance_path, 0o600)
+                outcome = WorkerSnapshot(
+                    "succeeded", WorkerResult(artifact, receipt, elf, provenance, private_evidence))
+
+        except Exception as error:
+            if getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE:
+                # Private diagnostic only, bounded by the existing worker log cap.
+                diagnostic = ("\nSelected worker refusal: " + type(error).__name__ +
+                              ": " + str(error)[:2000] + "\n").encode(errors="replace")
+                log.extend(diagnostic[:max(0, self.config.max_log_bytes - len(log))])
             outcome = WorkerSnapshot("failed")
         finally:
             if proc is not None and proc.poll() is None:
@@ -741,7 +944,24 @@ class DockerJobAdapter:
         with self.lock:
             if build_id in self.cleanup_unconfirmed:
                 return  # Keep both the job and its exact private evidence for recovery.
+            base = self.job_dirs.get(build_id)
+            if getattr(self.config, "profile_id", None) == SELECTED_TRIO_PROFILE:
+                snapshot = self.jobs.get(build_id)
+                if snapshot is not None and (snapshot.status in ("queued", "running") or
+                                             build_id not in self.cleanup_confirmed):
+                    return
+                if base is not None:
+                    # Keep the record/capacity on an uncertain removal. The API
+                    # confirms absence through get() before forgetting admission.
+                    try:
+                        shutil.rmtree(base)
+                    except OSError:
+                        return
+                    if base.exists() or base.is_symlink():
+                        return
             self.jobs.pop(build_id, None)
+            self.selected_inputs.pop(build_id, None)
+            self.selected_verified.pop(build_id, None)
             self.created.pop(build_id, None)
             self.cleanup_confirmed.discard(build_id)
             base = self.job_dirs.pop(build_id, None)
