@@ -44,6 +44,28 @@ def fake_remote():
     trial = ROOT / f"sim/web/build/dx7-{trial_sine}"
     assert not trial.exists(), "isolated worktree should have no prior trial artifacts"
 
+    # The production wrapper's macOS disk safeguard is part of the shell flow,
+    # so make its platform and free-space inputs deterministic on every host.
+    executable(bin_dir / "uname", """
+import sys
+if sys.argv[1:] == ["-s"]:
+    print("Darwin")
+else:
+    raise SystemExit("unexpected uname arguments: " + repr(sys.argv[1:]))
+""")
+    executable(bin_dir / "df", """
+import os, sys
+if sys.argv[1:] == ["-g", "/System/Volumes/Data"]:
+    free = os.environ.get("FAKE_MAC_FREE_GB", "900")
+    print("Filesystem 1G-blocks Used Available Capacity Mounted on")
+    print(f"fake 1000 {1000 - int(free)} {free} 10% /System/Volumes/Data")
+elif len(sys.argv) == 3 and sys.argv[1] == "-Pk":
+    print("Filesystem 1024-blocks Used Available Capacity Mounted on")
+    print(f"fake 31457280 10485760 20971520 33% {sys.argv[2]}")
+else:
+    raise SystemExit("unexpected df arguments: " + repr(sys.argv[1:]))
+""")
+
     executable(bin_dir / "ssh", """
 import json, os, shlex, subprocess, sys
 raw = sys.argv[1:]
@@ -191,6 +213,17 @@ def run_wrapper(env, *args):
 
 def run_logs(log_dir):
     return sorted(log_dir.glob("build-*.log"), key=lambda p: p.stat().st_mtime_ns)
+
+
+def test_low_mac_disk_space_refuses_before_remote_io(fake_remote):
+    base, env, calls, log_dir, _ = fake_remote
+    result = run_wrapper(dict(env, FAKE_MAC_FREE_GB="499"), "--no-screenshot")
+    assert result.returncode == 1
+    assert "Mac data volume has 499 GiB free" in result.stderr
+    assert "requires the 500 GiB floor" in result.stderr
+    assert not (base / "transports.jsonl").exists()
+    assert not calls.exists()
+    assert not log_dir.exists()
 
 
 def assert_released_claims(log_dir):
