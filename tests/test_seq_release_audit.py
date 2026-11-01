@@ -35,3 +35,19 @@ def test_released_lane_host_dispatch(tmp_path):
     result = subprocess.run([str(exe)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert '"ok":true' in result.stdout
+
+
+@pytest.mark.parametrize("checking", [False, True])
+def test_playing_capture_overflow_is_transactional(tmp_path, checking):
+    cc = shutil.which("cc")
+    if not cc:
+        pytest.skip("no C compiler")
+    exe = tmp_path / "capture-overflow"
+    subprocess.run([cc, "-std=c99", "-O2", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
+                    *(["-DSQ_CHECK_INDEX"] if checking else []), "-Iengines/include",
+                    "engines/test/seq_capture_overflow_test.c",
+                    *[f"engines/seq/{s}.c" for s in CORE], "-lm", "-o", str(exe)],
+                   cwd=ROOT, check=True)
+    result = subprocess.run([str(exe)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "8 cases" in result.stdout
