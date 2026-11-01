@@ -1160,12 +1160,14 @@ export function initFiles(env) {
   }
   async function setView(v) {
     try {
-      const live = await liveBin();
-      const doc = JSON.parse(await saveText('project', 0, live));
+      // A view change still loads a whole project. Fence that snapshot so
+      // edits or recording during packing cannot be replaced by old content.
+      const snap = await projectSnapshot();
+      const doc = JSON.parse(snap.text);
       doc.view = v;
       const p = await shadow('pack', { text: JSON.stringify(doc) });
       if (!p.ok) return false;
-      const l = await worklet({ type: 'state-load', bytes: p.bin, kind: 1, into: 0, slot: 0, flags: FLAG_QUIET }, [p.bin.buffer]);
+      const l = await worklet({ type: 'state-load', bytes: p.bin, kind: 1, into: 0, slot: 0, flags: FLAG_QUIET, expectedHash: snap.hash }, [p.bin.buffer]);
       f.workletLoads.push({ binary: l.binary === true, ok: l.ok === true });
       return l.ok;
     } catch (err) {
