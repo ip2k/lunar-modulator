@@ -17,14 +17,14 @@ and its remote SHA verified. Small raw logs are in the lane's ignored evidence
 directory (below). The source audit itself was source-only; these are subsequent
 executed host results.
 
-[verified-source] Clearing a nonprimary sound now releases its insert instances,
+[verified] Clearing a nonprimary sound now releases its insert instances,
 rebinds their modulation sinks, clamps the current FX page and emits the insert
 clear records before the parent clear. This is a bounded loop without recursive
 application selection. Normal engine replacement retains the insert chain.
 The existing sound-note release path, sequencer routes, mix levels and other
 sounds' notes retain their existing behavior.
 
-[verified-source] RESTORE_SOUND now compares a live unit's canonical registry
+[verified] RESTORE_SOUND now compares a live unit's canonical registry
 identity via its stored index. It keeps the actual live FM6 descriptor, parameter
 table, patch names and sizing data. Complete-parameter eligibility remains a
 separate prerequisite. Ordinary imports, genuinely different engines and sparse
@@ -100,7 +100,7 @@ the engine inputs are unchanged. This lane does not update a stale WASM record
 without rebuilding it. The coordinator must rebuild the final integrated tree
 and rerun browser parity; additional integrated edits will change the final hash.
 
-At this lane's current source:
+At the independent A2/A3 checkpoint `64d499ed`:
 
 - Engine source hash, before/after:
   `872562d992cbe9f0c07f523eef9852ca6a250955e2e98e01a966f9a46d0dd58a`.
@@ -115,7 +115,7 @@ At this lane's current source:
 - `fm1_edit_check.c`: `37bf68b09485a8757efad4fc9667c0122d0461ceb4b04cc36a1340c3fe2d6f47`
   → `16eaf5196c82fc8c89ac318dcfcb96a4ae5a0bf5464d55dd3aab28cf884383a4`.
 
-## Follow-up A6/A7 (in progress)
+## Follow-up A6/A7
 
 The coordinator authorized two further app-state audit fixes after independent
 A2/A3 checkpoint `64d499ed5750d7364447d99d25db0937b8d020c2`.
@@ -125,8 +125,8 @@ continuation blocks differed from controls, and a real allocation refusal in the
 second clip merge still reported success without inserting the clip. The
 fault-only harness wraps the merge and realloc at link time; it fails realloc
 inside the chosen real merge, rather than replacing application behavior.
-First-merge allocation refusal already preserved app state. Source fixes and
-final validation remain pending at this regression checkpoint.
+First-merge allocation refusal already preserved app state. This RED checkpoint
+is `ffc0b4d48c81f4312d638c4821e101cbcc6bced1` (pushed/verified).
 
 [verified] A6 alone removes all 390 set-refusal failures; the two A7 assertions
 still fail as expected. Core parsing precedes app cleanup and has no output
@@ -137,7 +137,7 @@ core labels/routes, so old targets receive their releases on successful import.
 The six invalid headers now preserve every byte of the live app, its edit
 generation and all 64 continuation blocks each. The set grammar is unchanged.
 
-[verified-source] A7 retains pass 1's merged text in the single-operation load
+[verified] A7 retains pass 1's merged text in the single-operation load
 plan, validates it with the existing bounded sequencer scratch, imports that
 same text in apply, and frees it at every public check/load exit. There is no
 second merge or allocation after mutations begin. Public check frees its copy
@@ -146,7 +146,44 @@ An export failure has an explicit refusal message, and the helper receives an
 initialized empty error buffer. No second serialization grammar is introduced.
 [verified] The focused fault harness now returns `failed: 0`, including actual
 first-merge allocation refusal, successful insertion with no second merge, and
-four repeated public checks with unchanged live state. The broader final run,
-including the new normal/ASan fault test, is in progress. Additional coverage
-also includes active arps during invalid imports and successful EOF/whitespace
-tags plus replacement routes.
+four repeated public checks with unchanged live state. Additional coverage
+includes active arps during invalid imports and successful EOF/whitespace tags
+plus replacement routes.
+
+[verified] Final follow-up suite: **147 passed, 5 skipped**, exit 0 in 108.05 s.
+The A2/A3 suite command above additionally includes
+`tests/test_app_state_faults.py`, which builds and runs the actual realloc
+failure cases in normal and ASan/UBSan configurations. This also reruns every
+A2/A3 regression on the final sources. The five optional dependency/browser
+skips are unchanged. ASan leak detection retains its Linux default; no leak or
+sanitizer diagnostic occurred. Source fixes: A6 `317cb55b347c92171508975ebf3aecd2bb2390ae`,
+A7 `cb37556f78b8f5890c25a20d87640194491d7c5c`, both pushed/verified.
+
+[verified] Final source stages, fault binaries, pytest inputs and caches were
+removed after copying results. No lane container remains running. Retained
+small logs/receipts: 872 KiB on Aeon, 868 KiB on Mac at the paths above. Mac free
+space is 1,119 GiB. CPU12–15 is released to the coordinator. The isolated
+worktree remains for review/integration, to be removed after merge. No device,
+USB, MIDI, flash, reset, power, service or infrastructure operations were run.
+The next dependency is coordinator review/integration plus rebuilding and
+validating the final WASM; declared hash changes must not be stamped onto an
+old module.
+
+
+The follow-up's source-hash receipt is
+`scratch/sound-state-fixes-20261101/source-hashes-followup.json`.
+The engine source hash remains `872562d992cbe9f0c07f523eef9852ca6a250955e2e98e01a966f9a46d0dd58a`;
+the final sim source hash is
+`56d8ea1ebcb417eb7800c6f07c49ad07f36bd7c74e99b4554e024df2b40b8bad`.
+Relative to A2/A3, the three sim inputs now hash to:
+
+- `fm1_app.c`: `d9a9e4b628085ba8cbcb17186a0b7780868a39e7b51813656ad4b596637783d0`.
+- `fm1_app_state.c`: `664c459f316b9107b79e160855a895cc8c166cb7ac497209e13c77a2148e9024`.
+- `fm1_edit_check.c`: `bf3122d1eac820e6483ac2d6418026ad19b78de3ae855bfd5f1585be4d4d5cc6`.
+
+Rarefaction's follow-up orient/scope remained pinned to main, whose line positions
+have drifted from this isolated base. The attempt therefore does not establish
+those current symbols' call edges; direct inspection of the pinned parser,
+bridge, MIDI-effect flush and app cleanup paths supplied the call-chain evidence.
+Serena's global selection was left untouched, as above. SS2's subsequent core
+snapshot/app adaptation belongs to the coordinator, not this branch.
