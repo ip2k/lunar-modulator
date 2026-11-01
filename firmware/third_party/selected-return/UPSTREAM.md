@@ -17,7 +17,7 @@ and SLOOP/isod89. The imported base HAL records upstream
 <https://github.com/zvenson/dinghy> at
 `d44df7db09b98ccad2f1233b8f83f5f09c04829e`, carried through Lunar
 `cccd21cc5dc82859ed8a5d84f0a7a40646d07353`.
-See `../third_party/dinghy/LICENSE`, `LICENSING.md` and `UPSTREAM.md`.
+See this package's `LICENSE`, `../dinghy/LICENSING.md` and `../dinghy/UPSTREAM.md`.
 This separate derivative inventory does not reimport the historical header.
 GPL source permission does not authorize distribution with closed SDK objects.
 No new third-party binary, extraction, download or proprietary output is used.
@@ -32,7 +32,7 @@ source/divider contract. Actual physical bit and reset behavior is unverified.
 
 The original read-only design and independent review were supplied privately
 and checked before implementation. Their exact digests and current input hashes
-are in `selected_return-inventory.json`. All 16 source/doc inputs named by that
+are in `inventory.json`. All 16 source/doc inputs named by that
 review remain byte-identical at this branch's base
 `c7f7abdf1c87ad43a54f4c0c13850e390ee5f013`.
 

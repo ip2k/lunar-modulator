@@ -80,20 +80,24 @@
     "historical_lunar_carry": "cccd21cc5dc82859ed8a5d84f0a7a40646d07353"
   },
   "owned_files": {
-    "firmware/native/selected_return.c": {
-      "sha256": "37f0153fc41ac52d50b9ecba015c7d6d49d5c7ef51c58f43d6215d4be2f70eec",
+    "firmware/third_party/selected-return/selected_return.c": {
+      "sha256": "14f10b4c0d9f55d8a50236bbb0aab2e58c13a634fba91a7507d1302c1cd12438",
       "modification": "new offline proof; actual policy and register-only test fixture"
     },
-    "firmware/native/selected_return.h": {
+    "firmware/third_party/selected-return/selected_return.h": {
       "sha256": "a4a6a2c7f0f91cecf6540c3615f709e6b240cac9e4c2b8e447c7440343e8a4b7",
       "modification": "new offline proof; actual policy and register-only test fixture"
     },
-    "firmware/native/selected_return-provenance.md": {
-      "sha256": "70196a02f7185c177e0ad5754d57592841c680eb942b70959150ff55460e881f",
+    "firmware/third_party/selected-return/UPSTREAM.md": {
+      "sha256": "ddeb81aa89361def8127318c9e7fc0e7547254fbd7064f136c8833586d484495",
       "modification": "new offline proof; actual policy and register-only test fixture"
     },
+    "firmware/third_party/selected-return/LICENSE": {
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "modification": "unchanged GPL licence copy"
+    },
     "tests/test_selected_return.py": {
-      "sha256": "40a6a121bf4a45fa5986d3545f765ba7659408aa16eb14c1e526b16629f97a09",
+      "sha256": "41ccd0790db96bd8e32400091fe2e35c08f9f2d7909aaee4e72eccd843d693e6",
       "modification": "new offline proof; actual policy and register-only test fixture"
     },
     "tests/fixtures/selected_return/check.c": {
