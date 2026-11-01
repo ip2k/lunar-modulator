@@ -37,7 +37,12 @@ started. The earlier IRQ-init/bootstrap interval requires IRQ-off entry; the tes
 do not prove that assumption on hardware. Every meaningful
 startup callback has a post-call poison check, including IRQ enable. Late or
 regressed observed main ticks refuse before a health feed or codec-tail write;
-main health cadence is half the qualified maximum phase interval, with a strictly
+Every main clock observation is compared with the latest valid observation,
+initialized from the codec-tail origin. An unsigned step larger than the existing
+qualified max_phase_ticks refuses before feed/tail; zero remains valid. This adds
+one 32-bit permanent timestamp and catches regressions within a policy-feed
+cadence, including a rewind to the older policy tick. Main health cadence is half
+the qualified maximum phase interval, with a strictly
 positive tick delta. A clock frozen at the last policy tick or at a nonzero delta
 below cadence does not invoke further policy progress. There is no finite software
 escape or loop-count timing guarantee: termination then depends solely on an
@@ -74,7 +79,7 @@ Directed runs cover genuine startup halves/queue contents, immediate IRQ after
 readiness, actual scanner key/detent hooks, all 41 matrix IDs and seven encoders,
 clock wrap, main feed cadence, queue backpressure, underrun, overflow, early IRQ,
 startup callback fault/reentry, deferred tail fault, and late IRQ after terminal.
-Each normal and ASan/UBSan configuration now runs 23 actual-app process cases.
+Each normal and ASan/UBSan configuration now runs 25 actual-app process cases.
 The positive/wrap cases compare 122 consumed blocks, including nonzero held-note
 PCM; tail writes occur once. Two directed frozen-clock cases observe 100 harness
 iterations at last_tick and last_tick+1 (below cadence), then exit externally.
@@ -106,9 +111,14 @@ python3 -m pytest -o addopts= -q -s -p no:cacheprovider \
 Local bounded legacy return/aggregate checks passed 13 tests; the new complete-plan
 and legacy-HAL normalized statement-order checks passed two. The exact `5b5ea1dc`
 batch passed 25 normal checks and five actual-app sanitizer
-checks. The later clock-contract delta changes comments, documentation and focused
-fixture coverage only; its separate normal/sanitizer receipt supersedes only that
-fixture. Production behavior and the other frozen results remain unchanged.
+checks. The later clock follow-up adds the latest-observation regression guard and focused
+fixture cases. Its separate normal/sanitizer receipt covers that actual adapter;
+the other frozen results remain evidence for unchanged paths. Two initial fixture
+runs failed: first an ARMED expectation after IO had transitioned to RUNNING, then
+a retroactive clock rewind that exposed the real tail-origin underflow. Genuine
+freeze cases now stop clock increments at the actual IO sample, never rewind time.
+Separate rewind-to-policy and within-cadence regression cases require CLOCK refusal
+with no new feed or deferred tail. The failed-run logs remain in private evidence.
 Final exact-source
 receipts and result logs are retained privately in the performance worktree under
 `scratch/devkit-20261023/audit-20261101/selected-audio-owner-binding/`.

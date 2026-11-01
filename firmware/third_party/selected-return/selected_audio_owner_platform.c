@@ -26,7 +26,7 @@ static void accepted_encoder(uint32_t,unsigned,int);
 static int32_t audio[2u * HALF_WORDS] __attribute__((aligned(16)));
 static lunar_selected_return_t return_policy;
 static volatile uint32_t audio_may_run, timer_may_run;
-static uint32_t tail_origin, tail_done;
+static uint32_t tail_origin, tail_done, main_observed_tick;
 #define PLATFORM (&lunar_selected_aggregate_platform)
 extern void isr_timer5(void),isr_alnk0(void);
 
@@ -109,6 +109,12 @@ static void main_step(void) {
   if(word(&PLATFORM->owner.transport.underruns))
     lunar_selected_return_fault(&return_policy,LUNAR_SR_FAULT);
   uint32_t now=fm1_ticks();
+  /* Compare every observation, not only policy-feed samples: a rewind inside
+   * the feed cadence must not underflow the newer codec-tail origin. Zero is
+   * valid backpressure/freeze; the existing qualified horizon handles wrap. */
+  if((uint32_t)(now-main_observed_tick)>return_policy.qualification.max_phase_ticks)
+    lunar_selected_return_fault(&return_policy,LUNAR_SR_CLOCK);
+  main_observed_tick=now;
   /* Health cadence is evidence-relative, never a feed in a fast full-queue
    * spin or an IRQ. The policy checks configuration/deadline when called.
    * A clock frozen below cadence cannot provide a finite software escape:
@@ -153,6 +159,7 @@ void lunar_diagnostic_cstart(void) {
   /* All app work, prefill and P33 phase feeds precede this short interval.
    * No wait or app callback between DMA start and IRQ enable. */
   tail_origin=fm1_ticks();
+  main_observed_tick=tail_origin;
 #ifdef LUNAR_SELECTED_RETURN_TARGET_INJECTED
   lunar_sr_test_barrier();
 #else

@@ -37,6 +37,7 @@ static unsigned trigger,seen;
 static uint8_t scan_raw[11];
 static uint32_t fake_gpio[8][8];
 static unsigned accepted;
+static unsigned startup_feeds;
 static unsigned frozen, frozen_feeds, frozen_transfers, frozen_observation_done, frozen_clock_latched;
 static uint32_t frozen_tick, frozen_last_tick;
 
@@ -219,6 +220,7 @@ static void reference_pending(void) {
 static void lunar_audio_owner_test_iteration(void) {
   catchup();
   if(++iterations==1) {
+    startup_feeds=f.feed;
     /* Queue-full main is backpressure; it must not feed on an unchanged tick. */
     unsigned feeds=f.feed;uint64_t frames=lunar_diagnostic_state()->frames;
     if(lunar_selected_platform_main(PLATFORM)==1) catchup();
@@ -247,6 +249,14 @@ static void lunar_audio_owner_test_iteration(void) {
     audio_irq();reference_pending();return;
   }
   if(!strcmp(mode,"clock-back")) { f.now=return_policy.last_tick-1;return; }
+  if(!strcmp(mode,"clock-back-tail")) {
+    assert(main_observed_tick==tail_origin && main_observed_tick>return_policy.last_tick);
+    f.now=return_policy.last_tick;return;
+  }
+  if(!strcmp(mode,"clock-back-observed") && iterations==2) {
+    f.now=main_observed_tick-1;
+    assert(f.now>return_policy.last_tick);return;
+  }
   if(iterations==120) {
     assert(tail_calls==1 && nonzero>0 && f.feed>3);
     assert(!PLATFORM->owner.display.initialized && !PLATFORM->owner.spi.initialized);
@@ -312,7 +322,9 @@ int main(int argc,char **argv) {
     if(trigger==4 || trigger==5) assert(!irq_enables && !tail_calls);
   } else if(!strcmp(mode,"empty")) assert(word(&PLATFORM->owner.transport.underruns)==1 && !tail_calls);
   else if(!strcmp(mode,"overflow")) assert(!tail_calls);
-  else if(!strcmp(mode,"clock-back")) assert(return_policy.first_error==LUNAR_SR_CLOCK && !tail_calls);
+  else if(!strcmp(mode,"clock-back") || !strcmp(mode,"clock-back-tail") ||
+          !strcmp(mode,"clock-back-observed"))
+    assert(return_policy.first_error==LUNAR_SR_CLOCK && !tail_calls && f.feed==startup_feeds);
   else { assert(iterations==120 && tail_calls==1 && accepted>=3 && nonzero); }
   if(dma_starts) assert(stop_calls==1);
   uint64_t frames=lunar_diagnostic_state()->frames;unsigned tx=f.transfers,tail=tail_calls;

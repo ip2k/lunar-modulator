@@ -54,7 +54,8 @@ def test_actual_selected_audio_owner(tmp_path):
     exe = build / "proof-check"
     subprocess.run([*cmd, str(exe)], check=True, timeout=300)
     modes = [(m,) for m in ("positive", "wrap", "unqualified", "empty", "overflow", "clock-back",
-                            "clock-frozen-zero", "clock-frozen-subcadence")]
+                            "clock-frozen-zero", "clock-frozen-subcadence",
+                            "clock-back-tail", "clock-back-observed")]
     modes += [("fault", str(n)) for n in range(1, 8)]
     modes += [("reenter", str(n)) for n in range(2, 8)]
     modes += [("early-irq", str(n)) for n in (2, 3)]
