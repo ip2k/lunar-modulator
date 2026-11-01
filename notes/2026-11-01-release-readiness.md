@@ -31,9 +31,11 @@ deployment was skipped. Do not rerun passing checks to hide that failure.
 
 [verified] Corrections PR #165 is the combined integration candidate on
 `fix/2026-11-01@release-state-corrections`, pushed and remote verified through
-`5715d6aa2de6fce5b8b7cb1c4a1118fcefc9c35a`. It is not a release or
-hardware admission. The reviewed Capture, PROJECT-save and inventory fixes are
-integrated; one fresh combined WASM build and final exact-head CI remain.
+`59084596a4a668220a15d7055b34557a0408c89e`. It is not a release or
+hardware admission. Capture command completion and bounded codec phase 1 are
+now independently reviewed and integrated. A new frozen-source WASM build and
+final exact-head CI remain. Prior-head CI found a 32-bit effect-walk expectation
+mismatch under causal diagnosis; all three browser jobs passed.
 
 The foundation provides DX7 bank export, ordered MIDI realtime input,
 queue-margin telemetry, offline customization/catalogue and a shared request
@@ -54,7 +56,9 @@ pending; do not bypass the setting. The owned loopback preview is
   history. Takes outside the unchanged 256-step format refuse transactionally;
   valid clip growth and the explicit Movy compatibility oracle remain. Endpoint
   arithmetic checks bounds before rounding, including UINT32_MAX. A retained
-  take receives a readable refusal popup. Author normal/sanitizer checks,
+  take receives a readable refusal popup. Panel feedback now follows the exact
+  command through the held slot and completes only when it runs. BUSY refuses
+  without retry, and reset/successful import cancel pending feedback. Author normal/sanitizer checks,
   independent arithmetic/FIFO checks and coordinator focused tests pass.
 - WebKit transport updates preserve unchanged icon nodes. An actual-app held
   pointer regression demonstrated the old lost click and passes in all three
@@ -74,7 +78,8 @@ pending; do not bypass the setting. The owned loopback preview is
 - The LAN browser wrapper isolates remote staging, claims canonical output
   paths and cleans only owned resources. Validated SSH-config and CPU/CPU-set/
   memory hooks apply to every container. Independent fake-transport lifecycle
-  tests pass; the next actual combined batch will validate the revised wrapper.
+  tests pass. The actual e267 combined browser batch also passed through this
+  revised wrapper with the designated SSH and resource settings.
 - MATRIX stack frames were reduced with bounded snapshots. Actual pi32 local
   frames fell to 652/376/404 bytes; this is not a whole-call-chain stack bound.
 - FM6 descriptor identity, sound/insert release, finite edit indices,
@@ -99,37 +104,44 @@ private coordinator checkpoint retains detailed receipts and current lane state.
   checks any additional tracked imports. Independent bundle checks pass 41
   tests with one existing skip; seven service tests confirm production still
   refuses missing native prerequisites. No selector or startup gate changed.
-- After these fixes, freeze one source and run the actual bounded browser build:
-  parity, metadata/SysEx/routing/MIDI, edit-storm, generated provenance and all
-  three browser regression sets. No manual acceptance-hash edits.
-- Rebuild the unchanged current native diagnostic from the same frozen source
-  with pinned private inputs, fresh objects and the original link audit. Its
-  closure excludes the renderer pipeline and is not full-product RAM proof.
-- Implement native persistence offline in dependent phases: compact MIT plain
-  codec, current canonical PROJECT replay/streamed SEQS, then fake storage.
-  The reviewed proposal preserves caps, metadata, reports and record ordering;
-  uses the actual directory size; binds readback to a frozen expected manifest;
-  and treats a late commit error as potentially indeterminate. Its inclusive
-  98,304-byte ceiling is a gate, not a measured fit. No SAVE UI or real storage
-  binding is admitted by these phases.
-- Close SDK-free CPU1 reset/IRQ/stack/cache/publication contracts and prepare
-  the smallest current-app display/control runtime. Read-only plans precede
-  production implementation and target experiments.
+- [verified] The full e267 browser batch passed 108 parity scenarios, metadata,
+  SysEx/routing/MIDI, zero-late/resync DSP storm and Chromium wrapper checks.
+  Browser-state, sequencer UI and toolbar regressions passed all three browsers.
+  Generated artifacts and strict provenance were integrated, but later C changes
+  make them stale. Regenerate from the next reviewed frozen source.
+- [verified] Native codec phase 1 uses the existing encoder with explicit host
+  backing and a bounded two-pass plain path. Independent normal and sanitizer
+  checks compare 387 cases against the exact old implementation, including
+  bytes, full reports and failing positions. Constructor aliases and sink
+  reentry refuse; root combined-tree normal/sanitizer tests pass. Target compact
+  scratch is 43,788 bytes plus a 1,072-byte manifest, not a complete native save
+  memory or stack bound. PROJECT provider/emitter and fake transactions remain
+  active work. No SAVE UI or real storage is bound.
+- The offline CPU1 candidate has host adapter/core fault tests; separate target
+  CRT/link/profile and compiler inspection remain. Production enable stays
+  rejected and hardware admission is false.
+- The offline panel proof covers actual-app display/control/PCM and threaded
+  publication, pending independent review. Default startup/HAL/profile stays
+  unchanged and hardware LCD completion remains unbound.
+- Narrow Docker ownership, build-setup cleanup and soak-receipt prerequisite
+  findings are being fixed and independently reviewed. Production native-build
+  prerequisite refusal must remain; no test-only adapter admits real builds.
 
 ## Native and physical evidence limits
 
-[verified] The earlier source-9440 native diagnostic used a fixed FM6,
-eight-voice arrangement and linked without SDK archives. Its original audit
-passed with no pending rows and app/ROM load bytes reproduced. Historical flash
-210,364 bytes, BSS 300,240 bytes and 142,112-byte headroom must not be applied
-to corrected source without a fresh link. It has no general interactive screen,
-persistence, CPU1 backend or installation admission.
+[verified] The fresh e267 native diagnostic uses a fixed FM6 eight-voice
+arrangement and links without SDK archives. Original audit: 12 pass, no pending
+rows. Fresh inputs and generated bytes are bound in its private receipt. App
+239,360 bytes, total BSS 306,768, flash 210,804 and 135,584 bytes of gap are
+current for that diagnostic only. Its reserved stacks are not measured runtime
+high-water or closed call-chain proof. It has blank LCD/limited HOME controls,
+no persistence, pipeline, USB, bootguard or full interactive runtime. Later
+source changes require new target evidence before admission.
 
-The last actual full combined browser module was built from source 897931cf.
-It passed 108 parity cases, metadata/edit, SysEx, routing, all four MIDI groups,
-a 30-second edit storm with zero late quanta/resynchronizations, and the three
-browser regression sets with CI audio setup. That module is now stale after
-new C changes. Keep the evidence; regenerate the module before final CI.
+Last successful full browser build source is e267d7cd. Module SHA
+12a607b8cc78e35d8c4bee299dc0ed386e16676c510142dc95aa172a28c61c92
+and its actual build record are integrated. Later codec/Capture source changes
+require regeneration; historical passing artifacts do not validate newer C.
 
 No device traffic occurred during this release-coordination resume. The physical
 FM-1 boots recovered stock V15; D1–D4 and docs/17 still govern firmware-changing
