@@ -8,6 +8,11 @@ With a LUNAR_PIPELINE_SOAK line it adds a 'buffered' summary for the owner's
 release rule (2026-10-28): the whole run's underrun counters, both cores'
 means per case and over the run against 29,604 ticks (85 %), and the queue
 latency from the LUNAR_PIPELINE ready line's slots (x 64 frames at 44,100 Hz).
+Optional ready_running_min/ready_running_samples measure music pre-acquire
+queue depth only while produced < total. Unlike ready_min, they exclude the
+final output drain. They include the slot being acquired, exclude the DMA ring,
+and are sampled minima, not continuous low-water marks. A zero sample count
+means no running minimum was measured. Older logs retain their old summary.
 Ticks are the 24 MHz timer: 34,829 ticks (1,451 us) per 64-frame block.
 
 The worst-block vector is each case's maximum producer block split at the
@@ -107,6 +112,20 @@ def buffered_rule(end, cases, soak, ready, final_lines):
                      queue_plus_ring_ms=round(1000.0 * (slots + DMA_WINDOWS) * FRAMES_PER_BLOCK / DAC_RATE_HZ, 2),
                      min_ready_slots=end['ready_min'],
                      min_margin_ms=round(1000.0 * end['ready_min'] * FRAMES_PER_BLOCK / DAC_RATE_HZ, 2))
+    running_fields = ('ready_running_min', 'ready_running_samples')
+    if any(k in end for k in running_fields):
+        if not all(k in end for k in running_fields):
+            raise ValueError('Running queue minimum requires min and samples')
+        minimum, samples = (end[k] for k in running_fields)
+        if (not isinstance(minimum, int) or not isinstance(samples, int) or
+                minimum < 0 or samples < 0 or (slots is not None and minimum > slots) or
+                (samples == 0 and minimum != 0)):
+            raise ValueError('Invalid running queue minimum or samples')
+        if queue is not None:
+            queue.update(running_samples=samples,
+                         running_min_ready_slots=minimum if samples else None,
+                         running_min_margin_ms=(round(1000.0 * minimum * FRAMES_PER_BLOCK / DAC_RATE_HZ, 2)
+                                                if samples else None))
     run_ms = soak['elapsed_ms'] - IDLE_QUIET_MS
     lifetime = ready.get('lifetime_ms') if ready else None
     fail_line = [r['failure_line'] for r in final_lines if 'failure_line' in r]
