@@ -45,21 +45,30 @@ static int service(lunar_spi_model_t *m,uint32_t *ticket) {
     return fail(m,LUNAR_SPI_TIMEOUT);
   switch(m->phase) {
   case SELECT:
-    if(m->ops.pins(m->ops.ctx,1,(int)(m->transfer&1u))) return fail(m,LUNAR_SPI_IO);
+    r=m->ops.pins(m->ops.ctx,1,(int)(m->transfer&1u));
+    if(m->fault) return -1;
+    if(r) return fail(m,LUNAR_SPI_IO);
     m->phase=CLEAR; break;
   case CLEAR:
-    if(m->ops.clear_done(m->ops.ctx)) return fail(m,LUNAR_SPI_IO);
+    r=m->ops.clear_done(m->ops.ctx);
+    if(m->fault) return -1;
+    if(r) return fail(m,LUNAR_SPI_IO);
     m->phase=ACK_FENCE; break;
   case ACK_FENCE:
-    if(m->ops.barrier(m->ops.ctx)) return fail(m,LUNAR_SPI_IO);
+    r=m->ops.barrier(m->ops.ctx);
+    if(m->fault) return -1;
+    if(r) return fail(m,LUNAR_SPI_IO);
     m->phase=LOW; break;
   case LOW:
     r=m->ops.done(m->ops.ctx);
+    if(m->fault) return -1;
     if(r<0 || r>1) return fail(m,LUNAR_SPI_IO);
     if(!r) m->phase=FENCE; /* stale DONE must clear before launch */
     break;
   case FENCE:
-    if(m->ops.barrier(m->ops.ctx)) return fail(m,LUNAR_SPI_IO);
+    r=m->ops.barrier(m->ops.ctx);
+    if(m->fault) return -1;
+    if(r) return fail(m,LUNAR_SPI_IO);
     m->phase=LAUNCH; break;
   case LAUNCH: {
     const uint8_t *p;
@@ -67,16 +76,21 @@ static int service(lunar_spi_model_t *m,uint32_t *ticket) {
     if(!(m->transfer&1u)) { p=commands+m->transfer/2u; n=1; }
     else if(m->transfer==5) { p=m->row; n=LUNAR_DISPLAY_ROW_BYTES; }
     else { p=m->params+(m->transfer==3?4:0); n=4; }
-    if(m->ops.launch(m->ops.ctx,p,n)!=1) return fail(m,LUNAR_SPI_IO);
+    r=m->ops.launch(m->ops.ctx,p,n);
+    if(m->fault) return -1;
+    if(r!=1) return fail(m,LUNAR_SPI_IO);
     m->phase=WAIT; break;
   }
   case WAIT:
     r=m->ops.done(m->ops.ctx);
+    if(m->fault) return -1;
     if(r<0 || r>1) return fail(m,LUNAR_SPI_IO);
     if(r) m->phase=DESELECT;
     break;
   case DESELECT:
-    if(m->ops.pins(m->ops.ctx,0,(int)(m->transfer&1u))) return fail(m,LUNAR_SPI_IO);
+    r=m->ops.pins(m->ops.ctx,0,(int)(m->transfer&1u));
+    if(m->fault) return -1;
+    if(r) return fail(m,LUNAR_SPI_IO);
     if(++m->transfer==6) {
       *ticket=m->ticket; m->active=0; m->row=0; return 1;
     }

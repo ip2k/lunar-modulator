@@ -8,13 +8,20 @@
 typedef struct {
   uint32_t now, actions, launches, selected, data, live, done, delay;
   int mode;
-  unsigned fail_at;
+  unsigned fail_at, reenter_at, tick_calls, tick_reenter_at;
   lunar_spi_model_t *model;
   const uint8_t *borrowed;
   uint8_t snapshot[480];
   size_t bytes;
 } mock_t;
-static int action(mock_t *s) { return ++s->actions==s->fail_at; }
+static int action(mock_t *s) {
+  ++s->actions;
+  if(s->actions==s->reenter_at) {
+    uint32_t ticket=123;
+    assert(lunar_spi_model_step(s->model,&ticket)<0 && ticket==123);
+  }
+  return s->actions==s->fail_at;
+}
 static int pins(void *ctx,int selected,int data) {
   mock_t *s=ctx; if(action(s)) return -1;
   if(s->mode==1) return -1;
@@ -52,7 +59,14 @@ static int launch(void *ctx,const uint8_t *p,size_t n) {
   if(s->mode==8) s->done=1; /* completion before first post-launch read */
   return 1;
 }
-static uint32_t ticks(void *ctx) { return ((mock_t *)ctx)->now; }
+static uint32_t ticks(void *ctx) {
+  mock_t *s=ctx;
+  if(++s->tick_calls==s->tick_reenter_at) {
+    uint32_t ticket=123;
+    assert(lunar_spi_model_step(s->model,&ticket)<0 && ticket==123);
+  }
+  return s->now;
+}
 static uint16_t pixels[240*240];
 static unsigned draws;
 static const uint16_t *draw(void *ctx,uint32_t frames) { (void)ctx; assert(frames==1470); ++draws; return pixels; }
@@ -103,17 +117,34 @@ int main(void) {
   for(int mode=0;mode<=11;++mode) run(mode);
   /* Every operation of all six first-row transfers: no post-fault operation,
    * no lease release, including errors only in WAIT or final deselect. */
-  for(unsigned at=1;at<=60;++at) {
-    lunar_spi_model_t m={0}; mock_t s={0}; uint8_t row[480]={0}; uint32_t ticket;
+  for(unsigned kind=0;kind<2;++kind) for(unsigned at=1;at<=60;++at) {
+    lunar_spi_model_t m={0}; mock_t s={0}; uint8_t row[480]={0}; uint32_t ticket=123;
     lunar_spi_model_ops_t ops={pins,clear,done,fence,launch,ticks,&s};
-    s.fail_at=at;
+    s.model=&m;
+    if(kind) s.reenter_at=at; else s.fail_at=at;
     assert(!lunar_spi_model_init(&m,&ops,1000,100));
     assert(lunar_spi_model_submit(&m,0,0,row,480)==1);
     int r; unsigned steps=0;
-    do { r=lunar_spi_model_step(&m,&ticket); assert(++steps<105); } while(!r);
+    do {
+      uint32_t phase=m.phase, transfer=m.transfer;
+      r=lunar_spi_model_step(&m,&ticket); assert(++steps<105);
+      if(r<0) assert(m.phase==phase && m.transfer==transfer && ticket==123);
+    } while(!r);
     assert(r<0 && m.fault && m.active && m.row==row);
     unsigned actions=s.actions; s.fail_at=0; s.done=1;
     assert(lunar_spi_model_step(&m,&ticket)<0 && actions==s.actions);
+  }
+  /* Clock hooks are external too, including the initial submit timestamp. */
+  for(unsigned at=1;at<=2;++at) {
+    lunar_spi_model_t m={0}; mock_t s={0}; uint8_t row[480]={0}; uint32_t ticket=123;
+    lunar_spi_model_ops_t ops={pins,clear,done,fence,launch,ticks,&s};
+    s.model=&m; s.tick_reenter_at=at;
+    assert(!lunar_spi_model_init(&m,&ops,1000,100));
+    int r=lunar_spi_model_submit(&m,0,7,row,480);
+    if(at==1) assert(r<0); else { assert(r==1); assert(lunar_spi_model_step(&m,&ticket)<0); }
+    assert(m.fault && m.active && m.row==row && ticket==123 && !s.actions);
+    unsigned calls=s.tick_calls;
+    assert(lunar_spi_model_step(&m,&ticket)<0 && s.tick_calls==calls);
   }
   /* Wrong and duplicate completions cannot release a display/frame lease. */
   lunar_diagnostic_display_t d={0}; lunar_spi_model_t m={0}; mock_t s={0};
@@ -123,6 +154,6 @@ int main(void) {
   assert(lunar_display_frame(&d,draw,0,1470)==1 && lunar_display_pump(&d)==1);
   assert(lunar_display_complete(&d,d.ticket+1,1)<0 && d.pending && d.active);
   assert(lunar_display_complete(&d,d.ticket,1)<0 && d.pending && d.active);
-  puts("SPI model: 12 cases + 60 operation faults + wrong/late ticket; 240 rows; immediate/delayed/fault/frozen clock/lease/wrap passed");
+  puts("SPI model: 12 cases + 60 operation faults + 62 hook reentries + wrong/late ticket; 240 rows; immediate/delayed/fault/frozen clock/lease/wrap passed");
   return 0;
 }
