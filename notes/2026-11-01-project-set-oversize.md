@@ -47,3 +47,9 @@ The fixture states this distinction; no production pool/cap is changed.
 and new TOO_BIG with zero callbacks in all four PROJECT modes. Exact synthetic
 65536/65537 export boundaries fit and65538 refuses. Additional final runs will
 cover both host wrappers and explicit caller workspace plus default dense parity.
+
+[verified] Frozen afded052 normal and Clang ASan/UBSan both passed; valid digest
+8bcc4635 matches baseline/fixed. Before final acceptance the PCM assertion is
+strengthened to require a nonzero held voice after any set-import note releases;
+this is a fixture-only change and requires final reruns. Production source is
+unchanged since6344680.
