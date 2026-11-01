@@ -136,7 +136,7 @@ typedef struct bin_writer {
   uint8_t *chunk, *body, *zout;
   uint32_t *zscratch;
   size_t chunk_bytes;
-  unsigned pass, ended;
+  unsigned pass, ended, active;
   uint32_t stream_crc, trace, records;
   fm1_state_bin_plan_t *planning;
   const fm1_state_bin_plan_t *expected;
@@ -226,10 +226,11 @@ static int cput(bin_writer_t *w, const void *b, size_t n) {
 
 static int staged_put(bin_writer_t *w, uint32_t off, const uint8_t *b, size_t n) {
   const uint32_t total = get32(w->expected->head + 20);
+  if (w->err) return 0;
   if (off > total || n > total - off) return berr(w, FM1_STATE_BAD, "replay differs from its plan");
   if (n && w->write_at(w->ctx, off, b, (uint32_t)n) != n)
     return berr(w, FM1_STATE_STOPPED, "the staged sink stopped");
-  return 1;
+  return !w->err;             /* a callback may have attempted a nested record */
 }
 
 static int cput8(bin_writer_t *w, unsigned v) { const uint8_t b = (uint8_t)v; return cput(w, &b, 1); }
@@ -652,8 +653,10 @@ int fm1_state_bin_write(void *wv, const fm1_rec_t *r) {
   int ok;
   if (!w->pass) return bin_record(w, r);
   if (w->err) return 0;
+  if (w->active) return berr(w, FM1_STATE_BAD, "a reentrant compact writer");
   if (w->ended) return berr(w, FM1_STATE_BAD, "a record after end");
   if (w->records == UINT32_MAX) return berr(w, FM1_STATE_TOO_BIG, "too many replay records");
+  w->active = 1;
   /* END seals/compares the trace inside assemble. Other records are hashed
    * only after validation, so an oversized fragment need not be readable. */
   if (r->type == FM1_REC_END) {
@@ -661,11 +664,12 @@ int fm1_state_bin_write(void *wv, const fm1_rec_t *r) {
     w->trace = record_trace(w->trace, r);
   }
   ok = bin_record(w, r);
-  if (ok && r->type != FM1_REC_END) {
+  if (ok && !w->err && r->type != FM1_REC_END) {
     ++w->records;
     w->trace = record_trace(w->trace, r);
   }
-  return ok;
+  w->active = 0;
+  return ok && !w->err;
 }
 
 static int plan_error(fm1_state_report_t *rep, unsigned code, const char *what) {
@@ -673,11 +677,19 @@ static int plan_error(fm1_state_report_t *rep, unsigned code, const char *what) 
   return 0;
 }
 static int aligned_block(const void *p, size_t n, size_t need) {
-  return p && !((uintptr_t)p & 15u) && n >= need;
+  return p && !((uintptr_t)p & 15u) && n >= need && n - 1u <= UINTPTR_MAX - (uintptr_t)p;
 }
 static int overlaps(const void *a, size_t an, const void *b, size_t bn) {
   const uintptr_t x = (uintptr_t)a, y = (uintptr_t)b;
+  if (!a || !b || !an || !bn) return 0;
+  if (an - 1u > UINTPTR_MAX - x || bn - 1u > UINTPTR_MAX - y) return 1;
   return x <= y ? y - x < an : x - y < bn;
+}
+/* Never report an ownership error by writing into either protected block. */
+static int block_error(fm1_state_report_t *rep, const void *a, size_t an,
+                       const void *b, size_t bn, const char *what) {
+  if (overlaps(rep, sizeof(*rep), a, an) || overlaps(rep, sizeof(*rep), b, bn)) return 0;
+  return plan_error(rep, FM1_STATE_BAD, what);
 }
 static int plan_valid(const void *pv, size_t n) {
   const fm1_state_bin_plan_t *p = (const fm1_state_bin_plan_t *)pv;
@@ -701,8 +713,10 @@ fm1_state_writer_t *fm1_state_bin_preflight(void *mem, size_t bytes,
   bin_compact_t *c = (bin_compact_t *)mem;
   fm1_state_bin_plan_t *p = (fm1_state_bin_plan_t *)plan;
   if (!aligned_block(c, bytes, sizeof(*c)) || !aligned_block(p, plan_bytes, sizeof(*p)) ||
-      overlaps(c, sizeof(*c), p, sizeof(*p))) {
-    plan_error(rep, FM1_STATE_BAD, "invalid compact workspace"); return NULL;
+      overlaps(c, bytes, p, plan_bytes) ||
+      overlaps(rep, sizeof(*rep), c, bytes) || overlaps(rep, sizeof(*rep), p, plan_bytes) ||
+      overlaps(version, 3, c, bytes) || overlaps(version, 3, p, plan_bytes)) {
+    block_error(rep, c, bytes, p, plan_bytes, "invalid compact workspace"); return NULL;
   }
   memset(p, 0, sizeof(*p));
   init_writer(&c->w, 0, writer, version, NULL, rep);
@@ -716,9 +730,12 @@ fm1_state_writer_t *fm1_state_bin_replay(void *mem, size_t bytes,
     const void *plan, size_t plan_bytes, fm1_state_write_at_t write_at, void *ctx, fm1_state_report_t *rep) {
   bin_compact_t *c = (bin_compact_t *)mem;
   const fm1_state_bin_plan_t *p = (const fm1_state_bin_plan_t *)plan;
-  if (!aligned_block(c, bytes, sizeof(*c)) || !plan_valid(p, plan_bytes) || !write_at ||
-      overlaps(c, sizeof(*c), p, sizeof(*p))) {
-    plan_error(rep, FM1_STATE_BAD, "invalid compact replay"); return NULL;
+  if (!aligned_block(c, bytes, sizeof(*c)) ||
+      overlaps(c, bytes, p, plan_bytes) ||
+      overlaps(rep, sizeof(*rep), c, bytes) || overlaps(rep, sizeof(*rep), p, plan_bytes) ||
+      overlaps(ctx, 1, c, bytes) || overlaps(ctx, 1, p, plan_bytes) ||
+      !plan_valid(p, plan_bytes) || !write_at) {
+    block_error(rep, c, bytes, p, plan_bytes, "invalid compact replay"); return NULL;
   }
   init_writer(&c->w, 0, p->head[24], p->head + 25, ctx, rep);
   c->w.chunk = c->chunk;
@@ -746,8 +763,9 @@ int fm1_state_bin_plan_match(const void *plan, size_t plan_bytes,
   uint8_t buf[64], ent[20];
   uint32_t dcrc = 0, end, base;
   unsigned count, i;
-  if (!rd || !plan_valid(p, plan_bytes) || total != get32(p->head + 20))
-    return plan_error(rep, FM1_STATE_BAD, "invalid planned readback");
+  if (overlaps(rep, sizeof(*rep), p, plan_bytes) || overlaps(ctx, 1, p, plan_bytes) ||
+      !rd || !plan_valid(p, plan_bytes) || total != get32(p->head + 20))
+    return block_error(rep, p, plan_bytes, NULL, 0, "invalid planned readback");
   if (!read_exact(rd, ctx, 0, buf, 32) || memcmp(buf, p->head, 32)) goto mismatch;
   count = get16(p->head + 14); base = 36u + 20u * count; end = base;
   for (i = 0; i < count; ++i) {

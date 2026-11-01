@@ -463,6 +463,15 @@ int fm1_state_bin_write(void *w, const fm1_rec_t *r);   /* a sink; the file goes
  * any short/error result poisons replay, even if some bytes reached storage.
  * No retries, erase, commit, rollback, allocation, source lock or storage
  * binding is provided here. All callback bytes are borrowed for the call.
+ * Reports, version bytes, records and their referenced source bytes, callback
+ * contexts and backing input/output storage must not overlap either supplied
+ * memory block. Known report/version overlaps and context pointers inside a
+ * block are rejected; opaque context/backing extents are the caller's duty.
+ * Callbacks must not retain bytes, mutate source/plan/scratch, reconstruct an
+ * active writer, or reenter it. A nested record call poisons the outer replay;
+ * its in-flight callback may already have written bytes, so abort the stage.
+ * Other independent instances are allowed; concurrent access to one instance
+ * requires external exclusion. Readback callbacks may not mutate the plan.
  *
  * After successful replay END, match the entire staged image to this frozen
  * plan AND validate with fm1_state_bin_read(skip_crc=0) before an independent
@@ -471,7 +480,8 @@ int fm1_state_bin_write(void *w, const fm1_rec_t *r);   /* a sink; the file goes
  * but refuses zero progress. An uncertain outer commit requires a rescan.
  *
  * Constructors return NULL on bad size/alignment/overlap/plan, setting BAD
- * unless report already holds an error. Existing host APIs are unchanged. */
+ * unless report already holds an error. An overlapping report is untouched.
+ * Existing host APIs are unchanged. */
 typedef struct fm1_state_bin_plan fm1_state_bin_plan_t;
 typedef uint32_t (*fm1_state_write_at_t)(void *ctx, uint32_t off,
                                        const uint8_t *bytes, uint32_t n);
