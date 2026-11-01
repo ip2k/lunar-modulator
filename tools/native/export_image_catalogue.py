@@ -347,7 +347,9 @@ def main():
                         help='print the canonical all-production Event Horizon continuous request')
     args = parser.parse_args()
     try:
-        with tempfile.TemporaryDirectory(prefix='lunar-image-catalogue-') as scratch:
+        scratch_root = ROOT / 'scratch/native-image-catalogue'
+        scratch_root.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix='export-', dir=scratch_root) as scratch:
             report = export_catalogue(ROOT, Path(scratch))
     except (OSError, ValueError) as error:
         parser.error(str(error))
