@@ -68,3 +68,31 @@ Neither root was changed. Actual source/header/known test callers were inspected
 through bounded absolute-checkout reads; neither empty result establishes a
 caller absence or target ABI correctness. Foundation names were collision-checked
 with git ls-tree. No GPL HAL or proprietary source was copied into this adapter.
+
+## Results
+
+[verified] Source checkpoint ca8f9e798ccc33966dc89f240894db3270a8da78 passed
+15 focused pytest cases: 15 lifecycle modes in each of normal and ASan/UBSan
+builds (30 process executions), default refusal/compile gate, and the existing
+SDK/host protocol suite (22 modes across four builds, 88 process executions).
+The stream fixture verifies callback order and PCM through the actual adapter.
+This is bounded synthetic callback coverage, not an eight-voice DSP render.
+
+[verified] The same source compiled with existing vendor clang for pi32v2/r3,
+-mfprev1, C11, -Oz, freestanding, -fno-builtin and warnings as errors. The
+initial compile omitted the toolchain standard include directory and failed
+on string.h; adding the native builder's existing pi32v2/include path resolved
+it without copied/configured headers or SDK libraries. Object SHA-256:
+7c5ed20cb076d1a7b970a3aed7d72d23462861eea4ad02038bead53c0314e17f.
+Vendor disassembly confirms native_start returns zero and hardware_admitted is
+constant zero; optimized disabled code removes the runnable worker path. nm
+lists only memcpy/memset as unresolved runtime dependencies. This is an object
+compile, not a linked firmware, full toolchain archive revalidation or active
+backend machine-code proof. The exact command, compiler/objdump/input hashes,
+relocations, raw listing and host logs are private under the worker worktree's
+scratch/native-pipeline-20261101/logs. No vendor output is tracked.
+
+Next dependency: independent adapter review, then parent integration with native
+foundation/corrections. The next platform slice must establish the listed target
+contracts and own concrete entry/linker/platform changes; it must not simply
+flip ENABLE or reuse these disabled hooks as real hardware operations.
