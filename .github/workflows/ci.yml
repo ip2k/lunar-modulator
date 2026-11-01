@@ -221,6 +221,7 @@ jobs:
       - name: Installer customization and MIDI realtime contracts (node)
         timeout-minutes: 5
         run: |
+          node --test sim/web/test/native-ota-*.test.mjs
           node --test sim/web/test/installer-*.test.mjs sim/web/test/native-build-selection.test.mjs sim/web/test/native-demo-selection*.test.mjs sim/web/test/native-fwsc-inspection.test.mjs sim/web/test/native-package-admission.test.mjs sim/web/test/midi-realtime-routing.test.mjs
           node sim/web/test/midi-realtime.mjs sim/web/www/fm1.wasm
       - name: The editor's data and history against the module (node)
