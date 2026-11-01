@@ -10,10 +10,10 @@ from pydantic import ValidationError
 from tools.installer_service import build_capabilities as capabilities
 from tools.installer_service import selected_trio_profile as profile
 from tools.installer_service.request_contract import canonical_request, validate_request as v1_request
-from tools.installer_service.server import check_native_prerequisites
+from tools.installer_service.server import NATIVE_PREREQUISITES, check_native_prerequisites
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = "7ab2810420999629d170531a6f2f78fd44a8484f"
+FIXTURE_SOURCE_COMMIT = "7" * 40
 
 
 def request(**changes):
@@ -46,7 +46,7 @@ def test_fixed_request_canonical_and_no_internal_arp_selection():
     {"project_ids": ["init-starter-trio", "init-starter-trio"]},
     {"project_ids": ["packet-bloom"]}, {"startup_index": 1},
     {"startup_index": False}, {"set_ids": ["companion"]},
-    {"command": "builder"}, {"installable": True}, {"source_commit": BASE},
+    {"command": "builder"}, {"installable": True}, {"source_commit": FIXTURE_SOURCE_COMMIT},
 ])
 def test_fixed_request_refuses_other_selections_and_claims(changes):
     with pytest.raises((ValueError, ValidationError)):
@@ -68,8 +68,31 @@ def test_v1_canonical_bytes_and_rejection_stay_unchanged():
     assert canonical_request(v1_request(json.dumps(old).encode(), catalogue)) == expected
     with pytest.raises(ValueError):
         v1_request(request(), catalogue)
-    with pytest.raises(ValueError, match="native build prerequisites are unavailable"):
-        check_native_prerequisites(ROOT, BASE)
+
+
+def test_native_prerequisite_gate_refuses_commit_missing_tracked_inputs(tmp_path):
+    # This is the exact prerequisite subset tracked by the historical commit
+    # used here before CI became shallow; the rest existed only in the working
+    # tree. Keep the regression independent of repository history.
+    historically_tracked = {
+        "firmware/third_party/compiler-rt/inventory.json",
+        "firmware/third_party/dinghy/inventory.json",
+        "firmware/third_party/musl/inventory.json",
+        "firmware/third_party/printf/inventory.json",
+    }
+    for relative in NATIVE_PREREQUISITES:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("synthetic prerequisite\n", encoding="utf-8")
+
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "add", "--", *sorted(historically_tracked)], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "-c", "user.name=Fixture",
+                    "-c", "user.email=fixture@example.invalid", "commit", "-qm", "historical source fixture"], check=True)
+    commit = subprocess.check_output(["git", "-C", str(tmp_path), "rev-parse", "HEAD"], text=True).strip()
+
+    with pytest.raises(ValueError, match="private native build prerequisites are unavailable; no build service was started"):
+        check_native_prerequisites(tmp_path, commit)
 
 
 def test_source_declaration_never_enables_any_capability():
@@ -202,7 +225,7 @@ def evidence():
         "-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -DFM1_APP_STATE_EXTERNAL_WORKSPACE=1 "
         "-D_LIBCPP_HAS_NO_THREADS -D_LIBCPP_DISABLE_EXTERN_TEMPLATE -isystem /headers "
         "-isystem /toolchain/pi32v2/include").split()
-    trusted = profile.TrustedInputs(BASE, "7" * 40, source, binding, headers, headers, tools,
+    trusted = profile.TrustedInputs(FIXTURE_SOURCE_COMMIT, "7" * 40, source, binding, headers, headers, tools,
               files, {"obj/unit.o": b"synthetic object"}, (("unit.c", 1, "void unit(void) {}"),),
               tuple(flags), "synthetic compiler version")
     image = Elf(elf)
