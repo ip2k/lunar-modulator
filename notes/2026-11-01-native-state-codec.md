@@ -70,3 +70,10 @@ No legacy host behavior was changed. [verified, host] Normal+ASan/UBSan pass all
 known-alias cases and8 reentry boundaries (full/short callback results). The
 callback deliberately writes after nested refusal; outer refusal and zero
 subsequent callbacks are asserted. Independent corrected-head review pending.
+
+[verified, corrected target object] The same pinned compiler/flags compiled
+44762713: compact43788, manifest1072, host289552 bytes. The active guard adds4B
+on pi32v2 (host alignment absorbs it). Same two unchanged reader warnings;
+-fstack-usage still unsupported. Exact dependency hashes and vendor disassembly
+are retained privately in target-ownership-evidence. This remains object-only
+proof, not a linked native/stack/inclusive-budget claim.
