@@ -1,8 +1,8 @@
 # Played on the panel (docs/16 MG3), Macro as Sound 1, Shapes as
-# Sound 2 through an Ensemble insert, Plate as the master: PLAY/STOP;
+# Sound 2 through an Ensemble insert, Room as the master: PLAY/STOP;
 # SHIFT (SEL held) + PRESETS makes Sound 2 current; hold LFO and turn KNOB3,
 # Sound 2's Color: LFO1 into S2 Color. FX mode, SELECT back to In1 (its
-# Ensemble): hold ENV and turn KNOB1, its Mix; SELECT on to M1 (Plate):
+# Ensemble): hold ENV and turn KNOB1, its Mix; SELECT on to M1 (Room):
 # hold ENV and turn KNOB2, its Decay. A key plays Sound 2. EDIT: an empty
 # slot's target picker opens at Sound 2 (its Timbre), two detents on to
 # its Color; KNOB3 commits it and sets the amount. HOME; SHIFT + PRESETS
