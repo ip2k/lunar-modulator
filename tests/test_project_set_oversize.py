@@ -50,6 +50,7 @@ def test_project_set_oversize(tmp_path):
         results.append(valid)
         run = subprocess.run([str(target)], text=True, capture_output=True, timeout=180)
         print(name, run.stdout, run.stderr, flush=True)
+        assert "ERROR: AddressSanitizer" not in run.stderr and "runtime error:" not in run.stderr
         if name == "baseline":
             assert run.returncode != 0 and "ok=1 code=0 calls=1" in run.stdout
         else:

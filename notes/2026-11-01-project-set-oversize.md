@@ -32,3 +32,18 @@ Lifecycle: source worktree is lunar-project-set-oversize-20261101. LAN stage is
 /home/likwid/datasets/lunar/project-set-oversize-20261101; CPU12–15, max4CPU6GiB,
 docker-batch.slice, --rm and task labels. Preserve small logs and remove owned
 source/build intermediates after results. Mac free space before work:1116GiB.
+
+## First measured fixture correction
+
+[verified] Normal build found the default eight-track pools with 1536 notes,
+1536 locks and256 trig rows export64920 bytes in this dense fixture. That is
+fitting coverage, not an oversized reproducer. The real oversized fixture uses
+supported caller-selected pools in the unchanged32768-byte app arena: disable
+unsaved Capture history and add64 notes (1600 total). Its real canonical export
+is66456 bytes, and import/export/import/export roundtrips without refused edits.
+The fixture states this distinction; no production pool/cap is changed.
+
+[verified] First normal run demonstrated old success with one output callback
+and new TOO_BIG with zero callbacks in all four PROJECT modes. Exact synthetic
+65536/65537 export boundaries fit and65538 refuses. Additional final runs will
+cover both host wrappers and explicit caller workspace plus default dense parity.
