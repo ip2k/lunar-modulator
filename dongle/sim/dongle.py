@@ -27,6 +27,7 @@ class DongleModel:
         self.ack_low_us = 0
         self.ack_polarity = None
         self.ack_at = None
+        self.ack_indicator_pending = False
         self.pullups_on = False
         self.mux_pc = True
         self.drive_dp_low = False
@@ -87,6 +88,7 @@ class DongleModel:
                             self.ack_polarity = self.pol
                             self.ack_at = t_us
                             self.phase_start = t_us
+                            self.ack_indicator_pending = True
                             self.log.append(("ack", t_us, self.pol, self.packets))
                             return
                     else:
@@ -110,13 +112,14 @@ class DongleModel:
                     self.pullups_on = False
                     self.state = "sof_wait_high"
                     self.phase_start = t_us
-            elif t_us - self.phase_start > p["ACK_RELEASE_TIMEOUT_MS"] * 1000:
+            elif t_us - self.phase_start >= p["ACK_RELEASE_TIMEOUT_MS"] * 1000:
                 self.log.append(("ack_release_timeout", t_us))
                 self.pullups_on = False
                 self.state = "sof_wait_high" if self.sof_mode == SOF_MODE_DONGLE else "done"
                 if self.state == "done":
                     self.mux_pc = True
                     self.done_at = t_us
+                    self.log.append(("done", t_us))
                 self.phase_start = t_us
         elif self.state == "sof_wait_high":
             if dp and not dm:
@@ -152,3 +155,6 @@ class DongleModel:
             self.drive_dp_low = self.drive_dm_low = False
             self.pullups_on = False
             self.mux_pc = True
+            if self.ack_indicator_pending:
+                self.log.append(("ack_indicator_after_handoff", t_us))
+                self.ack_indicator_pending = False
