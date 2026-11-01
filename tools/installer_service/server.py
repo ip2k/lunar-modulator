@@ -10,7 +10,8 @@ import subprocess
 
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from .api import WorkerTemplate, create_app
+from .api import WorkerTemplate, create_app, create_selected_trio_app
+from .build_capabilities import SELECTED_TRIO_PROFILE, check_profile_prerequisites
 from .catalogue import load_trusted_catalogue
 from .docker_adapter import DockerJobAdapter, DockerWorkerConfig, _IMAGE_ID
 
@@ -93,6 +94,42 @@ def create_private_app(config: ServiceConfig):
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
     return app
 
+
+
+@dataclass(frozen=True)
+class SelectedTrioServiceConfig:
+    """Operator-owned inputs for the separate offline profile; no CLI activation."""
+    source_root: Path
+    source_commit: str
+    toolchain_root: Path
+    toolchain_archive: Path
+    cxx_headers: Path
+    runtime_root: Path
+    enable_private_builds: bool = False
+
+
+def create_selected_trio_private_app(config: SelectedTrioServiceConfig):
+    """Refuse by default; require the selected worker and its trusted callback."""
+    if config.enable_private_builds is not True:
+        raise ValueError("selected Trio builds require explicit operator enablement")
+    if config.source_root.resolve(strict=True) != ROOT:
+        raise ValueError("service must run from its pinned source checkout")
+    check_native_audit(config.source_root)
+    check_profile_prerequisites(config.source_root, config.source_commit, SELECTED_TRIO_PROFILE)
+    # A source-only API checkout cannot silently substitute the historical worker.
+    if not callable(getattr(DockerJobAdapter, "verify_selected_trio_result", None)):
+        raise ValueError("selected Trio worker prerequisites are unavailable")
+    worker = DockerWorkerConfig(source_root=config.source_root,
+        source_commit=config.source_commit, toolchain_root=config.toolchain_root,
+        toolchain_archive=config.toolchain_archive, cxx_headers=config.cxx_headers,
+        runtime_root=config.runtime_root, profile_id=SELECTED_TRIO_PROFILE,
+        cpu_limit="4", memory_limit="6g")
+    adapter = DockerJobAdapter(worker, capacity=1)
+    return create_selected_trio_app(adapter=adapter,
+        template=WorkerTemplate(_IMAGE_ID, "private-loopback"),
+        source_commit=config.source_commit, source_tree_oid=worker.source_tree_oid,
+        verify_result=adapter.verify_selected_trio_result, enable_private_builds=True,
+        queue_cap=1)
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
