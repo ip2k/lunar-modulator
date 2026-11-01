@@ -22,6 +22,26 @@ import tarfile
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from tools.jieli.audit_link import Elf, SHF_ALLOC, SHT_NOBITS, audit, collect_sources
+from tools.installer_service.process_capture import run_bounded
+
+# The selected target's complete measured build log is about 3.1 MiB.
+# Bound each command/stream independently, including nm and disassembly.
+MAX_COMMAND_OUTPUT = 16 * 1024 * 1024
+COMMAND_TIMEOUT = 600
+
+def _run_logged(command, log, capture=False):
+    result = run_bounded([str(x) for x in command], cwd=ROOT,
+                         timeout_seconds=COMMAND_TIMEOUT,
+                         max_stream_bytes=MAX_COMMAND_OUTPUT)
+    output = (result.logs["stdout"] + result.logs["stderr"]).decode(errors="replace")
+    log.write("$ " + " ".join(map(str, command)) + "\n" + output); log.flush()
+    overflow = any(n > MAX_COMMAND_OUTPUT for n in result.observed.values())
+    reason = "output_limit" if overflow else result.failure_reason
+    if reason or result.returncode:
+        raise RuntimeError("command refused (" + (reason or "nonzero_exit") +
+                           "); see " + str(log.name) + "\n" + output[-3000:])
+    return output if capture else None
+
 MODULES = 'dx7,arp,lfo,env,chance'
 TOOLCHAIN_SHA256 = 'f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958'
 DEFINES = ['-DFM1_APP_EXTERNAL_ARENAS=1', '-DFM1_SHAPES_VOICES=8',
@@ -233,12 +253,7 @@ def build(args, *, selected=False, return_candidate=False):
     out.mkdir(parents=True)
     log = (out / 'build.log').open('w')
     def run(command, capture=False):
-        p = subprocess.run([str(x) for x in command], text=True,
-                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        log.write('$ ' + ' '.join(map(str, command)) + '\n' + p.stdout); log.flush()
-        if p.returncode:
-            raise RuntimeError('command failed; see ' + str(out / 'build.log') + '\n' + p.stdout[-3000:])
-        return p.stdout if capture else None
+        return _run_logged(command, log, capture)
     prepared = None
     preparation = None
     prepared_manifest = None
