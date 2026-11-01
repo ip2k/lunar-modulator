@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Narrow derivation of Dinghy fad3a965 fm1_sys.h (not imported wholesale).
- * See UPSTREAM.md. Host fake binding ONLY; no target MMIO.
+ * See UPSTREAM.md. Portable fake or separately guarded unqualified candidate.
  */
 #include "selected_return.h"
 #include <stdatomic.h>

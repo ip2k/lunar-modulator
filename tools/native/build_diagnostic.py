@@ -161,7 +161,7 @@ def header_manifest(root):
     return {p.relative_to(root).as_posix(): digest(p)
             for p in sorted(root.rglob('*')) if p.is_file()}
 
-def manifest(selected=False):
+def manifest(selected=False, *, return_candidate=False):
     roots = ['engines', 'sim/web/src', 'sim/web/mk', 'sim/web/third_party',
              'firmware/native', 'firmware/third_party/dinghy',
              'firmware/third_party/compiler-rt', 'firmware/third_party/musl',
@@ -170,6 +170,11 @@ def manifest(selected=False):
     if selected:
         roots += ['tools/native/build_selected_trio_diagnostic.py',
                   'tools/native/prepare_selected_project.py']
+    if return_candidate:
+        if not selected:
+            raise ValueError('return candidate requires fixed selected plan')
+        roots += ['firmware/third_party/selected-return',
+                  'tools/native/build_selected_trio_return_candidate.py']
     result = {}
     for name in roots:
         p = ROOT / name
@@ -180,8 +185,10 @@ def manifest(selected=False):
                 result[str(f.relative_to(ROOT))] = digest(f)
     return result
 
-def diagnostic_plan(selected=False, prepared=None):
+def diagnostic_plan(selected=False, prepared=None, *, return_candidate=False):
     """One of two private, fixed link plans; the public FM6 CLI has no selector."""
+    if return_candidate and not selected:
+        raise ValueError('return candidate requires fixed selected plan')
     if selected and prepared is None:
         raise ValueError('selected plan requires a freshly prepared source blob')
     app = ROOT / 'firmware/native' / (
@@ -190,18 +197,29 @@ def diagnostic_plan(selected=False, prepared=None):
     if selected:
         extra += [ROOT / 'firmware/native/selected_project.c',
                   prepared / 'selected_project_blob.c']
-    extra += [ROOT / 'firmware/native/diagnostic_platform.c',
+    package = ROOT / 'firmware/third_party/selected-return'
+    if return_candidate:
+        extra += [package / 'selected_return.c', package / 'selected_return_pi32v2.c']
+    extra += [package / 'selected_return_platform.c' if return_candidate else
+              ROOT / 'firmware/native/diagnostic_platform.c',
               ROOT / 'firmware/native/diagnostic_crt0.S',
               ROOT / 'firmware/third_party/dinghy/hal/fm1_vec.S',
               ROOT / 'firmware/third_party/dinghy/hal/fm1_isr.S']
-    return dict(modules='trio' if selected else MODULES,
+    plan = dict(modules='trio' if selected else MODULES,
                 extra=extra,
                 stem='lunar-selected-trio' if selected else 'lunar-diagnostic',
                 profile=('sdk-free-selected-trio-offline-diagnostic-v1' if selected else
                          'sdk-free-single-fm6-diagnostic-v1'),
                 arena_bytes=16384 if selected else 65536)
+    if return_candidate:
+        plan.update(stem='lunar-selected-trio-return-candidate',
+                    profile='sdk-free-selected-trio-return-binding-candidate-v1',
+                    linker=package / 'selected_return_candidate.ld')
+    return plan
 
-def build(args, *, selected=False):
+def build(args, *, selected=False, return_candidate=False):
+    if return_candidate and not selected:
+        raise ValueError('return candidate requires fixed selected plan')
     tc, out, headers = args.toolchain.resolve(), args.out.resolve(), args.cxx_headers.resolve()
     if out.exists():
         raise ValueError('output must be a fresh directory; preserve reports then remove your old build')
@@ -209,7 +227,9 @@ def build(args, *, selected=False):
     original_headers = header_manifest(headers)
     for name in ['dinghy', 'compiler-rt', 'musl', 'printf']:
         check_inventory(ROOT / 'firmware/third_party' / name)
-    before = manifest(selected)
+    if return_candidate:
+        check_inventory(ROOT / 'firmware/third_party/selected-return')
+    before = manifest(selected, return_candidate=return_candidate)
     out.mkdir(parents=True)
     log = (out / 'build.log').open('w')
     def run(command, capture=False):
@@ -229,7 +249,7 @@ def build(args, *, selected=False):
         prepared_manifest = header_manifest(prepared)
         log.write('prepared fixed selected project: ' + preparation['packed_sha256'] + '\n')
         log.flush()
-    plan = diagnostic_plan(selected, prepared)
+    plan = diagnostic_plan(selected, prepared, return_candidate=return_candidate)
     configured = out / 'cxx'
     shutil.copytree(headers, configured)
     p = configured / '__config'
@@ -245,6 +265,8 @@ def build(args, *, selected=False):
     flags = ['-target', 'pi32v2', '-mcpu=r3', '-mfprev1', '-Oz', '-ffreestanding',
              '-fno-builtin', '-ffunction-sections', '-fdata-sections', *defines,
              *(['-DFM1_APP_STATE_EXTERNAL_WORKSPACE=1'] if selected else []),
+             *(['-DLUNAR_SELECTED_RETURN_OFFLINE_PROOF=1',
+                '-DLUNAR_SELECTED_RETURN_PI32V2_BINDING=1'] if return_candidate else []),
              '-D_LIBCPP_HAS_NO_THREADS', '-D_LIBCPP_DISABLE_EXTERN_TEMPLATE',
              '-isystem', str(configured), '-isystem', str(tc / 'pi32v2/include')]
     compiler = tc / 'common/bin/clang'
@@ -264,7 +286,8 @@ def build(args, *, selected=False):
     includes = [ROOT / 'engines/include', ROOT / 'engines/host', ROOT / 'engines/state',
                 ROOT / 'engines/mod', ROOT / 'sim/web/src', ROOT / 'firmware/native',
                 ROOT / 'firmware/third_party/dinghy/hal', ROOT / 'firmware/third_party/dinghy/src',
-                objdir / 'gen', *([prepared] if prepared else [])]
+                objdir / 'gen', *([prepared] if prepared else []),
+                *([ROOT / 'firmware/third_party/selected-return'] if return_candidate else [])]
     appflags = flags + [x for d in includes for x in ['-I', str(d)]]
     units = []
     for src in plan['extra']:
@@ -291,7 +314,8 @@ def build(args, *, selected=False):
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         list(pool.map(run, units))
     elf = out / (plan['stem'] + '.elf')
-    run([tc / 'pi32v2/bin/ld', '--gc-sections', '-T', ROOT / 'firmware/native/diagnostic.ld',
+    run([tc / 'pi32v2/bin/ld', '--gc-sections', '-T',
+         plan.get('linker', ROOT / 'firmware/native/diagnostic.ld'),
          *objects, '-Map', out / (plan['stem'] + '.map'), '-o', elf])
     symbols = run([tc / 'pi32v2/bin/nm', '-S', elf], True)
     (out / 'symbols.txt').write_text(symbols)
@@ -325,7 +349,17 @@ def build(args, *, selected=False):
     # This linker contract has contiguous XIP text/data load bytes. Export
     # through the existing ELF reader: vendor objcopy requires a different
     # section-selection CLI from GNU objcopy. Reject unexpected load sections.
-    if set(sections) != {'.text', '.data', '.bss', '.noinit'}:
+    expected_sections = {'.text', '.data', '.bss', '.noinit'}
+    if return_candidate:
+        expected_sections.add('.selected_return_mailbox')
+        mailbox = [s for s in image.sections if s['name']=='.selected_return_mailbox']
+        if len(mailbox)!=1 or mailbox[0]['addr']!=0x01c7fd80 or \
+                mailbox[0]['size']!=16 or mailbox[0]['type']!=SHT_NOBITS:
+            raise ValueError('return mailbox must be exact 16-byte NOLOAD reservation')
+        size['return_mailbox'] = sections['.selected_return_mailbox']
+        size['return_policy'] = sym('return_policy')
+        (out / 'size.json').write_text(json.dumps(size, indent=2) + '\n')
+    if set(sections) != expected_sections:
         raise ValueError('unexpected allocated diagnostic section')
     if image.symbol_value('_data_load') != sections['.text']['address'] + sections['.text']['bytes']:
         raise ValueError('noncontiguous diagnostic XIP load image')
@@ -349,13 +383,15 @@ def build(args, *, selected=False):
             raise ValueError('linked selected blob differs from strict packed source')
     (out / 'app.bin').write_bytes(flat)
     sources = collect_sources([str(ROOT / 'firmware/native'),
-                               str(ROOT / 'firmware/third_party/dinghy')])
+                               str(ROOT / 'firmware/third_party/dinghy'),
+                               *([str(ROOT / 'firmware/third_party/selected-return')]
+                                 if return_candidate else [])])
     link_audit = audit([(str(elf), image)], [('app.bin', flat)], True,
                        sources=sources, runtime='sdk-free')
     (out / 'audit.json').write_text(json.dumps(link_audit, indent=2) + '\n')
     if link_audit['n_fail']: raise ValueError('audit_link failure; see audit.json')
     compiler_version = run([compiler, '--version'], True)
-    if manifest(selected) != before: raise ValueError('source inputs changed while building')
+    if manifest(selected, return_candidate=return_candidate) != before: raise ValueError('source inputs changed while building')
     if selected and (digest(args.renderer) != preparation['renderer_sha256'] or
                      digest(args.state_tool) != preparation['state_tool_sha256']):
         raise ValueError('selected host tools changed while building')
@@ -393,6 +429,13 @@ def build(args, *, selected=False):
                                           sha256=preparation['renderer_sha256']),
                       state_tool_input=dict(path=str(args.state_tool.resolve()),
                                             sha256=preparation['state_tool_sha256']))
+    if return_candidate:
+        report.update(return_binding_candidate=True, physical_qualification=False,
+                      functional_startup_refused=True, fixed_project_startup=False,
+                      nominal_return_threshold_ticks=480000000,
+                      qualification_source='immutable all-zero target record; no override',
+                      return_limit='Candidate codegen/link only: no target execution, measured lease, inherited mailbox permission, P33 timing or ROM-entry claim.')
+        report['gpl_sources']['selected_return']='fad3a965f9aa9949069a3d864047eaca5ddf0be8'
     (out / 'receipt.json').write_text(json.dumps(report, indent=2) + '\n')
     log.close()
     return report

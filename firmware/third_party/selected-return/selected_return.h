@@ -2,18 +2,38 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Offline selected-diagnostic return proof, derived from Dinghy source facts.
  * Leo Kuroshita (@kurogedelic), Hügelton Instruments; see provenance note.
- * No startup, profile, physical watchdog lease or target binding is admitted.
+ * No physical watchdog lease, target execution or hardware admission is supplied.
  */
 #ifndef LUNAR_SELECTED_RETURN_H
 #define LUNAR_SELECTED_RETURN_H
 #if !defined(LUNAR_SELECTED_RETURN_OFFLINE_PROOF) || LUNAR_SELECTED_RETURN_OFFLINE_PROOF != 1
 #error "selected return is offline proof only"
 #endif
+#if defined(LUNAR_SELECTED_RETURN_PI32V2_BINDING)
+#if LUNAR_SELECTED_RETURN_PI32V2_BINDING != 1 || defined(LUNAR_SELECTED_RETURN_FAKE_MMIO)
+#error "target and portable fake bindings are mutually exclusive"
+#endif
+#if !defined(__PI32V2__) && !defined(LUNAR_SELECTED_RETURN_TARGET_INJECTED)
+#error "target compiler or explicit injected target test required"
+#endif
+#if defined(__PI32V2__) && defined(LUNAR_SELECTED_RETURN_TARGET_INJECTED)
+#error "injected target binding is host only"
+#endif
+#if defined(LUNAR_SELECTED_RETURN_TARGET_INJECTED) && LUNAR_SELECTED_RETURN_TARGET_INJECTED != 1
+#error "injected target selection must equal one"
+#endif
+/* CPU0 exception handlers never resume the interrupted owner. Volatile aligned
+ * scalar accesses make its shared state compiler-visible; this is not C11
+ * thread synchronization, CPU1 support or a cache/exception timing proof. */
+#define LUNAR_SR_SHARED volatile
+#else
 #if !defined(LUNAR_SELECTED_RETURN_FAKE_MMIO) || LUNAR_SELECTED_RETURN_FAKE_MMIO != 1
 #error "selected return needs fake MMIO"
 #endif
 #ifdef __PI32V2__
 #error "target binding is not admitted"
+#endif
+#define LUNAR_SR_SHARED
 #endif
 #include <stdint.h>
 #define LUNAR_SR_DEADLINE_TICKS 480000000u
@@ -29,8 +49,9 @@ enum { LUNAR_SR_APP_READY=1, LUNAR_SR_LCD_READY, LUNAR_SR_IO_READY, LUNAR_SR_MAI
 enum { LUNAR_SR_QUALIFICATION=1, LUNAR_SR_CLOCK, LUNAR_SR_MAILBOX,
        LUNAR_SR_WATCHDOG, LUNAR_SR_P33, LUNAR_SR_INIT, LUNAR_SR_PHASE,
        LUNAR_SR_DEADLINE, LUNAR_SR_FAULT, LUNAR_SR_REENTRY };
-/* Test-only typed port. It has no arbitrary address, reset or MMIO operation.
- * Future real binding requires separate authorization/source/codegen review.
+/* Private typed port. It has no arbitrary address, reset or MMIO operation.
+ * Portable fake and unqualified target candidate are mutually exclusive.
+ * Physical use requires separate qualification/source/codegen review.
  * Single CPU0 main owner, no other P33 user, CPU1 or OS threads. halt must not
  * return (the fake uses longjmp); a returning halt traps, never resumes work.
  * mailbox is exactly the borrowed 16-byte object, never a 128-byte clear area.
@@ -59,11 +80,14 @@ typedef struct {
   uint32_t watchdog_selector,lease_ticks,max_phase_ticks,byte_poll_limit;
 } lunar_selected_return_qualification_t;
 typedef struct {
-  const lunar_selected_return_io_t *io;
+  const lunar_selected_return_io_t * LUNAR_SR_SHARED io;
   lunar_selected_return_qualification_t qualification;
-  uint32_t state,first_error,backstop_armed,origin,last_tick,next_phase;
-  uint32_t p33_owned,p33_bytes,failed_byte,reset_attempted;
+  LUNAR_SR_SHARED uint32_t state,first_error,backstop_armed,origin,last_tick,next_phase;
+  LUNAR_SR_SHARED uint32_t p33_owned,p33_bytes,failed_byte,reset_attempted;
 } lunar_selected_return_t;
+#undef LUNAR_SR_SHARED
+_Static_assert(sizeof(uint32_t)==4 && _Alignof(lunar_selected_return_t)>=4,
+               "aligned 32-bit fault-shared scalar storage");
 /* Fresh zeroed permanent object/port/mailbox only; never reset/reinitialize it.
  * Returns 0 only after qualification, exact marker readback, watchdog arm and
  * one ordered origin sample AFTER arm. Before that is an unsupported bootstrap
