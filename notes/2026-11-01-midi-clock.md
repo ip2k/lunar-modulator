@@ -13,7 +13,9 @@ or hardware operations. Branch `feature/2026-11-01@midi-clock`; own checkout
 - [verified: source] `fm1w_seq_realtime` gates on the native saved set `link`
   setting. Link off consumes realtime without calling the core (which otherwise
   changes tempo/position even with Link off). Link on uses the existing app/core
-  realtime parser and its event-room check; there is no new clock.
+  realtime host and its event-room check; there is no new clock. A small
+  `fm1_app_seq_realtime` helper preserves pending-command ordering and the
+  event reserve without incrementing content generation for ticks/retries.
 - [verified: Node tests] Worklet native-backpressure retry preserves message
   order and applies every retained message once. Retry occurs before each native
   64-frame render block. Normal arrival jitter remains up to one 128-frame
@@ -35,7 +37,8 @@ shared with the DX7-bank export lane. No generated binary/hash was edited here.
 `build.sh` now runs the routing tests and `test/midi-realtime.mjs`, which requires
 `fm1w_seq_realtime` in the actual rebuilt module and checks default internal
 clock independence, linked tempo/follow, Start vs Continue, Stop, note-offs and
-native dropped events. Runtime assertions are pending that rebuild; they are not
+native dropped events, and unchanged content generation including event-room
+backpressure. Runtime assertions are pending that rebuild; they are not
 reported passed. Command after rebuild:
 
 ```
