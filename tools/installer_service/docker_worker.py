@@ -353,14 +353,193 @@ def build_commands(work: Path, output: Path, profile_args: list[str]) -> tuple[l
     return state_command, image_command
 
 
+# This fixed profile never uses the historical catalogue or receipt namespace.
+SELECTED_TRIO_PROFILE = "sdk-free-selected-trio-offline-diagnostic-v1"
+TOOLCHAIN_ARCHIVE = Path("/opt/lunar-toolchain.tar")
+CXX_HEADERS = Path("/opt/original-libcxx")
+SELECTED_RECEIPT_CAP = 4 * 1024 * 1024
+SELECTED_EVIDENCE_CAP = 16 * 1024 * 1024
+
+
+def load_selected_builder(source_root: Path):
+    """Load only the operator-pinned, read-only builder; no tool is run here."""
+    path = source_root / "tools/native/build_diagnostic.py"
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("selected builder is unavailable")
+    spec = importlib.util.spec_from_file_location("_selected_worker_builder", path)
+    if spec is None or spec.loader is None:
+        raise ValueError("selected builder is unavailable")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    if module.ROOT != source_root:
+        raise ValueError("selected builder root differs from pinned source")
+    return module
+
+
+def selected_external_inputs(source_root: Path, toolchain: Path, archive: Path,
+                             headers: Path) -> dict:
+    """Acquire independent input anchors without consulting a build receipt."""
+    builder = load_selected_builder(source_root)
+    original = builder.header_manifest(headers)
+    config = headers / "__config"
+    text = config.read_text()
+    pthread = "#define _LIBCPP_HAS_THREAD_API_PTHREAD\n"
+    if text.count(pthread) != 1:
+        raise ValueError("original libc++ configuration differs from fixed recipe")
+    configured = dict(original)
+    configured["__config"] = hashlib.sha256(text.replace(
+        pthread, "/* Diagnostic: no thread API. */\n").encode()).hexdigest()
+    return dict(source_manifest=builder.manifest(True),
+                toolchain_binding=builder.bind_toolchain(toolchain, archive),
+                cxx_headers_manifest=original,
+                configured_cxx_headers_manifest=configured)
+
+
+def selected_compile_flags() -> list[str]:
+    """Independent fixed worker recipe, never recovered from a checked receipt."""
+    return ["-target", "pi32v2", "-mcpu=r3", "-mfprev1", "-Oz", "-ffreestanding",
+            "-fno-builtin", "-ffunction-sections", "-fdata-sections",
+            "-DFM1_APP_EXTERNAL_ARENAS=1", "-DNDEBUG", "-D_GNU_SOURCE", "-D_XOPEN_SOURCE=700",
+            "-DFM1_APP_STATE_EXTERNAL_WORKSPACE=1", "-D_LIBCPP_HAS_NO_THREADS",
+            "-D_LIBCPP_DISABLE_EXTERN_TEMPLATE", "-isystem", str(OUTPUT / "build/cxx"),
+            "-isystem", str(TOOLCHAIN / "pi32v2/include")]
+
+
+def selected_build_commands() -> tuple[list[str], list[str]]:
+    host = SCRATCH / "host"
+    make = ["make", "-s", "-C", str(SOURCE / "engines"), "-f", "Makefile",
+            "-f", str(SOURCE / "sim/web/mk/sim.mk"), "SIM=" + str(SOURCE / "sim/web"),
+            "BUILD=" + str(host), "FM1_MODULES=trio", "FM1_GPL_MODS=1", "-j4",
+            str(host / "fm1-render"), str(host / "fm1-state")]
+    target = [sys.executable, str(SOURCE / "tools/native/build_selected_trio_diagnostic.py"),
+              "--toolchain", str(TOOLCHAIN), "--toolchain-archive", str(TOOLCHAIN_ARCHIVE),
+              "--cxx-headers", str(CXX_HEADERS), "--renderer", str(host / "fm1-render"),
+              "--state-tool", str(host / "fm1-state"), "--out", str(OUTPUT / "build"),
+              "--jobs", "4"]
+    return make, target
+
+
+def _selected_capture(command: list[str], *, timeout=600) -> bytes:
+    from tools.installer_service.process_capture import run_bounded
+    cap = 16 * 1024 * 1024
+    result = run_bounded(command, cwd=SOURCE, timeout_seconds=timeout, max_stream_bytes=cap)
+    overflow = any(n > cap for n in result.observed.values())
+    if overflow or result.failure_reason or result.returncode:
+        # Private fixed destination; no stdout leak and no truncated success.
+        (RESULT / "diagnostic.log").write_bytes(result.logs["stdout"] + result.logs["stderr"])
+        raise ValueError("selected command refused: " +
+                         ("output_limit" if overflow else result.failure_reason or "nonzero_exit"))
+    return result.logs["stdout"]
+
+
+def verify_selected_imports(source_root: Path) -> None:
+    """Reject interpreter module-cache imports outside the extracted source."""
+    for name in ("tools.installer_service", "tools.installer_service.process_capture",
+                 "tools.jieli.audit_link"):
+        module = importlib.import_module(name)
+        expected = source_root.joinpath(*name.split("."))
+        expected = (expected / "__init__.py" if name == "tools.installer_service"
+                    else expected.with_suffix(".py"))
+        if (not getattr(module, "__file__", None) or expected.is_symlink() or
+                not expected.is_file() or Path(module.__file__).resolve() != expected):
+            raise ValueError("selected import is outside extracted source: " + name)
+
+
+def verify_selected_request(request_bytes: bytes) -> None:
+    """Standard-library bootstrap for the one host-validated fixed request.
+
+    The target image need not install the host API's Pydantic dependency. No
+    client fields become paths, flags or commands even if this check refuses.
+    """
+    expected = dict(version=2, profile_id=SELECTED_TRIO_PROFILE, runtime_mode="offline",
+                    flash_layout="stock-sized-diagnostic", engines=["trio"], effects=[],
+                    midi=[], modulation=[], project_ids=["init-starter-trio"], startup_index=0)
+    request = json.loads(request_bytes, object_pairs_hook=_unique_object)
+    if isinstance(request, dict) and request.get("set_ids") == []:
+        request.pop("set_ids")
+    # JSON serialization distinguishes booleans/floats from the strict integer
+    # literals, unlike Python's ordinary mapping equality.
+    if json.dumps(request, sort_keys=True) != json.dumps(expected, sort_keys=True):
+        raise ValueError("unsupported selected worker request")
+
+
+def run_selected_trio(request_bytes: bytes) -> None:
+    verify_selected_imports(SOURCE)
+    from tools.jieli.audit_link import collect_sources
+    verify_selected_request(request_bytes)
+    binding_raw = regular_file(INPUT / "host-bindings.json", 4 * 1024 * 1024)
+    binding = json.loads(binding_raw, object_pairs_hook=_unique_object)
+    if (not isinstance(binding, dict) or binding.get("schema") != 2 or
+            binding.get("profile_id") != SELECTED_TRIO_PROFILE or
+            binding.get("request_sha256") != hashlib.sha256(request_bytes).hexdigest()):
+        raise ValueError("selected host binding differs from request")
+    before = selected_external_inputs(SOURCE, TOOLCHAIN, TOOLCHAIN_ARCHIVE, CXX_HEADERS)
+    host_command, target_command = selected_build_commands()
+    host_log = _selected_capture(host_command)
+    host = SCRATCH / "host"
+    renderer, state = host / "fm1-render", host / "fm1-state"
+    renderer_bytes = regular_file(renderer, 64 * 1024 * 1024)
+    state_bytes = regular_file(state, 64 * 1024 * 1024)
+    metadata = _selected_capture([str(renderer), "--meta"], timeout=90)
+    if metadata != _selected_capture([str(state), "meta"], timeout=90) or len(metadata) > 1048576:
+        raise ValueError("fixed host tools have mismatched or excessive metadata")
+    version = _selected_capture([str(TOOLCHAIN / "common/bin/clang"), "--version"], timeout=90)
+    try:
+        _selected_capture(target_command, timeout=1200)
+    except BaseException:
+        log = OUTPUT / "build/build.log"
+        if log.is_file() and not log.is_symlink():
+            with log.open("rb") as stream:
+                (RESULT / "failed-build.log").write_bytes(stream.read(16 * 1024 * 1024))
+        raise
+    if selected_external_inputs(SOURCE, TOOLCHAIN, TOOLCHAIN_ARCHIVE, CXX_HEADERS) != before:
+        raise ValueError("selected external inputs changed while building")
+    if regular_file(renderer, 64 * 1024 * 1024) != renderer_bytes or \
+            regular_file(state, 64 * 1024 * 1024) != state_bytes:
+        raise ValueError("fresh host tools changed while building")
+    build = OUTPUT / "build"
+    evidence = {"request.json": request_bytes, "host-bindings.json": binding_raw,
+                "image_receipt.json": regular_file(build / "receipt.json", SELECTED_RECEIPT_CAP),
+                "metadata.json": metadata, "host-build.log": host_log or b"\n",
+                "build.log": regular_file(build / "build.log", 16 * 1024 * 1024)}
+    anchors = dict(before, compiler_version=version.decode(), compile_flags=selected_compile_flags(),
+                   host_tools=dict(renderer=hashlib.sha256(renderer_bytes).hexdigest(),
+                                   state_tool=hashlib.sha256(state_bytes).hexdigest(),
+                                   metadata=hashlib.sha256(metadata).hexdigest()),
+                   audit_sources=collect_sources([str(SOURCE / "firmware/native"),
+                                                 str(SOURCE / "firmware/third_party/dinghy")]))
+    evidence["anchors.json"] = json.dumps(anchors, sort_keys=True).encode()
+    for path in sorted(build.rglob("*.o")):
+        evidence["objects/" + path.relative_to(build).as_posix()] = regular_file(path, 16 * 1024 * 1024)
+    for name in ("selected_project.bin", "selected_project_blob.c", "selected_project_blob.h", "receipt.json"):
+        evidence["prepared/" + name] = regular_file(build / "selected_project" / name, SELECTED_RECEIPT_CAP)
+    if len(evidence) > 8192 or sum(map(len, evidence.values())) > SELECTED_EVIDENCE_CAP:
+        raise ValueError("selected evidence exceeds bounded capture")
+    destination = RESULT / "evidence"
+    destination.mkdir(mode=0o700)
+    manifest = {}
+    for name, raw in evidence.items():
+        path = destination / name
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        path.write_bytes(raw)
+        manifest[name] = dict(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+    (destination / "manifest.json").write_text(json.dumps(manifest, sort_keys=True))
+    (RESULT / "app.bin").write_bytes(regular_file(build / "app.bin", MAX_APP))
+    (RESULT / "elf.bin").write_bytes(regular_file(build / "lunar-selected-trio.elf", MAX_ELF))
+    (RESULT / "image.json").write_bytes(evidence["image_receipt.json"])
+
+
 def main() -> int:
     request_bytes = regular_file(REQUEST, MAX_REQUEST)
     request = json.loads(request_bytes)
     if not isinstance(request, dict):
         raise ValueError("request must be object")
-    profile_args = build_profile_arguments(request)
+    selected = request.get("version") == 2 and request.get("profile_id") == SELECTED_TRIO_PROFILE
+    profile_args = [] if selected else build_profile_arguments(request)
     archive_bytes = regular_file(SOURCE_ARCHIVE, 128 * 1024 * 1024)
-    if not TOOLCHAIN.is_dir() or not (CATALOGUE / "shard-00/objects.json").is_file():
+    if (not TOOLCHAIN.is_dir() or
+            (not selected and not (CATALOGUE / "shard-00/objects.json").is_file()) or
+            (selected and (not TOOLCHAIN_ARCHIVE.is_file() or not CXX_HEADERS.is_dir()))):
         raise ValueError("fixed worker inputs are unavailable")
     if RESULT.is_symlink() or not RESULT.is_dir() or any(RESULT.iterdir()):
         raise ValueError("result mount is not an empty service directory")
@@ -401,6 +580,10 @@ def main() -> int:
                     shutil.copyfileobj(source_file, target, length=1024 * 1024)
                 os.chmod(destination, 0o755 if member.mode & 0o111 else 0o644)
     freeze_source_tree(work)
+    if selected:
+        sys.path.insert(0, str(work))
+        run_selected_trio(request_bytes)
+        return 0
     verify_extracted_profile_contract(work, request)
     state_command, image_command = build_commands(work, output, profile_args)
     subprocess.run(state_command, check=True, timeout=180)
