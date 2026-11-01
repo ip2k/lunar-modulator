@@ -26,7 +26,7 @@ def selected_trio_capability() -> dict:
     return dict(schema=1, request_version=2, profile_id=SELECTED_TRIO_PROFILE,
                 runtime_mode="offline", flash_layout="stock-sized-diagnostic",
                 service_enabled=False, native_build_verified=False,
-                rom_return=False, installable=False, release_admitted=False,
+                rom_return=False, installable=False, package_admitted=False, release_admitted=False,
                 hardware_admitted=False, hardware_tested=False,
                 distribution_admitted=False, internal_dependencies=["arp"])
 

@@ -30,7 +30,7 @@ MAX_ELF = 16 * 1024 * 1024
 MAX_EVIDENCE = 256 * 1024 * 1024
 GPL_SOURCES = dict(dinghy="d44df7db09b98ccad2f1233b8f83f5f09c04829e",
                    felucca_trio="b0dcd53a251d5f5392fea9478b48244d322eeb2a")
-DENIED = dict(installable=False, release_admitted=False, hardware_admitted=False,
+DENIED = dict(installable=False, package_admitted=False, release_admitted=False, hardware_admitted=False,
               hardware_tested=False, distribution_admitted=False, rom_return=False)
 
 
@@ -111,9 +111,10 @@ def _elf(raw):
     stride, count, names = struct.unpack_from("<HHH", raw, 46)
     if stride != 40 or not 1 <= count <= 4096 or names >= count or shoff + count * stride > len(raw):
         raise ValueError("invalid ELF section table")
-    payloads, symbol_count = [], 0
+    payloads, rows, symbol_count = [], [], 0
     for index in range(count):
         row = struct.unpack_from("<10I", raw, shoff + index * stride)
+        rows.append(row)
         _, kind, _, _, offset, size, link, _, _, entry = row
         if kind != SHT_NOBITS and size:
             if offset < 52 or offset + size > len(raw):
@@ -130,6 +131,20 @@ def _elf(raw):
     if (symbol_count > 100000 or any(a[1] > b[0] for a, b in zip(payloads, payloads[1:]))
             or any(start < shoff + count * stride and shoff < end for start, end in payloads)):
         raise ValueError("overlapping or excessive ELF tables")
+    def check_name(table, name_offset, maximum):
+        if table[1] != 3 or name_offset >= table[5]:
+            raise ValueError("invalid ELF string reference")
+        start = table[4] + name_offset
+        if raw.find(b"\0", start, min(table[4] + table[5], start + maximum + 1)) < 0:
+            raise ValueError("unbounded ELF name")
+    for row in rows:
+        check_name(rows[names], row[0], 255)
+        if row[1] == 2:
+            for offset in range(row[4], row[4] + row[5], 16):
+                check_name(rows[row[6]], struct.unpack_from("<I", raw, offset)[0], 1024)
+                section = struct.unpack_from("<H", raw, offset + 14)[0]
+                if section >= count and section != 0xFFF1:
+                    raise ValueError("invalid linked ELF symbol section")
     try:
         result = Elf(raw, "selected-trio.elf")
     except (ValueError, IndexError, struct.error) as error:
