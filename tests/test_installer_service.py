@@ -924,6 +924,8 @@ def test_docker_adapter_uses_fixed_container_contract_and_pinned_source(tmp_path
     assert "/output/build" not in joined
     assert "request.json" in joined and "source.tar" in joined
     assert "/input/docker_worker.py" in joined
+    assert command[command.index("--cidfile") + 1] == str(base / "input/container.id")
+    assert "lan.owner=lunar-private-" + build_id in command
     assert str(base / "input/docker_worker.py") in joined
     assert str(config.source_root / "tools/installer_service/docker_worker.py") not in joined
     assert str(config.catalogue_root) + ",dst=/catalogue,readonly" in joined
@@ -1293,7 +1295,6 @@ def test_private_evidence_aggregate_manifest_cap_precedes_file_reads(tmp_path, m
 
 
 def test_docker_adapter_retains_bounded_elf_and_rejects_bad_elf_outputs(tmp_path, monkeypatch):
-    from types import SimpleNamespace
     from tools.installer_service import docker_adapter as module
     from tools.installer_service.api import MAX_ELF_BYTES
 
@@ -1316,7 +1317,7 @@ def test_docker_adapter_retains_bounded_elf_and_rejects_bad_elf_outputs(tmp_path
         proc = _FakeDockerClientProcess(initial_returncode=0)
         with monkeypatch.context() as patch:
             patch.setattr(module.subprocess, "Popen", lambda *a, **k: proc)
-            patch.setattr(module.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0))
+            patch.setattr(module, "_remove_owned_container", lambda *_: True)
             adapter._run(build_id)
         return adapter.get(build_id)
 
@@ -1329,20 +1330,18 @@ def test_docker_adapter_retains_bounded_elf_and_rejects_bad_elf_outputs(tmp_path
 
 
 def test_docker_adapter_rejects_catalogue_changed_after_submission(tmp_path, monkeypatch):
-    from types import SimpleNamespace
     from tools.installer_service import docker_adapter as module
 
     adapter, build_id, _base = _docker_lifecycle_adapter(tmp_path)
     (adapter.config.catalogue_root / "late-object.o").write_bytes(b"changed after pin")
     proc = _FakeDockerClientProcess(initial_returncode=0)
     monkeypatch.setattr(module.subprocess, "Popen", lambda *a, **k: proc)
-    monkeypatch.setattr(module.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0))
+    monkeypatch.setattr(module, "_remove_owned_container", lambda *_: True)
     adapter._run(build_id)
     assert adapter.get(build_id).status == "failed"
 
 
 def test_docker_log_overflow_fails_even_if_client_exits_zero(tmp_path, monkeypatch):
-    from types import SimpleNamespace
     from tools.installer_service import docker_adapter as module
 
     adapter, build_id, base = _docker_lifecycle_adapter(tmp_path)
@@ -1350,37 +1349,31 @@ def test_docker_log_overflow_fails_even_if_client_exits_zero(tmp_path, monkeypat
     proc = _FakeDockerClientProcess(b"x" * 65537, initial_returncode=0)
     cleanup = []
     monkeypatch.setattr(module.subprocess, "Popen", lambda *a, **k: proc)
-    monkeypatch.setattr(module.subprocess, "run", lambda args, **kwargs: (
-        cleanup.append(args) or SimpleNamespace(returncode=0)))
+    monkeypatch.setattr(module, "_remove_owned_container", lambda *args: cleanup.append(args) or True)
     adapter._run(build_id)
     assert adapter.get(build_id).status == "failed"
     assert proc.stdout.closed
-    assert cleanup == [[adapter.config.docker_binary, "rm", "--force", "lunar-private-" + build_id]]
+    assert cleanup == [(adapter.config.docker_binary, build_id, base)]
     assert (base / "worker.log").stat().st_size <= adapter.config.max_log_bytes
 
 
-def test_docker_timeout_kills_client_and_removes_named_container_without_cidfile(tmp_path, monkeypatch):
-    from types import SimpleNamespace
+def test_docker_timeout_without_cidfile_retains_evidence_without_name_removal(tmp_path, monkeypatch):
     from tools.installer_service import docker_adapter as module
 
     adapter, build_id, base = _docker_lifecycle_adapter(tmp_path)
     proc = _FakeDockerClientProcess(initial_returncode=None)
-    cleanup = []
     ticks = iter([10.0, 12.0])
     monkeypatch.setattr(module.subprocess, "Popen", lambda *a, **k: proc)
-    monkeypatch.setattr(module.subprocess, "run", lambda args, **kwargs: (
-        cleanup.append(args) or SimpleNamespace(returncode=0)))
     monkeypatch.setattr(module.time, "monotonic", lambda: next(ticks))
     monkeypatch.setattr(module.time, "sleep", lambda _seconds: None)
     adapter._run(build_id)
     assert adapter.get(build_id).status == "failed"
     assert proc.killed and proc.waited
-    assert not (base / "container.id").exists()
-    assert cleanup == [[adapter.config.docker_binary, "rm", "--force", "lunar-private-" + build_id]]
+    assert not (base / "input/container.id").exists()
+    assert build_id in adapter.cleanup_unconfirmed
 
 
 def test_docker_pipe_drain_is_bounded_after_client_exit(tmp_path, monkeypatch):
-    from types import SimpleNamespace
     from tools.installer_service import docker_adapter as module
 
     adapter, build_id, _base = _docker_lifecycle_adapter(tmp_path)
@@ -1388,20 +1381,18 @@ def test_docker_pipe_drain_is_bounded_after_client_exit(tmp_path, monkeypatch):
     cleanup = []
     ticks = iter([10.0, 10.0, 10.0, 16.0])
     monkeypatch.setattr(module.subprocess, "Popen", lambda *a, **k: proc)
-    monkeypatch.setattr(module.subprocess, "run", lambda args, **kwargs: (
-        cleanup.append(args) or SimpleNamespace(returncode=0)))
+    monkeypatch.setattr(module, "_remove_owned_container", lambda *args: cleanup.append(args) or True)
     monkeypatch.setattr(module.select, "select", lambda *a, **k: ([], [], []))
     monkeypatch.setattr(module.time, "monotonic", lambda: next(ticks))
     adapter._run(build_id)
     assert adapter.get(build_id).status == "failed"
     assert proc.stdout.closed
-    assert cleanup == [[adapter.config.docker_binary, "rm", "--force", "lunar-private-" + build_id]]
+    assert cleanup == [(adapter.config.docker_binary, build_id, _base)]
     __import__("os").close(proc.writer_fd)
 
 
-def test_shutdown_kills_active_process_removes_named_container_and_drains(tmp_path, monkeypatch):
+def test_shutdown_kills_client_and_leaves_verified_cleanup_to_worker(tmp_path, monkeypatch):
     import threading
-    from types import SimpleNamespace
     from tools.installer_service import docker_adapter as module
     from tools.installer_service.api import WorkerSnapshot
 
@@ -1422,13 +1413,12 @@ def test_shutdown_kills_active_process_removes_named_container_and_drains(tmp_pa
     adapter.processes[build_id] = proc
     adapter.jobs[build_id] = WorkerSnapshot("running")
     cleanup = []
-    monkeypatch.setattr(module.subprocess, "run", lambda args, **kwargs: (
-        cleanup.append(args) or SimpleNamespace(returncode=0)))
+    monkeypatch.setattr(module, "_remove_owned_container", lambda *args: cleanup.append(args) or True)
     adapter.shutdown(timeout_seconds=1)
     assert adapter.stopping
     assert proc.returncode == -9
     assert not worker.is_alive()
-    assert cleanup == [[adapter.config.docker_binary, "rm", "--force", "lunar-private-" + build_id]]
+    assert cleanup == []  # The worker finalizer owns cleanup after the client is killed.
 
 
 def test_fastapi_lifespan_invokes_adapter_shutdown():
