@@ -335,13 +335,18 @@ static void mod_out(col_t *c, const fm1_app_t *a, int mode, int k, const int cha
   fm1_state_mod_collect(a->mod, a->mod_seed, mode == MOD_ALL || mode == MOD_NAMED, mod_emit, &f);
 }
 
-/* The set's movy1 text into g_set; its length, or 0. */
-static uint32_t set_text(const fm1_app_t *a) {
+/* The set's movy1 text into g_set; its length, or 0. A PROJECT must
+ * distinguish an absent set from one that cannot fit: omission loses data. */
+static uint32_t set_text(const fm1_app_t *a, int *overflow) {
   size_t n;
   g_set_n = 0;
+  if (overflow) *overflow = 0;
   if (!a->seq) return 0;
   n = fm1_seq_export_movy1(a->seq, g_set, SET_BYTES);
-  if (n >= SET_BYTES) return 0;
+  if (n >= SET_BYTES) {
+    if (overflow) *overflow = 1;
+    return 0;
+  }
   g_set_n = (uint32_t)n;
   return g_set_n;
 }
@@ -484,7 +489,7 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
         if (a->dx7.index >= 0 && a->dx7.loaded[s]) dx7_out(&c, a, s);
       }
       mod_out(&c, a, MOD_ALL, 0, NULL);
-      if (set_text(a)) lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
+      if (g_set_n) lines_out(&c, g_set, g_set_n, FM1_LINES_SET);
       if (!g_no_view) view_out(&c, a);
       if (a->midi_map.version) {
         fm1_rec_t r = blank(FM1_REC_MIDI_MAP); r.u.map_version = a->midi_map.version; out(&c, &r);
@@ -542,7 +547,7 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
     case FM1_STATE_CLIP: {
       size_t count = 0;
       char **lines;
-      if (arg < 0 || !set_text(a)) {
+      if (arg < 0 || !set_text(a, NULL)) {
         *why = "no set";
         return 0;
       }
@@ -571,7 +576,7 @@ static int collect(fm1_app_t *a, unsigned kind, int arg, fm1_rec_sink_t sink, vo
       setting_out(&c, FM1_SET_MIDI_IN_CHANNEL, 0, a->settings.midi_in_channel);
       break;
     case FM1_STATE_SET:
-      if (!set_text(a)) {
+      if (!set_text(a, NULL)) {
         *why = "no set";
         return 0;
       }
@@ -634,8 +639,14 @@ static int state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put_
   g_no_view = binary == 3;             /* 3: the hash's form, no view either */
   fm1_state_report_init(rep);
   rep->kind = (uint8_t)kind;
+  if (kind == FM1_STATE_PROJECT) {
+    int overflow;
+    /* Export once, before collecting any records or calling external output. */
+    set_text(a, &overflow);
+    if (overflow) return refuse_rep(rep, FM1_STATE_TOO_BIG, "the set text does not fit its buffer");
+  }
   if (kind == FM1_STATE_SET && !binary) {
-    if (!set_text(a)) return refuse_rep(rep, FM1_STATE_BAD, "no set");
+    if (!set_text(a, NULL)) return refuse_rep(rep, FM1_STATE_BAD, "no set");
     put(ctx, g_set, g_set_n);
     return 1;
   }
@@ -1414,7 +1425,7 @@ static int plan_finish(plan_t *p) {
       lines[n++] = clip_copy + at;
       at = i + 1;
     }
-    set_n = set_text(a);
+    set_n = set_text(a, NULL);
     if (!set_n) return refuse_load(p, FM1_STATE_NO_ROOM, "No room", "The current set cannot be exported.%s", "");
     merged = fm1_state_clip_into(g_set, set_n, lines, n, (unsigned)t, (unsigned)sl, err, sizeof err);
     if (!merged) return refuse_load(p, FM1_STATE_NO_ROOM, "No room", "The clip does not fit: %s.", err);
