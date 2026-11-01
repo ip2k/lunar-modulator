@@ -40,7 +40,13 @@
     "src/string/strchrnul.c": "dbb7756732bb4241681ab2c8e0a1a7953ba5caf21851678ac9034a7f4a616c55",
     "src/string/strcmp.c": "3e1793ea2dd358e5c884c4dd232083605d0f6775f7ebe19d03d64fe97068a78f",
     "src/string/strlen.c": "cf9359c1bcee96df1f3a7ef0fb969339b7ed87b202d80dc7e7fcd6d1239b7484",
-    "src/math/__fpclassifyf.c": "a98b8a1b78ccd98ba0cf19cfea91f6c322e8b770d523dded84556b00f1a6c9cf"
+    "src/math/__fpclassifyf.c": "a98b8a1b78ccd98ba0cf19cfea91f6c322e8b770d523dded84556b00f1a6c9cf",
+    "src/math/log10f.c": "b8de5c0f14be2c622eca1cb33e80e5b131576c7c229aeffb8ea9f1d61555f6b9",
+    "src/math/sqrtf.c": "bd7c19c2c4efdbd1259f04a919c88f7119d9402cdd41584c7b0f854acb203b42",
+    "src/math/sqrt_data.c": "590aaadff964dcfc36ef9e5302423a779cda4f1608e15dbeee8e43e6e5f1c6fe",
+    "src/string/strncpy.c": "88301f7a48004250e1833e9155c7d2fa607ffdddca3b1b1804774d93c82acb96",
+    "src/string/stpncpy.c": "12f0e4fd1005104a6c1200af5b90e1694d75ad0fb2586305b560341be0ef6481",
+    "src/string/memchr.c": "9c641c12fbcc6acd2cc18f6d969d9ccdcf11b27fdfb1f47b8804206bbef05581"
   },
   "diagnostic_selection": "2026-11-01: retain only C units contributing allocated sections to the pinned current-app diagnostic link; headers and licences preserved."
 }
