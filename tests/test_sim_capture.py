@@ -34,7 +34,8 @@ def test_capture_feedback_and_retained_history(tmp_path):
         f"FM1_GPL_MODS={int(GPL_MODS)}", "-j4",
         *[f"{key}={value}" for key, value in flags.items()], str(target),
     ], check=True, stdout=subprocess.DEVNULL)
-    result = subprocess.run([str(target), str(tmp_path / "capture-refused.ppm")],
+    result = subprocess.run([str(target), str(tmp_path / "capture-refused.ppm"),
+                             str(tmp_path / "capture-busy.ppm")],
                             capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert result.stdout.startswith("PASS app Capture:")
