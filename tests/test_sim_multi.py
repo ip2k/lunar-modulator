@@ -165,7 +165,13 @@ def test_fx_mode_walks_the_inserts_mix_and_master(tools):
     s2 = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.05:SEL:0.05",
              "--turn", "0.07:PRESETS:1", "--button", "0.15:FX", "--turn", "0.2:SELECT:-64",
              "--turn", "0.25:ALGORITHM:1", seconds=0.4)
-    assert s2["current"] == 1 and s2["inserts"][1] == ["plate", ""] and s2["inserts"][0] == ["", ""]
+    assert s2["current"] == 1 and s2["inserts"][1] == ["ensemble", ""] and s2["inserts"][0] == ["", ""]
+    # Immutable lock-event storage leaves insufficient room for Plate here;
+    # ALGORITHM still loads the next fitting insert on the current sound.
+    assert s2["popup"] == ["Plate", "does not fit", need_line(
+        instance_bytes(tools, "macro") + instance_bytes(tools, "shapes") +
+        instance_bytes(tools, "plate", "fx") + FIXED + MIX_BLOCK)]
+    assert s2["ram"] <= BUDGET
 
 
 def test_sel_and_select_swap_the_inserts(tools):
@@ -208,13 +214,13 @@ def test_the_meter_refuses_what_would_not_fit(tools):
 def test_the_refusal_popup_gives_the_first_refusals_figure(tools):
     """PRESETS steps over two sounds that would not fit (Shapes, then Macro
     Heavy) to Six-Op; the popup names the first one skipped and what the
-    chain would need with that one, not the last one's figure. (The second
-    master effect is Ensemble since glide: with Diffuse, Macro and Shapes no
-    longer fit together once both carried glide's state.)"""
-    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "plate", "--fx", "ensemble"]
+    chain would need with that one, not the last one's figure. Room and
+    Ensemble leave room for Macro + Shapes under the unchanged RAM budget
+    with immutable lock events, while both larger replacements still fail."""
+    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "room", "--fx", "ensemble"]
     s = sim(tools, *chain, "--turn", "0.1:PRESETS:1", seconds=0.3)
     assert s["engine"] == "sixop" and s["popup"][:2] == ["Shapes", "does not fit"]
-    rest = (instance_bytes(tools, "shapes") + instance_bytes(tools, "plate", "fx") +
+    rest = (instance_bytes(tools, "shapes") + instance_bytes(tools, "room", "fx") +
             instance_bytes(tools, "ensemble", "fx") + FIXED + MIX_BLOCK)
     assert rest + instance_bytes(tools, "macro") <= BUDGET, "the chain must fit to begin with"
     assert rest + instance_bytes(tools, "macro-heavy") > BUDGET, "Macro Heavy must be refused too"

@@ -239,8 +239,10 @@ enum fm1_app_profile_stage {
 
 /* What else the RAM meter counts on the FM-1 besides the instances
  * (fm1_app_ram): the sequencer's instance, its event buffer,
- * its pending command record and its UI state's bound (36,216 B at 8
- * tracks), and one 64-frame stereo block (512 B) for each sound unit past
+ * its pending command record, UI state's bound and click (43,156 B at 8
+ * tracks: 32,080 + 9,792 + 240 + 1,024 + 20). MIDI mapping, automation
+ * queues/caches, modulation and active MIDI effects are counted separately,
+ * as is one 64-frame stereo block (512 B) for each sound unit past
  * the first, which renders and runs its inserts there before the mix (the
  * first renders in the output block) [inferred: the firmware's layout]. */
 #define FM1_APP_MIX_BLOCK_BYTES (2u * FM1_APP_MAX_FRAMES * 4u)
