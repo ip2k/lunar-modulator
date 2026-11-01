@@ -243,6 +243,21 @@ static int v110_failure(unsigned line) {
     lunar_pipeline_refuse(11000u+line);
     printf("LUNAR_PIPELINE failure_line=%u\n",line);return 0;
 }
+/* A line number is diagnostic, not a stable completion contract. Check every
+   case count before allowing the buffered rule to waive only a deadline. */
+static int finish103(void) {
+    const char *reason=0;
+    if(!lunar_pipeline_sdk_finish())reason="finish";
+    else if(preroll_phase!=PRE_MUSIC||!preroll_zeros||transport.fault||lunar_pipeline_error()||!transport.idle||transport.idle_callbacks<100u||produced!=TOTAL||harvested!=TOTAL||transport.next!=TOTAL||transport.drain<ZERO_DRAIN_BLOCKS||transport.cases_checked!=CASE_ORDINALS||budget_overflow||transport.late||transport.gaps||transport.irq_max>=BUDGET)reason="invariants";
+    else {
+        for(unsigned c=0;c<4;++c)if(service[c].count!=SOAK_CYCLES*CASE_BLOCKS)reason="case_count";
+        if(!reason)for(unsigned c=0;c<4;++c)if(service[c].plate||service[c].clate)reason="per_block_deadline";
+    }
+    printf("LUNAR_PIPELINE_RESULT contract=1 result=%s reason=%s budget_overflow=%u\n",
+      reason?"FAIL":"PASS",reason?reason:"none",budget_overflow);
+    if(reason)return v110_failure(__LINE__);
+    return 1;
+}
 int lunar_pipeline_dac_run(uint32_t (*now)(void)) {
     static const struct dac_platform_data config={.pa_mute_port=0xff,.hw_channel=0x05,
         .ch_num=4,.sr_points=192,.vcm_init_delay_ms=1000};
@@ -379,10 +394,7 @@ int lunar_pipeline_dac_run(uint32_t (*now)(void)) {
 #endif
     printf("LUNAR_PREROLL161 phase=%u zeros=%u duration_ms=%u held_initial_outputs=8 pcm_discarded=0\n",preroll_phase,preroll_zeros,preroll_ms);
     printf("LUNAR_PIPELINE_SOAK cases=%u expected_cases=%u cycles=%u total=%u elapsed_ms=%u fold=%08x replay_required=1\n",transport.cases_checked,CASE_ORDINALS,SOAK_CYCLES,TOTAL,(uint32_t)(timer_get_ms()-started_ms),transport.case_fold);
-    if(!lunar_pipeline_sdk_finish())return v110_failure(__LINE__);
-    if(preroll_phase!=PRE_MUSIC||!preroll_zeros||transport.fault||lunar_pipeline_error()||!transport.idle||transport.idle_callbacks<100u||produced!=TOTAL||harvested!=TOTAL||transport.next!=TOTAL||transport.drain<ZERO_DRAIN_BLOCKS||transport.cases_checked!=CASE_ORDINALS||budget_overflow||transport.late||transport.gaps||transport.irq_max>=BUDGET)return v110_failure(__LINE__);
-    for(unsigned c=0;c<4;++c)if(service[c].count!=SOAK_CYCLES*CASE_BLOCKS||service[c].plate||service[c].clate)return v110_failure(__LINE__);
-    return 1;
+    return finish103();
 }
 
 int lunar_pipeline_dac_idle(void){fence103();return transport.idle!=0;}
