@@ -567,6 +567,8 @@ static void ui_toast(fm1_app_t *a) {
     case FM1_SEQ_TOAST_FULL_VEL_OFF: popup(a, "Full velocity", "off", NULL, -1); break;
     case FM1_SEQ_TOAST_CAPTURED: popup(a, "Captured", NULL, NULL, -1); break;
     case FM1_SEQ_TOAST_NOTHING: popup(a, "Nothing to capture", NULL, NULL, -1); break;
+    case FM1_SEQ_TOAST_CAPTURE_REFUSED:
+      refuse(a, FM1_APP_TONE_REFUSE, "Not captured", "Clip limit reached", "Take kept"); break;
     case FM1_SEQ_TOAST_TRACK:
     case FM1_SEQ_TOAST_TRACK_EMPTIED: {
       char line[24];

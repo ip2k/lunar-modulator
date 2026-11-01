@@ -467,13 +467,16 @@ static int close_overlay(fm1_seq_ui_t *u, const fm1_seq_ui_emit_t *out) {
 
 /* SHIFT + REC: the notes buffered go into the focused track's clip; with
  * none, a toast (Movy's captureButton). The next sync says what it did. */
-static void capture(fm1_seq_ui_t *u, const fm1_seq_ui_emit_t *out) {
+static void capture(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_emit_t *out) {
   int64_t arg[1];
+  fm1_seq_stats_t stats;
   if (!u->capture_pending) {
     u->toast = FM1_SEQ_TOAST_NOTHING;
     return;
   }
   arg[0] = u->track;
+  fm1_seq_get_stats(s, &stats);
+  u->cap_refused_sent = stats.refused;
   emit(out, FM1_SEQ_V_CAP, 1, arg);
   u->cap_sent = 1;
   u->cap_gen_sent = u->capture_gen;
@@ -703,7 +706,12 @@ int fm1_seq_ui_sync(fm1_seq_ui_t *u, const fm1_seq_t *s, uint32_t gen, uint64_t 
     /* The `cap` sent at SHIFT + REC: a take written opens the core's overlay
      * (a stopped Capture's picker or fitted tempo) or says so. */
     u->cap_sent = 0;
-    if (i.capture_gen == u->cap_gen_sent) u->toast = FM1_SEQ_TOAST_NOTHING;
+    if (i.capture_gen == u->cap_gen_sent) {
+      fm1_seq_stats_t stats;
+      fm1_seq_get_stats(s, &stats);
+      u->toast = stats.refused != u->cap_refused_sent && i.capture_pending
+                   ? FM1_SEQ_TOAST_CAPTURE_REFUSED : FM1_SEQ_TOAST_NOTHING;
+    }
     else if (i.capture_mode == FM1_SEQ_UI_CAPTURE_NONE) u->toast = FM1_SEQ_TOAST_CAPTURED;
   }
   if (u->srec && i.playing) srec_end(u);     /* a stopped-transport mode, as Movy's */
@@ -1368,14 +1376,14 @@ static void clear_held(fm1_seq_ui_t *u, const fm1_seq_t *s, const fm1_seq_ui_emi
 /* REC: Capture with SHIFT; stopped in SEQ mode, step record while held and
  * `rec` on a quick untouched release (Movy's router.ts and step-rec.ts);
  * otherwise `rec` at once. */
-static int rec_button(fm1_seq_ui_t *u, int down, uint64_t frame, int mode,
+static int rec_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int down, uint64_t frame, int mode,
                       const fm1_seq_ui_emit_t *out) {
   const int64_t t = u->track;
   if (down) {
     u->rec_press = frame;
     if (u->shift && mode != FM1_MODE_FX) {
       u->rec_role = FM1_SEQ_UI_REC_CAPTURE;
-      capture(u, out);
+      capture(u, s, out);
     } else if (!u->playing && mode == FM1_MODE_SEQ && u->view != FM1_SEQ_VIEW_SESSION &&
                u->view != FM1_SEQ_VIEW_SONG) {
       u->rec_role = FM1_SEQ_UI_REC_STEP;
@@ -1408,7 +1416,7 @@ int fm1_seq_ui_button(fm1_seq_ui_t *u, const fm1_seq_t *s, int button, int down,
   }
   if (button == FM1_BTN_REC) {
     if (down) u->shift_clean = 0;
-    return rec_button(u, down, frame, mode, out);
+    return rec_button(u, s, down, frame, mode, out);
   }
   if (button == FM1_BTN_SEQ) {               /* held, the white keys focus tracks */
     u->seq_held = (uint8_t)(down != 0);
