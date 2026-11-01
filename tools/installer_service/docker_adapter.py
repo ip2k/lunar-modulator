@@ -442,7 +442,7 @@ class DockerJobAdapter:
             "--pull=never",
             "--label", "lan.project=lunar-modulator",
             "--label", "lan.session=installer-diagnostic-worker",
-            "--cgroup-parent=docker-batch.slice", "--network=none", "--cpus=" + cfg.cpu_limit,
+            "--cgroup-parent=docker-batch.slice", "--network=none", "--cpuset-cpus=4-7", "--cpus=" + cfg.cpu_limit,
             "--memory=" + cfg.memory_limit, "--memory-swap=" + cfg.memory_limit,
             "--pids-limit=512", "--read-only", "--cap-drop=ALL",
             "--security-opt=no-new-privileges",

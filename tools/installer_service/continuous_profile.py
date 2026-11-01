@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: MIT
 """Server-owned policy for selected, private continuous D7000 links.
 
+Historical contract extracted from cccd21cc; these constants are required receipt
+values, not measurements of the current source checkout. A new build must bind
+its exact source, toolchain, catalogue and outputs; hardware/release stay pending.
+
 This contract cannot confer tuple trust, package admission, or hardware acceptance.
 """
 from __future__ import annotations

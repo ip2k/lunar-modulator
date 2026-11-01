@@ -29,6 +29,7 @@ DOCKER_POLICY = {
     "network_mode": "none",
     "cgroup_parent": "docker-batch.slice",
     "cpus": 4,
+    "cpuset_cpus": "4-7",
     "memory": 6442450944,
     "memory_swap": 6442450944,
     "pids_limit": 512,
@@ -98,7 +99,7 @@ def container_command(docker: str, container_name: str, source: Path, request: P
            "--label", "lan.project=lunar-modulator",
            "--label", "lan.session=continuous-tuple-capture",
            "--cgroup-parent=docker-batch.slice", "--network=none",
-           "--cpu-quota=400000", "--cpu-period=100000",
+           "--cpu-quota=400000", "--cpu-period=100000", "--cpuset-cpus=4-7",
            "--memory=6g", "--memory-swap=6g", "--pids-limit=512",
            "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges",
            "--user=1003:1003", "--tmpfs", "/tmp:rw,nosuid,nodev,exec,size=3221225472",
@@ -144,7 +145,8 @@ def inspected_contract(inspect: dict, expected_mounts: list[dict], source_commit
             or config_env != expected_env
             or host.get("NetworkMode") != "none" or host.get("CgroupParent") != "docker-batch.slice"
             or host.get("ReadonlyRootfs") is not True or host.get("CpuQuota") != 400000
-            or host.get("CpuPeriod") != 100000 or host.get("NanoCpus") != 0 or host.get("Memory") != DOCKER_POLICY["memory"]
+            or host.get("CpuPeriod") != 100000 or host.get("CpusetCpus") != "4-7"
+            or host.get("NanoCpus") != 0 or host.get("Memory") != DOCKER_POLICY["memory"]
             or host.get("MemorySwap") != DOCKER_POLICY["memory_swap"]
             or host.get("PidsLimit") != DOCKER_POLICY["pids_limit"]
             or host.get("Privileged") is not False
@@ -181,7 +183,7 @@ def inspected_contract(inspect: dict, expected_mounts: list[dict], source_commit
                  "cgroup_parent": host.get("CgroupParent"),
                  "readonly_rootfs": host.get("ReadonlyRootfs"),
                  "cpu_quota": host.get("CpuQuota"), "cpu_period": host.get("CpuPeriod"),
-                 "nano_cpus": host.get("NanoCpus"),
+                 "nano_cpus": host.get("NanoCpus"), "cpuset_cpus": host.get("CpusetCpus"),
                  "memory": host.get("Memory"), "memory_swap": host.get("MemorySwap"),
                  "privileged": host.get("Privileged"), "devices": host.get("Devices"),
                  "device_requests": host.get("DeviceRequests"), "cap_add": host.get("CapAdd"),
