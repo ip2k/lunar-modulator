@@ -11,7 +11,10 @@ from Felucca by Leo Kuroshita (@kurogedelic) and Hügelton Instruments.
 
 `fm1ota.js` retains upstream authorship and adds strict frame/body/checksum
 validation, bounded MIDI input handling, hard and idle transfer deadlines,
-zero-length/range rejection, and send-result checks. Changes are marked in the
+zero-length/range rejection, send-result checks, and a local u24 little-endian
+response-length correction for payloads of 248–512 bytes. The earlier one-byte
+body-length expression wrapped at 256 and would fail the device's decoded-frame
+length check. Changes are marked in the
 file. The browser adapter importing this module is also GPL-3.0-only. This
 module is not wired to the installer, does not request Web MIDI access, and
 does not itself establish package admission or device-install acceptance.
