@@ -153,8 +153,20 @@ def _elf(raw):
         raise ValueError("invalid selected Trio ELF") from error
     if result.e_type != ET_EXEC or result.e_machine != EM_PI32V2 or result.undefined_symbols():
         raise ValueError("linked pi32v2 ELF required")
-    if struct.unpack_from("<I", raw, 24)[0] != result.symbol_value("_start"):
-        raise ValueError("ELF entry differs from startup symbol")
+    starts = [s for s in result.symbols if s["name"] == "_start"]
+    texts = [(i, s) for i, s in enumerate(result.sections) if s["name"] == ".text"]
+    if len(starts) != 1 or len(texts) != 1:
+        raise ValueError("unique executable startup required")
+    start = starts[0]; index, text = texts[0]
+    # The actual assembly label is STT_NOTYPE with size0, not STT_FUNC. Its
+    # containing file-backed text still has to supply at least one instruction.
+    if (text["type"] != 1 or text["flags"] != 6 or text["addr"] != 0x02000120
+            or text["size"] < 2 or start["shndx"] != index
+            or start["type"] not in (0, 2) or start["bind"] != 1
+            or start["value"] != text["addr"]
+            or max(start["size"], 2) > text["size"]
+            or struct.unpack_from("<I", raw, 24)[0] != start["value"]):
+        raise ValueError("ELF entry is not the fixed executable startup")
     forbidden = r"(?:fl_(?:erase|write|prog)\w*|ota_\w*|sdk_\w*|mkey_\w*|putchar_|_putchar|malloc|free|fm1_(?:enter_|reboot|core_reset)\w*|g_default_workspace)"
     if any(re.fullmatch(forbidden, name) for name in result.defined_symbols()):
         raise ValueError("forbidden offline diagnostic closure")
@@ -166,6 +178,10 @@ def _sizes(image, app, report):
     sections = {s["name"]: dict(address=s["addr"], bytes=s["size"]) for s in allocated}
     if len(allocated) != 4 or set(sections) != {".text", ".data", ".bss", ".noinit"}:
         raise ValueError("unexpected allocated section")
+    geometry = {".text": (1, 6), ".data": (1, 3), ".bss": (SHT_NOBITS, 3),
+                ".noinit": (SHT_NOBITS, 3)}
+    if any((s["type"], s["flags"]) != geometry[s["name"]] for s in allocated):
+        raise ValueError("invalid allocated section geometry")
     def symbol(name):
         matches = [s for s in image.symbols if s["name"] == name and s["shndx"]]
         if len(matches) != 1:
