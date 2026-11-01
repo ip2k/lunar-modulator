@@ -448,6 +448,45 @@ fm1_state_writer_t *fm1_state_bin_writer(void *mem, unsigned flags, unsigned wri
                                          fm1_state_report_t *rep);
 int fm1_state_bin_write(void *w, const fm1_rec_t *r);   /* a sink; the file goes out at END */
 
+/* Bounded plain (never DEFLATED) two-pass writer. Both memory blocks are
+ * caller-owned, 16-aligned, disjoint, and sized by these queries. The plan
+ * stays immutable and alive from successful pass1 END through replay and
+ * readback; scratch can be reused between passes. The source and registries
+ * must be exclusively held stable for the whole transaction. CRCs are not a
+ * lock, authentication, or a collision-proof mutation detector.
+ *
+ * Pass1 has NO output callback. Only a successful END produces a usable plan;
+ * invalid records preserve the ordinary writer's reports/failure positions.
+ * Only then may the caller open an uncommitted transaction. Replay uses the
+ * same fm1_state_bin_write sink; it writes payload at final offsets, directory
+ * next, header last. write_at must synchronously return exactly n on success;
+ * any short/error result poisons replay, even if some bytes reached storage.
+ * No retries, erase, commit, rollback, allocation, source lock or storage
+ * binding is provided here. All callback bytes are borrowed for the call.
+ *
+ * After successful replay END, match the entire staged image to this frozen
+ * plan AND validate with fm1_state_bin_read(skip_crc=0) before an independent
+ * commit. match checks expected header/directory, CRCs, zero gaps and exact
+ * extent, not semantic/load/rate/RAM admission. It accepts bounded short reads
+ * but refuses zero progress. An uncertain outer commit requires a rescan.
+ *
+ * Constructors return NULL on bad size/alignment/overlap/plan, setting BAD
+ * unless report already holds an error. Existing host APIs are unchanged. */
+typedef struct fm1_state_bin_plan fm1_state_bin_plan_t;
+typedef uint32_t (*fm1_state_write_at_t)(void *ctx, uint32_t off,
+                                       const uint8_t *bytes, uint32_t n);
+size_t fm1_state_bin_compact_size(void);
+size_t fm1_state_bin_plan_size(void);
+fm1_state_writer_t *fm1_state_bin_preflight(void *mem, size_t bytes,
+    void *plan, size_t plan_bytes, unsigned writer, const uint8_t version[3],
+    fm1_state_report_t *rep);
+fm1_state_writer_t *fm1_state_bin_replay(void *mem, size_t bytes,
+    const void *plan, size_t plan_bytes, fm1_state_write_at_t write_at, void *ctx,
+    fm1_state_report_t *rep);
+uint32_t fm1_state_bin_plan_total(const void *plan, size_t plan_bytes);
+int fm1_state_bin_plan_match(const void *plan, size_t plan_bytes,
+    fm1_src_read_t rd, void *ctx, uint32_t total, fm1_state_report_t *rep);
+
 /* Reads a binary file from a source; total is its length. A file shorter
  * than its header says, a CRC that does not match, an unknown critical
  * chunk or any length past its cap refuses it before a record is given
