@@ -126,6 +126,19 @@ int fm1w_seq_text(unsigned len) {
   return (int)fm1_app_seq_line(&g_app, g_text, len);
 }
 
+/* Browser MIDI realtime: native Link is the opt-in, including while stopped.
+ * 1 = consumed/ignored, 0 = retry after rendering (event-room backpressure).
+ * Keep rt parsing and transport/note-off semantics in the shared app/core. */
+int fm1w_seq_realtime(unsigned status) {
+  fm1_seq_info_t i;
+  const fm1_seq_t *seq = fm1_app_seq(&g_app);
+  if (!seq || (status != 0xF8 && status != 0xFA && status != 0xFB && status != 0xFC)) return 1;
+  fm1_seq_get_info(seq, &i);
+  if (!i.link) return 1;
+  const char ops[] = { 'r', 't', ' ', 'F', "0123456789ABCDEF"[status & 15] };
+  return fm1_app_seq_line(&g_app, ops, sizeof ops) == sizeof ops;
+}
+
 /* A new instance of `tracks` tracks (1..8), then the default route, as
  * fm1-render routes by default: track 0 plays the sound when one is loaded.
  * 0, or -1 for a bad count. */
