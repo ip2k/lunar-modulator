@@ -38,3 +38,15 @@ The reader now offers the same parser with its large inflater and mutually
 exclusive BROW/UNIT arrays in queried caller storage (<=16384 compile guard);
 old read API remains a wrapper. Neither this narrow corpus nor object sizes
 establish inclusive target memory, stack, transaction or runtime admission.
+
+[verified] Expanded exact e267 oracle:244 saves per build, all four modes,
+including32 FM6 slots, per-focus randomized drum parameters, reordered/duplicate
+parameter descriptors, invalid UTF8/nonfinite-level failures and near reports.
+Reader relocation:1633 old-vs-workspace parses per build include truncation,
+byte mutations with CRC on/off, sink stops, records, source read order and full
+reports; normal+ASan/UBSan passed. Prior387 codec cases/digest remain unchanged.
+Fake-only transaction:2x102400-byte slots,183 operations/549 partial-effect fault
+cases per build passed; old/new-only independent semantic rescans, source
+mutation, reentry, corruption, wrap/equal/half-range ambiguity and uncertain
+marker handling. Further known-alias/short-read guards are being verified.
+No flash partition, production storage, complete native fit or live save claim.

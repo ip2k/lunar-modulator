@@ -2098,7 +2098,13 @@ static uint32_t project_write(void *ctx, uint32_t off, const uint8_t *bytes, uin
 }
 static uint32_t project_read(void *ctx, uint32_t off, uint8_t *bytes, uint32_t nbytes) {
   project_state_t *n = ctx;
-  return n->stage->read(n->ctx, off, bytes, nbytes);
+  uint32_t done = 0;
+  while (done < nbytes) {
+    uint32_t got = n->stage->read(n->ctx, off + done, bytes + done, nbytes - done);
+    if (!got || got > nbytes - done) return 0;
+    done += got;
+  }
+  return done;
 }
 static int project_validate(void *ctx, const fm1_rec_t *r) { (void)ctx; (void)r; return 1; }
 static int project_run(project_state_t *n, fm1_state_report_t *rep) {
@@ -2239,6 +2245,24 @@ static void workspace_release(void) {
   g_busy = 0;
 }
 
+/* Unlike opaque callback backing, these live extents are known. Never write
+ * an ownership refusal through a report that aliases them. */
+static int project_live_overlap(const fm1_app_t *a, const void *memory, size_t bytes) {
+  if (!a) return 0;
+  if (overlap(memory, bytes, a, sizeof(*a)) ||
+      overlap(memory, bytes, a->edit, a->edit ? sizeof(*a->edit) : 0) ||
+      overlap(memory, bytes, a->mod, a->mod ? fm1_mod_size() : 0)) return 1;
+  if (a->seq && (overlap(memory, bytes, a->seq, 1) ||
+      overlap(memory, bytes, a->seq, fm1_seq_instance_size(a->seq)))) return 1;
+  for (int u = 0; u < FM1_APP_UNITS; ++u) {
+    const fm1_engine_t *e = a->unit[u].e;
+    if (overlap(memory, bytes, a->unit[u].mem, a->unit[u].cap) ||
+        overlap(memory, bytes, e, e ? sizeof(*e) : 0) ||
+        (e && overlap(memory, bytes, e->params, e->n_params * sizeof(*e->params)))) return 1;
+  }
+  return 0;
+}
+
 int fm1_app_state_project_stage(fm1_app_t *a, unsigned binary,
     const fm1_app_state_stage_t *stage, void *ctx,
     const fm1_app_state_workspace_t *w, fm1_state_report_t *rep) {
@@ -2246,12 +2270,13 @@ int fm1_app_state_project_stage(fm1_app_t *a, unsigned binary,
   project_state_t *n;
   int result;
   if (!rep) rep = &own;
+  if (project_live_overlap(a, rep, sizeof(*rep)) ||
+      overlap(rep, sizeof(*rep), stage, stage ? sizeof(*stage) : 0) ||
+      overlap(rep, sizeof(*rep), w, w ? sizeof(*w) : 0) || overlap(rep, sizeof(*rep), ctx, 1)) return 0;
   if (!workspace_acquire(w, FM1_APP_STATE_WORK_PROJECT, a, NULL, NULL, NULL, rep, sizeof(*rep), rep)) return 0;
   if (!a || !stage || !stage->begin || !stage->write || !stage->read || !stage->commit || !stage->abort ||
       (binary != 2 && binary != 3) || overlap(stage, sizeof(*stage), w->memory, w->bytes) ||
-      overlap(ctx, 1, w->memory, w->bytes) ||
-      (a->seq && (overlap(a->seq, 1, w->memory, w->bytes) ||
-                  overlap(a->seq, fm1_seq_instance_size(a->seq), w->memory, w->bytes)))) {
+      overlap(ctx, 1, w->memory, w->bytes) || project_live_overlap(a, w->memory, w->bytes)) {
     workspace_refuse(rep, w, "invalid project stage ownership or callbacks"); workspace_release(); return 0;
   }
   fm1_state_report_init(rep);

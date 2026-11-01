@@ -195,7 +195,9 @@ int fm1_app_state_load_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rct
  * or backing allocations. Known pointers/objects are checked; opaque backing
  * extents remain caller responsibility. Source hashes are not locks/security.
  * Workspace uses workspace_size(WORK_PROJECT),16-aligned, disjoint from app,
- * engine/sequence arenas, ops/context/report. The full operation is stopped-
+ * engine/sequence/modulation arenas, descriptors/parameters, ops/context/report.
+ * Report is also disjoint from those known live objects and the workspace
+ * descriptor; an aliased report is left untouched on refusal. The full operation is stopped-
  * audio/offline only; no target pause/deadline or inclusive RAM fit is implied.
  */
 enum { FM1_APP_STATE_REFUSED = 0, FM1_APP_STATE_COMMITTED = 1,

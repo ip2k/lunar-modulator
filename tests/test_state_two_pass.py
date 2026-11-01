@@ -28,7 +28,7 @@ def test_two_pass_binary_codec(tmp_path, sanitize):
     sources = [ROOT / "tests/fixtures/native_state/codec.c"]
     sources += [ROOT / "engines/state" / name for name in (
         "state_bin.c", "state_movy1.c", "state_names.c", "fm1_num.c", "fm1_deflate.c",
-        "state_json_read.c", "fm1_json.c")]
+        "state_json_read.c", "fm1_json.c", "state_print.c")]
     with tempfile.TemporaryDirectory(prefix="codec-", dir=tmp_path) as temporary:
         stage = Path(temporary)
         baseline = os.environ.get("FM1_CODEC_BASELINE_SOURCE")
