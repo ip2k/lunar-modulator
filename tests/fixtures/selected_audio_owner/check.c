@@ -37,7 +37,7 @@ static unsigned trigger,seen;
 static uint8_t scan_raw[11];
 static uint32_t fake_gpio[8][8];
 static unsigned accepted;
-static unsigned frozen, frozen_feeds, frozen_transfers, frozen_observation_done;
+static unsigned frozen, frozen_feeds, frozen_transfers, frozen_observation_done, frozen_clock_latched;
 static uint32_t frozen_tick, frozen_last_tick;
 
 /* Actual scanner implementation with fake GPIO reads and time, not a second
@@ -65,7 +65,18 @@ static void scanner_key(uint32_t,unsigned,int),scanner_encoder(uint32_t,unsigned
 #undef fm1_input_tick
 #undef fm1_ticks
 
-void lunar_sr_test_barrier(void) { original_test_barrier(); ++f.now; }
+void lunar_sr_test_barrier(void) {
+  original_test_barrier();
+  if(frozen_clock_latched) return;
+  /* Four real policy samples: origin, APP, FRONTEND, IO. Freeze immediately
+   * after the IO sample (optionally one tick later), never rewind main time. */
+  if(frozen && return_policy.next_phase==LUNAR_SR_IO_READY && f.reads==4) {
+    frozen_clock_latched=1;
+    if(frozen==2) ++f.now;
+    return;
+  }
+  ++f.now;
+}
 void isr_timer5(void) {} void isr_alnk0(void) {}
 static uint32_t read_blob(void *ctx,uint32_t off,uint8_t *out,uint32_t n) {
   (void)ctx;
@@ -224,7 +235,7 @@ static void lunar_audio_owner_test_iteration(void) {
       frozen_feeds=f.feed;frozen_transfers=f.transfers;
       frozen_last_tick=return_policy.last_tick;
       frozen_tick=frozen_last_tick+(frozen==2?1u:0u);
-      f.now=frozen_tick;
+      assert(frozen_clock_latched && f.now==frozen_tick && tail_origin==frozen_tick);
       assert((uint32_t)(f.now-return_policy.last_tick)<target_q.policy.max_phase_ticks/2u);
     }
     assert(f.now==frozen_tick && return_policy.last_tick==frozen_last_tick);
