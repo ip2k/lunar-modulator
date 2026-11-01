@@ -77,3 +77,12 @@ on pi32v2 (host alignment absorbs it). Same two unchanged reader warnings;
 -fstack-usage still unsupported. Exact dependency hashes and vendor disassembly
 are retained privately in target-ownership-evidence. This remains object-only
 proof, not a linked native/stack/inclusive-budget claim.
+
+[verified, independent phase 1 review] Corrected head 3a1c9a31 passed
+independent exact-old differential normal/sanitizer checks, constructor alias
+probes and all eight sink-reentry boundaries. The coordinator integrated the
+reviewed files with zero source differences and its combined-tree normal and
+sanitizer codec tests passed. This closes phase 1 source review only; PROJECT
+provider/replay, semantic readback, fake transaction and inclusive native
+memory/stack admission remain active follow-on work. No storage or SAVE UI
+is enabled.

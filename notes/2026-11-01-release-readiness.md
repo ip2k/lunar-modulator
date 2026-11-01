@@ -123,9 +123,22 @@ private coordinator checkpoint retains detailed receipts and current lane state.
 - The offline panel proof covers actual-app display/control/PCM and threaded
   publication, pending independent review. Default startup/HAL/profile stays
   unchanged and hardware LCD completion remains unbound.
-- Narrow Docker ownership, build-setup cleanup and soak-receipt prerequisite
-  findings are being fixed and independently reviewed. Production native-build
-  prerequisite refusal must remain; no test-only adapter admits real builds.
+- [verified] Docker cleanup now requires immutable ID plus expected ownership
+  labels, refuses unsafe CID files and retains unconfirmed jobs/evidence. Build
+  setup cleanup removes only acquired paths; after a container-create attempt,
+  mounted snapshots remain until owned absence is confirmed. Independent fake
+  tests pass, and root combined-tree focused checks pass. No daemon was used.
+- [verified] Soak receipts now require readiness, valid queue depth and a run
+  within CPU1 lifetime. Independent negative probes refuse missing/malformed
+  prerequisites; root parser checks pass. These are receipt tests, not analog
+  or physical acceptance.
+- [verified] Shared pipeline startup/finish waits escape permanent poison even
+  when the clock stops. Actual protocol tests preserve first error and retained
+  ownership. Test-only ABI fixture expectations now use measured full candidate
+  RAM; native and 32-bit runs retain the unchanged budget and refusal policy.
+- Production native-build prerequisite refusal remains; no test-only adapter
+  admits real builds. The private service still needs a genuinely supported
+  native profile and prerequisite integration.
 
 ## Native and physical evidence limits
 
