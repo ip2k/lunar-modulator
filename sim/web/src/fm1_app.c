@@ -4460,8 +4460,14 @@ int fm1_app_seq_reset(fm1_app_t *a, int tracks) {
 int fm1_app_seq_import(fm1_app_t *a, const char *txt, size_t len) {
   PIPELINE_GUARD(!pipeline_busy());
   if (!a->seq) return 0;
+  /* The core parser refuses an invalid tag without touching its instance and
+   * emits no callbacks. Only a successful replacement may drop the app's old
+   * notes, captured automation targets and queued work; these use app-owned
+   * sound identities, not the newly imported core's routes or lane labels. */
+  if (!fm1_seq_import_movy1(a->seq, txt, len)) return 0;
   seq_drop(a);
-  return fm1_seq_host_import(&a->seq_host, txt, len);   /* resolves the lanes' uids once */
+  fm1_seq_host_bind(&a->seq_host, a->seq_host.engine);   /* resolve the new lanes once */
+  return 1;
 }
 
 int fm1_app_seq_route(fm1_app_t *a, int track, int kind, int index) {
