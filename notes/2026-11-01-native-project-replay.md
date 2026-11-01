@@ -168,3 +168,23 @@ PROJECT applier. A later concrete backend must prove the caller limits and
 transaction/storage contracts in a full application map. No production binding
 or hardware admission follows automatically. Reproducible objects/configured
 header copies are removed after review; small logs/scripts/maps/receipts remain.
+
+## Dependent reader correction: forward-tail accounting
+
+A selected-loader review found that a future known UNIT version with a nonempty
+extension tail was accepted with `skipped=0`. The common C reader and Python
+mirror now increment `skipped` once per successfully skipped nonempty newer-chunk
+tail. Known records and forward-compatible OK status are preserved; version1
+extra bytes still refuse. Strict zero-soft-loss callers can now reject these
+files before construction. This intentionally changes reporting only for content
+that was previously silently discarded; it is not a new native decoder.
+
+[verified] The focused regression fails causally against the pre-fix C reader
+(OK/skipped0 where1 is required), then passes18 plain/deflated/version1/2/65535,
+empty/one/multiple-tail cases in each normal and ASan/UBSan build. Both C APIs
+match complete reports and record streams; C/Python common report fields and
+records match. The previous387 codec and1,633 reader differential cases per
+build still pass with report digest `2a4db010`. The dependent selected-loader
+actual-app refusal regression and fresh corrected target accounting are separate
+review gates; the target numbers above remain bound to composition6896 until
+that correction is relinked.
