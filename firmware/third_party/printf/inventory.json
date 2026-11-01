@@ -1,0 +1,9 @@
+{
+  "upstream": "https://github.com/eyalroz/printf",
+  "commit": "22318ed6bd87b0d597b4a4868d5b00daf66540fd",
+  "files": {
+    "LICENSE": "5eb5d9d30590fa5a20e21a772f461ab512d476bcb9ec5b6c564d431e63154813",
+    "printf/printf.c": "19acedf4294faa4961b8ae4bb4ed313497612f6f485af462674021faacaa5e00",
+    "printf/printf.h": "d63769d1c11627115d2cde78771bdac20b38042d7c57d08634d73e3850714df1"
+  }
+}
