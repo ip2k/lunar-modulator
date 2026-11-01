@@ -17,6 +17,8 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from tools.jieli.audit_link import Elf, SHF_ALLOC, audit, collect_sources
 MODULES = 'dx7,arp,lfo,env,chance'
 TOOLCHAIN_SHA256 = 'f686586bcfb45e0f0bb27fd2b39c7a7f313cb4f0e88a66a14da621ffa8225958'
 DEFINES = ['-DFM1_APP_EXTERNAL_ARENAS=1', '-DFM1_SHAPES_VOICES=8',
@@ -36,14 +38,14 @@ def manifest():
              'firmware/native', 'firmware/third_party/dinghy',
              'firmware/third_party/compiler-rt', 'firmware/third_party/musl',
              'firmware/third_party/printf', 'tools/jieli/objects.mk',
-             'tools/native/build_diagnostic.py']
+             'tools/native/build_diagnostic.py', 'tools/jieli/audit_link.py']
     result = {}
     for name in roots:
         p = ROOT / name
         paths = [p] if p.is_file() else p.rglob('*')
         for f in sorted(paths):
             if f.is_file() and not any(x.startswith('build') or x == '__pycache__'
-                                       for x in f.relative_to(ROOT).parts):
+                                       for x in f.relative_to(ROOT).parts[:-1]):
                 result[str(f.relative_to(ROOT))] = digest(f)
     return result
 
@@ -89,7 +91,7 @@ def build(args):
     objects = [Path(s) for s in run([*make, 'print-objs'], True).splitlines()
                if not s.endswith('/fm1_web.o')]
     run([*make, '-j' + str(args.jobs), *objects])
-    objects.append(objdir / 'our/host/mod_script.o')
+    objects.append(objdir / 'c/host/mod_script.o')
     run([*make, objects[-1]])
     includes = [ROOT / 'engines/include', ROOT / 'engines/host', ROOT / 'engines/state',
                 ROOT / 'engines/mod', ROOT / 'sim/web/src', ROOT / 'firmware/native',
@@ -121,7 +123,7 @@ def build(args):
         units.append([compiler, *flags, '-c', src, '-o', obj])
     printf = ROOT / 'firmware/third_party/printf/printf/printf.c'
     obj = out / 'printf.o'; objects.append(obj)
-    units.append([compiler, *flags, '-DPRINTF_ALIAS_STANDARD_FUNCTION_NAMES_HARD=1',
+    units.append([compiler, *flags, '-I', printf.parent.parent, '-DPRINTF_ALIAS_STANDARD_FUNCTION_NAMES_HARD=1',
                   '-DPRINTF_SUPPORT_WRITEBACK_SPECIFIER=0', '-c', printf, '-o', obj])
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         list(pool.map(run, units))
@@ -131,12 +133,31 @@ def build(args):
     symbols = run([tc / 'pi32v2/bin/nm', '-S', elf], True)
     (out / 'symbols.txt').write_text(symbols)
     if re.search(r'\bU\s+\S+', symbols): raise ValueError('unresolved target helper')
-    forbidden = r'\b(?:fl_(?:erase|write|prog)|ota_|sdk_|mkey_|putchar_|malloc|free|fm1_(?:enter_|reboot|core_reset))\w*\b'
-    if re.search(forbidden, symbols): raise ValueError('forbidden diagnostic closure symbol')
+    forbidden = r'(?:fl_(?:erase|write|prog)\w*|ota_\w*|sdk_\w*|mkey_\w*|putchar_|_putchar|malloc|free|fm1_(?:enter_|reboot|core_reset)\w*)'
+    hits = [line for line in symbols.splitlines()
+            if line.split() and re.fullmatch(forbidden, line.split()[-1])]
+    if hits: raise ValueError('forbidden diagnostic closure symbol: ' + repr(hits))
     listing = run([tc / 'common/bin/objdump', '-d', '-mcpu=r3', '-mattr=+fprev1', elf], True)
     (out / 'listing.txt').write_text(listing)
-    size = run([tc / 'pi32v2/bin/size', '-A', elf], True)
-    (out / 'size.txt').write_text(size)
+    image = Elf(elf.read_bytes(), str(elf))
+    sections = {s['name']: dict(address=s['addr'], bytes=s['size'])
+                for s in image.sections if s['flags'] & SHF_ALLOC}
+    def sym(name):
+        matches = [s for s in image.symbols if s['name'] == name and s['shndx']]
+        if len(matches) != 1: raise ValueError('ambiguous memory symbol: ' + name)
+        return dict(address=matches[0]['value'], bytes=matches[0]['size'])
+    size = dict(sections=sections, app=sym('app'), arena=sym('sound'),
+                descriptors=sym('arenas'), user_stack_bytes=0x5f00,
+                supervisor_stack_bytes=0x1f00,
+                globals_to_stack_guard_bytes=0x01c74000-image.symbol_value('_bss_end'),
+                flash_bytes=sections['.text']['bytes']+sections['.data']['bytes'])
+    (out / 'size.json').write_text(json.dumps(size, indent=2) + '\n')
+    sources = collect_sources([str(ROOT / 'firmware/native'),
+                               str(ROOT / 'firmware/third_party/dinghy')])
+    link_audit = audit([(str(elf), image)], [], True, sources=sources, runtime='sdk-free')
+    (out / 'audit.json').write_text(json.dumps(link_audit, indent=2) + '\n')
+    if link_audit['n_fail']: raise ValueError('audit_link failure; see audit.json')
+    run([tc / 'common/bin/objcopy', '-O', 'binary', elf, out / 'app.bin'])
     if manifest() != before: raise ValueError('source inputs changed while building')
     report = dict(profile='sdk-free-single-fm6-diagnostic-v1', hardware_admitted=False,
         release_candidate=False, sdk_archives=[], modules=MODULES.split(','), voices=8,
@@ -147,7 +168,8 @@ def build(args):
         cxx_headers_manifest={str(p.relative_to(headers)):digest(p) for p in headers.rglob('*') if p.is_file()},
         source_manifest=before, compile_flags=flags,
         objects=[dict(path=str(p.relative_to(out)), sha256=digest(p)) for p in objects],
-        elf_sha256=digest(elf), sizes=size,
+        elf_sha256=digest(elf), app_sha256=digest(out / 'app.bin'), sizes=size,
+        audit_link=link_audit,
         audit_limit='Symbol closure scan is additional evidence, not audit_link admission or a complete MMIO/callgraph audit.')
     (out / 'receipt.json').write_text(json.dumps(report, indent=2) + '\n')
     log.close()

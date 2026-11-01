@@ -16,46 +16,6 @@
     "src/lcd.c": "b69f0c3d6a5b61c883a35b50ddd6582811bd620a45268543e923fb8849caaac4"
   },
   "local_modifications": {
-    "hal/fm1_flash.h": {
-      "upstream_sha256": "ee9700389d8bf842606b7210e52e125c085a44fbb5d30301cf189d823c4d5e90",
-      "local_sha256": "eff221385ffef3ab06edf967aa4b3ceebcba001fa0e28619f5b44dc7d4fa6074",
-      "reason": "Preserves prior interrupt-enable state, accounts for NOR status-poll deadlines, validates caller source spans, stages each program page in aligned SRAM, and now refuses erase/program before IRQ masking unless the live SP lies in an app.ld stack window with 1 KiB headroom, the staged page is fully on that stack, and the timing word is aligned ordinary SRAM. A narrow FL_PROGRAM_PAGE seam lets the host fixture assert the staged page pointer. Intentional local FM-1 changes; upstream source remains identified by revision and original hash."
-    },
-    "hal/fm1_sys.h": {
-      "upstream_sha256": "5d56781274406b0a1bf816c66d86c0b0b23b49757cc6f5644df566127827a9a7",
-      "local_sha256": "87895dfac10e107bbd7946a13caab6d40d4d6421d39a0c3311dec75f613b6d7e",
-      "reason": "Adds checked P33 transfers and checked watchdog stop/re-arm helpers. Original bytes are pinned by the initial import and match the upstream inventory; safety-sensitive NOR callers require propagated transfer errors and readback."
-    },
-    "src/platform.c": {
-      "upstream_sha256": "6cfb23b317af3d95da4d6eeeb8a34de59ee77a626d7d17484398feeb2535bfd7",
-      "local_sha256": "b047f212d1b459dada67e2da5b2db5f82c014ddc6ac8d760888b1888366b0dfe",
-      "reason": "Adds a compile-time guarded native UART1 MIDI initialization hook immediately before TIMER5 starts, preserving unchanged behavior when LUNAR_UART1_MIDI is not defined. Configuration and identity macros are renamed from FELUCCA_* to LUNAR_*. Adds compile-gated nesting-aware IRQ occupancy hooks around ALNK0, TIMER5, input, USB and UAC service. Short accounting mutations preserve the full prior ICFG; disabled hooks are no-ops and service cadence is unchanged. Adds an opt-in fixed-work CPU calibration call after recovery handling and before the flash probe; it performs no clock/register writes and is absent unless LUNAR_DIAGNOSTIC_CPU_RATE is defined."
-    },
-    "src/usb.c": {
-      "upstream_sha256": "68cbe458df1119a4517a384840f22f6359107453e571b3612672e01d52325857",
-      "local_sha256": "4660b7252d1c8eba0e540635dff16991bd24563e4fbd4d4077c2999a950551ca",
-      "reason": "Replaces inherited USB manufacturer and application/update product string descriptors with Lunar Modulator identity, preserving USB protocol fields and required source attribution. Interface configuration macros use LUNAR_* names."
-    },
-    "src/bootguard.h": {
-      "upstream_sha256": "bf19ef423356552105115a3ec3dde3beddb0369670f4b4317520ebfd8f032afb",
-      "local_sha256": "d991e60e3740f3f487e7dde883b7f92d4696fccff274b706958d39598a044a20",
-      "reason": "Renames the local header guard from FELUCCA_BOOTGUARD_H to LUNAR_BOOTGUARD_H; code behavior is unchanged."
-    },
-    "src/gfx.c": {
-      "upstream_sha256": "ae52d4e854c2c81a2ea7892807c771fc228103391a186ceb1201e2faf1efa74e",
-      "local_sha256": "701b3bdd35332bca2428cc5013906e25cf01b6c01edc38abcd17251f5d974876",
-      "reason": "Uses the locally renamed lunar_font header/type; generated font bytes are unchanged."
-    },
-    "src/ota.c": {
-      "upstream_sha256": "ffc981586704b41f62c763248037d1fe373c84c3566c0486de795296f9841855",
-      "local_sha256": "c4ab213bea46bcae74250e25fbd764cb0a52926779e3597cc30a22a3f09619ca",
-      "reason": "Renames local OTA configuration and identity macros to LUNAR_*; preserves the legacy FELUCCA-LOADER-1 wire signature byte-for-byte for compatibility."
-    },
-    "gen/lunar_font.h": {
-      "upstream_sha256": "ce47ea8e3c8bd7dd40aa5862918c98436201ef4cd29b6f82399c45ff7fdc5119",
-      "local_sha256": "bc30e3fe45998975440522d274022ae3d167ab41999d2b9b327cdfa4c131e17b",
-      "reason": "Renames generated header, include guard and font type to lunar_font; generated font data is unchanged."
-    },
     "hal/fm1_irq.h": {
       "reason": "Diagnostic recursive fault halts; no automatic core reset. Historical independent source reused; other fault capture unchanged.",
       "sha256": "34b51dce696aded43e4c17d7f2151b958c319fe34f84a0763f273143406bc416"

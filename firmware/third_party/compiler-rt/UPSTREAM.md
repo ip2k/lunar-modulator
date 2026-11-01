@@ -27,3 +27,5 @@ linked without unresolved symbols in sixteen Hera containers. Sixteen host
 UBSan shards compared the soft-float conversion implementations with host
 hardware casts, covering full-width samples and exponent/rounding boundaries.
 This checks source behavior; it does not execute the pi32v2 code on hardware.
+
+[verified: source and target map, 2026-11-01] This diagnostic selection retains 23 C units contributing allocated target sections. Earlier evaluation counts above describe the historical larger subset. No function bodies are changed.

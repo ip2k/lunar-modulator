@@ -40,8 +40,9 @@ void lunar_diagnostic_note(int note, int velocity, int down) {
 }
 void lunar_diagnostic_knob(int encoder, int delta) {
   /* Only parameter knobs; SELECT/ALGORITHM/PRESETS can change arrangement. */
-  if (ready && !fault && encoder >= 2 && encoder <= 5)
-    fm1_app_encoder(&app, encoder, delta);
+  if (!ready || fault || encoder < FM1_ENC_KNOB1 || encoder > FM1_ENC_KNOB4) return;
+  if (app.mode != FM1_MODE_HOME) { lunar_diagnostic_fault(7); return; }
+  fm1_app_encoder(&app, encoder, delta);
 }
 int lunar_diagnostic_render(int32_t *pcm, uint32_t frames) {
   const float *out;

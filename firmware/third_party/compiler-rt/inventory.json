@@ -1,19 +1,12 @@
 {
   "revision": "3623fe661ae35c6c80ac221f14d85be76aa870f1",
   "files": {
-    "addsf3.c": "c462bb5e45cf6181b2803633328e2e33c1bd5e4bff7a766f057361ef88ba2c45",
-    "subsf3.c": "5a908db14744b02835c6ccc254772d88ac229951830007cfed0a18d1e1d94db5",
-    "mulsf3.c": "9d93ec3313c62db3244c09827a4b27949caf94d2bcaf9ea616d8f5521eee799d",
-    "divsf3.c": "07fa9c2ac2fa467c8bcd8678ea5dae4ddafade06e6c2429eea9513b775fac2f1",
     "adddf3.c": "c948665a4272f7155fd0cd51c3f2bb218bfd0d1dc0ab556565ee1a4eb315eb26",
     "subdf3.c": "201404b61436f1f617221ac20aeee67e41349baaf13ef838f0f5969e3b8b86ab",
     "muldf3.c": "e35d748cefd466cb17e4d0fd4ef9d92e0911fea97bb7a59ad138479ba9c0d553",
     "divdf3.c": "2c8850a107c4ab79d518d1c3246ff936dd28446c82e17c1f347717a36b7a88a8",
-    "fixsfsi.c": "34206d84741996a14a3d710de2318ea15646d497daf867b0144826ae09f0ce3b",
-    "floatsisf.c": "9026c891c3df01ce7cc9d751cb6011e1324ba5ce0545d7aca73c6a50cb432676",
     "divdi3.c": "668b6a3f19fd40fbdb079d0e88073364f88ec1b5e4b1cb38a2c721051c66efbd",
     "udivmoddi4.c": "e963fd1418909bb0f43603a7846edf568d4c8bae0670bd3b13a3e754a104e2fe",
-    "comparesf2.c": "c24e84f8b8800e994b457dce12089ce14b693c839be5bbe74d53080aaa9597f0",
     "comparedf2.c": "c2af3f6a5ae89c08e5ee25b3ec03170b7e98d5dc699646c14820e359cd54fde5",
     "extendsfdf2.c": "0da160f7dcf46bf7d54a688a21477db5dfcb7147ad62e74895e00ea9778d78bf",
     "truncdfsf2.c": "2842933c7721ae3e6c9d4f8d131f77f9c8228c1d5f77b1b05102c7e8b1f9b515",
@@ -44,7 +37,6 @@
     "floatsidf.c": "d5141b5b7e860113c75f2d03d0cf39ca41aeea3e75390c40f73979c4ac172b51",
     "floatundisf.c": "3e737977c6c5fb7e84f44495997ff242a708b1e0a13aff27d4e9e30d418cc58d",
     "floatunsidf.c": "9f3593197c2584c14c86a4760051be18c788d0835cf8ffdb9f11834c2ce9bf5b",
-    "moddi3.c": "ec2261d7e4bf7b04583c17933a7fd370be4de10418c1d75929e0dc382694f820",
     "udivdi3.c": "e250263dcb27261e969db4228a479b2f3bde2b06e59baa2f2c595ac752b17643",
     "umoddi3.c": "d812aa1e62d6179f9013e38bc040ba69d905be128fa25e104645a9da0841d209",
     "fp_fixuint_impl.inc": "fc0d0b1b6fd1b3ec61ed3cd96e634de9f380eb76b7161fea91ddbddece71ac09",
@@ -53,5 +45,6 @@
     "fixunsdfdi.c": "edfc5d1bc551a6acb8d3cb4e6e5073125e8a3ef93ff539002db381fce4c6236a",
     "floatdidf.c": "aa8abfb4f802a359b220b4a5edcd494aa484e7ece129c9e8036143f5913e8783",
     "floatundidf.c": "052bbd24835e69cfa03dc9c820f5022893dd69c2f8b9d9e6fe4187bb8773d28b"
-  }
+  },
+  "diagnostic_selection": "2026-11-01: retain only C units contributing allocated sections to the pinned current-app diagnostic link; headers and licences preserved."
 }

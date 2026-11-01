@@ -7,7 +7,30 @@
 static fm1_app_t ref FM1_APP_ALIGN16;
 static unsigned char ref_sound[LUNAR_DIAGNOSTIC_ARENA_BYTES] FM1_APP_ALIGN16;
 static fm1_app_arena_t ref_arenas[FM1_APP_UNITS];
-int main(void) {
+int main(int argc, char **argv) {
+  if (argc == 2 && !strcmp(argv[1], "cold-fault")) {
+    int32_t cold[128];
+    memset(cold, 0x55, sizeof cold);
+    assert(lunar_diagnostic_render(cold, 64) == -1);
+    for (unsigned i = 0; i < 128; ++i) assert(cold[i] == 0);
+    lunar_diagnostic_fault(77);
+    assert(lunar_diagnostic_status() == 77 && lunar_diagnostic_init() == -1);
+    puts("cold fault silence passed"); return 0;
+  }
+  if (argc == 2 && !strcmp(argv[1], "mode-fault")) {
+    assert(!lunar_diagnostic_init());
+    /* Inject invalid mode in this host fixture only; no mutable state API is exposed. */
+    ((fm1_app_t *)(void *)lunar_diagnostic_state())->mode = FM1_MODE_MATRIX;
+    lunar_diagnostic_knob(FM1_ENC_KNOB1, 1);
+    assert(lunar_diagnostic_status() == 7);
+    puts("non-HOME control rejected before MATRIX passed"); return 0;
+  }
+  if (argc == 2 && !strcmp(argv[1], "null-output")) {
+    assert(!lunar_diagnostic_init());
+    assert(lunar_diagnostic_render(NULL, 64) == -1);
+    assert(lunar_diagnostic_status() == 4);
+    puts("null output fault passed"); return 0;
+  }
   int32_t pcm[128];
   fm1_dx7_budget_stats_t stats;
   int nonzero = 0;
@@ -26,7 +49,7 @@ int main(void) {
       }
     }
     if (block == 60) { lunar_diagnostic_key(5, 1); fm1_app_key(&ref, 5, 1, 100); }
-    if (block == 90) { lunar_diagnostic_knob(2, 3); fm1_app_encoder(&ref, 2, 3); }
+    if (block == 90) { lunar_diagnostic_knob(FM1_ENC_KNOB1, 3); fm1_app_encoder(&ref, FM1_ENC_KNOB1, 3); }
     if (block == 120) {
       lunar_diagnostic_key(5, 0); fm1_app_key(&ref, 5, 0, 100);
       for (int note = 60; note < 70; ++note) {
