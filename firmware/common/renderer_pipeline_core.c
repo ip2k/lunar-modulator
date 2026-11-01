@@ -204,7 +204,8 @@ int lunar_pipeline_core_start(uint32_t (*clock)(void)) {
     status=port_launch(worker,NULL);
     if(status){lunar_pipeline_refuse(E_CREATE);return 0;}
     first=port_ms();
-    while(!s.ready && !s.exited && (uint32_t)(port_ms()-first)<1000u)port_delay(1);
+    while(!s.ready && !s.exited && !lunar_pipeline_error() &&
+          (uint32_t)(port_ms()-first)<1000u)port_delay(1);
     fence();if(!s.ready || s.exited || lunar_pipeline_error()){lunar_pipeline_refuse(E_TIMEOUT);s.stop=1;return 0;}
     return 1;
 }
@@ -222,8 +223,9 @@ int lunar_pipeline_core_finish(void) {
         lunar_pipeline_refuse(E_FINISH);return 0;
     }
     s.stop=1;fence();port_wake_abort();first=port_ms();
-    while(!s.exited && (uint32_t)(port_ms()-first)<1000u)port_delay(1);
-    if(!s.exited){lunar_pipeline_refuse(E_TIMEOUT);return 0;}
+    while(!s.exited && !lunar_pipeline_error() &&
+          (uint32_t)(port_ms()-first)<1000u)port_delay(1);
+    if(!s.exited || lunar_pipeline_error()){lunar_pipeline_refuse(E_TIMEOUT);return 0;}
     fence();return 1;
 }
 unsigned lunar_pipeline_ready_outputs(void) { unsigned n=0; for(unsigned i=0;i<LUNAR_PIPELINE_OUTPUT_SLOTS;++i) if(outputs[i].state==READY) ++n; fence(); return n; }
