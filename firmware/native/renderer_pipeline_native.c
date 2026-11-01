@@ -1,17 +1,31 @@
 /* SPDX-License-Identifier: MIT.
  * Real common-core adapter with a permanent, one-shot launch handshake.
  * No SDK code, launch register recipe or primary/secondary IRQ initializer.
- * The only executable concurrent backend in this slice is the atomic host test.
+ * Production execution remains disabled. A separate offline stock-SPL candidate
+ * has explicit compile access only; host tests use atomic words and mocked HW.
  */
 #include "renderer_pipeline_native.h"
 #if defined(LUNAR_NATIVE_PIPELINE_ENABLE) && LUNAR_NATIVE_PIPELINE_ENABLE
 #error Native CPU1 reset/cache/IRQ/stack contracts have not been admitted
+#endif
+#if (defined(LUNAR_CPU1_CANDIDATE_STOCK_SPL) || defined(LUNAR_CPU1_CANDIDATE_PI32V2)) && !defined(LUNAR_NATIVE_PIPELINE_OFFLINE_CANDIDATE)
+#error Candidate route/target flags require explicit offline candidate selection
+#endif
+#if defined(LUNAR_NATIVE_PIPELINE_OFFLINE_CANDIDATE)
+#if LUNAR_NATIVE_PIPELINE_OFFLINE_CANDIDATE != 1 || !defined(LUNAR_CPU1_CANDIDATE_STOCK_SPL) || LUNAR_CPU1_CANDIDATE_STOCK_SPL != 1
+#error Offline CPU1 candidate requires explicit value 1 and stock SPL route value 1
+#endif
+#ifdef LUNAR_NATIVE_PIPELINE_TEST_PLATFORM_HEADER
+#error Select either host test hooks or the offline target candidate
+#endif
 #endif
 #ifdef LUNAR_NATIVE_PIPELINE_TEST_PLATFORM_HEADER
 #if !defined(__unix__) && !defined(__APPLE__)
 #error The native pipeline test backend is host-only
 #endif
 #include LUNAR_NATIVE_PIPELINE_TEST_PLATFORM_HEADER
+#elif defined(LUNAR_NATIVE_PIPELINE_OFFLINE_CANDIDATE)
+#include "cpu1_candidate_platform.h"
 #else
 #include "renderer_pipeline_native_disabled.h"
 #endif
