@@ -21,8 +21,39 @@ try {
   m.tracks[1].clips[1].notes=[{tick:0,gate:48,pitch:64,vel:88,step:0}];
   window.doc={set:writeSet(m),sounds:['Punch','Acid','Trio','FM6'].map(engine=>({engine,level:75,inserts:[null,null]}))};window.doc.master=[{engine:'Hall'},{engine:'Limit'}];window.doc.sounds[0].inserts[0]={engine:'Echo'};window.calls=[];window.reject=false;window.output=.8;window.soundLevels=[75,75,75,75];window.levelGestures=[];
   const telemetry={sections:[{name:'meters',offset:0,mask:0,rows:['snd1.post_fader','out.post_master'],fields:['peak','rms']},{name:'levels',offset:4,mask:8,rows:['s1.level','master.level'],fields:['peak','rms']}]};
-  window.seq=makeSequencer({fetchProject:async()=>structuredClone(window.doc),applyProject:async(d,label)=>{if(window.reject)throw Error('test refusal');window.doc=d;window.calls.push(label)},getMaster:()=>window.output,setMaster:v=>{window.output=v},getSoundLevel:s=>window.soundLevels[s],setSoundLevel:(s,v,mode)=>{window.soundLevels[s]=v;window.levelGestures.push({sound:s,value:v,mode})},beginLevelDrag:s=>window.levelGestures.push({begin:s}),endLevelDrag:()=>window.levelGestures.push({end:true}),getTransport:()=>({playing:false}),metadata:{doc:{telemetry},engine:name=>name?({params:[{name:'Cutoff',type:'float',min:0,max:1,def:.5,flags:[]},{name:'Voices',flags:['nolock']}]}):null},watchTrack:t=>window.calls.push('watch '+t),playScene:s=>window.calls.push('scene '+s),playClip:(t,s)=>window.calls.push('clip '+t+' '+s),inspector:key=>{const e=document.createElement('p');e.textContent='Inspector '+key;return e}});
+  window.seq=makeSequencer({fetchProject:async()=>structuredClone(window.doc),applyProject:async(d,label)=>{if(window.reject)throw Error('test refusal');window.doc=d;window.calls.push(label)},getMaster:()=>window.output,setMaster:v=>{window.output=v},getSoundLevel:s=>window.soundLevels[s],setSoundLevel:(s,v,mode)=>{window.soundLevels[s]=v;window.levelGestures.push({sound:s,value:v,mode})},beginLevelDrag:s=>window.levelGestures.push({begin:s}),endLevelDrag:()=>window.levelGestures.push({end:true}),playPause:()=>window.transportAction(),getTransport:()=>({playing:false}),metadata:{doc:{telemetry},engine:name=>name?({params:[{name:'Cutoff',type:'float',min:0,max:1,def:.5,flags:[]},{name:'Voices',flags:['nolock']}]}):null},watchTrack:t=>window.calls.push('watch '+t),playScene:s=>window.calls.push('scene '+s),playClip:(t,s)=>window.calls.push('clip '+t+' '+s),inspector:key=>{const e=document.createElement('p');e.textContent='Inspector '+key;return e}});
   document.querySelector('main').append(window.seq.render());await window.seq.refresh();window.model=()=>parseSet(window.doc.set);
+ });
+ // Immediate commands keep the toolbar enabled; pending commands still lock,
+ // reject overlapping actions, and release their lock on success or refusal.
+ await page.evaluate(async()=>{
+  const fieldset=document.querySelector('.sq-transport');
+  const changes=[];
+  const observer=new MutationObserver(records=>changes.push(...records));
+  observer.observe(fieldset,{attributes:true,attributeFilter:['disabled']});
+  let calls=0;
+  window.transportAction=()=>{calls++};
+  const first=window.seq.toggleTransport(),second=window.seq.toggleTransport();
+  await Promise.all([first,second]);
+  if(calls!==2||fieldset.disabled||changes.length)throw Error('Immediate transport actions disabled or blocked one another');
+  observer.disconnect();
+  for(const reject of [false,true]){
+   let settle;
+   window.transportAction=()=>{calls++;return new Promise((resolve,refuse)=>{settle=reject?()=>refuse(Error('transport refusal')):resolve})};
+   const before=calls,pending=window.seq.toggleTransport();
+   if(!fieldset.disabled||document.querySelector('.sq').getAttribute('aria-busy')!=='true')throw Error('Pending action did not lock');
+   await window.seq.toggleTransport();
+   if(calls!==before+1)throw Error('Overlapping pending action was invoked');
+   settle();await pending;
+   if(fieldset.disabled||document.querySelector('.sq').getAttribute('aria-busy')!=='false')throw Error('Settled action left controls locked');
+   if(reject&&!document.querySelector('.sq-status').textContent.includes('transport refusal'))throw Error('Async refusal was not announced');
+  }
+  window.transportAction=()=>{throw Error('immediate refusal')};
+  await window.seq.toggleTransport();
+  if(fieldset.disabled||!document.querySelector('.sq-status').textContent.includes('immediate refusal'))throw Error('Immediate refusal did not settle');
+  window.transportAction=()=>{calls++};
+  const before=calls;await window.seq.toggleTransport();
+  if(calls!==before+1||fieldset.disabled)throw Error('Action after refusal was blocked');
  });
  // Names edit independently of track selection, using the native set field.
  const name=page.getByLabel('Track 1 name',{exact:true});
@@ -333,6 +364,6 @@ try {
  await tab('Scenes');await page.getByRole('button',{name:'Edit track 8 scene 2',exact:true}).click();
  if(await page.locator('.sq-note').count()||!await page.locator('.sq-page-nav .sq-caption').textContent().then(t=>{const r=t.match(/Steps (\d+)–(\d+)/);return +r[1]<=65&&+r[2]>=65}))throw Error('Empty offset loop navigation');
  if(errors.length)throw Error(errors.join('\n'));
- await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,matrixGeometry,checks:['native track names across views','rename Enter/blur/Escape and touch button','invalid/refused rename canonical rollback','held mouse and touch blur preserve destination selection','note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','desktop routing and FX expanded by default','mobile Routing & FX disclosure toggle','scene selection from scene headings','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation','real Satellite Hearts Verse notes visible at desktop and landscape widths','scene keyboard and Clip tab note framing','manual scroll preserved after note selection and native refresh','navigation leaves project data intact','offset loops with unordered notes, sustaining gates and extreme pitches','empty offset loop navigation']},null,2));
+ await writeFile(`${out}/results.json`,JSON.stringify({passed:true,errors,note,matrixGeometry,checks:['immediate transport actions stay enabled','pending action exclusion and success/refusal cleanup','synchronous refusal recovery','native track names across views','rename Enter/blur/Escape and touch button','invalid/refused rename canonical rollback','held mouse and touch blur preserve destination selection','note fields','probability','locks','routing','song repeats','scene launch','refusal rollback','playhead while next scene queued','mobile overflow','input focus','multi-file MIDI mapping','note drag','gate resize','insert/master/mix targets','sound/master fader values and dB display','incremental keyboard level edit','pointer fader drag lifecycle','meter and level telemetry subscription','synthetic sound/master meter updates','device inspector focus and restoration','Files & export disclosure import','desktop routing and FX expanded by default','mobile Routing & FX disclosure toggle','scene selection from scene headings','note row containment','64-slot scene matrix','clip and empty-slot stop callbacks','portrait rotate prompt','844x390 landscape editing','single focused panel','keyboard tab navigation','real Satellite Hearts Verse notes visible at desktop and landscape widths','scene keyboard and Clip tab note framing','manual scroll preserved after note selection and native refresh','navigation leaves project data intact','offset loops with unordered notes, sustaining gates and extreme pitches','empty offset loop navigation']},null,2));
  console.log('PASS sequencer mock-host desktop/mobile checks, real Verse note visibility and offset-loop navigation');
 } catch(error) {await page.screenshot({path:`${out}/failure.png`,fullPage:true});console.error({errors});throw error} finally {await browser.close();await new Promise(r=>server.close(r))}
