@@ -14,6 +14,12 @@ from tools.jieli import trusted_fwsc_package as packager
 from tools.jieli.trusted_fwsc_package import HASH_FIELDS, TUPLE_KEYS
 
 
+@pytest.fixture(autouse=True)
+def no_real_docker_cancellation(monkeypatch):
+    # Wrapper fixtures are harmless Python scripts; no Docker daemon is contacted.
+    monkeypatch.setattr(adapter, "cancel_owned_container", lambda *_args, **_kwargs: True)
+
+
 def _write(path: Path, raw: bytes):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(raw)
@@ -177,7 +183,8 @@ def test_successful_wrapper_does_not_retain_failure_output(tmp_path):
         "import os\nos.write(1, b'output')\nos.write(2, b'warning')\n")
     adapter._run_trusted_wrapper(*args)
     assert not (private / "trusted-wrapper-failure").exists()
-    assert list(private.iterdir()) == [args[1]]
+    assert set(private.iterdir()) == {args[1], private / "trusted-wrapper-owner.json"}
+    assert (private / "trusted-wrapper-owner.json").stat().st_mode & 0o777 == 0o600
 
 
 @pytest.mark.parametrize("root_kind", ["missing", "unsafe", "symlink"])
@@ -227,6 +234,7 @@ def test_service_preview_must_match_trusted_wrapper_outputs_before_packaging(tmp
     reference = tmp_path / "reference"
     reference.mkdir()
 
+    monkeypatch.setattr(adapter, "_require_native_capabilities", lambda *_: None)
     monkeypatch.setattr(adapter, "_verify_source_binding", lambda *_args: None)
     monkeypatch.setattr(adapter, "_validate_preview", lambda *_args: {
         "artifact_sha256": hashlib.sha256(b"preview-app").hexdigest(),
@@ -268,6 +276,7 @@ def test_candidate_writes_only_false_status_receipt_from_trusted_packager(tmp_pa
     reference = tmp_path / "reference"
     reference.mkdir()
 
+    monkeypatch.setattr(adapter, "_require_native_capabilities", lambda *_: None)
     monkeypatch.setattr(adapter, "_verify_source_binding", lambda *_args: None)
     monkeypatch.setattr(adapter, "_validate_preview", lambda *_args: {
         "artifact_sha256": hashlib.sha256(b"same-app").hexdigest(),
@@ -412,3 +421,42 @@ def test_wrapper_timeout_retains_private_diagnostics_and_generic_error(tmp_path,
     assert metadata["returncode"] != 0
     assert (diagnostic / "stderr.bin").read_bytes() == b"/private/secret timeout"
     assert not (private / "candidate.fwsc").exists()
+
+
+@pytest.mark.parametrize("body, timeout", [("raise SystemExit(7)\n", 1),
+                                         ("import time\ntime.sleep(30)\n", 0.15)])
+def test_wrapper_parent_cancels_its_exact_generated_name_on_failure(tmp_path, monkeypatch, body, timeout):
+    _source, _private, args = _wrapper_fixture(tmp_path, body)
+    monkeypatch.setattr(adapter, "WRAPPER_TIMEOUT_SECONDS", timeout)
+    commands, canceled = [], []
+    real_capture = adapter.run_bounded
+    def capture(command, **bounds):
+        commands.append(command)
+        return real_capture(command, **bounds)
+    monkeypatch.setattr(adapter, "run_bounded", capture)
+    monkeypatch.setattr(adapter, "cancel_owned_container", lambda name, **_kw: canceled.append(name) or True)
+    with pytest.raises(ValueError, match="pinned trusted"):
+        adapter._run_trusted_wrapper(*args)
+    assert len(canceled) == 1
+    assert __import__("re").fullmatch(r"lunar-continuous-[0-9a-f]{24}", canceled[0])
+    assert commands[0][commands[0].index("--container-name") + 1] == canceled[0]
+    owner = json.loads((_private / "trusted-wrapper-owner.json").read_bytes())
+    assert owner["container_name"] == canceled[0]
+    assert owner["owner_label"] == {"lan.owner": canceled[0]}
+
+
+def test_wrapper_capture_exception_still_attempts_exact_owned_cancellation(tmp_path, monkeypatch):
+    _source, _private, args = _wrapper_fixture(tmp_path, "raise AssertionError('must not execute')\n")
+    canceled = []
+    monkeypatch.setattr(adapter, "run_bounded", lambda *_args, **_kw: (_ for _ in ()).throw(OSError("capture unavailable")))
+    monkeypatch.setattr(adapter, "cancel_owned_container", lambda name, **_kw: canceled.append(name) or True)
+    with pytest.raises(ValueError, match="pinned trusted"):
+        adapter._run_trusted_wrapper(*args)
+    assert len(canceled) == 1
+
+
+def test_composer_current_native_capabilities_fail_closed_before_capture(monkeypatch):
+    root = Path(adapter.__file__).resolve().parents[2]
+    monkeypatch.setattr(adapter, "run_bounded", lambda *_args, **_kw: pytest.fail("must not launch native wrapper"))
+    with pytest.raises(ValueError, match="native audit prerequisites are unavailable"):
+        adapter._require_native_capabilities(root, "a" * 40)
