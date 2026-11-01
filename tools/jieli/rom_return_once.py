@@ -56,11 +56,40 @@ def _json(raw):
     return json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid_constant)
 
 
+def _open_directory(path):
+    """Walk from / using retained directory fds; never resolve then reopen.
+
+    The namespace must be stable and controlled by root/the operator. This
+    prevents alias traversal, not deliberate same-UID replacement of records.
+    """
+    path = Path(path).absolute()
+    if path.anchor != "/" or ".." in path.parts:
+        raise ValueError("unambiguous absolute directory path required")
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    fd = os.open("/", flags)
+    try:
+        for component in (None, *path.parts[1:]):
+            if component is not None:
+                child = os.open(component, flags, dir_fd=fd)
+                previous, fd = fd, child
+                os.close(previous)
+            info = os.fstat(fd)
+            if (not stat.S_ISDIR(info.st_mode) or info.st_uid not in (0, os.geteuid())
+                    or stat.S_IMODE(info.st_mode) & 0o022):
+                raise ValueError("root/operator-owned non-writable ancestors required")
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
 def _read_file(path, limit):
     path = Path(path).absolute()
-    if path.resolve(strict=True) != path:
-        raise ValueError("aliased input path")
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    parent_fd = _open_directory(path.parent)
+    try:
+        fd = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent_fd)
+    finally:
+        os.close(parent_fd)
     try:
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= limit:
@@ -156,14 +185,12 @@ def _preflight(payload_path, image_manifest, *, _reviewed_image_pin):
 
 
 class _Campaign:
-    """Exclusive durable directory: never resume, overwrite or remove records."""
+    """Never resume/overwrite/remove records in a stable owned namespace."""
     def __init__(self, path):
         self.fd = None
         path = Path(path).absolute()
         parent = path.parent
-        if parent.resolve(strict=True) != parent:
-            raise ValueError("aliased campaign parent")
-        parent_fd = os.open(parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        parent_fd = _open_directory(parent)
         try:
             info = os.fstat(parent_fd)
             if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o077:
@@ -294,7 +321,7 @@ def _run_once(*, port, campaign, payload_path, image_manifest,
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", required=True, help="explicit strict CDC interface-02 data port")
-    parser.add_argument("--campaign", required=True, type=Path, help="new directory in private owned parent; retained forever")
+    parser.add_argument("--campaign", required=True, type=Path, help="new directory in private owned parent; retained, never resumed")
     parser.add_argument("--payload", required=True, type=Path, help="exact private 512-byte return-r01 payload")
     parser.add_argument("--reviewed-image-manifest", required=True, type=Path, help="independently reviewed strict UF2 manifest")
     args = parser.parse_args(argv)

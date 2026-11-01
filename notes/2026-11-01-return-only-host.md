@@ -55,19 +55,41 @@ write/reply, malformed/extra reply or crash is refused before call, or
 inconclusive after consumed call intent. Hardware, flashed image, ROM ABI,
 instruction fetch, watchdog and installation qualifications remain false.
 
-The campaign parent must already be operator-owned, owner-only and unaliased.
+All input and campaign parent directories are acquired component by component
+from an opened `/` descriptor with dirfd-relative O_DIRECTORY|O_NOFOLLOW,
+never by resolving a pathname and then reopening it. Ancestors must be owned
+by root or the operator and have no group/other write permission. The final
+campaign parent must additionally be operator-owned and owner-only.
 The new mode-0700 campaign is an exclusive cross-process claim. Its creation
 is parent-fsynced; immutable mode-0600 receipts use dirfd-relative exclusive
 O_NOFOLLOW creation, complete writes, file fsync and directory fsync. A durable
 `upload_attempted` precedes any upload byte; a durable
 `jump_intent_consumed` precedes any call byte. No receipt or existing directory
-is resumed, overwritten or removed, including incomplete/failure state. Every
-created campaign stays spent; a new campaign after uncertainty is a separate
+is resumed, overwritten or removed, including incomplete/failure state. In a
+stable operator-owned namespace each retained campaign stays spent; a new
+campaign after uncertainty is a separate
 coordinator/owner decision. A final outcome is returned only after its receipt
 is durable. A persistence failure never restores permission. Records contain
 small hashes/IDs/timestamps, not the payload. Operator records are retained;
 test-created campaigns are reproducible fixtures and are removed by test
 cleanup only.
+
+This is not a tamperproof global one-shot registry: the same UID/operator can
+deliberately rename/delete campaign records or replace the namespace, and can
+choose a new campaign. POSIX ownership/mode and no-follow checks assume a
+stable namespace controlled by root/operator, not a hostile operator or an
+unreviewed ACL/privilege grant. Retained directory descriptors prevent an
+intermediate symlink swap from redirecting a lookup that was already acquired.
+
+Independent review P2 found the original resolve-then-absolute-open window.
+Four causal regressions reproduced it against source `130b75fd`: campaign
+swaps hid consumed records and allowed two complete fake flows; input swaps
+read redirected bytes. The corrected tests inject both before opening an
+ancestor component and after retaining it, requiring refusal or continued use
+of the original directory, never a redirected claim/read. Writable/foreign
+ancestor and failed-walk descriptor cleanup checks were added. Focused results
+after correction: 157 passed, one optional retained-artifact skip in 1.31s;
+the original red log and corrected results are retained in ignored scratch.
 
 The installed POSIX pyserial flush is `tcdrain`, so write_timeout alone would
 not bound it. A small main-thread POSIX SIGALRM/setitimer context bounds all

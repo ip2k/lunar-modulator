@@ -472,3 +472,145 @@ else:
             if process.poll() is None:
                 process.kill()
                 process.communicate(timeout=5)
+
+
+def alias_swap(monkeypatch, outer, other, *, old_open, relative_component):
+    """Swap after old resolve, or just before corresponding openat component."""
+    original_open = os.open
+    parent_identity = (outer.parent.stat().st_dev, outer.parent.stat().st_ino)
+    outer_identity = (outer.stat().st_dev, outer.stat().st_ino)
+    moved = outer.with_name("outer-retained")
+    fired = []
+    def open_with_swap(path, *args, **kwargs):
+        relative_parent = kwargs.get("dir_fd")
+        identity = None
+        if relative_parent is not None:
+            info = os.fstat(relative_parent)
+            identity = (info.st_dev, info.st_ino)
+        expected = parent_identity if relative_component == "outer" else outer_identity
+        old_match = Path(path) == old_open and relative_parent is None
+        new_match = path == relative_component and identity == expected
+        if not fired and (old_match or new_match):
+            outer.rename(moved)
+            outer.symlink_to(other, target_is_directory=True)
+            fired.append(True)
+        return original_open(path, *args, **kwargs)
+    monkeypatch.setattr(os, "open", open_with_swap)
+    return fired, moved
+
+
+@pytest.mark.parametrize("component", ["outer", "private"])
+def test_campaign_ancestor_swap_cannot_hide_claim_and_replay(inputs, monkeypatch, component):
+    args, first = inputs
+    owner = args["campaign"].parent / "alias-case"
+    outer, other = owner / "outer", owner / "other"
+    for path in (owner, outer, other, outer / "private", other / "private"):
+        path.mkdir(mode=0o700)
+    args["campaign"] = outer / "private" / "campaign"
+    with monkeypatch.context() as patch:
+        fired, moved = alias_swap(patch, outer, other, old_open=args["campaign"].parent,
+                                  relative_component=component)
+        try:
+            try:
+                host._run_once(**args)
+            except (OSError, ValueError):
+                pass
+            assert fired, "race injection must reach actual directory acquisition"
+        finally:
+            if fired:
+                outer.unlink()
+                moved.rename(outer)
+    second = FakeSerial()
+    args["_serial_factory"] = lambda _: second
+    try:
+        host._run_once(**args)
+    except FileExistsError:
+        pass
+    facts = dict(first_writes=len(first.writes), second_writes=len(second.writes),
+                 original_claim=args["campaign"].exists(),
+                 redirected_claim=(other / "private" / "campaign").exists())
+    assert len(first.writes) + len(second.writes) <= 3, facts
+    assert not facts["redirected_claim"], facts
+
+
+@pytest.mark.parametrize("component", ["outer", "private"])
+def test_input_ancestor_swap_never_reads_redirected_file(inputs, monkeypatch, component):
+    args, _ = inputs
+    owner = args["campaign"].parent / "input-alias"
+    outer, other = owner / "outer", owner / "other"
+    for path in (owner, outer, other, outer / "private", other / "private"):
+        path.mkdir(mode=0o700)
+    source = outer / "private" / "input"
+    source.write_bytes(b"original")
+    (other / "private" / "input").write_bytes(b"redirect")
+    with monkeypatch.context() as patch:
+        fired, moved = alias_swap(patch, outer, other, old_open=source, relative_component=component)
+        try:
+            try:
+                result = host._read_file(source, 32)
+            except (OSError, ValueError):
+                result = None
+            assert fired, "race injection must reach actual input acquisition"
+            assert result in (None, b"original"), result
+        finally:
+            if fired:
+                outer.unlink()
+                moved.rename(outer)
+
+
+@pytest.mark.parametrize("mode", [0o720, 0o702, 0o1777])
+@pytest.mark.parametrize("operation", ["input", "campaign"])
+def test_writable_ancestor_refuses_even_with_private_terminal_directory(inputs, mode, operation):
+    args, fake = inputs
+    ancestor = args["campaign"].parent / "writable"
+    ancestor.mkdir(mode=0o700)
+    terminal = ancestor / "private"
+    terminal.mkdir(mode=0o700)
+    path = terminal / "input"
+    path.write_bytes(b"input")
+    ancestor.chmod(mode)
+    try:
+        with pytest.raises(ValueError, match="ancestors"):
+            if operation == "input":
+                host._read_file(path, 32)
+            else:
+                args["campaign"] = terminal / "campaign"
+                host._run_once(**args)
+        assert not fake.writes
+    finally:
+        ancestor.chmod(0o700)
+
+
+def test_foreign_owned_ancestor_refuses(inputs, monkeypatch):
+    from types import SimpleNamespace
+    args, _ = inputs
+    original = os.fstat
+    identity = args["payload_path"].parent.stat().st_ino
+    def foreign(fd):
+        info = original(fd)
+        if info.st_ino == identity:
+            return SimpleNamespace(st_mode=info.st_mode, st_uid=os.geteuid() + 1000)
+        return info
+    monkeypatch.setattr(os, "fstat", foreign)
+    with pytest.raises(ValueError, match="ancestors"):
+        host._read_file(args["payload_path"], 512)
+
+
+def test_failed_component_walk_closes_owned_descriptors(inputs, monkeypatch):
+    args, _ = inputs
+    link = args["payload_path"].parent / "alias"
+    link.symlink_to(args["payload_path"].parent, target_is_directory=True)
+    opened = set()
+    original_open, original_close = os.open, os.close
+    def tracked_open(*a, **kw):
+        fd = original_open(*a, **kw)
+        opened.add(fd)
+        return fd
+    def tracked_close(fd):
+        opened.discard(fd)
+        return original_close(fd)
+    monkeypatch.setattr(os, "open", tracked_open)
+    monkeypatch.setattr(os, "close", tracked_close)
+    with pytest.raises(OSError):
+        host._read_file(link / args["payload_path"].name, 512)
+    assert not opened
