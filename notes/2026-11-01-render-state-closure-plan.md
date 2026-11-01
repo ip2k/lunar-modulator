@@ -85,3 +85,16 @@ Owned generated source/build/WAV/state/test/cache/Python copies are removed
 after recording evidence. Keep small logs under ignored local
 scratch/render-state-closure-20261101/evidence and Aeon lane/evidence.
 Mac free space before/after: 1121 GiB (above 500 GiB floor).
+
+Parent expanded scope to tests/test_state_render.py on audit evidence.
+[verified] test_refusals, test_clips_into_a_set_and_out and
+ test_fm1_seq_loads_a_projects_set_and_a_binary_set had no renderer/names
+fixture dependency. With render/seq binaries removed from their expected paths,
+selecting these alone failed all four parametrized cases (0.11s; child exit127).
+Added the existing renderer fixture explicitly to each signature only;
+expected outputs unchanged. Same isolated selection now builds missing products
+and passes **4/4 in 0.64s**. Logs fixture-baseline.log and fixture-fixed.log.
+Separate focused fixture commit follows the completed closure commits.
+Rarefaction Python scope and Serena test_refusals symbol agree with source;
+Rarefaction warns interpreter/import setup and history are incomplete. No shared
+project changes. Parent owns combined CI and integration.
