@@ -1,18 +1,19 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "609d4f4c9344ed210ef8797f02634b3d891d30e5e46e67e2fd9dc0356dd57fca",
-  "wasm_bytes": 1630509,
+  "wasm_sha256": "12a607b8cc78e35d8c4bee299dc0ed386e16676c510142dc95aa172a28c61c92",
+  "wasm_bytes": 1633650,
   "sources_sha256": {
-    "engines": "8811a7d551ae37405bcabee91b2f1270ded208e9d65f49f0ff930be35ca68d33",
-    "sim": "05ab17baab5e58627c4340947e6e44f1757b226edbdf5267328d12380096b3bd"
+    "engines": "5e5cde266d49a1790603f815dbc05eda657ac56427837a5bc71da80ad358bbe8",
+    "sim": "bbbd55c488dd329682850576b83875323acfd186fe4460d98f74d3a10c911bd7"
   },
-  "engines": "897931cf8025176e387b8fe686613a50215aad83",
-  "built": "2026-11-01T11:26:22Z",
+  "engines": "working tree",
+  "built": "2026-11-01T12:35:37Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
     "alpine:3.22@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f",
-    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65"
+    "emscripten/emsdk:6.0.10@sha256:e077d54e2b8970575ebc4f185ac1de0b95c05f2b266134d4ba27449af7aebf65",
+    "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27"
   ],
   "imports": [],
   "gpl_mods": 1,
@@ -185,10 +186,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.0607260000000025,
-      "p99_ms": 0.0953930000000014,
-      "max_ms": 0.37904600000001665,
-      "edit_us_per_quantum": 8.328583405859625
+      "p50_ms": 0.05896300000006249,
+      "p99_ms": 0.09225600000002032,
+      "max_ms": 0.2610779999999977,
+      "edit_us_per_quantum": 7.986032395319979
     },
     "check": {
       "params": 474,
