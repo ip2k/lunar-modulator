@@ -43,14 +43,16 @@ below cadence does not invoke further policy progress. There is no finite softwa
 escape or loop-count timing guarantee: termination then depends solely on an
 independently qualified hardware watchdog and lease, including independence from
 the failed Timer4 clock. No subsequent feed occurs; a not-yet-due codec tail stays
-pending. This explicit fallback is a source contract, not watchdog qualification. An underrun zeros output and increments the existing counter;
+pending. This explicit fallback is a source contract, not watchdog qualification.
+An underrun zeros output and increments the existing counter;
 this finite diagnostic stops on its first main observation rather than hiding it
 with continued feeds. Queue-full producer backpressure alone is not a fault.
 
 Terminal publication precedes IRQ masking and best-effort DMA stop. Buffers,
 context and leases remain permanent, even after stop or late IRQ. There is no
 retry, reinitialization, live pause or claim that clearing DMA enable proves bus
-quiescence. The existing fault/return policy remains authoritative. Poison is checked at named
+quiescence. The existing fault/return policy remains authoritative. Poison is
+checked at named
 boundaries, not atomically against every possible IRQ between a check and a feed.
 The separately qualified masked-feed and IRQ budgets remain prerequisites.
 
@@ -79,7 +81,8 @@ iterations at last_tick and last_tick+1 (below cadence), then exit externally.
 They assert no subsequent feed, P33 transfer, tail, software terminal or reset,
 compare exact queued nonzero PCM, and consume to empty to check zero-safe IRQ
 ownership. The observation count has no time-unit meaning; the harness neither
-invokes a C watchdog-reset surrogate nor proves a finite production escape. Leak detection is enabled for the preparer and app.
+invokes a C watchdog-reset surrogate nor proves a finite production escape. Leak
+detection is enabled for the preparer and app.
 The original publication test supplies the separate mid-copy-fault and scalar
 ICFG-restoration proof; the new fixture does not claim to model an interrupt at
 every instruction. Legacy interactive/display and offline-stage fixtures are
@@ -101,10 +104,12 @@ python3 -m pytest -o addopts= -q -s -p no:cacheprovider \
 ```
 
 Local bounded legacy return/aggregate checks passed 13 tests; the new complete-plan
-and legacy-HAL normalized statement-order checks passed two. The exact `5b5ea1dc` batch passed 25 normal checks and five actual-app sanitizer
+and legacy-HAL normalized statement-order checks passed two. The exact `5b5ea1dc`
+batch passed 25 normal checks and five actual-app sanitizer
 checks. The later clock-contract delta changes comments, documentation and focused
 fixture coverage only; its separate normal/sanitizer receipt supersedes only that
-fixture. Production behavior and the other frozen results remain unchanged. Final exact-source
+fixture. Production behavior and the other frozen results remain unchanged.
+Final exact-source
 receipts and result logs are retained privately in the performance worktree under
 `scratch/devkit-20261023/audit-20261101/selected-audio-owner-binding/`.
 The first development fixture omitted a prototype; that compile failure is not a

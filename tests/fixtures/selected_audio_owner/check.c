@@ -229,7 +229,7 @@ static void lunar_audio_owner_test_iteration(void) {
     }
     assert(f.now==frozen_tick && return_policy.last_tick==frozen_last_tick);
     assert(f.feed==frozen_feeds && f.transfers==frozen_transfers && !f.reset);
-    assert(return_policy.state==LUNAR_SR_ARMED && !tail_calls && !stop_calls);
+    assert(return_policy.state==LUNAR_SR_RUNNING && !tail_calls && !stop_calls);
     /* External observation limit only: no elapsed-time assertion, software
      * escape, or simulated hardware-watchdog reset/terminal callback. */
     if(iterations==100) { frozen_observation_done=1;longjmp(stopped,2); }
@@ -276,7 +276,7 @@ int main(int argc,char **argv) {
   if(!setjmp(stopped)) { lunar_diagnostic_cstart();assert(0); }
   if(frozen) {
     assert(frozen_observation_done && iterations==100 && nonzero && return_policy.backstop_armed);
-    assert(return_policy.state==LUNAR_SR_ARMED && (f.icfg&0x100u));
+    assert(return_policy.state==LUNAR_SR_RUNNING && (f.icfg&0x100u));
     assert(!tail_calls && !stop_calls && !f.reset && !f.halts);
     assert(f.feed==frozen_feeds && f.transfers==frozen_transfers);
     /* Still-running IRQs consume exact queued blocks, then zero on empty.
@@ -286,7 +286,7 @@ int main(int argc,char **argv) {
     audio_irq();audio_irq();audio_irq();
     assert(lunar_diagnostic_state()->frames==frames);
     assert(word(&PLATFORM->owner.transport.underruns)==1);
-    assert(return_policy.state==LUNAR_SR_ARMED && !stop_calls && !tail_calls && !f.reset);
+    assert(return_policy.state==LUNAR_SR_RUNNING && !stop_calls && !tail_calls && !f.reset);
     assert(f.feed==frozen_feeds && f.transfers==frozen_transfers);
     printf("audio owner %s observations=%u blocks=%u nonzero=%u no-feed/no-tail/no-terminal/no-reset; exact PCM then empty zero passed\n",
         mode,iterations,consumed,nonzero);
