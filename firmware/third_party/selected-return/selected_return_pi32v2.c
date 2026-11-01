@@ -63,10 +63,10 @@ static void p33_dat_write(void *p,uint8_t v) {
 static void publish(void *p) { (void)p; sync(); }
 static _Noreturn void halt(void *p) {
   (void)p;
+  lunar_selected_return_stop_audio();
 #ifdef LUNAR_SELECTED_RETURN_TARGET_INJECTED
   lunar_sr_test_halt();
 #else
-  lunar_selected_return_stop_audio();
   for(;;) sync();
 #endif
 }

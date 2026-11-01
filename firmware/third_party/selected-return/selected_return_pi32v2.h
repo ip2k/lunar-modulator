@@ -28,9 +28,8 @@ void lunar_sr_test_icfg_write(uint32_t),lunar_sr_test_p33_con_write(uint32_t);
 uint8_t lunar_sr_test_p33_dat_read(void);
 void lunar_sr_test_p33_dat_write(uint8_t),lunar_sr_test_barrier(void);
 _Noreturn void lunar_sr_test_halt(void);
-#else
+#endif
 /* Defined only by the separately selected candidate platform. Called after the
  * policy is already sticky terminal. No app, logging, allocation or P33 here. */
 void lunar_selected_return_stop_audio(void);
-#endif
 #endif

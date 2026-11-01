@@ -34,6 +34,9 @@ uint8_t lunar_sr_test_p33_dat_read(void) { access(); return p33_dat_read(0); }
 void lunar_sr_test_p33_dat_write(uint8_t v) { access(); p33_dat_write(0,v); }
 void lunar_sr_test_barrier(void) { dirty=0; atomic_signal_fence(memory_order_seq_cst); }
 _Noreturn void lunar_sr_test_halt(void) { halt(0); __builtin_trap(); }
+#ifndef LUNAR_SR_PLATFORM_TEST
+void lunar_selected_return_stop_audio(void) { /* no active audio in register tests */ }
+#endif
 static void target_call(void) { (void)lunar_selected_return_target_prepare(&f.policy); }
 static void fresh_target(void) {
   fresh(100);dirty=0;
@@ -47,7 +50,7 @@ static void target_prepare(void) {
   assert(f.policy.origin==f.now && f.reads==1 && f.transfers==24);
   assert(f.icfg==saved && !f.feed && !f.reset && !dirty);
 }
-int main(void) {
+int lunar_selected_return_binding_checks(void) {
   portable_main(); /* all 90 portable cases also run with volatile target fields */
   cases=0;
   for(unsigned n=0;n<11;++n) {
@@ -119,3 +122,6 @@ int main(void) {
   printf("selected target binding passed terminal_cases=%u\n",cases);
   return 0;
 }
+#ifndef LUNAR_SR_BINDING_NO_MAIN
+int main(void) { return lunar_selected_return_binding_checks(); }
+#endif
