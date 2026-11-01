@@ -12,7 +12,10 @@ int lunar_pipeline_native_primary_irq_ready(void);
 /* One attempt per boot, task context only. Failure permanently retains context,
  * callbacks, work arenas and any late worker; there is no reset/free/retry API.
  * Use the common bind/reserve/publish/output API only after successful start.
- * Work arenas and clock/callback code must have image lifetime. */
+ * Work arenas and clock/callback code must have image lifetime.
+ * Startup has two polling budgets: 1000 ms publication-to-RUN grant, then
+ * the common core's separate 1000 ms worker-ready ACK wait. These require a progressing
+ * monotonic clock, bounded delay and a promptly returning launch hook. */
 int lunar_pipeline_native_start(uint32_t (*clock)(void));
 int lunar_pipeline_native_finish(void);
 /* Always zero in this slice, including host tests. A test launch is not admission. */

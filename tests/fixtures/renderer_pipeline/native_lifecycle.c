@@ -4,8 +4,8 @@
 #include <assert.h>
 #include <string.h>
 static struct { uint32_t tag; } arena[2];
-static _Atomic unsigned callbacks;
-static uint32_t ticks(void) { return (uint32_t)(host_ns()/1000u); }
+static _Atomic unsigned callbacks, clock_calls;
+static uint32_t ticks(void) { ++clock_calls; return (uint32_t)(host_ns()/1000u); }
 static int consume(void *work,uint32_t tag,int16_t *pcm,lunar_pipeline_result_t *result) {
     assert(setup_finished && launch_context.command==N_RUN);
     assert(work==&arena[tag%2] && arena[tag%2].tag==tag);
@@ -48,7 +48,23 @@ int main(int argc,char **argv) {
     assert(argc==2);const char *mode=argv[1];
     clock_gettime(CLOCK_MONOTONIC,&host_epoch);atexit(host_cleanup);
     assert(!lunar_pipeline_native_hardware_admitted());
-    if(!strcmp(mode,"missing_irq")) {
+    if(!strcmp(mode,"prepoison_before_irq") || !strcmp(mode,"prepoison_after_irq") ||
+       !strcmp(mode,"invalid_api_before_start") || !strcmp(mode,"poison_direct_core_start")) {
+        int before_irq=!strcmp(mode,"prepoison_before_irq");
+        if(!before_irq)assert(lunar_pipeline_native_primary_irq_ready());
+        if(!strcmp(mode,"invalid_api_before_start")) {
+            void *work=NULL;assert(lunar_pipeline_reserve_work(0,&work)==-1);
+        } else lunar_pipeline_refuse(0x1234);
+        uint32_t first_error=lunar_pipeline_error();assert(first_error);
+        if(before_irq)assert(!lunar_pipeline_native_primary_irq_ready());
+        if(!strcmp(mode,"poison_direct_core_start"))assert(!lunar_pipeline_core_start(ticks));
+        assert(!lunar_pipeline_native_start(ticks));
+        assert(!launch_calls && !launch_context.published && !clock_calls);
+        assert(!launch_context.entered && !launch_context.ready && !callbacks);
+        assert(lunar_pipeline_error()==first_error);
+        assert(!lunar_pipeline_native_start(ticks));
+        assert(!launch_calls && !launch_context.published && !clock_calls);
+    } else if(!strcmp(mode,"missing_irq")) {
         assert(!lunar_pipeline_native_start(ticks));assert(!launch_calls);
         assert(!lunar_pipeline_native_primary_irq_ready());
     } else if(!strcmp(mode,"wrong_core")) {

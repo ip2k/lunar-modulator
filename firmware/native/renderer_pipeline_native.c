@@ -85,7 +85,7 @@ static void native_worker_entry(void *arg) {
 static int port_launch(void (*entry)(void *), void *arg) {
     uint32_t first;
     if(!launch_context.irq_ready || !native_launch_allowed() ||
-       launch_context.entered || launch_context.ready)return -1;
+       launch_context.entered || launch_context.ready || lunar_pipeline_error())return -1;
     launch_context.entry=entry; launch_context.argument=arg;
     launch_context.published=1; port_fence();
     launch_context.command=N_PUBLISHED; port_fence();
@@ -107,7 +107,8 @@ refused:
 #include "../common/renderer_pipeline_core.c"
 
 int lunar_pipeline_native_primary_irq_ready(void) {
-    if(native_cpu()!=0 || launch_context.attempted || launch_context.irq_ready) {
+    if(native_cpu()!=0 || launch_context.attempted || launch_context.irq_ready ||
+       launch_context.aborted || lunar_pipeline_error()) {
         native_refuse(N_ORDER); return 0;
     }
     launch_context.irq_ready=1; return 1;
@@ -116,7 +117,7 @@ int lunar_pipeline_native_start(uint32_t (*clock)(void)) {
     if(native_cpu()!=0) { native_refuse(N_ORDER); return 0; }
     if(launch_context.attempted) { native_refuse(N_RESTART); return 0; }
     launch_context.attempted=1;
-    if(!clock || !launch_context.irq_ready || launch_context.aborted ||
+    if(!clock || !launch_context.irq_ready || launch_context.aborted || lunar_pipeline_error() ||
        !native_launch_allowed() || !lunar_pipeline_core_start(clock)) {
         launch_context.command=N_REFUSED; native_refuse(N_START); return 0;
     }

@@ -22,7 +22,11 @@ one attempt after BSS initialization, nonzero preexisting acknowledgements are
 rejected rather than recycled as another generation. The backend must invoke
 exactly one CPU1 entry context; its synchronous launch function must return
 promptly, without awaiting READY. Waiting uses a monotonic wrapping uint32 clock
-and an exclusive 1000 ms deadline. A stalled platform clock or blocking launch
+and an exclusive 1000 ms publication-to-RUN deadline. After the grant, the
+common core has its own separate up-to-1000 ms worker-ready ACK wait. Thus
+the two polling budgets can total about 2000 ms, plus bounded hook/scheduling
+overhead; 1000 ms is not a hard bound for the entire native_start call.
+A stalled platform clock or blocking launch
 hook cannot be bounded by C polling; these are explicit backend prerequisites.
 Worker setup may finish late, but may not run DSP or touch/reinitialize the
 primary vector table. READY is meaningful only after those platform obligations.
@@ -96,3 +100,23 @@ Next dependency: independent adapter review, then parent integration with native
 foundation/corrections. The next platform slice must establish the listed target
 contracts and own concrete entry/linker/platform changes; it must not simply
 flip ENABLE or reuse these disabled hooks as real hardware operations.
+
+## Independent review correction
+
+[verified] Review found that preexisting common-core poison could still reach
+the backend launch before native_start returned failure. A new test reproduced
+publication/launch on bc2beb7d. The adapter now checks the common error latch
+before IRQ-ready admission, before starting the core, and at port_launch before
+publication (also covering direct public core_start callers). The original
+error remains latched. Four new modes cover explicit poison before/after IRQ
+acknowledgment, poison caused by a premature common API call, and poisoned
+direct core_start. Each asserts no publication, launch, clock callback or DSP
+callback, including a repeated start attempt.
+
+[verified] All three focused native lifecycle pytest cases pass after the fix,
+including 19 modes in normal and ASan/UBSan builds (38 process executions) and
+the disabled-backend refusal/compile gate. The earlier 88 common protocol
+executions remain unchanged-source evidence. The target object/listing above
+belongs to ca8f9e79, not this review correction; no new target check or hardware
+acceptance is claimed. Private red/green logs are prepoison-red.log and
+review-fix-tests.log beside the earlier evidence.
