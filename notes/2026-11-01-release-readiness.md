@@ -43,8 +43,9 @@ hardware state from those notes. No hardware action has occurred on this resume.
 ## Current integration and acceptance
 
 [verified] Foundation branch `feature/2026-11-01@milestone-integration` is
-pushed at `b831724fcf413720aaa036dac742a382cdfaa93c`. PR #161 is open;
-exact-head CI run 41296360365 succeeded, as did Pages build 41296360432.
+pushed at `6606c1d001271f03af9670f9fadbe3535ea0e173`. PR #161 is open;
+its earlier `b831724f` CI run 41296360365 succeeded, as did Pages build 41296360432.
+After merging main's WebKit fix, current CI 41300110158 is pending.
 Deployment was skipped for the PR. Full actual WASM rebuild passed 108 parity
 scenarios, metadata/edit parity, SysEx, routing and MIDI realtime checks;
 the 30-second edit storm had zero late quanta or resynchronizations.
@@ -60,9 +61,10 @@ is pending. Do not bypass that setting. Preview is loopback-only at
 `http://127.0.0.1:8767/installer.html`, owned exec session 63121 in the
 foundation checkout. Stop it after review or before pausing.
 
-PR #151 has a separately reviewed WebKit action-lock fix at `ca6f3c14`.
-Its exact-head CI 41296941683 is still being checked. Preserve this change
-when combining later sequencer browser fixes; never overwrite action().
+PR #151 merged after its separately reviewed `ca6f3c14` passed exact-head CI
+41296941683. Remote main is verified at
+`8d790e3060643ab4e4f8404a7dbf52505ec9b303`. Foundation and corrections
+include that merge. Preserve action() when integrating browser fixes.
 
 ## Release corrections stream
 
@@ -86,6 +88,20 @@ Integrated and pushed corrections include:
   approved the four fixes. Reconnect tests inject lifecycle events rather
   than proving a complete physical/audio power cycle.
 - Browser-state regressions are wired into each browser CI job.
+- Rejected sequencer imports preserve app/PCM state; merged clip text stays
+  allocated through application, avoiding a fallible allocation after mutation.
+- Queued locks carry immutable target labels and base values through app dispatch.
+  Focused checks pass 10 normal and 9 sanitizer tests; both pipeline variants
+  pass three-way 22,581,248-byte PCM comparisons and seven fault refusals.
+  Two static event arrays grow by 13,056 bytes; aggregate target fit is unproven.
+- Offset-loop Capture, two-edge Compare crossings, Acid STOP/origin ownership,
+  Divide output chronology and transitive sound/FX save dependencies are fixed.
+- Typed buffered-soak terminal reasons reject unrelated failures; Python state
+  readers enforce byte limits. Browser negative witnesses reject nonfinite PCM
+  and missing required controls rather than silently accepting incomplete checks.
+- Dongle LED indication follows ACK release/SOF and final PC handoff, removing
+  a 300 ms delay from that critical path. Sixteen model/source tests pass;
+  physical dongle timing is not established by those checks.
 
 A combined full WASM rebuild is required after the current source-fix batch;
 individual host proofs do not make the old generated module current.
@@ -96,7 +112,8 @@ Do not hand-edit generated acceptance hashes.
 - Private installer service extraction is independently approved at
   `d62044bc`. Dedicated integration branch
   `feature/2026-11-01@installer-service-integration` adds real service CI
-  dependencies. Production native capability remains unavailable; no daemon,
+  dependencies. Draft PR #162 is pushed at `9601311b`; CI 41300128269 is
+  pending after incorporating the reviewed WebKit fix. Production native capability remains unavailable; no daemon,
   native build, Docker execution or hardware acceptance follows from API tests.
 - SDK-free fixed FM6 diagnostic is pushed at `5add9c0d`, with eight voices,
   trunc12 and permanent external arenas. Actual pi32 link and unchanged audit
@@ -106,18 +123,23 @@ Do not hand-edit generated acceptance hashes.
   reviewed, with 72 tests passing. PA2 physical ownership, inherited ROM state,
   optical timing and watchdog/capture bounds remain unresolved. No execution
   or hardware admission has occurred.
-- New sequencer/modulation fixes are in isolated lanes: offset-loop Capture,
-  immutable queued lock targets, Acid Gen STOP/origin, Divide chronology,
-  Compare crossings and transitive modulation dependencies in sound/FX saves.
-  Application import rejection and state-load merge allocation are being fixed
-  in the existing app-state lane. Keep file ownership separate.
-- Buffered soak parser is being tightened to distinguish terminal failure
+- Draft native foundation PR #163 is pushed at `9440b081`; reviewed binding
+  source `f736bf4b` binds the toolchain tree to the pinned archive. Independent
+  checks pass 24 focused plus six additional synthetic cases; combined checks
+  pass 95 with one optional retained-output skip. CI 41300396882 is pending.
+  Actual archive compatibility/native build and all hardware gates remain open.
+- A platform-independent extraction of the existing MIT queue protocol is now
+  assigned for implementation with atomic host-adapter and directed fault tests.
+  No reviewed SDK-free CPU1 launcher was found. A shim alone cannot admit live
+  editing or make the fixed-arrangement pipeline a general interactive runtime.
+- Buffered soak parser now distinguishes terminal failure
   reasons. Exact historical Oct29 source and raw receipt were checked: its
   line-370 failure follows successful finish/invariant guards and is consistent
   with the two allowed producer-late blocks. No evidence that accepted soak
   was falsely accepted has been found. New unrelated failures must not pass.
-- Python state-reader byte limits and offline browser OTA transport/controller
-  are separate lanes. Package admission stays closed, no MIDI/device traffic.
+- Offline browser OTA transport/controller review found a truncated chunk-length
+  encoding at full-size chunks; correction and independent re-review are pending.
+  Package admission stays closed. No MIDI/device traffic has occurred.
 
 ## Audit and resources
 
@@ -125,13 +147,13 @@ The full audit threshold was exceeded on main. Source partitions are being
 read fully with pinned hashes and reports in the performance checkout's
 `scratch/devkit-20261023/audit-20261101/`. Engine core/effects, app core,
 browser source, sequencer/state, modulation/host, firmware/tools and engine C
-checks are covered. Browser and Python test partitions are still being
-reviewed; aggregate and changed-head reconciliation remain pending. Do not
+checks are covered. Browser and Python test partitions have returned reports;
+aggregate and changed-head reconciliation remain pending. Do not
 claim a completed whole-repository audit or remove uncertain legacy guards.
 
 Aeon has CPUs 0–15. Current heavy lanes use exclusive sets of four CPUs,
-6 GiB, docker-batch.slice and owned lifecycle stages: app-state 12–15 and
-render-state dependency closure 4–7. Ask the coordinator before another heavy
+6 GiB, docker-batch.slice and owned lifecycle stages: combined WASM reserves
+0–3; queue extraction may use 4–7. App-state 12–15 is released. Ask the coordinator before another heavy
 job; completed browser/matrix/WASM stages are removed. Mac coordinator alone
 owns hardware. No hardware traffic has occurred on this resume.
 

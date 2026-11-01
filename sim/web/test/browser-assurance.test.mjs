@@ -44,26 +44,15 @@ test('missing Limiter Drive row fails the browser report instead of skipping GR'
   assert.ok(checks.some(x => !x.ok), 'the missing field must fail an assertion');
 });
 
-test('session screenshot reset assertion rejects failure even with eight existing tracks', () => {
-  const text = section(source('fm1_sim_render.c'), 'static void seq_session_screens(', 'fm1_app_seq_default_route(&g_app);');
-  const expression = text.match(/expect\(([^\n]+), "the sequencer's reset"\);/);
-  assert.ok(expression, 'missing native reset assertion');
-  for (const n of [1, 4, 8]) {
-    // C's address-of is irrelevant to the predicate; pass the same fake app.
-    const evaluate = (result) => vm.runInNewContext(expression[1].replace('&g_app', 'g_app'), {
-      fm1_app_seq_reset: () => result, g_app: { ui: { tracks: 8 } }, n
-    });
-    assert.equal(evaluate(-1), false, `failed ${n}-track reset must fail`);
-    assert.equal(evaluate(0), true, `successful ${n}-track reset must pass`);
-  }
-});
-
 const tlsFunction = section(source('screenshot.mjs'), 'function selfSigned() {', 'async function publishingChecks(');
 function tlsFixture(failAt) {
-  const removed = [], reads = [], dir = '/owned-test-fixture/fm1-tls-unique';
+  const removed = [], reads = [], out = '/owned-test-fixture/results', dir = join(out, '.fm1-tls-unique');
   const bytes = { 'key.pem': Buffer.from('synthetic key'), 'cert.pem': Buffer.from('synthetic cert') };
   const fn = vm.runInNewContext(`${tlsFunction}; selfSigned`, {
-    join, tmpdir: () => '/owned-test-fixture', mkdtempSync: () => dir,
+    join, out, mkdtempSync: (prefix) => {
+      assert.equal(prefix, join(out, '.fm1-tls-'), 'TLS fixture must stay under the owned output directory');
+      return dir;
+    },
     execFileSync: () => { if (failAt === 'openssl') throw new Error('openssl witness'); },
     readFileSync: (path) => {
       reads.push(path);

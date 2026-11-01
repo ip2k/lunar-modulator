@@ -311,15 +311,30 @@ def _token_name(prefix, name):
 
 
 def read_header(text):
-    tokens, roles = {}, {}
+    tokens, aliases = {}, {}
     for pre, name, r, g, b in re.findall(
             r"^#define\s+(RP|LUNAR)_([A-Z0-9_]+)\s+FM1_RGB565\(\s*0x([0-9a-fA-F]{2})\s*,"
             r"\s*0x([0-9a-fA-F]{2})\s*,\s*0x([0-9a-fA-F]{2})\s*\)", text, re.M):
         tokens[_token_name(pre, name)] = (int(r, 16), int(g, 16), int(b, 16))
-    for role, pre, name in re.findall(r"^#define\s+C_([A-Z0-9_]+)\s+(RP|LUNAR)_([A-Z0-9_]+)\s*(?:/\*.*)?$",
-                                      text, re.M):
-        roles[role.lower().replace("_", "-")] = _token_name(pre, name)
-    return tokens, roles
+    # Collect every object-like C_* definition, including malformed values.
+    # A prefix-filtered regex would silently drop e.g. C_BG BOGUS.
+    for name, value in re.findall(r"^#define[ \t]+(C_[A-Z0-9_]+)(?:[ \t]+([^\n]*))?$", text, re.M):
+        aliases[name] = value.split("/*", 1)[0].split("//", 1)[0].strip()
+    return tokens, aliases
+
+
+def resolve_header_alias(name, aliases, tokens, seen=frozenset()):
+    """Resolve a C colour alias to an existing RP/LUNAR token, or None."""
+    if name in seen or name not in aliases:
+        return None
+    target = aliases[name]
+    if not re.fullmatch(r"(?:RP|LUNAR|C)_[A-Z0-9_]+", target):
+        return None
+    if target.startswith("C_"):
+        return resolve_header_alias(target, aliases, tokens, seen | {name})
+    prefix, token = target.split("_", 1)
+    key = _token_name(prefix, token)
+    return key if key in tokens else None
 
 
 def read_css(text):
@@ -372,7 +387,7 @@ def pair_de(pal, a, b):
 def check(header, css):
     """Every rule above; returns the list of failures (empty when all hold)."""
     fail = []
-    htok, hroles = read_header(header)
+    htok, haliases = read_header(header)
     ctok, cvars = read_css(css)
 
     # 1. the two files agree
@@ -381,13 +396,15 @@ def check(header, css):
             fail.append(f"--{key[0]}-{key[1]} is in fm1_look.h but not in style.css")
         elif ctok[key] != rgb:
             fail.append(f"{key[1]}: fm1_look.h {rgb_hex(rgb)} but style.css {rgb_hex(ctok[key])}")
-    for key in ctok:
-        if key[0] == "lunar" and key not in htok:
-            fail.append(f"--lunar-{key[1]} is in style.css but not in fm1_look.h")
+    # Pine fails on the screen, and highlight-low is page-only. Every other
+    # colour token in the shared palette must have a screen definition.
+    page_only = {("rp", "pine"), ("rp", "highlight-low")}
+    for key in sorted(set(ctok) - page_only - set(htok)):
+        fail.append(f"{key[0].upper()}_{key[1].upper().replace('-', '_')} is in style.css but not in fm1_look.h")
     if ("rp", "pine") in htok:
         fail.append("RP_PINE is in fm1_look.h: pine fails as text and as a mark (keep it off the screen)")
     pal = palette(header, css)
-    need = set(SCREEN) | set(BACKGROUNDS) | set(DERIVED)
+    need = set(USES) | set(SCREEN) | set(BACKGROUNDS) | set(DERIVED)
     for name in sorted(need - set(pal)):
         fail.append(f"{name} is in neither file")
     if fail:
@@ -441,14 +458,20 @@ def check(header, css):
                 fail.append(f"{a}-{b} under {kind}: ΔE00 {d:.1f}, under {CVD_FLOOR}")
 
     # 6. the roles
+    resolved_aliases = {name: resolve_header_alias(name, haliases, htok) for name in haliases}
+    for name, resolved in resolved_aliases.items():
+        if resolved is None:
+            fail.append(f"{name} aliases an undefined or cyclic colour token in fm1_look.h")
     by_token = {}
     for role, token in ROLES.items():
         by_token.setdefault(token, set()).add(role)
-        got = hroles.get(role)
-        if got is None:
-            fail.append(f"C_{role.upper().replace('-', '_')} is not defined in fm1_look.h")
-        elif got[1] != token:
-            fail.append(f"C_{role.upper().replace('-', '_')} is {got[1]}, the map says {token}")
+        alias = "C_" + role.upper().replace("-", "_")
+        got = resolved_aliases.get(alias)
+        want = ("lunar" if token in DERIVED else "rp", token)
+        if alias not in haliases:
+            fail.append(f"{alias} is not defined in fm1_look.h")
+        elif got != want:
+            fail.append(f"{alias} is {got}, the map says {want}")
     for token, roles in by_token.items():
         if token in ACCENTS + SOUNDS and len(roles) > 1 and roles != SHARED.get(token):
             fail.append(f"{token} means {sorted(roles)}: one meaning per colour")
