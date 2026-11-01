@@ -504,6 +504,16 @@ int fm1_state_bin_plan_match(const void *plan, size_t plan_bytes,
  * appliers run pass 1 first (§10.1). `skip_crc` is for the fuzz build only. */
 int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_sink_t sink,
                        void *sctx, fm1_state_report_t *rep, int skip_crc);
+/* Same parser and report/callback order with large chunk state in caller memory.
+ * 16-byte aligned, queried-size storage is exclusively owned until return.
+ * Callbacks must not retain record bytes, reenter/reconstruct this workspace,
+ * or alias its extent through opaque source/sink backing. Known report and
+ * context-pointer overlaps are refused without mutating an aliased report.
+ * The app adapter enforces its single synchronous lease around this call. */
+size_t fm1_state_bin_reader_size(void);
+int fm1_state_bin_read_workspace(void *mem, size_t bytes, fm1_src_read_t rd, void *rctx,
+    uint32_t total, fm1_rec_sink_t sink, void *sctx, fm1_state_report_t *rep, int skip_crc);
+
 
 /* Which encoding the bytes start with: 1 binary, 2 JSON (after white
  * space), 3 a movy1 set, 4 DX7 SysEx or a raw bank, 0 none (§11). */
