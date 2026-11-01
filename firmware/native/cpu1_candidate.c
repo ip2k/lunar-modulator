@@ -208,7 +208,7 @@ int cpu1_candidate_irq_restore(cpu1_candidate *s,uint32_t prior){
 void cpu1_candidate_fault(cpu1_candidate *s,uint32_t vector,uint32_t reti,uint32_t rete,
                          uint32_t sp,uint32_t emu,uint32_t debug){
  unsigned cpu=s->ops->cpu(s->ops->context);if(cpu>1){fail(s);return;}
- cpu1_fault_record *f=&s->faults[cpu];cpu1_registers r={0};
+ cpu1_fault_record *f=&s->faults[cpu];cpu1_registers r={0,0,0,0};
  if(!f->valid){
   s->ops->registers(s->ops->context,&r);
   f->cpu=cpu;f->vector=vector;f->reti=reti;f->rete=rete;f->sp=sp;
