@@ -29,7 +29,12 @@ static uint32_t fake_ticks(void) { return fake_clock++; }
 #define fm1_ticks fake_ticks
 #define FM1_INPUT_ACCEPTED_KEY(scan,id,down) matrix(id,down)
 #define FM1_INPUT_ACCEPTED_ENCODER(scan,id,delta) encoder(id,delta)
+/* HAL and app name the same two buttons; isolate the test HAL constants. */
+#define FM1_BTN_OCT_DOWN HAL_BTN_OCT_DOWN
+#define FM1_BTN_OCT_UP HAL_BTN_OCT_UP
 #include "fm1_input.h"
+#undef FM1_BTN_OCT_DOWN
+#undef FM1_BTN_OCT_UP
 static uint32_t now, launches, rows, selected, data, live, done_flag;
 static unsigned row_phase, polls, draw_count, nonzero;
 static int fail_scan, fail_audio, fail_spi;
