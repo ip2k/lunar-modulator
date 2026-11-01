@@ -1,0 +1,728 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 761cde1..b67a1e8 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -57,6 +57,11 @@ set(CMAKE_CXX_STANDARD 17)
+ pico_sdk_init()
+ 
+ function(fm1t_add_firmware TARGET)
++    if(TARGET STREQUAL "fm1_transporter_return_r01")
++        set(FM1T_PROTO_SOURCE src/return_r01_proto.c)
++    else()
++        set(FM1T_PROTO_SOURCE src/transporter_proto.c)
++    endif()
+     add_executable(${TARGET}
+         src/main.c
+         src/recovery.c
+@@ -64,7 +69,7 @@ function(fm1t_add_firmware TARGET)
+         src/usb_device.c
+         src/log.c
+         src/jieli_uboot.c
+-        src/transporter_proto.c
++        ${FM1T_PROTO_SOURCE}
+     )
+ 
+     pico_generate_pio_header(${TARGET}
+@@ -103,3 +108,10 @@ fm1t_add_firmware(fm1_transporter)
+ # Host bring-up firmware: PIO USB host only, no USB_KEY.
+ fm1t_add_firmware(fm1_transporter_hostonly)
+ target_compile_definitions(fm1_transporter_hostonly PRIVATE FM1T_HOST_ONLY=1)
++
++# Separately named fixed cold-ROM return candidate; excluded from default builds.
++option(FM1T_BUILD_RETURN_R01 "Build fixed return-r01 ROM-only firmware" OFF)
++if(FM1T_BUILD_RETURN_R01)
++    fm1t_add_firmware(fm1_transporter_return_r01)
++    target_compile_definitions(fm1_transporter_return_r01 PRIVATE FM1T_RETURN_R01=1)
++endif()
+diff --git a/src/main.c b/src/main.c
+index 4a16e1b..81529d6 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -28,10 +28,12 @@
+ 
+ // Reboots the transporter straight into USB_KEY mode even if D+ is pulled up,
+ // for a unit stuck with its USB up. The FM-1 then needs one power cycle.
++#if !FM1T_RETURN_R01
+ void fm1_rekey(void) {
+     watchdog_hw->scratch[0] = REKEY_MAGIC;
+     watchdog_reboot(0, 0, 50);
+ }
++#endif
+ 
+ static volatile bool console_ready;
+ 
+@@ -42,6 +44,9 @@ static void core1_main(void) {
+     sleep_ms(200);
+ 
+     printf("\nFM-1 Transporter\n");
++#if FM1T_RETURN_R01
++    printf("Fixed return-r01 cold-ROM mode: no V15 soft key or recovery client.\n");
++#else
+ #if FM1T_BOARD_DEBUGPROBE
+     printf("Debug Probe: D+=GP4 (UART TX, orange) D-=GP6 (UART RX, yellow), PIO host on PIO1\n");
+ #else
+@@ -49,9 +54,17 @@ static void core1_main(void) {
+ #endif
+     printf("If the FM-1 runs stock V15, leave it on: fm1t enters UBOOT via the soft key.\n");
+     printf("Otherwise switch it OFF, and ON again once the key is running.\n");
++#endif
+ 
+     recovery_init();
+-#if FM1T_HOST_ONLY
++#if FM1T_RETURN_R01
++    if (recovery_target_attached()) {
++        dlog("RETURN-R01: D+ already pulled up at startup; refusing cold entry");
++        for (;;) tight_loop_contents();
++    }
++    fm1_host_return_arm_cold();
++    recovery_run();
++#elif FM1T_HOST_ONLY
+     // Host bring-up without the key path: attach any full-speed device, or an
+     // FM-1 already in UBOOT (e.g. via the V15 USB-MIDI soft key).
+     dlog("HOST-ONLY build: skipping USB_KEY recovery");
+diff --git a/src/pio_host.c b/src/pio_host.c
+index cca19de..9c38c9e 100644
+--- a/src/pio_host.c
++++ b/src/pio_host.c
+@@ -34,6 +34,7 @@
+ 
+ static volatile uint8_t mounted_addr;
+ static volatile bool probe_pending;
++static bool uboot_ready;    // INQUIRY answered on the current mount
+ static uint64_t host_start_us;
+ static uint64_t last_status_us;
+ 
+@@ -48,6 +49,83 @@ static uint64_t unmounted_since_us;
+ static int inquiry_tries;       // > 0 while the post-mount INQUIRY loop is active
+ static uint64_t next_inquiry_us;
+ 
++#if FM1T_RETURN_R01
++typedef enum {
++    R01_NO_COLD, R01_COLD, R01_PROBED, R01_UPLOAD_CLAIM,
++    R01_UPLOAD_BOT, R01_UPLOADED, R01_CALL_CLAIM,
++    R01_CALL_BOT, R01_TERMINAL
++} r01_host_phase_t;
++static r01_host_phase_t r01_phase;
++static uint32_t r01_mount_generation;
++static uint32_t r01_mount_count;
++
++void fm1_host_return_arm_cold(void) {
++    if (r01_phase == R01_NO_COLD) r01_phase = R01_COLD;
++}
++
++uint32_t fm1_host_return_ready_generation(void) {
++    return r01_phase == R01_PROBED && mounted_addr && uboot_ready
++               ? r01_mount_generation : 0;
++}
++
++bool fm1_host_return_claim_upload(uint32_t generation) {
++    if (r01_phase != R01_PROBED || !generation || generation != r01_mount_generation ||
++        !mounted_addr || !uboot_ready) return false;
++    r01_phase = R01_UPLOAD_CLAIM;
++    return true;
++}
++
++bool fm1_host_return_upload_complete(uint32_t generation) {
++    if (r01_phase != R01_UPLOAD_BOT || !generation || generation != r01_mount_generation ||
++        !mounted_addr || !uboot_ready) return false;
++    r01_phase = R01_UPLOADED;
++    return true;
++}
++
++bool fm1_host_return_claim_call(uint32_t generation) {
++    if (r01_phase != R01_UPLOADED || !generation || generation != r01_mount_generation ||
++        !mounted_addr || !uboot_ready) return false;
++    r01_phase = R01_CALL_CLAIM; // consumed before the FB08 CBW
++    return true;
++}
++
++bool fm1_host_return_call_complete(uint32_t generation) {
++    return r01_phase == R01_CALL_BOT && generation &&
++           generation == r01_mount_generation && mounted_addr && uboot_ready;
++}
++
++void fm1_host_return_terminal(void) {
++    r01_phase = R01_TERMINAL;
++    uboot_ready = false;
++    probe_pending = false;
++    inquiry_tries = 0;
++}
++
++static bool r01_allowed_cdb(const uint8_t *cdb, uint8_t cdb_len, bool in, uint16_t len) {
++    // Full fixed CDB, including the LE CRC16 of the ROM-ciphered 512-byte
++    // return-r01 payload (80 00 + 510 zeroes). No alternate write envelope.
++    static const uint8_t write_cdb[16] = {0xFB, 0x06, 0x01, 0xC0, 0x20, 0x00,
++                                          0x02, 0x00, 0x00, 0x60, 0xC3,
++                                          0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
++    static const uint8_t call_prefix[8] = {0xFB, 0x08, 0x01, 0xC0, 0x20, 0x00,
++                                           0x00, 0x01};
++    static const uint8_t ff8[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
++    if (!cdb || cdb_len != 16) return false;
++    if (r01_phase == R01_UPLOAD_CLAIM && !in && len == 512 &&
++        !memcmp(cdb, write_cdb, sizeof(write_cdb))) {
++        r01_phase = R01_UPLOAD_BOT; // one FB06 attempt, including a failed transfer
++        return true;
++    }
++    if (r01_phase == R01_CALL_CLAIM && in && len == 16 &&
++        !memcmp(cdb, call_prefix, sizeof(call_prefix)) && !memcmp(cdb + 8, ff8, 8)) {
++        r01_phase = R01_CALL_BOT; // one FB08 attempt, including a failed transfer
++        return true;
++    }
++    fm1_host_return_terminal();
++    return false;
++}
++#endif
++
+ static bool bot_cmd(uint8_t daddr, const uint8_t *cdb, uint8_t cdb_len, bool in, void *buf,
+                     uint16_t len, uint32_t *got);
+ 
+@@ -80,12 +158,13 @@ bool fm1_pio_host_mounted(void) {
+     return mounted_addr != 0;
+ }
+ 
+-static bool uboot_ready;    // INQUIRY answered on the current mount
+-
+ bool fm1_host_bot(const uint8_t *cdb, uint8_t cdb_len, bool in, void *buf, uint16_t len,
+                   uint32_t *got) {
+     uint8_t daddr = mounted_addr;
+     if (!daddr || !uboot_ready) return false;
++#if FM1T_RETURN_R01
++    if (!r01_allowed_cdb(cdb, cdb_len, in, len)) return false;
++#endif
+     return bot_cmd(daddr, cdb, cdb_len, in, buf, len, got);
+ }
+ 
+@@ -103,6 +182,9 @@ static bool edpt_sync(uint8_t daddr, uint8_t ep, void *buf, uint16_t len, uint32
+ // 04 F0 22 24 07 35 xx F7; xx = 7D calls the mask ROM UBOOT1.00 and never
+ // returns (fm-1-research-lab tools/fm1_softkey.py). Nothing is written.
+ bool fm1_host_softkey(void) {
++#if FM1T_RETURN_R01
++    return false;
++#else
+     static CFG_TUSB_MEM_ALIGN uint8_t pkt[8] = {0x04, 0xF0, 0x22, 0x24, 0x07, 0x35, 0x7D, 0xF7};
+     uint8_t daddr = mounted_addr;
+     if (!daddr || !mounted_is_v15 || !other_bulk_out.bLength) return false;
+@@ -117,6 +199,7 @@ bool fm1_host_softkey(void) {
+         sleep_ms(20);
+     }
+     return sent;
++#endif
+ }
+ 
+ void tuh_mount_cb(uint8_t daddr) {
+@@ -124,7 +207,15 @@ void tuh_mount_cb(uint8_t daddr) {
+          (time_us_64() - host_start_us) / 1000.0);
+     mounted_addr = daddr;
+     mount_us = time_us_64();
++#if FM1T_RETURN_R01
++    if (r01_phase != R01_COLD || ++r01_mount_count != 1) {
++        fm1_host_return_terminal();
++        return;
++    }
++    r01_mount_generation = r01_mount_count;
++#else
+     watchdog_hw->scratch[REATTACH_SCRATCH] = 0;
++#endif
+     uboot_ready = false;
+     jl_reset();
+     probe_pending = true;
+@@ -139,6 +230,9 @@ void tuh_umount_cb(uint8_t daddr) {
+     unmounted_since_us = time_us_64();
+     probe_pending = false;
+     inquiry_tries = 0;
++#if FM1T_RETURN_R01
++    fm1_host_return_terminal();
++#endif
+     rgb(false, false, true);
+ }
+ 
+@@ -306,6 +400,9 @@ static bool probe_descriptors(uint8_t daddr) {
+     log_string(daddr, "serial", dd.iSerialNumber);
+ 
+     mounted_is_v15 = dd.idVendor == FM1_VID && dd.idProduct == FM1_V15_PID;
++#if FM1T_RETURN_R01
++    if (dd.idVendor != FM1_VID || dd.idProduct != FM1_PID) return false;
++#endif
+     if (mounted_is_v15) {
+         dlog("  stock FM-1 application; `uboot` (fm1t) or console k enters UBOOT via the soft key");
+     } else if (dd.idVendor != FM1_VID || dd.idProduct != FM1_PID) {
+@@ -374,7 +471,13 @@ static bool probe_inquiry(uint8_t daddr) {
+     static const uint8_t inquiry[6] = {0x12, 0, 0, 0, 36, 0};
+     uint32_t got = 0;
+ 
+-    if (!bot_cmd(daddr, inquiry, sizeof(inquiry), true, data_buf, 36, &got) || got < 36) {
++    if (!bot_cmd(daddr, inquiry, sizeof(inquiry), true, data_buf, 36, &got)
++#if FM1T_RETURN_R01
++        || got != 36 || r01_phase != R01_COLD || mounted_addr != daddr
++#else
++        || got < 36
++#endif
++       ) {
+         dlog("INQUIRY failed (got %lu bytes)", (unsigned long)got);
+         return false;
+     }
+@@ -387,6 +490,10 @@ static bool probe_inquiry(uint8_t daddr) {
+     memcpy(rev, &data_buf[32], 4);
+     rev[4] = 0;
+     dlog("INQUIRY OK: vendor=\"%s\" product=\"%s\" rev=\"%s\"", vendor, product, rev);
++#if FM1T_RETURN_R01
++    if (memcmp(vendor, "WL82    ", 8) || memcmp(product, "UBOOT1.00       ", 16) ||
++        memcmp(rev, "1.00", 4)) return false;
++#endif
+     return true;
+ }
+ 
+@@ -400,9 +507,14 @@ static void get_max_lun(uint8_t daddr) {
+ //--------------------------------------------------------------------+
+ 
+ void fm1_pio_host_command(char c) {
++#if FM1T_RETURN_R01
++    (void)c;
++#else
+     pending_cmd = c;
++#endif
+ }
+ 
++#if !FM1T_RETURN_R01
+ static void run_command(uint8_t daddr, char c) {
+     static const uint8_t tur[6] = {0};
+     uint32_t got = 0;
+@@ -462,43 +574,78 @@ static void run_command(uint8_t daddr, char c) {
+         break;
+     }
+ }
++#endif
+ 
+ void fm1_pio_host_task(void) {
+     tuh_task();
+ 
++#if FM1T_RETURN_R01
++    if (r01_phase == R01_TERMINAL) {
++        fm1_proto_poll();
++        return;
++    }
++#endif
++
+     uint8_t daddr = mounted_addr;
+ 
+     uint64_t now = time_us_64();
+ 
+     if (probe_pending && daddr) {
+         probe_pending = false;
+-        if (probe_descriptors(daddr)) {
++        bool descriptors_ok = probe_descriptors(daddr);
++#if FM1T_RETURN_R01
++        descriptors_ok = descriptors_ok && r01_phase == R01_COLD &&
++                         mounted_addr == daddr && r01_mount_count == 1;
++#endif
++        if (descriptors_ok) {
++#if FM1T_RETURN_R01
++            inquiry_tries = 1;
++#else
+             inquiry_tries = INQUIRY_TRIES;
++#endif
+             next_inquiry_us = mount_us + FIRST_CBW_DELAY_MS * 1000ull;
+             dlog("HOST: first CBW in %d ms", FIRST_CBW_DELAY_MS);
+         } else {
+             rgb(true, false, false);
++#if FM1T_RETURN_R01
++            fm1_host_return_terminal();
++#endif
+         }
+     }
+ 
+     if (inquiry_tries > 0 && daddr && now >= next_inquiry_us) {
++#if !FM1T_RETURN_R01
+         if (inquiry_tries == INQUIRY_TRIES) {
+             // macOS asks for the LUN count before its first CBW; do the same.
+             get_max_lun(daddr);
+         }
++#endif
+         inquiry_tries--;
+-        dlog("INQUIRY attempt %d (%.1f ms after mount)", INQUIRY_TRIES - inquiry_tries,
++        dlog("INQUIRY attempt %d (%.1f ms after mount)",
++#if FM1T_RETURN_R01
++             1,
++#else
++             INQUIRY_TRIES - inquiry_tries,
++#endif
+              (time_us_64() - mount_us) / 1000.0);
+         if (probe_inquiry(daddr)) {
+             inquiry_tries = 0;
+             uboot_ready = true;
++#if FM1T_RETURN_R01
++            r01_phase = R01_PROBED;
++#endif
+             rgb(false, true, false);
+             dlog("UBOOT READY: enumerated and answered INQUIRY via the PIO host.");
+         } else if (!mounted_addr) {
+             // detached mid-attempt; tuh_umount_cb already stopped the loop
+         } else if (inquiry_tries == 0) {
+             rgb(true, false, false);
++#if FM1T_RETURN_R01
++            dlog("UBOOT: INQUIRY not accepted.");
++            fm1_host_return_terminal();
++#else
+             dlog("UBOOT: INQUIRY never accepted. Type h on the console for diagnostics.");
++#endif
+         } else {
+             next_inquiry_us = time_us_64() + INQUIRY_RETRY_MS * 1000ull;
+         }
+@@ -506,6 +653,7 @@ void fm1_pio_host_task(void) {
+ 
+     fm1_proto_poll();
+ 
++#if !FM1T_RETURN_R01
+     char c = pending_cmd;
+     if (c) {
+         pending_cmd = 0;
+@@ -516,7 +664,9 @@ void fm1_pio_host_task(void) {
+             dlog("> %c ignored: no UBOOT mounted", c);
+         }
+     }
++#endif
+ 
++#if !FM1T_RETURN_R01
+     if (!daddr && now - unmounted_since_us > REATTACH_AFTER_MS * 1000ull) {
+         // Pico-PIO-USB inverts the pad input (GPIO_OVERRIDE_INVERT), so a
+         // pulled-up D+ reads as 0 here. With nothing mounted there is no bus
+@@ -538,6 +688,7 @@ void fm1_pio_host_task(void) {
+         }
+         unmounted_since_us = now;   // re-check after another interval
+     }
++#endif
+ 
+     if (!daddr && now - last_status_us > ATTACH_STATUS_MS * 1000ull) {
+         dlog("HOST: no device mounted yet (%.1f s after host start)",
+diff --git a/src/pio_host.h b/src/pio_host.h
+index 9bfcd7e..2eecd2e 100644
+--- a/src/pio_host.h
++++ b/src/pio_host.h
+@@ -36,3 +36,15 @@ bool fm1_host_bot(const uint8_t *cdb, uint8_t cdb_len, bool in, void *buf, uint1
+ 
+ // Queues a one-letter console command for core 1 (safe to call from core 0).
+ void fm1_pio_host_command(char c);
++
++#if FM1T_RETURN_R01
++// Fixed cold-ROM variant. These are core-1 only except arm_cold, called before
++// recovery_run. Generation is a correlation value, not target attestation.
++void fm1_host_return_arm_cold(void);
++uint32_t fm1_host_return_ready_generation(void);
++bool fm1_host_return_claim_upload(uint32_t generation);
++bool fm1_host_return_upload_complete(uint32_t generation);
++bool fm1_host_return_claim_call(uint32_t generation);
++bool fm1_host_return_call_complete(uint32_t generation);
++void fm1_host_return_terminal(void);
++#endif
+diff --git a/src/return_r01_proto.c b/src/return_r01_proto.c
+new file mode 100644
+index 0000000..8b0f819
+--- /dev/null
++++ b/src/return_r01_proto.c
+@@ -0,0 +1,230 @@
++// SPDX-License-Identifier: MIT
++// Fixed return-r01 ROM-only CDC protocol. Never linked into recovery firmware.
++#include "transporter_proto.h"
++
++#include <stdarg.h>
++#include <stdio.h>
++#include <string.h>
++
++#include "pico/stdlib.h"
++#include "hardware/sync.h"
++#include "tusb.h"
++
++#include "jieli_uboot.h"
++#include "pio_host.h"
++
++#ifndef FM1T_RETURN_R01
++#error "return_r01_proto.c must only be linked into the fixed ROM variant"
++#endif
++
++#define DATA_ITF 1
++#define RX_LINE_MAX 32
++#define TX_SIZE 256
++#define UPLOAD_TIMEOUT_US 5000000ull
++#define READY_TIMEOUT_US 9000000ull
++#define R01_ADDR 0x01C02000u
++#define R01_ARG 1u
++#define R01_LEN 512u
++
++typedef enum {
++    WAIT_READY, READY_PENDING, READY, UPLOAD_COLLECT, UPLOAD_PENDING,
++    UPLOADED, CALL_PENDING, TERMINAL
++} phase_t;
++
++static volatile phase_t phase;
++static char rx_line[RX_LINE_MAX];
++static unsigned rx_len;
++static uint8_t __attribute__((aligned(4))) payload[R01_LEN];
++static unsigned payload_len;
++static uint64_t upload_started_us;
++static uint64_t ready_poll_started_us;
++static volatile bool req_pending;
++static volatile phase_t req_phase;
++static uint32_t ready_mount;
++
++// Core 1 writes this bounded queue; core 0 drains it to CDC interface 02.
++static uint8_t tx[TX_SIZE];
++static volatile uint32_t tx_head, tx_tail;
++
++static void tx_line(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
++static void tx_line(const char *fmt, ...) {
++    char line[96];
++    va_list ap;
++    va_start(ap, fmt);
++    int n = vsnprintf(line, sizeof(line) - 1, fmt, ap);
++    va_end(ap);
++    if (n < 0 || n > (int)sizeof(line) - 2) return;
++    line[n++] = '\n';
++    uint32_t h = tx_head;
++    if ((uint32_t)n > TX_SIZE - (h - tx_tail)) return; // fail closed on full queue
++    for (int i = 0; i < n; i++) tx[(h + (uint32_t)i) & (TX_SIZE - 1)] = (uint8_t)line[i];
++    __dmb();
++    tx_head = h + (uint32_t)n;
++}
++
++void fm1_proto_drain(void) {
++    if (!tud_cdc_n_connected(DATA_ITF)) {
++        tx_tail = tx_head;
++        return;
++    }
++    for (;;) {
++        uint32_t h = tx_head;
++        __dmb();
++        uint32_t t = tx_tail;
++        if (h == t) break;
++        uint32_t n = h - t;
++        uint32_t avail = tud_cdc_n_write_available(DATA_ITF);
++        if (!avail) break;
++        uint32_t idx = t & (TX_SIZE - 1);
++        if (n > TX_SIZE - idx) n = TX_SIZE - idx;
++        if (n > avail) n = avail;
++        n = tud_cdc_n_write(DATA_ITF, &tx[idx], n);
++        __dmb();
++        tx_tail = t + n;
++    }
++    tud_cdc_n_write_flush(DATA_ITF);
++}
++
++static void fail_rx(void) {
++    phase = TERMINAL;
++    req_phase = TERMINAL;
++    __dmb();
++    req_pending = true;
++}
++
++// Core 0: never accepts arbitrary addresses, lengths, commands or retries.
++void fm1_proto_rx(const char *buf, unsigned len) {
++    bool queue = false;
++    phase_t queued = TERMINAL;
++    for (unsigned i = 0; i < len; i++) {
++        if (phase == TERMINAL) continue;
++        if (phase == UPLOAD_COLLECT) {
++            payload[payload_len++] = (uint8_t)buf[i];
++            if (payload_len == R01_LEN) {
++                phase = UPLOAD_PENDING;
++                queue = true;
++                queued = UPLOAD_PENDING;
++            }
++            continue;
++        }
++        // A request cannot be pipelined or followed by extra bytes.
++        if (queue || req_pending || phase == READY_PENDING || phase == UPLOAD_PENDING ||
++            phase == CALL_PENDING) {
++            fail_rx();
++            return;
++        }
++        char c = buf[i];
++        if (c == '\n') {
++            rx_line[rx_len] = 0;
++            rx_len = 0;
++            if (phase == WAIT_READY && !strcmp(rx_line, "rr01-ready")) {
++                phase = READY_PENDING;
++                queue = true;
++                queued = READY_PENDING;
++            } else if (phase == READY && !strcmp(rx_line, "rr01-upload")) {
++                payload_len = 0;
++                upload_started_us = time_us_64();
++                phase = UPLOAD_COLLECT;  // attempt is latched before first payload byte
++            } else if (phase == UPLOADED && !strcmp(rx_line, "rr01-call")) {
++                phase = CALL_PENDING;
++                queue = true;
++                queued = CALL_PENDING;
++            } else {
++                fail_rx();
++                return;
++            }
++        } else if (c < 0x21 || c > 0x7e || rx_len >= RX_LINE_MAX - 1) {
++            fail_rx();
++            return;
++        } else {
++            rx_line[rx_len++] = c;
++        }
++    }
++    if (queue) {
++        req_phase = queued;
++        __dmb();
++        req_pending = true;
++    }
++}
++
++static bool exact_payload(void) {
++    if (payload_len != R01_LEN || payload[0] != 0x80 || payload[1] != 0x00) return false;
++    for (unsigned i = 2; i < R01_LEN; i++) if (payload[i]) return false;
++    return true;
++}
++
++// Core 1: no idle keepalive and no target command after the call attempt.
++void fm1_proto_poll(void) {
++    if (phase != WAIT_READY && !tud_cdc_n_connected(DATA_ITF)) phase = TERMINAL;
++    if (phase == UPLOAD_COLLECT && time_us_64() - upload_started_us > UPLOAD_TIMEOUT_US) {
++        phase = TERMINAL;
++    }
++    if (!req_pending) {
++        if (phase == TERMINAL) fm1_host_return_terminal();
++        return;
++    }
++    __dmb();
++    phase_t request = req_phase;
++    if (request == READY_PENDING && phase == READY_PENDING &&
++        !fm1_host_return_ready_generation()) {
++        if (!ready_poll_started_us) ready_poll_started_us = time_us_64();
++        if (time_us_64() - ready_poll_started_us < READY_TIMEOUT_US) return;
++    }
++    req_pending = false;
++    if (phase == TERMINAL || request == TERMINAL) {
++        phase = TERMINAL;
++        fm1_host_return_terminal();
++        tx_line("ERR rr01-terminal");
++        return;
++    }
++    if (request == READY_PENDING && phase == READY_PENDING) {
++        uint32_t mount = fm1_host_return_ready_generation();
++        if (!mount) {
++            phase = TERMINAL;
++            fm1_host_return_terminal();
++            tx_line("ERR rr01-ready");
++            return;
++        }
++        ready_mount = mount;
++        phase = READY;
++        tx_line("OK rr01-ready v=1 build=rr01-pico-v1 mount=%lu", (unsigned long)mount);
++        return;
++    }
++    if (request == UPLOAD_PENDING && phase == UPLOAD_PENDING) {
++        if (!exact_payload() || !fm1_host_return_claim_upload(ready_mount)) {
++            phase = TERMINAL;
++            fm1_host_return_terminal();
++            tx_line("ERR rr01-upload");
++            return;
++        }
++        bool ok = jl_rom_mem_write(R01_ADDR, payload, R01_LEN);
++        if (ok) ok = fm1_host_return_upload_complete(ready_mount);
++        if (!ok) {
++            phase = TERMINAL;
++            fm1_host_return_terminal();
++            tx_line("ERR rr01-upload");
++            return;
++        }
++        phase = UPLOADED;
++        tx_line("OK rr01-upload mount=%lu", (unsigned long)ready_mount);
++        return;
++    }
++    if (request == CALL_PENDING && phase == CALL_PENDING) {
++        if (!fm1_host_return_claim_call(ready_mount)) {
++            phase = TERMINAL;
++            fm1_host_return_terminal();
++            tx_line("ERR rr01-call");
++            return;
++        }
++        bool ok = jl_rom_jump(R01_ADDR, R01_ARG);
++        if (ok) ok = fm1_host_return_call_complete(ready_mount);
++        phase = TERMINAL;
++        fm1_host_return_terminal();
++        if (ok) tx_line("OK rr01-call mount=%lu", (unsigned long)ready_mount);
++        else tx_line("ERR rr01-call");
++        return;
++    }
++    phase = TERMINAL;
++    fm1_host_return_terminal();
++    tx_line("ERR rr01-terminal");
++}
+diff --git a/src/usb_device.c b/src/usb_device.c
+index 1e6dbe9..4d4b776 100644
+--- a/src/usb_device.c
++++ b/src/usb_device.c
+@@ -15,12 +15,20 @@
+ #define USBD_PID 0x000A     // Pico SDK CDC (RP2040), what picotool expects
+ 
+ #define TUD_RPI_RESET_DESC_LEN 9
++#if FM1T_RETURN_R01
++#define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + 2 * TUD_CDC_DESC_LEN)
++#else
+ #define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + 2 * TUD_CDC_DESC_LEN + TUD_RPI_RESET_DESC_LEN)
++#endif
+ 
+ #define USBD_ITF_CDC0 0     // two interfaces each
+ #define USBD_ITF_CDC1 2
+ #define USBD_ITF_RESET 4
++#if FM1T_RETURN_R01
++#define USBD_ITF_MAX 4
++#else
+ #define USBD_ITF_MAX 5
++#endif
+ 
+ enum { STR_LANG, STR_MANUF, STR_PRODUCT, STR_SERIAL, STR_CDC0, STR_CDC1, STR_RESET, STR_COUNT };
+ 
+@@ -45,18 +53,27 @@ static const uint8_t desc_cfg[USBD_DESC_LEN] = {
+     TUD_CONFIG_DESCRIPTOR(1, USBD_ITF_MAX, 0, USBD_DESC_LEN, 0, 100),
+     TUD_CDC_DESCRIPTOR(USBD_ITF_CDC0, STR_CDC0, 0x81, 8, 0x02, 0x82, 64),
+     TUD_CDC_DESCRIPTOR(USBD_ITF_CDC1, STR_CDC1, 0x83, 8, 0x04, 0x84, 64),
++#if !FM1T_RETURN_R01
+     9, TUSB_DESC_INTERFACE, USBD_ITF_RESET, 0, 0, TUSB_CLASS_VENDOR_SPECIFIC,
+     RESET_INTERFACE_SUBCLASS, RESET_INTERFACE_PROTOCOL, STR_RESET,
++#endif
+ };
+ 
+ static char serial_str[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1];
+ 
+ static const char *const desc_str[STR_COUNT] = {
+     [STR_MANUF] = "kurogedelic",
++#if FM1T_RETURN_R01
++    [STR_PRODUCT] = "Lunar fixed ROM return-r01",
++    [STR_SERIAL] = serial_str,
++    [STR_CDC0] = "Return-r01 log only",
++    [STR_CDC1] = "Return-r01 fixed data",
++#else
+     [STR_PRODUCT] = "FM-1 Transporter",
+     [STR_SERIAL] = serial_str,
+     [STR_CDC0] = "FM-1 Transporter console",
+     [STR_CDC1] = "FM-1 Transporter data",
++#endif
+     [STR_RESET] = "Reset",
+ };
+ 
+@@ -94,6 +111,7 @@ const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
+ // which is compiled out whenever the TinyUSB host stack is linked)
+ //--------------------------------------------------------------------+
+ 
++#if !FM1T_RETURN_R01
+ static uint8_t reset_itf;
+ 
+ static void resetd_init(void) {}
+@@ -154,3 +172,14 @@ usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
+ void tud_cdc_line_coding_cb(uint8_t itf, cdc_line_coding_t const *coding) {
+     if (itf == 0 && coding->bit_rate == 1200) rom_reset_usb_boot_extra(-1, 0, false);
+ }
++#else
++usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
++    *driver_count = 0;
++    return NULL;
++}
++
++void tud_cdc_line_coding_cb(uint8_t itf, cdc_line_coding_t const *coding) {
++    (void)itf;
++    (void)coding;
++}
++#endif
