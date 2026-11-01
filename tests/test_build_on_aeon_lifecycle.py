@@ -32,6 +32,8 @@ def fake_remote():
     calls = base / "docker.jsonl"
     barrier = base / "barrier"
     barrier.mkdir()
+    containers = base / "containers"
+    containers.mkdir()
     log_dir = ROOT / "sim/web/build/remote-runs"
     logs_before = set(log_dir.iterdir()) if log_dir.exists() else set()
     default_sine = next(line.split("=", 1)[1].strip()
@@ -68,8 +70,12 @@ with open(os.environ["FAKE_DOCKER_CALLS"], "a") as stream:
 if args[:2] == ["image", "inspect"]:
     if "--format" in args:
         print("fake@sha256:" + "0" * 64)
-elif args[:1] == ["pull"] or args[:2] == ["rm", "-f"]:
+elif args[:1] == ["info"] or args[:1] == ["pull"]:
     pass
+elif args[:2] == ["container", "inspect"]:
+    raise SystemExit(0 if pathlib.Path(os.environ["FAKE_CONTAINERS"], args[2]).exists() else 1)
+elif args[:2] == ["rm", "-f"]:
+    pathlib.Path(os.environ["FAKE_CONTAINERS"], args[2]).unlink()
 elif args[:1] == ["run"]:
     name = args[args.index("--name") + 1]
     stage = next(a[:-5] for a in args if a.endswith(":/src"))
@@ -81,6 +87,8 @@ elif args[:1] == ["run"]:
                 raise SystemExit("concurrent run did not reach barrier")
             time.sleep(.01)
     if os.environ.get("FAKE_DOCKER_FAIL") == "alpine" and "alpine:3.22" in args:
+        if os.environ.get("FAKE_DOCKER_LEFTOVER"):
+            pathlib.Path(os.environ["FAKE_CONTAINERS"], name).touch()
         raise SystemExit(41)
     if "emscripten/emsdk:6.0.10" in args:
         www = pathlib.Path(stage, "sim/web/www")
@@ -121,6 +129,7 @@ for source in args[:-1]:
     env.update(PATH=f"{bin_dir}:{env['PATH']}", FM1_SIM_HOST="fake@host",
                FM1_REMOTE_DIR=str(remote), FM1_DX7_SINE=trial_sine,
                FAKE_DOCKER_CALLS=str(calls), FAKE_BARRIER=str(barrier),
+               FAKE_CONTAINERS=str(containers),
                PYTHONDONTWRITEBYTECODE="1")
     yield base, env, calls, log_dir, trial
 
@@ -182,7 +191,8 @@ def test_success_and_failed_fetch_preserves_previous_results(fake_remote):
 
 def test_concurrent_failed_runs_get_distinct_stages_and_cleanup(fake_remote):
     base, env, calls, log_dir, _ = fake_remote
-    env.update(FAKE_WAIT_FOR_TWO="1", FAKE_DOCKER_FAIL="alpine")
+    env.update(FAKE_WAIT_FOR_TWO="1", FAKE_DOCKER_FAIL="alpine",
+               FAKE_DOCKER_LEFTOVER="1")
     processes = [subprocess.Popen(["bash", str(SCRIPT), "--no-screenshot"], cwd=ROOT,
                                   env=env, text=True, stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE) for _ in range(2)]
@@ -206,6 +216,9 @@ def test_concurrent_failed_runs_get_distinct_stages_and_cleanup(fake_remote):
     assert len(runs) == 2
     assert all("--name" in call and "--rm" in call for call in runs)
     assert len({call[call.index("--name") + 1] for call in runs}) == 2
+    assert not list((base / "containers").iterdir())
+    removed = [call[2] for call in docker_calls if call[:2] == ["rm", "-f"]]
+    assert set(removed) == {call[call.index("--name") + 1] for call in runs}
 
 
 def test_failed_stage_allocation_never_touches_shared_sources(fake_remote):

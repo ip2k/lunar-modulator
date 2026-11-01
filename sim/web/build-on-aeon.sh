@@ -145,7 +145,10 @@ PLAYWRIGHT_CONTAINER=lunar-$RUN_ID-playwright
 cleanup() {
   status=$?
   trap - EXIT INT TERM
-  if ssh "$HOST" "docker rm -f '$MUSL_CONTAINER' '$EMSDK_CONTAINER' '$PLAYWRIGHT_CONTAINER' >/dev/null 2>&1 || true; ${MOUNT_GUARD}rm -rf -- $STAGE_Q"; then
+  if ssh "$HOST" "docker info >/dev/null 2>&1 || exit 1; \
+    for name in '$MUSL_CONTAINER' '$EMSDK_CONTAINER' '$PLAYWRIGHT_CONTAINER'; do \
+      if docker container inspect \"\$name\" >/dev/null 2>&1; then docker rm -f \"\$name\" >/dev/null || exit 1; fi; \
+    done; ${MOUNT_GUARD}rm -rf -- $STAGE_Q"; then
     record "cleanup=ok stage=$STAGE"
   else
     record "cleanup=failed stage=$STAGE"
