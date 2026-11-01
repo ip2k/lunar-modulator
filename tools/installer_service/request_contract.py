@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 import sys
 from typing import Literal
@@ -47,12 +48,19 @@ def _reject_constant(_value: str) -> None:
     raise ValueError("non-finite JSON number")
 
 
+def _finite_float(value: str) -> float:
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("non-finite JSON number")
+    return number
+
+
 def decode_json_object(data: bytes, *, limit: int) -> dict[str, object]:
     """Decode one bounded UTF-8 JSON object, rejecting ambiguous encodings."""
     if len(data) > limit:
         raise ValueError("JSON document is too large")
     decoded = json.loads(data.decode("utf-8"), object_pairs_hook=_unique_object,
-                         parse_constant=_reject_constant)
+                         parse_constant=_reject_constant, parse_float=_finite_float)
     if not isinstance(decoded, dict):
         raise ValueError("JSON document must be an object")
     return decoded

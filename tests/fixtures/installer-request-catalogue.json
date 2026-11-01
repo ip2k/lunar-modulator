@@ -1,0 +1,699 @@
+{
+  "version": 1,
+  "groups": {
+    "engines": [
+      "macro",
+      "shapes",
+      "macro-heavy",
+      "sixop",
+      "dx7",
+      "sw-sophie",
+      "drums",
+      "acid-bass",
+      "comet",
+      "crater",
+      "drawbar",
+      "trio",
+      "phase-bend"
+    ],
+    "effects": [
+      "plate",
+      "ensemble",
+      "diffuse",
+      "sw-psxverb",
+      "crush",
+      "fold",
+      "drive",
+      "echo",
+      "warble",
+      "filter",
+      "comb",
+      "comp",
+      "limit",
+      "djfilter",
+      "tilt",
+      "sat",
+      "isolator",
+      "eq",
+      "room",
+      "hall",
+      "gate",
+      "squash",
+      "shaper",
+      "repeat"
+    ],
+    "midi": [
+      "arp",
+      "acid-gen"
+    ],
+    "modulation": [
+      "lfo",
+      "env",
+      "chance",
+      "function",
+      "bounce",
+      "register",
+      "coin",
+      "divide",
+      "burst",
+      "slew",
+      "quantize",
+      "compare",
+      "logic",
+      "calc",
+      "mix",
+      "resonator"
+    ]
+  },
+  "projects": [
+    {
+      "id": "legacy-example-afterglow-relay",
+      "title": "Afterglow Relay",
+      "category": "legacy-example",
+      "source_path": "engines/state/examples/afterglow-relay.lunar",
+      "source_sha256": "493a2f77873cf830919a76afea7ad427fac78e283d563bfc699493b83f81523e",
+      "duration_estimate": {
+        "basis": "bars * 4 beats per bar * 60 / BPM; metadata estimate",
+        "bpm": 92,
+        "bars": 76,
+        "scenes": 8,
+        "nominal_seconds": 198.26087
+      },
+      "source_module_dependencies": {
+        "engines": [
+          "drums",
+          "dx7",
+          "macro"
+        ],
+        "effects": [
+          "drive",
+          "filter",
+          "hall",
+          "limit",
+          "warble"
+        ],
+        "midi": [],
+        "modulation": [
+          "chance",
+          "env",
+          "lfo"
+        ]
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "legacy example; not approved as a showcase or default",
+      "default_candidate": false
+    },
+    {
+      "id": "legacy-example-event-horizon",
+      "title": "Event Horizon",
+      "category": "legacy-example",
+      "source_path": "engines/state/examples/event-horizon.lunar",
+      "source_sha256": "5b92ad3d8e6448855b9cde032a935437331620819becbb206212f32845414897",
+      "duration_estimate": {
+        "basis": "bars * 4 beats per bar * 60 / BPM; metadata estimate",
+        "bpm": 144,
+        "bars": 116,
+        "scenes": 8,
+        "nominal_seconds": 193.333333
+      },
+      "source_module_dependencies": {
+        "engines": [
+          "drums",
+          "dx7",
+          "macro"
+        ],
+        "effects": [
+          "crush",
+          "echo",
+          "filter",
+          "hall",
+          "limit"
+        ],
+        "midi": [
+          "arp"
+        ],
+        "modulation": [
+          "chance",
+          "env",
+          "lfo"
+        ]
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "legacy example; not approved as a showcase or default",
+      "default_candidate": false
+    },
+    {
+      "id": "legacy-example-packet-bloom",
+      "title": "Packet Bloom",
+      "category": "legacy-example",
+      "source_path": "engines/state/examples/packet-bloom.lunar",
+      "source_sha256": "7d755fd777f1b0534c2518717e4bded475872db57f9596fe410d75606765e349",
+      "duration_estimate": {
+        "basis": "bars * 4 beats per bar * 60 / BPM; metadata estimate",
+        "bpm": 112,
+        "bars": 88,
+        "scenes": 8,
+        "nominal_seconds": 188.571429
+      },
+      "source_module_dependencies": {
+        "engines": [
+          "drums",
+          "dx7",
+          "macro"
+        ],
+        "effects": [
+          "drive",
+          "filter",
+          "hall",
+          "limit",
+          "warble"
+        ],
+        "midi": [
+          "arp"
+        ],
+        "modulation": [
+          "chance",
+          "env",
+          "lfo"
+        ]
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "legacy example; not approved as a showcase or default",
+      "default_candidate": false
+    },
+    {
+      "id": "legacy-example-neon-transit",
+      "title": "Neon Transit",
+      "category": "legacy-example",
+      "source_path": "engines/state/examples/neon-transit.lunar",
+      "source_sha256": "e19152d0747d6d2a69cc61eaabeed6d083f89fbecdfa7e1d85ba7f9911f6e251",
+      "duration_estimate": {
+        "basis": "bars * 4 beats per bar * 60 / BPM; metadata estimate",
+        "bpm": 120,
+        "bars": 104,
+        "scenes": 8,
+        "nominal_seconds": 208.0
+      },
+      "source_module_dependencies": {
+        "engines": [
+          "drums",
+          "dx7",
+          "macro"
+        ],
+        "effects": [
+          "drive",
+          "echo",
+          "filter",
+          "hall",
+          "limit"
+        ],
+        "midi": [
+          "arp"
+        ],
+        "modulation": [
+          "chance",
+          "env",
+          "lfo"
+        ]
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "legacy example; not approved as a showcase or default",
+      "default_candidate": false
+    },
+    {
+      "id": "replacement-showcase-candidate-afterglow-relay",
+      "title": "Afterglow Relay",
+      "category": "replacement-showcase-candidate",
+      "source_path": "engines/state/examples/replacement-showcases/afterglow-relay-showcase.lunar",
+      "source_sha256": "53373bf4c508d360eccdf2751fd4242f23478d575adf893a703e6179dcd9c77f",
+      "source_provenance": {
+        "commit": "fb92cc0d4c312bbc77866c915d6fb8f159f5f92d",
+        "path": "engines/state/examples/afterglow-relay-showcase.lunar"
+      },
+      "duration_estimate": {
+        "basis": "bars * 4 beats per bar * 60 / BPM; metadata estimate",
+        "bpm": 104,
+        "bars": 44,
+        "scenes": 4,
+        "nominal_seconds": 101.538462
+      },
+      "source_module_dependencies": {
+        "engines": [
+          "drums",
+          "dx7",
+          "macro"
+        ],
+        "effects": [
+          "drive",
+          "echo",
+          "filter",
+          "hall",
+          "limit"
+        ],
+        "midi": [
+          "arp"
+        ],
+        "modulation": [
+          "chance",
+          "env",
+          "lfo"
+        ]
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "replacement showcase candidate; owner musical acceptance pending",
+      "default_candidate": false
+    },
+    {
+      "id": "replacement-showcase-candidate-event-horizon",
+      "title": "Event Horizon",
+      "category": "replacement-showcase-candidate",
+      "source_path": "engines/state/examples/replacement-showcases/event-horizon-showcase.lunar",
+      "source_sha256": "22bf4e768ec1e55a9a92ebb7b2ef1ed5d5967703d226fca7798f0c67b441d24f",
+      "source_provenance": {
+        "commit": "fb92cc0d4c312bbc77866c915d6fb8f159f5f92d",
+        "path": "engines/state/examples/event-horizon-showcase.lunar"
+      },
+      "source_adaptation": {
+        "kind": "scene-label-compatibility",
+        "original_sha256": "0d5d871bd31db1e628efbf291fd306671b81c93bef254a950291bf95f5413d1c",
+        "scene_label_map": [
+          [
+            "Suspense",
+            "Tense"
+          ],
+          [
+            "OpenSky",
+            "Sky"
+          ]
+        ]
+      },
+      "duration_estimate": {
+        "basis": "bars * 4 beats per bar * 60 / BPM; metadata estimate",
+        "bpm": 150,
+        "bars": 68,
+        "scenes": 7,
+        "nominal_seconds": 108.8
+      },
+      "source_module_dependencies": {
+        "engines": [
+          "acid-bass",
+          "drums",
+          "sixop",
+          "trio"
+        ],
+        "effects": [
+          "hall",
+          "limit"
+        ],
+        "midi": [
+          "arp"
+        ],
+        "modulation": [
+          "chance",
+          "env",
+          "lfo"
+        ]
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "owner-approved musical full-song default; native playback and release admission pending",
+      "default_candidate": false
+    },
+    {
+      "id": "replacement-showcase-candidate-packet-bloom",
+      "title": "Packet Bloom",
+      "category": "replacement-showcase-candidate",
+      "source_path": "engines/state/examples/replacement-showcases/packet-bloom-showcase.lunar",
+      "source_sha256": "853be1d05bd206d9fce928e5d36944d932491a9b9c69cf79d96e6f78392700e7",
+      "source_provenance": {
+        "commit": "fb92cc0d4c312bbc77866c915d6fb8f159f5f92d",
+        "path": "engines/state/examples/packet-bloom-showcase.lunar"
+      },
+      "source_adaptation": {
+        "kind": "scene-label-compatibility",
+        "original_sha256": "eb55a36129ef3db02136b2ed0859fafcad94e3b2cbc3fa42761383d380249731",
+        "scene_label_map": [
+          [
+            "Packets",
+            "Packet"
+          ],
+          [
+            "Dissolve",
+            "Fade"
+          ]
+        ]
+      },
+      "duration_estimate": {
+        "basis": "bars * 4 beats per bar * 60 / BPM; metadata estimate",
+        "bpm": 82,
+        "bars": 40,
+        "scenes": 5,
+        "nominal_seconds": 117.073171
+      },
+      "source_module_dependencies": {
+        "engines": [
+          "crater",
+          "macro-heavy",
+          "phase-bend",
+          "sw-sophie"
+        ],
+        "effects": [
+          "hall",
+          "limit"
+        ],
+        "midi": [
+          "arp"
+        ],
+        "modulation": [
+          "chance",
+          "env",
+          "lfo"
+        ]
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "replacement showcase candidate; owner musical acceptance pending",
+      "default_candidate": false
+    },
+    {
+      "id": "replacement-showcase-candidate-satellite-hearts",
+      "title": "Satellite Hearts",
+      "category": "replacement-showcase-candidate",
+      "source_path": "engines/state/examples/replacement-showcases/satellite-hearts.lunar",
+      "source_sha256": "090996484a125f5bde3fe4fb0a6dc3284cf7a260d6c6603298206921e78ed5d6",
+      "source_provenance": {
+        "commit": "fb92cc0d4c312bbc77866c915d6fb8f159f5f92d",
+        "path": "engines/state/examples/satellite-hearts.lunar"
+      },
+      "duration_estimate": {
+        "basis": "bars * 4 beats per bar * 60 / BPM; metadata estimate",
+        "bpm": 124,
+        "bars": 60,
+        "scenes": 6,
+        "nominal_seconds": 116.129032
+      },
+      "source_module_dependencies": {
+        "engines": [
+          "comet",
+          "drawbar",
+          "shapes"
+        ],
+        "effects": [
+          "hall",
+          "limit"
+        ],
+        "midi": [
+          "arp"
+        ],
+        "modulation": [
+          "chance",
+          "env",
+          "lfo"
+        ]
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "replacement showcase candidate; owner musical acceptance pending",
+      "default_candidate": false
+    },
+    {
+      "id": "init-starter-trio",
+      "title": "Trio Init Starter",
+      "category": "init-starter",
+      "source_path": "engines/state/examples/init-starters/trio-init.lunar",
+      "source_sha256": "46541967e4fa7321f4efe1105632de3613064a2fbcf7d71490cb647247a97c1b",
+      "duration_estimate": null,
+      "source_module_dependencies": {
+        "engines": [
+          "trio"
+        ],
+        "effects": [],
+        "midi": [],
+        "modulation": []
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "single-engine init patch; no sequence or full song; native controls and playback unverified",
+      "default_candidate": false
+    },
+    {
+      "id": "init-starter-macro",
+      "title": "Macro Init Starter",
+      "category": "init-starter",
+      "source_path": "engines/state/examples/init-starters/macro-init.lunar",
+      "source_sha256": "ba5ee5ad6ad38ceba921ce59a9ace12551dfccaee86329a069737ecc4973f055",
+      "duration_estimate": null,
+      "source_module_dependencies": {
+        "engines": [
+          "macro"
+        ],
+        "effects": [],
+        "midi": [],
+        "modulation": []
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "single-engine init patch; no sequence or full song; native controls and playback unverified",
+      "default_candidate": false
+    },
+    {
+      "id": "init-starter-shapes",
+      "title": "Shapes Init Starter",
+      "category": "init-starter",
+      "source_path": "engines/state/examples/init-starters/shapes-init.lunar",
+      "source_sha256": "c05fbc9d8105eb9e863aebaaf3ed3b199d8f638c6f3e66a9eb7e769e0626855d",
+      "duration_estimate": null,
+      "source_module_dependencies": {
+        "engines": [
+          "shapes"
+        ],
+        "effects": [],
+        "midi": [],
+        "modulation": []
+      },
+      "source_dependency_scan_complete": true,
+      "dependency_validation": {
+        "status": "pending-packed-backend-validation",
+        "dependency_scan_complete": false,
+        "validated_module_ids": []
+      },
+      "owner_disposition": "single-engine init patch; no sequence or full song; native controls and playback unverified",
+      "default_candidate": false
+    }
+  ],
+  "sets": [
+    {
+      "id": "replacement-showcase-event-horizon-companion-set",
+      "title": "Event Horizon Companion Set",
+      "parent_project_id": "replacement-showcase-candidate-event-horizon",
+      "source_path": "engines/state/examples/replacement-showcases/event-horizon-showcase.lunar",
+      "source_sha256": "22bf4e768ec1e55a9a92ebb7b2ef1ed5d5967703d226fca7798f0c67b441d24f",
+      "content_sha256": "cfc53ae471b9541adaf817180de721e268e2a43adaeea77154c8ec9a6bb6b7f3",
+      "source_dependency_scan_complete": false,
+      "dependency_scan_complete": false
+    }
+  ],
+  "full_song_default": {
+    "required": true,
+    "status": "owner-approved",
+    "project_id": "replacement-showcase-candidate-event-horizon",
+    "musical_choice_approved": true,
+    "blockers": [
+      "exact packed-content and module-dependency validation",
+      "native full-song playback and save/reload acceptance"
+    ]
+  },
+  "default_profile": {
+    "version": 1,
+    "engines": [
+      "macro",
+      "shapes",
+      "macro-heavy",
+      "sixop",
+      "dx7",
+      "sw-sophie",
+      "drums",
+      "acid-bass",
+      "comet",
+      "crater",
+      "drawbar",
+      "trio",
+      "phase-bend"
+    ],
+    "effects": [
+      "plate",
+      "ensemble",
+      "diffuse",
+      "sw-psxverb",
+      "crush",
+      "fold",
+      "drive",
+      "echo",
+      "warble",
+      "filter",
+      "comb",
+      "comp",
+      "limit",
+      "djfilter",
+      "tilt",
+      "sat",
+      "isolator",
+      "eq",
+      "room",
+      "hall",
+      "gate",
+      "squash",
+      "shaper",
+      "repeat"
+    ],
+    "midi": [
+      "arp",
+      "acid-gen"
+    ],
+    "modulation": [
+      "lfo",
+      "env",
+      "chance",
+      "function",
+      "bounce",
+      "register",
+      "coin",
+      "divide",
+      "burst",
+      "slew",
+      "quantize",
+      "compare",
+      "logic",
+      "calc",
+      "mix",
+      "resonator"
+    ],
+    "content": []
+  },
+  "catalogue_sha256": "23280e7177b84013818e9c9bcb87559d4cb8de6de384023d201c587d26ae00e7",
+  "default_header_sha256": "eef6dabe417ebdb03c5ab510f7b4a3733aed331bf656ae26e7535f87276e861e",
+  "installable": false,
+  "native_link_verified": false,
+  "native_ram_verified": false,
+  "hardware_tested": false,
+  "default_build_request": {
+    "version": 1,
+    "engines": [
+      "macro",
+      "shapes",
+      "macro-heavy",
+      "sixop",
+      "dx7",
+      "sw-sophie",
+      "drums",
+      "acid-bass",
+      "comet",
+      "crater",
+      "drawbar",
+      "trio",
+      "phase-bend"
+    ],
+    "effects": [
+      "plate",
+      "ensemble",
+      "diffuse",
+      "sw-psxverb",
+      "crush",
+      "fold",
+      "drive",
+      "echo",
+      "warble",
+      "filter",
+      "comb",
+      "comp",
+      "limit",
+      "djfilter",
+      "tilt",
+      "sat",
+      "isolator",
+      "eq",
+      "room",
+      "hall",
+      "gate",
+      "squash",
+      "shaper",
+      "repeat"
+    ],
+    "midi": [
+      "arp",
+      "acid-gen"
+    ],
+    "modulation": [
+      "lfo",
+      "env",
+      "chance",
+      "function",
+      "bounce",
+      "register",
+      "coin",
+      "divide",
+      "burst",
+      "slew",
+      "quantize",
+      "compare",
+      "logic",
+      "calc",
+      "mix",
+      "resonator"
+    ],
+    "project_ids": [
+      "replacement-showcase-candidate-event-horizon"
+    ],
+    "startup_index": 0,
+    "set_ids": [
+      "replacement-showcase-event-horizon-companion-set"
+    ],
+    "flash_layout": "expanded-d7000",
+    "runtime_mode": "continuous"
+  }
+}
