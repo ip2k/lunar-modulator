@@ -8,10 +8,10 @@ import pytest
 from tests.engine_helpers import renderer  # noqa: F401
 
 
-def cable(slot, source, dest, **extra):
+def cable(slot, source, dest):
     return dict(slot=slot, on=True, **{"from": source}, via=None, to=dest,
                 amount=50, offset=0, polarity="auto", curve="lin", voice=False,
-                lock=0, **extra)
+                lock=0)
 
 
 def output(pos, port="Out"):
@@ -38,6 +38,7 @@ def patch(case, unit):
                   cable(11, output(1, "Wrap"), {"module": 3, "gate": "Gate"}),
                   cable(13, {"source": "S2KEY"}, {"module": 5, "gate": "Clock"}),
                   cable(15, {"source": "VEL"}, {"module": 2, "param": "B"})]
+        next(r for r in rack if r["pos"] == 5)["data"] = {"version": 1, "hex": "1234567810"}
         routes[0]["via"] = output(3, "Env")
         routes[2]["via"] = output(5, "CV")
         routes[-1]["on"] = False
@@ -113,5 +114,6 @@ def test_preset_keeps_upstream_patch(renderer, tmp_path, target, case, suffix):
                     c[field]["source"] = "S1KEY"
     assert got["cables"] == wanted_cables
     if case == "via-gate-data":
-        assert next(r for r in got["rack"] if r["pos"] == 5)["data"]
+        assert next(r for r in got["rack"] if r["pos"] == 5)["data"] == {
+            "version": 1, "hex": "1234567810"}
     assert replay.read_bytes() == original.read_bytes()
