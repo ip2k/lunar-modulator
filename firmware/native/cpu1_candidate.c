@@ -70,6 +70,10 @@ static int cleanup(cpu1_candidate *s){
  int ok=1;const cpu1_ops *o=s->ops;
  if(s->saved_mask&~1u){
   if(!access(o,1))ok=0;
+  /* An earlier write may have failed before launch unprotected this slot.
+   * Restore it under an explicitly open top guard, including partial setup. */
+  if((s->saved_mask&0x82u)==0x82u &&
+     !wr(o,C1_TOP,s->saved[1]&~4u))ok=0;
   /* Entry slot is restored only after setup ACK or terminal hold. */
   for(unsigned n=2;n<8;++n)if(s->saved_mask&(1u<<n)){
    if(!wr(o,saved_addresses[n],s->saved[n]))ok=0;
