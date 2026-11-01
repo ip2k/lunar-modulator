@@ -28,3 +28,50 @@ Lifecycle: native test executables and pytest data stay under this lane's
 `scratch/`; remove them after recording results. Keep this note and the private
 audit/handoff records. Remove the worktree after coordinator integration and
 verified GitHub backup, using ordinary git worktree removal.
+
+## SS-02: queued lock target survives lane release/relabel
+
+[verified] The original host regression reproduced missing base resets for four
+release operations (`aclr`, `aclrs`, `aclrstep`, `clipdel`), text and typed
+commands, and single/alternate sound-slot dispatch. The host resolved those
+queued events through the already-erased current lane label.
+
+Every emitted LOCK now carries its exact 24-byte label and 7-bit base value.
+The host resolves that snapshot against the destination engine. Current-lane
+UID getters retain their current-state meaning. Non-lock metadata is zeroed,
+including MFX-created temporary notes. No serialized set/state schema changes.
+Handmade LOCK events must initialize label/base as well as kind/track/lane/value.
+
+[verified] The focused host test also queues an older audition, release/reset,
+a different label and audition, another release, and reuse of the original
+label with a different base, all before one dispatch. All four writes retain
+emission order and original targets despite an empty final lane. It covers
+text/typed inputs and single/alternate-slot dispatch with/without a real hook.
+The alternate engine intentionally uses different UIDs/indices. Existing host
+bridge regressions continue to pass. The two release-audit tests plus the native
+track-name/arena persistence test pass under C99 warnings-as-errors (3 pytest
+tests, each compiling only bounded sequencer/state sources).
+
+[verified] `sizeof(fm1_seq_ev_t)` is now 36 instead of 12 bytes. The 272-event
+buffer is 9,792 bytes (+6,528). Instance size stays 32,080 at eight tracks and
+fits its unchanged 32,768-byte arena. Shared instance/events/command/UI/click
+allocation is 43,156 bytes. The coordinator approved a 44 KiB (45,056-byte)
+sequencer budget on 2026-11-01. Inline labels were selected over interning:
+worst-case pending distinct labels require similar storage plus interning
+lifecycle/overflow handling. Per-lane caches and UID/hash shortcuts cannot
+preserve exact targets across repeated relabels or different engine slots.
+
+App integration is intentionally pending: the coordinator owns `fm1_app.c/h`
+and its handmade automation-test event constructor. This core branch updates
+size expectations, but app aggregate/native-fit and app automation acceptance
+must run after that adaptation. The private integration delta is under this
+lane's `scratch/seq-release/`; this branch does not modify app.c/h.
+
+[verified] Source storage review found no new event arrays on production stacks.
+The existing private pipeline's two static PipelineSlot objects each grow by
+6,528 bytes. Host render uses a vector and seq_tool uses malloc. Host walk_t's
+existing temporary event grows by 24 bytes. Apple clang `-O2 -fstack-usage`
+reports unchanged play_sink (240 B) and slots_ticks dispatch (320 B); sq_emit
+remains 0 B. Optimization changes increase some core helper frames by at most
+64 B (delete/paste/range: 48→112 B); fm1_seq_advance drops 480→464 B. This is
+host compiler evidence, not pi32v2 stack/code-generation acceptance.
