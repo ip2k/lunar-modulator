@@ -1,0 +1,1089 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 761cde1..a6720ee 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -57,14 +57,21 @@ set(CMAKE_CXX_STANDARD 17)
+ pico_sdk_init()
+ 
+ function(fm1t_add_firmware TARGET)
++    if(TARGET STREQUAL "fm1_transporter_return_r01")
++        set(FM1T_PROTO_SOURCE src/return_r01_proto.c)
++        set(FM1T_LOG_SOURCE src/return_r01_log_stub.c)
++    else()
++        set(FM1T_PROTO_SOURCE src/transporter_proto.c)
++        set(FM1T_LOG_SOURCE src/log.c)
++    endif()
+     add_executable(${TARGET}
+         src/main.c
+         src/recovery.c
+         src/pio_host.c
+         src/usb_device.c
+-        src/log.c
++        ${FM1T_LOG_SOURCE}
+         src/jieli_uboot.c
+-        src/transporter_proto.c
++        ${FM1T_PROTO_SOURCE}
+     )
+ 
+     pico_generate_pio_header(${TARGET}
+@@ -103,3 +110,10 @@ fm1t_add_firmware(fm1_transporter)
+ # Host bring-up firmware: PIO USB host only, no USB_KEY.
+ fm1t_add_firmware(fm1_transporter_hostonly)
+ target_compile_definitions(fm1_transporter_hostonly PRIVATE FM1T_HOST_ONLY=1)
++
++# Separately named fixed cold-ROM return candidate; excluded from default builds.
++option(FM1T_BUILD_RETURN_R01 "Build fixed return-r01 ROM-only firmware" OFF)
++if(FM1T_BUILD_RETURN_R01)
++    fm1t_add_firmware(fm1_transporter_return_r01)
++    target_compile_definitions(fm1_transporter_return_r01 PRIVATE FM1T_RETURN_R01=1)
++endif()
+diff --git a/src/main.c b/src/main.c
+index 4a16e1b..ff18248 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -28,14 +28,19 @@
+ 
+ // Reboots the transporter straight into USB_KEY mode even if D+ is pulled up,
+ // for a unit stuck with its USB up. The FM-1 then needs one power cycle.
++#if !FM1T_RETURN_R01
+ void fm1_rekey(void) {
+     watchdog_hw->scratch[0] = REKEY_MAGIC;
+     watchdog_reboot(0, 0, 50);
+ }
++#endif
+ 
++#if !FM1T_RETURN_R01
+ static volatile bool console_ready;
++#endif
+ 
+ static void core1_main(void) {
++#if !FM1T_RETURN_R01
+     for (int i = 0; i < CONSOLE_WAIT_MS / 100 && !console_ready; i++) {
+         sleep_ms(100);
+     }
+@@ -49,9 +54,17 @@ static void core1_main(void) {
+ #endif
+     printf("If the FM-1 runs stock V15, leave it on: fm1t enters UBOOT via the soft key.\n");
+     printf("Otherwise switch it OFF, and ON again once the key is running.\n");
++#endif
+ 
+     recovery_init();
+-#if FM1T_HOST_ONLY
++#if FM1T_RETURN_R01
++    if (!recovery_target_detached_stable(50)) {
++        dlog("RETURN-R01: D+ not continuously low before cold entry; refusing");
++        for (;;) tight_loop_contents();
++    }
++    fm1_host_return_arm_cold();
++    recovery_run();
++#elif FM1T_HOST_ONLY
+     // Host bring-up without the key path: attach any full-speed device, or an
+     // FM-1 already in UBOOT (e.g. via the V15 USB-MIDI soft key).
+     dlog("HOST-ONLY build: skipping USB_KEY recovery");
+@@ -122,13 +135,18 @@ int main(void) {
+     set_sys_clock_khz(120000, true);
+ 
+     log_init();
++#if FM1T_RETURN_R01
++    fm1_proto_init();  // synchronization before tud_init or core-1 callbacks
++#endif
+     tud_init(0);
+ 
+     multicore_launch_core1(core1_main);
+ 
+     for (;;) {
+         tud_task();
++#if !FM1T_RETURN_R01
+         console_ready = tud_cdc_n_connected(0);
++#endif
+         log_drain();
+         fm1_proto_drain();
+     }
+diff --git a/src/pio_host.c b/src/pio_host.c
+index cca19de..cc2bc84 100644
+--- a/src/pio_host.c
++++ b/src/pio_host.c
+@@ -34,6 +34,7 @@
+ 
+ static volatile uint8_t mounted_addr;
+ static volatile bool probe_pending;
++static bool uboot_ready;    // INQUIRY answered on the current mount
+ static uint64_t host_start_us;
+ static uint64_t last_status_us;
+ 
+@@ -48,6 +49,88 @@ static uint64_t unmounted_since_us;
+ static int inquiry_tries;       // > 0 while the post-mount INQUIRY loop is active
+ static uint64_t next_inquiry_us;
+ 
++#if FM1T_RETURN_R01
++typedef enum {
++    R01_NO_COLD, R01_COLD, R01_PROBED, R01_UPLOAD_CLAIM,
++    R01_UPLOAD_BOT, R01_UPLOADED, R01_CALL_CLAIM,
++    R01_CALL_BOT, R01_TERMINAL
++} r01_host_phase_t;
++static r01_host_phase_t r01_phase;
++static uint32_t r01_mount_generation;
++static uint32_t r01_mount_count;
++
++static bool r01_probe_live(uint8_t daddr) {
++    return r01_phase == R01_COLD && r01_mount_count == 1 &&
++           mounted_addr == daddr && fm1_proto_live();
++}
++
++void fm1_host_return_arm_cold(void) {
++    if (r01_phase == R01_NO_COLD) r01_phase = R01_COLD;
++}
++
++uint32_t fm1_host_return_ready_generation(void) {
++    return r01_phase == R01_PROBED && mounted_addr && uboot_ready
++               ? r01_mount_generation : 0;
++}
++
++bool fm1_host_return_claim_upload(uint32_t generation) {
++    if (r01_phase != R01_PROBED || !generation || generation != r01_mount_generation ||
++        !mounted_addr || !uboot_ready) return false;
++    r01_phase = R01_UPLOAD_CLAIM;
++    return true;
++}
++
++bool fm1_host_return_upload_complete(uint32_t generation) {
++    if (r01_phase != R01_UPLOAD_BOT || !generation || generation != r01_mount_generation ||
++        !mounted_addr || !uboot_ready) return false;
++    r01_phase = R01_UPLOADED;
++    return true;
++}
++
++bool fm1_host_return_claim_call(uint32_t generation) {
++    if (r01_phase != R01_UPLOADED || !generation || generation != r01_mount_generation ||
++        !mounted_addr || !uboot_ready) return false;
++    r01_phase = R01_CALL_CLAIM; // consumed before the FB08 CBW
++    return true;
++}
++
++bool fm1_host_return_call_complete(uint32_t generation) {
++    return r01_phase == R01_CALL_BOT && generation &&
++           generation == r01_mount_generation && mounted_addr && uboot_ready;
++}
++
++void fm1_host_return_terminal(void) {
++    r01_phase = R01_TERMINAL;
++    uboot_ready = false;
++    probe_pending = false;
++    inquiry_tries = 0;
++}
++
++static bool r01_allowed_cdb(const uint8_t *cdb, uint8_t cdb_len, bool in, uint16_t len) {
++    // Full fixed CDB, including the LE CRC16 of the ROM-ciphered 512-byte
++    // return-r01 payload (80 00 + 510 zeroes). No alternate write envelope.
++    static const uint8_t write_cdb[16] = {0xFB, 0x06, 0x01, 0xC0, 0x20, 0x00,
++                                          0x02, 0x00, 0x00, 0x60, 0xC3,
++                                          0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
++    static const uint8_t call_prefix[8] = {0xFB, 0x08, 0x01, 0xC0, 0x20, 0x00,
++                                           0x00, 0x01};
++    static const uint8_t ff8[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
++    if (!cdb || cdb_len != 16) return false;
++    if (r01_phase == R01_UPLOAD_CLAIM && !in && len == 512 &&
++        !memcmp(cdb, write_cdb, sizeof(write_cdb))) {
++        r01_phase = R01_UPLOAD_BOT; // one FB06 attempt, including a failed transfer
++        return true;
++    }
++    if (r01_phase == R01_CALL_CLAIM && in && len == 16 &&
++        !memcmp(cdb, call_prefix, sizeof(call_prefix)) && !memcmp(cdb + 8, ff8, 8)) {
++        r01_phase = R01_CALL_BOT; // one FB08 attempt, including a failed transfer
++        return true;
++    }
++    fm1_host_return_terminal();
++    return false;
++}
++#endif
++
+ static bool bot_cmd(uint8_t daddr, const uint8_t *cdb, uint8_t cdb_len, bool in, void *buf,
+                     uint16_t len, uint32_t *got);
+ 
+@@ -80,12 +163,13 @@ bool fm1_pio_host_mounted(void) {
+     return mounted_addr != 0;
+ }
+ 
+-static bool uboot_ready;    // INQUIRY answered on the current mount
+-
+ bool fm1_host_bot(const uint8_t *cdb, uint8_t cdb_len, bool in, void *buf, uint16_t len,
+                   uint32_t *got) {
+     uint8_t daddr = mounted_addr;
+     if (!daddr || !uboot_ready) return false;
++#if FM1T_RETURN_R01
++    if (!r01_allowed_cdb(cdb, cdb_len, in, len)) return false;
++#endif
+     return bot_cmd(daddr, cdb, cdb_len, in, buf, len, got);
+ }
+ 
+@@ -103,6 +187,9 @@ static bool edpt_sync(uint8_t daddr, uint8_t ep, void *buf, uint16_t len, uint32
+ // 04 F0 22 24 07 35 xx F7; xx = 7D calls the mask ROM UBOOT1.00 and never
+ // returns (fm-1-research-lab tools/fm1_softkey.py). Nothing is written.
+ bool fm1_host_softkey(void) {
++#if FM1T_RETURN_R01
++    return false;
++#else
+     static CFG_TUSB_MEM_ALIGN uint8_t pkt[8] = {0x04, 0xF0, 0x22, 0x24, 0x07, 0x35, 0x7D, 0xF7};
+     uint8_t daddr = mounted_addr;
+     if (!daddr || !mounted_is_v15 || !other_bulk_out.bLength) return false;
+@@ -117,6 +204,7 @@ bool fm1_host_softkey(void) {
+         sleep_ms(20);
+     }
+     return sent;
++#endif
+ }
+ 
+ void tuh_mount_cb(uint8_t daddr) {
+@@ -124,7 +212,15 @@ void tuh_mount_cb(uint8_t daddr) {
+          (time_us_64() - host_start_us) / 1000.0);
+     mounted_addr = daddr;
+     mount_us = time_us_64();
++#if FM1T_RETURN_R01
++    if (r01_phase != R01_COLD || ++r01_mount_count != 1) {
++        fm1_host_return_terminal();
++        return;
++    }
++    r01_mount_generation = r01_mount_count;
++#else
+     watchdog_hw->scratch[REATTACH_SCRATCH] = 0;
++#endif
+     uboot_ready = false;
+     jl_reset();
+     probe_pending = true;
+@@ -139,6 +235,9 @@ void tuh_umount_cb(uint8_t daddr) {
+     unmounted_since_us = time_us_64();
+     probe_pending = false;
+     inquiry_tries = 0;
++#if FM1T_RETURN_R01
++    fm1_host_return_terminal();
++#endif
+     rgb(false, false, true);
+ }
+ 
+@@ -155,16 +254,30 @@ static void xfer_done(tuh_xfer_t *x) {
+ }
+ 
+ static bool edpt_sync(uint8_t daddr, uint8_t ep, void *buf, uint16_t len, uint32_t *actual) {
++#if FM1T_RETURN_R01
++    if (r01_phase == R01_TERMINAL || mounted_addr != daddr || !fm1_proto_live()) return false;
++#endif
+     xfer_result = XFER_RESULT_INVALID;
+     xfer_actual = 0;
+ 
+-    tuh_xfer_t x = {
++#if FM1T_RETURN_R01
++    // A terminal callback can make us return before the host stack reports
++    // completion. This request and all strict BOT buffers remain static and
++    // cannot be reused after terminal, avoiding an in-flight stack lifetime.
++    static tuh_xfer_t x;
++#else
++    tuh_xfer_t x;
++#endif
++    x = (tuh_xfer_t){
+         .daddr = daddr,
+         .ep_addr = ep,
+         .buflen = len,
+         .buffer = buf,
+         .complete_cb = xfer_done,
+     };
++#if FM1T_RETURN_R01
++    if (r01_phase == R01_TERMINAL || mounted_addr != daddr || !fm1_proto_live()) return false;
++#endif
+     if (!tuh_edpt_xfer(&x)) {
+         dlog("HOST: EP %02X submit failed", ep);
+         return false;
+@@ -172,8 +285,16 @@ static bool edpt_sync(uint8_t daddr, uint8_t ep, void *buf, uint16_t len, uint32
+ 
+     uint64_t deadline = time_us_64() + XFER_TIMEOUT_MS * 1000ull;
+     while (xfer_result == XFER_RESULT_INVALID) {
++#if FM1T_RETURN_R01
++        if (r01_phase == R01_TERMINAL || mounted_addr != daddr || !fm1_proto_live())
++            return false;
++#endif
+         tuh_task();
+-        if (mounted_addr != daddr) {
++        if (mounted_addr != daddr
++#if FM1T_RETURN_R01
++            || r01_phase == R01_TERMINAL || !fm1_proto_live()
++#endif
++           ) {
+             dlog("HOST: EP %02X abandoned, device gone", ep);
+             return false;
+         }
+@@ -184,6 +305,10 @@ static bool edpt_sync(uint8_t daddr, uint8_t ep, void *buf, uint16_t len, uint32
+         }
+     }
+ 
++#if FM1T_RETURN_R01
++    if (r01_phase == R01_TERMINAL || mounted_addr != daddr || !fm1_proto_live()) return false;
++#endif
++
+     if (actual) *actual = xfer_actual;
+     if (xfer_result != XFER_RESULT_SUCCESS) {
+         dlog("HOST: EP %02X result %d", ep, xfer_result);
+@@ -273,6 +398,7 @@ static bool bot_cmd(uint8_t daddr, const uint8_t *cdb, uint8_t cdb_len, bool in,
+ // M0 probe: descriptors + INQUIRY, all read-only
+ //--------------------------------------------------------------------+
+ 
++#if !FM1T_RETURN_R01
+ static void log_string(uint8_t daddr, const char *what, uint8_t idx) {
+     if (!idx) return;
+     uint16_t s[64];
+@@ -288,40 +414,83 @@ static void log_string(uint8_t daddr, const char *what, uint8_t idx) {
+     a[n] = 0;
+     dlog("  %s: \"%s\"", what, a);
+ }
++#endif
+ 
+ static bool probe_descriptors(uint8_t daddr) {
++#if FM1T_RETURN_R01
++    static tusb_desc_device_t dd; // asynchronous callback cannot outlive this buffer
++    if (!r01_probe_live(daddr)) return false;
++#else
+     tusb_desc_device_t dd;
++#endif
+     if (tuh_descriptor_get_device_sync(daddr, &dd, sizeof(dd)) != XFER_RESULT_SUCCESS) {
+         dlog("HOST: device descriptor read failed");
+         return false;
+     }
++#if FM1T_RETURN_R01
++    if (!r01_probe_live(daddr)) return false;
++#endif
+ 
+     dlog("DEVICE DESCRIPTOR OK");
+     dlog("  VID=%04X PID=%04X bcdDevice=%04X bcdUSB=%04X", dd.idVendor, dd.idProduct,
+          dd.bcdDevice, dd.bcdUSB);
+     dlog("  class=%02X/%02X/%02X ep0=%u configs=%u", dd.bDeviceClass, dd.bDeviceSubClass,
+          dd.bDeviceProtocol, dd.bMaxPacketSize0, dd.bNumConfigurations);
++#if !FM1T_RETURN_R01
+     log_string(daddr, "manufacturer", dd.iManufacturer);
+     log_string(daddr, "product", dd.iProduct);
+     log_string(daddr, "serial", dd.iSerialNumber);
++#endif
+ 
+     mounted_is_v15 = dd.idVendor == FM1_VID && dd.idProduct == FM1_V15_PID;
++#if FM1T_RETURN_R01
++    if (dd.idVendor != FM1_VID || dd.idProduct != FM1_PID) return false;
++#endif
+     if (mounted_is_v15) {
+         dlog("  stock FM-1 application; `uboot` (fm1t) or console k enters UBOOT via the soft key");
+     } else if (dd.idVendor != FM1_VID || dd.idProduct != FM1_PID) {
+         dlog("  not the JieLi UBOOT (%04X:%04X expected)", FM1_VID, FM1_PID);
+     }
+ 
++#if FM1T_RETURN_R01
++    if (!r01_probe_live(daddr)) return false;
++#endif
+     if (tuh_descriptor_get_configuration_sync(daddr, 0, cfg_buf, 9) != XFER_RESULT_SUCCESS) {
+         dlog("HOST: configuration descriptor read failed");
+         return false;
+     }
++#if FM1T_RETURN_R01
++    if (!r01_probe_live(daddr)) return false;
++#endif
+     uint16_t total = ((tusb_desc_configuration_t *)cfg_buf)->wTotalLength;
++#if FM1T_RETURN_R01
++    // Refuse truncated/oversized records before the existing descriptor walk
++    // casts them to interface and endpoint structs. No clipped parse is safe.
++    if (total < sizeof(tusb_desc_configuration_t) || total > sizeof(cfg_buf) ||
++        cfg_buf[0] < sizeof(tusb_desc_configuration_t) ||
++        cfg_buf[1] != TUSB_DESC_CONFIGURATION) return false;
++#else
+     if (total > sizeof(cfg_buf)) total = sizeof(cfg_buf);
++#endif
+     if (tuh_descriptor_get_configuration_sync(daddr, 0, cfg_buf, total) != XFER_RESULT_SUCCESS) {
+         dlog("HOST: configuration descriptor (%u bytes) read failed", total);
+         return false;
+     }
++#if FM1T_RETURN_R01
++    if (!r01_probe_live(daddr)) return false;
++    if (cfg_buf[0] < sizeof(tusb_desc_configuration_t) ||
++        cfg_buf[1] != TUSB_DESC_CONFIGURATION ||
++        ((tusb_desc_configuration_t *)cfg_buf)->wTotalLength != total) return false;
++    for (uint16_t off = 0; off < total;) {
++        if (total - off < 2 || cfg_buf[off] < 2 || cfg_buf[off] > total - off)
++            return false;
++        uint8_t kind = cfg_buf[off + 1];
++        if ((kind == TUSB_DESC_INTERFACE && cfg_buf[off] < sizeof(tusb_desc_interface_t)) ||
++            (kind == TUSB_DESC_ENDPOINT && cfg_buf[off] < sizeof(tusb_desc_endpoint_t)))
++            return false;
++        off += cfg_buf[off];
++    }
++#endif
+ 
+     dlog("CONFIGURATION DESCRIPTOR (%u bytes), bConfigurationValue=%u", total,
+          ((tusb_desc_configuration_t *)cfg_buf)->bConfigurationValue);
+@@ -360,10 +529,20 @@ static bool probe_descriptors(uint8_t daddr) {
+         return false;
+     }
+ 
+-    if (!tuh_edpt_open(daddr, bulk_out) || !tuh_edpt_open(daddr, bulk_in)) {
++#if FM1T_RETURN_R01
++    if (!r01_probe_live(daddr)) return false;
++#endif
++    if (!tuh_edpt_open(daddr, bulk_out)
++#if FM1T_RETURN_R01
++        || !r01_probe_live(daddr)
++#endif
++        || !tuh_edpt_open(daddr, bulk_in)) {
+         dlog("HOST: opening bulk endpoints failed");
+         return false;
+     }
++#if FM1T_RETURN_R01
++    if (!r01_probe_live(daddr)) return false;
++#endif
+     ep_in = bulk_in->bEndpointAddress;
+     ep_out = bulk_out->bEndpointAddress;
+     dlog("HOST: MSC bulk OUT=%02X IN=%02X", ep_out, ep_in);
+@@ -374,7 +553,13 @@ static bool probe_inquiry(uint8_t daddr) {
+     static const uint8_t inquiry[6] = {0x12, 0, 0, 0, 36, 0};
+     uint32_t got = 0;
+ 
+-    if (!bot_cmd(daddr, inquiry, sizeof(inquiry), true, data_buf, 36, &got) || got < 36) {
++    if (!bot_cmd(daddr, inquiry, sizeof(inquiry), true, data_buf, 36, &got)
++#if FM1T_RETURN_R01
++        || got != 36 || r01_phase != R01_COLD || mounted_addr != daddr || !fm1_proto_live()
++#else
++        || got < 36
++#endif
++       ) {
+         dlog("INQUIRY failed (got %lu bytes)", (unsigned long)got);
+         return false;
+     }
+@@ -387,6 +572,10 @@ static bool probe_inquiry(uint8_t daddr) {
+     memcpy(rev, &data_buf[32], 4);
+     rev[4] = 0;
+     dlog("INQUIRY OK: vendor=\"%s\" product=\"%s\" rev=\"%s\"", vendor, product, rev);
++#if FM1T_RETURN_R01
++    if (memcmp(vendor, "WL82    ", 8) || memcmp(product, "UBOOT1.00       ", 16) ||
++        memcmp(rev, "1.00", 4)) return false;
++#endif
+     return true;
+ }
+ 
+@@ -400,9 +589,14 @@ static void get_max_lun(uint8_t daddr) {
+ //--------------------------------------------------------------------+
+ 
+ void fm1_pio_host_command(char c) {
++#if FM1T_RETURN_R01
++    (void)c;
++#else
+     pending_cmd = c;
++#endif
+ }
+ 
++#if !FM1T_RETURN_R01
+ static void run_command(uint8_t daddr, char c) {
+     static const uint8_t tur[6] = {0};
+     uint32_t got = 0;
+@@ -462,43 +656,85 @@ static void run_command(uint8_t daddr, char c) {
+         break;
+     }
+ }
++#endif
+ 
+ void fm1_pio_host_task(void) {
++#if FM1T_RETURN_R01
++    // Drain a terminal CDC decision before giving TinyUSB another host turn.
++    fm1_proto_poll();
++    if (r01_phase == R01_TERMINAL) {
++        return; // no new TinyUSB host enumeration/control traffic
++    }
++#endif
+     tuh_task();
+ 
++#if FM1T_RETURN_R01
++    fm1_proto_poll();
++    if (r01_phase == R01_TERMINAL) {
++        return;
++    }
++#endif
++
+     uint8_t daddr = mounted_addr;
+ 
+     uint64_t now = time_us_64();
+ 
+     if (probe_pending && daddr) {
+         probe_pending = false;
+-        if (probe_descriptors(daddr)) {
++        bool descriptors_ok = probe_descriptors(daddr);
++#if FM1T_RETURN_R01
++        descriptors_ok = descriptors_ok && r01_phase == R01_COLD &&
++                         mounted_addr == daddr && r01_mount_count == 1;
++#endif
++        if (descriptors_ok) {
++#if FM1T_RETURN_R01
++            inquiry_tries = 1;
++#else
+             inquiry_tries = INQUIRY_TRIES;
++#endif
+             next_inquiry_us = mount_us + FIRST_CBW_DELAY_MS * 1000ull;
+             dlog("HOST: first CBW in %d ms", FIRST_CBW_DELAY_MS);
+         } else {
+             rgb(true, false, false);
++#if FM1T_RETURN_R01
++            fm1_host_return_terminal();
++#endif
+         }
+     }
+ 
+     if (inquiry_tries > 0 && daddr && now >= next_inquiry_us) {
++#if !FM1T_RETURN_R01
+         if (inquiry_tries == INQUIRY_TRIES) {
+             // macOS asks for the LUN count before its first CBW; do the same.
+             get_max_lun(daddr);
+         }
++#endif
+         inquiry_tries--;
+-        dlog("INQUIRY attempt %d (%.1f ms after mount)", INQUIRY_TRIES - inquiry_tries,
++        dlog("INQUIRY attempt %d (%.1f ms after mount)",
++#if FM1T_RETURN_R01
++             1,
++#else
++             INQUIRY_TRIES - inquiry_tries,
++#endif
+              (time_us_64() - mount_us) / 1000.0);
+         if (probe_inquiry(daddr)) {
+             inquiry_tries = 0;
+             uboot_ready = true;
++#if FM1T_RETURN_R01
++            r01_phase = R01_PROBED;
++#endif
+             rgb(false, true, false);
+             dlog("UBOOT READY: enumerated and answered INQUIRY via the PIO host.");
+         } else if (!mounted_addr) {
+             // detached mid-attempt; tuh_umount_cb already stopped the loop
+         } else if (inquiry_tries == 0) {
+             rgb(true, false, false);
++#if FM1T_RETURN_R01
++            dlog("UBOOT: INQUIRY not accepted.");
++            fm1_host_return_terminal();
++#else
+             dlog("UBOOT: INQUIRY never accepted. Type h on the console for diagnostics.");
++#endif
+         } else {
+             next_inquiry_us = time_us_64() + INQUIRY_RETRY_MS * 1000ull;
+         }
+@@ -506,6 +742,7 @@ void fm1_pio_host_task(void) {
+ 
+     fm1_proto_poll();
+ 
++#if !FM1T_RETURN_R01
+     char c = pending_cmd;
+     if (c) {
+         pending_cmd = 0;
+@@ -516,7 +753,9 @@ void fm1_pio_host_task(void) {
+             dlog("> %c ignored: no UBOOT mounted", c);
+         }
+     }
++#endif
+ 
++#if !FM1T_RETURN_R01
+     if (!daddr && now - unmounted_since_us > REATTACH_AFTER_MS * 1000ull) {
+         // Pico-PIO-USB inverts the pad input (GPIO_OVERRIDE_INVERT), so a
+         // pulled-up D+ reads as 0 here. With nothing mounted there is no bus
+@@ -538,6 +777,7 @@ void fm1_pio_host_task(void) {
+         }
+         unmounted_since_us = now;   // re-check after another interval
+     }
++#endif
+ 
+     if (!daddr && now - last_status_us > ATTACH_STATUS_MS * 1000ull) {
+         dlog("HOST: no device mounted yet (%.1f s after host start)",
+diff --git a/src/pio_host.h b/src/pio_host.h
+index 9bfcd7e..2eecd2e 100644
+--- a/src/pio_host.h
++++ b/src/pio_host.h
+@@ -36,3 +36,15 @@ bool fm1_host_bot(const uint8_t *cdb, uint8_t cdb_len, bool in, void *buf, uint1
+ 
+ // Queues a one-letter console command for core 1 (safe to call from core 0).
+ void fm1_pio_host_command(char c);
++
++#if FM1T_RETURN_R01
++// Fixed cold-ROM variant. These are core-1 only except arm_cold, called before
++// recovery_run. Generation is a correlation value, not target attestation.
++void fm1_host_return_arm_cold(void);
++uint32_t fm1_host_return_ready_generation(void);
++bool fm1_host_return_claim_upload(uint32_t generation);
++bool fm1_host_return_upload_complete(uint32_t generation);
++bool fm1_host_return_claim_call(uint32_t generation);
++bool fm1_host_return_call_complete(uint32_t generation);
++void fm1_host_return_terminal(void);
++#endif
+diff --git a/src/recovery.c b/src/recovery.c
+index e6a843e..49b288e 100644
+--- a/src/recovery.c
++++ b/src/recovery.c
+@@ -351,6 +351,17 @@ bool recovery_target_attached(void) {
+     return true;
+ }
+ 
++#if FM1T_RETURN_R01
++bool recovery_target_detached_stable(uint32_t ms) {
++    uint64_t deadline = time_us_64() + (uint64_t)ms * 1000;
++    while (time_us_64() < deadline) {
++        if (dp()) return false;
++        sleep_us(100);
++    }
++    return true;
++}
++#endif
++
+ void recovery_pulses_only(uint32_t ms) {
+     dlog("PULSE: %lu ms of 1 ms pulses for an already attached target", (unsigned long)ms);
+     pulse_start();
+diff --git a/src/recovery.h b/src/recovery.h
+index 3812f9f..736324b 100644
+--- a/src/recovery.h
++++ b/src/recovery.h
+@@ -21,6 +21,11 @@ void recovery_init(void);
+ // True if something already pulls D+ up at boot: a running FM-1 application,
+ // or a ROM UBOOT left waiting. The key is pointless then; go straight to host.
+ bool recovery_target_attached(void);
++#if FM1T_RETURN_R01
++// Strict cold candidate: D+ must remain low for the entire sampling window.
++// This is electrical observation, not proof that the target is powered off.
++bool recovery_target_detached_stable(uint32_t ms);
++#endif
+ 
+ // Waits until nothing pulls D+ up (e.g. the loader's watchdog reset fired).
+ bool recovery_wait_detached(uint32_t timeout_ms);
+diff --git a/src/return_r01_log_stub.c b/src/return_r01_log_stub.c
+new file mode 100644
+index 0000000..13ca661
+--- /dev/null
++++ b/src/return_r01_log_stub.c
+@@ -0,0 +1,8 @@
++// SPDX-License-Identifier: MIT
++// Strict return variant has no cross-core log ring or interactive console.
++#include "log.h"
++
++void log_init(void) {}
++void log_drain(void) {}
++uint32_t log_dropped(void) { return 0; }
++void dlog(const char *fmt, ...) { (void)fmt; }
+diff --git a/src/return_r01_proto.c b/src/return_r01_proto.c
+new file mode 100644
+index 0000000..bd4503c
+--- /dev/null
++++ b/src/return_r01_proto.c
+@@ -0,0 +1,320 @@
++// SPDX-License-Identifier: MIT
++// Fixed return-r01 ROM-only CDC protocol. Never linked into recovery firmware.
++#include "transporter_proto.h"
++
++#include <stdarg.h>
++#include <stdio.h>
++#include <string.h>
++
++#include "pico/stdlib.h"
++#include "pico/critical_section.h"
++#include "tusb.h"
++
++#include "jieli_uboot.h"
++#include "pio_host.h"
++
++#ifndef FM1T_RETURN_R01
++#error "return_r01_proto.c must only be linked into the fixed ROM variant"
++#endif
++
++#define DATA_ITF 1
++#define RX_LINE_MAX 32
++#define TX_SIZE 256
++#define UPLOAD_TIMEOUT_US 5000000ull
++#define READY_TIMEOUT_US 9000000ull
++#define R01_ADDR 0x01C02000u
++#define R01_ARG 1u
++#define R01_LEN 512u
++
++typedef enum {
++    WAIT_READY, READY_PENDING, READY_REPLY, READY, UPLOAD_COLLECT,
++    UPLOAD_PENDING, UPLOADED_REPLY, UPLOADED, CALL_PENDING, TERMINAL
++} phase_t;
++
++static critical_section_t state_lock;
++static phase_t phase;
++static char rx_line[RX_LINE_MAX];
++static unsigned rx_len;
++static uint8_t __attribute__((aligned(4))) payload[R01_LEN];
++static unsigned payload_len;
++static uint64_t upload_started_us;
++static uint64_t ready_poll_started_us;
++static bool req_pending;
++static phase_t req_phase;
++static bool connected, seen_connected;
++static uint32_t ready_mount;
++
++// Core 1 writes this bounded queue; core 0 drains it to CDC interface 02.
++static uint8_t tx[TX_SIZE];
++static uint32_t tx_head, tx_tail;
++
++void fm1_proto_init(void) { critical_section_init(&state_lock); }
++
++bool fm1_proto_live(void) {
++    critical_section_enter_blocking(&state_lock);
++    bool live = phase != TERMINAL;
++    critical_section_exit(&state_lock);
++    return live;
++}
++
++// Call only with state_lock held. The TX ring is copied under the same lock;
++// TinyUSB calls and formatting happen outside it.
++static bool tx_enqueue_locked(const char *line, unsigned n) {
++    if (!n || n > 96 || n > TX_SIZE - (tx_head - tx_tail)) return false;
++    for (unsigned i = 0; i < n; i++) tx[(tx_head + i) & (TX_SIZE - 1)] = (uint8_t)line[i];
++    tx_head += n;
++    return true;
++}
++
++static unsigned format_line(char line[96], const char *fmt, va_list ap) {
++    int n = vsnprintf(line, 95, fmt, ap);
++    if (n < 0 || n > 94) return 0;
++    line[n++] = '\n';
++    return (unsigned)n;
++}
++
++static void tx_line(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
++static void tx_line(const char *fmt, ...) {
++    char line[96];
++    va_list ap;
++    va_start(ap, fmt);
++    unsigned n = format_line(line, fmt, ap);
++    va_end(ap);
++    if (!n) return;
++    critical_section_enter_blocking(&state_lock);
++    (void)tx_enqueue_locked(line, n); // full queue yields host timeout, never false OK
++    critical_section_exit(&state_lock);
++}
++
++void fm1_proto_drain(void) {
++    // This function runs only on core 0, which owns the TinyUSB device stack.
++    bool live = tud_cdc_n_connected(DATA_ITF);
++    critical_section_enter_blocking(&state_lock);
++    connected = live;
++    if (live) seen_connected = true;
++    if (!live && seen_connected && phase != WAIT_READY) {
++        phase = TERMINAL;
++        req_pending = false;
++        tx_tail = tx_head;
++    }
++    critical_section_exit(&state_lock);
++    if (!live) {
++        return;
++    }
++    for (;;) {
++        uint32_t avail = tud_cdc_n_write_available(DATA_ITF);
++        if (!avail) break;
++        uint8_t chunk[64];
++        critical_section_enter_blocking(&state_lock);
++        uint32_t copied_tail = tx_tail;
++        uint32_t n = tx_head - tx_tail;
++        if (n > sizeof(chunk)) n = sizeof(chunk);
++        if (n > avail) n = avail;
++        for (uint32_t i = 0; i < n; i++) chunk[i] = tx[(tx_tail + i) & (TX_SIZE - 1)];
++        critical_section_exit(&state_lock);
++        if (!n) break;
++        uint32_t accepted = tud_cdc_n_write(DATA_ITF, chunk, n);
++        if (accepted > n) accepted = n;
++        critical_section_enter_blocking(&state_lock);
++        // A simultaneous terminal/disconnect may have discarded the ring.
++        // Never advance into that new state after the unlocked USB call.
++        if (tx_tail == copied_tail) tx_tail += accepted;
++        critical_section_exit(&state_lock);
++        if (!accepted) break;
++    }
++    tud_cdc_n_write_flush(DATA_ITF);
++    critical_section_enter_blocking(&state_lock);
++    if (tx_head == tx_tail) {
++        if (phase == READY_REPLY) phase = READY;
++        else if (phase == UPLOADED_REPLY) phase = UPLOADED;
++    }
++    critical_section_exit(&state_lock);
++}
++
++static void fail_rx_locked(void) {
++    phase = TERMINAL;
++    tx_tail = tx_head; // retract an OK line still waiting in the Pico ring
++    req_phase = TERMINAL;
++    req_pending = true;
++}
++
++// Core 0: never accepts arbitrary addresses, lengths, commands or retries.
++void fm1_proto_rx(const char *buf, unsigned len) {
++    bool queue = false;
++    phase_t queued = TERMINAL;
++    critical_section_enter_blocking(&state_lock);
++    connected = seen_connected = true; // receiving on CDC1 is a live core-0 observation
++    for (unsigned i = 0; i < len; i++) {
++        if (phase == TERMINAL) continue;
++        if (phase == UPLOAD_COLLECT) {
++            payload[payload_len++] = (uint8_t)buf[i];
++            if (payload_len == R01_LEN) {
++                phase = UPLOAD_PENDING;
++                queue = true;
++                queued = UPLOAD_PENDING;
++            }
++            continue;
++        }
++        // A request cannot be pipelined or followed by extra bytes.
++        if (queue || req_pending || phase == READY_PENDING || phase == READY_REPLY ||
++            phase == UPLOAD_PENDING || phase == UPLOADED_REPLY || phase == CALL_PENDING) {
++            fail_rx_locked();
++            break;
++        }
++        char c = buf[i];
++        if (c == '\n') {
++            rx_line[rx_len] = 0;
++            rx_len = 0;
++            if (phase == WAIT_READY && !strcmp(rx_line, "rr01-ready")) {
++                phase = READY_PENDING;
++                queue = true;
++                queued = READY_PENDING;
++            } else if (phase == READY && !strcmp(rx_line, "rr01-upload")) {
++                payload_len = 0;
++                upload_started_us = time_us_64();
++                phase = UPLOAD_COLLECT;  // attempt is latched before first payload byte
++            } else if (phase == UPLOADED && !strcmp(rx_line, "rr01-call")) {
++                phase = CALL_PENDING;
++                queue = true;
++                queued = CALL_PENDING;
++            } else {
++                fail_rx_locked();
++                break;
++            }
++        } else if (c < 0x21 || c > 0x7e || rx_len >= RX_LINE_MAX - 1) {
++            fail_rx_locked();
++            break;
++        } else {
++            rx_line[rx_len++] = c;
++        }
++    }
++    if (queue && phase != TERMINAL) {
++        req_phase = queued;
++        req_pending = true;
++    }
++    critical_section_exit(&state_lock);
++}
++
++static bool exact_payload(void) {
++    if (payload_len != R01_LEN || payload[0] != 0x80 || payload[1] != 0x00) return false;
++    for (unsigned i = 2; i < R01_LEN; i++) if (payload[i]) return false;
++    return true;
++}
++
++// The phase transition and complete reply enqueue are one short cross-core
++// transaction. No formatting, BOT, TinyUSB call or wait occurs under this lock.
++static bool publish_success(phase_t expected, phase_t next, const char *line) {
++    unsigned n = (unsigned)strlen(line);
++    critical_section_enter_blocking(&state_lock);
++    bool ok = phase == expected && !req_pending && connected &&
++              tx_enqueue_locked(line, n);
++    if (ok) phase = next;
++    else { phase = TERMINAL; req_pending = false; }
++    critical_section_exit(&state_lock);
++    return ok;
++}
++
++static void finish_error(const char *reply) {
++    critical_section_enter_blocking(&state_lock);
++    phase = TERMINAL;
++    req_pending = false;
++    critical_section_exit(&state_lock);
++    fm1_host_return_terminal();
++    tx_line("%s", reply);
++}
++
++// Core 1: no idle keepalive and no target command after the call attempt.
++void fm1_proto_poll(void) {
++    bool pending;
++    phase_t request, current;
++    critical_section_enter_blocking(&state_lock);
++    if (phase == UPLOAD_COLLECT &&
++        time_us_64() - upload_started_us > UPLOAD_TIMEOUT_US) phase = TERMINAL;
++    current = phase;
++    pending = req_pending;
++    request = req_phase;
++    if (pending) req_pending = false;
++    critical_section_exit(&state_lock);
++
++    if (current == TERMINAL || (request == TERMINAL && pending)) {
++        fm1_host_return_terminal();
++        if (pending) tx_line("ERR rr01-terminal");
++        return;
++    }
++    if (!pending) return;
++
++    if (request == READY_PENDING && current == READY_PENDING) {
++        uint32_t mount = fm1_host_return_ready_generation();
++        if (!mount) {
++            if (!ready_poll_started_us) ready_poll_started_us = time_us_64();
++            if (time_us_64() - ready_poll_started_us < READY_TIMEOUT_US) {
++                critical_section_enter_blocking(&state_lock);
++                if (phase == READY_PENDING && !req_pending) {
++                    req_phase = READY_PENDING;
++                    req_pending = true;
++                }
++                critical_section_exit(&state_lock);
++                return;
++            }
++            finish_error("ERR rr01-ready");
++            return;
++        }
++        ready_mount = mount;
++        char line[96];
++        int n = snprintf(line, sizeof(line),
++                         "OK rr01-ready v=1 build=rr01-pico-v1 mount=%lu\n",
++                         (unsigned long)mount);
++        if (n > 0 && n < (int)sizeof(line) &&
++            publish_success(READY_PENDING, READY_REPLY, line)) return;
++        finish_error("ERR rr01-ready");
++        return;
++    }
++    if (request == UPLOAD_PENDING && current == UPLOAD_PENDING) {
++        if (!exact_payload()) {
++            finish_error("ERR rr01-upload");
++            return;
++        }
++        // The audited host claim only changes core-1 state. Pair it with the
++        // protocol check so an already terminal CDC session cannot start BOT.
++        critical_section_enter_blocking(&state_lock);
++        bool claimed = phase == UPLOAD_PENDING && !req_pending && connected &&
++                       fm1_host_return_claim_upload(ready_mount);
++        critical_section_exit(&state_lock);
++        if (!claimed) {
++            finish_error("ERR rr01-upload");
++            return;
++        }
++        bool ok = jl_rom_mem_write(R01_ADDR, payload, R01_LEN);
++        if (ok) ok = fm1_host_return_upload_complete(ready_mount);
++        char line[96];
++        int n = snprintf(line, sizeof(line), "OK rr01-upload mount=%lu\n",
++                         (unsigned long)ready_mount);
++        if (ok && n > 0 && n < (int)sizeof(line) &&
++            publish_success(UPLOAD_PENDING, UPLOADED_REPLY, line)) return;
++        finish_error("ERR rr01-upload");
++        return;
++    }
++    if (request == CALL_PENDING && current == CALL_PENDING) {
++        critical_section_enter_blocking(&state_lock);
++        bool claimed = phase == CALL_PENDING && !req_pending && connected &&
++                       fm1_host_return_claim_call(ready_mount);
++        critical_section_exit(&state_lock);
++        if (!claimed) {
++            finish_error("ERR rr01-call");
++            return;
++        }
++        bool ok = jl_rom_jump(R01_ADDR, R01_ARG);
++        if (ok) ok = fm1_host_return_call_complete(ready_mount);
++        char line[96];
++        int n = snprintf(line, sizeof(line), "OK rr01-call mount=%lu\n",
++                         (unsigned long)ready_mount);
++        if (ok && n > 0 && n < (int)sizeof(line) &&
++            publish_success(CALL_PENDING, TERMINAL, line)) {
++            fm1_host_return_terminal();
++            return;
++        }
++        finish_error("ERR rr01-call");
++        return;
++    }
++    finish_error("ERR rr01-terminal");
++}
+diff --git a/src/transporter_proto.h b/src/transporter_proto.h
+index e9881c9..e4b6a0d 100644
+--- a/src/transporter_proto.h
++++ b/src/transporter_proto.h
+@@ -1,5 +1,7 @@
+ #pragma once
+ 
++#include <stdbool.h>
++
+ // Mac-facing data channel on the second CDC interface (tools/fm1t.py).
+ //
+ // Requests are text lines; replies are text lines, and `read` replies carry
+@@ -28,3 +30,10 @@ void fm1_proto_drain(void);
+ 
+ // core 1: handle a pending request, if any.
+ void fm1_proto_poll(void);
++
++#if FM1T_RETURN_R01
++// Strict variant only; called before tud_init/core-1 launch.
++void fm1_proto_init(void);
++// Short synchronized read for core-1 host transfer boundaries.
++bool fm1_proto_live(void);
++#endif
+diff --git a/src/usb_device.c b/src/usb_device.c
+index 1e6dbe9..4d4b776 100644
+--- a/src/usb_device.c
++++ b/src/usb_device.c
+@@ -15,12 +15,20 @@
+ #define USBD_PID 0x000A     // Pico SDK CDC (RP2040), what picotool expects
+ 
+ #define TUD_RPI_RESET_DESC_LEN 9
++#if FM1T_RETURN_R01
++#define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + 2 * TUD_CDC_DESC_LEN)
++#else
+ #define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + 2 * TUD_CDC_DESC_LEN + TUD_RPI_RESET_DESC_LEN)
++#endif
+ 
+ #define USBD_ITF_CDC0 0     // two interfaces each
+ #define USBD_ITF_CDC1 2
+ #define USBD_ITF_RESET 4
++#if FM1T_RETURN_R01
++#define USBD_ITF_MAX 4
++#else
+ #define USBD_ITF_MAX 5
++#endif
+ 
+ enum { STR_LANG, STR_MANUF, STR_PRODUCT, STR_SERIAL, STR_CDC0, STR_CDC1, STR_RESET, STR_COUNT };
+ 
+@@ -45,18 +53,27 @@ static const uint8_t desc_cfg[USBD_DESC_LEN] = {
+     TUD_CONFIG_DESCRIPTOR(1, USBD_ITF_MAX, 0, USBD_DESC_LEN, 0, 100),
+     TUD_CDC_DESCRIPTOR(USBD_ITF_CDC0, STR_CDC0, 0x81, 8, 0x02, 0x82, 64),
+     TUD_CDC_DESCRIPTOR(USBD_ITF_CDC1, STR_CDC1, 0x83, 8, 0x04, 0x84, 64),
++#if !FM1T_RETURN_R01
+     9, TUSB_DESC_INTERFACE, USBD_ITF_RESET, 0, 0, TUSB_CLASS_VENDOR_SPECIFIC,
+     RESET_INTERFACE_SUBCLASS, RESET_INTERFACE_PROTOCOL, STR_RESET,
++#endif
+ };
+ 
+ static char serial_str[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1];
+ 
+ static const char *const desc_str[STR_COUNT] = {
+     [STR_MANUF] = "kurogedelic",
++#if FM1T_RETURN_R01
++    [STR_PRODUCT] = "Lunar fixed ROM return-r01",
++    [STR_SERIAL] = serial_str,
++    [STR_CDC0] = "Return-r01 log only",
++    [STR_CDC1] = "Return-r01 fixed data",
++#else
+     [STR_PRODUCT] = "FM-1 Transporter",
+     [STR_SERIAL] = serial_str,
+     [STR_CDC0] = "FM-1 Transporter console",
+     [STR_CDC1] = "FM-1 Transporter data",
++#endif
+     [STR_RESET] = "Reset",
+ };
+ 
+@@ -94,6 +111,7 @@ const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
+ // which is compiled out whenever the TinyUSB host stack is linked)
+ //--------------------------------------------------------------------+
+ 
++#if !FM1T_RETURN_R01
+ static uint8_t reset_itf;
+ 
+ static void resetd_init(void) {}
+@@ -154,3 +172,14 @@ usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
+ void tud_cdc_line_coding_cb(uint8_t itf, cdc_line_coding_t const *coding) {
+     if (itf == 0 && coding->bit_rate == 1200) rom_reset_usb_boot_extra(-1, 0, false);
+ }
++#else
++usbd_class_driver_t const *usbd_app_driver_get_cb(uint8_t *driver_count) {
++    *driver_count = 0;
++    return NULL;
++}
++
++void tud_cdc_line_coding_cb(uint8_t itf, cdc_line_coding_t const *coding) {
++    (void)itf;
++    (void)coding;
++}
++#endif

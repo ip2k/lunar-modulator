@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "mode": "fixed-return-r01-cold-rom",
+  "pico_source_identity": "rr01-pico-v1",
+  "usb_vid_pid": "2e8a:000a",
+  "usb_product": "Lunar fixed ROM return-r01",
+  "usb_cdc_data_interface": 2,
+  "usb_cdc_data_string": "Return-r01 fixed data",
+  "usb_reset_interface": false,
+  "usb_1200_baud_reset": false,
+  "upstream_commit": "a7fb5e8ac692c528f8ed29e325911a3f4b8111d6",
+  "pico_sdk_tag": "2.2.0",
+  "board": "pico2_w",
+  "target": "fm1_transporter_return_r01",
+  "patches": [
+    "0001-pico2-reject-false-d-pullups.patch",
+    "0002-exact-bot-completion.patch",
+    "0003-fixed-return-r01-rom-mode.patch"
+  ],
+  "payload_source_commit": "306eca49bf504ecc96426597a6b58e36144d6785",
+  "payload_entry": "0x01c02000",
+  "payload_size": 512,
+  "payload_sha256": "898b7737d69e351e54b406aebda27652c04413344d19dfb698a8642e33b698f9",
+  "payload_crc32": "E6FACC35",
+  "jump_arg": 1,
+  "hardware_admitted": false,
+  "uf2_sha256": null
+}
