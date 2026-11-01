@@ -58,12 +58,12 @@ extern void fm1_app_render_profile(unsigned unit, uint32_t frames, int entering)
 #define PROFILE_STAGE(stage, frames, entering) PROFILE_UNIT(FM1_APP_UNITS + (stage), frames, entering)
 
 /* Compile-time checks of the sequencer's fixed sizes (docs/15 §2.6; C99 has
- * no static_assert): the event buffer is 3,264 B, the pending record one
+ * no static_assert): the event buffer is 9,792 B, the pending record one
  * 240-byte command and the click voice 20 B, on 32- and 64-bit builds
  * alike. The instance's own size comes from fm1_seq_size at run time;
  * fm1_app_seq_reset refuses limits whose instance does not fit
  * FM1_APP_SEQ_BYTES, and tests/test_sim_web.py checks the budget sum. */
-typedef char fm1_app_seq_events_are_3k[sizeof(fm1_seq_ev_t) * FM1_APP_SEQ_EVENTS == 3264u ? 1 : -1];
+typedef char fm1_app_seq_events_are_9k[sizeof(fm1_seq_ev_t) * FM1_APP_SEQ_EVENTS == 9792u ? 1 : -1];
 typedef char fm1_app_seq_click_is_20[sizeof(fm1_seq_click_t) == 20u ? 1 : -1];
 typedef char fm1_app_seq_ui_sounds[FM1_SEQ_UI_SOUNDS == FM1_APP_SOUNDS ? 1 : -1];
 typedef char fm1_app_seq_cmd_is_240[sizeof(fm1_seq_cmd_t) == 240u ? 1 : -1];
@@ -885,12 +885,13 @@ static void mod_write(void *ctx, uint32_t frame, const fm1_mod_write_t *w) {
  * the bridge, and never by this second path. Master slots are global;
  * inserts and levels require a valid engine route, even for an empty sound. */
 static int seq_auto_target(fm1_app_t *a, unsigned track, unsigned lane,
-                            fm1_app_seq_target_t *target) {
+                            const fm1_seq_ev_t *event, fm1_app_seq_target_t *target) {
   fm1_seq_track_info_t ti;
   const char *name;
   int kind, unit, index;
   if (!a->seq || track >= FM1_APP_SEQ_TRACKS || lane >= FM1_SEQ_LANES) return 0;
-  kind = fm1_seq_lane_target(fm1_seq_lane_label(a->seq, (uint8_t)track, (uint8_t)lane), &name);
+  kind = fm1_seq_lane_target(event ? event->label :
+           fm1_seq_lane_label(a->seq, (uint8_t)track, (uint8_t)lane), &name);
   if (kind <= FM1_SEQ_TARGET_SOUND) return 0;
   /* Most lanes have no app target. Copy track state only for accepted labels;
    * fm1_seq_lane_label already bounds-checks the sequencer's track count. */
@@ -904,7 +905,7 @@ static int seq_auto_target(fm1_app_t *a, unsigned track, unsigned lane,
   }
   memset(target, 0, sizeof *target);
   target->unit = (uint8_t)unit;
-  target->base = ti.base[lane];
+  target->base = event ? event->lane_base : ti.base[lane];
   if (kind == FM1_SEQ_TARGET_MIX) return 1;
   target->engine = a->unit[unit].e;
   index = fm1_seq_lane_param(target->engine, name);
@@ -947,7 +948,7 @@ static uint32_t seq_auto_begin(void *ctx, uint32_t frames, const fm1_engine_t *e
     for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
       fm1_app_seq_target_t next, *old = &a->seq_target[t][l];
       if (!old->active) continue;
-      if (!seq_auto_target(a, t, l, &next) || next.unit != old->unit ||
+      if (!seq_auto_target(a, t, l, NULL, &next) || next.unit != old->unit ||
           next.index != old->index || next.engine != old->engine) {
         seq_auto_write(a, 0, old, old->base);
         old->active = 0;
@@ -962,9 +963,9 @@ static void seq_auto_event(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int
   if (a->mod) a->mod_glue.hook.event(a->mod_glue.hook.ctx, frame, e, to_engine);
   if (e->kind == FM1_SEQ_EV_LOCK && e->track < FM1_APP_SEQ_TRACKS && e->a < FM1_SEQ_LANES) {
     fm1_app_seq_target_t target;
-    const int kind = fm1_seq_lane_target(fm1_seq_lane_label(a->seq, e->track, e->a), NULL);
+    const int kind = fm1_seq_lane_target(e->label, NULL);
     if (kind == FM1_SEQ_TARGET_SOUND) return;
-    if (!seq_auto_target(a, e->track, e->a, &target)) {
+    if (!seq_auto_target(a, e->track, e->a, e, &target)) {
       if (kind >= 0) ++a->seq_auto_refused;
       return;
     }
@@ -1008,7 +1009,7 @@ static void seq_auto_base(fm1_app_t *a, unsigned unit, unsigned index, unsigned 
     for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
       if (!(labeled & (1u << l))) continue;
       fm1_app_seq_target_t target;
-      if (seq_auto_target(a, t, l, &target) && target.unit == unit && target.index == index &&
+      if (seq_auto_target(a, t, l, NULL, &target) && target.unit == unit && target.index == index &&
           target.base != v7) {
         fm1_seq_cmd_t cmd;
         const int64_t arg[3] = { t, l, v7 };
