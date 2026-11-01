@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <pthread.h>
+#include <sched.h>
 
 static fm1_app_t reference;
 static unsigned char reference_sound[LUNAR_DIAGNOSTIC_ARENA_BYTES] FM1_APP_ALIGN16;
@@ -183,6 +185,14 @@ static void projection(void) {
   assert(a->frames==reference.frames && a->mode==reference.mode);
   assert(!memcmp(a->tft.px,reference.tft.px,sizeof reference.tft.px));
   assert(!a->store_ready && !reference.store_ready);
+  assert(!memcmp(a->key_note,reference.key_note,sizeof a->key_note));
+  assert(!memcmp(a->led,reference.led,sizeof a->led));
+  assert(a->scope_pos==reference.scope_pos && a->scope_block==reference.scope_block);
+  assert(!memcmp(a->scope,reference.scope,sizeof a->scope));
+  for(unsigned u=0;u<FM1_APP_UNITS;++u) {
+    assert(a->unit[u].index==reference.unit[u].index);
+    assert(!memcmp(a->unit[u].value,reference.unit[u].value,sizeof a->unit[u].value));
+  }
   fm1_dx7_budget_stats_t stats;
   assert(fm1_dx7_get_budget_stats(a->unit[0].self,&stats) && stats.limit==8);
 }
@@ -228,6 +238,14 @@ static void actual_panel_transport(void) {
   for(unsigned n=0;n<400;++n) step();
   matrix(1001,10,0); step();
   matrix(1002,8,1); matrix(1002,8,0); step();
+  /* SEQ editing with held REC and note/step keys, then PLAY/STOP. */
+  matrix(1050,11,1); matrix(1051,11,0); step();
+  matrix(1052,13,1); matrix(1053,18,1); step();
+  matrix(1054,18,0); matrix(1055,13,0); step();
+  matrix(1056,12,1); matrix(1057,12,0); step();
+  for(unsigned n=0;n<16;++n) step();
+  matrix(1058,12,1); matrix(1059,12,0); step();
+  matrix(1060,8,1); matrix(1061,8,0); step();
   /* Real SAVE uses the existing no-store refusal; no persistence adapter. */
   matrix(1100,9,1); matrix(1101,9,0); step();
   assert(!lunar_diagnostic_state()->store_ready);
@@ -288,6 +306,66 @@ static void transport_guards(void) {
   assert(lunar_transport_irq(&q[8],out)==-1); zeros(out);
   printf("transport guard proof passed\n");
 }
+
+/* Real host threads exercise publication visibility independently of the
+ * deterministic actual-app oracle. This is not a target IRQ timing test. */
+static lunar_transport_t stress;
+static lunar_input_t stress_input[16];
+static lunar_pcm_t stress_pcm[4];
+static _Atomic unsigned stress_done;
+static unsigned stress_applied, stress_rendered;
+static void *capture_thread(void *unused) {
+  (void)unused;
+  for(unsigned n=0;n<10000;++n) {
+    while(atomic_load_explicit(&stress.input_head,memory_order_acquire)-
+          atomic_load_explicit(&stress.input_tail,memory_order_acquire)>=16) sched_yield();
+    assert(lunar_transport_matrix(&stress,n,14,n&1)==1);
+  }
+  return NULL;
+}
+static void *irq_thread(void *unused) {
+  (void)unused; unsigned received=0;
+  int32_t out[LUNAR_PCM_WORDS];
+  for(;;) {
+    int r=lunar_transport_irq(&stress,out);
+    assert(r>=0);
+    if(r) {
+      for(unsigned i=0;i<LUNAR_PCM_WORDS;++i) assert(out[i]==(int32_t)(received*128+i));
+      ++received;
+    } else {
+      zeros(out);
+      if(atomic_load_explicit(&stress_done,memory_order_acquire) &&
+         atomic_load(&stress.pcm_head)==atomic_load(&stress.pcm_tail)) break;
+      sched_yield();
+    }
+  }
+  return (void *)(uintptr_t)received;
+}
+static int stress_apply(void *unused,const lunar_input_t *e) {
+  (void)unused;
+  assert(e->scan==stress_applied && e->kind==LUNAR_INPUT_KEY && !e->id);
+  assert(e->value==(int)(stress_applied&1)); ++stress_applied; return 0;
+}
+static int stress_render(void *unused,int32_t *pcm) {
+  (void)unused;
+  for(unsigned i=0;i<LUNAR_PCM_WORDS;++i) pcm[i]=(int32_t)(stress_rendered*128+i);
+  ++stress_rendered; return 0;
+}
+static void concurrency(void) {
+  pthread_t capture,irq; void *received;
+  assert(!lunar_transport_init(&stress,stress_input,16,stress_pcm,4,UINT32_MAX-8));
+  assert(!pthread_create(&capture,NULL,capture_thread,NULL));
+  assert(!pthread_create(&irq,NULL,irq_thread,NULL));
+  while(stress_applied<10000 || stress_rendered<10000) {
+    assert(lunar_transport_produce(&stress,8,stress_apply,stress_render,NULL)>=0);
+    sched_yield();
+  }
+  assert(!pthread_join(capture,NULL));
+  atomic_store_explicit(&stress_done,1,memory_order_release);
+  assert(!pthread_join(irq,&received));
+  assert((uintptr_t)received==stress_rendered && stress_applied==10000);
+  printf("SPSC publication passed inputs=%u blocks=%u\n",stress_applied,stress_rendered);
+}
 int main(void) {
-  display_guards(); actual_app_display(); transport_guards(); actual_panel_transport(); return 0;
+  display_guards(); actual_app_display(); transport_guards(); actual_panel_transport(); concurrency(); return 0;
 }
