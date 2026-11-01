@@ -266,7 +266,7 @@ typedef struct fm1_state_report {
                                  "planned", "retired"), "" when no list names it */
   char near[44];              /* the source's first 40 characters there */
   uint32_t near_at;           /* where `near` starts: the member's key, or the offset */
-  uint32_t skipped;           /* members, names and values left out (unknown or unresolvable) */
+  uint32_t skipped;           /* omitted members/names/values, including nonempty newer-chunk tails */
   uint32_t repaired;          /* values clamped, text stripped or cut */
   uint32_t defaulted;         /* values a writer filled in with their default */
   uint32_t unknown;           /* engines and kinds not in this build (UNKNOWN unless allowed) */

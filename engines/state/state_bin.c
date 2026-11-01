@@ -1708,6 +1708,9 @@ int fm1_state_bin_read(fm1_src_read_t rd, void *rctx, uint32_t total, fm1_rec_si
     if (c.left) {
       if (get16(e + 4) == 1u) return bbad(&b, "a chunk longer than its contents");
       if (!cs_skip(&c, c.left)) return bbad(&b, "a chunk ends early");
+      /* Forward-compatible decoding omitted one extension, even though its
+       * known records remain usable. Strict callers must see that loss. */
+      ++rep->skipped;
     }
     if (c.deflated && !fm1_inflate_done(&z)) {
       uint8_t t;

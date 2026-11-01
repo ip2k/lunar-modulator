@@ -77,3 +77,15 @@ on pi32v2 (host alignment absorbs it). Same two unchanged reader warnings;
 -fstack-usage still unsupported. Exact dependency hashes and vendor disassembly
 are retained privately in target-ownership-evidence. This remains object-only
 proof, not a linked native/stack/inclusive-budget claim.
+
+## Forward-tail accounting (from a4f55fdd, salvaged 2026-11-14)
+
+A future known UNIT version with a nonempty extension tail was accepted with
+`skipped=0`. The C reader and its Python mirror now count one `skipped` for
+each nonempty newer-chunk tail they skip. Known records and the
+forward-compatible OK status stay as they were; extra bytes in a version-1
+chunk are still refused. Strict callers that allow no soft loss can now reject
+such files. Only the report changes, for content that was already discarded
+silently. [reported: a4f55fdd's note, which also compared the workspace reader
+API; that API is not on main, so the salvaged probe checks the one reader API
+main has, `fm1_state_bin_read`, against the Python reader]
