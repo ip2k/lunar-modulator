@@ -1,0 +1,470 @@
+# SPDX-License-Identifier: MIT
+"""The private adapter only packages an exact trusted-wrapper result."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+
+import pytest
+
+from tools.installer_service import private_package_candidate as adapter
+from tools.installer_service.api import WorkerResult, canonical_request
+from tools.jieli import trusted_fwsc_package as packager
+from tools.jieli.trusted_fwsc_package import HASH_FIELDS, TUPLE_KEYS
+
+
+@pytest.fixture(autouse=True)
+def no_real_docker_cancellation(monkeypatch):
+    # Wrapper fixtures are harmless Python scripts; no Docker daemon is contacted.
+    monkeypatch.setattr(adapter, "cancel_owned_container", lambda *_args, **_kwargs: True)
+
+
+def _write(path: Path, raw: bytes):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(raw)
+
+
+def _trusted_output(output: Path, catalogue_root: Path, request: bytes, source_commit: str,
+                    app: bytes, elf: bytes):
+    build = output / "build"
+    generated = b"generated-input"
+    generated_source = b"/* generated link source */\n"
+    catalogue = b"catalogue-object"
+    files = {
+        "selection/request.json": request,
+        "selection/prepared/profile.json": b"prepared-profile",
+        "selection/staged/profile.json": b"source-profile",
+        "link/artifact/artifact.json": b"artifact-receipt",
+        "link/verification.json": b"build-receipt",
+        "image.json": b"image-receipt",
+        "link/artifact/app.bin": app,
+        "link/lunar-app-probe.elf": elf,
+        "link/generated.cc": generated,
+        "link/gfx.c": generated_source,
+    }
+    for relative, raw in files.items():
+        _write(build / relative, raw)
+    catalogue_path = catalogue_root / "object.o"
+    _write(catalogue_path, catalogue)
+    catalogue_manifest = {"schema": 1, "objects": [{
+        "path": "/catalogue/object.o", "sha256": hashlib.sha256(catalogue).hexdigest()}]}
+    catalogue_raw = json.dumps(catalogue_manifest, sort_keys=True, separators=(",", ":")).encode()
+    _write(build / "catalogue-manifest.json", catalogue_raw)
+    generated_rows = [
+        {"path": "link/generated.cc", "sha256": hashlib.sha256(generated).hexdigest()},
+        {"path": "link/gfx.c", "sha256": hashlib.sha256(generated_source).hexdigest()},
+    ]
+    provenance = {"source_commit": source_commit,
+                  "module_and_generated_inputs": generated_rows,
+                  "generated_link_resources": generated_rows,
+                  "generated_link_source_inventory": {
+                      "schema": 1, "paths": ["link/gfx.c"],
+                      "bytes": len(generated_source),
+                  }}
+    provenance_raw = json.dumps(provenance, sort_keys=True, separators=(",", ":")).encode()
+    _write(build / "build-provenance.json", provenance_raw)
+    tuple_value = {key: "e" * 64 for key in HASH_FIELDS}
+    tuple_value.update({"schema": 2, "profile_id": "fm1-092-d7000",
+                        "flash_layout": "expanded-d7000", "app_bytes": len(app),
+                        "application_identity": "FM-1_500", "recovery_identity": "FM-1_000",
+                        "runtime_mode": "continuous", "hardware_admitted": False,
+                        "hardware_tested": False, "installable": False,
+                        "tuple_id": "continuous-test-shape"})
+    tuple_value.update(catalogue_sha256=hashlib.sha256(catalogue_raw).hexdigest(),
+                       source_tree_sha256="d" * 64,
+                       request_sha256=hashlib.sha256(request).hexdigest(),
+                       app_sha256=hashlib.sha256(app).hexdigest(),
+                       elf_sha256=hashlib.sha256(elf).hexdigest(),
+                       build_provenance_sha256=hashlib.sha256(provenance_raw).hexdigest())
+    assert set(tuple_value) == TUPLE_KEYS and "source_commit" not in tuple_value
+    tuple_raw = json.dumps(tuple_value,
+                           sort_keys=True, separators=(",", ":")).encode()
+    _write(build / "build_tuple.json", tuple_raw)
+    capture = {"tuple_sha256": hashlib.sha256(tuple_raw).hexdigest(),
+               "provenance_sha256": hashlib.sha256(provenance_raw).hexdigest(),
+               "catalogue_sha256": hashlib.sha256(catalogue_raw).hexdigest(),
+               "source_tree_sha256": "d" * 64,
+               "schema": 1,
+               "source_commit": source_commit,
+               "hardware_admitted": False, "hardware_tested": False,
+               "installable": False}
+    _write(build / "tuple-capture.json", json.dumps(capture).encode())
+
+
+def _request():
+    return canonical_request({
+        "version": 1, "engines": ["trio"], "effects": [], "midi": [],
+        "modulation": [], "project_ids": ["song-one"], "startup_index": 0,
+        "flash_layout": "expanded-d7000", "runtime_mode": "continuous",
+    })
+
+
+def _minimal_preview(app=b"preview-app", elf=b"preview-elf"):
+    return WorkerResult(app, b"service-receipt", elf, b"service-provenance", {"evidence": b"bytes"})
+
+
+def _wrapper_fixture(tmp_path, body):
+    source = tmp_path / "source"
+    _write(source / "tools/native/run_trusted_continuous_build.py", body.encode())
+    private = (tmp_path / "private").resolve()
+    private.mkdir(mode=0o700)
+    request = private / "service-request.json"
+    request.write_bytes(_request())
+    return source, private, (source, request, tmp_path, tmp_path, private / "trusted-build")
+
+
+def test_failed_wrapper_retains_private_binary_output_without_public_leakage(tmp_path):
+    _source, private, args = _wrapper_fixture(tmp_path,
+        "import os\nos.write(1, b'out\\x00')\nos.write(2, b'/private/secret tuple capture failed\\xff')\nraise SystemExit(7)\n")
+    request = args[1].read_bytes()
+    with pytest.raises(ValueError) as failure:
+        adapter._run_trusted_wrapper(*args)
+    assert str(failure.value) == "pinned trusted continuous wrapper refused or failed this request"
+    diagnostic = private / "trusted-wrapper-failure"
+    assert (diagnostic / "stdout.bin").read_bytes() == b"out\x00"
+    assert (diagnostic / "stderr.bin").read_bytes() == b"/private/secret tuple capture failed\xff"
+    metadata = json.loads((diagnostic / "failure.json").read_bytes())
+    assert metadata["reason"] == "nonzero_exit" and metadata["returncode"] == 7
+    for stream in ("stdout", "stderr"):
+        raw = (diagnostic / (stream + ".bin")).read_bytes()
+        assert metadata["streams"][stream] == {
+            "bytes": len(raw), "observed_bytes": len(raw), "truncated": False,
+            "capture": "prefix", "sha256": hashlib.sha256(raw).hexdigest()}
+    assert diagnostic.stat().st_mode & 0o777 == 0o700
+    assert all(path.stat().st_mode & 0o777 == 0o600 for path in diagnostic.iterdir())
+    assert args[1].read_bytes() == request
+    assert not (private / "candidate.fwsc").exists()
+
+
+def test_wrapper_large_dual_stream_failure_retains_bounded_prefixes(tmp_path):
+    cap = adapter.MAX_WRAPPER_LOG_BYTES
+    size = cap + 65537
+    _source, private, args = _wrapper_fixture(tmp_path,
+        f"import sys\nsys.stdout.buffer.write(b'x' * {size})\nsys.stderr.buffer.write(b'x' * {size})\nraise SystemExit(3)\n")
+    with pytest.raises(ValueError):
+        adapter._run_trusted_wrapper(*args)
+    diagnostic = private / "trusted-wrapper-failure"
+    metadata = json.loads((diagnostic / "failure.json").read_bytes())
+    for stream in ("stdout", "stderr"):
+        assert (diagnostic / (stream + ".bin")).read_bytes() == b"x" * cap
+        assert metadata["streams"][stream]["observed_bytes"] == size
+        assert metadata["streams"][stream]["truncated"] is True
+    assert sum(path.stat().st_size for path in diagnostic.iterdir()) < 2 * cap + 2048
+
+
+@pytest.mark.parametrize("destination", ["directory", "file", "symlink", "dangling-symlink"])
+def test_wrapper_refuses_preexisting_failure_destination_before_launch(tmp_path, destination):
+    _source, private, args = _wrapper_fixture(tmp_path,
+        "from pathlib import Path\nPath('launched').write_text('unexpected')\nraise SystemExit(1)\n")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    sentinel = outside / "sentinel"
+    sentinel.write_bytes(b"preserve")
+    diagnostic = private / "trusted-wrapper-failure"
+    if destination in ("symlink", "dangling-symlink"):
+        diagnostic.symlink_to(outside if destination == "symlink" else outside / "missing",
+                              target_is_directory=True)
+    elif destination == "file":
+        diagnostic.write_bytes(b"preserve")
+    else:
+        diagnostic.mkdir()
+    with pytest.raises(ValueError, match="^pinned trusted continuous wrapper refused or failed this request$"):
+        adapter._run_trusted_wrapper(*args)
+    assert not (_source / "launched").exists()
+    assert sentinel.read_bytes() == b"preserve"
+    assert list(outside.iterdir()) == [sentinel]
+    if destination == "file":
+        assert diagnostic.read_bytes() == b"preserve"
+
+
+def test_successful_wrapper_does_not_retain_failure_output(tmp_path):
+    _source, private, args = _wrapper_fixture(tmp_path,
+        "import os\nos.write(1, b'output')\nos.write(2, b'warning')\n")
+    adapter._run_trusted_wrapper(*args)
+    assert not (private / "trusted-wrapper-failure").exists()
+    assert set(private.iterdir()) == {args[1], private / "trusted-wrapper-owner.json"}
+    assert (private / "trusted-wrapper-owner.json").stat().st_mode & 0o777 == 0o600
+
+
+@pytest.mark.parametrize("root_kind", ["missing", "unsafe", "symlink"])
+def test_wrapper_root_refusal_is_generic_and_does_not_launch(tmp_path, root_kind):
+    source, private, args = _wrapper_fixture(tmp_path,
+        "from pathlib import Path\nPath('launched').touch()\n")
+    if root_kind == "missing":
+        args[1].unlink()
+        private.rmdir()
+    elif root_kind == "unsafe":
+        private.chmod(0o755)
+    else:
+        real = tmp_path / "real-private"
+        private.rename(real)
+        private.symlink_to(real, target_is_directory=True)
+    with pytest.raises(ValueError, match="^pinned trusted continuous wrapper refused or failed this request$") as failure:
+        adapter._run_trusted_wrapper(*args)
+    assert failure.value.__cause__ is None
+    assert not (source / "launched").exists()
+
+
+def test_wrapper_cannot_redirect_failure_retention_from_inside_child(tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    _source, private, args = _wrapper_fixture(tmp_path,
+        "from pathlib import Path\nimport sys\n"
+        f"(Path(sys.argv[-1]).parent / 'trusted-wrapper-failure').symlink_to({str(outside)!r}, target_is_directory=True)\n"
+        "print('/private/secret', file=sys.stderr)\nraise SystemExit(2)\n")
+    with pytest.raises(ValueError, match="^pinned trusted continuous wrapper refused or failed this request$"):
+        adapter._run_trusted_wrapper(*args)
+    assert (private / "trusted-wrapper-failure").is_symlink()
+    assert list(outside.iterdir()) == []
+
+
+def test_service_preview_must_match_trusted_wrapper_outputs_before_packaging(tmp_path, monkeypatch):
+    request = _request()
+    source_commit = "a" * 40
+    source = tmp_path / "source"
+    source.mkdir()
+    (tmp_path / "restricted").mkdir(mode=0o700)
+    catalogue = tmp_path / "catalogue"
+    catalogue.mkdir()
+    toolchain = tmp_path / "toolchain"
+    toolchain.mkdir()
+    source_fwsc = tmp_path / "source.fwsc"
+    source_fwsc.write_bytes(b"model")
+    reference = tmp_path / "reference"
+    reference.mkdir()
+
+    monkeypatch.setattr(adapter, "_require_native_capabilities", lambda *_: None)
+    monkeypatch.setattr(adapter, "_verify_source_binding", lambda *_args: None)
+    monkeypatch.setattr(adapter, "_validate_preview", lambda *_args: {
+        "artifact_sha256": hashlib.sha256(b"preview-app").hexdigest(),
+        "elf_sha256": hashlib.sha256(b"preview-elf").hexdigest(),
+    })
+    wrapper_calls = []
+
+    def fake_wrapper(_source, request_path, _toolchain, catalogue_root, output):
+        wrapper_calls.append(Path(request_path).read_bytes())
+        _trusted_output(Path(output), Path(catalogue_root), request, source_commit,
+                        b"different-app", b"preview-elf")
+
+    monkeypatch.setattr(adapter, "_run_trusted_wrapper", fake_wrapper)
+    with pytest.raises(ValueError, match="preview app/ELF differs"):
+        adapter.compose_private_candidate(
+            request_raw=request, service_result=_minimal_preview(),
+            service_image_digest=adapter.SERVICE_IMAGE_DIGEST, set_parents={},
+            source_root=source, expected_source_commit=source_commit,
+            toolchain_root=toolchain, catalogue_root=catalogue,
+            source_fwsc=source_fwsc, reference_dir=reference,
+            private_run_dir=tmp_path / "restricted" / "run")
+    assert wrapper_calls == [request]
+    assert not (tmp_path / "restricted/run/candidate.fwsc").exists()
+
+
+def test_candidate_writes_only_false_status_receipt_from_trusted_packager(tmp_path, monkeypatch):
+    request = _request()
+    source_commit = "b" * 40
+    source = tmp_path / "source"
+    source.mkdir()
+    restricted = tmp_path / "restricted"
+    restricted.mkdir(mode=0o700)
+    catalogue = tmp_path / "catalogue"
+    catalogue.mkdir()
+    toolchain = tmp_path / "toolchain"
+    toolchain.mkdir()
+    source_fwsc = tmp_path / "source.fwsc"
+    source_fwsc.write_bytes(b"model")
+    reference = tmp_path / "reference"
+    reference.mkdir()
+
+    monkeypatch.setattr(adapter, "_require_native_capabilities", lambda *_: None)
+    monkeypatch.setattr(adapter, "_verify_source_binding", lambda *_args: None)
+    monkeypatch.setattr(adapter, "_validate_preview", lambda *_args: {
+        "artifact_sha256": hashlib.sha256(b"same-app").hexdigest(),
+        "elf_sha256": hashlib.sha256(b"same-elf").hexdigest(),
+    })
+    monkeypatch.setattr(adapter, "_run_trusted_wrapper",
+                        lambda _source, _request, _toolchain, catalogue, output:
+                        _trusted_output(Path(output), Path(catalogue), request, source_commit,
+                                        b"same-app", b"same-elf"))
+
+    package_report = {key: False for key in (
+        "hardware_admitted", "hardware_tested", "installable",
+        "updater_acceptance_verified", "release_admitted")}
+    monkeypatch.setattr("tools.jieli.trusted_fwsc_package.package_bytes",
+                        lambda **_kwargs: (b"private-candidate", package_report))
+    receipt = adapter.compose_private_candidate(
+        request_raw=request, service_result=_minimal_preview(b"same-app", b"same-elf"),
+        service_image_digest=adapter.SERVICE_IMAGE_DIGEST, set_parents={},
+        source_root=source, expected_source_commit=source_commit,
+        toolchain_root=toolchain, catalogue_root=catalogue,
+        source_fwsc=source_fwsc, reference_dir=reference,
+        private_run_dir=restricted / "run")
+    candidate = restricted / "run/candidate.fwsc"
+    assert candidate.read_bytes() == b"private-candidate"
+    assert os.stat(candidate).st_mode & 0o777 == 0o600
+    assert receipt["service_preview_matches_trusted_build"] is True
+    assert all(receipt[key] is False for key in (
+        "hardware_admitted", "hardware_tested", "installable",
+        "updater_acceptance_verified", "release_admitted"))
+
+
+def test_private_adapter_requires_canonical_continuous_d7000_request():
+    request = json.loads(_request())
+    request["flash_layout"] = "expanded-d9000"
+    raw = json.dumps(request, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+    with pytest.raises(ValueError, match="explicit continuous D7000"):
+        adapter._validate_request(raw)
+
+
+def test_service_image_pin_is_the_configured_worker_image():
+    from tools.installer_service.docker_adapter import _IMAGE_ID
+
+    assert adapter.SERVICE_IMAGE_DIGEST == _IMAGE_ID
+    assert adapter.SERVICE_IMAGE_DIGEST == "sha256:bcffae0f43893343df2c5ec1a0e53458682cc421f1e33ec7802a98482afd3495"
+
+
+def test_trusted_catalogue_loader_accepts_retained_schema2_shape_without_stripping_metadata():
+    retained_row = {
+        "optimization": "-Oz",
+        "path": "/catalogue/shard-00/obj/c/seq/fx_host.o",
+        "sha256": "aeb1075514383489d05ad788fb50440bddc4f4296e3782203b962a1fe3a9860f",
+    }
+    manifest = {"schema": 2, "objects": [retained_row]}
+    assert adapter._catalogue_rows(manifest) == [retained_row]
+    assert manifest["objects"][0] == retained_row
+
+    legacy = {"schema": 1, "objects": [{key: value for key, value in retained_row.items()
+                                          if key != "optimization"}]}
+    assert adapter._catalogue_rows(legacy) == legacy["objects"]
+    for invalid in (
+        {"schema": 1, "objects": [retained_row]},
+        {"schema": 2, "objects": [legacy["objects"][0]]},
+        {"schema": True, "objects": [retained_row]},
+        {"schema": 2, "objects": [dict(retained_row, extra="x")]},
+    ):
+        with pytest.raises(ValueError):
+            adapter._catalogue_rows(invalid)
+
+
+def test_trusted_generated_input_cannot_escape_build_root(tmp_path):
+    request = _request()
+    output = tmp_path / "trusted"
+    output.mkdir()
+    build = output / "build"
+    external = tmp_path / "external"
+    external.mkdir()
+    _write(external / "generated.cc", b"outside")
+    _trusted_output(output, tmp_path / "catalogue", request, "c" * 40,
+                    b"app", b"elf")
+    (build / "link").rename(build / "link-original")
+    (build / "link").symlink_to(external, target_is_directory=True)
+    with pytest.raises(ValueError, match="parent is missing or unsafe"):
+        adapter._load_trusted_package_inputs(output, tmp_path / "catalogue", "c" * 40)
+
+
+def test_trusted_loader_and_packager_accept_tuple_bound_generated_source_rows(tmp_path):
+    request = _request()
+    output = tmp_path / "trusted"
+    output.mkdir()
+    _trusted_output(output, tmp_path / "catalogue", request, "c" * 40,
+                    b"app", b"elf")
+    values = adapter._load_trusted_package_inputs(output, tmp_path / "catalogue", "c" * 40)
+    provenance = json.loads(values["build_provenance"])
+    assert values["generated_files"]["link/gfx.c"] == b"/* generated link source */\n"
+    packager._validate_provenance_rows(
+        provenance, "module_and_generated_inputs", values["generated_files"])
+
+
+def test_special_file_input_is_rejected_without_blocking(tmp_path):
+    fifo = tmp_path / "input.fifo"
+    os.mkfifo(fifo)
+    with pytest.raises(ValueError, match="bounded regular file"):
+        adapter._read_regular(fifo, 1024)
+
+
+def test_source_binding_requires_clean_pinned_commit_and_archive(tmp_path):
+    source = tmp_path / "source"
+    source.mkdir()
+    subprocess.run(["git", "init", "-q", str(source)], check=True)
+    (source / "pinned.txt").write_text("source\n")
+    subprocess.run(["git", "-C", str(source), "add", "pinned.txt"], check=True)
+    subprocess.run(["git", "-C", str(source), "-c", "user.name=Test",
+                    "-c", "user.email=test@example.invalid", "commit", "-qm", "pin"], check=True)
+    commit = subprocess.run(["git", "-C", str(source), "rev-parse", "HEAD"],
+                            check=True, text=True, stdout=subprocess.PIPE).stdout.strip()
+    tree = subprocess.run(["git", "-C", str(source), "rev-parse", "HEAD^{tree}"],
+                          check=True, text=True, stdout=subprocess.PIPE).stdout.strip()
+    archive = subprocess.run(["git", "-C", str(source), "archive", "--format=tar", commit],
+                             check=True, stdout=subprocess.PIPE).stdout
+    provenance = {"bindings": {
+        "source_commit": commit, "source_tree_oid": tree,
+        "source_archive_sha256": hashlib.sha256(archive).hexdigest(),
+    }}
+    result = _minimal_preview()
+    result = WorkerResult(result.artifact, result.receipt, result.elf,
+                          json.dumps(provenance).encode(), result.private_evidence)
+    adapter._verify_source_binding(source, commit, result)
+    (source / "pinned.txt").write_text("changed\n")
+    with pytest.raises(ValueError, match="dirty or differs"):
+        adapter._verify_source_binding(source, commit, result)
+
+
+def test_wrapper_timeout_retains_private_diagnostics_and_generic_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(adapter, "WRAPPER_TIMEOUT_SECONDS", 0.2)
+    _source, private, args = _wrapper_fixture(tmp_path,
+        "import os,time\nos.write(2, b'/private/secret timeout')\ntime.sleep(30)\n")
+    with pytest.raises(ValueError, match="^pinned trusted continuous wrapper refused or failed this request$"):
+        adapter._run_trusted_wrapper(*args)
+    diagnostic = private / "trusted-wrapper-failure"
+    metadata = json.loads((diagnostic / "failure.json").read_bytes())
+    assert metadata["reason"] == "timeout"
+    assert metadata["returncode"] != 0
+    assert (diagnostic / "stderr.bin").read_bytes() == b"/private/secret timeout"
+    assert not (private / "candidate.fwsc").exists()
+
+
+@pytest.mark.parametrize("body, timeout", [("raise SystemExit(7)\n", 1),
+                                         ("import time\ntime.sleep(30)\n", 0.15)])
+def test_wrapper_parent_cancels_its_exact_generated_name_on_failure(tmp_path, monkeypatch, body, timeout):
+    _source, _private, args = _wrapper_fixture(tmp_path, body)
+    monkeypatch.setattr(adapter, "WRAPPER_TIMEOUT_SECONDS", timeout)
+    commands, canceled = [], []
+    real_capture = adapter.run_bounded
+    def capture(command, **bounds):
+        commands.append(command)
+        return real_capture(command, **bounds)
+    monkeypatch.setattr(adapter, "run_bounded", capture)
+    monkeypatch.setattr(adapter, "cancel_owned_container", lambda name, **_kw: canceled.append(name) or True)
+    with pytest.raises(ValueError, match="pinned trusted"):
+        adapter._run_trusted_wrapper(*args)
+    assert len(canceled) == 1
+    assert __import__("re").fullmatch(r"lunar-continuous-[0-9a-f]{24}", canceled[0])
+    assert commands[0][commands[0].index("--container-name") + 1] == canceled[0]
+    owner = json.loads((_private / "trusted-wrapper-owner.json").read_bytes())
+    assert owner["container_name"] == canceled[0]
+    assert owner["owner_label"] == {"lan.owner": canceled[0]}
+
+
+def test_wrapper_capture_exception_still_attempts_exact_owned_cancellation(tmp_path, monkeypatch):
+    _source, _private, args = _wrapper_fixture(tmp_path, "raise AssertionError('must not execute')\n")
+    canceled = []
+    monkeypatch.setattr(adapter, "run_bounded", lambda *_args, **_kw: (_ for _ in ()).throw(OSError("capture unavailable")))
+    monkeypatch.setattr(adapter, "cancel_owned_container", lambda name, **_kw: canceled.append(name) or True)
+    with pytest.raises(ValueError, match="pinned trusted"):
+        adapter._run_trusted_wrapper(*args)
+    assert len(canceled) == 1
+
+
+def test_composer_current_native_capabilities_fail_closed_before_capture(tmp_path, monkeypatch):
+    from tools.installer_service import server
+
+    audit = tmp_path / "tools/jieli/audit_link.py"
+    audit.parent.mkdir(parents=True)
+    audit.write_text("def audit(elves, flat_images, linked, sources=None, runtime='sdk'):\n    pass\n")
+    monkeypatch.setattr(server, "check_native_prerequisites",
+                        lambda *_: pytest.fail("audit must refuse before native prerequisites"))
+    monkeypatch.setattr(adapter, "run_bounded", lambda *_args, **_kw: pytest.fail("must not launch native wrapper"))
+    with pytest.raises(ValueError, match="native audit prerequisites are unavailable") as failure:
+        adapter._require_native_capabilities(tmp_path, "a" * 40)
+    for missing in ("relative_call_payloads", "stub_call_boundary_patterns", "--objdump"):
+        assert missing in str(failure.value)

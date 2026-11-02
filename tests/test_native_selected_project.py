@@ -1,0 +1,182 @@
+"""Offline selected Trio record refusal and current-app oracle.
+
+The normal path links this checkout's bounded binary reader. During its
+separate review only, LUNAR_SELECTED_PARSER_ROOT and _HEAD may point to an
+exact frozen sibling source; that result is provisional, not accepted CI.
+Build products live under pytest's caller-selected basetemp and are removable.
+"""
+import copy
+import hashlib
+import os
+from pathlib import Path
+import struct
+import subprocess
+import zlib
+
+from tools import lunar_state as state
+from tools.native.prepare_selected_project import prepare
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / "engines/state/examples/init-starters/trio-init.lunar"
+SOURCE_SHA256 = "46541967e4fa7321f4efe1105632de3613064a2fbcf7d71490cb647247a97c1b"
+PACKED_SHA256 = "dc3c50d8da761fdfe36d17e1368d99f40740652192f14649230a9f8d7e3d58d4"
+
+
+def _with_unsupported_binary_data(packed, *, kind):
+    """Keep all known records intact while adding one valid skipped item."""
+    header = bytearray(packed[:32])
+    count = struct.unpack_from("<H", header, 14)[0]
+    assert struct.unpack_from("<HH", header, 12)[0] == 32
+    assert struct.unpack_from("<H", header, 16)[0] == 20
+    entries = []
+    unit_tail_added = False
+    for i in range(count):
+        tag, version, flags, offset, size, _crc = struct.unpack_from(
+            "<4sHHIII", packed, 32 + 20 * i
+        )
+        payload = packed[offset:offset + size]
+        if tag == b"info" and kind == "unknown-info-key":
+            data = bytearray(payload)
+            struct.pack_into("<H", data, 0, struct.unpack_from("<H", data, 0)[0] + 1)
+            data += struct.pack("<HBBH", 999, 1, 0, 0)
+            payload = bytes(data)
+        if tag == b"UNIT" and kind == "newer-unit-tail" and not unit_tail_added:
+            version += 1
+            payload += b"\x7f"
+            unit_tail_added = True
+        entries.append((tag, version, flags, payload))
+    if kind == "unknown-ancillary":
+        entries.append((b"xtra", 1, 0, b"junk"))
+    if kind == "newer-unit-tail":
+        assert unit_tail_added
+    struct.pack_into("<H", header, 14, len(entries))
+    directory = bytearray()
+    chunks = bytearray()
+    first = (32 + len(entries) * 20 + 4 + 3) & ~3
+    for tag, version, flags, payload in entries:
+        chunks += bytes((-len(chunks)) & 3)
+        offset = first + len(chunks)
+        directory += struct.pack("<4sHHIII", tag, version, flags, offset,
+                                 len(payload), zlib.crc32(payload))
+        chunks += payload
+    total = first + len(chunks)
+    struct.pack_into("<I", header, 20, total)
+    struct.pack_into("<I", header, 28, zlib.crc32(header[:28]))
+    return bytes(header + directory + struct.pack("<I", zlib.crc32(directory)) + chunks)
+
+
+def _makefile(tmp_path):
+    sibling = os.environ.get("LUNAR_SELECTED_PARSER_ROOT")
+    selected_impl = Path(os.environ.get(
+        "LUNAR_SELECTED_IMPL_SOURCE", ROOT / "firmware/native/selected_project.c"
+    )).resolve()
+    if "LUNAR_SELECTED_IMPL_SOURCE" in os.environ:
+        assert hashlib.sha256(selected_impl.read_bytes()).hexdigest() == os.environ[
+            "LUNAR_SELECTED_IMPL_SHA256"
+        ]
+    rules = []
+    include = ""
+    if sibling:
+        parser = Path(sibling).resolve()
+        expected = os.environ["LUNAR_SELECTED_PARSER_HEAD"]
+        actual = subprocess.run(["git", "-C", str(parser), "rev-parse", "HEAD"],
+                                check=True, text=True, capture_output=True).stdout.strip()
+        assert actual == expected
+        state_dir = parser / "engines/state"
+        assert (state_dir / "state_bin.c").is_file()
+        include = f"-I{state_dir} "
+        rules += [
+            f"PARSER := {state_dir}",
+            "$(BUILD)/state/state/state_bin.o: $(PARSER)/state_bin.c",
+            "\t@mkdir -p $(dir $@)",
+            "\t$(CC) $(STATE_CFLAGS) -I$(PARSER) -c $< -o $@",
+        ]
+    rules += [
+        f"PROOF := {ROOT}",
+        f"PROOF_BLOB := {tmp_path / 'prepared'}",
+        f"$(BUILD)/proof/selected_project.o: {selected_impl}",
+        "\t@mkdir -p $(dir $@)",
+        f"\t$(CC) $(SIM_CFLAGS) {include}-I$(PROOF)/engines/state -I$(PROOF)/firmware/native -c $< -o $@",
+        "$(BUILD)/proof/check.o: $(PROOF)/tests/fixtures/selected_project/check.c",
+        "\t@mkdir -p $(dir $@)",
+        f"\t$(CC) $(SIM_CFLAGS) {include}-I$(PROOF_BLOB) -I$(PROOF)/engines/state -I$(PROOF)/firmware/native -c $< -o $@",
+        "$(BUILD)/proof/selected_project_blob.o: $(PROOF_BLOB)/selected_project_blob.c",
+        "\t@mkdir -p $(dir $@)",
+        "\t$(CC) $(SIM_CFLAGS) -I$(PROOF_BLOB) -c $< -o $@",
+        "$(BUILD)/proof-check: $(SIM_APP_OBJ) $(SIM_ENGINE_OBJ) $(SIM_META_OBJ) "
+        "$(BUILD)/proof/selected_project.o $(BUILD)/proof/selected_project_blob.o $(BUILD)/proof/check.o",
+        "\t$(CXX) $(OPT) $(EXTRA) -o $@ $^ -lm -pthread",
+    ]
+    path = tmp_path / "proof.mk"
+    path.write_text("\n".join(rules) + "\n")
+    return path
+
+
+def test_native_selected_trio_matches_current_app_and_refuses_extra_records(tmp_path):
+    build = tmp_path / "build"
+    fragment = _makefile(tmp_path)
+    render, proof = build / "fm1-render", build / "proof-check"
+    local_tool = build / "fm1-state"
+    strict_tool = Path(os.environ.get("LUNAR_SELECTED_STRICT_TOOL", local_tool))
+    expected_tool_hash = os.environ.get("LUNAR_SELECTED_STRICT_SHA256")
+    base_cmd = [
+        "make", "-s", "-C", str(ROOT / "engines"), "-f", "Makefile",
+        "-f", str(ROOT / "sim/web/mk/sim.mk"), "-f", str(fragment),
+        f"SIM={ROOT / 'sim/web'}", f"BUILD={build}",
+        "FM1_MODULES=trio", "FM1_GPL_MODS=1", "FM1_DX7_SINE=trunc12",
+        "OPT=-O1", "EXTRA=-DFM1_APP_EXTERNAL_ARENAS=1 -DFM1_APP_STATE_EXTERNAL_WORKSPACE=1",
+        "-j4",
+    ]
+    subprocess.run([*base_cmd, str(render), *([] if strict_tool != local_tool else [str(local_tool)])],
+                   check=True, timeout=300)
+    if expected_tool_hash:
+        assert hashlib.sha256(strict_tool.read_bytes()).hexdigest() == expected_tool_hash
+    receipt = prepare(render, strict_tool, tmp_path / "prepared")
+    assert receipt["packed_sha256"] == PACKED_SHA256
+    assert not receipt["installable"] and not receipt["hardware_admitted"]
+    subprocess.run([*base_cmd, str(proof)], check=True, timeout=300)
+
+    source = SOURCE.read_bytes()
+    assert hashlib.sha256(source).hexdigest() == SOURCE_SHA256
+    names = state.Names.from_build(render)
+    records, report = state.read_json(source, names)
+    assert report.code == "OK"
+    assert (report.skipped, report.repaired, report.unknown) == (0, 0, 0)
+    assert len([r for r in records if r["rec"] == "param"]) == 14
+    packed = (tmp_path / "prepared/selected_project.bin").read_bytes()
+    assert packed == state.write_bin(records, deflate_chunks=False)
+    assert hashlib.sha256(packed).hexdigest() == PACKED_SHA256
+    accepted = tmp_path / "trio.lunarbin"
+    accepted.write_bytes(packed)
+
+    mutations = {
+        "missing-param": [r for r in records if not (r["rec"] == "param" and r["uid"] == 14)],
+        "extra-info": records[:2] + [{"rec": "info", "key": "author", "text": "x"}] + records[2:],
+        "wrong-engine": [{**r, "engine": "macro"} if r["rec"] == "unit" and r["engine"] == "trio"
+                         else r for r in records],
+        "out-of-range": [{**r, "f32": "4f000000"} if r["rec"] == "param" and r["uid"] == 6
+                         else r for r in records],
+        "missing-level": [r for r in records if r["rec"] != "level"],
+    }
+    refused = []
+    for label, changed in mutations.items():
+        data = state.write_bin(copy.deepcopy(changed), deflate_chunks=False)
+        reread, bin_report = state.read_bin(data)
+        assert bin_report.code == "OK" and reread
+        path = tmp_path / f"{label}.lunarbin"
+        path.write_bytes(data)
+        refused.append(path)
+    for label in ("unknown-ancillary", "unknown-info-key", "newer-unit-tail"):
+        data = _with_unsupported_binary_data(packed, kind=label)
+        reread, bin_report = state.read_bin(data)
+        assert bin_report.code == "OK"
+        if label != "newer-unit-tail":
+            assert bin_report.skipped == 1
+        assert len(reread) == len(records)
+        path = tmp_path / f"{label}.lunarbin"
+        path.write_bytes(data)
+        refused.append(path)
+    result = subprocess.run([str(proof), str(accepted), *(str(p) for p in refused)],
+                            check=True, capture_output=True, text=True, timeout=90)
+    assert "selected Trio proof passed: 14 params" in result.stdout
+    print(result.stdout, end="")

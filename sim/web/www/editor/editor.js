@@ -298,13 +298,17 @@ export async function startEditor(env) {
   // ---- the port, the snapshot and the change feed (§5, §7) ----------------------
   function attach() {
     if (!sim.node || st.node === sim.node) return;
-    st.node = sim.node;
+    if (st.port) detach();
+    const node = sim.node;
+    st.node = node;
     st.cpu = null;
     renderCpu();
     st.teleSig = '';
     const ch = new MessageChannel();
-    st.port = ch.port1;
-    st.port.onmessage = (e) => onPort(e.data);
+    const port = ch.port1;
+    st.port = port;
+    // An already queued old-port callback must not acknowledge new work.
+    port.onmessage = (e) => { if (st.port === port && st.node === node) onPort(e.data); };
     sim.node.port.postMessage({ type: 'editor-port', port: ch.port2 }, [ch.port2]);
     const floats = meta.doc.telemetry ? meta.doc.telemetry.floats : 0;
     for (let i = 0; i < 2 && floats; ++i) {
@@ -319,7 +323,15 @@ export async function startEditor(env) {
   }
   function detach() {
     if (st.port) st.port.close();
-    Object.assign(st, { port: null, node: null, mirror: null, ram: null, cpu: null, panelView: null });
+    // Pending work belongs to the closed audio session. Settle snapshot
+    // promises and invalidate their continuations before attaching another.
+    st.snapId++;
+    const waiting = [...st.snapWait.values()];
+    st.snapWait.clear();
+    st.tags.clear();
+    Object.assign(st, { port: null, node: null, mirror: null, ram: null, cpu: null, panelView: null,
+      inflight: 0, loading: false, pendingChanges: [], live: null, liveGen: -1 });
+    for (const resolve of waiting) resolve({ ok: false });
     render();
   }
 

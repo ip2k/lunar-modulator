@@ -253,6 +253,9 @@ def test_run_plays_with_the_transport(renderer, tmp_path, line_tool):
     first_tick = min(e["frame"] for e in seq if e["kind"] == "clock" and e["frame"] >= play)
     assert ev and ev[0]["t"] == first_tick and all(e["t"] >= play for e in ev)
     assert all(e["t"] <= stop for e in ev) and s["notes_hung"] == 0
+    # Run's origin is sequencer metadata in b's high byte. The JSON oracle
+    # reports MIDI velocity alone, including for sequencer-owned notes.
+    assert all(e["vel"] in (72, 118) for e in ev if e["k"] == "on")
     steps = tb3po(line_tool["vendored"])
     got = played(ev, first_tick)
     end = round((stop - first_tick) / TICK)
@@ -266,6 +269,20 @@ def test_root_and_scale_can_follow_the_project_key(renderer, tmp_path):
     _, _, maj = run_gen(renderer, tmp_path, ["Root=0", "Scale=0"], extra=["--key", "2:0"], name="maj")
     _, _, dmaj = run_gen(renderer, tmp_path, ["Root=3", "Scale=6"], name="dmaj")       # D major
     assert maj == dmaj and maj != own
+
+
+def test_run_stop_clears_a_downstream_arp_latch(renderer, tmp_path):
+    """Run's generated notes belong to transport through the next slot."""
+    play, stop = BOUND * 2, BOUND * 80
+    script = (f"#! rate={RATE} block=64 tracks=8 end={BOUND * 140}\n"
+              f"@{play} play\n@{stop} stop\n")
+    s, _, ev = mfx_run(renderer, tmp_path, [
+        "--engine", "test-sine", "--mfx", "0:acid-gen", "--mfx-param", "0:Keys=1",
+        "--mfx-param", "0:Density=100", "--mfx", "0:arp", "--mfx-param", "0:Latch=1",
+    ], script=script)
+    assert any(e["k"] == "on" for e in ev)
+    assert all(e["t"] <= stop for e in ev) and s["notes_hung"] == 0
+    assert all(0 < e["vel"] <= 127 for e in ev if e["k"] == "on")
 
 
 # ---- The contract ------------------------------------------------------------------------

@@ -313,6 +313,7 @@ const gr = await page.evaluate(async () => {
   return { key, k, rowReady: true };
 });
 report.gr = gr;
+check('the Limiter inspector exposes its Drive field for the gain-reduction check', gr.rowReady === true, gr);
 if (gr.rowReady) {
   // By the keyboard: focus the Drive slider and press End.
   const slider = page.locator('.ed-flow-insp .ed-row', { hasText: 'Drive' }).locator('[role="slider"]').first();

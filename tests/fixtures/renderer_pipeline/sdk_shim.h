@@ -7,6 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdatomic.h>
+typedef _Atomic uint32_t lunar_pipeline_word_t;
+typedef _Atomic int lunar_pipeline_status_t;
+static inline void port_fence(void) { atomic_thread_fence(memory_order_seq_cst); }
+#define LUNAR_PIPELINE_PORT_DEFINED 1
+#define LUNAR_PIPELINE_CORE_COLD
 #include <pthread.h>
 #include <time.h>
 #include <errno.h>
@@ -17,21 +22,37 @@ static pthread_t host_worker;
 static int host_created;
 static void (*host_entry)(void *);
 static void *host_argument;
+/* Failure injection for the actual core's lifecycle waits. No protocol model:
+ * stopped ms + a failing delay hook poisons CPU0 while the worker is retained. */
+void lunar_pipeline_refuse(uint32_t);
+static _Atomic unsigned host_stopped_ms,host_frozen_ms,host_delay_poison,host_delay_calls;
+static _Atomic unsigned host_suspend_worker,host_hold_exit;
 static uint64_t host_ns(void) {
     struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);
     return (uint64_t)(t.tv_sec-host_epoch.tv_sec)*UINT64_C(1000000000)+
         (uint64_t)t.tv_nsec-(uint64_t)host_epoch.tv_nsec;
 }
-static unsigned timer_get_ms(void) { return (unsigned)(host_ns()/1000000u); }
+static _Atomic unsigned host_ms_offset;
+static unsigned timer_get_ms(void) {
+    if(host_stopped_ms)return host_frozen_ms;
+    return (unsigned)(host_ns()/1000000u)+atomic_load(&host_ms_offset);
+}
 static unsigned current_cpu_id(void) { return host_cpu; }
 static void os_time_dly(unsigned ticks) {
+    if(host_cpu==0 && host_delay_poison) {
+        ++host_delay_calls;lunar_pipeline_refuse(701u);return;
+    }
     /* One host ms per fake tick keeps startup/parking bounded. NOT SDK cadence. */
     struct timespec t={(time_t)(ticks/1000u),(long)(ticks%1000u)*1000000L};
     while(nanosleep(&t,&t) && errno==EINTR){}
 }
-static unsigned uxTaskGetStackHighWaterMark(void *p) { (void)p;return 0; }
+static unsigned uxTaskGetStackHighWaterMark(void *p) {
+    (void)p;while(host_cpu==1 && host_hold_exit)os_time_dly(1);return 0;
+}
 static void *host_thread_entry(void *unused) {
-    (void)unused;host_cpu=1;host_entry(host_argument);return NULL;
+    (void)unused;host_cpu=1;
+    while(host_suspend_worker)os_time_dly(1);
+    host_entry(host_argument);return NULL;
 }
 static int os_task_create_static(void (*entry)(void *),void *arg,unsigned priority,
         unsigned stack,unsigned queue,const char *name,void *memory) {

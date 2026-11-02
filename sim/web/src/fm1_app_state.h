@@ -37,9 +37,10 @@
  *     in slots 2-4 are left out and counted as skipped.
  *
  * Sources are fm1_state.h's read callbacks, so RAM, a page's buffer and
- * flash look the same. The writer's memory (fm1_state_json_writer_size,
- * about 477 KB) and the buffers below are static: one save or load at a
- * time, on the thread that owns the app.
+ * flash look the same. Scratch is explicitly caller-owned below, or supplied
+ * by the legacy host wrappers: one synchronous operation at a time, on the
+ * thread that owns the app. The full codecs still need large workspaces;
+ * external ownership alone does not make persistence fit native RAM.
  *
  * C99. MIT licence, like the rest of this repository.
  */
@@ -52,6 +53,30 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Native builds may remove the legacy host default arena. Set consistently
+ * for the state implementation; the old save/pack/check/load wrappers then
+ * refuse before callbacks/output or app mutation. MIDI-map-only updates need
+ * no large workspace. This does not expose persistence in the native UI. */
+#ifndef FM1_APP_STATE_EXTERNAL_WORKSPACE
+#define FM1_APP_STATE_EXTERNAL_WORKSPACE 0
+#endif
+#if FM1_APP_STATE_EXTERNAL_WORKSPACE != 0 && FM1_APP_STATE_EXTERNAL_WORKSPACE != 1
+#error FM1_APP_STATE_EXTERNAL_WORKSPACE_must_be_0_or_1
+#endif
+
+typedef struct fm1_app_state_workspace {
+  void *memory;
+  size_t bytes;
+} fm1_app_state_workspace_t;
+
+enum {
+  FM1_APP_STATE_WORK_SAVE = 1,
+  FM1_APP_STATE_WORK_PACK = 2,
+  FM1_APP_STATE_WORK_LOAD = 3,      /* both check and load */
+  FM1_APP_STATE_WORK_PROJECT = 4    /* bounded offline PROJECT stage */
+};
+size_t fm1_app_state_workspace_size(unsigned operation);
 
 /* Atomic mapping-only update; minimal project envelope with browser.midiMap. */
 int fm1_app_midi_map_set(fm1_app_t *a, const uint8_t *bytes, size_t len, fm1_state_report_t *rep);
@@ -125,6 +150,92 @@ int fm1_app_state_save(fm1_app_t *a, unsigned kind, int arg, int binary, fm1_put
  * thread is handed binary and never parses JSON (stage ED13). 1, or 0 with
  * rep's code. */
 int fm1_app_state_pack(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx, fm1_state_report_t *rep);
+
+/* Explicit workspace forms preserve the codecs, caps and atomicity above.
+ * Supply at least workspace_size(operation) bytes at a 16-byte-aligned address.
+ * Storage is borrowed exclusively until return, including every synchronous
+ * rd/put callback. The put bytes are valid only during that callback; copy them
+ * before return. No callback may retain workspace pointers, reenter a state
+ * operation, or access live workspace except its supplied put bytes. Custom
+ * rd/put contexts and their backing input/output allocations MUST NOT overlap
+ * workspace; their opaque allocation extents cannot be inferred. Known
+ * fm1_app_state_mem_read input overlap is checked, as are app/edit/engine arenas,
+ * opts/report and the workspace descriptor. Invalid/busy storage refuses
+ * before callbacks, output or app mutation. If report itself overlaps scratch,
+ * it is left untouched. Calls from multiple threads require external exclusion.
+ * Input must remain stable across all check/load passes, as with host wrappers.
+ */
+int fm1_app_state_save_with_workspace(fm1_app_t *a, unsigned kind, int arg, int binary,
+                                      fm1_put_t put, void *ctx,
+                                      const fm1_app_state_workspace_t *w, fm1_state_report_t *rep);
+int fm1_app_state_pack_with_workspace(fm1_src_read_t rd, void *rctx, fm1_put_t put, void *ctx,
+                                      const fm1_app_state_workspace_t *w, fm1_state_report_t *rep);
+int fm1_app_state_check_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
+                                       const fm1_app_load_opts_t *o,
+                                       const fm1_app_state_workspace_t *w, fm1_app_state_report_t *rep);
+int fm1_app_state_load_with_workspace(fm1_app_t *a, fm1_src_read_t rd, void *rctx, uint32_t total,
+                                      const fm1_app_load_opts_t *o,
+                                      const fm1_app_state_workspace_t *w, fm1_app_state_report_t *rep);
+
+/* Offline PROJECT-only staging, modes2/3 with current simulator metadata.
+ * No production storage/UI binding. One synchronous call holds the same busy
+ * guard through preflight, begin, replay, mandatory identity+semantic readback
+ * and commit. Caller exclusively owns all app/registry/getter/sequence/storage
+ * state throughout; no concurrent audio/control/ISR mutation is allowed.
+ * This is structural file validation, not app-load/rate/RAM admission.
+ *
+ * begin returns1 only after opening an uncommitted stage; on0 it cleans itself.
+ * write returns exactly n, read up to n (0 means no progress). Before commit,
+ * failure invokes abort once. commit closes its handle and returns one of the
+ * result codes below; INDETERMINATE requires rescan, never automatic retry or
+ * abort. A physically completed commit can return INDETERMINATE.
+ *
+ * All callbacks are synchronous and may not reenter state operations, mutate
+ * source/workspace/ops, retain pointers or alias workspace with their context
+ * or backing allocations. Known pointers/objects are checked; opaque backing
+ * extents remain caller responsibility. Source hashes are not locks/security.
+ * Workspace uses workspace_size(WORK_PROJECT),16-aligned, disjoint from app,
+ * engine/sequence/modulation arenas, descriptors/parameters, ops/context/report.
+ * Report is also disjoint from those known live objects and the workspace
+ * descriptor; an aliased report is left untouched on refusal. The full operation
+ * is stopped-audio/offline only; no target pause/deadline is implied.
+ *
+ * Conditional pi32v2 component budget (see the native-project-replay note):
+ * caller supplies the entire 65,536-byte arena; all persistent provider/reader/
+ * manifest and phase scratch live there. Existing app, engine, modulation,
+ * sequencer and editor allocations are borrowed, not included in that arena;
+ * they remain separately charged baseline full-application RAM obligations.
+ * With the measured -Oz profile and external workspace/engine arenas enabled,
+ * the <=98,304-byte incremental budget additionally reserves 11,976 bytes for
+ * the entire state TU, 44 other linked global/alignment bytes, 8,192 stack,
+ * 8,192 safety and at most 4,096 bytes of additional backend/context RAM.
+ * The stack reservation assumes <=4,484 in-library bytes, <=1,024 bytes for
+ * each external getter/backend callback's COMPLETE callee stack, <=512 bytes
+ * for the caller chain/locals, and <=1,024 combined same-stack IRQ/exception
+ * bytes including nesting. No recursion/reentry into this operation is allowed.
+ * Backend buffers/caches and ops/report storage outside the arena and caller
+ * stack count against the 4,096 bytes; candidate file bytes cannot be retained
+ * in RAM outside that allowance. No hidden heap or lazy allocation is covered.
+ * These are caller admission requirements, not enforced limits or proof that
+ * arbitrary callbacks/interrupts satisfy them. Different flags/modules/callers
+ * need a fresh map and stack audit. This component result is not full-product
+ * RAM fit or production storage/UI/hardware admission.
+ */
+enum { FM1_APP_STATE_REFUSED = 0, FM1_APP_STATE_COMMITTED = 1,
+       FM1_APP_STATE_INDETERMINATE = 2 };
+typedef struct fm1_app_state_stage {
+  int (*begin)(void *ctx, uint32_t total);
+  fm1_state_write_at_t write;
+  fm1_src_read_t read;
+  int (*commit)(void *ctx);
+  void (*abort)(void *ctx);
+} fm1_app_state_stage_t;
+int fm1_app_state_project_stage(fm1_app_t *app, unsigned binary,
+    const fm1_app_state_stage_t *stage, void *ctx,
+    const fm1_app_state_workspace_t *workspace, fm1_state_report_t *report);
+/* Queried total small provider/emitter/JSON-reader storage, excluding codec,
+ * manifest and callback-owned storage. Target closure still requires a map. */
+size_t fm1_app_state_project_aux_size(void);
 
 /* A source over a buffer (ctx: an fm1_app_state_mem_t). */
 typedef struct fm1_app_state_mem {

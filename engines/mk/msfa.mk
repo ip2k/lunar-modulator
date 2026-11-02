@@ -34,6 +34,7 @@ MSFA_STAGE := $(MSFA_DIR)/.staged
 $(MSFA_STAGE): $(wildcard $(MSFA_VENDOR_DIR)/*.h $(MSFA_VENDOR_DIR)/*.cc) src/msfa_sin_trunc12.h
 	@rm -rf '$(MSFA_DIR)' && mkdir -p '$(MSFA_DIR)'
 	cp $(MSFA_VENDOR_DIR)/*.h $(MSFA_VENDOR_DIR)/*.cc '$(MSFA_DIR)/'
+	rm -f '$(MSFA_DIR)/sin.h'
 	cp src/msfa_sin_trunc12.h '$(MSFA_DIR)/sin.h'
 	@touch '$@'
 else

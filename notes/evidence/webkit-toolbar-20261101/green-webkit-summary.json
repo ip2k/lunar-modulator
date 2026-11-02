@@ -1,0 +1,139 @@
+{
+  "browser": "webkit",
+  "checks": 22,
+  "errors": [],
+  "cases": [
+    {
+      "layout": "editor",
+      "view": "sequencer",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "layout": "editor",
+      "view": "flow",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "layout": "workbench",
+      "view": "sequencer",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "layout": "workbench",
+      "view": "flow",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "layout": "editor",
+      "view": "sequencer",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "layout": "editor",
+      "view": "flow",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "layout": "workbench",
+      "view": "sequencer",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "layout": "workbench",
+      "view": "flow",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "layout": "editor",
+      "view": "sequencer",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "layout": "editor",
+      "view": "flow",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "layout": "workbench",
+      "view": "sequencer",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "layout": "workbench",
+      "view": "flow",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "layout": "editor",
+      "view": "sequencer",
+      "width": 667,
+      "height": 375
+    },
+    {
+      "layout": "editor",
+      "view": "flow",
+      "width": 667,
+      "height": 375
+    },
+    {
+      "layout": "workbench",
+      "view": "sequencer",
+      "width": 667,
+      "height": 375
+    },
+    {
+      "layout": "workbench",
+      "view": "flow",
+      "width": 667,
+      "height": 375
+    },
+    {
+      "layout": "editor",
+      "view": "sequencer",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "layout": "editor",
+      "view": "flow",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "layout": "editor",
+      "view": "sequencer",
+      "width": 375,
+      "height": 812
+    },
+    {
+      "layout": "editor",
+      "view": "flow",
+      "width": 375,
+      "height": 812
+    },
+    {
+      "layout": "editor",
+      "view": "sequencer",
+      "width": 320,
+      "height": 812
+    },
+    {
+      "layout": "editor",
+      "view": "flow",
+      "width": 320,
+      "height": 812
+    }
+  ]
+}

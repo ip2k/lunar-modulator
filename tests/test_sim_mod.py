@@ -61,7 +61,7 @@ def test_the_runtime_runs_from_the_start_and_counts_in_the_ram_figure(tools):
                                   text=True).stdout)
     plain = sim(tools, seconds="0.1")
     assert "mod" in plain and plain["ram"] == instance_bytes(tools, "macro") + FIXED
-    assert FIXED - z["mod_bytes"] - z["seq_automation_bytes"] - z["midi_map_bytes"] == 32080 + 3264 + 240 + 1024 + 20
+    assert FIXED - z["mod_bytes"] - z["seq_automation_bytes"] - z["midi_map_bytes"] == 32080 + 9792 + 240 + 1024 + 20
     for name, mode in (("ENV", 4), ("LFO", 4), ("EDIT", 5)):
         s = sim(tools, "--button", f"0.1:{name}", seconds="0.2")
         assert s["mode"] == mode and s["popup"] == [], name
@@ -205,13 +205,13 @@ def test_the_gesture_reaches_the_current_sound(tools):
 
 def test_the_gesture_reaches_an_insert_and_the_master(tools):
     """FX mode on Sound 2: In1 (its Ensemble) takes ENV3's cable into Mix,
-    unit 24 (20 + 4 x 1 + 0); M1 (Plate) takes one too, unit FX1. SELECT
-    walks back from the end over M2 and Plate's second page (Freeze) to
+    unit 24 (20 + 4 x 1 + 0); M1 (Room) takes one too, unit FX1. SELECT
+    walks back from the end over M2 and Room's second page (Blur/Width) to
     its first."""
     s = sim(tools, *TO_SOUND2, "--button", "0.2:FX", "--turn", "0.25:SELECT:-64",
             "--button", "0.3:ENV:0.2", "--turn", "0.35:KNOB1:40", "--turn", "0.6:SELECT:64",
             "--turn", "0.65:SELECT:-2", "--button", "0.7:ENV:0.2", "--turn", "0.75:KNOB1:-20",
-            extra=SOUND2 + ["--fx", "plate"], seconds="1.0")
+            extra=SOUND2 + ["--fx", "room"], seconds="1.0")
     sl = slots(s)
     assert (sl[3]["src"], sl[3]["unit"], sl[3]["dst"]) == (64 + 8 * 2, 24, 1)
     assert (sl[4]["src"], sl[4]["unit"], sl[4]["dst"]) == (64 + 8 * 2, 1, 1)
@@ -235,7 +235,7 @@ def test_cables_on_several_sounds_replay_through_fm1_render(tools, tmp_path):
     .mod log and sidecar (--slots, --sound, --insert) replay through
     fm1-render to the same bytes, every cable counted there."""
     log, a, b = tmp_path / "c.verbs", tmp_path / "panel.wav", tmp_path / "replay.wav"
-    s = run(tools["sim"], [*CHAIN, *SOUND2, "--cmd", str(INPUT), *TO_SOUND2,
+    s = run(tools["sim"], ["--engine", "macro", "--fx", "room", *SOUND2, "--cmd", str(INPUT), *TO_SOUND2,
                            "--button", "0.2:LFO:0.2", "--turn", "0.25:KNOB3:45",
                            "--button", "0.5:FX", "--turn", "0.55:SELECT:-64", "--button", "0.6:ENV:0.2",
                            "--turn", "0.65:KNOB2:-60", "--key", "0.8:12:100:0.6",
@@ -497,7 +497,7 @@ def test_the_current_sound_is_a_line_of_the_log(tools, tmp_path):
     """HOST PITCH_CUR bends the current sound, so a change of the current
     sound (SHIFT + PRESETS) is a `current K` line in the .mod log."""
     log = tmp_path / "c.verbs"
-    s = run(tools["sim"], [*CHAIN, *SOUND2, "--cmd", str(INPUT), *TO_SOUND2, "--seconds", "0.3",
+    s = run(tools["sim"], ["--engine", "macro", "--fx", "room", *SOUND2, "--cmd", str(INPUT), *TO_SOUND2, "--seconds", "0.3",
                            "--log-cmds", str(log)])
     assert s["replayable"] == 1
     assert (tmp_path / "c.mod").read_text().splitlines()[-1] == "@3136 current 2"   # at the block it led

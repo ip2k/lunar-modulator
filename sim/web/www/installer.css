@@ -1,0 +1,169 @@
+/* Route styles for the shared, validated native-demo chooser. */
+.installer-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 24px;
+  padding-bottom: 18px;
+}
+
+.installer-top a {
+  color: var(--text);
+  font: 400 clamp(1.3rem, 1rem + 2vw, 2rem)/1.2 var(--display);
+  text-decoration: none;
+}
+
+.installer-top span {
+  color: var(--accent);
+  font: 400 0.72rem/1.4 var(--display);
+  letter-spacing: 0.12em;
+  text-align: right;
+}
+
+.installer-page main { padding-bottom: 48px; }
+.installer-page h1 {
+  font: 400 clamp(1.45rem, 1.1rem + 2vw, 2.2rem)/1.25 var(--display);
+  margin: 18px 0 8px;
+}
+
+.installer-status {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 16px 0;
+  padding: 14px 18px;
+  max-width: 78ch;
+}
+
+.installer-status p { margin: 4px 0; }
+.installer-status[aria-label="Build service status"] { border-left: 4px solid var(--held); }
+.installer-page #installer-load-status:empty { display: none; }
+.installer-export-status { min-height: 1.5em; }
+.installer-cancel-build { min-height: 44px; padding: 9px 16px; }
+
+.installer-profile { max-width: 78ch; margin: 24px 0; }
+.installer-profile label { display: block; margin: 12px 0 8px; }
+.installer-profile select { min-height: 44px; max-width: 100%; padding: 8px 12px; }
+.installer-profile p { line-height: 1.5; }
+
+.native-module-selection { margin-top: 26px; }
+.native-module-selection > h2 { font: 400 1.25rem/1.4 var(--display); }
+.native-module-selection fieldset {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  margin: 14px 0;
+  padding: 14px;
+}
+.native-module-selection legend { font: 400 1rem/1.4 var(--display); padding: 0 6px; }
+.native-module-selection label {
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  line-height: 1.45;
+  min-width: 0;
+  padding: 9px 11px;
+}
+.native-module-selection label span { overflow-wrap: anywhere; }
+.native-module-selection input { accent-color: var(--accent); flex: 0 0 auto; margin: 3px 0 0; }
+.native-module-selection [role="status"] { color: var(--held); min-height: 1.5em; }
+
+.native-demo-selection { margin-top: 26px; }
+.native-demo-selection > p { color: var(--muted); margin: 8px 0 14px; }
+.native-demo-default-status {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--held);
+  border-radius: 10px;
+  margin: 16px 0;
+  padding: 14px 18px;
+  max-width: 78ch;
+}
+
+.native-demo-default-status h3 { margin: 0 0 4px; }
+.native-demo-default-status p { margin: 4px 0; }
+.native-demo-default-status ul { margin: 8px 0 0; padding-left: 1.4rem; }
+.native-demo-selection fieldset { border: 0; margin: 18px 0; padding: 0; }
+.native-demo-selection legend { font: 400 1.05rem/1.4 var(--display); margin-bottom: 8px; }
+.native-demo-selection fieldset:first-of-type {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 12px;
+}
+
+.native-demo-selection fieldset:first-of-type > legend { grid-column: 1 / -1; }
+.native-demo-selection fieldset:first-of-type > article {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.native-demo-selection label { align-items: flex-start; display: flex; gap: 10px; line-height: 1.4; }
+.native-demo-selection input { accent-color: var(--accent); flex: 0 0 auto; margin: 3px 0 0; }
+.native-demo-selection article label strong { overflow-wrap: anywhere; }
+.native-demo-selection article p { color: var(--muted); font-size: 0.94rem; margin: 8px 0 0; overflow-wrap: anywhere; }
+.native-demo-selection fieldset:nth-of-type(2) { display: grid; gap: 8px; max-width: 780px; }
+.native-demo-selection fieldset:nth-of-type(2) > legend,
+.native-demo-selection fieldset:nth-of-type(2) > p { grid-column: 1 / -1; }
+.native-demo-selection fieldset:nth-of-type(2) > label {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+/* Keep chooser dependency errors visible beside the export action. The route
+   supplies its own build status below this shared selection feedback. */
+.native-demo-selection-status { color: var(--held); min-height: 1.5em; }
+.native-demo-selection button { min-height: 44px; padding: 9px 16px; }
+.native-demo-selection button:disabled { cursor: not-allowed; opacity: 0.55; }
+
+.installer-package-inspection {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 20px 0;
+  min-width: 0;
+  padding: 16px;
+}
+.installer-package-inspection label { display: grid; gap: 10px; line-height: 1.5; }
+.installer-package-inspection input { max-width: 100%; min-width: 0; }
+.installer-package-inspection button { margin-top: 12px; min-height: 44px; padding: 9px 16px; }
+.installer-package-inspection pre {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.installer-receipt-preview {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 18px 0;
+  min-width: 0;
+  max-width: 78ch;
+  overflow-wrap: anywhere;
+  padding: 14px 16px;
+}
+.installer-receipt-preview h3 { margin: 0 0 8px; }
+.installer-receipt-preview p {
+  line-height: 1.5;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+  .installer-top { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .installer-top span { text-align: left; }
+  .installer-status, .native-demo-default-status, .installer-receipt-preview { padding: 12px 14px; }
+}

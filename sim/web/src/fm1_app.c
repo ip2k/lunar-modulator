@@ -58,12 +58,12 @@ extern void fm1_app_render_profile(unsigned unit, uint32_t frames, int entering)
 #define PROFILE_STAGE(stage, frames, entering) PROFILE_UNIT(FM1_APP_UNITS + (stage), frames, entering)
 
 /* Compile-time checks of the sequencer's fixed sizes (docs/15 §2.6; C99 has
- * no static_assert): the event buffer is 3,264 B, the pending record one
+ * no static_assert): the event buffer is 9,792 B, the pending record one
  * 240-byte command and the click voice 20 B, on 32- and 64-bit builds
  * alike. The instance's own size comes from fm1_seq_size at run time;
  * fm1_app_seq_reset refuses limits whose instance does not fit
  * FM1_APP_SEQ_BYTES, and tests/test_sim_web.py checks the budget sum. */
-typedef char fm1_app_seq_events_are_3k[sizeof(fm1_seq_ev_t) * FM1_APP_SEQ_EVENTS == 3264u ? 1 : -1];
+typedef char fm1_app_seq_events_are_9k[sizeof(fm1_seq_ev_t) * FM1_APP_SEQ_EVENTS == 9792u ? 1 : -1];
 typedef char fm1_app_seq_click_is_20[sizeof(fm1_seq_click_t) == 20u ? 1 : -1];
 typedef char fm1_app_seq_ui_sounds[FM1_SEQ_UI_SOUNDS == FM1_APP_SOUNDS ? 1 : -1];
 typedef char fm1_app_seq_cmd_is_240[sizeof(fm1_seq_cmd_t) == 240u ? 1 : -1];
@@ -417,7 +417,10 @@ const char *fm1_look_full_name(const char *name) {
 /* ---- the sequencer's panel UI (fm1_seq_ui.h) ------------------------------------- */
 
 /* The UI's commands go in through fm1_app_seq_cmd, under the event-room rule. */
-static int ui_cmd(void *ctx, const fm1_seq_cmd_t *c) { return fm1_app_seq_cmd((fm1_app_t *)ctx, c); }
+static int seq_command(fm1_app_t *a, const fm1_seq_cmd_t *c, int ui_capture);
+static int ui_cmd(void *ctx, const fm1_seq_cmd_t *c) {
+  return seq_command((fm1_app_t *)ctx, c, c->verb == FM1_SEQ_V_CAP);
+}
 
 static fm1_seq_ui_emit_t ui_out(fm1_app_t *a) {
   fm1_seq_ui_emit_t out;
@@ -567,6 +570,10 @@ static void ui_toast(fm1_app_t *a) {
     case FM1_SEQ_TOAST_FULL_VEL_OFF: popup(a, "Full velocity", "off", NULL, -1); break;
     case FM1_SEQ_TOAST_CAPTURED: popup(a, "Captured", NULL, NULL, -1); break;
     case FM1_SEQ_TOAST_NOTHING: popup(a, "Nothing to capture", NULL, NULL, -1); break;
+    case FM1_SEQ_TOAST_CAPTURE_REFUSED:
+      refuse(a, FM1_APP_TONE_REFUSE, "Not captured", "Clip limit reached", "Take kept"); break;
+    case FM1_SEQ_TOAST_CAPTURE_BUSY:
+      refuse(a, FM1_APP_TONE_REFUSE, "Capture busy", "Try again", "Take kept"); break;
     case FM1_SEQ_TOAST_TRACK:
     case FM1_SEQ_TOAST_TRACK_EMPTIED: {
       char line[24];
@@ -885,12 +892,13 @@ static void mod_write(void *ctx, uint32_t frame, const fm1_mod_write_t *w) {
  * the bridge, and never by this second path. Master slots are global;
  * inserts and levels require a valid engine route, even for an empty sound. */
 static int seq_auto_target(fm1_app_t *a, unsigned track, unsigned lane,
-                            fm1_app_seq_target_t *target) {
+                            const fm1_seq_ev_t *event, fm1_app_seq_target_t *target) {
   fm1_seq_track_info_t ti;
   const char *name;
   int kind, unit, index;
   if (!a->seq || track >= FM1_APP_SEQ_TRACKS || lane >= FM1_SEQ_LANES) return 0;
-  kind = fm1_seq_lane_target(fm1_seq_lane_label(a->seq, (uint8_t)track, (uint8_t)lane), &name);
+  kind = fm1_seq_lane_target(event ? event->label :
+           fm1_seq_lane_label(a->seq, (uint8_t)track, (uint8_t)lane), &name);
   if (kind <= FM1_SEQ_TARGET_SOUND) return 0;
   /* Most lanes have no app target. Copy track state only for accepted labels;
    * fm1_seq_lane_label already bounds-checks the sequencer's track count. */
@@ -904,7 +912,7 @@ static int seq_auto_target(fm1_app_t *a, unsigned track, unsigned lane,
   }
   memset(target, 0, sizeof *target);
   target->unit = (uint8_t)unit;
-  target->base = ti.base[lane];
+  target->base = event ? event->lane_base : ti.base[lane];
   if (kind == FM1_SEQ_TARGET_MIX) return 1;
   target->engine = a->unit[unit].e;
   index = fm1_seq_lane_param(target->engine, name);
@@ -947,7 +955,7 @@ static uint32_t seq_auto_begin(void *ctx, uint32_t frames, const fm1_engine_t *e
     for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
       fm1_app_seq_target_t next, *old = &a->seq_target[t][l];
       if (!old->active) continue;
-      if (!seq_auto_target(a, t, l, &next) || next.unit != old->unit ||
+      if (!seq_auto_target(a, t, l, NULL, &next) || next.unit != old->unit ||
           next.index != old->index || next.engine != old->engine) {
         seq_auto_write(a, 0, old, old->base);
         old->active = 0;
@@ -962,9 +970,9 @@ static void seq_auto_event(void *ctx, uint32_t frame, const fm1_seq_ev_t *e, int
   if (a->mod) a->mod_glue.hook.event(a->mod_glue.hook.ctx, frame, e, to_engine);
   if (e->kind == FM1_SEQ_EV_LOCK && e->track < FM1_APP_SEQ_TRACKS && e->a < FM1_SEQ_LANES) {
     fm1_app_seq_target_t target;
-    const int kind = fm1_seq_lane_target(fm1_seq_lane_label(a->seq, e->track, e->a), NULL);
+    const int kind = fm1_seq_lane_target(e->label, NULL);
     if (kind == FM1_SEQ_TARGET_SOUND) return;
-    if (!seq_auto_target(a, e->track, e->a, &target)) {
+    if (!seq_auto_target(a, e->track, e->a, e, &target)) {
       if (kind >= 0) ++a->seq_auto_refused;
       return;
     }
@@ -1008,7 +1016,7 @@ static void seq_auto_base(fm1_app_t *a, unsigned unit, unsigned index, unsigned 
     for (unsigned l = 0; l < FM1_SEQ_LANES; ++l) {
       if (!(labeled & (1u << l))) continue;
       fm1_app_seq_target_t target;
-      if (seq_auto_target(a, t, l, &target) && target.unit == unit && target.index == index &&
+      if (seq_auto_target(a, t, l, NULL, &target) && target.unit == unit && target.index == index &&
           target.base != v7) {
         fm1_seq_cmd_t cmd;
         const int64_t arg[3] = { t, l, v7 };
@@ -1230,7 +1238,21 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   const int snd = unit_sound(unit);
   fm1_kind_t want = snd >= 0 ? FM1_KIND_SOUND : FM1_KIND_AUDIO_FX;
   if (index == -1 && unit > 0) {
-    if (snd >= 0) release_sound(a, snd);
+    if (snd >= 0) {
+      release_sound(a, snd);
+      /* An empty sound has no saved insert chain. Release its live inserts
+       * with their modulation, FX page and editor notices too. Replacing
+       * a sound engine below still retains its chain. */
+      for (int slot = 0; slot < FM1_APP_INSERTS; ++slot) {
+        const int insert = fm1_app_insert_unit(snd, slot);
+        const fm1_engine_t *insert_from = a->unit[insert].e;
+        if (!insert_from) continue;
+        release(&a->unit[insert]);
+        mod_rebind(a, insert, insert_from);
+        fx_unit_changed(a, insert);
+        fm1_edit_note_unit(a, insert);
+      }
+    }
     release(u);
     mod_rebind(a, unit, from);
     if (snd < 0 && fx_unit_at(a, a->fx_slot) == unit) a->fx_page = 0;   /* an empty slot has one page */
@@ -4309,9 +4331,11 @@ static int seq_fits(const fm1_app_t *a) {
   return fm1_seq_host_room(&a->seq_host) >= seq_need(a);
 }
 
-static void seq_apply(fm1_app_t *a, const fm1_seq_cmd_t *c) {
+static void seq_apply(fm1_app_t *a, const fm1_seq_cmd_t *c, int ui_capture) {
   ++a->seq_gen;
+  if (ui_capture) fm1_seq_ui_capture_begin(&a->ui, a->seq);
   fm1_seq_host_cmd(&a->seq_host, c);
+  if (ui_capture) fm1_seq_ui_capture_end(&a->ui, a->seq);
   if (a->on_cmd) a->on_cmd(a->on_cmd_ctx, a->frames, c);
 }
 
@@ -4319,9 +4343,22 @@ static void seq_apply(fm1_app_t *a, const fm1_seq_cmd_t *c) {
  * block, since every input and every render calls this first. */
 static void seq_flush(fm1_app_t *a) {
   if (a->seq_pending && seq_fits(a)) {
+    const int ui_capture = a->seq_pend_ui_capture;
     a->seq_pending = 0;
-    seq_apply(a, &a->seq_pend);
+    a->seq_pend_ui_capture = 0;
+    seq_apply(a, &a->seq_pend, ui_capture);
   }
+}
+
+/* Realtime is transport input, not a content edit. Keep the same event-room
+ * reserve and pending-command order as text input, without bumping seq_gen. */
+int fm1_app_seq_realtime(fm1_app_t *a, uint8_t status) {
+  PIPELINE_GUARD(!pipeline_busy());
+  if (!a->seq || (status != 0xF8 && status != 0xFA && status != 0xFB && status != 0xFC)) return 1;
+  seq_flush(a);
+  if (a->seq_pending || !seq_fits(a)) return 0;
+  fm1_seq_host_realtime(&a->seq_host, status);
+  return 1;
 }
 
 static int is_blank(char c) { return c == ' ' || c == '\t'; }
@@ -4362,7 +4399,7 @@ size_t fm1_app_seq_line(fm1_app_t *a, const char *ops, size_t len) {
   return len;
 }
 
-int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
+static int seq_command(fm1_app_t *a, const fm1_seq_cmd_t *c, int ui_capture) {
   PIPELINE_GUARD(!pipeline_busy() || c->verb==FM1_SEQ_V_METRO);
   if (!a->seq) return FM1_APP_SEQ_REFUSED;
   seq_flush(a);
@@ -4371,13 +4408,18 @@ int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
     return FM1_APP_SEQ_BUSY;
   }
   if (seq_fits(a)) {
-    seq_apply(a, c);
+    seq_apply(a, c, ui_capture);
     return FM1_APP_SEQ_APPLIED;
   }
   a->seq_pend = *c;
+  a->seq_pend_ui_capture = (uint8_t)ui_capture;
   a->seq_pending = 1;
   ++a->seq_held;
   return FM1_APP_SEQ_HELD;
+}
+
+int fm1_app_seq_cmd(fm1_app_t *a, const fm1_seq_cmd_t *c) {
+  return seq_command(a, c, 0);
 }
 
 void fm1_app_seq_note_in(fm1_app_t *a, int track, int pitch, int velocity) {
@@ -4402,6 +4444,8 @@ static void seq_drop(fm1_app_t *a) {
   seq_release(a);
   memset(a->lock_mask, 0, sizeof a->lock_mask);
   a->seq_pending = 0;
+  a->seq_pend_ui_capture = 0;
+  a->ui.cap_sent = 0;
   a->seq_host.n = 0;
   a->seq_last_n = 0;
 }
@@ -4435,8 +4479,14 @@ int fm1_app_seq_reset(fm1_app_t *a, int tracks) {
 int fm1_app_seq_import(fm1_app_t *a, const char *txt, size_t len) {
   PIPELINE_GUARD(!pipeline_busy());
   if (!a->seq) return 0;
+  /* The core parser refuses an invalid tag without touching its instance and
+   * emits no callbacks. Only a successful replacement may drop the app's old
+   * notes, captured automation targets and queued work; these use app-owned
+   * sound identities, not the newly imported core's routes or lane labels. */
+  if (!fm1_seq_import_movy1(a->seq, txt, len)) return 0;
   seq_drop(a);
-  return fm1_seq_host_import(&a->seq_host, txt, len);   /* resolves the lanes' uids once */
+  fm1_seq_host_bind(&a->seq_host, a->seq_host.engine);   /* resolve the new lanes once */
+  return 1;
 }
 
 int fm1_app_seq_route(fm1_app_t *a, int track, int kind, int index) {

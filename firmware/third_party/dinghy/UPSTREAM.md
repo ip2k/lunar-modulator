@@ -1,0 +1,35 @@
+# Dinghy FM1 base HAL selection
+
+Selected source derives from https://github.com/zvenson/dinghy at
+`d44df7db09b98ccad2f1233b8f83f5f09c04829e`, carried through Lunar's historical
+`cccd21cc5dc82859ed8a5d84f0a7a40646d07353` tree. GPL-3.0-only; retain LICENSE,
+upstream LICENSING.md and source notices. Credit zvenson, Leo Kuroshita
+(@kurogedelic), Hügelton Instruments, Felucca and SLOOP/isod89.
+
+[verified: source, 2026-11-01] Only the inventoried base HAL, LCD source and
+vectors are imported. No platform app, flash, OTA, USB, settings, generated font,
+logo, SDK component, loader or recovery source is present. LICENSING.md is the
+unmodified upstream licensing overview; its descriptions of other components
+are provenance, not a statement that those components are imported here.
+
+`inventory.json` pins every imported source and its intentional local changes.
+The diagnostic selection changes `fm1_irq.h`'s nested-fault automatic reset to
+a halt. The new diagnostic startup/linker/platform glue lives separately under
+`firmware/native/` and retains GPL notices for the derived portions.
+
+The combined diagnostic is GPL-3.0-only even with switchable GPL engines omitted.
+SDK-free GPL distribution is possible subject to the combined licences and
+complete corresponding source requirements. This source import and offline link
+are not device or release admission. No target performance or hardware claim is
+established by the historical source's earlier tests.
+
+[verified: source, 2026-11-01] Optional default-no-op accepted key/detent hooks
+in `fm1_input.h` publish ordered observations for a separate host-only owner
+proof. They do not change default scan/debounce/aggregate behavior or admit a
+hardware runtime. `inventory.json` pins this intentional local modification.
+
+[verified: source, 2026-11-01] The optional audio-only owner selection factors
+`fm1_audio_init` into prepare, start and final-PC6 helpers. Its legacy wrapper
+retains the original register order and both5ms waits. The separately guarded
+owner selection defers the post-start PC6 write while main services audio;
+this is not physical codec/timing or DMA visibility qualification.

@@ -774,6 +774,7 @@ export function initFiles(env) {
   }
   function fileName(kind, arg) {
     const base = slug(f.title);
+    if (kind === 'dx7-bank') return `${base}.fm6-bank.syx`;
     if (kind === 'project') return `${base}.lunar`;
     if (kind === 'set') return `${base}.movy1`;
     const who = kind === 'sound' ? `-s${arg + 1}` : kind === 'fx' ? (arg < 0 ? '-master' : `-s${arg + 1}`) : '';
@@ -783,9 +784,14 @@ export function initFiles(env) {
     const [kind, a] = choice.split(':');
     const arg = a === 'current' ? (sim.state ? sim.state.sound : 0) : Number(a || 0);
     try {
-      const text = await saveText(kind, arg);
+      let text;
+      if (kind === 'dx7-bank') {
+        const r = await shadow('dx7Bank', { live: await liveBin() });
+        if (!r.ok || !(r.bytes instanceof Uint8Array)) throw new Error(r.report?.message || r.error || 'The DX7 bank could not be exported.');
+        text = r.bytes;
+      } else text = await saveText(kind, arg);
       const name = fileName(kind, arg);
-      download(text, name, kind === 'set' ? 'text/plain' : 'application/json');
+      download(text, name, kind === 'dx7-bank' ? 'application/octet-stream' : kind === 'set' ? 'text/plain' : 'application/json');
       pref('last-file', name);
       notice('info', `Saved ${name} (${Math.ceil(text.length / 1024)} KB) to your downloads.`);
     } catch (err) {
@@ -1081,6 +1087,7 @@ export function initFiles(env) {
       ['project', 'Project (.lunar)'], ['sound:current', `Sound ${n} (.sound.lunar)`],
       ['fx:-1', 'Master effects (.fx.lunar)'], ['fx:current', `Sound ${n}'s effects (.fx.lunar)`],
       ['mods', 'Mod rack (.mods.lunar)'], ['set', 'Set, for Movy (.movy1)'],
+      ['dx7-bank', 'FM6 user bank, all 32 slots (.syx)'],
     ].map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
     if (keep) sel.value = keep;
     if (!sel.value) sel.value = 'project';
@@ -1153,12 +1160,14 @@ export function initFiles(env) {
   }
   async function setView(v) {
     try {
-      const live = await liveBin();
-      const doc = JSON.parse(await saveText('project', 0, live));
+      // A view change still loads a whole project. Fence that snapshot so
+      // edits or recording during packing cannot be replaced by old content.
+      const snap = await projectSnapshot();
+      const doc = JSON.parse(snap.text);
       doc.view = v;
       const p = await shadow('pack', { text: JSON.stringify(doc) });
       if (!p.ok) return false;
-      const l = await worklet({ type: 'state-load', bytes: p.bin, kind: 1, into: 0, slot: 0, flags: FLAG_QUIET }, [p.bin.buffer]);
+      const l = await worklet({ type: 'state-load', bytes: p.bin, kind: 1, into: 0, slot: 0, flags: FLAG_QUIET, expectedHash: snap.hash }, [p.bin.buffer]);
       f.workletLoads.push({ binary: l.binary === true, ok: l.ok === true });
       return l.ok;
     } catch (err) {

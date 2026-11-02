@@ -201,9 +201,9 @@ jobs:
           mkdir -p /pw && cd /pw
           npm install --no-save --no-audit --no-fund playwright@1.63.0 axe-core@4 >/dev/null
           node -e "console.log('playwright', require('/pw/node_modules/playwright/package.json').version)"
-      - name: Isolated audio sink and monitor (also enables Firefox's AudioContext)
+      - name: Catalogue prerequisite and isolated audio sink (also enables Firefox's AudioContext)
         run: |
-          apt-get update -qq && apt-get install -y -qq pulseaudio pulseaudio-utils >/dev/null
+          apt-get update -qq && apt-get install -y -qq make pulseaudio pulseaudio-utils >/dev/null
           # norewinds limits the null sink's idle clock buffer to 50 ms; the
           # default 2 s buffer can stall WebKit after a low-latency stream opens.
           # Evidence: notes/2026-10-09-webkit-audio-lifecycle.md.
@@ -217,7 +217,14 @@ jobs:
       - name: Panel-follow and scheduling helper tests (node)
         timeout-minutes: 5
         run: |
+          node --test sim/web/test/browser-assurance.test.mjs
           node --test sim/web/test/panel-follow.test.mjs sim/web/test/startup-ready.test.mjs sim/web/test/scheduling-capture.test.mjs sim/web/test/playback-timeline.test.mjs sim/web/test/sequencer-host.test.mjs sim/web/test/sequence-model.test.mjs sim/web/test/sequence-playback.test.mjs sim/web/test/sequence-transport.test.mjs sim/web/test/song-shortcuts.test.mjs sim/web/test/audio-budget.test.mjs sim/web/test/initial-view.test.mjs
+      - name: Installer customization and MIDI realtime contracts (node)
+        timeout-minutes: 5
+        run: |
+          node --test sim/web/test/native-ota-*.test.mjs
+          node --test sim/web/test/installer-*.test.mjs sim/web/test/native-build-selection.test.mjs sim/web/test/native-demo-selection*.test.mjs sim/web/test/native-fwsc-inspection.test.mjs sim/web/test/native-package-admission.test.mjs sim/web/test/midi-realtime-routing.test.mjs
+          node sim/web/test/midi-realtime.mjs sim/web/www/fm1.wasm
       - name: The editor's data and history against the module (node)
         timeout-minutes: 5
         run: node sim/web/test/editor-unit.mjs sim/web/www
@@ -245,7 +252,7 @@ jobs:
         run: |
           mkdir -p "$SHOTS"
           status=0
-          for t in layout-probe-ui editor-ui editor-reach editor-map editor-v1 info-dialogs notifications-ui sequencer-ui sequencer-fit-grid sequencer-playback-ui song-shortcuts-ui sequencer-native sequencer-sync midi-map-ui midi-map-project-ui midi-transport-ui editor-resources compact-toolbar-check initial-view-ui keyboard-shortcuts-browser; do
+          for t in layout-probe-ui editor-ui editor-reach editor-map editor-v1 info-dialogs notifications-ui sequencer-ui sequencer-fit-grid sequencer-playback-ui song-shortcuts-ui sequencer-native sequencer-sync midi-map-ui midi-map-project-ui midi-transport-ui editor-resources compact-toolbar-check initial-view-ui keyboard-shortcuts-browser browser-state-regressions; do
             echo "::group::$t ($BROWSER)"
             node "sim/web/test/$t.mjs" sim/web/www "$SHOTS" || status=1
             echo "::endgroup::"

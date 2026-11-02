@@ -1,0 +1,39 @@
+{
+  "lunar": "1.0",
+  "kind": "project",
+  "made": {"by": "hand"},
+  "name": "SHAPES INIT",
+  "title": "Shapes Init Starter",
+  "about": "Shapes default patch in Sound 1. No sequence or song. Native controls and playback remain unverified.",
+  "licence": "MIT",
+  "sounds": [
+    {
+      "engine": "shapes",
+      "params": {
+        "Shape": "CSaw",
+        "Timbre": 0.5,
+        "Color": 0.5,
+        "Attack": 0,
+        "Release": 0.3,
+        "Volume": 0.7,
+        "Glide": 100,
+        "Voice Mode": "Poly",
+        "Glide Mode": "Off",
+        "Time Mode": "Time"
+      },
+      "level": 100,
+      "inserts": [
+        null,
+        null
+      ],
+      "midi_fx": []
+    },
+    null,
+    null,
+    null
+  ],
+  "master": [
+    null,
+    null
+  ]
+}

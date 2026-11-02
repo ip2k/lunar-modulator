@@ -149,12 +149,18 @@ int sq_emit(sq_out_t *o, uint8_t kind, uint8_t track, uint8_t a, fm1_seq_val_t b
     return 0;
   }
   e = &o->out[o->n++];
+  memset(e, 0, sizeof *e);
   e->tick = o->tick;
   e->frame = o->s->lim.compat == FM1_SEQ_COMPAT_MOVY ? 0 : o->frame;
   e->kind = kind;
   e->track = track;
   e->a = a;
   e->b = b;
+  if (kind == FM1_SEQ_EV_LOCK && track < o->s->n_tracks && a < FM1_SEQ_LANES) {
+    const sq_track_t *tr = &sq_tracks(o->s)[track];
+    memcpy(e->label, tr->label[a], sizeof e->label);
+    e->lane_base = tr->base[a];
+  }
   return 1;
 }
 
@@ -1102,8 +1108,7 @@ static void song_restart_at(fm1_seq_t *s, unsigned entry) {
   }
   s->song_pos = (uint16_t)song_entry_first(s, entry);
   s->song_has_start = 0;
-  song_entry_at(s, s->song_pos, &scene, &reps);
-  sq_launch_scene(s, scene);
+  if (song_entry_at(s, s->song_pos, &scene, &reps)) sq_launch_scene(s, scene);
 }
 
 /* After an edit that left the playing entry in place: redo a stale arm (the

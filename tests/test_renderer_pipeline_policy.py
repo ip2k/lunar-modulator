@@ -17,6 +17,7 @@ def build(tmp_path, name, flags, sanitize):
     cc = shutil.which('clang'); cxx = shutil.which('clang++')
     dev = tmp_path/('devkit-' + name)
     shutil.copytree(ROOT/'firmware/devkit', dev)
+    shutil.copytree(ROOT/'firmware/common',tmp_path/'common',dirs_exist_ok=True)
     live = dev/'renderer_live.c'
     live.write_text(live.read_text() + '\n' + (ROOT/'tests/fixtures/renderer_pipeline/live_replay.c').read_text())
     (dev/'renderer_pipeline_sdk.c').write_text('/* hooks supplied by live replay */\n')

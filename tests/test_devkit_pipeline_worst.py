@@ -237,8 +237,8 @@ def test_baud_is_only_compared_where_it_reads_back():
 
 
 def soak_receipts(cycles=57, p_late=(0, 0, 0, 3), fault=0, gaps=0, ready_min=1, c_mean=28870,
-                  failure_line='LUNAR_PIPELINE failure_line=370'):
-    """A whole-run receipt set as a cap8 soak prints it (bench01 3-cycle format)."""
+                  failure_line='LUNAR_PIPELINE failure_line=370', terminal=True):
+    """Current terminal contract; line numbers remain arbitrary diagnostics."""
     total = cycles * 4 * 5513
     lines = ['LUNAR_PIPELINE ready=1 lifetime_ms=2100000 stack_words=1536 priority=16 outputs=8',
              f'LUNAR_DAC103 end=1 produced={total} harvested={total} submitted={total} callbacks={total + 238} '
@@ -253,11 +253,18 @@ def soak_receipts(cycles=57, p_late=(0, 0, 0, 3), fault=0, gaps=0, ready_min=1, 
               'unit0_stolen=79',
               f'LUNAR_PIPELINE_SOAK cases={4 * cycles} expected_cases={4 * cycles} cycles={cycles} total={total} '
               f'elapsed_ms={round(total * 64 / 44.1) + 340} fold=deadbeef replay_required=1',
+              'LUNAR_PREROLL161 phase=2 zeros=174 duration_ms=250 held_initial_outputs=8 pcm_discarded=0',
+              'LUNAR_DAC173 idle=1 idle_callbacks=166 gain_unchanged=1 clock_running=1 off_called=0 close_called=0',
               f'LUNAR_PIPELINE case=4 produced={total} consumed={total} harvested={total} output_retired={total} '
               f'error0=0 error1=0 parent_blocks={total} parent_wrong=0 exited=1',
               'LUNAR_PIPELINE final=1 stack_unused_words=1316 word_bytes=4 backend_bytes=11076']
     if failure_line:
         lines.append(failure_line)
+    if terminal:
+        lines.append('LUNAR_PIPELINE_RESULT contract=1 result=' +
+                     ('FAIL reason=per_block_deadline' if failure_line else 'PASS reason=none') +
+                     ' budget_overflow=0')
+    lines.append(f'LUNAR_DEVKIT complete={0 if failure_line else 1} idle=1')
     return '\n'.join(lines) + '\n'
 
 
@@ -272,6 +279,49 @@ def test_buffered_summary_of_a_passing_soak():
     assert b['producer_late_blocks'] == 3 and b['firmware_failure_line'] == 370
     assert b['firmware_failure_is_per_block_deadline_only'] and b['pass_soak_receipts']
     assert 43900 < b['rate_hz_estimate'] < 44300
+
+
+@pytest.mark.parametrize('field', ['ready=1', 'lifetime_ms=2100000', 'stack_words=1536',
+                                   'priority=16', 'outputs=8'])
+def test_buffered_soak_requires_complete_ready_receipt(field):
+    text = soak_receipts().replace(field, '')
+    b = result_parser.parse(text, 320)['buffered']
+    assert not b['pass_soak_receipts']
+
+
+def test_buffered_soak_requires_one_ready_receipt():
+    text = soak_receipts()
+    ready = next(line for line in text.splitlines() if line.startswith('LUNAR_PIPELINE ready='))
+    assert not result_parser.parse(text.replace(ready + '\n', ''), 320)['buffered']['pass_soak_receipts']
+    with pytest.raises(ValueError, match='exactly one LUNAR_PIPELINE ready receipt'):
+        result_parser.parse(text + ready + '\n', 320)
+
+
+@pytest.mark.parametrize('old,new', [
+    ('ready=1', 'ready=0'), ('outputs=8', 'outputs=0'), ('outputs=8', 'outputs=7'),
+    ('lifetime_ms=2100000', 'lifetime_ms=1000'),
+    ('stack_words=1536', 'stack_words=0'), ('priority=16', 'priority=oops'),
+])
+def test_buffered_soak_refuses_malformed_or_expired_ready_receipt(old, new):
+    text = soak_receipts().replace(old, new)
+    b = result_parser.parse(text, 320)['buffered']
+    assert not b['pass_soak_receipts']
+
+
+def test_buffered_soak_requires_valid_queue_depth_and_latency():
+    text = soak_receipts().replace('ready_min=1', 'ready_min=9')
+    b = result_parser.parse(text, 320)['buffered']
+    assert not b['pass_soak_receipts']
+    assert b['queue_latency'] is None
+
+
+def test_buffered_fixed12_receipts_keep_their_timing_verdict():
+    text = soak_receipts().replace('fixed=8', 'fixed=12').replace('policy=cap8', 'policy=fixed12')
+    text = text.replace('unit0_limit=8', 'unit0_limit=12')
+    result = result_parser.parse(text, 320)
+    assert result['policy'] == 'fixed12'
+    assert result['buffered']['pass_soak_receipts']
+    assert result['buffered']['queue_latency']['slots'] == 8
 
 
 def test_buffered_summary_of_a_short_run_is_not_a_soak():
@@ -302,3 +352,235 @@ def test_buffered_summary_refuses_an_unexplained_firmware_failure():
     assert not b['firmware_failure_is_per_block_deadline_only'] and not b['pass_soak_receipts']
     clean = result_parser.parse(soak_receipts(p_late=(0, 0, 0, 0), failure_line=''), 320)['buffered']
     assert clean['firmware_failure_line'] is None and clean['pass_soak_receipts']
+
+
+@pytest.mark.parametrize('reason', ['finish', 'invariants', 'case_count', 'unknown'])
+def test_buffered_late_block_does_not_excuse_another_terminal_failure(reason):
+    text = soak_receipts().replace('reason=per_block_deadline', 'reason=' + reason)
+    b = result_parser.parse(text, 320)['buffered']
+    assert b['producer_late_blocks'] == 3 and b['zero_underruns'] and b['means_pass']
+    assert not b['firmware_failure_is_per_block_deadline_only']
+    assert not b['completion_pass'] and not b['pass_timing'] and not b['pass_soak_receipts']
+
+
+@pytest.mark.parametrize('failure_line', [370, 382, 383, 384, 9999])
+def test_legacy_failure_lines_are_not_a_completion_contract(failure_line):
+    text = soak_receipts(terminal=False, failure_line=f'LUNAR_PIPELINE failure_line={failure_line}')
+    b = result_parser.parse(text, 320)['buffered']
+    assert b['firmware_failure_line'] == failure_line and b['firmware_result'] is None
+    assert b['zero_underruns'] and b['producer_late_blocks'] == 3
+    assert not b['completion_checks']['typed_terminal'] and not b['pass_soak_receipts']
+
+
+@pytest.mark.parametrize('before,after,check', [
+    ('contract=1 result=FAIL', 'contract=2 result=FAIL', 'typed_terminal'),
+    ('phase=2 zeros=174', 'phase=1 zeros=174', 'preroll_music'),
+    ('phase=2 zeros=174', 'phase=2 zeros=0', 'preroll_music'),
+    ('LUNAR_DAC173 idle=1', 'LUNAR_DAC173 idle=0', 'idle_running'),
+    ('idle_callbacks=166', 'idle_callbacks=99', 'idle_running'),
+    ('budget_overflow=0', 'budget_overflow=1', 'budget_overflow_zero'),
+    ('error0=0 error1=0', 'error0=0 error1=1', 'sdk_finish'),
+    ('parent_wrong=0', 'parent_wrong=1', 'sdk_finish'),
+    ('exited=1', 'exited=0', 'sdk_finish'),
+    ('LUNAR_PIPELINE final=1', 'LUNAR_PIPELINE missing_final=1', 'sdk_finish'),
+    ('complete=0 idle=1', 'complete=1 idle=1', 'terminal_outcome'),
+    ('cycles=57', 'cycles=56', 'case_counts'),
+])
+def test_buffered_deadline_receipt_cannot_override_other_completion_receipts(before, after, check):
+    text = soak_receipts()
+    assert before in text
+    b = result_parser.parse(text.replace(before, after), 320)['buffered']
+    assert b['zero_underruns'] and b['producer_late_blocks'] == 3
+    assert not b['completion_checks'][check] and not b['pass_soak_receipts']
+
+
+def test_buffered_rejects_unequal_case_counts_even_when_the_total_matches():
+    text = soak_receipts().replace('case=0 blocks=314241', 'case=0 blocks=314242').replace(
+        'case=3 blocks=314241', 'case=3 blocks=314240')
+    b = result_parser.parse(text, 320)['buffered']
+    assert b['underrun_checks']['all_blocks_submitted']
+    assert not b['completion_checks']['case_counts'] and not b['pass_soak_receipts']
+
+
+def test_buffered_requires_terminal_receipts_also_for_clean_and_consumer_late_runs():
+    clean = result_parser.parse(soak_receipts(p_late=(0, 0, 0, 0), failure_line=''), 320)['buffered']
+    assert clean['completion_pass'] and clean['pass_soak_receipts']
+    legacy = result_parser.parse(soak_receipts(p_late=(0, 0, 0, 0), failure_line='', terminal=False), 320)['buffered']
+    assert legacy['zero_underruns'] and not legacy['pass_soak_receipts']
+    consumer = soak_receipts(p_late=(0, 0, 0, 0)).replace('c_late=0', 'c_late=1', 1)
+    b = result_parser.parse(consumer, 320)['buffered']
+    assert b['consumer_late_blocks'] == 1 and b['firmware_failure_is_per_block_deadline_only']
+    assert b['pass_soak_receipts']
+
+
+def test_buffered_refuses_duplicate_or_missing_terminal_receipts():
+    text = soak_receipts()
+    receipt = next(line for line in text.splitlines() if line.startswith('LUNAR_PIPELINE_RESULT '))
+    with pytest.raises(ValueError, match='exactly one LUNAR_PIPELINE_RESULT'):
+        result_parser.parse(text + receipt + '\n', 320)
+    with pytest.raises(ValueError, match='at most one LUNAR_DEVKIT complete'):
+        result_parser.parse(text + 'LUNAR_DEVKIT complete=0 idle=1\n', 320)
+    missing = text.replace(receipt, '')
+    assert not result_parser.parse(missing, 320)['buffered']['pass_soak_receipts']
+    # Startup rows do not count as the terminal LUNAR_DEVKIT receipt.
+    startup = 'LUNAR_DEVKIT schema=1 sys=320000000\nLUNAR_DEVKIT timer_check_ticks=2400000\n'
+    assert result_parser.parse(startup + text, 320)['buffered']['pass_soak_receipts']
+
+
+@pytest.mark.parametrize('sanitize', [False, True])
+def test_firmware_terminal_reason_checks_all_invariants_before_waiving_a_deadline(tmp_path, sanitize):
+    """Execute the actual final-check function; no SDK or target timing claim."""
+    source = (ROOT/'firmware/devkit/renderer_pipeline_dac.c').read_text()
+    begin = source.index('static int finish103(')
+    finish = source[begin:source.index('\nint lunar_pipeline_dac_run', begin)]
+    harness = tmp_path/'finish.c'
+    harness.write_text('''#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#define CASE_BLOCKS 5513u
+#define SOAK_CYCLES 57u
+#define CASE_ORDINALS (4u*SOAK_CYCLES)
+#define TOTAL (CASE_ORDINALS*CASE_BLOCKS)
+#define ZERO_DRAIN_BLOCKS 64u
+#define BUDGET 34829u
+#define PRE_MUSIC 2u
+static struct { unsigned count,plate,clate; } service[4];
+static struct { unsigned fault,idle,idle_callbacks,next,drain,cases_checked,late,gaps,irq_max; } transport;
+static unsigned preroll_phase=PRE_MUSIC,preroll_zeros=174,produced=TOTAL,harvested=TOTAL,budget_overflow;
+static int sdk_ok=1,backend;
+static int lunar_pipeline_sdk_finish(void){return sdk_ok;}
+static int lunar_pipeline_error(void){return backend;}
+static int v110_failure(unsigned line){printf("LUNAR_PIPELINE failure_line=%u\\n",line);return 0;}
+''' + finish + '''
+int main(int argc,char **argv){
+    if(argc!=2)return 2;
+    unsigned mode=(unsigned)atoi(argv[1]);
+    for(unsigned c=0;c<4;++c)service[c].count=SOAK_CYCLES*CASE_BLOCKS;
+    service[0].plate=1;
+    transport.idle=1;transport.idle_callbacks=166;transport.next=TOTAL;
+    transport.drain=64;transport.cases_checked=CASE_ORDINALS;
+    switch(mode){
+      case 0:break;
+      case 1:service[0].plate=0;break;
+      case 2:sdk_ok=0;break;
+      case 3:preroll_phase=1;break;
+      case 4:preroll_zeros=0;break;
+      case 5:transport.idle=0;break;
+      case 6:transport.idle_callbacks=99;break;
+      case 7:budget_overflow=1;break;
+      case 8:--service[3].count;break;
+      case 9:service[0].plate=0;service[3].clate=1;break;
+      case 10:backend=1;break;
+      case 11:transport.fault=1;break;
+      case 12:transport.irq_max=BUDGET;break;
+      default:return 2;
+    }
+    int complete=finish103();
+    printf("LUNAR_DEVKIT complete=%d idle=%u\\n",complete,transport.idle);
+    return 0;
+}
+''')
+    flags = ['-fsanitize=address,undefined', '-fno-omit-frame-pointer'] if sanitize else []
+    exe = tmp_path/'finish'
+    subprocess.run([compiler(), '-std=c99', '-O2', '-g', '-Wall', '-Wextra', '-Werror', *flags,
+                    str(harness), '-o', str(exe)], check=True)
+    reasons = ['per_block_deadline', 'none', 'finish', 'invariants', 'invariants', 'invariants',
+               'invariants', 'invariants', 'case_count', 'per_block_deadline', 'invariants',
+               'invariants', 'invariants']
+    for mode, reason in enumerate(reasons):
+        out = subprocess.run([str(exe), str(mode)], check=True, capture_output=True, text=True, timeout=10,
+                             env=dict(os.environ, ASAN_OPTIONS='halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1')).stdout
+        assert f'result={"PASS" if reason == "none" else "FAIL"} reason={reason} ' in out
+        assert f'complete={1 if reason == "none" else 0}' in out
+
+
+@pytest.mark.parametrize('sanitize', [False, True])
+def test_running_queue_minimum_excludes_drain(tmp_path, sanitize):
+    """Execute the firmware observer against playback/drain queue traces."""
+    source = (ROOT/'firmware/devkit/renderer_pipeline_dac.c').read_text()
+    begin = source.index('static void observe_ready103(')
+    observer = source[begin:source.index('\n}', begin) + 2]
+    harness = tmp_path/'queue-margin.c'
+    harness.write_text('''#include <assert.h>
+#include <stdint.h>
+#define TOTAL 100u
+static volatile uint32_t produced;
+static struct { volatile uint32_t ready_min,ready_running_min,ready_running_samples; } transport;
+''' + observer + '''
+int main(void) {
+    transport.ready_min=8;
+    /* No live producer: a drain-only trace must not invent a running sample. */
+    produced=TOTAL;
+    observe_ready103(4);observe_ready103(1);
+    assert(transport.ready_min==1);
+    assert(transport.ready_running_min==0 && transport.ready_running_samples==0);
+    /* Live queue has margin, then the producer completes and the queue drains. */
+    transport.ready_min=8;
+    produced=8;observe_ready103(8);
+    produced=50;observe_ready103(5);
+    produced=TOTAL-1;observe_ready103(3);
+    produced=TOTAL;observe_ready103(2);observe_ready103(1);
+    assert(transport.ready_min==1);
+    assert(transport.ready_running_min==3 && transport.ready_running_samples==3);
+    /* A genuine running starvation remains distinguishable from no samples. */
+    produced=TOTAL-1;observe_ready103(0);
+    assert(transport.ready_min==0);
+    assert(transport.ready_running_min==0 && transport.ready_running_samples==4);
+    return 0;
+}
+''')
+    exe = tmp_path/'queue-margin'
+    flags = ['-fsanitize=address,undefined', '-fno-omit-frame-pointer'] if sanitize else []
+    subprocess.run([compiler(), '-std=c99', '-O2', '-Wall', '-Wextra', '-Werror', *flags,
+                    str(harness), '-o', str(exe)], check=True)
+    subprocess.run([str(exe)], check=True, timeout=10)
+    # Observe exactly where the original ready_min sampled: after preroll and
+    # completed-output checks, before acquire can fail on a genuinely empty queue.
+    copy = source[source.index('static void copy_output('):source.index('static void fill103(')]
+    assert copy.index('if(!music)') < copy.index('if(tag==TOTAL)') < copy.index('observe_ready103(ready)')
+    assert copy.index('observe_ready103(ready)') < copy.index('lunar_pipeline_output_acquire(')
+
+
+def running_receipts(minimum, samples):
+    return soak_receipts().replace('ready_min=1 parent_unused=',
+                                   f'ready_min=1 ready_running_min={minimum} '
+                                   f'ready_running_samples={samples} parent_unused=')
+
+
+def test_parser_reports_running_margin_without_reinterpreting_old_minimum():
+    old = result_parser.parse(soak_receipts(), 320)['buffered']
+    new = result_parser.parse(running_receipts(3, 1256957), 320)['buffered']
+    q = new['queue_latency']
+    assert q['running_min_ready_slots'] == 3 and q['running_min_margin_ms'] == 4.35
+    assert q['running_samples'] == 1256957
+    assert q['min_ready_slots'] == 1 and q['min_margin_ms'] == 1.45
+    assert not any(k.startswith('running_') for k in old['queue_latency'])
+    assert new['pass_soak_receipts'] == old['pass_soak_receipts']
+
+
+def test_parser_running_margin_no_sample_is_unknown():
+    q = result_parser.parse(running_receipts(0, 0), 320)['buffered']['queue_latency']
+    assert q['running_samples'] == 0
+    assert q['running_min_ready_slots'] is None and q['running_min_margin_ms'] is None
+    empty = result_parser.parse(running_receipts(0, 1), 320)['buffered']['queue_latency']
+    assert empty['running_min_ready_slots'] == 0 and empty['running_min_margin_ms'] == 0
+
+
+@pytest.mark.parametrize('minimum,samples', [(9, 2), (-1, 1), (3, -1), (3, 0), ('bad', 1), (3, 'bad')])
+def test_parser_refuses_invalid_running_margin(minimum, samples):
+    with pytest.raises(ValueError, match='running queue'):
+        result_parser.parse(running_receipts(minimum, samples), 320)
+
+
+def test_parser_refuses_partial_running_margin():
+    text = running_receipts(3, 7).replace(' ready_running_samples=7', '')
+    with pytest.raises(ValueError, match='min and samples'):
+        result_parser.parse(text, 320)
+
+
+def test_parser_joins_split_running_queue_fields():
+    text = running_receipts(3, 1256957)
+    split = text.replace(' ready_running_min=3 ready_running_samples=1256957',
+                         '\n[00:30:24.001] ready_running_min=3'
+                         '\n[00:30:24.002] ready_running_samples=1256957')
+    assert result_parser.parse(split, 320) == result_parser.parse(text, 320)

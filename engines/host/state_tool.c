@@ -5,13 +5,13 @@
  *       any state file (JSON or binary) as canonical JSON. A JSON file's
  *       members are put in context order first (R1-R4, fm1_state.h), so a
  *       hand edit that breaks it is put right rather than refused.
- *   fm1-state pack FILE [-o OUT] [--store] [--without]
+ *   fm1-state pack FILE [-o OUT] [--store] [--without] [--strict]
  *       JSON to the binary container, through canon (--store: no deflate)
  *   fm1-state unpack FILE [-o OUT]
  *       binary to canonical JSON (a binary set to its .movy1 text)
  *   fm1-state from-movy1 FILE.movy1 [-o OUT]
  *       a set as a binary set file (kind 7)
- *   fm1-state records FILE [--pieces N] [--strict]
+ *   fm1-state records FILE [--pieces N]
  *       the records a reader gives, one JSON object a line; --pieces feeds
  *       the JSON reader N bytes at a time, as SysEx pages and flash reads do
  *   fm1-state check FILE [--rate HZ]
@@ -486,9 +486,9 @@ static int diff(const buf_t *a, const buf_t *b) {
   size_t i, j;
   unsigned *t;
   int differ = 0;
-  if (!x || !y) return 2;
+  if (!x || !y) { free(x); free(y); return 2; }
   t = (unsigned *)calloc((nx + 1) * (ny + 1), sizeof(unsigned));
-  if (!t) return 2;
+  if (!t) { free(x); free(y); return 2; }
   for (i = nx; i-- > 0;) {
     for (j = ny; j-- > 0;) {
       t[i * (ny + 1) + j] = same_line(&x[i], &y[j]) ? t[(i + 1) * (ny + 1) + j + 1] + 1
@@ -609,7 +609,7 @@ static int nop_cb(void *ctx, const fm1_json_ev_t *ev) {
 static void usage(void) {
   fprintf(stderr,
           "usage: fm1-state canon FILE [-o OUT] [--compact] [--without]\n"
-          "       fm1-state pack FILE [-o OUT] [--store] [--without]\n"
+          "       fm1-state pack FILE [-o OUT] [--store] [--without] [--strict]\n"
           "       fm1-state unpack FILE [-o OUT]\n"
           "       fm1-state from-movy1 FILE.movy1 [-o OUT]\n"
           "       fm1-state records FILE [--pieces N]\n"
@@ -622,12 +622,12 @@ static void usage(void) {
 
 int main(int argc, char **argv) {
   const char *cmd, *file = NULL, *file2 = NULL, *out_path = NULL;
-  int compact = 0, without = 0, store = 0, i, ok;
+  int compact = 0, without = 0, store = 0, strict = 0, i, ok, rc = 2;
   size_t pieces = 0;
   float rate = (float)FM1_STATE_HZ;
   fm1_state_names_t nm;
   fm1_state_report_t rep;
-  buf_t in, out;
+  buf_t in = {0}, out = {0};
   if (argc < 2) { usage(); return 2; }
   cmd = argv[1];
   for (i = 2; i < argc; ++i) {
@@ -636,6 +636,7 @@ int main(int argc, char **argv) {
     else if (strcmp(a, "--compact") == 0) compact = 1;
     else if (strcmp(a, "--without") == 0) without = 1;
     else if (strcmp(a, "--store") == 0) store = 1;
+    else if (strcmp(a, "--strict") == 0) strict = 1;
     else if (strcmp(a, "--pieces") == 0 && i + 1 < argc) pieces = (size_t)strtoul(argv[++i], NULL, 10);
     else if (strcmp(a, "--rate") == 0 && i + 1 < argc) rate = (float)atof(argv[++i]);
     else if (a[0] == '-' && a[1]) { usage(); return 2; }
@@ -644,6 +645,7 @@ int main(int argc, char **argv) {
     else { usage(); return 2; }
   }
   if (strcmp(cmd, "num") == 0) return num_tests();
+  if (strict && (strcmp(cmd, "pack") != 0 || without)) { usage(); return 2; }
   if (strcmp(cmd, "sizes") == 0) {
     printf("{\"tokenizer\":%zu,\"json_reader\":%zu,\"inflater\":%zu,\"json_writer\":%zu,"
            "\"bin_writer\":%zu,\"record\":%zu}\n",
@@ -660,20 +662,20 @@ int main(int argc, char **argv) {
   if (!file) { usage(); return 2; }
   fm1_state_names_default(&nm);
   fm1_state_report_init(&rep);
-  memset(&out, 0, sizeof(out));
-  if (!read_file(file, &in)) return 2;
+  if (!read_file(file, &in)) goto cleanup;
 
   if (strcmp(cmd, "json-check") == 0) {
     fm1_json_t p;
     fm1_json_init(&p, nop_cb, NULL);
     ok = fm1_json_feed(&p, in.b, in.n) && fm1_json_end(&p);
     if (!ok) fprintf(stderr, "%s at %u:%u\n", fm1_json_error(p.err), p.line, p.col);
-    return ok ? 0 : 1;
+    rc = ok ? 0 : 1;
+    goto cleanup;
   }
   if (strcmp(cmd, "canon") == 0 || strcmp(cmd, "unpack") == 0) {
     if (strcmp(cmd, "unpack") == 0 && fm1_state_sniff(in.b, in.n) != 1) {
       fprintf(stderr, "%s: not a binary state file\n", file);
-      return 2;
+      goto cleanup;
     }
     if (fm1_state_sniff(in.b, in.n) == 1 && in.n >= 11 && in.b[10] == FM1_STATE_SET) {
       lines_t l;
@@ -683,21 +685,29 @@ int main(int argc, char **argv) {
     } else {
       ok = to_canon(&nm, &in, compact, without, 1, &out, &rep);
     }
-    if (!ok) { print_report(stderr, &rep); return 1; }
-    return write_out(out_path, &out) ? 0 : 2;
+    if (!ok) { print_report(stderr, &rep); rc = 1; goto cleanup; }
+    rc = write_out(out_path, &out) ? 0 : 2;
+    goto cleanup;
   }
   if (strcmp(cmd, "pack") == 0 || strcmp(cmd, "from-movy1") == 0) {
     buf_t canon;
     void *mem = calloc(1, fm1_state_bin_writer_size());
     static const uint8_t version[3] = { 0, 1, 0 };
     fm1_state_writer_t *w;
-    if (!mem) return 3;
+    if (!mem) { rc = 3; goto cleanup; }
     w = fm1_state_bin_writer(mem, store ? 0u : FM1_STATE_BIN_DEFLATE, FM1_STATE_WRITER_DESKTOP, version,
                              buf_put, &out, &rep);
     if (strcmp(cmd, "from-movy1") == 0) {
       ok = movy1_records(&in, fm1_state_bin_write, w);
     } else {
       ok = to_canon(&nm, &in, 0, without, 1, &canon, &rep);
+      if (ok && strict && fm1_state_sniff(in.b, in.n) != 1 && (rep.skipped || rep.repaired)) {
+        rep.code = FM1_STATE_BAD;
+        snprintf(rep.what, sizeof(rep.what),
+                 "strict pack refuses %u skipped and %u repaired JSON fields",
+                 rep.skipped, rep.repaired);
+        ok = 0;
+      }
       if (ok) {
         fm1_state_report_t rep2;
         fm1_state_report_init(&rep2);
@@ -707,16 +717,18 @@ int main(int argc, char **argv) {
       free(canon.b);
     }
     free(mem);
-    if (!ok) { print_report(stderr, &rep); return 1; }
-    return write_out(out_path, &out) ? 0 : 2;
+    if (!ok) { print_report(stderr, &rep); rc = 1; goto cleanup; }
+    rc = write_out(out_path, &out) ? 0 : 2;
+    goto cleanup;
   }
   if (strcmp(cmd, "records") == 0) {
     fm1_state_printer_t p;
     fm1_state_printer_init(&p, file_put, stdout);
     ok = read_any(&nm, &in, fm1_state_print, &p, &rep, pieces);
     fflush(stdout);
-    if (!ok) { print_report(stderr, &rep); return 1; }
-    return 0;
+    if (!ok) { print_report(stderr, &rep); rc = 1; goto cleanup; }
+    rc = 0;
+    goto cleanup;
   }
   if (strcmp(cmd, "check") == 0) {
     check_t c;
@@ -741,17 +753,26 @@ int main(int argc, char **argv) {
     printf("{\"ram_instances\":%zu,\"ram_budget\":%u,\"report\":", c.ram, FM1_STATE_RAM_BUDGET);
     print_report(stdout, &rep);
     printf("}\n");
-    return ok ? 0 : 1;
+    rc = ok ? 0 : 1;
+    goto cleanup;
   }
   if (strcmp(cmd, "diff") == 0) {
-    buf_t in2, a, b;
+    buf_t in2 = {0}, a = {0}, b = {0};
     fm1_state_report_t rep2;
-    if (!file2 || !read_file(file2, &in2)) { usage(); return 2; }
+    if (!file2 || !read_file(file2, &in2)) { usage(); goto diff_cleanup; }
     fm1_state_report_init(&rep2);
-    if (!to_canon(&nm, &in, 0, 1, 1, &a, &rep)) { print_report(stderr, &rep); return 2; }
-    if (!to_canon(&nm, &in2, 0, 1, 1, &b, &rep2)) { print_report(stderr, &rep2); return 2; }
-    return diff(&a, &b);
+    if (!to_canon(&nm, &in, 0, 1, 1, &a, &rep)) { print_report(stderr, &rep); goto diff_cleanup; }
+    if (!to_canon(&nm, &in2, 0, 1, 1, &b, &rep2)) { print_report(stderr, &rep2); goto diff_cleanup; }
+    rc = diff(&a, &b);
+diff_cleanup:
+    free(in2.b);
+    free(a.b);
+    free(b.b);
+    goto cleanup;
   }
   usage();
-  return 2;
+cleanup:
+  free(in.b);
+  free(out.b);
+  return rc;
 }

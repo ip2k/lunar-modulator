@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "candidate": "return-r01",
+  "source_base": "a7a1c310a346dcad03892557c4405470576ed00c",
+  "contract_sha256": "6f5b203a0b07ecba8c16f392c4e3aa0f2122431d2ee9a8f11a912829e40ded09",
+  "return_payload_manifest_sha256": "e03ef5e05b1b8161bde6efc1fe4507a6bc2a743d5647f65f2fcd6ad79716800c",
+  "payload_sha256": "898b7737d69e351e54b406aebda27652c04413344d19dfb698a8642e33b698f9",
+  "board": "pico2_w",
+  "build_id": "rr01-pico-v1",
+  "upstream_commit": "a7fb5e8ac692c528f8ed29e325911a3f4b8111d6",
+  "usb": {
+    "vid": 11914,
+    "pid": 10,
+    "product": "Lunar fixed ROM return-r01",
+    "data_interface": 2,
+    "data_interface_string": "Return-r01 fixed data"
+  },
+  "strict_source_commit": "ff1fed64c180a4e604f21bf6d34146f295f7f859",
+  "pico_build_manifest_sha256": "d102b5fafbe68172769d15573b64f34edb32428e9ec5df0451efc3d2fc2dd44f",
+  "recipe_sha256": "8da6d6ac4ea5f0d7a3dbc951da7b7088fabbf3a956bb39189f42cb6ee31537af",
+  "patch_sha256": {
+    "0001": "b67768211e058c1f558720c7205295e6ec09dc3318f6491eb73566e2086a163f",
+    "0002": "9b4565fbc5a27d3034e13fb7ddcc7dbdcb7d1f60427424656da33abf9617d045",
+    "0003": "808264d04e74faa27dc2a02114ea5c3faef9bf5041fe28b3e5bd4b3b1f9bbfcf"
+  },
+  "uf2": {
+    "bytes": 144384,
+    "sha256": "fecc4f116e212bed5906e7519a93ffe4907e1c93229307c43736b97f85dcbfaf"
+  }
+}

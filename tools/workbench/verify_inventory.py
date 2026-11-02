@@ -11,6 +11,7 @@ SOURCE_TAR_SHA256 = "b92779ec8bbff7ffdedce38932738261181aff8fa67718d7cd20cb687b7
 EXPECTED_FILES, EXPECTED_MANIFEST_FILES = 150, 65
 MAX_ARCHIVE_BYTES, MAX_FILE_BYTES, MAX_TOTAL_BYTES, MAX_FILES = 64<<20, 32<<20, 256<<20, 1000
 CHUNK = 1<<20
+SCRATCH_ROOT = Path(__file__).resolve().parents[2] / "scratch" / "workbench-inventory"
 
 class VerificationError(ValueError):
     """An archive or evidence input is malformed or does not match its pin."""
@@ -155,7 +156,8 @@ def verify(kitpath: Path, source_tar: Path) -> dict:
             files=zip_index(z)
             if len(files)!=EXPECTED_FILES: raise VerificationError(f"kit file count is {len(files)}, expected {EXPECTED_FILES}")
             manifest=check_manifest(z,files)
-            with tempfile.TemporaryDirectory(prefix="workbench-source-") as tmp:
+            SCRATCH_ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
+            with tempfile.TemporaryDirectory(prefix="workbench-source-", dir=SCRATCH_ROOT) as tmp:
                 src=extract_pinned_tar(source_tar,Path(tmp)/"src")
                 result=compare(z,files,src)
     except zipfile.BadZipFile as e: raise VerificationError(f"invalid kit ZIP: {e}") from e

@@ -36,7 +36,14 @@ try {
   await playPause.click();
   await page.waitForFunction(() => document.querySelector('[data-transport-play-pause]')?.getAttribute('aria-label') === 'Pause');
   phase = 'pause';
-  await playPause.click();
+  // A real press can span a native status update. WebKit drops the click
+  // when an unchanged icon's text node is replaced between down and up.
+  const pauseBox = await playPause.boundingBox();
+  await page.mouse.move(pauseBox.x + pauseBox.width / 2, pauseBox.y + pauseBox.height / 2);
+  await page.mouse.down();
+  const tickAtPress = await page.evaluate(() => fm1.seq.master_tick);
+  await page.waitForFunction(tick => fm1.seq.master_tick > tick, tickAtPress);
+  await page.mouse.up();
   await page.waitForFunction(() => document.querySelector('[data-transport-play-pause]')?.getAttribute('aria-label') === 'Resume');
   phase = 'resume';
   await playPause.click();

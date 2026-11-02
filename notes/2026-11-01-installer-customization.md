@@ -1,0 +1,135 @@
+# Offline installer customization extraction — 2026-11-01
+
+Personal, non-commercial Lunar Modulator project. No device I/O or publication.
+
+## Scope and provenance
+
+Base main `a1b7823b`; branch `feature/2026-11-01@installer-customization`.
+Extracted the bounded static page/import closure from
+`feature/2026-10-11@installable-firmware` at
+`cccd21cc5dc82859ed8a5d84f0a7a40646d07353`, which already contains
+continuous-installer-service `93a287c8`. No branch merge, native backend,
+firmware implementation, vendor bytes or OTA transport was imported.
+The nine JavaScript modules reference only one another. Styles reuse existing
+`style.css`. Seven separate init/replacement example sources were added;
+main's four existing examples are unchanged. Existing asset provenance pins
+are retained, and source digests are recomputed by the exporter [verified].
+
+The exporter uses the actual `engines/modules/catalogue.mk` through Make's
+`print-modules`, and has no packed-profile/backend import. Its small group map
+is local. It exports all 55 production module IDs, eleven project choices,
+one companion SET, content hashes, raw source dependencies and truthful false
+install/link/RAM/hardware flags [verified]. Source dependency validation does
+not establish packed dependencies or native playback. The owner-approved
+Event Horizon musical choice remains distinct from native/release acceptance.
+
+## Safety and behavior
+
+The shipped service marker is disabled. The page exports a JSON request and
+says that builds and installation are unavailable. Optional private-service
+client binding remains available for future integration; receipt identities,
+selection, content, runtime profile and stale-result rejection remain checked.
+Its diagnostic profile constants preserve the source branch's contract; this
+slice does not implement or independently certify that absent backend.
+Local package diagnostics cannot admit a package or enable installation,
+even when its nested structure and CRCs pass [verified]. No OTA adapter is
+in this page's dependency closure.
+
+## Checks
+
+- `python3 tools/native/export_image_catalogue.py`: succeeds against current
+  main catalogue and every source requirement [verified].
+- `.venv/bin/python -m pytest -q tests/test_native_image_catalogue.py
+  tests/test_native_module_selection.py`: 67 passed [verified]. Used existing
+  main project venv by absolute path, bounded Make metadata only, no compiler.
+- `node --test sim/web/test/installer*.test.mjs
+  sim/web/test/native*.test.mjs`: 77 passed, one optional private stock-derived
+  FWSC fixture skipped, zero failed [verified]. Includes real exporter/UI
+  integration, selection validation, exact custom subsets, in-flight stale
+  result invalidation and package fail-closed checks.
+- Test-only nested synthetic fixture was decoupled from the older branch's
+  native model: explicit synthetic reserved geometry, no vendor data. Outer
+  FWSC tests still compare the existing Python inspector; nested tests cover
+  malformed geometry, repaired CRCs and incorrect SFC origin. Do not claim
+  independent Python nested-model equivalence for this slice.
+- Rarefaction root and Serena config select absolute main checkout, not this
+  external worktree. Both inspected representative `createWav`; Rarefaction
+  found its real worker and test callers; Serena overview found its symbol.
+  Shared root was not switched during concurrent work. Main-tree tools cannot
+  certify newly added external-worktree symbols; file/import inspection and
+  runtime tests cover this slice. No global semantic configuration changed.
+
+## Integration and remaining gates
+
+Coordinator owns Pages workflow: run
+`python3 tools/native/export_image_catalogue.py > sim/web/www/demo-image-catalogue.json`
+before the existing static site copy. Never commit generated catalogue output.
+Coordinator owns actual Chrome wide/narrow visual review, independent source
+review, CI, PR and merge. No public deployment marker should be enabled.
+Release-ready native firmware, hardware listening/boot acceptance and protected
+package admission remain separate incomplete milestones.
+
+## Lifecycle and recovery
+
+Worktree: `/Users/likwid/.codex/worktrees/lunar-installer-customization-20261101`.
+Small test logs remain under ignored `scratch/installer-customization-20261101`;
+pytest temp outputs and exporter temporary/build directories are removed after
+checks. Exporter TemporaryDirectory under ignored `scratch/native-image-catalogue/`
+cleans its Make-generated headers on exit.
+No daemon, container, download or heavyweight build was created. Mac free space
+was 1128 GiB at start (500 GiB floor retained). Remove this owned worktree with
+`git worktree remove` after integration once coordinator has preserved this
+handoff and verified backups. Parent receives exact pushed SHA in exit report.
+
+## Review correction — historical allocation evidence
+
+Reviewer found ID-only labels and rejection gates imported from a historical
+216064-byte, 12-voice allocator experiment. The source note
+`notes/2026-10-14-installer-chooser-preflight.md` in the source branch explicitly
+limits those results to its measured ordered project/module vector [verified].
+They do not establish current fit for selectable runtime/module configurations.
+Removed the old pass/fail map and unconditional request/control rejection.
+Every project now reports playback-memory fit pending, explicitly stating that
+historical diagnostics do not establish current fit. Source dependency validation
+still rejects omitted required modules; package admission stays unavailable.
+Regression cases exercise legacy, song-diagnostic and continuous requests with
+changed module selections, and show neither stale acceptance nor stale rejection.
+The view test confirms former rejected candidates can be selected for offline
+review without gaining an image admission capability.
+
+The title and heading now read “Customize Lunar Modulator”. Runtime choices live
+inside a collapsed native `details` element named “Advanced diagnostic options”;
+option labels describe the diagnostic purpose and preserve internal values.
+The build-service-unavailable notice and diagnostic limits remain visible.
+Actual Chrome visual inspection remains blocked by local browser access being
+disabled in Work settings, as reported by coordinator; this source/test correction
+does not claim visual acceptance.
+
+Review-correction validation: complete focused Node suites passed again (77 pass,
+one optional private fixture skipped, zero failures); HTML parser audit confirmed
+collapsed details (no `open`), preserved runtime option values, disabled service
+marker, matching customization title/heading and no raw layout IDs in labels.
+`git diff --check` passed. No Python source changed in this correction.
+
+## Discoverability follow-up
+
+Added a native `Customize` link to `installer.html` in the simulator's existing
+information/footer row, beside Cheat Sheet and Copyright Info. It uses existing
+wrapping, spacing and keyboard-focus styles without changing the layout switch,
+JavaScript handlers or CSS. README now explains module/project selection and
+request-file export, with a concise statement that the build service is unavailable
+and customization does not build or install firmware.
+
+Structural HTML checks confirmed exactly one correctly named native link, its
+local target exists, and the existing footer has flex-wrap, 8px gaps and anchor
+focus styling. `git diff --check` passed. Actual wide/narrow rendering and touch
+acceptance remain pending because Work settings disable local browser access;
+no browser restriction was bypassed.
+
+No coordinator merge was necessary: `index.html` and README were identical to
+coordinator `1294fc54` before this incremental edit. Before/after source-hash
+checks (`sim/web/tools/source_hash.py`) were identical: engines
+`872562d992cbe9f0c07f523eef9852ca6a250955e2e98e01a966f9a46d0dd58a`, sim
+`5a642b62c0238ab6687bfd69db61f3802d984cff6893a51a6b40f30429fae220`.
+These hashes exclude index/README; no Wasm input or generated receipt changed.
+No new scratch data, test dependency or daemon was created.

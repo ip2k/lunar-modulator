@@ -81,7 +81,7 @@ KINDS = [
 
 
 @pytest.mark.parametrize("kind,name,extra", KINDS, ids=[k[1] for k in KINDS])
-def test_render_save_load_save_is_byte_identical(tmp_path, kind, name, extra):
+def test_render_save_load_save_is_byte_identical(renderer, tmp_path, kind, name, extra):
     (tmp_path / "j").mkdir()
     (tmp_path / "b").mkdir()
     j = cycle([*extra, "--load", str(GOLD / name)], kind, "lunar", tmp_path / "j")
@@ -129,7 +129,7 @@ def test_render_project_save_load_save(tmp_path, names, guide, ext, which):
     schema_ok(doc)
 
 
-def test_clip_and_set_save_load_save(tmp_path):
+def test_clip_and_set_save_load_save(renderer, tmp_path):
     set_text = "\n".join(canon.loads((EXAMPLES / "first-orbit.lunar").read_text())["set"]) + "\n"
     s0 = tmp_path / "s0.movy1"
     s0.write_text(set_text)
@@ -254,7 +254,7 @@ SESSION = ["--engine", "drums", "--param", "Kit=1", "--param", "Pad=3", "--param
            "--fx", "hall", "--fx-param", "Mix=0.2", "--fx", "limit"]
 
 
-def test_a_saved_session_renders_the_same(tmp_path):
+def test_a_saved_session_renders_the_same(renderer, tmp_path):
     (tmp_path / "set.movy1").write_text(SET)
     (tmp_path / "mod.txt").write_text(MOD)
     p, pb = tmp_path / "p.lunar", tmp_path / "p.lunarb"
@@ -282,7 +282,7 @@ def test_a_saved_session_renders_the_same(tmp_path):
     assert (tmp_path / "bare.wav").read_bytes() != a.read_bytes()
 
 
-def test_a_kits_every_pad_is_saved_as_its_engine_holds_it(tmp_path):
+def test_a_kits_every_pad_is_saved_as_its_engine_holds_it(renderer, tmp_path):
     """Engine API v4's get_param: Sophie's pads start from the module's own
     patches, so a pad the session never touched is saved with its own
     values (a default for every pad would change the kit), and the kit
@@ -300,7 +300,7 @@ def test_a_kits_every_pad_is_saved_as_its_engine_holds_it(tmp_path):
     assert pads[2]["Tune"] == 0.75
 
 
-def test_fm6_user_voices_render_the_same(tmp_path):
+def test_fm6_user_voices_render_the_same(renderer, tmp_path):
     notes = ["--note", "0:48:100:0.5", "--note", "0.4:55:90:0.5", "--seconds", "1.5"]
     p, pb = tmp_path / "d.lunar", tmp_path / "d.lunarb"
     a, b, c, d = (tmp_path / f"{n}.wav" for n in "abcd")

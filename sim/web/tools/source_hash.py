@@ -25,8 +25,8 @@ their bytes, in sorted path order:
            differently with only a warning
 
 build-on-aeon.sh records both in www/fm1.wasm.json; tests/test_sim_web.py
-warns when the tree has moved on since, and fails in CI when the sim's own
-inputs have. MIT licence.
+warns locally when either source tree has moved on, and fails in CI for
+either stale digest. MIT licence.
 """
 import hashlib
 import json
@@ -36,7 +36,8 @@ from pathlib import Path
 SIM_INPUTS = ("sim/web/src", "sim/web/mk", "sim/web/build.sh", "sim/web/test/parity.mjs",
               "sim/web/test/scenarios.json", "sim/web/test/fm1_sim_render.c",
               "sim/web/test/seq", "sim/web/test/mod", "sim/web/test/arp", "sim/web/test/dx7",
-              "sim/web/test/sysex.mjs", "sim/web/www/fm1-wasm.mjs",
+              "sim/web/test/sysex.mjs", "sim/web/test/midi-realtime.mjs",
+              "sim/web/test/midi-realtime-routing.test.mjs", "sim/web/www/fm1-wasm.mjs",
               "engines/seq", "engines/include/fm1_seq*.h",
               "engines/mod", "engines/include/fm1_mod*.h", "engines/host/mod_script*",
               "engines/midi_fx", "engines/include/fm1_mfx_host.h", "engines/include/fm1_midi_ev.h",

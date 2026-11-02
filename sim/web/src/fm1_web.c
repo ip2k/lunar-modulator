@@ -120,10 +120,24 @@ unsigned fm1w_text_cap(void) { return (unsigned)sizeof g_text; }
 /* The sequencer. fm1w_seq_text applies the first `len` bytes of the text
  * buffer as one script line at the coming block's start and returns the
  * bytes it took (fm1_app_seq_line): fewer than `len` means the rest must
- * wait for the next render. -1 for a length past the buffer. */
+ * wait for the next render. -1 for a length past the buffer. This reports
+ * command admission, not semantic edit success; panel Capture reports a
+ * refused take through the shared app popup and retains its history. */
 int fm1w_seq_text(unsigned len) {
   if (len > sizeof g_text) return -1;
   return (int)fm1_app_seq_line(&g_app, g_text, len);
+}
+
+/* Browser MIDI realtime: native Link is the opt-in, including while stopped.
+ * 1 = consumed/ignored, 0 = retry after rendering (event-room backpressure).
+ * Keep transport/note-off semantics in the shared app/core. */
+int fm1w_seq_realtime(unsigned status) {
+  fm1_seq_info_t i;
+  const fm1_seq_t *seq = fm1_app_seq(&g_app);
+  if (!seq || (status != 0xF8 && status != 0xFA && status != 0xFB && status != 0xFC)) return 1;
+  fm1_seq_get_info(seq, &i);
+  if (!i.link) return 1;
+  return fm1_app_seq_realtime(&g_app, (uint8_t)status);
 }
 
 /* A new instance of `tracks` tracks (1..8), then the default route, as
@@ -184,6 +198,21 @@ int fm1w_dx7_load(unsigned len, int play) {
   g_dx7_result[11] = (uint32_t)fm1_app_unit_current(&g_app);
   g_dx7_result[12] = len;
   return n;
+}
+
+/* Download only a complete user bank: VMEM has no empty-slot marker.
+ * Refuse partial banks rather than silently replacing unloaded slots with
+ * INIT VOICE. This reads the bank regardless of the current sound's engine.
+ * -2: FM6 absent; -3: one or more unloaded slots. Output is in g_text. */
+int fm1w_dx7_save_bank(void) {
+  const uint8_t *voices[FM1_DX7_USER_SLOTS];
+  unsigned k;
+  if (g_app.dx7.index < 0) return -2;
+  for (k = 0; k < FM1_DX7_USER_SLOTS; ++k) {
+    if (!g_app.dx7.loaded[k]) return -3;
+    voices[k] = g_app.dx7.voice[k];
+  }
+  return (int)fm1_dx7_write_bank(voices, 0, (uint8_t *)g_text);
 }
 
 const uint32_t *fm1w_dx7_result(void) { return g_dx7_result; }
