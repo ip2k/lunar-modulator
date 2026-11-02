@@ -267,6 +267,27 @@ export function mountNativeDemoSelectionView(root, catalogue, profile, onRequest
   root.append(section);
 
   return Object.freeze({
+    prepareRestore(request, nextProfile) {
+      if (busy) throw new Error('Wait for the current submission before loading a request.');
+      const configuration = request.runtime_mode === undefined ? undefined : {
+        flash_layout: request.flash_layout, runtime_mode: request.runtime_mode,
+      };
+      const next = buildNativeDemoSelectionRequest(catalogue, nextProfile,
+        request.project_ids, request.startup_index, request.set_ids ?? [], configuration);
+      return () => {
+        selected.splice(0, selected.length, ...next.project_ids);
+        selectedSets.splice(0, selectedSets.length, ...(next.set_ids ?? []));
+        startupId = selected[next.startup_index];
+        for (const [id, control] of projectControls) control.checked = selected.includes(id);
+        for (const [id, control] of startupControls) {
+          control.checked = id === startupId;
+          control.disabled = !selected.includes(id);
+        }
+        for (const [id, control] of setControls) control.checked = selectedSets.includes(id);
+        status.textContent = '';
+        syncSubmit();
+      };
+    },
     destroy() { section.remove(); },
     getSelection() {
       return Object.freeze({ projectIds: Object.freeze([...selected]), startupId,

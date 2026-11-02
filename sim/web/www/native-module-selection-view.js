@@ -64,7 +64,22 @@ export function mountNativeModuleSelectionView(root, catalogue, profile, onChang
   }
   section.append(status);
   root.append(section);
-  return Object.freeze({ getProfile: snapshot, destroy() { section.remove(); } });
+  return Object.freeze({
+    getProfile: snapshot,
+    // Prepare without mutation or callbacks so a page can commit several views together.
+    prepareRestore(profile) {
+      const next = snapshotFrom({ version: 1,
+        ...validateNativeBuildSelection(catalogue, profile).selectedByGroup });
+      return () => {
+        current = next;
+        for (const group of BUILDER_GROUPS) {
+          for (const id of catalogue.groups[group]) controls.get(id).checked = next[group].includes(id);
+        }
+        status.textContent = '';
+      };
+    },
+    destroy() { section.remove(); },
+  });
 }
 
 function snapshotFrom(profile) {
