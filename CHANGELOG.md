@@ -8,6 +8,17 @@ history.
 
 ## [Unreleased]
 
+### Added
+- **A build that keeps failing now recovers by itself.** Lunar's fail-open
+  boot counts boots that do not reach "healthy". After three in a row, the
+  device goes into the mask-ROM update mode on its own, so no dongle and no
+  button are needed to put a fixed build on it. A supervisor resets tasks
+  that stall, and the watchdog catches a core that hangs. Tested on the dev
+  board: a deliberately failing image failed three ways and then entered
+  update mode by itself. A fixed image installed from there ran normally.
+  Not yet run on an FM-1, and power-cut tests are still to do
+  (`notes/2026-11-08-failopen-watchdog.md`).
+
 ### Changed
 - **The stock FM-1 runs at 360 MHz, not 240 MHz.** The SPL sets the clock from
   V15's `isd_config` (`SYS_CLK` 360,000,000, HSB 180 MHz, LSB 60 MHz), and the

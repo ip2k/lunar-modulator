@@ -161,6 +161,24 @@ a custom firmware that deliberately invalidates its own header on a key combo,
 or a watchdog-backed failure counter that erases the app directory head, would
 guarantee a way back. It does not help a stock device.
 
+**Built, and tested on the dev kit (2026-11-08).** Lunar's fail-open boot
+(`firmware/failopen/`) needs no flash erase. It keeps a boot counter in SRAM
+that survives a warm reset. After three boots in a row that do not report
+healthy, the next boot enters `UBOOT1.00` through `nvram_set_boot_state(2)`.
+A heartbeat supervisor resets tasks that stall while the scheduler still
+runs. The SDK's watchdog catches a core that stops switching tasks.
+
+On the kit, a deliberately failing image did the following [verified]:
+
+- failed by P33 reset, by watchdog and by a stalled task;
+- entered UBOOT by itself on the fourth boot, 16.45 s after its reset;
+- was replaced from that ROM state by a fixed image, which ran and reported
+  healthy.
+
+Every reset reads `SOFT` there, the watchdog included. The counter's
+survival on the FM-1's stock SPL is [inferred]. Power-cut tests (§4 rule 5)
+are pending. Details: `notes/2026-11-08-failopen-watchdog.md`.
+
 ### 2.3 Software entry into ROM USB mode from a running custom app
 
 The SDK's `isd_config.ini` has `UPDATE_JUMP` (reset vs. jump to mask-ROM
