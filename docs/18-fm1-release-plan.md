@@ -52,10 +52,27 @@ owner approval; this document approves nothing.
   work closed** (cap8, trunc12, the 48-tap 51/47 resampler, the buffered
   queue) [inferred: different images; FM-1 timing at 360 MHz is scaled,
   not measured].
-- **The soak image may not fit V15's app slot.** `app.bin` is 597,916 B;
-  V15's slot from `0x4120` to `cfg_tool.bin` at `0x920DC` is 581,564 B
-  [verified: docs/01 §2]. Whether the kit's `app.bin` measures the same
-  thing as an FM-1 app is unchecked, so the overflow is [inferred].
+- **The soak image fits V15's app slot with the size profile.** `app.bin`
+  is 597,916 B plain and 570,588 B with `--size-profile`, against V15's
+  581,564 B slot (`0x4120` to `cfg_tool.bin` at `0x920DC`), leaving 10,976 B
+  [verified: aeon build, `notes/2026-11-08-fit-size.md`]. The 16 KB margin
+  target is 5,588 B short. Every SRAM-resident function is unchanged and the
+  host replay hashes match; target timing of the rebuilt cold units is
+  untested. The FM-1 board layer will add to the image.
+
+### 1.1 Wave 1 results (2026-11-08)
+
+| Lane | PR | Result |
+| --- | --- | --- |
+| Size profile | #178 merged | fits with 10,976 B spare (above) |
+| Fit tables | #175 merged | dropping Terrain and Wavetable Macro models gives +38,656 B; Drums off frees 23.7 KB heap |
+| `0x94600` forensics | #172 merged | settled (§4) |
+| ALNK0 audio | #176 merged | the DAC needs no control bus; a clean-room MIT driver for ALNK0, host-tested, not run on a chip. U9 has 10 leads; its part number is unread |
+| Board layer (M3) and M5 image | #179 | display, keys, LEDs, ADC, TRS MIDI in; an SDK-free M5 RAM test-pattern image, built, not run |
+| Fail-open (M7) | #180 | boot counter and supervisor; on the kit, three bad boots in a row entered mask-ROM UBOOT by themselves. Power-cut tests need a person at the bench |
+| Bench target pinning | #177 | every tool that opens a `4c4a:8057` device requires `--usb-path` and a role, so the kit and the FM-1 cannot be confused |
+| Web recovery | #173 | Web Serial page for the Pico 2 W transporter, D2 enforced in code, 40 offline tests |
+| Web flasher | #174 | install and roll-back panel on the admission-gated controller; still admits nothing |
 
 ## 2. Milestones
 
@@ -67,12 +84,12 @@ ranges and the recovery plan.
 | --- | --- | --- | --- | --- | --- |
 | M0 | Recovery route | two identical dumps, verified write, boot (docs/17) | — | — | **done** 2026-10-26 |
 | M1 | Release rule on the kit | 30 min, no underrun, means ≤ 85%, worst block explained | — | — | **done** 2026-10-29 |
-| M2 | Size and SRAM budget gate | a tool that reads a pi32v2 image and map and checks it against V15's app slot and the FM-1's free SRAM; the soak image's real figure recorded | none | none | **next** |
-| M3 | FM-1 board layer on main | display, keys, LEDs, MIDI in, ALNK0 audio and codec init, clocks and power left as the SPL sets them, `boot_info` bridge; built for pi32v2, `audit_link.py` and M2 pass. Sourced from Codex's branch where its licence allows, clean-room where not (decision 2) | none | none (licence: decision 2) | code can start |
+| M2 | Size and SRAM budget gate | a tool that reads a pi32v2 image and map and checks it against V15's app slot and the FM-1's free SRAM; the soak image's real figure recorded | none | none | **done** 2026-11-08 (#171, #178) |
+| M3 | FM-1 board layer on main | display, keys, LEDs, MIDI in, ALNK0 audio and codec init, clocks and power left as the SPL sets them, `boot_info` bridge; built for pi32v2, `audit_link.py` and M2 pass. Sourced from Codex's branch where its licence allows, clean-room where not (decision 2) | none | none (licence: decision 1) | code in #176, #179 |
 | M4 | Bounded RAM runner on the kit | upload and jump only; erase, program, `0xFC12`, `0xA1`, syscmd 33–36/48, `5A AA A5` and the soft key refused in code; a RAM test image reports over UART | none (kit) | bench yes | after M3 pieces |
 | M5 | First Lunar code on the FM-1 since recovery, from RAM | build id and test pattern on the TFT, LEDs blink; a power cycle returns V15; a read-only dump before and after has the same hash | RAM only | §4 approval | blocked on M4 |
 | M6 | Audio path on the FM-1 from RAM | ALNK0 at about 44,118 Hz, one reduced engine plays cleanly, per-block timing at 360 MHz reported. The full image does not fit in SRAM [inferred] | RAM only | §4 approval | blocked on M5 |
-| M7 | Fail-open boot and watchdog, power-cut tested on the kit | a boot-looping build reaches update mode by itself; a power cut at every update stage recovers (docs/07 §4 rules 4–5) | none (kit) | bench yes per run | after M3 |
+| M7 | Fail-open boot and watchdog, power-cut tested on the kit | a boot-looping build reaches update mode by itself; a power cut at every update stage recovers (docs/07 §4 rules 4–5) | none (kit) | bench yes per run | kit-tested in #180; power cuts pending |
 | M8 | First flash install on the FM-1 | backups first; `package_guard.py` passes; the head is unchanged; writes stay inside `[0x4000, 0x93000)`; Lunar boots; fail-open tested; V15 restored and read back | **flash app region** | §4 approval | blocked on M5–M7 |
 | M9 | Release rule on the FM-1 | 8 voices at 360 MHz for ≥ 30 min: no underrun, means ≤ 85%, worst block explained, pre-DAC hashes equal to the host replay, the stereo out captured clean; 12 voices measured as the stretch goal | flash app | bench yes | blocked on M8 |
 | M10 | Controls and display | 27 keys, 14 buttons, 7 encoders, MASTER, LEDs, battery; screens hash-equal to R0 | flash app | bench yes | code now |
@@ -101,8 +118,11 @@ GPL modules keep running in personal test builds.
 Asked 2026-10-29; answers recorded here when they come.
 
 1. **Basis for the FM-1 board layer:** harvest from Codex's branch (MIT
-   parts only, reviewed), or clean-room.
-2. **What 1.0 contains** if M2 confirms the image overflows the slot.
+   parts only, reviewed), or clean-room. Wave 1 took the MIT-only harvest
+   plus clean-room code (#179); open for the owner to reverse.
+2. **What 1.0 contains** if M2 confirms the image overflows the slot. Not
+   needed while the size profile fits; revisit when the board layer is
+   linked in.
 3. **SDK application (L1) or bare metal (L2)** for 1.0.
 4. **Whether to restore `FM-1_092`**, or drop "092 → Lunar → V15" from
    the install criteria.
@@ -118,7 +138,8 @@ Asked 2026-10-29; answers recorded here when they come.
   `pipeline-image-sizes.json`: possibly different images.
 - The RAM load-and-jump route is untested on WL82; the ROM has only loaded
   JieLi's own loader on this unit.
-- The codec (U5/U9) is unidentified, and its only known init sequences are
-  in GPL sources.
+- The DAC (U9, 10 leads) is unidentified. No known code writes a codec
+  register, so ALNK0 alone starts audio [inferred, strong: #176]; I2S
+  against left-justified is unsettled until U9 is read.
 - Using docs/17's route to enter the ROM for Lunar RAM runs is beyond the
   approval for the V15 shim and needs a fresh yes.
