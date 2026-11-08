@@ -255,6 +255,22 @@ history.
 - `U2`/`U3` are SOIC-16 `74HC595`, not SOIC-20; `U5` is a QFN, not a SOIC-8.
 
 ### Added
+- **The FM-1 board layer, for firmware that runs on the FM-1 itself.** It
+  covers:
+  - the display's SPI1 transport;
+  - the 41 keys and 7 encoders behind the 74HC595 matrix;
+  - the four LED lines;
+  - the MASTER pot and battery readings;
+  - TRS MIDI in on UART1, with a running-status parser.
+
+  It is built for the FM-1's processor without JieLi's SDK and passes the link
+  audit, and desktop tests cover every part. It has not run on an FM-1 or the
+  dev kit. Audio output is not part of it yet. Details are in
+  `firmware/board/README.md` and `notes/2026-11-08-fm1-board-layer.md`.
+- **An "M5" test-pattern image, built but not run.** It is a 4 KB image that
+  runs from RAM. It shows "LUNAR M5", its build id, "TEST PATTERN" and colour
+  bars on the screen, then blinks the LEDs to report how far it got. Running
+  it on the FM-1 waits for a RAM runner and a separate approval.
 - **The dev kit can run at the FM-1's clock and power profile, for timing.**
   `prepare-pipeline-devkit.py --sys-clk 360 --stock-power` (off by default)
   switches the kit at run time from 320 to 360 MHz. HSB becomes 180 MHz and
