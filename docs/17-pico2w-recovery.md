@@ -337,6 +337,17 @@ does not touch them. On the owner's unit they still held bytes from the
 interrupted install. V15 booted anyway, presumably reformatting what it could
 not use [inferred].
 
+## 7a. The same steps from a browser
+
+`sim/web/www/recovery.html` (Chrome or Edge, Web Serial) drives §4 and §6
+through the transporter's data port instead of `fm1t.py`: key mode, two
+compared dumps, a dry run, the write and the readback. It uses the same wire
+protocol and policy, never sends the soft key (§8), and needs the user to
+confirm the FM-1 is off. It accepts a 1 MiB backup or the stock V15 package.
+Tested against a fake port only [verified: `notes/2026-11-08-web-recovery.md`];
+not yet run on the Pico. WebUSB cannot replace the Pico because it may not
+claim the mask ROM's mass-storage interface.
+
 ## 8. Things not to do
 
 - **Do not run `fm1t.py info`/`dump`/`write`/`uboot`, or the console `k`

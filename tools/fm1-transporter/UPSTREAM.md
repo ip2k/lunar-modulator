@@ -26,3 +26,11 @@
     other packages.
 - **Upstreaming:** the patch is a candidate fix for upstream. Proposing it
   follows the `oss-contributions` house rules and needs the owner's sign-off.
+
+## Browser client (`sim/web/www/recovery-*.js`)
+
+Written for this repository (MIT) and derived in part from upstream
+`web/index.html` (MIT, kurogedelic) at `a7fb5e8`: the Web Serial framing,
+the `ldr`/`wsec`/`read` request shapes and the sector policy follow it. It
+differs deliberately: it never sends `uboot` (owner decision D2), checks the
+loader and package hashes, and refuses images that change `0x0`-`0x4000`.

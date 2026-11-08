@@ -8,6 +8,18 @@ history.
 
 ## [Unreleased]
 
+### Added
+- **Browser recovery page (`sim/web/www/recovery.html`).** Drives the
+  FM-1-transporter data port (Pico 2 W, docs/17) with Web Serial: key mode,
+  two compared dumps saved to disk, a read-only dry run, a write restricted to
+  `0x4000`-`0x92FFF` with the boot area refused, and a full readback. The soft
+  key is never sent (owner decision D2): a command allowlist refuses it, and
+  flash commands need the user's "FM-1 is off" confirmation plus a fresh
+  `uboot=1` status, and are refused outright if a running V15 is reported. The
+  page explains how to flash the transporter UF2 (BOOTSEL) and links the
+  source; it hosts no binaries. Tested against a fake transporter port
+  (`sim/web/test/recovery-*.test.mjs`); not tried on hardware.
+
 ### Changed
 - **The stock FM-1 runs at 360 MHz, not 240 MHz.** The SPL sets the clock from
   V15's `isd_config` (`SYS_CLK` 360,000,000, HSB 180 MHz, LSB 60 MHz), and the
