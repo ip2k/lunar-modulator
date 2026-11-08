@@ -28,6 +28,16 @@ could have opened the wrong one.
 - The dev kit was not enumerated as a ROM device at the time, so its ROM-mode
   port is unknown; only bus 3 is pinned until it is observed once.
 
+## Review follow-up (same day)
+- `fm1_softkey_probe.probe()` re-enumerates USB immediately before the soft-key write
+  and refuses (raises, nothing sent) if any `4c4a:8057` device has appeared during the
+  identity wait or the MIDI device's USB path no longer equals the pinned one. Before
+  this, the ROM check ran once, before the up-to-3 s wait.
+- `bench_target.sg_usb_device` now requires the name to match `sgN`, the path to resolve
+  to `/dev/sgN`, and the node to be a character device whose major:minor equals
+  `/sys/class/scsi_generic/sgN/dev`. The no-op `'/' in name` check is gone.
+  Tests use `_stat`/`_resolve` hooks as fakes; real `/dev` behaviour is untested here.
+
 ## Tests
 `tests/test_bench_target.py` (fake sysfs tree; includes two ROM devices present,
 FM-1 in ROM while the dev kit is requested and the reverse, wrong SG node, devnum

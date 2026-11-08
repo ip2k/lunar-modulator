@@ -145,6 +145,15 @@ def probe(device, expected, send_soft_key, log, timeout=3.0, known_092=False, *,
         if not send_soft_key:
             return info
         # Do not retry. Kernel ALSA packing must be checked in the passive capture.
+        # Last look before the only dangerous write: a ROM device that appeared
+        # during the identity wait, or a MIDI port that moved, aborts the send.
+        late = enumerate_usb()
+        if rom_present(late):
+            log('soft_key_refused', usb=late)
+            raise ValueError('A 4c4a:8057 ROM device appeared (%s); soft key not sent'
+                             % ', '.join(d['path'] for d in rom_present(late)))
+        if usb_parent(device).name != usb_path:
+            raise ValueError('MIDI device moved off USB path %s; soft key not sent' % usb_path)
         log('sending_soft_key', hex=SOFT_KEY.hex(' '), expected_usb_packet='04 f0 22 24 07 35 7d f7')
         write_message(fd, SOFT_KEY)
     finally:

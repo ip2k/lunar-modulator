@@ -1,5 +1,8 @@
 """Target pinning for ROM-mode USB devices, on a fake sysfs tree. No hardware."""
 import json
+import os
+import stat as stat_mod
+from types import SimpleNamespace
 from pathlib import Path
 import sys
 from unittest.mock import Mock
@@ -39,11 +42,20 @@ class Fake:
             leaf.mkdir(parents=True)
             (self.sg / sg).mkdir()
             (self.sg / sg / 'device').symlink_to(leaf)
+            (self.sg / sg / 'dev').write_text('21:%s\n' % sg[2:])
         return real
 
     def pin(self, role, path, device='/dev/sg1', **kw):
         return bt.pin_rom_target(role, path, device, config=CONFIG,
                                  usb_root=self.usb, sg_root=self.sg, **kw)
+
+
+@pytest.fixture(autouse=True)
+def fake_dev(monkeypatch):
+    """Stand in for /dev/sgN: a char device with major 21 and minor N."""
+    monkeypatch.setattr(bt, '_resolve', lambda p: p)
+    monkeypatch.setattr(bt, '_stat', lambda p: SimpleNamespace(
+        st_mode=stat_mod.S_IFCHR | 0o600, st_rdev=os.makedev(21, int(p.rsplit('sg', 1)[1]))))
 
 
 @pytest.fixture
@@ -225,3 +237,58 @@ def test_identity_only_probe_ignores_present_rom_devices(monkeypatch):
     monkeypatch.setattr(probe, 'write_message', Mock())
     with pytest.raises(ValueError, match='identity'):  # reaches the identity wait, no soft key
         probe.probe('/dev/snd/midiC2D0', 'FM-1_092', False, Mock(), timeout=0.001, usb_path='1-2')
+
+
+def test_symlinked_node_refused(fake, monkeypatch):
+    fake.add('1-2', '4c4a', '8057', '7', sg='sg1')
+    monkeypatch.setattr(bt, '_resolve', lambda p: '/tmp/elsewhere')
+    with pytest.raises(bt.PinError, match='resolve'):
+        fake.pin('fm1', '1-2')
+
+
+def test_node_with_wrong_rdev_or_type_refused(fake, monkeypatch):
+    fake.add('1-2', '4c4a', '8057', '7', sg='sg1')
+    monkeypatch.setattr(bt, '_stat', lambda p: SimpleNamespace(
+        st_mode=stat_mod.S_IFCHR | 0o600, st_rdev=os.makedev(21, 5)))
+    with pytest.raises(bt.PinError, match='character device sysfs lists'):
+        fake.pin('fm1', '1-2')
+    monkeypatch.setattr(bt, '_stat', lambda p: SimpleNamespace(
+        st_mode=stat_mod.S_IFREG | 0o600, st_rdev=os.makedev(21, 1)))
+    with pytest.raises(bt.PinError, match='character device sysfs lists'):
+        fake.pin('fm1', '1-2')
+
+
+def test_soft_key_not_written_when_rom_device_appears_during_identity_wait(monkeypatch):
+    listings = iter([[dev('1-2', 'c755')], [dev('1-2', 'c755'), dev('3-1.2', '8057')]])
+    monkeypatch.setattr(probe, 'usb_parent', lambda _: Path('/usb1/1-2'))
+    monkeypatch.setattr(bt, 'load_config', lambda path=None: CONFIG)
+    monkeypatch.setattr(probe, 'enumerate_usb', lambda: next(listings))
+    monkeypatch.setattr(probe.os, 'open', lambda *a: 42)
+    monkeypatch.setattr(probe.os, 'close', lambda *a: None)
+    reads = iter([b'', b'x'])  # first read ends the stale-input flush
+    monkeypatch.setattr(probe.os, 'read', lambda *a: next(reads))
+    monkeypatch.setattr(probe.select, 'select', lambda *a: ([42], [], []))
+    monkeypatch.setattr(probe, 'checked_identity', lambda *a: (b'r', {'id': 'FM-1_092'}))
+    write = Mock()
+    monkeypatch.setattr(probe, 'write_message', write)
+    with pytest.raises(ValueError, match='appeared'):
+        probe.probe('/dev/snd/midiC2D0', 'FM-1_092', True, Mock(), usb_path='1-2')
+    assert [c.args[1] for c in write.call_args_list] == [probe.IDENTITY]
+
+
+def test_soft_key_not_written_when_midi_port_moves_during_identity_wait(monkeypatch):
+    parents = iter([Path('/usb1/1-2'), Path('/usb1/1-2'), Path('/usb3/3-2')])
+    monkeypatch.setattr(probe, 'usb_parent', lambda _: next(parents))
+    monkeypatch.setattr(bt, 'load_config', lambda path=None: CONFIG)
+    monkeypatch.setattr(probe, 'enumerate_usb', lambda: [dev('1-2', 'c755')])
+    monkeypatch.setattr(probe.os, 'open', lambda *a: 42)
+    monkeypatch.setattr(probe.os, 'close', lambda *a: None)
+    reads = iter([b'', b'x'])  # first read ends the stale-input flush
+    monkeypatch.setattr(probe.os, 'read', lambda *a: next(reads))
+    monkeypatch.setattr(probe.select, 'select', lambda *a: ([42], [], []))
+    monkeypatch.setattr(probe, 'checked_identity', lambda *a: (b'r', {'id': 'FM-1_092'}))
+    write = Mock()
+    monkeypatch.setattr(probe, 'write_message', write)
+    with pytest.raises(ValueError, match='moved'):
+        probe.probe('/dev/snd/midiC2D0', 'FM-1_092', True, Mock(), usb_path='1-2')
+    assert [c.args[1] for c in write.call_args_list] == [probe.IDENTITY]

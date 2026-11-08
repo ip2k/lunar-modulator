@@ -20,6 +20,7 @@ It only reads sysfs; it opens no device node. MIT licence.
 """
 import json
 import os
+import stat as stat_mod
 from pathlib import Path
 import re
 
@@ -27,6 +28,9 @@ ROM_ID = ('4c4a', '8057')
 ROLES = ('fm1', 'devkit')
 USB_ROOT = Path('/sys/bus/usb/devices')
 SG_ROOT = Path('/sys/class/scsi_generic')
+# Hooks so tests can stand in for the real /dev node and its stat.
+_stat = os.stat
+_resolve = os.path.realpath
 DEFAULT_CONFIG = Path(__file__).with_name('bench_targets.json')
 PATH_RE = re.compile(r'^[1-9][0-9]*-[1-9][0-9]*(\.[1-9][0-9]*)*$')
 
@@ -98,10 +102,22 @@ def rom_devices(usb_root=USB_ROOT):
 
 
 def sg_usb_device(device, sg_root=SG_ROOT):
-    """The USB device directory behind a /dev/sgN node, or None."""
+    """The USB device directory behind a /dev/sgN node, or None.
+
+    The node must be the real /dev/sgN character device whose major:minor is the
+    one sysfs lists for sgN, so a symlink or a copy cannot stand in for it."""
     name = Path(device).name
-    if not name.startswith('sg') or '/' in name:
+    if not re.fullmatch(r'sg[0-9]+', name):
         raise PinError(f'Expected a /dev/sgN SCSI-generic node, got {device!r}')
+    if _resolve(str(device)) != '/dev/' + name:
+        raise PinError(f'{device} does not resolve to /dev/{name}')
+    try:
+        st = _stat(device)
+        listed = (Path(sg_root) / name / 'dev').read_text().strip()
+    except OSError as e:
+        raise PinError(f'Cannot verify {device} against sysfs: {e}')
+    if not stat_mod.S_ISCHR(st.st_mode) or listed != '%d:%d' % (os.major(st.st_rdev), os.minor(st.st_rdev)):
+        raise PinError(f'{device} is not the character device sysfs lists for {name} ({listed})')
     link = Path(sg_root) / name / 'device'
     if not link.exists():
         raise PinError(f'No sysfs entry for {name}')
