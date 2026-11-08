@@ -17,8 +17,13 @@ history.
   flash commands need the user's "FM-1 is off" confirmation plus a fresh
   `uboot=1` status, and are refused outright if a running V15 is reported. The
   page explains how to flash the transporter UF2 (BOOTSEL) and links the
-  source; it hosts no binaries. Tested against a fake transporter port
-  (`sim/web/test/recovery-*.test.mjs`); not tried on hardware.
+  source; it hosts no binaries. A write happens only on the connection that
+  identified the FM-1, uploaded the loader, took the backup and made the dry
+  run; reconnecting starts over. A chosen 1 MiB image shows its SHA-256 and a
+  warning when it differs from that backup. A unit whose boot area was
+  replaced (Felucca, SLOOP) cannot be restored to stock here, by design.
+  Tested against a fake transporter port (`sim/web/test/recovery-*.test.mjs`);
+  not tried on hardware.
 
 ### Changed
 - **The stock FM-1 runs at 360 MHz, not 240 MHz.** The SPL sets the clock from

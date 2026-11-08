@@ -21,6 +21,41 @@ export const EXPECTED_INFO = 'OK key=980F type=3 id=856014';
 // Only these verbs may leave this page. `uboot` (soft key), `runapp`, `jump`,
 // `memw`, `memr` are deliberately absent.
 export const ALLOWED_COMMANDS = Object.freeze(['ping', 'status', 'rekey', 'info', 'read', 'ldr', 'wsec']);
+// Every request line must match one of these whole-line templates (no `m`
+// flag, so an embedded newline or a second command fails); checking the first
+// token alone would let `ping\nuboot` or `read 0x0 16 uboot` through.
+export const REQUEST_TEMPLATES = Object.freeze({
+  ping: /^ping$/,
+  status: /^status$/,
+  rekey: /^rekey$/,
+  info: /^info$/,
+  read: /^read 0x[0-9a-f]{1,6} [0-9]{1,7}$/,
+  ldr: /^ldr [0-9]{1,5} [0-9]{1,4} [0-9A-F]{8}$/,
+  wsec: /^wsec 0x[0-9a-f]{1,6} [0-9A-F]{8}$/,
+});
+/** Throws command-refused unless `line` (and its payload) fits a template. */
+export function checkRequest(line, payload = null) {
+  const refuse = (why) => fail('command-refused', `request "${String(line).slice(0, 40)}" is not allowed from this page (${why})`);
+  if (typeof line !== 'string') refuse('not text');
+  const verb = line.split(' ')[0];
+  if (!ALLOWED_COMMANDS.includes(verb) || !Object.hasOwn(REQUEST_TEMPLATES, verb)) refuse('verb not allowlisted');
+  if (!REQUEST_TEMPLATES[verb].test(line)) refuse('does not match the fixed template');
+  const a = line.split(' ');
+  const plen = payload ? payload.length : 0;
+  if (verb === 'read') {
+    const addr = Number(a[1]), len = Number(a[2]);
+    if (len < 1 || addr + len > FLASH_SIZE) refuse('outside the flash');
+  }
+  if (verb === 'ldr') {
+    const off = Number(a[1]), len = Number(a[2]);
+    if (len < 1 || len > SECTOR || off % SECTOR || off + len > LOADER_SIZE || plen !== len) refuse('loader chunk out of range');
+  }
+  if (verb === 'wsec') {
+    const addr = Number(a[1]);
+    if (addr < WRITE_MIN || addr >= WRITE_END || addr % SECTOR || plen !== SECTOR) refuse('sector outside 0x4000-0x92FFF');
+  }
+  if (verb !== 'ldr' && verb !== 'wsec' && plen) refuse('unexpected payload');
+}
 
 export class RecoveryError extends Error {
   constructor(code, message) { super(message); this.name = 'RecoveryError'; this.code = code; }
@@ -104,8 +139,8 @@ export class TransporterLink {
     }, ms, `${n} payload bytes`);
   }
   async #send(line, payload) {
-    const verb = line.split(/\s+/)[0];
-    if (!ALLOWED_COMMANDS.includes(verb)) fail('command-refused', `command "${verb}" is not allowed from this page`);
+    checkRequest(line, payload);
+    if (this.closed) fail('port-closed', 'the serial port is closed');
     if (this.busy) fail('busy', 'a request is already in flight');
     this.busy = true;
     this.buf = new Uint8Array(0);
@@ -162,9 +197,17 @@ export class RecoverySession {
     this.confirm = hooks.confirm || (async () => false);
     this.loaderSha256 = hooks.loaderSha256 || LOADER_SHA256; // tests only
     this.confirmedOff = false;
-    this.backup = null; // { data, sha256 }
+    // Provenance: what THIS session has done on THIS link. A page that
+    // reconnects gets a new session with none of it, so a plan or a backup
+    // from an earlier connection can never drive a write.
+    this.identified = false;  // identify() returned the FM-1's chip key and flash id
+    this.loaderReady = false; // uploadLoader() checked the loader file and the transporter holds a loader
+    this.backup = null;       // { data, sha256 } from two matching dumps
     this.wroteStarted = false;
   }
+  #token = Symbol('session'); // stamps plans made by this session
+  #plans = new WeakMap();     // plan -> the backup it was computed against
+  #forget() { this.identified = false; this.loaderReady = false; this.backup = null; this.#plans = new WeakMap(); }
   setConfirmedOff(v) { this.confirmedOff = Boolean(v); }
 
   async connect() {
@@ -183,9 +226,11 @@ export class RecoverySession {
     if (!this.confirmedOff) fail('not-confirmed-off', GUIDE.notOff);
     const st = await this.status();
     if (st.v15) fail('v15-attached', GUIDE.v15);
+    this.#forget();
     let reply = '';
     try { reply = await this.link.request('rekey', 3000); } catch (e) { if (!['port-closed', 'timeout'].includes(e.code)) throw e; }
     this.log(`rekey: ${reply || 'port closed'}`);
+    await this.link.close(); // the transporter reboots; release the port before anyone reconnects
     return 'The transporter is rebooting and will close this port. Reconnect its data port within about 10 s, then switch the FM-1 ON only after the console shows the key running.';
   }
 
@@ -211,21 +256,24 @@ export class RecoverySession {
     if (bytes.length !== LOADER_SIZE) fail('loader-size', `wl82loader.bin must be ${LOADER_SIZE} bytes, got ${bytes.length}`);
     const sha = await sha256Hex(bytes);
     if (sha !== this.loaderSha256) fail('loader-sha', `wl82loader.bin SHA-256 ${sha} does not match the expected ${this.loaderSha256}`);
-    const st = await this.status();
-    if (st.v15) fail('v15-attached', GUIDE.v15);
-    if (st.loader) return 'already-loaded';
+    const st = await this.requireUboot(); // V15 refused, FM-1 confirmed off, boot mode
+    // A loader the transporter already holds (this page reloaded without a
+    // rekey) is accepted: the file was still checked above in this session.
+    if (st.loader) { this.loaderReady = true; return 'already-loaded'; }
     for (let off = 0; off < bytes.length; off += SECTOR) {
       const chunk = bytes.subarray(off, off + SECTOR);
       const r = await this.link.request(`ldr ${off} ${chunk.length} ${hex8(crc32(chunk))}`, 5000, chunk);
       if (r !== 'OK') fail('loader-upload', `loader upload failed at ${off}: ${r}`);
     }
+    this.loaderReady = true;
     return 'loaded';
   }
 
   async identify() {
     await this.requireUboot();
     const r = await this.link.request('info', 30000);
-    if (r !== EXPECTED_INFO) fail('not-fm1', `Not an FM-1 (expected "${EXPECTED_INFO}", got "${r}"). Stop.`);
+    if (r !== EXPECTED_INFO) { this.identified = false; fail('not-fm1', `Not an FM-1 (expected "${EXPECTED_INFO}", got "${r}"). Stop.`); }
+    this.identified = true;
     return r;
   }
 
@@ -236,6 +284,7 @@ export class RecoverySession {
 
   /** Two full reads, byte-compared and hashed; both saved to the user's disk. */
   async backupFlash() {
+    this.backup = null; // a failed backup leaves none, and invalidates older plans
     await this.identify();
     const a = await this.readFlash(0, FLASH_SIZE, 'dump A');
     const b = await this.readFlash(0, FLASH_SIZE, 'dump B');
@@ -264,55 +313,128 @@ export class RecoverySession {
   /**
    * Read-only dry run: fresh full read must equal the in-session backup over
    * [0, WRITE_END); list differing sectors; refuse any below WRITE_MIN.
+   * Returns a frozen summary for display. What write() uses (the sectors, a
+   * private copy of the image and of the flash read) stays inside the session,
+   * keyed by that summary, so neither a caller's buffers nor a forged or
+   * earlier connection's plan can change what is written.
    */
   async plan(image) {
     if (!this.backup) fail('no-backup', 'Take the backup (two matching dumps) in this session first.');
-    if (image.data.length < WRITE_END) fail('image-too-small', 'image shorter than the write window');
+    if (!(image?.data instanceof Uint8Array) || image.data.length < WRITE_END) fail('image-too-small', 'image shorter than the write window');
+    const backup = this.backup;
+    const data = image.data.slice(0, Math.min(image.data.length, FLASH_SIZE));
     const now = await this.readFlash(0, FLASH_SIZE, 'pre-write read');
-    return this.#planFrom(image, now);
+    if (this.backup !== backup) fail('plan-stale', 'The backup changed during the dry run; run it again.');
+    const { sectors, beyondWindow } = this.#planFrom(data, now);
+    const plan = Object.freeze({
+      sectors: Object.freeze(sectors.slice()), beyondWindow: Object.freeze(beyondWindow),
+      imageSha256: image.sha256, backupSha256: backup.sha256, token: this.#token,
+    });
+    this.#plans.set(plan, Object.freeze({ backup, sectors: Object.freeze(sectors), data, now }));
+    return plan;
   }
-  #planFrom(image, now) {
+  #planFrom(data, now) {
     const ref = this.backup.data;
     const bad = [];
     for (let a = 0; a < WRITE_END; a += SECTOR) if (!bytesEqual(now.subarray(a, a + SECTOR), ref.subarray(a, a + SECTOR))) bad.push(a);
     if (bad.length) fail('flash-differs-from-backup', `Flash differs from the backup in sectors ${bad.map((a) => `0x${a.toString(16)}`).join(' ')}; not writing. Take a fresh backup.`);
     const sectors = [], protectedDiff = [];
     for (let a = 0; a < WRITE_END; a += SECTOR) {
-      if (!bytesEqual(image.data.subarray(a, a + SECTOR), now.subarray(a, a + SECTOR))) (a < WRITE_MIN ? protectedDiff : sectors).push(a);
+      if (!bytesEqual(data.subarray(a, a + SECTOR), now.subarray(a, a + SECTOR))) (a < WRITE_MIN ? protectedDiff : sectors).push(a);
     }
-    if (protectedDiff.length) fail('protected-sector', `The image changes the protected boot area (${protectedDiff.map((a) => `0x${a.toString(16)}`).join(' ')}). The boot area 0x0-0x4000 is never written; image refused.`);
+    if (protectedDiff.length) fail('protected-sector', `The image changes the protected boot area (${protectedDiff.map((a) => `0x${a.toString(16)}`).join(' ')}). The boot area 0x0-0x4000 is never written; image refused. A unit whose boot area was replaced (Felucca and SLOOP install a different uboot.boot) cannot be restored to stock this way, by design.`);
     const beyond = [];
-    for (let a = WRITE_END; a + SECTOR <= Math.min(image.data.length, FLASH_SIZE); a += SECTOR) {
-      if (!bytesEqual(image.data.subarray(a, a + SECTOR), now.subarray(a, a + SECTOR))) beyond.push(a);
+    for (let a = WRITE_END; a + SECTOR <= data.length; a += SECTOR) {
+      if (!bytesEqual(data.subarray(a, a + SECTOR), now.subarray(a, a + SECTOR))) beyond.push(a);
     }
-    return { sectors, beyondWindow: beyond, now, image };
+    return { sectors, beyondWindow: beyond };
+  }
+
+  /** Refuses unless `plan` came from this session's plan() against its current backup; returns the session's record of it. */
+  #checkPlan(plan) {
+    if (this.link.closed) fail('port-closed', 'The serial port is closed; reconnect, identify and back up again.');
+    if (!this.identified) fail('not-identified', 'This connection has not identified the FM-1. Wait for boot mode and identify first.');
+    if (!this.loaderReady) fail('no-loader', 'This connection has not uploaded the loader. Wait for boot mode and identify first.');
+    if (!this.backup) fail('no-backup', 'Take the backup (two matching dumps) in this connection first.');
+    const rec = plan && typeof plan === 'object' ? this.#plans.get(plan) : undefined;
+    if (!rec || plan.token !== this.#token) fail('plan-foreign', 'This dry run was not made on the current connection. Run the dry run again.');
+    if (rec.backup !== this.backup || plan.backupSha256 !== this.backup.sha256) fail('plan-stale', 'The backup changed after this dry run. Run the dry run again.');
+    assertWritableSectors(rec.sectors);
+    if (!bytesEqual(rec.data.subarray(0, WRITE_MIN), rec.now.subarray(0, WRITE_MIN))) fail('protected-sector', 'The image changes the protected boot area 0x0-0x4000; nothing was written.');
+    return rec;
   }
 
   /**
-   * Write. Requires a plan from plan() and the user's explicit confirmation.
-   * Re-reads the flash first (the unit may have dropped out meanwhile).
+   * Write. Requires a plan from this session's plan() against its current
+   * backup, after identify() and uploadLoader() on this connection, and the
+   * user's explicit confirmation. Re-reads the flash first (the unit may have
+   * dropped out meanwhile).
    */
   async write(plan) {
-    if (!plan.sectors.length) return { written: 0, note: 'already holds this image' };
-    const ok = await this.confirm(`Write ${plan.sectors.length} sector(s) of 0x4000-0x92FFF to the FM-1? Keep it on and the wires still until the final read finishes.`);
+    const rec = this.#checkPlan(plan);
+    this.#plans.delete(plan); // one write per dry run
+    const { sectors, data, now } = rec;
+    if (!sectors.length) return { written: 0, note: 'already holds this image' };
+    const ok = await this.confirm(`Write ${sectors.length} sector(s) of 0x4000-0x92FFF to the FM-1? Keep it on and the wires still until the final read finishes.`);
     if (!ok) fail('not-confirmed', 'Write not confirmed; nothing was written.');
     const again = await this.readFlash(0, FLASH_SIZE, 'recheck read');
-    if (!bytesEqual(again, plan.now)) fail('flash-changed', 'Flash changed since the dry run; nothing was written. Run the dry run again.');
+    if (!bytesEqual(again, now)) fail('flash-changed', 'Flash changed since the dry run; nothing was written. Run the dry run again.');
     this.wroteStarted = true;
-    for (const [i, a] of plan.sectors.entries()) {
-      const sec = plan.image.data.subarray(a, a + SECTOR);
+    for (const [i, a] of sectors.entries()) {
+      assertWritableSectors([a]);
+      const sec = data.subarray(a, a + SECTOR);
       let r;
       try { r = await this.link.request(`wsec 0x${a.toString(16)} ${hex8(crc32(sec))}`, 20000, sec); } catch (e) { r = `(${e.code})`; }
-      this.progress('write', i + 1, plan.sectors.length);
+      this.progress('write', i + 1, sectors.length);
       if (r !== 'OK') fail('write-failed', `Sector 0x${a.toString(16)} failed: ${r}. DO NOT power-cycle the FM-1. Keep this output, take a fresh dump and write against that.`);
     }
     const expect = new Uint8Array(FLASH_SIZE);
-    expect.set(plan.image.data.subarray(0, WRITE_END));
-    expect.set(plan.now.subarray(WRITE_END), WRITE_END);
+    expect.set(data.subarray(0, WRITE_END));
+    expect.set(now.subarray(WRITE_END), WRITE_END);
     const fin = await this.readFlash(0, FLASH_SIZE, 'final read');
     if (!bytesEqual(fin, expect)) fail('verify-failed', 'Final read does not equal the expected image. DO NOT power-cycle; write again against a fresh dump.');
-    return { written: plan.sectors.length, finalSha256: await sha256Hex(fin) };
+    return { written: sectors.length, finalSha256: await sha256Hex(fin) };
   }
+}
+
+/** Every sector a write may touch: whole 4 KiB sectors inside [WRITE_MIN, WRITE_END). */
+export function assertWritableSectors(sectors) {
+  if (!Array.isArray(sectors)) fail('sector-out-of-window', 'sector list is not a list; nothing was written.');
+  for (const a of sectors) {
+    if (!Number.isInteger(a) || a % SECTOR || a < WRITE_MIN || a >= WRITE_END) fail('sector-out-of-window', `Sector ${a} lies outside 0x4000-0x92FFF; nothing was written.`);
+  }
+}
+
+/**
+ * What a chosen image is, for the page. The application is SFC-encrypted in
+ * flash (docs/02), so a raw dump carries no readable FM-1_0xx string: its
+ * "identity" here is its hashes, and how it compares with this connection's
+ * backup. warn is true when it differs from that backup (or there is none).
+ */
+export async function describeImage(image, backup = null) {
+  const sec = (a, b) => sha256Hex(image.data.subarray(a, b));
+  const lines = [
+    `${image.kind === 'fwsc' ? 'Stock V15 package' : '1 MiB flash image'} ${image.name || ''}`.trim(),
+    `File SHA-256 ${image.sha256}`,
+    `0x0-0x92FFF SHA-256 ${await sec(0, WRITE_END)}`,
+    `Boot area 0x0-0x3FFF SHA-256 ${await sec(0, WRITE_MIN)}`,
+  ];
+  if (image.kind === 'backup') lines.push('A raw dump has no readable FM-1_0xx identity (the application is encrypted in flash); compare these hashes with the files you saved.');
+  if (!backup) {
+    lines.push('No backup in this connection yet: take it before the dry run; the image is compared with it then.');
+    return { lines, warn: true, sameAsBackup: false, bootAreaDiffers: null, differingSectors: null };
+  }
+  let differing = 0;
+  for (let a = 0; a < WRITE_END; a += SECTOR) if (!bytesEqual(image.data.subarray(a, a + SECTOR), backup.data.subarray(a, a + SECTOR))) differing += 1;
+  const bootAreaDiffers = !bytesEqual(image.data.subarray(0, WRITE_MIN), backup.data.subarray(0, WRITE_MIN));
+  const sameAsBackup = image.data.length === backup.data.length && bytesEqual(image.data, backup.data);
+  if (sameAsBackup) lines.push(`Identical to this connection's backup (SHA-256 ${backup.sha256}).`);
+  else {
+    lines.push(`WARNING: differs from this connection's backup (SHA-256 ${backup.sha256}) in ${differing} sector(s) of 0x0-0x92FFF${differing ? '' : ' (only above 0x93000, which is never written)'}.`);
+    if (bootAreaDiffers) lines.push('WARNING: its boot area 0x0-0x3FFF differs from this FM-1\'s; the dry run will refuse it (that area is never written).');
+    else if (image.kind === 'backup') lines.push('Check that this is a backup of THIS unit before writing it.');
+  }
+  return { lines, warn: !sameAsBackup, sameAsBackup, bootAreaDiffers, differingSectors: differing };
 }
 
 /** Type-0 `flash.bin` entry of a package, in flash coordinates from 0. */

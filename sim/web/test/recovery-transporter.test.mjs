@@ -6,6 +6,7 @@ import { FakeTransporter, LOADER } from './recovery-fake-port.mjs';
 import {
   TransporterLink, RecoverySession, RecoveryError, ALLOWED_COMMANDS, FLASH_SIZE, WRITE_MIN, WRITE_END, SECTOR,
   LOADER_SHA256, STOCK_V15_SHA256, sha256Hex, crc32, hex8, parseStatus, extractFwscFlashImage,
+  REQUEST_TEMPLATES, checkRequest, describeImage, assertWritableSectors,
 } from '../www/recovery-transporter.js';
 import { inspectFwscEnvelope } from '../www/native-fwsc-inspection.js';
 
@@ -400,4 +401,180 @@ test('wsec payloads are sector sized and CRC-bound, addresses stay in the window
     const [, addr] = line.split(' ');
     assert.ok(Number(addr) >= WRITE_MIN && Number(addr) < WRITE_END && Number(addr) % SECTOR === 0, line);
   }
+});
+
+// --- review hardening (PR #173) -------------------------------------------
+// (a) a write needs this session's identify, loader, backup and its own plan.
+test('(a) a plan from an earlier connection cannot drive a write on a new one', async () => {
+  const a = await ready();
+  await a.session.backupFlash();
+  const planA = await a.session.plan(imagePair(a.fake));
+  // reconnect: new link and session on a transporter with the same flash
+  const b = rig({ flash: a.fake.flash });
+  await b.session.connect();
+  assert.equal(await code(b.session.write(planA)), 'not-identified');
+  await b.session.uploadLoader(LOADER);
+  await b.session.identify();
+  assert.equal(await code(b.session.write(planA)), 'no-backup');
+  await b.session.backupFlash();
+  assert.equal(await code(b.session.write(planA)), 'plan-foreign');
+  // a forged copy with the right shape is not this session's plan either
+  assert.equal(await code(b.session.write({ ...planA })), 'plan-foreign');
+  assert.equal(b.fake.received.some((l) => l.startsWith('wsec')), false);
+  assert.equal(a.fake.received.some((l) => l.startsWith('wsec')), false);
+  noV15(b);
+});
+
+test('(a) identify alone, or a loader without identify, is not enough to write', async () => {
+  const r = rig();
+  await r.session.connect();
+  await r.session.identify();
+  assert.equal(await code(r.session.write({ sectors: [0x10000] })), 'no-loader');
+  const s = rig();
+  await s.session.connect();
+  await s.session.uploadLoader(LOADER);
+  assert.equal(await code(s.session.write({ sectors: [0x10000] })), 'not-identified');
+  assert.equal(r.fake.received.concat(s.fake.received).some((l) => /^(wsec|read)/.test(l)), false);
+});
+
+test('(a) a new backup after the dry run makes the plan stale; a plan writes once', async () => {
+  const r = await ready();
+  await r.session.backupFlash();
+  const plan = await r.session.plan(imagePair(r.fake));
+  await r.session.backupFlash();
+  assert.equal(await code(r.session.write(plan)), 'plan-stale');
+  const fresh = await r.session.plan(imagePair(r.fake));
+  assert.equal((await r.session.write(fresh)).written, 2);
+  assert.equal(await code(r.session.write(fresh)), 'plan-foreign');
+  assert.equal(r.fake.wsecCount, 2);
+});
+
+test('(a) rekey forgets identity, loader and backup; a closed link refuses the write', async () => {
+  const r = await ready();
+  await r.session.backupFlash();
+  const plan = await r.session.plan(imagePair(r.fake));
+  r.fake.faults.closeOnRekey = false;
+  await r.session.rekey();
+  assert.equal(r.session.identified, false);
+  assert.equal(r.session.loaderReady, false);
+  assert.equal(r.session.backup, null);
+  assert.equal(await code(r.session.write(plan)), 'port-closed');
+  assert.equal(r.fake.received.some((l) => l.startsWith('wsec')), false);
+});
+
+test('(a) write re-checks every sector against [0x4000, 0x93000) itself', async () => {
+  for (const bad of [0x0, 0x3000, WRITE_MIN - 1, WRITE_END, 0x10001, -SECTOR, '0x10000', 16384.5, null]) {
+    assert.throws(() => assertWritableSectors([0x10000, bad]), (e) => e.code === 'sector-out-of-window', String(bad));
+  }
+  assert.throws(() => assertWritableSectors('0x10000'), (e) => e.code === 'sector-out-of-window');
+  assert.doesNotThrow(() => assertWritableSectors([WRITE_MIN, 0x10000, WRITE_END - SECTOR]));
+  // write() runs it on the session's own record; plans are frozen summaries,
+  // and a caller-built plan with a bad sector never reaches it or the wire.
+  const r = await ready();
+  await r.session.backupFlash();
+  const plan = await r.session.plan(imagePair(r.fake));
+  assert.ok(Object.isFrozen(plan) && Object.isFrozen(plan.sectors));
+  assert.throws(() => { plan.sectors.push(0); }, TypeError);
+  for (const bad of [0x0, 0x3000, WRITE_END]) {
+    assert.equal(await code(r.session.write({ ...plan, sectors: [bad] })), 'plan-foreign');
+  }
+  assert.equal(r.fake.received.some((l) => l.startsWith('wsec')), false);
+  const src = fs.readFileSync(new URL('../www/recovery-transporter.js', import.meta.url), 'utf8');
+  const body = src.slice(src.indexOf('  async write(plan) {'), src.indexOf('export function assertWritableSectors'));
+  assert.match(body, /assertWritableSectors\(\[a\]\)/, 'write() checks each sector before sending it');
+});
+
+test('(a) the dry run copies the image: changing the caller\'s buffer changes nothing written', async () => {
+  const r = await ready();
+  await r.session.backupFlash();
+  const img = imagePair(r.fake);
+  const plan = await r.session.plan(img);
+  img.data.fill(0x11, 0, WRITE_END); // includes the boot area
+  assert.equal(plan.image, undefined, 'the plan exposes no buffers');
+  await r.session.write(plan);
+  assert.deepEqual(r.fake.writtenSectors, [0x10000, 0x52000]);
+  assert.equal(r.fake.flash[0x10000], 0xa5);
+  assert.notEqual(r.fake.flash[0], 0x11);
+});
+
+// (b) rekey closes the link itself before anyone reconnects.
+test('(b) rekey closes the old link even when the transporter keeps the port open', async () => {
+  const r = rig();
+  r.fake.faults.closeOnRekey = false;
+  let closes = 0;
+  const orig = r.fake.close.bind(r.fake);
+  r.fake.close = async () => { closes += 1; return orig(); };
+  await r.session.rekey();
+  assert.equal(closes, 1);
+  assert.equal(r.link.closed, true);
+  assert.equal(await code(r.link.request('ping', 100)), 'port-closed');
+  assert.deepEqual(r.fake.received, ['status', 'rekey']);
+});
+
+// (c) the loader goes up only in boot mode, with the FM-1 confirmed off.
+test('(c) uploadLoader needs the off confirmation and uboot=1', async () => {
+  const off = rig({ confirmedOff: false });
+  assert.equal(await code(off.session.uploadLoader(LOADER)), 'not-confirmed-off');
+  const noUboot = rig({ uboot: false });
+  assert.equal(await code(noUboot.session.uploadLoader(LOADER)), 'no-uboot');
+  for (const r of [off, noUboot]) {
+    assert.equal(r.fake.received.some((l) => l.startsWith('ldr')), false);
+    assert.equal(r.session.loaderReady, false);
+  }
+  const ok = rig();
+  assert.equal(await ok.session.uploadLoader(LOADER), 'loaded');
+  assert.equal(ok.session.loaderReady, true);
+});
+
+// (d) whole-line templates, not just the first word.
+test('(d) request lines must match a fixed template as a whole', async () => {
+  const { link, fake } = rig();
+  const sec = new Uint8Array(SECTOR);
+  const cases = [
+    ['ping\nuboot'], ['ping uboot'], ['ping;uboot'], ['ping '], [' ping'], ['status\n'], ['info x'], ['rekey now'],
+    ['read 0x1000 16 uboot'], ['read 0x1000'], ['read 4096 16'], ['read 0xFFFFF 16'], ['read 0xff000 8192'], ['read 0x0 0'],
+    ['ldr 0 4096 ZZZZZZZZ', sec], ['ldr 0 4096 0000000'], ['ldr 0 10 00000000', sec], ['ldr 24576 4096 00000000', sec],
+    ['wsec 0x10000 00000000', new Uint8Array(10)], ['wsec 0x10000 00000000'], ['wsec 0x0 00000000', sec],
+    ['wsec 0x3000 00000000', sec], ['wsec 0x93000 00000000', sec], ['wsec 0x10001 00000000', sec],
+    ['wsec 0x10000 00000000\nuboot', sec], ['ping', sec], ['uboot'], ['', null],
+  ];
+  for (const [line, payload = null] of cases) {
+    assert.equal(await code(link.request(line, 100, payload)), 'command-refused', JSON.stringify(line));
+  }
+  assert.equal(fake.received.length, 0, 'refused lines must not reach the wire');
+  // the templates still admit what the session sends
+  assert.equal(await link.request('ping', 500), 'PONG');
+  assert.match(await link.request('status', 500), /^OK uboot=/);
+});
+
+test('(d) templates are exported, one per allowlisted verb', () => {
+  assert.deepEqual(Object.keys(REQUEST_TEMPLATES).sort(), [...ALLOWED_COMMANDS].sort());
+  assert.doesNotThrow(() => checkRequest('wsec 0x4000 DEADBEEF', new Uint8Array(SECTOR)));
+  assert.doesNotThrow(() => checkRequest('wsec 0x92000 DEADBEEF', new Uint8Array(SECTOR)));
+  assert.doesNotThrow(() => checkRequest('read 0x0 1048576'));
+  assert.doesNotThrow(() => checkRequest('ldr 20480 3584 00000000', new Uint8Array(3584)));
+});
+
+// (e) image description
+test('(e) describeImage: hashes, and a warning when the image differs from the backup', async () => {
+  const r = await ready();
+  const same = { kind: 'backup', name: 'mine.bin', data: r.fake.flash.slice(), sha256: await sha256Hex(r.fake.flash) };
+  const none = await describeImage(same, null);
+  assert.equal(none.warn, true);
+  assert.ok(none.lines.some((l) => l.includes(same.sha256)));
+  assert.ok(none.lines.some((l) => /No backup in this connection/.test(l)));
+  await r.session.backupFlash();
+  const eq = await describeImage(same, r.session.backup);
+  assert.equal(eq.warn, false);
+  assert.equal(eq.sameAsBackup, true);
+  const other = imagePair(r.fake);
+  const d = await describeImage(other, r.session.backup);
+  assert.equal(d.warn, true);
+  assert.equal(d.differingSectors, 2);
+  assert.equal(d.bootAreaDiffers, false);
+  assert.ok(d.lines.some((l) => /WARNING: differs/.test(l)));
+  other.data[0x10] ^= 1;
+  const boot = await describeImage(other, r.session.backup);
+  assert.equal(boot.bootAreaDiffers, true);
+  assert.ok(boot.lines.some((l) => /boot area 0x0-0x3FFF differs/.test(l)));
 });

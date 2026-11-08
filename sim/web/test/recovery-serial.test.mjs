@@ -52,3 +52,14 @@ test('feature detection and the filter ids', () => {
   assert.equal(serialSupported({}), false);
   assert.deepEqual(TRANSPORTER_USB, { usbVendorId: 0x2e8a, usbProductId: 0x000a });
 });
+
+test('(b) closing a link after the device went away still closes the port and releases it', async () => {
+  const port = fakePort();
+  const link = new TransporterLink(await openSerialTransport(port), { timeoutMs: 500 });
+  await port.unplug();
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(link.closed, true);
+  await link.close();
+  assert.equal(port.closed, true);
+  await assert.rejects(link.request('ping', 100), (e) => e.code === 'port-closed');
+});

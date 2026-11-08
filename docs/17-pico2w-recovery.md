@@ -348,6 +348,23 @@ Tested against a fake port only [verified: `notes/2026-11-08-web-recovery.md`];
 not yet run on the Pico. WebUSB cannot replace the Pico because it may not
 claim the mask ROM's mass-storage interface.
 
+The page writes only on the connection that identified the FM-1, uploaded
+the loader and took the two matching dumps, and only from a dry run made on
+that connection against that backup; a reconnect (after `rekey`, or when the
+port closes) starts over. It re-checks inside the write that every sector
+lies in `[0x4000, 0x93000)`, and every request line must match a fixed
+template, not only an allowed first word. For a 1 MiB image it shows the
+SHA-256 and warns when the image differs from the session's backup; a dump
+has no readable `FM-1_0xx` string because the application is encrypted in
+flash (docs/02).
+
+**A unit with a replaced boot area refuses a stock restore, by design.**
+Felucca and SLOOP carry V1.2.1's `uboot.boot` (CLAUDE.md trap 11)
+[reported], so on a unit that ran them the stock V15 image differs from the
+flash in `0x0`-`0x3FFF` [inferred], and the dry run (here and in `fm1t.py`)
+refuses it because that area is never written. Restoring that unit's own
+backup still works. Rewriting the boot area is not part of this route.
+
 ## 8. Things not to do
 
 - **Do not run `fm1t.py info`/`dump`/`write`/`uboot`, or the console `k`
