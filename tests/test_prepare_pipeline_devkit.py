@@ -238,3 +238,40 @@ def test_prepared_pipeline_full_pcm_and_faults(tmp_path, sanitize):
     proof.REPLAY_SOURCE = tmp_path/'per_note_replay.c'
     proof.REPLAY_SOURCE.write_text(replay)
     proof.test_app_pipeline_pcm_and_refusal(tmp_path, sanitize)
+
+
+
+def test_size_profile_is_opt_in_and_compiler_flags_only(tmp_path, monkeypatch):
+    """--size-profile wires one makefile fragment into the nested make and changes nothing else."""
+    module = load_prepare()
+    sdk, correction = sdk_fixture(tmp_path)
+    monkeypatch.setattr(module, 'ORIGINAL_SYSTEM_SHA256', module.sha256(sdk/module.SYSTEM))
+    monkeypatch.setattr(module, 'PIPELINE_SYSTEM_SHA256', module.sha256(correction))
+    plain, sized = tmp_path/'plain', tmp_path/'sized'
+    module.prepare_pipeline(sdk, ROOT, plain, correction, policy='cap8', worst_block=True)
+    module.prepare_pipeline(sdk, ROOT, sized, correction, policy='cap8', worst_block=True, size_profile=True)
+    rel = 'apps/demo/demo_hello/board/wl82/lunar-renderer.mk'
+    before, after = (plain/rel).read_text(), (sized/rel).read_text()
+    assert 'size-profile' not in before and 'COLDOPT' not in before
+    assert after.count('-f $(LUNAR_ROOT)/tools/jieli/size-profile.mk') == 1
+    assert after.count('COLDOPT=-Oz OPT=-O3 EXTRA=') == 1
+    # Exactly those two edits; every other byte of the fragment is the plain one.
+    assert after.replace(' -f $(LUNAR_ROOT)/tools/jieli/size-profile.mk', '').replace('COLDOPT=-Oz ', '') == before
+    assert not (plain/'lunar-source/tools/jieli/size-profile.mk').exists()
+    assert ((sized/'lunar-source/tools/jieli/size-profile.mk').read_bytes()
+            == (ROOT/'tools/jieli/size-profile.mk').read_bytes())
+
+    def files(root):
+        # Prepared files embed their own absolute staging path; compare with it masked.
+        return {p.relative_to(root): p.read_bytes().replace(str(root).encode(), b'@OUT@')
+                for p in root.rglob('*') if p.is_file()}
+    a, b = files(plain), files(sized)
+    # Nothing outside the fragment and the new file differs between the two trees.
+    assert sorted(str(k) for k in a if k in b and a[k] != b[k]) == [rel, 'lunar-devkit-input.json']
+    ra, rb = json.loads(a[Path('lunar-devkit-input.json')]), json.loads(b[Path('lunar-devkit-input.json')])
+    assert rb['inputs'].pop('tools/jieli/size-profile.mk') == module.sha256(ROOT/'tools/jieli/size-profile.mk')
+    assert rb.pop('size_profile') == {'cold_opt': '-Oz'}
+    # The board Makefile embeds the staging path, so its hash differs between any two output directories.
+    ra.pop('prepared_board_makefile_sha256'), rb.pop('prepared_board_makefile_sha256')
+    assert ra == rb
+    assert sorted(str(k) for k in b if k not in a) == ['lunar-source/tools/jieli/size-profile.mk']

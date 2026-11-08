@@ -1,0 +1,145 @@
+# 18 — From the dev-kit soak to 1.0 on the FM-1
+
+The plan for getting Lunar Modulator from "passes the release rule on the
+AC79 dev kit" (2026-10-29) to "verified on the owner's FM-1 and released as
+installable firmware". Written 2026-10-29 from a read-only inventory of
+main, Codex's unmerged FM-1 branch and the bench notes. Confidence marks as
+elsewhere. Every hardware step still follows docs/07 §4 and needs a fresh
+owner approval; this document approves nothing.
+
+## 1. Where we are
+
+- **The unit runs stock V15 and identifies as `FM-1_015`** [verified:
+  docs/17]. Recovery is proven for an intact boot area `0x0`–`0x4000`
+  (owner, D1); the transporter writes only `[0x4000, 0x93000)`.
+- **The release rule passes on the dev kit** with 8 voices at 320 MHz:
+  30.4 min, zero underruns, producer mean 66%, consumer 82.8%, worst block
+  explained, latency 11.61 ms [verified: `notes/2026-10-29-devkit-soak30.md`].
+  The kit plays through its internal DAC; the FM-1 uses ALNK0 to an
+  external codec (trap 10) at 360 MHz.
+- **Main has no FM-1 image** [verified]: no board layer, no `.fwsc`
+  builder, no RAM runner, no installer. It has the offline guards
+  (`tools/jieli/package_guard.py`, `audit_link.py`), the panel emitter and
+  fm1-nes's `boot_info` bridge, unlinked.
+- **Codex's branch `feature/2026-10-11@installable-firmware`** (`cccd21cc`,
+  2026-10-18, 1,238 commits ahead of main, about 31k lines under
+  `firmware/`) has the FM-1 work [verified: `git diff --stat`]:
+  - a native app (`firmware/native/`: `project_boot`, `project_engines`,
+    `project_seq`, settings journal in flash, TLSF heap, engine adapter);
+  - SPI1 display transport and panel probe (`firmware/display/`);
+  - TRS MIDI in (`midi_uart_stream.c`, Arduino MIDI library, MIT);
+  - RAM recovery, loader backup and reset tools, an SDK install tool and
+    an installer service (`tools/fm1_*`, `tools/installer_service/`,
+    `tools/jieli/trusted_fwsc_package.py`);
+  - GPL code from dinghy (`firmware/third_party/dinghy/src/ota.c`).
+- **The browser installer pieces are on PR #161's branch, not main**
+  [verified: `gh pr view 162/164`]: the private installer build service
+  (#162) and an admission-gated WebMIDI OTA controller ported from
+  Felucca's GPL-3.0 protocol module (#164). The controller refuses every
+  package until an audited verifier admits it; no install action is wired
+  into `installer.html` yet.
+- **Its images ran on this FM-1 and failed the owner's acceptance**
+  [verified: that branch's `HANDOFF.md`]: audio starved (315.6 produced
+  blocks/s, 373.8 underruns/s; 689.34 needed), and the last stage-7 install
+  on 2026-10-15 stopped at program address `0x94600` with power lost,
+  leaving the unit unbootable until 2026-10-26. The likely cause is that an
+  in-place rewrite of a single-bank app is not atomic [inferred: forensics
+  note `21d529ce` on that branch]. That `0x94600` is an
+  absolute address inside the app region of the 092 layout the unit ran
+  then, not an overrun of V15's `0x93000` [verified:
+  `notes/2026-11-08-0x94600-forensics.md`].
+- **The performance gap that failed that acceptance is what the dev-kit
+  work closed** (cap8, trunc12, the 48-tap 51/47 resampler, the buffered
+  queue) [inferred: different images; FM-1 timing at 360 MHz is scaled,
+  not measured].
+- **The soak image fits V15's app slot with the size profile.** `app.bin`
+  is 597,916 B plain and 570,588 B with `--size-profile`, against V15's
+  581,564 B slot (`0x4120` to `cfg_tool.bin` at `0x920DC`), leaving 10,976 B
+  [verified: aeon build, `notes/2026-11-08-fit-size.md`]. The 16 KB margin
+  target is 5,588 B short. Every SRAM-resident function is unchanged and the
+  host replay hashes match; target timing of the rebuilt cold units is
+  untested. The FM-1 board layer will add to the image.
+
+### 1.1 Wave 1 results (2026-11-08)
+
+| Lane | PR | Result |
+| --- | --- | --- |
+| Size profile | #178 merged | fits with 10,976 B spare (above) |
+| Fit tables | #175 merged | dropping Terrain and Wavetable Macro models gives +38,656 B; Drums off frees 23.7 KB heap |
+| `0x94600` forensics | #172 merged | settled (§4) |
+| ALNK0 audio | #176 merged | the DAC needs no control bus; a clean-room MIT driver for ALNK0, host-tested, not run on a chip. U9 has 10 leads; its part number is unread |
+| Board layer (M3) and M5 image | #179 | display, keys, LEDs, ADC, TRS MIDI in; an SDK-free M5 RAM test-pattern image, built, not run |
+| Fail-open (M7) | #180 | boot counter and supervisor; on the kit, three bad boots in a row entered mask-ROM UBOOT by themselves. Power-cut tests need a person at the bench |
+| Bench target pinning | #177 | every tool that opens a `4c4a:8057` device requires `--usb-path` and a role, so the kit and the FM-1 cannot be confused |
+| Web recovery | #173 | Web Serial page for the Pico 2 W transporter, D2 enforced in code, 40 offline tests |
+| Web flasher | #174 | install and roll-back panel on the admission-gated controller; still admits nothing |
+
+## 2. Milestones
+
+Approval labels: **bench yes** is a fresh owner approval for one run;
+**§4 approval** is a docs/07 §4 experiment approval naming the image, the
+ranges and the recovery plan.
+
+| # | Milestone | Exit criterion | Risk to the unit | Approval | Status |
+| --- | --- | --- | --- | --- | --- |
+| M0 | Recovery route | two identical dumps, verified write, boot (docs/17) | — | — | **done** 2026-10-26 |
+| M1 | Release rule on the kit | 30 min, no underrun, means ≤ 85%, worst block explained | — | — | **done** 2026-10-29 |
+| M2 | Size and SRAM budget gate | a tool that reads a pi32v2 image and map and checks it against V15's app slot and the FM-1's free SRAM; the soak image's real figure recorded | none | none | **done** 2026-11-08 (#171, #178) |
+| M3 | FM-1 board layer on main | display, keys, LEDs, MIDI in, ALNK0 audio and codec init, clocks and power left as the SPL sets them, `boot_info` bridge; built for pi32v2, `audit_link.py` and M2 pass. Sourced from Codex's branch where its licence allows, clean-room where not (decision 2) | none | none (licence: decision 1) | code in #176, #179 |
+| M4 | Bounded RAM runner on the kit | upload and jump only; erase, program, `0xFC12`, `0xA1`, syscmd 33–36/48, `5A AA A5` and the soft key refused in code; a RAM test image reports over UART | none (kit) | bench yes | after M3 pieces |
+| M5 | First Lunar code on the FM-1 since recovery, from RAM | build id and test pattern on the TFT, LEDs blink; a power cycle returns V15; a read-only dump before and after has the same hash | RAM only | §4 approval | blocked on M4 |
+| M6 | Audio path on the FM-1 from RAM | ALNK0 at about 44,118 Hz, one reduced engine plays cleanly, per-block timing at 360 MHz reported. The full image does not fit in SRAM [inferred] | RAM only | §4 approval | blocked on M5 |
+| M7 | Fail-open boot and watchdog, power-cut tested on the kit | a boot-looping build reaches update mode by itself; a power cut at every update stage recovers (docs/07 §4 rules 4–5) | none (kit) | bench yes per run | kit-tested in #180; power cuts pending |
+| M8 | First flash install on the FM-1 | backups first; `package_guard.py` passes; the head is unchanged; writes stay inside `[0x4000, 0x93000)`; Lunar boots; fail-open tested; V15 restored and read back | **flash app region** | §4 approval | blocked on M5–M7 |
+| M9 | Release rule on the FM-1 | 8 voices at 360 MHz for ≥ 30 min: no underrun, means ≤ 85%, worst block explained, pre-DAC hashes equal to the host replay, the stereo out captured clean; 12 voices measured as the stretch goal | flash app | bench yes | blocked on M8 |
+| M10 | Controls and display | 27 keys, 14 buttons, 7 encoders, MASTER, LEDs, battery; screens hash-equal to R0 | flash app | bench yes | code now |
+| M11 | MIDI | TRS in and USB-MIDI (`4C4A:C755`, product `FM-1`); one hour under MIDI from both with no underrun | flash app | bench yes | code now |
+| M12 | Install and roll back through the stock path | the `.fwsc` builder makes the package from the user's own V15 and passes `package_guard.py`; V15 → Lunar → V15; an interrupted transfer and a power cut recover without the dongle; the head never changes | flash app via the stock path | §4 approval per experiment, each interruption case on the kit first | builder code now |
+| M12w | Web flasher and web recovery tool | the flasher installs and rolls back through WebMIDI and the stock OTA path (`native-ota-controller.js`, GPL-3.0 module, licence and source named on the page); the recovery page drives the Pico 2 W transporter over Web Serial (CDC `2e8a:000a`), because WebUSB cannot claim the ROM's mass-storage interface (`notes/2026-10-14-web-recovery-interface-constraint.md` on Codex's branch); offline tests against fake ports first, then each hardware run as in M8/M12 | flash app via the stock path; recovery via docs/17 | §4 approval per hardware run | UI and offline tests now; hardware after M8 |
+| M13 | Release 1.0 | a shareable build with `FM1_GPL_MODS=0`; no vendor binary redistributed; CHANGELOG `[Unreleased]` moved to `[1.0.0]`, the GitHub release body is that section; README status updated | none | owner publication gate | last |
+
+### 2.1 What a shared 1.0 image may contain
+
+A shared image links JieLi's libraries, so it is built with
+`FM1_GPL_MODS=0` (CLAUDE.md, "The GPL switch"):
+
+- nothing from dinghy, Felucca or SLOOP (GPL-3.0-only), including their
+  audio, USB, OTA and recovery code; Codex's `firmware/third_party/dinghy/`
+  stays out of it;
+- the three Felucca engines in `engines/third_party/felucca/` drop out;
+- `uac_audio*.h` stays excluded;
+- the modified pipeline `system.a` used on the kit (SHA-256 `792c7599…`)
+  needs its origin and redistribution rights written down before M13.
+
+GPL modules keep running in personal test builds.
+
+## 3. Owner decisions
+
+Asked 2026-10-29; answers recorded here when they come.
+
+1. **Basis for the FM-1 board layer:** harvest from Codex's branch (MIT
+   parts only, reviewed), or clean-room. Wave 1 took the MIT-only harvest
+   plus clean-room code (#179); open for the owner to reverse.
+2. **What 1.0 contains** if M2 confirms the image overflows the slot. Not
+   needed while the size profile fits; revisit when the board layer is
+   linked in.
+3. **SDK application (L1) or bare metal (L2)** for 1.0.
+4. **Whether to restore `FM-1_092`**, or drop "092 → Lunar → V15" from
+   the install criteria.
+
+## 4. Doubts to settle
+
+- ~~The 10-15 install's last program address `0x94600` against the
+  transporter's `[0x4000, 0x93000)`.~~ Settled 2026-11-08: the install
+  targeted the FM-1+VA layout (app to `0xD9000`); V15's boundary does not
+  apply to it. M8 must take its write range from the identity-read layout
+  and protect VM `0x93000`+ on V15 (`notes/2026-11-08-0x94600-forensics.md`).
+- The soak note's 5,332 B of heap after DAC open against 96–1,568 B in
+  `pipeline-image-sizes.json`: possibly different images.
+- The RAM load-and-jump route is untested on WL82; the ROM has only loaded
+  JieLi's own loader on this unit.
+- The DAC (U9, 10 leads) is unidentified. No known code writes a codec
+  register, so ALNK0 alone starts audio [inferred, strong: #176]; I2S
+  against left-justified is unsettled until U9 is read.
+- Using docs/17's route to enter the ROM for Lunar RAM runs is beyond the
+  approval for the V15 shim and needs a fresh yes.
