@@ -8,6 +8,16 @@ history.
 
 ## [Unreleased]
 
+### Added
+- **The FM-1's audio output has a clean-room driver** (`firmware/board/alnk0_audio.c`,
+  MIT). The FM-1's DAC needs no setup of its own, so starting audio means
+  starting the chip's I2S port: master, MCLK out, 24-bit words on PC6, 64
+  frames per half at the 44.1 kHz rate. A host test checks every register
+  write against a hand-written fixture. It compiles for the FM-1's CPU but
+  has not run on one yet. The DAC part itself is still unidentified: the
+  chip beside the SoC has 10 leads, not 8 as first noted
+  (`notes/2026-11-08-alnk0-codec-driver.md`).
+
 ### Changed
 - **The stock FM-1 runs at 360 MHz, not 240 MHz.** The SPL sets the clock from
   V15's `isd_config` (`SYS_CLK` 360,000,000, HSB 180 MHz, LSB 60 MHz), and the

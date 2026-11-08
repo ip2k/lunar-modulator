@@ -1711,8 +1711,11 @@ sessions.
   the battery on PB1/ADC 3; audio on ALNK0 `0x12E00`, channel 3, PORTC, IRQ
   11; MIDI in on UART1 RX, PH8; flash CS# PD0. Verify each against V15, for
   example by finding accesses to `0x12E00` against `0x12F00` (`JL_AUDIO`).
-- **Still open:** PC6's role (the two lineages disagree), the codec part
-  (`U5` or `U9`), the clock the SPL sets (decode V15's `isd_config`
+- **Settled 2026-11-08:** PC6 is ALNK0's channel-3 data line, and PC0–PC2
+  its clocks (SDK `iis.c` port table [verified]); the DAC takes no register
+  setup, and `firmware/board/alnk0_audio.c` is a clean-room MIT bring-up
+  (`notes/2026-11-08-alnk0-codec-driver.md`).
+- **Still open:** the DAC's part number (probably `U9`, 10 leads), the clock the SPL sets (decode V15's `isd_config`
   `SYS_CLK`, `HSB_DIV` and `LSB_DIV` [keys verified present]), and the LED
   drive scheme.
 - **Re-derive, do not copy:** fm1-nes's tables come from stock FM-1_010 and
