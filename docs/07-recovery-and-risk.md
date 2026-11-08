@@ -171,7 +171,7 @@ runs. The SDK's watchdog catches a core that stops switching tasks.
 On the kit, a deliberately failing image did the following [verified]:
 
 - failed by P33 reset, by watchdog and by a stalled task;
-- entered UBOOT by itself on the fourth boot, 16.45 s after its reset;
+- entered UBOOT by itself on the fourth boot, 16.55 s after its reset was requested;
 - was replaced from that ROM state by a fixed image, which ran and reported
   healthy.
 

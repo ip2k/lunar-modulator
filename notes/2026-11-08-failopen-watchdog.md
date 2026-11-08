@@ -143,8 +143,8 @@ LUNAR_FAILOPEN entering=uboot stage=early
 ```
 
 The sysfs watcher logged the following. The kit (`3-1.2`) disappeared at the
-reset, 0.10 s after the request, and **came back as `4c4a:8057` 16.45 s
-after the reset request, with devnum 5 → 6**. No host command was sent in
+reset, 0.10 s after the request, and **came back as `4c4a:8057` 16.55 s
+after the reset request (16.45 s after it left the bus), with devnum 5 → 6**. No host command was sent in
 between [verified: `usb.jsonl`].
 
 Findings [verified: dev kit, this capture]:
@@ -166,8 +166,13 @@ Findings [verified: dev kit, this capture]:
   other core stayed up. The test task ran on core 0 and `app_main` on core 1.
   `CPU_CRITICAL_ENTER` also takes the cross-core `lockset`. The backstop (at
   least 6.25 s) never ran. The device's millisecond clock stops while core 0
-  has interrupts off, so the log cannot time the watchdog. The 16.45 s total
-  for four boots is consistent with the SDK's 4 s setting [inferred].
+  has interrupts off, so the log cannot time the watchdog. The host clock
+  gives an upper bound. The device-logged run times of the four boots add up
+  to 12.08 s (2.13 + 2.13 + 7.72 + 0.10). That leaves 4.47 s of the
+  16.55 s for everything else: the watchdog wait, four boot overheads and the
+  ROM's USB enumeration. So **the watchdog fired within 4.47 s of the hang**
+  [verified: host timestamps, as an upper bound]. This is consistent with the
+  SDK's 4 s setting (`wdt_init(0xc)`).
 - **A misaligned word read and an integer division by zero do not trap** in
   this configuration. The read returned data and the division returned 0. Boot
   1 therefore tested the P33 backstop, not the SDK exception path. The
