@@ -8,6 +8,16 @@ history.
 
 ## [Unreleased]
 
+### Added
+- **Bench tools pin their ROM target.** The FM-1 and the AC79 dev kit both
+  enumerate as USB `4c4a:8057` in ROM mode, so every tool that opens a ROM
+  SCSI-generic device (`fm1_uboot_read`, `fm1_uboot_restore_test`,
+  `fm1_softkey_probe` and the `devkit_*` tools) now requires `--usb-path`
+  (a sysfs bus-port), checks it against its fixed role in
+  `tools/bench_targets.json`, and refuses when more than one `4c4a:8057`
+  device is present or the device is at another path. One shared helper
+  (`tools/bench_target.py`) with fake-sysfs tests; no hardware traffic.
+
 ### Changed
 - **The stock FM-1 runs at 360 MHz, not 240 MHz.** The SPL sets the clock from
   V15's `isd_config` (`SYS_CLK` 360,000,000, HSB 180 MHz, LSB 60 MHz), and the

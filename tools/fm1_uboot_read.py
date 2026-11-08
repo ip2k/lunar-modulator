@@ -20,7 +20,11 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 import time
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import bench_target  # noqa: E402  (mandatory target pinning)
 
 LOADER_SHA = 'd41da6126760c9d66660bcc0cac8d27d221806c5e369a8036921efe68dca5376'
 RAM = 0x01C02000
@@ -75,18 +79,15 @@ def request(op, phase, *, address=0, payload=b''):
 
 
 class Reader:
-    def __init__(self, device, log):
-        name = Path(device).name
-        p = (Path('/sys/class/scsi_generic') / name / 'device').resolve()
-        found = None
-        for ancestor in [p, *p.parents]:
-            if (ancestor / 'idVendor').exists():
-                found = ancestor
-                break
-        if found is None or ((found/'idVendor').read_text().strip().lower(),
-                             (found/'idProduct').read_text().strip().lower()) != ('4c4a', '8057'):
-            raise ValueError('SG device is not USB 4c4a:8057 UBOOT')
-        self.usb = found
+    ROLE = 'fm1'  # a dev-kit adapter overrides this; the role is never a CLI guess
+
+    def __init__(self, device, log, *, usb_path, devnum=None, config=None,
+                 usb_root=bench_target.USB_ROOT, sg_root=bench_target.SG_ROOT):
+        # Pin first: refuses (PinError, a ValueError) before the node is opened.
+        target = bench_target.pin_rom_target(
+            self.ROLE, usb_path, device, devnum=devnum, config=config, log=log,
+            usb_root=usb_root, sg_root=sg_root)
+        self.usb = target['dir']
         self.fd = os.open(device, os.O_RDWR)
         self.phase, self.log = 'rom', log
 
@@ -160,6 +161,8 @@ class Reader:
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--device', required=True)
+    ap.add_argument('--usb-path', required=True,
+                    help='sysfs bus-port of the FM-1 in ROM mode (see tools/bench_targets.json)')
     ap.add_argument('--loader', required=True, type=Path)
     ap.add_argument('--entry-log', required=True, type=Path)
     ap.add_argument('--out', required=True, type=Path, help='new private backup directory')
@@ -179,7 +182,7 @@ def main():
             fp.flush()  # Avoid fsync per flash chunk; manifests/data are explicitly synced.
         reader = None
         try:
-            reader = Reader(args.device, log)
+            reader = Reader(args.device, log, usb_path=args.usb_path)
             observed = [d for d in entered[-1]['usb'] if d['vid']=='4c4a' and d['pid']=='8057']
             if not any(d['path']==reader.usb.name and d['devnum']==(reader.usb/'devnum').read_text().strip() for d in observed):
                 raise ValueError('SG device differs from recorded UBOOT enumeration')

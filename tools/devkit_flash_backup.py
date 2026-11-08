@@ -33,6 +33,8 @@ def request(op, phase, *, address=0, payload=b''):
 
 
 class DevkitReader(base.Reader):
+    ROLE = 'devkit'
+
     def load(self, loader):
         # Preserve the original Reader's historical pin. This adapter admits
         # only the separately reviewed fixed configuration, never the original.
@@ -102,7 +104,7 @@ def main():
         def log(event, **fields):
             log_file.write(json.dumps({'time': time.time(), 'event': event, **fields})+'\n')
             log_file.flush()
-        reader = DevkitReader(a.device, log)
+        reader = DevkitReader(a.device, log, usb_path=a.usb_path, devnum=a.devnum)
         try:
             if reader.usb.name != a.usb_path or (reader.usb/'devnum').read_text().strip() != a.devnum:
                 raise ValueError('USB path/devnum differs from observed dev kit')

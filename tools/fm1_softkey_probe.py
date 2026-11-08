@@ -11,9 +11,12 @@ import json
 import os
 from pathlib import Path
 import select
+import sys
 import time
 
-from fm1_identify import decode
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import bench_target  # noqa: E402  (mandatory target pinning)
+from fm1_identify import decode  # noqa: E402
 
 IDENTITY = bytes.fromhex('F0 00 32 45 00 00 00 40 7F F7')
 SOFT_KEY = bytes.fromhex('F0 22 24 35 7D F7')
@@ -93,11 +96,25 @@ def write_message(fd, data):
         raise OSError(f'Partial MIDI write: {n}/{len(data)}; stop and inspect capture')
 
 
-def probe(device, expected, send_soft_key, log, timeout=3.0, known_092=False):
+def rom_present(devices):
+    return [d for d in devices if (d['vid'].lower(), d['pid'].lower()) == bench_target.ROM_ID]
+
+
+def probe(device, expected, send_soft_key, log, timeout=3.0, known_092=False, *, usb_path):
     if send_soft_key and expected not in VETTED:
         raise ValueError('Soft-key path statically checked only for FM-1_015 / FM-1_092')
+    # Target pinning: the MIDI device must sit on the configured FM-1 port.
+    bench_target.check_role_path('fm1', usb_path)
     parent = usb_parent(device)
-    log('before', usb=enumerate_usb(), midi=str(device), usb_path=parent.name)
+    if parent.name != usb_path:
+        raise ValueError(f'MIDI device is on USB path {parent.name}, not the requested {usb_path}')
+    before = enumerate_usb()
+    if send_soft_key and rom_present(before):
+        # A 4c4a:8057 device already present (e.g. the dev kit) would make the
+        # post-reset enumeration ambiguous: refuse before sending anything.
+        raise ValueError('A 4c4a:8057 ROM device is already present (%s); soft key not sent'
+                         % ', '.join(d['path'] for d in rom_present(before)))
+    log('before', usb=before, midi=str(device), usb_path=parent.name, role='fm1')
     fd = os.open(device, os.O_RDWR | os.O_NONBLOCK)
     try:
         # Flush stale input before requesting a fresh identity.
@@ -135,8 +152,12 @@ def probe(device, expected, send_soft_key, log, timeout=3.0, known_092=False):
     started = time.monotonic()
     while time.monotonic() - started < 5:
         devices = enumerate_usb()
-        if any(d['vid'].lower() == '4c4a' and d['pid'].lower() == '8057' for d in devices):
+        rom = rom_present(devices)
+        if rom:
             log('uboot_enumerated', elapsed=time.monotonic()-started, usb=devices)
+            if len(rom) != 1 or rom[0]['path'] != usb_path:
+                raise RuntimeError('ROM device(s) at %s, expected only %s; do not use them'
+                                   % (', '.join(d['path'] for d in rom), usb_path))
             return info
         time.sleep(0.1)
     log('uboot_not_observed', usb=enumerate_usb())
@@ -146,6 +167,8 @@ def probe(device, expected, send_soft_key, log, timeout=3.0, known_092=False):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--device', required=True)
+    ap.add_argument('--usb-path', required=True,
+                    help='sysfs bus-port of the FM-1 (tools/bench_targets.json); the MIDI device must be on it')
     ap.add_argument('--expect', required=True, help='exact installed identity, e.g. FM-1_092')
     ap.add_argument('--accept-known-092-checksum-bug', action='store_true',
                     help='accept only the exact 41-byte faulty identity captured on the owner unit')
@@ -160,7 +183,8 @@ def main():
             fp.write(line + '\n'); fp.flush(); os.fsync(fp.fileno())
             print(line, flush=True)
         try:
-            probe(args.device, args.expect, args.send_soft_key, log, known_092=args.accept_known_092_checksum_bug)
+            probe(args.device, args.expect, args.send_soft_key, log, known_092=args.accept_known_092_checksum_bug,
+                  usb_path=args.usb_path)
         except Exception as exc:
             log('stopped', error=str(exc))
             raise SystemExit(1) from exc
