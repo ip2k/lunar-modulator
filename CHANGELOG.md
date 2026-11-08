@@ -26,7 +26,6 @@ history.
   against V15's app slot (581,564 B) and the FM-1's free SRAM. The
   eight-voice soak image is 16,352 B too large for the slot
   (`notes/2026-10-29-fm1-image-budget.md`).
-
 - **`--size-profile` for the dev-kit pipeline preparer** (compiler levers only,
   default off): the soak image goes from 597,916 B to 570,588 B (-27,328 B), so
   it fits V15's 581,564 B app slot with 10,976 B to spare instead of
@@ -36,6 +35,14 @@ history.
   (`notes/2026-11-08-fit-size.md`). The 16 KB margin target is not yet met.
 - **`tools/jieli/build-pipeline-on-aeon.sh`** builds and measures one pipeline
   image in the `lunar-jieli-check` container on a LAN node.
+- **The FM-1's audio output has a clean-room driver** (`firmware/board/alnk0_audio.c`,
+  MIT). The FM-1's DAC needs no setup of its own, so starting audio means
+  starting the chip's I2S port: master, MCLK out, 24-bit words on PC6, 64
+  frames per half at the 44.1 kHz rate. A host test checks every register
+  write against a hand-written fixture. It compiles for the FM-1's CPU but
+  has not run on one yet. The DAC part itself is still unidentified: the
+  chip beside the SoC has 10 leads, not 8 as first noted
+  (`notes/2026-11-08-alnk0-codec-driver.md`).
 
 ### Changed
 - **The stock FM-1 runs at 360 MHz, not 240 MHz.** The SPL sets the clock from
