@@ -8,6 +8,8 @@ import { createInstallerBuildClient } from './installer-build-client.js';
 import { mountNativeDemoSelectionView } from './native-demo-selection-view.js';
 import { mountNativeModuleSelectionView } from './native-module-selection-view.js';
 import { mountLocalPackageInspection } from './installer-package-inspection.js';
+// GPL-3.0-only (see installer.html): the install flow links the fm1-ota module.
+import { mountOtaInstallFlow } from './installer-ota-flow.js';
 
 export const MAX_SAVED_REQUEST_BYTES = 65536;
 
@@ -79,6 +81,7 @@ export async function mountInstallerPage(root, {
   fetchImpl = globalThis.fetch,
   buildClient = null,
   buildConfiguration = undefined,
+  otaOptions = {},
 } = {}) {
   if (!root || !root.ownerDocument || typeof root.append !== 'function') {
     throw new TypeError('A DOM root element is required');
@@ -105,9 +108,13 @@ export async function mountInstallerPage(root, {
   const serviceNotice = document.getElementById?.('installer-service-notice');
   const profileSelect = document.getElementById?.('installer-build-profile');
   let selectedBuildConfiguration = buildConfiguration;
+  // The install flow does not depend on the catalogue, so it mounts before the fetch below.
+  const otaRoot = document.getElementById?.('installer-ota-flow');
+  const otaFlow = otaRoot ? mountOtaInstallFlow(otaRoot, otaOptions) : null;
   const packageInspectionRoot = document.getElementById?.('installer-package-inspection');
   const packageInspection = packageInspectionRoot
-    ? mountLocalPackageInspection(packageInspectionRoot) : null;
+    ? mountLocalPackageInspection(packageInspectionRoot,
+      otaFlow ? { onPackage: (offered) => { void otaFlow.receivePackage(offered); } } : {}) : null;
   if (buildClient !== null && typeof buildClient.build !== 'function') {
     throw new TypeError('buildClient must provide a build method');
   }
@@ -277,7 +284,7 @@ export async function mountInstallerPage(root, {
       destroy() {
         destroyed = true;
         if (importButton) importButton.disabled = true;
-        controller.destroy(); moduleController.destroy(); packageInspection?.destroy();
+        controller.destroy(); moduleController.destroy(); packageInspection?.destroy(); otaFlow?.destroy();
       },
       restoreRequest,
       getRequest() {

@@ -8,6 +8,17 @@ history.
 
 ## [Unreleased]
 
+### Added
+- **Install and roll-back panel on the installer page** (M12w part 1). Choosing a
+  package shows its admission result; Install or Roll back is an explicit action, only
+  enabled for an admitted package, and walks the stock update stages (7F, pause,
+  E0000000 verify, re-enumeration, `ota-FM-1_nnn` loader identity, F0000000 write,
+  fresh identity) with per-stage progress, explicit port-pair choice that hides
+  unrelated MIDI devices, resume from the OTA loader, and next-step guidance on
+  failure. No package is admitted yet, so the button stays disabled in published
+  builds. The page names the GPL-3.0-only licence of the fm1-ota module and links its
+  source. Offline tests with fake MIDI ports and a Chromium page test cover the flow.
+
 ### Changed
 - **The stock FM-1 runs at 360 MHz, not 240 MHz.** The SPL sets the clock from
   V15's `isd_config` (`SYS_CLK` 360,000,000, HSB 180 MHz, LSB 60 MHz), and the

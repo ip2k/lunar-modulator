@@ -15,6 +15,7 @@ zero-length/range rejection, send-result checks, and a local u24 little-endian
 response-length correction for payloads of 248–512 bytes. The earlier one-byte
 body-length expression wrapped at 256 and would fail the device's decoded-frame
 length check. Changes are marked in the
-file. The browser adapter importing this module is also GPL-3.0-only. This
-module is not wired to the installer, does not request Web MIDI access, and
-does not itself establish package admission or device-install acceptance.
+file. The browser adapter importing this module is also GPL-3.0-only. The
+installer's install panel (`installer-ota-flow.js`, GPL-3.0-only) drives it through the
+controller. The module itself does not request Web MIDI access and does not itself
+establish package admission or device-install acceptance.

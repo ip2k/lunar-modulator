@@ -265,7 +265,7 @@ jobs:
         if: matrix.browser == 'chromium'
         run: |
           status=0
-          for t in screenshot files; do
+          for t in screenshot files installer-ota-ui; do
             echo "::group::$t"
             node "sim/web/test/$t.mjs" sim/web/www "$SHOTS" || status=1
             echo "::endgroup::"
