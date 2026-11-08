@@ -1,12 +1,19 @@
 # FM-1 board layer
 
 Drivers for the FM-1's own peripherals, written for the SDK-free pi32v2
-runtime and testable on a desktop. Every register access goes through a
-`struct lunar_board_io` (`board_io.h`), whose enum is the complete allow-list;
-the native backend (`lunar_board_native_io`, built only with `LUNAR_PI32V2`)
-maps it to addresses and nothing else. Every poll has a caller-given limit.
-No module enables an interrupt, touches P33, the watchdog, eFuse
-(`0x13700`-`0x1371F`), the key-check mailbox or IRQ 123.
+runtime and testable on a desktop. In the board_io modules (`board_io`,
+`matrix`, `adc`, `midi_uart`) every register access goes through a
+`struct lunar_board_io` (`board_io.h`), whose enum is the complete allow-list
+for those modules; the native backend (`lunar_board_native_io`, built only
+with `LUNAR_PI32V2`) maps it to addresses and nothing else. The ALNK0 audio
+driver is separate and has its own ops-based register set (`alnk0_audio.h`,
+see "ALNK0 audio" below): ALNK0 CON0-CON3, the per-channel ADR registers and
+LEN at `0x12E00`-`0x12E20`, CLK_CON2 (`0x10014`), IOMAP CON5 (`0x51030`) and
+the PORTC OUT, DIR, PU and PD registers, all reached only through the
+caller's `ops`. Every
+poll has a caller-given limit. The board_io modules enable no interrupt and
+touch no P33, watchdog, eFuse (`0x13700`-`0x1371F`), key-check mailbox or
+IRQ 123; the audio driver attaches IRQ 11 through the caller's `ops`.
 
 **Status: built for pi32v2 and host-tested; nothing here has run on an FM-1
 or the dev kit.** See `notes/2026-11-08-fm1-board-layer.md` for the evidence
@@ -33,6 +40,10 @@ Nothing here comes from Felucca, SLOOP or dinghy (GPL-3.0-only). Facts marked
 code, structure or comments were copied. Codex's `firmware/native/app_probe.c`
 and `firmware/third_party/dinghy/` are GPL and were not used.
 
+M5 assumes reset-state peripherals: the code sets up only what it uses
+(PA2, TIMER4, SPI1, the 595 pins). Stock clocks the 74HC595s on SPI2; here they
+are bit-banged, and nothing configures SPI2 or the clock tree.
+
 ## Fact table
 
 | Fact | Mark |
@@ -55,9 +66,12 @@ and `firmware/third_party/dinghy/` are GPL and were not used.
 
 ## Not here
 
-ALNK0 audio and the codec: the only codec init sequences found are in GPL
-sources (docs/18 §4, on the release-plan branch
-`feature/2026-10-29@fm1-release-plan`), so they stay out of this MIT layer. The `boot_info`
+Audio is not part of the board_io modules: it is the separate ALNK0 driver
+below (clean-room, MIT, #176). That work found that the FM-1's DAC needs no
+register setup, so no codec init sequence is needed and the earlier concern
+that the only known sequences were GPL no longer applies. What is still open
+is the DAC part number, the wire format, any amplifier enable and the real
+rate. The `boot_info`
 bridge stays in `firmware/third_party/fm1-nes/boot_compat.c` and is linked
 only by SDK builds; the SDK-free M5 image has no `boot_info_init` to wrap.
 

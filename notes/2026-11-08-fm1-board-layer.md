@@ -1,7 +1,8 @@
 # 2026-11-08: the FM-1 board layer (M3) and the M5 test-pattern image
 
 Milestone M3 of docs/18 (on `feature/2026-10-29@fm1-release-plan`) is "the
-FM-1 board layer on main". This stream adds that layer, minus audio, and
+FM-1 board layer on main". This stream adds that layer (audio is the separate ALNK0
+driver from #176, merged here) and
 builds the M5 test-pattern RAM image. **No hardware was touched.** No traffic
 went to the FM-1 or the dev kit, and the M5 image has not been loaded or run
 anywhere.
@@ -122,9 +123,12 @@ which is the commit and the date.
    The clockwise sign of the encoders is unknown.
 7. **UART1 HRXCNT.** Treating HRXCNT as the count since the last latch is
    Felucca's use [reported]. The pinned SDK never reads HRXCNT.
-8. **Audio is not here.** ALNK0 and codec init are part of M3 in docs/18, but
-   the codec is unidentified and its only known init sequences are GPL
-   (docs/18 §4). That needs a clean-room source or an owner decision.
+8. **Audio is a separate driver.** ALNK0 audio is `firmware/board/alnk0_audio*.c`
+   (clean-room, MIT, #176, `notes/2026-11-08-alnk0-codec-driver.md`). Its finding
+   is that the FM-1's DAC needs no register setup, so the earlier blocker (the
+   only known codec init sequences are GPL, docs/18 §4) does not apply. It has
+   its own ops-based register set, not `struct lunar_board_io`, and has not run
+   on a chip. Open: the DAC part, wire format, amplifier enable, real rate.
 9. **M2 is not exercised.** The `ram` report checks the image against its own
    16 KiB window, not the size and SRAM gate docs/18 calls M2.
 10. **Toolchain.** The LAN build host has the 20250324.1 toolchain, not the

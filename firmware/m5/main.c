@@ -18,7 +18,8 @@
 /* TIMER4's oscillator is 24 MHz under ROM/UBOOT [reported: Felucca], and
  * stock V15 chooses 24 or 40 MHz [verified: timing/README.md]. Binding at the
  * 40 MHz upper bound makes every delay at least as long as requested for any
- * oscillator up to 40 MHz (1.67x long at 24 MHz): panel waits never fall short. */
+ * oscillator up to 40 MHz (1.67x long at 24 MHz): panel waits never fall short while TIMER4 is
+ * in use; on the spin fallback they are uncalibrated and may fall short. */
 #define OSC_HZ 40000000u
 #define POLLS 65536u
 #define SPIN_PER_MS 20000u   /* uncalibrated fallback only */
@@ -134,7 +135,16 @@ void lunar_m5_main(void)
         lunar_m5_status.step = M5_MATRIX_OK;
 
     /* Blink code: `step` blinks of every LED line, then a pause, forever.
-     * Six blinks means every step above succeeded. */
+     * Each assignment above overwrites the previous one, so the count is the
+     * last step reached, and `step` is not a log of every step passing.
+     * 1 = entered; 2 = core 0; 3 = TIMER4 bound; 4 = SPI1 configured (panel
+     * not drawn, or its result was not OK); 5 = panel pattern sent without
+     * error; 6 = matrix initialised after step 5. Six does not prove the
+     * panel shows anything (only that the byte stream completed) and does not
+     * say whether TIMER4 or the spin fallback paced it: a failed bind leaves
+     * step 2 and a later step overwrites it, so six blinks can follow a failed
+     * bind. Read lunar_m5_status.timer_fallback (and timer_con_before).
+     * A blink also needs the LED lines to work. */
     for (;;) {
         unsigned n;
         for (n = 0; n < lunar_m5_status.step; ++n) {

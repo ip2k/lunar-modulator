@@ -410,6 +410,26 @@ def test_uart_poll_parses_ring_and_recovers_from_overrun(sim):
     assert got == [b'\x90\x02\x03']
 
 
+def test_uart_poll_reads_hrxcnt_before_clearing_pending(sim):
+    uart = Uart()
+    size = c.c_uint()
+    ring = sim.sim_ring(c.byref(size))
+    assert sim.lunar_midi_uart_configure(c.byref(uart), sim.sim_io(), ring, size.value, 0x01c03000)
+    got = []
+
+    @EMIT
+    def emit(_, msg):
+        m = msg.contents
+        got.append(bytes([m.status, m.data1, m.data2][:m.length]))
+
+    # The simulator drops the latched count when the pending bits are cleared
+    # (a conservative model), so only a read made first sees the bytes.
+    sim.sim_uart_rx(bytes([0x90, 60, 100]), 3)
+    assert sim.lunar_midi_uart_poll(c.byref(uart), 64, emit, None) == 3
+    assert got == [b'\x90\x3c\x64']
+    assert reg(sim, UART1_HRXCNT) == 0
+
+
 def test_uart_drain_rejects_non_power_of_two(sim):
     uart = Uart(ring=sim.sim_ring(c.byref(c.c_uint())), ring_bytes=96)
     assert sim.lunar_midi_uart_drain(c.byref(uart), 0, 1, EMIT(lambda *_: None), None) == -1

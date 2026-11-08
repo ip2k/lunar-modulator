@@ -78,6 +78,10 @@ unsigned lunar_matrix_select(const struct lunar_board_io *io, unsigned column, u
     if (!lunar_board_io_valid(io) || column >= LUNAR_MATRIX_COLUMNS) return 0xffu;
     leds_off(io);
     shift(io, lunar_matrix_word(column));
+    /* No settle delay between the latch and the row read: the 595 output and
+     * the row pull-ups are assumed to settle within the sync and the register
+     * access. [hardware-unverified]: if a first run shows ghost or smeared
+     * keys, add a short bounded settle here (a few dummy reads of PORTA IN). */
     rows = lunar_keys_pack(io->read(io->context, PA(LUNAR_IN)),
                            io->read(io->context, PB(LUNAR_IN)));
     leds_on(io, leds & LUNAR_LED_LINES);

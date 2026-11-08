@@ -78,6 +78,10 @@ static void sim_write(void *context, enum lunar_board_register reg, unsigned val
     if (reg == LUNAR_UART1_CON0 && (value & 0x80u)) {
         regs[LUNAR_UART1_HRXCNT] = uart_since_latch;
         uart_since_latch = 0;
+    } else if (reg == LUNAR_UART1_CON0 && (value & 0x1400u) == 0x1400u) {
+        /* Conservative model, not a hardware fact: a pending clear may also
+         * drop the latched count, so HRXCNT must be read before it. */
+        regs[LUNAR_UART1_HRXCNT] = 0;
     }
     if (reg == LUNAR_UART1_CON0) regs[reg] &= ~0x1480u; /* strobe bits read 0 */
 }

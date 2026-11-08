@@ -21,11 +21,11 @@ polls have finite bounds. Failure stops the timer, latches failure and does
 not retry automatically. Poll limits bound work; they are not calibrated time.
 Physical duration needs the caller-verified clock and includes software overhead.
 
-[verified: Hera host checks] `tests/test_timer4_delay.py` passes 22 checks,
+[verified: LAN build host checks] `tests/test_timer4_delay.py` passes 22 checks,
 covering exact periods, stale pending, late completion, mid-request failure,
 preowned timer refusal, invalid clocks and no implicit retry. Combined with
 recovery checks: 36 pass with warnings treated as errors and cache disabled.
-[verified: Hera target] Separate object SHA-256:
+[verified: LAN build host target] Separate object SHA-256:
 `c7a5a9f58888cd01cd42ad498aee0d2169c0d3924fb2ba93f04f7dedc1d8099e`.
 Vendor disassembly confirms native word accesses and barriers, with no named
 undefined helper. This is source/host/code-generation evidence, not device timing.

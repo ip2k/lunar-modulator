@@ -93,7 +93,9 @@ int lunar_midi_uart_poll(struct lunar_midi_uart *s, unsigned byte_budget,
     if (!s || !s->configured) return -1;
     lunar_board_change(s->io, LUNAR_UART1_CON0, 0, CON0_LATCH);
     s->io->sync(s->io->context);
-    lunar_board_change(s->io, LUNAR_UART1_CON0, 0, CON0_CLEAR);
+    /* Read the latched count before clearing the pending bits: whether the
+     * clear also drops HRXCNT is not established, so do not depend on it. */
     received = s->io->read(s->io->context, LUNAR_UART1_HRXCNT) & 0xffffu;
+    lunar_board_change(s->io, LUNAR_UART1_CON0, 0, CON0_CLEAR);
     return lunar_midi_uart_drain(s, received, byte_budget, emit, ctx);
 }
