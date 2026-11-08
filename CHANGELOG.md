@@ -8,6 +8,10 @@ history.
 
 ## [Unreleased]
 
+### Documentation
+
+- Forensics note settling what `0x94600` meant in the 2026-10-15 stage-7 install (in-region for the 092 layout) and its implications for the FM-1 install write plan (`notes/2026-11-08-0x94600-forensics.md`, docs/18 §4).
+
 ### Added
 - **A plan for 1.0 on the FM-1** (docs/18): milestones from the dev-kit soak
   to a verified install on the owner's FM-1, including the web flasher and

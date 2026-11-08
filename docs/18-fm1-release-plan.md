@@ -44,8 +44,10 @@ owner approval; this document approves nothing.
   on 2026-10-15 stopped at program address `0x94600` with power lost,
   leaving the unit unbootable until 2026-10-26. The likely cause is that an
   in-place rewrite of a single-bank app is not atomic [inferred: forensics
-  note `21d529ce` on that branch]. That `0x94600` lies past the app
-  region's end `0x93000` is unexplained [reported; to check].
+  note `21d529ce` on that branch]. That `0x94600` is an
+  absolute address inside the app region of the 092 layout the unit ran
+  then, not an overrun of V15's `0x93000` [verified:
+  `notes/2026-11-08-0x94600-forensics.md`].
 - **The performance gap that failed that acceptance is what the dev-kit
   work closed** (cap8, trunc12, the 48-tap 51/47 resampler, the buffered
   queue) [inferred: different images; FM-1 timing at 360 MHz is scaled,
@@ -107,8 +109,11 @@ Asked 2026-10-29; answers recorded here when they come.
 
 ## 4. Doubts to settle
 
-- The 10-15 install's last program address `0x94600` against the
-  transporter's `[0x4000, 0x93000)`.
+- ~~The 10-15 install's last program address `0x94600` against the
+  transporter's `[0x4000, 0x93000)`.~~ Settled 2026-11-08: the install
+  targeted the FM-1+VA layout (app to `0xD9000`); V15's boundary does not
+  apply to it. M8 must take its write range from the identity-read layout
+  and protect VM `0x93000`+ on V15 (`notes/2026-11-08-0x94600-forensics.md`).
 - The soak note's 5,332 B of heap after DAC open against 96–1,568 B in
   `pipeline-image-sizes.json`: possibly different images.
 - The RAM load-and-jump route is untested on WL82; the ROM has only loaded
