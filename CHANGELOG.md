@@ -27,6 +27,16 @@ history.
   eight-voice soak image is 16,352 B too large for the slot
   (`notes/2026-10-29-fm1-image-budget.md`).
 
+- **`--size-profile` for the dev-kit pipeline preparer** (compiler levers only,
+  default off): the soak image goes from 597,916 B to 570,588 B (-27,328 B), so
+  it fits V15's 581,564 B app slot with 10,976 B to spare instead of
+  overflowing by 16,352 B. It stops the libc++ `algorithm` object from being
+  linked (-16,160 B) and builds five cold setup, parser and editor units at
+  `-Oz` (-11,168 B). Every SRAM-resident function is the same code
+  (`notes/2026-11-08-fit-size.md`). The 16 KB margin target is not yet met.
+- **`tools/jieli/build-pipeline-on-aeon.sh`** builds and measures one pipeline
+  image in the `lunar-jieli-check` container on a LAN node.
+
 ### Changed
 - **The stock FM-1 runs at 360 MHz, not 240 MHz.** The SPL sets the clock from
   V15's `isd_config` (`SYS_CLK` 360,000,000, HSB 180 MHz, LSB 60 MHz), and the
