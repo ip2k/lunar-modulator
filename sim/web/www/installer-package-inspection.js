@@ -34,10 +34,16 @@ function describeInspection(file, inspection) {
 export function mountLocalPackageInspection(root, {
   inspect = inspectNativePackage,
   maxBytes = MAX_INSPECTABLE_PACKAGE_BYTES,
+  onPackage = null,
 } = {}) {
   if (!root?.ownerDocument || typeof root.append !== 'function') {
     throw new TypeError('A DOM root element is required');
   }
+  if (onPackage !== null && typeof onPackage !== 'function') {
+    throw new TypeError('onPackage must be a function');
+  }
+  // Opt-in hand-off of the checked bytes to a local install panel; null clears it.
+  const offer = (value) => { try { onPackage?.(value); } catch { /* the panel cannot break inspection */ } };
   if (typeof inspect !== 'function' || !Number.isSafeInteger(maxBytes)
       || maxBytes < 1 || maxBytes > MAX_INSPECTABLE_PACKAGE_BYTES) {
     throw new TypeError('Package inspection configuration is invalid');
@@ -71,10 +77,12 @@ export function mountLocalPackageInspection(root, {
   const clearCurrent = (message = 'No package selected.') => {
     generation += 1;
     report.textContent = message;
+    offer(null);
   };
   input.addEventListener('change', async () => {
     const currentGeneration = ++generation;
     report.textContent = 'Inspecting selected file locally…';
+    offer(null);
     const file = input.files?.[0];
     if (!file) {
       report.textContent = 'No package selected.';
@@ -92,6 +100,7 @@ export function mountLocalPackageInspection(root, {
       const inspection = inspect(bytes);
       if (currentGeneration !== generation) return;
       report.textContent = describeInspection(file, inspection);
+      offer({ file, bytes, inspection });
     } catch (error) {
       if (currentGeneration === generation) {
         report.textContent = `Inspection could not be completed: ${error instanceof Error ? error.message : 'invalid package data'}. Release admission remains closed.`;

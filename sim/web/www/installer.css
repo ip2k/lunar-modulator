@@ -167,3 +167,27 @@
   .installer-top span { text-align: left; }
   .installer-status, .native-demo-default-status, .installer-receipt-preview { padding: 12px 14px; }
 }
+
+/* Install and roll-back flow (installer-ota-flow.js). */
+.installer-ota-flow, .installer-licence {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 16px 0;
+  padding: 14px 18px;
+  max-width: 78ch;
+}
+.installer-ota-flow label { display: block; margin: 8px 0; }
+.installer-ota-actions { display: flex; gap: 8px; margin: 12px 0; }
+.installer-ota-pairset { border: 1px solid var(--border); border-radius: 8px; margin: 12px 0; padding: 8px 12px; }
+.installer-ota-stages { margin: 12px 0; padding-left: 1.4rem; }
+.installer-ota-stages li[data-state="pending"] { color: var(--muted, inherit); opacity: 0.7; }
+.installer-ota-stages li[data-state="skipped"] { opacity: 0.5; text-decoration: line-through; }
+.installer-ota-stages li[data-state="active"] { font-weight: 700; }
+.installer-ota-stages li[data-state="active"]::after { content: " \2026"; }
+.installer-ota-stages li[data-state="done"]::after { content: " \2713"; }
+.installer-ota-stages li[data-state="failed"] { color: var(--danger, #ff8a8a); font-weight: 700; }
+.installer-ota-stages li[data-state="failed"]::after { content: " \2717"; }
+.installer-ota-guidance:not(:empty) { border-left: 4px solid var(--held); padding-left: 10px; }
+.installer-ota-flow select, .installer-ota-flow input[type="text"] { max-width: 100%; box-sizing: border-box; }
+.installer-licence a, .installer-ota-flow li { overflow-wrap: anywhere; }
