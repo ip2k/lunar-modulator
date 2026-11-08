@@ -428,13 +428,18 @@ export async function describeImage(image, backup = null) {
   for (let a = 0; a < WRITE_END; a += SECTOR) if (!bytesEqual(image.data.subarray(a, a + SECTOR), backup.data.subarray(a, a + SECTOR))) differing += 1;
   const bootAreaDiffers = !bytesEqual(image.data.subarray(0, WRITE_MIN), backup.data.subarray(0, WRITE_MIN));
   const sameAsBackup = image.data.length === backup.data.length && bytesEqual(image.data, backup.data);
+  // The stock package is expected to differ from a broken unit's flash: only
+  // a boot-area difference (which the dry run refuses) is a warning for it.
+  const warn = image.kind === 'fwsc' ? bootAreaDiffers : !sameAsBackup;
+  const where = `in ${differing} sector(s) of 0x0-0x92FFF${differing ? '' : ' (only above 0x93000, which is never written)'}`;
   if (sameAsBackup) lines.push(`Identical to this connection's backup (SHA-256 ${backup.sha256}).`);
+  else if (image.kind === 'fwsc') lines.push(`Differs from this connection's backup (SHA-256 ${backup.sha256}) ${where}; these are what a restore to stock rewrites.`);
   else {
-    lines.push(`WARNING: differs from this connection's backup (SHA-256 ${backup.sha256}) in ${differing} sector(s) of 0x0-0x92FFF${differing ? '' : ' (only above 0x93000, which is never written)'}.`);
-    if (bootAreaDiffers) lines.push('WARNING: its boot area 0x0-0x3FFF differs from this FM-1\'s; the dry run will refuse it (that area is never written).');
-    else if (image.kind === 'backup') lines.push('Check that this is a backup of THIS unit before writing it.');
+    lines.push(`WARNING: differs from this connection's backup (SHA-256 ${backup.sha256}) ${where}.`);
+    if (!bootAreaDiffers) lines.push('Check that this is a backup of THIS unit before writing it.');
   }
-  return { lines, warn: !sameAsBackup, sameAsBackup, bootAreaDiffers, differingSectors: differing };
+  if (bootAreaDiffers) lines.push('WARNING: its boot area 0x0-0x3FFF differs from this FM-1\'s; the dry run will refuse it (that area is never written).');
+  return { lines, warn, sameAsBackup, bootAreaDiffers, differingSectors: differing };
 }
 
 /** Type-0 `flash.bin` entry of a package, in flash coordinates from 0. */
