@@ -1,72 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNativeOtaController } from '../www/native-ota-controller.js';
-import { HS_QUERY, UPGRADE, pack7 } from '../www/third_party/fm1-ota/fm1ota.js';
-
-const same = (a, b) => Array.from(a).join(',') === Array.from(b).join(',');
-const checksum = (bytes) => (~bytes.reduce((sum, byte) => sum + byte, 0)) & 0xff;
-
-function identity(text) {
-  const name = [...new TextEncoder().encode(text)];
-  const decoded = [0, 0x59, 0x11, 27, 0, 0, ...name, ...new Array(27 - name.length).fill(0)];
-  decoded.push(checksum(decoded.slice(6)));
-  return Uint8Array.from([0xf0, ...pack7(decoded), 0xf7]);
-}
-
-function request(addr, length = 4) {
-  const decoded = [0, 0x59, 0x30, 8, 0, 0, 0, addr & 0xff, (addr >>> 8) & 0xff,
-    (addr >>> 16) & 0xff, (addr >>> 24) & 0xff, length, 0, 0];
-  decoded.push(checksum(decoded.slice(6)));
-  return Uint8Array.from([0xf0, ...pack7(decoded), 0xf7]);
-}
-
-class FakeAccess {
-  constructor() {
-    this.sysexEnabled = true;
-    this.inputs = new Map();
-    this.outputs = new Map();
-    this.listeners = new Set();
-    this.sent = [];
-    this.opens = 0;
-  }
-  addEventListener(name, listener) { if (name === 'statechange') this.listeners.add(listener); }
-  removeEventListener(name, listener) { if (name === 'statechange') this.listeners.delete(listener); }
-  addPair(phase, text, { failFinish = false, noDisconnect = false } = {}) {
-    const access = this;
-    let transferStep = 0;
-    const input = { id: `${phase}-in`, name: 'USB Composite Device', type: 'input',
-      state: 'connected', onmidimessage: null,
-      async open() { access.opens += 1; }, async close() {} };
-    const output = { id: `${phase}-out`, name: input.name, type: 'output', state: 'connected',
-      async open() { access.opens += 1; }, async close() {},
-      send(bytes) {
-        access.sent.push({ phase, bytes: Array.from(bytes) });
-        if (same(bytes, HS_QUERY)) {
-          input.onmidimessage?.({ data: identity(text) });
-        } else if (same(bytes, UPGRADE)) {
-          transferStep = 1;
-          input.onmidimessage?.({ data: request(0) });
-        } else if (transferStep === 1) {
-          transferStep = 2;
-          input.onmidimessage?.({ data: request(phase === 'running' ? 0xe0000000 : 0xf0000000, 8) });
-        } else if (transferStep === 2) {
-          transferStep = 3;
-          if (failFinish) throw new Error('finish send failed');
-          if (!noDisconnect) {
-            input.state = 'disconnected';
-            output.state = 'disconnected';
-            access.inputs.delete(input.id);
-            access.outputs.delete(output.id);
-            for (const listener of access.listeners) listener({ port: input });
-          }
-        }
-      } };
-    this.inputs.set(input.id, input);
-    this.outputs.set(output.id, output);
-    return { input, output };
-  }
-}
+import { createNativeOtaController, OTA_STAGES } from '../www/native-ota-controller.js';
+import { HS_QUERY, UPGRADE } from '../www/third_party/fm1-ota/fm1ota.js';
+import { FakeAccess, same } from './fake-midi.mjs';
 
 async function verifier(bytes) {
   assert.deepEqual(bytes, Uint8Array.of(9, 8, 7));
@@ -78,7 +15,7 @@ async function verifier(bytes) {
 }
 
 function rig({ running = 'FM-1_015', loader = 'ota-FM-1_015', application = 'FM-1_501',
-  failFinish = null, wrongPair = false, noDisconnect = false } = {}) {
+  failFinish = null, wrongPair = false, noDisconnect = false, onStage = null } = {}) {
   const access = new FakeAccess();
   const pairs = {
     running: access.addPair('running', running,
@@ -106,7 +43,7 @@ function rig({ running = 'FM-1_015', loader = 'ota-FM-1_015', application = 'FM-
       if (phase === 'application' && !pairs.application) pairs.application = access.addPair('application', application);
       return wrongPair && phase === 'running' ? { input: pairs.running.input, output: pairs.loader?.output } : pairs[phase];
     },
-    clock, transferTimeouts: { idleTimeoutMs: 30, hardTimeoutMs: 100, responseDelayMs: 0 },
+    clock, transferTimeouts: { idleTimeoutMs: 30, hardTimeoutMs: 100, responseDelayMs: 0 }, onStage,
   });
   return { controller, access, pairs, sleeps, get accessCalls() { return accessCalls; } };
 }
@@ -176,4 +113,36 @@ test('a finish ACK without re-enumeration is still a failure', async () => {
   await assert.rejects(start(run.controller), /did not re-enumerate/);
   assert.equal(run.access.sent.some((sent) => sent.phase === 'loader'), false);
   assert.equal(run.access.listeners.size, 0);
+});
+
+test('stage observer sees every transition in order, and cannot break the transfer', async () => {
+  const seen = [];
+  const run = rig({ onStage: (name, detail) => { seen.push(`${name}:${detail.state}`); throw new Error('observer'); } });
+  const result = await start(run.controller);
+  assert.equal(result.status, 'application-identity-confirmed');
+  const started = seen.filter((entry) => entry.endsWith(':start')).map((entry) => entry.split(':')[0]);
+  assert.deepEqual(started, OTA_STAGES);
+  assert.equal(seen.filter((entry) => entry.endsWith(':done')).length, OTA_STAGES.length);
+  assert.ok(seen.some((entry) => entry === 'verify-transfer:progress') && seen.some((entry) => entry === 'write-transfer:progress'));
+});
+
+test('roll back: a Lunar running identity and an older target identity', async () => {
+  const run = rig({ running: 'FM-1_099', loader: 'ota-FM-1_099', application: 'FM-1_501' });
+  const result = await run.controller.installFromUserAction({ packageBytes: Uint8Array.of(9, 8, 7),
+    expectedProduct: 'FM-1_501', runningProduct: 'FM-1_099' });
+  assert.equal(result.product, 'FM-1_501');
+  await assert.rejects(rig().controller.installFromUserAction({ packageBytes: Uint8Array.of(9, 8, 7),
+    expectedProduct: 'FM-1_501', runningProduct: 'FM-1_501' }), /already has the target/);
+  await assert.rejects(rig().controller.installFromUserAction({ packageBytes: Uint8Array.of(9, 8, 7),
+    expectedProduct: 'FM-1_501', runningProduct: 'nonsense' }), /running FM-1 identity/);
+});
+
+test('resume from the OTA loader never talks to the running application', async () => {
+  const run = rig();
+  const result = await run.controller.installFromUserAction({ packageBytes: Uint8Array.of(9, 8, 7),
+    expectedProduct: 'FM-1_501', startPhase: 'loader' });
+  assert.equal(result.status, 'application-identity-confirmed');
+  assert.equal(run.access.sent.some((sent) => sent.phase === 'running'), false);
+  await assert.rejects(rig().controller.installFromUserAction({ packageBytes: Uint8Array.of(9, 8, 7),
+    expectedProduct: 'FM-1_501', startPhase: 'bogus' }), /startPhase/);
 });
