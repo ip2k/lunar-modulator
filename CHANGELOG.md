@@ -13,6 +13,12 @@ history.
 - Forensics note settling what `0x94600` meant in the 2026-10-15 stage-7 install (in-region for the 092 layout) and its implications for the FM-1 install write plan (`notes/2026-11-08-0x94600-forensics.md`, docs/18 §4).
 
 ### Added
+- **Fit tables for the FM-1 app slot** (`notes/2026-11-08-fit-tables.md`): the
+  soak image (597,916 B, 16,352 B over V15's slot) measured with each engine,
+  effect, Macro model and optimisation level removed. Dropping the Terrain and
+  Wavetable Macro models alone gives +38,656 B of margin. New
+  `tools/jieli/fm1_fit_table.py`, `tools/jieli/prepare-fit-variant.py` and a
+  `LUNAR_MODULES` make variable (default unchanged). Sizes only; no hardware.
 - **A plan for 1.0 on the FM-1** (docs/18): milestones from the dev-kit soak
   to a verified install on the owner's FM-1, including the web flasher and
   the web recovery tool, with the approval each hardware step needs.

@@ -1,5 +1,9 @@
 # Included by the prepared private SDK board Makefile before its link rules.
 # Reuse the engine/app build lists and flags; do not maintain a second DSP list.
+# The engine set; the default is the dev-board pipeline's (docs/18 fit-tables lane).
+# `make LUNAR_MODULES=a,b,c` builds another set for size measurement; every other
+# input is unchanged, so an unset variable gives the identical image.
+LUNAR_MODULES ?= dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance
 LUNAR_ROOT := $(abspath ../../../../../lunar-source)
 LUNAR_BUILD := $(abspath ../../../../../lunar-build)
 LUNAR_INCLUDES := $(foreach i,$(filter -I%,$(INCLUDES)),-I$(abspath $(patsubst -I%,%,$(i))))
@@ -8,7 +12,7 @@ LUNAR_EXTRA := $(filter-out -Oz -g,$(CFLAGS)) $(DEFINES) $(LUNAR_INCLUDES) \
 LUNAR_MAKE = $(MAKE) --no-print-directory -s -C $(LUNAR_ROOT)/engines \
   -f Makefile -f $(LUNAR_ROOT)/sim/web/mk/sim.mk -f $(LUNAR_ROOT)/tools/jieli/renderer.mk \
   SIM=$(LUNAR_ROOT)/sim/web BUILD=$(LUNAR_BUILD) \
-  FM1_GPL_MODS=0 FM1_DX7_SINE=trunc12 FM1_MODULES=dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance \
+  FM1_GPL_MODS=0 FM1_DX7_SINE=trunc12 FM1_MODULES=$(LUNAR_MODULES) \
   CC="$(CC)" CXX="$(CXX)" OPT=-O2 EXTRA="$(LUNAR_EXTRA)"
 LUNAR_OBJS := $(shell $(LUNAR_MAKE) print-devkit-renderer-objs)
 ifeq ($(strip $(LUNAR_OBJS)),)
