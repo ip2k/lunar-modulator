@@ -27,10 +27,37 @@ plus `recovery-fake-port.mjs`, a model of the transporter firmware.
   refused, in-session two-dump backup required before a dry run, flash recheck
   immediately before the write, write failure stops at once.
 
+## Review hardening (same day)
+- Write provenance: `RecoverySession` records `identified` (identify),
+  `loaderReady` (uploadLoader, which now also requires the off confirmation
+  and `uboot=1`) and the backup; `rekey()` forgets them and closes the link.
+  `plan()` returns a frozen summary and keeps the sectors and private copies
+  of the image and flash read inside the session (a WeakMap keyed by the
+  summary). `write()` refuses (`not-identified`, `no-loader`, `no-backup`,
+  `plan-foreign`, `plan-stale`, `port-closed`) before asking for
+  confirmation, re-checks every sector against `[0x4000, 0x93000)`
+  (`assertWritableSectors`), and accepts each plan once.
+- `uploadLoader()` returning `already-loaded` (the page was reloaded without
+  a rekey) still counts as the loader step: the chosen file was checked in
+  this session, and the transporter reports a loader. A stricter reading
+  would force a rekey in that case; not done.
+- Request lines must match whole-line templates (`REQUEST_TEMPLATES`,
+  `checkRequest`), with payload length tied to `ldr`/`wsec` and read/write
+  ranges checked, so `ping\nuboot` or `read 0x0 16 uboot` never leave the page.
+- The page closes the old link before forgetting it (one `dropLink()`), clears
+  the plan on port-closed, rekey and reconnect, and shows each chosen image's
+  hashes against the session backup (`describeImage`). A raw dump has no
+  readable `FM-1_0xx` string, the app being encrypted in flash (docs/02).
+- Page and docs/17 §7a: units with a replaced boot area (Felucca, SLOOP)
+  refuse a stock restore by design.
+
 ## Results
 `node --test sim/web/test/recovery-*.test.mjs`: 40 tests, 39 pass, 1 skipped when
 the git-ignored stock V15 package is absent; with `FM1_V15_FWSC` set to it, 40
 pass, including extracted image == the research shim's `raw[0x414:0x414+0x93000]`.
+After the review hardening: 54 tests, 53 pass, 1 skipped (54 pass with the package);
+`tests/test_sim_web.py`: 215 passed. The page itself was not reloaded in a
+browser after the hardening (syntax and import checks only).
 Page loaded over localhost in the browser pane: no console errors.
 
 ## Not tested / limits

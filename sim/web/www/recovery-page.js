@@ -2,7 +2,7 @@
 // DOM glue for recovery.html. All protocol and safety logic is in
 // recovery-transporter.js; this file only wires buttons to it.
 import { openSerialTransport, serialSupported, TRANSPORTER_USB } from './recovery-serial.js';
-import { TransporterLink, RecoverySession, AFTER_WRITE_GUIDE, WRITE_MIN, WRITE_END, LOADER_SIZE, LOADER_SHA256, sha256Hex } from './recovery-transporter.js';
+import { TransporterLink, RecoverySession, AFTER_WRITE_GUIDE, WRITE_MIN, WRITE_END, LOADER_SIZE, LOADER_SHA256, sha256Hex, describeImage } from './recovery-transporter.js';
 
 const $ = (id) => document.getElementById(id);
 let link = null;
@@ -31,19 +31,33 @@ function refresh() {
   $('btn-rekey').disabled = !connected || !confirmedOff || busy;
   $('btn-reconnect').disabled = connected || busy;
   $('btn-wait').disabled = !connected || !confirmedOff || !loaderBytes || busy;
-  $('btn-backup').disabled = !connected || !session?.booted || busy;
-  $('btn-plan').disabled = !session?.backup || !image || busy;
-  $('btn-write').disabled = !plan || !plan.sectors.length || busy;
+  $('btn-backup').disabled = !connected || !session.identified || !session.loaderReady || busy;
+  $('btn-plan').disabled = !connected || !session.backup || !image || busy;
+  // The session refuses a plan it did not make itself; this only greys the button.
+  $('btn-write').disabled = !connected || !plan || !plan.sectors.length || busy;
+}
+/** Close the current link (if any), then forget it with its session and plan. */
+async function dropLink() {
+  const old = link;
+  if (old) await old.close();
+  session = null; link = null; plan = null;
+  $('plan-out').hidden = true;
+}
+async function showImage() {
+  if (!image) return;
+  const d = await describeImage(image, session?.backup || null);
+  say('image-state', d.lines.join('\n'), d.warn ? 'rec-err' : 'rec-ok');
 }
 async function run(statusId, fn) {
   busy = true; refresh();
   try { await fn(); } catch (e) {
     say(statusId, e.message, 'rec-err'); log(`ERROR ${e.code || ''} ${e.message}`);
-    if (e.code === 'port-closed') { session = null; link = null; }
+    if (e.code === 'port-closed') await dropLink();
   } finally { busy = false; refresh(); }
 }
 
 async function pickPort() {
+  await dropLink(); // a reconnect starts from nothing: no identity, loader, backup or plan
   const port = await navigator.serial.requestPort({ filters: [TRANSPORTER_USB] });
   const transport = await openSerialTransport(port);
   link = new TransporterLink(transport);
@@ -54,7 +68,7 @@ async function pickPort() {
     confirm: async (m) => window.confirm(m),
   });
   session.setConfirmedOff(confirmedOff);
-  try { await session.connect(); } catch (e) { await link.close(); session = null; link = null; throw e; }
+  try { await session.connect(); } catch (e) { await dropLink(); throw e; }
   const st = await session.status();
   log(`connected: ${st.raw}`);
   if (st.v15) log('WARNING: a running stock V15 is attached to the transporter; flash commands are blocked.');
@@ -87,15 +101,15 @@ $('file-loader').onchange = async (e) => {
 $('btn-rekey').onclick = () => run('key-state', async () => {
   const msg = await session.rekey();
   say('key-state', msg); log('rekey sent; port will close');
-  session = null; link = null;
+  await dropLink();
 });
 
 $('btn-wait').onclick = () => run('key-state', async () => {
   say('key-state', 'Waiting for boot mode. Switch the FM-1 ON now (not before the key is running).');
   await session.waitUboot(90000, 700);
-  await session.uploadLoader(loaderBytes);
+  const loaded = await session.uploadLoader(loaderBytes);
+  if (loaded === 'already-loaded') log('the transporter already held a loader; the chosen file was still checked');
   const info = await session.identify();
-  session.booted = true;
   say('key-state', `Boot mode, ${info.slice(3)}.`, 'rec-ok');
   log(`identified: ${info}`);
 });
@@ -105,6 +119,8 @@ $('btn-backup').onclick = () => run('backup-state', async () => {
   const b = await session.backupFlash();
   say('backup-state', `Two dumps match. SHA-256 ${b.sha256}. Both files were saved.`, 'rec-ok');
   log(`backup sha256 ${b.sha256}`);
+  plan = null; $('plan-out').hidden = true;
+  await showImage(); // compare a chosen image with the new backup
 });
 
 $('file-image').onchange = async (e) => {
@@ -112,8 +128,10 @@ $('file-image').onchange = async (e) => {
   image = null; plan = null;
   try {
     image = await RecoverySession.parseImage(new Uint8Array(await f.arrayBuffer()), f.name);
-    say('image-state', `${image.kind === 'fwsc' ? 'Stock V15 package' : '1 MiB flash image'} accepted. SHA-256 ${image.sha256}`, 'rec-ok');
-  } catch (err) { say('image-state', err.message, 'rec-err'); }
+    await showImage();
+    log(`image ${f.name}: sha256 ${image.sha256}`);
+  } catch (err) { image = null; say('image-state', err.message, 'rec-err'); }
+  $('plan-out').hidden = true;
   refresh();
 };
 
@@ -129,8 +147,9 @@ $('btn-plan').onclick = () => run('write-state', async () => {
 });
 
 $('btn-write').onclick = () => run('write-state', async () => {
-  const res = await session.write(plan);
-  plan = null;
+  const p = plan;
+  plan = null; // one write attempt per dry run; the session refuses a second one anyway
+  const res = await session.write(p);
   say('write-state', res.written ? `Written and verified: ${res.written} sector(s). Final read SHA-256 ${res.finalSha256}.` : 'Nothing to write.', 'rec-ok');
   log(`write done: ${res.written} sectors`);
   const list = $('after-list'); list.replaceChildren(...AFTER_WRITE_GUIDE.map((t) => { const li = document.createElement('li'); li.textContent = t; return li; }));

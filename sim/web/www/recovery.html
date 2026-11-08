@@ -64,7 +64,7 @@
       <p><label><input id="chk-off" type="checkbox"> The FM-1 is switched <strong>OFF</strong> (I checked the switch itself) and no running FM-1 is attached to the Pico.</label></p>
       <ol>
         <li>Press <button id="btn-rekey" type="button" disabled>Start key mode</button>. The transporter reboots and this port closes.</li>
-        <li>Press <button id="btn-reconnect" type="button" disabled>Reconnect</button> within about 10 s and choose the data port again. The loader must be chosen again too.</li>
+        <li>Press <button id="btn-reconnect" type="button" disabled>Reconnect</button> within about 10 s and choose the data port again. The loader file stays accepted; the page uploads it to the FM-1 again in the next step. A reconnect starts a new connection: identify, back up and run the dry run again before writing.</li>
         <li>Only now switch the FM-1 <strong>ON</strong>. Within a few seconds the status below should show boot mode.</li>
       </ol>
       <p><button id="btn-wait" type="button" disabled>Wait for boot mode and identify</button> <span id="key-state" role="status"></span></p>
@@ -81,8 +81,10 @@
 
     <section class="rec-step" id="step-image">
       <h2><span class="rec-n">6</span> Choose what to write</h2>
-      <p>Either your own 1 MiB backup, or the stock V15 package <code>FM-1.fwsc</code> (699,956 bytes, SHA-256 <code>db1642b2…db8a</code>; see docs/02). Any other package is refused. Only sectors in <code>0x4000</code>-<code>0x92FFF</code> that differ are written; an image that differs in the boot area <code>0x0</code>-<code>0x3FFF</code> is refused.</p>
-      <p><input id="file-image" type="file"> <span id="image-state" role="status"></span></p>
+      <p>Either your own 1 MiB backup, or the stock V15 package <code>FM-1.fwsc</code> (699,956 bytes, SHA-256 <code>db1642b2…db8a</code>; see docs/02). Any other package is refused. Only sectors in <code>0x4000</code>-<code>0x92FFF</code> that differ are written; an image that differs in the boot area <code>0x0</code>-<code>0x3FFF</code> is refused. The page shows the chosen file's SHA-256 and warns when it differs from the backup taken in step 5.</p>
+      <p class="rec-note"><strong>A unit whose boot area was replaced cannot be restored to stock here, by design.</strong> Felucca and SLOOP install a different <code>uboot.boot</code> (from JieLi's SDK V1.2.1), so the stock V15 package differs from such a unit in <code>0x0</code>-<code>0x3FFF</code> and the dry run refuses it. Restoring that unit's own backup still works. Rewriting the boot area is outside this route (docs/17).</p>
+      <p><input id="file-image" type="file"></p>
+      <p id="image-state" role="status"></p>
       <p><button id="btn-plan" type="button" disabled>Dry run (read only)</button></p>
       <pre id="plan-out" class="rec-pre" hidden></pre>
     </section>
