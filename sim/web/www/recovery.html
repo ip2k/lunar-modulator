@@ -39,7 +39,7 @@
         <li>Drag the UF2 onto that drive. The Pico reboots by itself.</li>
         <li>It now shows up as USB <code>2e8a:000a</code> "FM-1 Transporter" with two serial ports. The second one is the data port this page uses; the first is a console.</li>
       </ol>
-      <p class="rec-note">Upstream source: <a href="https://github.com/kurogedelic/FM-1-transporter/tree/a7fb5e8ac692c528f8ed29e325911a3f4b8111d6">kurogedelic/FM-1-transporter at a7fb5e8</a> (MIT). The UF2 flashed on the owner's unit on 2026-10-26 had SHA-256 <code>4f5fab3f…b7f482</code> [verified]; a rebuild may drift because the build image is not pinned. Wiring and details: docs/17.</p>
+      <p class="rec-note">Upstream source: kurogedelic/FM-1-transporter at commit <code>a7fb5e8</code> (<code>github.com/kurogedelic/FM-1-transporter</code>) (MIT). The UF2 flashed on the owner's unit on 2026-10-26 had SHA-256 <code>4f5fab3f…b7f482</code> [verified]; a rebuild may drift because the build image is not pinned. Wiring and details: docs/17.</p>
     </section>
 
     <section class="rec-step" id="step-wire">
@@ -55,7 +55,7 @@
 
     <section class="rec-step" id="step-loader">
       <h2><span class="rec-n">3</span> Loader</h2>
-      <p>Choose <code>wl82loader.bin</code> from kagaimiq's <a href="https://github.com/kagaimiq/jl-uboot-tool">jl-uboot-tool</a> (24,064 bytes, SHA-256 <code>d41da612…ca5376</code>). It is checked here, stays in your browser, and runs only in the FM-1's RAM. It is JieLi's file and is not shipped with this site.</p>
+      <p>Choose <code>wl82loader.bin</code> from kagaimiq's jl-uboot-tool (<code>github.com/kagaimiq/jl-uboot-tool</code>) (24,064 bytes, SHA-256 <code>d41da612…ca5376</code>). It is checked here, stays in your browser, and runs only in the FM-1's RAM. It is JieLi's file and is not shipped with this site.</p>
       <p><input id="file-loader" type="file" accept=".bin"> <span id="loader-state" role="status"></span></p>
     </section>
 
@@ -104,7 +104,7 @@
       <pre id="log" class="rec-pre" aria-live="polite"></pre>
     </section>
 
-    <p class="rec-note">Protocol, key mode and the write policy are kurogedelic's <a href="https://github.com/kurogedelic/FM-1-transporter">FM-1-transporter</a> (MIT); this page is a Lunar Modulator client for it, derived in part from its <code>web/index.html</code>. The loader is by JieLi, distributed by kagaimiq. <a href="https://github.com/ip2k/lunar-modulator/blob/main/docs/17-pico2w-recovery.md">docs/17</a> has the whole procedure.</p>
+    <p class="rec-note">Protocol, key mode and the write policy are kurogedelic's FM-1-transporter (MIT); this page is a Lunar Modulator client for it, derived in part from its <code>web/index.html</code>. The loader is by JieLi, distributed by kagaimiq. docs/17 in the Lunar Modulator repository (<code>docs/17-pico2w-recovery.md</code>) has the whole procedure.</p>
   </main>
 </body>
 </html>
