@@ -577,4 +577,14 @@ test('(e) describeImage: hashes, and a warning when the image differs from the b
   const boot = await describeImage(other, r.session.backup);
   assert.equal(boot.bootAreaDiffers, true);
   assert.ok(boot.lines.some((l) => /boot area 0x0-0x3FFF differs/.test(l)));
+  // the stock package: differing app sectors are expected, a boot-area difference is not
+  const pkg = { kind: 'fwsc', name: 'FM-1.fwsc', data: imagePair(r.fake).data.slice(0, WRITE_END), sha256: 'x' };
+  const p = await describeImage(pkg, r.session.backup);
+  assert.equal(p.warn, false);
+  assert.equal(p.differingSectors, 2);
+  assert.ok(!p.lines.some((l) => /WARNING/.test(l)));
+  pkg.data[0x10] ^= 1;
+  const pb = await describeImage(pkg, r.session.backup);
+  assert.equal(pb.warn, true);
+  assert.equal(pb.bootAreaDiffers, true);
 });
