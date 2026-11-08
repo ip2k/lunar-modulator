@@ -9,6 +9,12 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Fit tables for the FM-1 app slot** (`notes/2026-11-08-fit-tables.md`): the
+  soak image (597,916 B, 16,352 B over V15's slot) measured with each engine,
+  effect, Macro model and optimisation level removed. Dropping the Terrain and
+  Wavetable Macro models alone gives +38,656 B of margin. New
+  `tools/jieli/fm1_fit_table.py`, `tools/jieli/prepare-fit-variant.py` and a
+  `LUNAR_MODULES` make variable (default unchanged). Sizes only; no hardware.
 - **A plan for 1.0 on the FM-1** (docs/18): milestones from the dev-kit soak
   to a verified install on the owner's FM-1, including the web flasher and
   the web recovery tool, with the approval each hardware step needs.
