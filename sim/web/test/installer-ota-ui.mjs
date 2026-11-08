@@ -33,10 +33,12 @@ try {
     assert.equal(await page.locator('#installer-ota-start').isDisabled(), true);
     const licence = page.locator('.installer-licence');
     assert.match(await licence.innerText(), /GPL-3\.0-only/);
-    for (const href of ['third_party/fm1-ota/fm1ota.js', 'licences/GPL-3.0.txt', 'https://github.com/hugelton/Felucca']) {
+    assert.match(await licence.innerText(), /github\.com\/hugelton\/Felucca/);
+    const local = ['third_party/fm1-ota/fm1ota.js', 'third_party/fm1-ota/UPSTREAM.md', 'licences/GPL-3.0.txt'];
+    for (const href of local) {
       assert.equal(await licence.locator(`a[href="${href}"]`).count(), 1, href);
     }
-    for (const href of ['third_party/fm1-ota/fm1ota.js', 'licences/GPL-3.0.txt']) {
+    for (const href of local) {
       const response = await page.request.get(new URL(href, `${url}installer.html`).href);
       assert.equal(response.status(), 200, href);
     }
