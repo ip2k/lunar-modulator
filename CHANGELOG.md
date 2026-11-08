@@ -8,7 +8,33 @@ history.
 
 ## [Unreleased]
 
+### Documentation
+
+- Forensics note settling what `0x94600` meant in the 2026-10-15 stage-7 install (in-region for the 092 layout) and its implications for the FM-1 install write plan (`notes/2026-11-08-0x94600-forensics.md`, docs/18 §4).
+
 ### Added
+- **Fit tables for the FM-1 app slot** (`notes/2026-11-08-fit-tables.md`): the
+  soak image (597,916 B, 16,352 B over V15's slot) measured with each engine,
+  effect, Macro model and optimisation level removed. Dropping the Terrain and
+  Wavetable Macro models alone gives +38,656 B of margin. New
+  `tools/jieli/fm1_fit_table.py`, `tools/jieli/prepare-fit-variant.py` and a
+  `LUNAR_MODULES` make variable (default unchanged). Sizes only; no hardware.
+- **A plan for 1.0 on the FM-1** (docs/18): milestones from the dev-kit soak
+  to a verified install on the owner's FM-1, including the web flasher and
+  the web recovery tool, with the approval each hardware step needs.
+- **`tools/jieli/fm1_budget.py`** checks a pi32v2 `app.bin` and its ELF
+  against V15's app slot (581,564 B) and the FM-1's free SRAM. The
+  eight-voice soak image is 16,352 B too large for the slot
+  (`notes/2026-10-29-fm1-image-budget.md`).
+- **`--size-profile` for the dev-kit pipeline preparer** (compiler levers only,
+  default off): the soak image goes from 597,916 B to 570,588 B (-27,328 B), so
+  it fits V15's 581,564 B app slot with 10,976 B to spare instead of
+  overflowing by 16,352 B. It stops the libc++ `algorithm` object from being
+  linked (-16,160 B) and builds five cold setup, parser and editor units at
+  `-Oz` (-11,168 B). Every SRAM-resident function is the same code
+  (`notes/2026-11-08-fit-size.md`). The 16 KB margin target is not yet met.
+- **`tools/jieli/build-pipeline-on-aeon.sh`** builds and measures one pipeline
+  image in the `lunar-jieli-check` container on a LAN node.
 - **The FM-1's audio output has a clean-room driver** (`firmware/board/alnk0_audio.c`,
   MIT). The FM-1's DAC needs no setup of its own, so starting audio means
   starting the chip's I2S port: master, MCLK out, 24-bit words on PC6, 64
