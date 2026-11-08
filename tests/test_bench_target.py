@@ -277,7 +277,7 @@ def test_soft_key_not_written_when_rom_device_appears_during_identity_wait(monke
 
 
 def test_soft_key_not_written_when_midi_port_moves_during_identity_wait(monkeypatch):
-    parents = iter([Path('/usb1/1-2'), Path('/usb1/1-2'), Path('/usb3/3-2')])
+    parents = iter([Path('/usb1/1-2'), Path('/usb3/3-2')])
     monkeypatch.setattr(probe, 'usb_parent', lambda _: next(parents))
     monkeypatch.setattr(bt, 'load_config', lambda path=None: CONFIG)
     monkeypatch.setattr(probe, 'enumerate_usb', lambda: [dev('1-2', 'c755')])
