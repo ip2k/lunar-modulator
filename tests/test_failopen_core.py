@@ -120,6 +120,16 @@ static void monitor(void) {
     /* Stall after healthy is still reported; the lowest stalled slot wins. */
     assert(lunar_failopen_monitor_poll(&m, t0 + 17000, &slot) == LUNAR_FAILOPEN_STALLED);
     assert(slot == 0);
+    /* A slot caught half-registered (published, timeout not yet stored) is
+     * neither stalled nor counted as seen, however old its timestamp. */
+    lunar_failopen_monitor_init(&m, 0, 1000);
+    m.slots = 1;
+    m.last_ms[0] = 0;
+    assert(lunar_failopen_monitor_poll(&m, 50000, &slot) == LUNAR_FAILOPEN_WAIT);
+    m.timeout_ms[0] = 100;
+    m.last_ms[0] = 50000;
+    m.beats[0] = 1;
+    assert(lunar_failopen_monitor_poll(&m, 50050, &slot) == LUNAR_FAILOPEN_HEALTHY);
     /* Slots are bounded. */
     lunar_failopen_monitor_init(&m, 0, 1000);
     for (a = 0; a < (int)LUNAR_FAILOPEN_SLOTS; ++a)

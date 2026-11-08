@@ -92,9 +92,10 @@ enum lunar_failopen_verdict {
 struct lunar_failopen_monitor {
     uint32_t start_ms;
     uint32_t healthy_ms;
-    uint32_t slots;
+    volatile uint32_t slots;
     int healthy_reported;
-    uint32_t timeout_ms[LUNAR_FAILOPEN_SLOTS];
+    /* 0 marks a slot that is still being registered; poll skips it. */
+    volatile uint32_t timeout_ms[LUNAR_FAILOPEN_SLOTS];
     volatile uint32_t last_ms[LUNAR_FAILOPEN_SLOTS];
     volatile uint32_t beats[LUNAR_FAILOPEN_SLOTS];
 };

@@ -119,10 +119,12 @@ int lunar_failopen_monitor_add(struct lunar_failopen_monitor *m, uint32_t timeou
     uint32_t slot = m->slots;
     if (slot >= LUNAR_FAILOPEN_SLOTS || timeout_ms == 0)
         return -1;
-    m->timeout_ms[slot] = timeout_ms;
+    /* Publish the slot first with timeout 0 (skipped by poll), then fill it. */
+    m->timeout_ms[slot] = 0;
+    m->slots = slot + 1;
     m->last_ms[slot] = now_ms;
     m->beats[slot] = 0;
-    m->slots = slot + 1;
+    m->timeout_ms[slot] = timeout_ms;
     return (int)slot;
 }
 
@@ -138,9 +140,16 @@ enum lunar_failopen_verdict lunar_failopen_monitor_poll(struct lunar_failopen_mo
         uint32_t now_ms, int *stalled_slot)
 {
     uint32_t i;
-    int all_seen = m->slots > 0;
-    for (i = 0; i < m->slots; ++i) {
-        if ((uint32_t)(now_ms - m->last_ms[i]) > m->timeout_ms[i]) {
+    int all_seen;
+    uint32_t slots = m->slots;
+    all_seen = slots > 0;
+    for (i = 0; i < slots; ++i) {
+        uint32_t timeout = m->timeout_ms[i];
+        if (!timeout) {                  /* registration still in progress */
+            all_seen = 0;
+            continue;
+        }
+        if ((uint32_t)(now_ms - m->last_ms[i]) > timeout) {
             if (stalled_slot)
                 *stalled_slot = (int)i;
             return LUNAR_FAILOPEN_STALLED;
