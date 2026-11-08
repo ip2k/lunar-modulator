@@ -475,9 +475,30 @@ def adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot=Fals
     receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
 
 
+SIZE_PROFILE_COLD_OPT = '-Oz'
+
+
+def adapt_size_profile(out, source):
+    """Wire tools/jieli/size-profile.mk into the nested engine make: compiler levers only."""
+    staging = out / 'lunar-source'
+    shutil.copyfile(source / 'tools/jieli/size-profile.mk', staging / 'tools/jieli/size-profile.mk')
+    fragment = out / 'apps/demo/demo_hello/board/wl82/lunar-renderer.mk'
+    text = fragment.read_text()
+    text = checked_replace(text, '-f $(LUNAR_ROOT)/tools/jieli/renderer.mk',
+                           '-f $(LUNAR_ROOT)/tools/jieli/renderer.mk -f $(LUNAR_ROOT)/tools/jieli/size-profile.mk')
+    text = checked_replace(text, 'OPT=-O3 EXTRA=', f'COLDOPT={SIZE_PROFILE_COLD_OPT} OPT=-O3 EXTRA=')
+    fragment.write_text(text)
+    # Provenance: the preparer's input receipt names every tracked file the image was built from.
+    receipt_path = out / 'lunar-devkit-input.json'
+    receipt = json.loads(receipt_path.read_text())
+    receipt['inputs']['tools/jieli/size-profile.mk'] = sha256(source / 'tools/jieli/size-profile.mk')
+    receipt['size_profile'] = {'cold_opt': SIZE_PROFILE_COLD_OPT}
+    receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
+
+
 def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3, burst_hot=False,
                      policy='fixed12', worst_block=False, *, dx7_sine='trunc12', poly47_at_44100=False,
-                     sys_clk=320, stock_power=False, sfc_mhz=60):
+                     sys_clk=320, stock_power=False, sfc_mhz=60, size_profile=False):
     preset = renderer_preset(dx7_sine)
     if sys_clk not in SYS_CLOCKS:
         raise ValueError('System clock must be 320 or 360 MHz')
@@ -514,6 +535,8 @@ def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cyc
         raise ValueError('Prepared scheduler copy mismatch')
     adapt_pipeline(out, source, renderer, adaptive_three, cycles, burst_hot, policy, worst_block,
                    poly47_at_44100, sys_clk, stock_power, sfc_mhz)
+    if size_profile:
+        adapt_size_profile(out, source)
 
 
 if __name__ == '__main__':
@@ -545,9 +568,13 @@ if __name__ == '__main__':
     parser.add_argument('--sfc-mhz', type=int, choices=sorted(SFC_BAUD), default=60,
                         help='Flash clock at 360 MHz: 60 (default; the kit\'s flash is not shown to run at 90) '
                              'or 90 (as the FM-1 is thought to run)')
+    parser.add_argument('--size-profile', action='store_true',
+                        help='Image-size levers (tools/jieli/size-profile.mk): libc++ extern-template fix and -Oz on '
+                             'cold setup/edit/parser units. Compiler flags only; hot code is not rebuilt at another '
+                             'level. Default off, so every earlier image stays reproducible')
     args = parser.parse_args()
     prepare_pipeline(args.sdk.resolve(), args.source.resolve(), args.out.absolute(),
                      args.pipeline_system_archive.resolve(), args.adaptive_three, args.cycles, args.burst_hot,
                      args.policy, args.worst_block, dx7_sine=args.dx7_sine,
                      poly47_at_44100=args.poly47_at_44100, sys_clk=args.sys_clk,
-                     stock_power=args.stock_power, sfc_mhz=args.sfc_mhz)
+                     stock_power=args.stock_power, sfc_mhz=args.sfc_mhz, size_profile=args.size_profile)
