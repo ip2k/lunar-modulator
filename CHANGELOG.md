@@ -8,6 +8,15 @@ history.
 
 ## [Unreleased]
 
+### Added
+- **A plan for 1.0 on the FM-1** (docs/18): milestones from the dev-kit soak
+  to a verified install on the owner's FM-1, including the web flasher and
+  the web recovery tool, with the approval each hardware step needs.
+- **`tools/jieli/fm1_budget.py`** checks a pi32v2 `app.bin` and its ELF
+  against V15's app slot (581,564 B) and the FM-1's free SRAM. The
+  eight-voice soak image is 16,352 B too large for the slot
+  (`notes/2026-10-29-fm1-image-budget.md`).
+
 ### Changed
 - **The stock FM-1 runs at 360 MHz, not 240 MHz.** The SPL sets the clock from
   V15's `isd_config` (`SYS_CLK` 360,000,000, HSB 180 MHz, LSB 60 MHz), and the
