@@ -76,9 +76,10 @@ labels project=lunar-modulator, session=wave2) with
   `boot_info_init` (`0x2000292`) [verified: disassembly].
 - **The GPL=1 build links no GPL code.** The FM-1 module list
   (`FM1_MODULES=dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance`)
-  names no Felucca engine, so the two images differ only in 19 bytes: the
-  build id and the receipts' hashes [verified: `cmp -l`; no `felucca` object
-  in the GPL=1 build tree]. The GPL=1 image is still never to be shared
+  names no Felucca engine, so the two images differ only in 19 bytes: four
+  copies of the 4-byte fail-open build id and three digits of an SDK
+  `__TIME__` string (07:47:18 against 07:48:27) [verified: `cmp -l` and the
+  bytes at each offset; no `felucca` object in the GPL=1 build tree]. The GPL=1 image is still never to be shared
   (CLAUDE.md); the GPL=0 image is the shareable variant in principle, but
   nothing is published.
 - **The heap minimum is borrowed.** The 47,212 B minimum is the dev-board
@@ -164,8 +165,14 @@ labels project=lunar-modulator, session=wave2) with
 
 On aeon, under `/datasets/lunar-modulator/fm1-wave1/fm1-app-image`:
 
-- kept as evidence: the logs, receipts, budget and audit JSON, and the two
-  `app-fm1-gpl*.bin` images;
-- removed: the build trees, the source copy and the disassembly.
+- **Kept as evidence**: the prepare, build, audit and budget logs, the JSON
+  output, and the two `app-fm1-gpl*.bin` images. These are private builds
+  that link JieLi's libraries, so they are never shared.
+- **Kept for follow-up builds**: `private/`, the pinned SDK checkout and the
+  reviewed scheduler archive, about 755 MB with everything else. Remove it
+  once this PR merges.
+- **Removed** after measurement: the two build trees, both source copies, the
+  baseline inspect tree and the disassembly.
 
-No containers remain.
+Every build container ran with `--rm`. One other wave2 container was already
+running before these builds; it belongs to another lane and was left alone.
