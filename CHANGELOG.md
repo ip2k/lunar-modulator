@@ -26,6 +26,30 @@ history.
   build id and a heartbeat on the debug UART, then resets back to the
   installed application. Run twice end to end on the dev kit
   (`notes/2026-11-08-ram-runner-devkit.md`).
+- **The first complete FM-1 application image builds and fits.** It joins
+  the release-rule audio pipeline (8 voices, 44,118 Hz, ALNK0 to the codec),
+  the FM-1 board layer (keys, encoders, MASTER, display, TRS MIDI in), and the
+  fail-open recovery. Keys play sound 1, OCT shifts octaves, KNOB1 and KNOB2
+  move the filter, MASTER sets the level, and TRS MIDI plays sounds 1, 3 and
+  4. Both builds (GPL modules on and off) are 556,636 B, which leaves 24,928 B
+  of the stock app slot, and pass the size, SRAM and link audits. Review
+  fixes before merge: the audio adapter no longer clears the block tag the
+  pipeline checks (every block would have been refused, so no sound), and
+  every startup failure now resets through the fail-open counter instead of
+  stopping silently. A new host test drives the adapter through 600 blocks
+  of keys, knobs and MIDI. It has not
+  run on an FM-1 or on the dev kit. USB-MIDI, the full panel UI and the
+  screen UI are still to come (`firmware/fm1/README.md`,
+  `notes/2026-11-08-fm1-app-image.md`).
+- **A build that keeps failing now recovers by itself.** Lunar's fail-open
+  boot counts boots that do not reach "healthy". After three in a row, the
+  device goes into the mask-ROM update mode on its own, so no dongle and no
+  button are needed to put a fixed build on it. A supervisor resets tasks
+  that stall, and the watchdog catches a core that hangs. Tested on the dev
+  board: a deliberately failing image failed three ways and then entered
+  update mode by itself. A fixed image installed from there ran normally.
+  Not yet run on an FM-1, and power-cut tests are still to do
+  (`notes/2026-11-08-failopen-watchdog.md`).
 - **Bench tools pin their ROM target.** The FM-1 and the AC79 dev kit both
   enumerate as USB `4c4a:8057` in ROM mode, so every tool that opens a ROM
   SCSI-generic device (`fm1_uboot_read`, `fm1_uboot_restore_test`,

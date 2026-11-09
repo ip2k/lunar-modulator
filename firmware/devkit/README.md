@@ -204,6 +204,32 @@ records that and never retries. `firmware/ramtest/` is the test image, which
 resets back to the installed application; runs and evidence are in
 `notes/2026-11-08-ram-runner-devkit.md`.
 
+### Fail-open boot and watchdog test
+
+`tools/jieli/prepare-failopen-devkit.py --sdk SDK --source . --out OUT --mode
+cycle|recover` builds on `--boot-control` and adds four things:
+
+- the fail-open record (`firmware/failopen/`), 64 bytes carved from the top
+  of the heap;
+- a hook in `setup_arch` that counts boots and enters UBOOT once the limit is
+  reached;
+- a heartbeat supervisor;
+- `failopen_worker.c` in place of the usual worker.
+
+What each mode does:
+
+- `cycle`: the image fails three times (P33 backstop, interrupts off until
+  the watchdog fires, stalled heartbeat). On the fourth boot it enters
+  UBOOT, with no host command.
+- `recover`: the image hangs once, then reports healthy and stays up.
+  Install it from the ROM state that `cycle` leaves behind.
+
+Before every ROM operation, the bench runner must confirm the target by its
+sysfs path: one `4c4a:8057` at the kit's port, and the FM-1's port still
+`4c4a:c755`. It refuses otherwise. Results and limits are in
+`notes/2026-11-08-failopen-watchdog.md`. The kit was verified there on
+2026-11-08; power-cut tests are still pending.
+
 ## Live FM6 DAC workload
 
 Prepare with `--fm6-audio --fm6-ram --boot-control`. All three flags are required
