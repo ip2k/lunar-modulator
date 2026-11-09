@@ -13,6 +13,14 @@
 #define STACK_WORDS 1536u
 #define WORKER_PRIORITY 16u
 #define LIFETIME_MS (35u*60u*1000u)
+/* The FM-1 application (firmware/fm1) runs until power-off: no lifetime.
+ * Its only remaining bound is the tag counter (0xffffffff is refused), about
+ * 72 days at 689 blocks a second; the fail-open supervisor then resets. */
+#ifdef LUNAR_PIPELINE_UNBOUNDED
+#define LIFETIME_OVER() 0
+#else
+#define LIFETIME_OVER() ((uint32_t)(timer_get_ms()-s.started_ms)>=LIFETIME_MS)
+#endif
 #define FREE 0u
 #define PRODUCING 1u
 #define SEALED 2u
@@ -160,7 +168,7 @@ int lunar_pipeline_wait_check(uint32_t *ticket) {
     uint32_t now;
     if(!ticket || !s.clock)return bad(E_API);
     if(lunar_pipeline_error())return -1;
-    if((uint32_t)(timer_get_ms()-s.started_ms)>=LIFETIME_MS)return bad(E_LIFETIME);
+    if(LIFETIME_OVER())return bad(E_LIFETIME);
     now=s.clock();
     /* Store encoded first timestamp; zero is the unstarted sentinel.
      * At the one value where now+1 wraps, start at now-1 (one tick earlier). */
@@ -266,7 +274,7 @@ static void worker(void *unused) {
         if(lunar_pipeline_wake_drain(1)<0)break;
         if(lunar_pipeline_error())break;
         if(s.stop)break;
-        if((uint32_t)(timer_get_ms()-s.started_ms)>=LIFETIME_MS){lunar_pipeline_refuse(E_LIFETIME);break;}
+        if(LIFETIME_OVER()){lunar_pipeline_refuse(E_LIFETIME);break;}
         result=worker_step();
         if(result<0)break;
         /* Bound output-full blockage only when an actual sealed job waits.
