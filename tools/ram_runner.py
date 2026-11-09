@@ -11,14 +11,25 @@ read it back with READ_MEMORY (FD07) and compare, then call it once with JUMP
 * every flash or loader command (erase FB01, program FB04, flash read FD05,
   key FC09, online device FC0A, buffer size FC14, run app FC0C), the eFuse
   loader command FC12 and the raw A1 write, MIDI-shaped bytes (a CDB that
-  begins F0, the SysEx start of the soft key) and online-tool frames
-  (5A AA A5) are refused by name as well as by the allow-list;
+  begins F0, the SysEx start of the soft key), the head of a vendor syscmd
+  frame (00 59, docs/02 section 6; syscmd 33-36 and 48 named) and online-tool
+  frames (5A AA A5) are refused by name as well as by the allow-list;
 * addresses only inside the window where the ROM already accepted and ran the
   vendor loader, 0x01C02000 + 24,064 bytes [verified: tools/fm1_uboot_read.py,
   notes/2026-10-22-devkit-uart-bringup.md], in whole 512-byte blocks, in order;
 * one pass: inquiry, every block written, every block read back equal, one
   jump. A block is never resent and the jump is never retried, even after a
   timeout; a read-back mismatch or failure stops before the jump.
+
+What the read-back proves: FD07 returns the ciphered form and is deciphered
+here, as FM-1-transporter's jl_rom_mem_read does [reported]. A ROM that kept
+the ciphered bytes unchanged would read back identically, so an equal
+read-back proves the transfer, not that SRAM holds the plain image; the image
+running (its own UART output) is what proves that [verified on the dev kit,
+notes/2026-11-08-ram-runner-devkit.md].
+
+Only `run` sends anything. The flash-reader methods inherited from
+fm1_uboot_read.Reader (load, online, dump) are overridden to refuse.
 
 Which device: the role is fixed to `devkit` (the AC79 dev kit) and every open
 goes through tools/bench_target.py pinning (--usb-path, --devnum). There is no
@@ -60,6 +71,11 @@ FORBIDDEN_OPS = {
     0xFC0A: 'loader online device', 0xFC14: 'loader buffer size',
     0xFC0C: 'loader run app / reset', 0xFC12: 'eFuse-burning loader command',
 }
+# Vendor syscmd frames are [00 59][cmd][len24][payload][~sum] (docs/02 section 6);
+# 33-36 and 48 copy memory or touch flash (CLAUDE.md trap 7). Any 00 59 head is
+# refused; these are named so the reason says which.
+SYSCMD_HEAD = b'\x00\x59'
+SYSCMD_FORBIDDEN = frozenset({33, 34, 35, 36, 48})
 SG_TIMEOUT_MS = 3000
 _MAGIC = '孟黎我爱你，玉林'.encode('gb2312')  # C3 CF C0 E8 ... C1 D6
 
@@ -142,6 +158,9 @@ def check_cdb(cdb):
         raise Refused('Refused: begins F0 (MIDI SysEx shape, such as the soft key)')
     if cdb[:3] == b'\x5a\xaa\xa5':
         raise Refused('Refused: online-tool 5A AA A5 frame')
+    if cdb[:2] == SYSCMD_HEAD:
+        named = ' (forbidden syscmd)' if cdb[2] in SYSCMD_FORBIDDEN else ''
+        raise Refused(f'Refused: vendor syscmd frame, command {cdb[2]}{named}')
     if cdb[0] == 0xA1:
         raise Refused('Refused: raw A1 (eFuse write)')
     op = int.from_bytes(cdb[:2], 'big')
@@ -222,6 +241,16 @@ class RamRunner(base.Reader):
     def build_request(self, op, address, payload):
         return self.seq.request(op, address, payload)
 
+    # The base Reader's flash-backup path: never on a RAM run.
+    def load(self, *_a, **_k):
+        raise Refused('RamRunner never uploads or runs the flash loader')
+
+    def online(self, *_a, **_k):
+        raise Refused('RamRunner never talks to the flash loader')
+
+    def dump(self, *_a, **_k):
+        raise Refused('RamRunner never reads flash')
+
     def transport(self, cdb, data_out, in_size, timeout_ms=SG_TIMEOUT_MS):
         """SG_IO, as tools/fm1_uboot_read.py's Reader.cmd."""
         command = C.create_string_buffer(cdb)
@@ -271,12 +300,11 @@ class RamRunner(base.Reader):
         for address, _plain, sealed in self.blocks:
             self.cmd(WRITE_MEMORY, address=address, payload=sealed)
         self.log('uploaded', blocks=len(self.blocks))
-        for address, plain, sealed in self.blocks:
+        for address, plain, _sealed in self.blocks:
             raw = self.cmd(READ_MEMORY, address=address)
             if cipher(raw) != plain:
                 self.seq.stop()
-                how = 'as sent (still ciphered)' if raw == sealed else 'different'
-                raise ValueError(f'Read-back of {address:#x} is {how}; not jumping')
+                raise ValueError(f'Read-back of {address:#x} differs from the image; not jumping')
         self.log('verified', blocks=len(self.blocks))
         receipt['readback'] = 'equal'
         t0 = time.monotonic()

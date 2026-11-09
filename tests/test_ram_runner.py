@@ -135,6 +135,13 @@ def test_gate_refuses_every_other_opcode_exhaustively():
     (cdb(0xFC0A), 'online'),
     (cdb(0xFC14), 'buffer'),
     (cdb(0xFC0C, b'\x00\x00\x00\x01'), 'run app'),
+    # Vendor syscmd frames [00 59][cmd][len24]... (docs/02 section 6), bare and
+    # in their SysEx wrapper F0 35 59 ...: 33-36 and 48 are named (trap 7).
+    *[(bytes([0x00, 0x59, n, 0, 0, 0]).ljust(16, b'\x00'), 'forbidden syscmd')
+      for n in (33, 34, 35, 36, 48)],
+    (bytes([0x00, 0x59, 17, 0, 0, 0]).ljust(16, b'\x00'), 'syscmd'),
+    *[(bytes([0xF0, 0x35, 0x59, 0x00, 0x59, n, 0, 0, 0]).ljust(16, b'\x00'), 'F0')
+      for n in (33, 34, 35, 36, 48)],
 ])
 def test_named_refusals(raw, reason):
     with pytest.raises(rr.Refused, match=reason):
@@ -306,6 +313,16 @@ def test_unanswered_jump_is_recorded_not_retried(runner):
     assert sum(c[:2] == b'\xfb\x08' for c in rom.sent) == 1
     with pytest.raises(rr.Refused):
         r.cmd(0xFB08, address=BASE)
+
+
+def test_inherited_flash_reader_paths_refuse_without_sending(runner):
+    rom = ModelRom()
+    r = runner(rom)
+    for call in (lambda: r.load(b'\x00' * base.LOADER_SIZE), r.online,
+                 lambda: r.dump(Path('/nonexistent/dump.bin'))):
+        with pytest.raises(rr.Refused):
+            call()
+    assert rom.sent == []
 
 
 def test_wrong_rom_uploads_nothing(runner):
