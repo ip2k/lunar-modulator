@@ -55,6 +55,7 @@ enum lunar_failopen_fault {
     LUNAR_FAILOPEN_FAULT_NONE = 0,
     LUNAR_FAILOPEN_FAULT_STALL = 0x10,       /* + slot: a heartbeat stopped */
     LUNAR_FAILOPEN_FAULT_UNREGISTERED = 0x20,/* slots missing or refused */
+    LUNAR_FAILOPEN_FAULT_SUPERVISOR = 0x30,  /* the supervisor task was not created */
     LUNAR_FAILOPEN_FAULT_TEST = 0x80         /* + case: deliberate test fault */
 };
 
@@ -123,7 +124,7 @@ enum lunar_failopen_verdict {
     LUNAR_FAILOPEN_WAIT = 0,
     LUNAR_FAILOPEN_HEALTHY,          /* reported once per boot */
     LUNAR_FAILOPEN_STALLED,
-    LUNAR_FAILOPEN_UNREGISTERED,     /* at healthy_ms: a slot is missing or was refused */
+    LUNAR_FAILOPEN_UNREGISTERED,     /* from healthy_ms on: a slot is missing, extra or refused */
     LUNAR_FAILOPEN_STABLE            /* reported once, stable_ms after start */
 };
 
@@ -149,11 +150,12 @@ void lunar_failopen_monitor_init(struct lunar_failopen_monitor *m, uint32_t now_
 int lunar_failopen_monitor_add(struct lunar_failopen_monitor *m, uint32_t timeout_ms,
                                uint32_t now_ms);
 void lunar_failopen_monitor_beat(struct lunar_failopen_monitor *m, int slot, uint32_t now_ms);
-/* STALLED wins and is reported for the lowest stalled slot. Once healthy_ms
- * has elapsed, a registration count other than `expected` (or `expected` 0)
- * or any refusal is UNREGISTERED; otherwise HEALTHY once every slot has
- * beaten since it was added. STABLE follows once stable_ms has elapsed with
- * HEALTHY already reported. */
+/* STALLED wins and is reported for the lowest stalled slot. From healthy_ms
+ * on, for the rest of the boot (before and after HEALTHY), a registration
+ * count other than `expected` (or `expected` 0) or any refusal is
+ * UNREGISTERED; otherwise HEALTHY once every slot has beaten since it was
+ * added. STABLE follows once stable_ms has elapsed with HEALTHY already
+ * reported. */
 enum lunar_failopen_verdict lunar_failopen_monitor_poll(struct lunar_failopen_monitor *m,
         uint32_t now_ms, int *stalled_slot);
 

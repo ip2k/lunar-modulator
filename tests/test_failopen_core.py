@@ -266,6 +266,39 @@ static void registration(void) {
     lunar_failopen_monitor_init(&m, 0, MIN * 2, MIN * 4, 2);
     lunar_failopen_monitor_add(&m, MIN, 0);
     assert(lunar_failopen_monitor_poll(&m, MIN * 2, &slot) == LUNAR_FAILOPEN_STALLED && slot == 0);
+    /* The check holds for the rest of the boot (adversarial review): after
+     * HEALTHY, a late extra slot, or a late refusal, is UNREGISTERED, before
+     * and after STABLE, instead of leaving that task unwatched. */
+    lunar_failopen_monitor_init(&m, 0, 1000, 5000, 1);
+    s = lunar_failopen_monitor_add(&m, MIN, 0);
+    lunar_failopen_monitor_beat(&m, s, 900);
+    assert(lunar_failopen_monitor_poll(&m, 1000, &slot) == LUNAR_FAILOPEN_HEALTHY);
+    lunar_failopen_monitor_beat(&m, s, 1500);
+    assert(lunar_failopen_monitor_poll(&m, 1500, &slot) == LUNAR_FAILOPEN_WAIT);
+    assert(lunar_failopen_monitor_add(&m, MIN, 1600) == 1);         /* one too many */
+    lunar_failopen_monitor_beat(&m, s, 1700);
+    lunar_failopen_monitor_beat(&m, 1, 1700);
+    assert(lunar_failopen_monitor_poll(&m, 1700, &slot) == LUNAR_FAILOPEN_UNREGISTERED);
+    lunar_failopen_monitor_init(&m, 0, 1000, 5000, 1);
+    s = lunar_failopen_monitor_add(&m, MIN, 0);
+    lunar_failopen_monitor_beat(&m, s, 900);
+    assert(lunar_failopen_monitor_poll(&m, 1000, &slot) == LUNAR_FAILOPEN_HEALTHY);
+    lunar_failopen_monitor_beat(&m, s, 2000);
+    assert(lunar_failopen_monitor_add(&m, 100, 2000) == -1);        /* refused late */
+    assert(lunar_failopen_monitor_poll(&m, 2000, &slot) == LUNAR_FAILOPEN_UNREGISTERED);
+    lunar_failopen_monitor_init(&m, 0, 1000, 1000, 1);
+    s = lunar_failopen_monitor_add(&m, MIN, 0);
+    lunar_failopen_monitor_beat(&m, s, 900);
+    assert(lunar_failopen_monitor_poll(&m, 1000, &slot) == LUNAR_FAILOPEN_HEALTHY);
+    assert(lunar_failopen_monitor_poll(&m, 1100, &slot) == LUNAR_FAILOPEN_STABLE);
+    lunar_failopen_monitor_beat(&m, s, 1200);
+    assert(lunar_failopen_monitor_add(&m, MIN, 1200) == 1);         /* after STABLE too */
+    lunar_failopen_monitor_beat(&m, 1, 1300);
+    assert(lunar_failopen_monitor_poll(&m, 1300, &slot) == LUNAR_FAILOPEN_UNREGISTERED);
+    /* Before healthy_ms a refusal or a wrong count is only waited on. */
+    lunar_failopen_monitor_init(&m, 0, 1000, 5000, 1);
+    assert(lunar_failopen_monitor_add(&m, 100, 0) == -1);
+    assert(lunar_failopen_monitor_poll(&m, 999, &slot) == LUNAR_FAILOPEN_WAIT);
 }
 
 static void image_id(void) {
@@ -592,6 +625,15 @@ def test_sources_avoid_banned_paths():
     assert sdk_glue.count('= (uint32_t)system_reset_reason_get();') == 1
     early = sdk_glue[sdk_glue.index('void lunar_failopen_early(void)'):]
     assert early.index('p33_rx_1byte(P3_RST_SRC)') < early.index('= (uint32_t)system_reset_reason_get();')
+    # A supervisor that could not be created fails the boot (adversarial
+    # review): fault recorded, then a reset, so the count climbs to the limit.
+    start = sdk_glue[sdk_glue.index('void lunar_failopen_app_start(void)'):]
+    start = start[:start.index('\n}\n')]
+    failure = start[start.index('if (status) {'):]
+    assert failure.index('LUNAR_FAILOPEN_FAULT_SUPERVISOR') < failure.index('cpu_reset();')
+    # The expected slot count is range-checked at build time.
+    assert ('#if LUNAR_FAILOPEN_EXPECTED_SLOTS < 1 || '
+            'LUNAR_FAILOPEN_EXPECTED_SLOTS > LUNAR_FAILOPEN_SLOTS\n#error') in sdk_glue
     # The lock is defined here, with no weak fallback in the core.
     assert 'void lunar_failopen_lock(void)' in sdk_glue
     core = (ROOT/'firmware/failopen/failopen_core.c').read_text()

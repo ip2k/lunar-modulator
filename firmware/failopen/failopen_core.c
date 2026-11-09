@@ -222,18 +222,20 @@ enum lunar_failopen_verdict lunar_failopen_monitor_poll(struct lunar_failopen_mo
         if (!m->beats[i])
             all_seen = 0;
     }
-    if (m->healthy_reported) {
+    if (elapsed < m->healthy_ms)
+        goto done;
+    /* From the healthy time on, for the rest of the boot: a late extra slot
+     * or a late refusal would otherwise leave a task unwatched. */
+    if (m->refused || m->expected == 0 || slots != m->expected) {
+        verdict = LUNAR_FAILOPEN_UNREGISTERED;
+    } else if (m->healthy_reported) {
         if (!m->stable_reported && elapsed >= m->stable_ms) {
             m->stable_reported = 1;
             verdict = LUNAR_FAILOPEN_STABLE;
         }
-    } else if (elapsed >= m->healthy_ms) {
-        if (m->refused || m->expected == 0 || slots != m->expected)
-            verdict = LUNAR_FAILOPEN_UNREGISTERED;
-        else if (all_seen) {
-            m->healthy_reported = 1;
-            verdict = LUNAR_FAILOPEN_HEALTHY;
-        }
+    } else if (all_seen) {
+        m->healthy_reported = 1;
+        verdict = LUNAR_FAILOPEN_HEALTHY;
     }
 done:
     lunar_failopen_unlock();

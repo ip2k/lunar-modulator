@@ -32,6 +32,9 @@
 #ifndef LUNAR_FAILOPEN_EXPECTED_SLOTS
 #error "LUNAR_FAILOPEN_EXPECTED_SLOTS must name the heartbeat slots the image registers"
 #endif
+#if LUNAR_FAILOPEN_EXPECTED_SLOTS < 1 || LUNAR_FAILOPEN_EXPECTED_SLOTS > LUNAR_FAILOPEN_SLOTS
+#error "LUNAR_FAILOPEN_EXPECTED_SLOTS must be 1..LUNAR_FAILOPEN_SLOTS"
+#endif
 #ifndef LUNAR_FAILOPEN_LIMIT
 #define LUNAR_FAILOPEN_LIMIT 3
 #endif
@@ -206,8 +209,15 @@ void lunar_failopen_app_start(void)
     lunar_failopen_monitor_init(&monitor, sys_timer_get_ms(), LUNAR_FAILOPEN_HEALTHY_MS,
                                 LUNAR_FAILOPEN_STABLE_MS, LUNAR_FAILOPEN_EXPECTED_SLOTS);
     status = os_task_create(supervisor, NULL, SUPERVISOR_PRIORITY, 512, 0, "lunar_failopen");
-    if (status)
-        printf("LUNAR_FAILOPEN error=supervisor_create status=%d\n", status);
+    if (status) {
+        /* Without the supervisor nothing would ever mark this boot healthy
+         * or catch a stall, so the boot counts as failed: reset, and the
+         * count reaches the limit like any other failing boot. */
+        lunar_failopen_note_fault(&lunar_failopen_record, LUNAR_FAILOPEN_FAULT_SUPERVISOR);
+        barrier();
+        printf("LUNAR_FAILOPEN error=supervisor_create status=%d action=reset\n", status);
+        cpu_reset();
+    }
 }
 
 int lunar_failopen_watch(unsigned timeout_ms)
