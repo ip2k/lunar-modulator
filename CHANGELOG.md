@@ -10,9 +10,21 @@ history.
 
 ### Documentation
 
+- M5 run plan for the FM-1 (RAM only, awaiting owner approval) and how FM-1-transporter would load and start a RAM image, with the host-side patch it needs (`notes/2026-11-08-ram-runner-devkit.md` §4–5).
 - Forensics note settling what `0x94600` meant in the 2026-10-15 stage-7 install (in-region for the 092 layout) and its implications for the FM-1 install write plan (`notes/2026-11-08-0x94600-forensics.md`, docs/18 §4).
 
 ### Added
+- **Bounded RAM runner for the dev kit** (`tools/ram_runner.py`). With the
+  AC79 dev kit in mask-ROM UBOOT, it uploads one SHA-256-admitted image into
+  SRAM, reads it back and starts it, and does nothing else: only INQUIRY and
+  the ROM's memory write, memory read and jump are allowed, and erase,
+  program, eFuse, run-app, MIDI-shaped and online-tool commands are refused
+  in code (42 tests). It is pinned to the dev kit's ROM port, now recorded as
+  `3-1.2` in `tools/bench_targets.json`.
+- **A RAM test image for the dev kit** (`firmware/ramtest/`) that prints its
+  build id and a heartbeat on the debug UART, then resets back to the
+  installed application. Run twice end to end on the dev kit
+  (`notes/2026-11-08-ram-runner-devkit.md`).
 - **Bench tools pin their ROM target.** The FM-1 and the AC79 dev kit both
   enumerate as USB `4c4a:8057` in ROM mode, so every tool that opens a ROM
   SCSI-generic device (`fm1_uboot_read`, `fm1_uboot_restore_test`,

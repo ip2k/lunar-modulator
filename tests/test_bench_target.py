@@ -139,9 +139,11 @@ def test_unknown_role_and_bad_sg_name_refused(fake):
 def test_shipped_config_is_valid_and_disjoint():
     cfg = bt.load_config(TOOLS / 'bench_targets.json')
     bt.check_role_path('fm1', '1-2', cfg)
-    bt.check_role_path('devkit', '3-1.4', cfg)
+    bt.check_role_path('devkit', '3-1.2', cfg)
+    with pytest.raises(bt.PinError):  # the dev kit's exact ROM port is pinned now
+        bt.check_role_path('devkit', '3-1.4', cfg)
     with pytest.raises(bt.PinError):
-        bt.check_role_path('fm1', '3-1.4', cfg)
+        bt.check_role_path('fm1', '3-1.2', cfg)
     with pytest.raises(bt.PinError):
         bt.check_role_path('devkit', '1-2', cfg)
 

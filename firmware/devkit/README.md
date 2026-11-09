@@ -188,6 +188,22 @@ in that image, not renderer timing or audio acceptance.
 An unresponsive application's recovery is a separate case; UART control cannot
 be assumed available after a crash. This workflow does not authorize FM-1 tests.
 
+### RAM runs through the mask ROM
+
+`tools/ram_runner.py` loads one image into SRAM through the ROM and jumps to
+it: INQUIRY, `FB06` writes, `FD07` read-back, one `FB08`, nothing else, with
+every other command refused in code. Enter the ROM with
+`devkit_boot_control.py --enter-uboot`, start a receive-only capture, then:
+
+    sudo python3 tools/ram_runner.py run --device /dev/sgN --usb-path 3-1.2 \
+        --devnum <n> --image <image.bin> --sha256 <sha256> --out <run-dir>
+
+`plan --image … --sha256 …` prints the blocks and CDBs without opening a
+device. The jump of an image that never returns is not answered; the runner
+records that and never retries. `firmware/ramtest/` is the test image, which
+resets back to the installed application; runs and evidence are in
+`notes/2026-11-08-ram-runner-devkit.md`.
+
 ## Live FM6 DAC workload
 
 Prepare with `--fm6-audio --fm6-ram --boot-control`. All three flags are required
