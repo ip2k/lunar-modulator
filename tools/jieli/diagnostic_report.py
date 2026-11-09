@@ -17,7 +17,75 @@ BUDGET = 16 * 1024
 SHT_PROGBITS = 1
 
 
+RAM_SECTIONS = (".image", ".bss", ".stack", ".ssp_stack")
+
+
+def report_ram(elf_bytes, app, audit):
+    """RAM-only image (firmware/m5/app.ld): one loaded .image section at RAM,
+    then BSS and two guarded 4 KiB stacks, all inside the 16 KiB budget. The
+    flat image is exactly the .image bytes; nothing is placed in flash."""
+    image = Elf(elf_bytes)
+    if image.e_type != ET_EXEC or image.e_machine != EM_PI32V2:
+        raise ValueError("requires a linked pi32v2 executable")
+    entry, = struct.unpack_from("<I", elf_bytes, 24)
+    if entry != RAM or image.symbol_value("_start") != RAM:
+        raise ValueError("wrong RAM entry")
+    unresolved = image.undefined_symbols()
+    if unresolved:
+        raise ValueError(f"unresolved providers: {sorted(unresolved)}")
+    if not audit["passed"] or audit["n_pending"] or audit.get("runtime") != "sdk-free":
+        raise ValueError("requires a complete passing SDK-free link audit")
+    names = ("__image_end", "__bss_begin", "__bss_end", "__stack_guard", "__stack_bottom",
+             "__stack_top", "__ssp_guard", "__ssp_bottom", "__ssp_top")
+    b = {name: image.symbol_value(name) for name in names}
+    if any(value is None for value in b.values()):
+        raise ValueError("missing RAM image boundary symbols")
+    if not (RAM < b["__image_end"] <= b["__bss_begin"] <= b["__bss_end"] <= b["__stack_guard"]
+            < b["__stack_bottom"] < b["__stack_top"] <= b["__ssp_guard"] < b["__ssp_bottom"]
+            < b["__ssp_top"] <= RAM + BUDGET):
+        raise ValueError("invalid or overlapping RAM ranges")
+    for stack in ("stack", "ssp"):
+        top, bottom, guard = (b[f"__{stack}_top"], b[f"__{stack}_bottom"], b[f"__{stack}_guard"])
+        if top - bottom != 4096 or bottom - guard != 16 or top % 16:
+            raise ValueError(f"wrong {stack} reservation, guard or alignment")
+    length = b["__image_end"] - RAM
+    if len(app) != length:
+        raise ValueError("flat image does not match the image bounds")
+    sections, seen = [], set()
+    spans = {".image": (RAM, length), ".bss": (b["__bss_begin"], b["__bss_end"] - b["__bss_begin"]),
+             ".stack": (b["__stack_guard"], b["__stack_top"] - b["__stack_guard"]),
+             ".ssp_stack": (b["__ssp_guard"], b["__ssp_top"] - b["__ssp_guard"])}
+    for section in image.sections:
+        if not section["flags"] & 2 or not section["size"]:
+            continue
+        name = section["name"]
+        if name not in RAM_SECTIONS or name in seen:
+            raise ValueError(f"unexpected allocated section: {name}")
+        seen.add(name)
+        if (section["addr"], section["size"]) != spans[name]:
+            raise ValueError(f"{name} disagrees with boundary symbols")
+        if name == ".image":
+            if section["type"] != SHT_PROGBITS or section["flags"] & 4 != 4:
+                raise ValueError("image must be loaded, executable PROGBITS")
+            if elf_bytes[section["offset"]:section["offset"] + section["size"]] != app:
+                raise ValueError("flat image differs from ELF load bytes")
+        elif section["type"] != 8 or section["flags"] & 4:
+            raise ValueError(f"{name} must be non-executable NOBITS")
+        sections.append(dict(name=name, address=section["addr"], bytes=section["size"]))
+    required = set(RAM_SECTIONS) - ({".bss"} if b["__bss_end"] == b["__bss_begin"] else set())
+    if seen != required:
+        raise ValueError("missing required RAM image section")
+    return dict(profile="ram", entry=entry, image_bytes=length,
+                bss_bytes=b["__bss_end"] - b["__bss_begin"], stack_bytes=4096,
+                stack_guard_bytes=16, ssp_stack_bytes=4096, ssp_guard_bytes=16,
+                ram_reserved_bytes=b["__ssp_top"] - RAM, ram_budget_bytes=BUDGET,
+                unresolved_symbols=[], sdk_libraries=[], sections=sections, bounds=b,
+                device_execution="unverified", package="not created")
+
+
 def report(elf_bytes, app, audit, profile="inert"):
+    if profile == "ram":
+        return report_ram(elf_bytes, app, audit)
     if profile not in ("inert", "handover"):
         raise ValueError("unknown diagnostic profile")
     image = Elf(elf_bytes)
