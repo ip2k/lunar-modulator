@@ -14,7 +14,9 @@ logged on the kit (below). On the kit:
   left the record valid;
 - every boot's image id equalled the host's hash of its `app.bin`.
 
-Finding 7 is only partly answered: the raw reset registers are logged, but
+An adversarial review on 2026-11-09 found three more holes (registration
+after healthy, a missing supervisor, the slot range), fixed and rechecked on
+the kit with `recover` (§11). Finding 7 is only partly answered: the raw reset registers are logged, but
 the kit could only produce warm resets, so whether `P3_RST_SRC` bit 0 marks
 a power cut waits for the owner's power-cut test (§6).
 
@@ -29,8 +31,8 @@ sent to the Pico 2 W transporter.
 
 | # | Finding | Fix | Desktop test | Kit test |
 | --- | --- | --- | --- | --- |
-| 1 | The build id hashed only the fail-open sources, so a changed app, SDK library or link kept the old counter | The image hashes itself at boot: FNV-1a over `.text` through the load image of `.cache_ram_data`, read through XIP (`text_begin` to `cache_ram_data_lma + cache_ram_data_size`). That is exactly the flat `app.bin` the export writes [verified: export asserts the sections are contiguous]. `tools/jieli/failopen_image_id.py` gives the host value | `test_core` checks the C hash against the Python tool on a vector and on a one-bit change | every boot prints `image=… bytes=…`; compared with the host value of each `app.bin` (§3) |
-| 2 | Registration was optional: an image with fewer registered tasks than intended could still be marked healthy | `LUNAR_FAILOPEN_EXPECTED_SLOTS` is required (`#error`). At the healthy time a slot count other than expected, expected 0, or any refused registration is `UNREGISTERED`: the supervisor records fault `0x20` and resets | `registration()` in the harness: none, fewer, more, refused, expected 0, stall wins | `escalate` boot 1 |
+| 1 | The build id hashed only the fail-open sources, so a changed app, SDK library or link kept the old counter | The image hashes itself at boot: FNV-1a over `.text` through the load image of `.cache_ram_data`, read through XIP (`text_begin` to `cache_ram_data_lma + cache_ram_data_size`). That is exactly the flat `app.bin` the export writes [verified: every kit boot printed the same id and byte count as the host tool over that image's `app.bin`, §3; the lane's export script, kept on the build host (§9), also asserts the five load images are contiguous from `0x02000120`]. `tools/jieli/failopen_image_id.py` gives the host value | `test_core` checks the C hash against the Python tool on a vector and on a one-bit change | every boot prints `image=… bytes=…`; compared with the host value of each `app.bin` (§3) |
+| 2 | Registration was optional: an image with fewer registered tasks than intended could still be marked healthy | `LUNAR_FAILOPEN_EXPECTED_SLOTS` is required (`#error`). From the healthy time on, for the rest of the boot, a slot count other than expected, expected 0, or any refused registration is `UNREGISTERED`: the supervisor records fault `0x20` and resets (the "rest of the boot" part was added in review, §11) | `registration()` in the harness: none, fewer, more, refused, expected 0, stall wins | `escalate` boot 1 |
 | 3 | Slot registration and record writes had no lock | Every core function that changes the record or the monitor (boot, claim, healthy, stable, fault, key, init, add, beat, poll) runs between `lunar_failopen_lock()` and `_unlock()`, which the platform must define (no weak default). The SDK glue uses `CPU_CRITICAL_ENTER`/`EXIT` | instrumented lock in `test_core` (every entry point takes it, balanced); `test_lock_under_thread_sanitizer`: 6 threads and a poller under TSan, plus a no-lock control that TSan must flag | `recover` boot 2: four racing registrations, two tasks rewriting the record for 2 s |
 | 4 | Nothing checked the record's placement at link time | Five `ASSERT`s appended to the linker script: the record is at `0x1c00000 + RAM0_SIZE - 32 - 64`, at or above `_HEAP_END`, ends at or below `ORIGIN(boot_info)`, the heap is not negative, 4-byte alignment. A compile-time check keeps the record within its 64 bytes | `test_preparer` checks the text; the preparer refuses a script without `ORIGIN(boot_info)` | negative links on the build host (§2) |
 | 5 | A build that reached healthy and then crashed reset its counter each time and looped forever | Record `LFO2` adds `cycles`: each healthy mark adds one, a stable mark (default 300 s up, 30 s in test images) clears it. `cycles >= limit` is FALLBACK, as sticky as `count` | `escalation()` in the harness | `escalate` boots 2–5 |
@@ -157,7 +159,15 @@ answered the final `PING`.
 (`cores=0x2`). So the registration race was settled between tasks on one
 core, under preemption. The two record writers ran on different cores, so
 the record lock was contended across cores: 102,400 locked writes and checks
-left no invalid record. The SDK has no task-affinity API [verified:
+left no invalid record. Two limits [verified: worker source and UART
+log]: each hammer sleeps one tick after every 256 rounds (both printed
+exactly 51,200 = 200 × 256), so the cores collided in short bursts after each
+tick, not continuously; and each task's core is the one it printed at the
+end. There is no kit negative control (a no-lock build showing `bad>0`), so
+the kit run shows that nothing went wrong, not that the test would have
+caught a race. The desktop TSan no-lock build is the only negative control,
+and the lock's cross-core part rests on the disassembly above. The SDK has
+no task-affinity API [verified:
 `os_api.h`], so the core split is the scheduler's choice and is reported, not
 forced. The cross-core case for registration is covered by the TSan test.
 
@@ -365,6 +375,11 @@ that, a user's unit falls back by itself when a build fails.
   crash cycle costs about the healthy time.
 - A deliberate user reset within 300 s of power-on, three times in a row,
   would fall back. No such reset path exists yet.
+- A brown-out starts the count again (§8). A build that browns the unit out
+  at every start-up would then never fall back. Counting a brown-out as a
+  failed boot instead would make a unit on a weak battery fall back. The
+  recommendation is to keep it as it is until the M8 power tests show
+  whether brown-outs happen on the FM-1 at all.
 
 **If there is no answer.** The defaults stay as they are (3, 30 s, 300 s),
 and fallback stays silent. Nothing changes on any device until M8, which
@@ -389,6 +404,23 @@ has its own owner approval.
   started at 0.125 s on every boot.
 - The CPU exception attempts (misaligned read, divide by zero) still raise
   nothing on the kit, as in PR #180. The backstop handled it.
+- So the SDK's exception handler, its reset, and what `P3_RST_SRC` reads
+  after it are untested. If that path ever set bit 0 or 1, a crashing build
+  would restart the count on every boot and never fall back [inferred: not
+  observed either way].
+- The kit run has no negative control for the record lock (§3).
+- A supervisor that cannot be created now fails the boot (§11). That path
+  was build-checked only; nothing on the kit forces `os_task_create` to fail.
+- Supervisor starvation is not covered. The supervisor runs at priority 26.
+  Higher-priority tasks that keep switching among themselves would keep the
+  SDK watchdog cleared (it is cleared on every task switch) while the
+  supervisor never polls, so nothing resets [inferred: from the design].
+- A brown-out counts as cold (raw `P3_RST_SRC` bit 1, or the SDK's
+  `VDDIO_LOW_PWR`), so the count starts again. A build that browns the
+  device out on every boot (a current surge at start-up, say) would never
+  fall back [inferred]. Treating a brown-out as a failed boot instead would
+  catch that, at the cost of falling back on a weak battery. This is a
+  design choice, left as it was in PR #180 and raised with the defaults (§7).
 
 ## 9. Evidence kept
 
@@ -438,3 +470,59 @@ The build trees and the binaries were deleted.
   passed in that container just before, on the Mac, and in CI on both
   systems. The cause is unexplained [inferred: an environment one-off of the
   same sanitizer/ASLR kind].
+
+## 11. Adversarial review, 2026-11-09
+
+A second review of this stream found three more holes and four claims that
+went further than the evidence. Fixed in commit `5c991ad5` and in this note.
+
+| # | Finding | Fix | Test |
+| --- | --- | --- | --- |
+| R1 | `monitor_poll` checked the slot count and refusals only until HEALTHY. A task that registered after healthy (one slot too many), or was refused after healthy, ran unwatched, although the header promised a reset | The check holds from `healthy_ms` to the end of the boot, before and after STABLE | three new cases in `registration()`: late extra slot, late refusal, extra slot after STABLE. All three fail on the previous core (the harness aborts) [verified: run against `2c205e85`'s `failopen_core.c`] |
+| R2 | When `os_task_create` failed for the supervisor, the glue printed an error and carried on. Nothing then marked the boot healthy, caught a stall or counted it | Fault `0x30` (`LUNAR_FAILOPEN_FAULT_SUPERVISOR`), then a reset, so the count climbs to the limit like any failing boot | source-order check in `test_sources_avoid_banned_paths`; builds (below). Not forced on the kit |
+| R3 | `LUNAR_FAILOPEN_EXPECTED_SLOTS` had no range check; 0 or 5 built and then reset every boot | `#error` unless it is 1 to `LUNAR_FAILOPEN_SLOTS` | source check |
+| R4–R7 | Claims: the image-id "export asserts" cited a script not in the repository; the kit lock test was described as continuous cross-core contention; exception resets, supervisor starvation and brown-out loops were not listed as gaps | §1, §3 and §8 reworded | — |
+
+**Builds** [verified: build host, `lunar-jieli-check:bookworm`, no network,
+labelled `project=lunar-modulator` and `session=wave2`, from `5c991ad5`]:
+
+| Image | App bytes | Image id (host) | Sectors | `audit_link.py --elf` |
+| --- | --- | --- | --- | --- |
+| `cycle` | 170,800 | `c21f365d` | 42 | 0 fail, 2 pending |
+| `escalate` | 170,672 | `b5a097cd` | 42 | 0 fail, 1 pending |
+| `recover` | 171,344 | `61562c65` | 42 | 0 fail, 1 pending |
+
+All three place the record at `0x01C7FCEC` = `_HEAP_END`. The extra pending
+item on `cycle` is `no_efuse_controller_access`: a possible operand
+`0x00013710` at `.text+0xc204`, inside the SDK's `sdfile_open`. The vendor
+`objdump` shows `0x0200C322: 80 ff 10 37 01 00  call 79632 <malloc>`: the
+bytes are a relative call offset to `malloc`, not an eFuse SFR access
+[verified: vendor `objdump` of the linked `cycle` image]. The new code moved
+the SDK's layout by 32 bytes, which is why the pattern appears only here.
+
+**Kit rerun of `recover`** [verified: kit UART capture and USB timeline],
+2026-11-09 10:37 UTC, unattended, no button presses. The bench was idle and
+the lock free. Steps: an acknowledged UART `PING`, then UART `ARM`/`ENTER`;
+`4c4a:8057` appeared at `3-1.2`, with the Pico 2 W transporter
+(`2e8a:000a`) at `1-2` untouched. Then one application-only install
+(11.5 s), pinned to `role=devkit usb_path=3-1.2`, and one loader reset.
+
+- Boot 1: `start=build` (new image id `61562c65`, 171,344 bytes, equal to the
+  host). The race registered four distinct slots, then the hardware watchdog
+  fired.
+- Boot 2: `start=continued`, count 2. The race again gave four distinct
+  slots, and the hammers did 102,400 locked writes with `bad=0 valid=1`.
+  Then `healthy=1 count=0 cycles=1` at 10.12 s and `stable=1 cycles=0` at
+  30.12 s. It was still alive at 134.14 s. There was no `unregistered` line
+  after healthy, so the new check does not misfire on a correct image.
+- The final UART `PING` was acknowledged. The kit is left running `recover`
+  in application mode.
+
+Capture: `r1-recover/uart.bin`, 11,204 B, SHA-256
+`bd43498aeb353c42776602fafc35d38c442304fa2a432e84548155ffcbe4ca22`, in the
+lane's bench folder (§9). The candidate image was deleted after the run.
+`cycle` and `escalate` were built and audited but not rerun on the kit. Their
+fail-open paths before healthy are unchanged.
+
+**Desktop:** `tests/test_failopen_core.py` and `tests/test_bench_target.py`:
+46 passed on the Mac (the new cases sit inside `test_core`).

@@ -9,12 +9,15 @@ void lunar_failopen_early(void);
 /* First statement of app_main(), before any task is created: honours the
  * key-combination hook, enters ROM when the early attempt was already used,
  * and otherwise starts the heartbeat supervisor. The image must then register
- * exactly LUNAR_FAILOPEN_EXPECTED_SLOTS slots before the healthy time. */
+ * exactly LUNAR_FAILOPEN_EXPECTED_SLOTS slots before the healthy time, and
+ * no more afterwards. If the supervisor task cannot be created, the boot
+ * counts as failed: fault 0x30 and a reset. */
 void lunar_failopen_app_start(void);
 
 /* A task that must keep running registers once and beats more often than
  * `timeout_ms` (at least LUNAR_FAILOPEN_MIN_TIMEOUT_MS). Returns the slot, or
- * -1 when it was refused; a refusal resets the board at the healthy time. */
+ * -1 when it was refused; a refusal resets the board at the healthy time,
+ * or at the next poll when it comes later. */
 int lunar_failopen_watch(unsigned timeout_ms);
 void lunar_failopen_beat(int slot);
 

@@ -24,6 +24,11 @@ history.
   - Its bookkeeping is protected when both CPU cores use it.
   - Its memory placement is checked when the firmware is built.
   - Heartbeat timeouts can no longer be shorter than a flash erase.
+  - A task that starts being watched late, or asks for a timeout that is
+    too short after start-up, now also resets the board instead of running
+    unwatched.
+  - If the watchdog's own task cannot start, the start counts as failed
+    instead of running with no watchdog.
 
   Tested on the dev board; power-cut tests still need a person at the bench
   (`notes/2026-11-08-failopen-hardening.md`).

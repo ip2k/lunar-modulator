@@ -187,7 +187,10 @@ are pending. Details: `notes/2026-11-08-failopen-watchdog.md`.
   library kept the old counter.
 - Every task the image declares must register a heartbeat
   (`LUNAR_FAILOPEN_EXPECTED_SLOTS`). A missing, extra or refused slot resets
-  the board at the healthy time instead of letting it count as healthy.
+  the board at the healthy time instead of letting it count as healthy,
+  and a slot added or refused later in the boot resets it too.
+- If the supervisor task cannot be created, the boot counts as failed
+  (fault `0x30`, reset) instead of running unsupervised.
 - Record and slot changes run under a lock, `CPU_CRITICAL_ENTER`, which also
   takes the cross-core lock [verified: disassembly].
 - The linker script asserts where the record sits.
