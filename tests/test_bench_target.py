@@ -140,6 +140,7 @@ def test_shipped_config_is_valid_and_disjoint():
     cfg = bt.load_config(TOOLS / 'bench_targets.json')
     bt.check_role_path('fm1', '1-2', cfg)
     bt.check_role_path('devkit', '3-1.2', cfg)
+    # 3-1.4 is the Tigard on the kit's hub; only the observed ROM port is the kit.
     with pytest.raises(bt.PinError):  # the dev kit's exact ROM port is pinned now
         bt.check_role_path('devkit', '3-1.4', cfg)
     with pytest.raises(bt.PinError):

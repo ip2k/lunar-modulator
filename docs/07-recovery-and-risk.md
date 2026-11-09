@@ -179,6 +179,41 @@ Every reset reads `SOFT` there, the watchdog included. The counter's
 survival on the FM-1's stock SPL is [inferred]. Power-cut tests (§4 rule 5)
 are pending. Details: `notes/2026-11-08-failopen-watchdog.md`.
 
+**Hardened after review (2026-11-08,
+`notes/2026-11-08-failopen-hardening.md`).**
+
+- The image identifies itself by an FNV-1a hash of its own flash image.
+  Before, the id hashed only the fail-open sources, so a changed app or SDK
+  library kept the old counter.
+- Every task the image declares must register a heartbeat
+  (`LUNAR_FAILOPEN_EXPECTED_SLOTS`). A missing, extra or refused slot resets
+  the board at the healthy time instead of letting it count as healthy,
+  and a slot added or refused later in the boot resets it too.
+- If the supervisor task cannot be created, the boot counts as failed
+  (fault `0x30`, reset) instead of running unsupervised.
+- Record and slot changes run under a lock, `CPU_CRITICAL_ENTER`, which also
+  takes the cross-core lock [verified: disassembly].
+- The linker script asserts where the record sits.
+- A build that reaches healthy and then crashes, `limit` times in a row
+  before it has been up for the stable time (300 s by default), also falls
+  back.
+- Heartbeat timeouts are at least 3 s. The kit flash's 64 KB block erase
+  takes up to 2 s [reported: Zbit datasheet] and stalls every core running
+  from flash. The FM-1's flash erases in at most 20 ms [reported: Puya
+  datasheet]. Firmware must never issue a chip erase.
+- The power-on test now also reads the raw `P3_RST_SRC` before the SDK
+  clears its power-on mark. Whether that bit really marks a power cut is
+  [inferred] until the owner's power-cut test (§4 rule 5) runs. The note
+  has the script for it. On the kit, the bit was clear after all 11 warm
+  resets [verified: kit UART].
+
+All of these except the power-on check passed unattended on the dev kit on
+2026-11-09 [verified: kit UART and USB timeline, in the note]. Three failing
+boots, and separately three crash-after-healthy cycles, each ended in
+mask-ROM UBOOT by themselves. A missing registration was caught at the
+healthy time. 102,400 locked record writes from both cores left the record
+valid.
+
 ### 2.3 Software entry into ROM USB mode from a running custom app
 
 The SDK's `isd_config.ini` has `UPDATE_JUMP` (reset vs. jump to mask-ROM

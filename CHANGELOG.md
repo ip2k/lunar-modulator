@@ -13,6 +13,27 @@ history.
 - M5 run plan for the FM-1 (RAM only, awaiting owner approval) and how FM-1-transporter would load and start a RAM image, with the host-side patch it needs (`notes/2026-11-08-ram-runner-devkit.md` §4–5).
 - Forensics note settling what `0x94600` meant in the 2026-10-15 stage-7 install (in-region for the 092 layout) and its implications for the FM-1 install write plan (`notes/2026-11-08-0x94600-forensics.md`, docs/18 §4).
 
+### Fixed
+- **The fail-open boot no longer misses some failure cases.** Fixes from
+  the review of the first version:
+  - It now notices any change to the firmware, not only a change to its own
+    code.
+  - A build where a required task never starts is no longer counted as
+    healthy.
+  - A build that starts fine and then crashes, again and again, now also
+    goes into update mode by itself.
+  - Its bookkeeping is protected when both CPU cores use it.
+  - Its memory placement is checked when the firmware is built.
+  - Heartbeat timeouts can no longer be shorter than a flash erase.
+  - A task that starts being watched late, or asks for a timeout that is
+    too short after start-up, now also resets the board instead of running
+    unwatched.
+  - If the watchdog's own task cannot start, the start counts as failed
+    instead of running with no watchdog.
+
+  Tested on the dev board; power-cut tests still need a person at the bench
+  (`notes/2026-11-08-failopen-hardening.md`).
+
 ### Added
 - **Bounded RAM runner for the dev kit** (`tools/ram_runner.py`). With the
   AC79 dev kit in mask-ROM UBOOT, it uploads one SHA-256-admitted image into

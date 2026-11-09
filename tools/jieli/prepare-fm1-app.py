@@ -48,6 +48,8 @@ POWER = {
 }
 FAILOPEN_LIMIT = 3
 FAILOPEN_HEALTHY_MS = 30000
+FAILOPEN_STABLE_MS = 300000
+FAILOPEN_EXPECTED_SLOTS = 2   # fm1_sdk_main.c: the main task and the panel task
 
 
 def load(source, name, module):
@@ -168,7 +170,7 @@ def adapt_failopen(failopen, out, app, source):
     marker = failopen.HEAP_LINES[1].replace(' - 32', lowered)
     script = script.replace(marker, marker + '    PROVIDE(lunar_failopen_record = 0x1c00000 + RAM0_SIZE'
                             + lowered + ');\n', 1)
-    linker.write_text(script)
+    linker.write_text(script + failopen.ASSERTS)
     return setup
 
 
@@ -198,7 +200,10 @@ def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off'):
     setup = adapt_failopen(failopen, out, app, source)
     flags = ('CFLAGS += -DLUNAR_FM1_APP=1 -DLUNAR_PIPELINE_UNBOUNDED=1\n'
              'CFLAGS += -DLUNAR_FAILOPEN_BUILD_ID=0x{:08x}u -DLUNAR_FAILOPEN_LIMIT={} '
-             '-DLUNAR_FAILOPEN_HEALTHY_MS={}\n').format(identity, FAILOPEN_LIMIT, FAILOPEN_HEALTHY_MS)
+             '-DLUNAR_FAILOPEN_HEALTHY_MS={} -DLUNAR_FAILOPEN_STABLE_MS={} '
+             '-DLUNAR_FAILOPEN_EXPECTED_SLOTS={}\n').format(
+                 identity, FAILOPEN_LIMIT, FAILOPEN_HEALTHY_MS, FAILOPEN_STABLE_MS,
+                 FAILOPEN_EXPECTED_SLOTS)
     makefile = adapt_makefile(app, flags)
     adapt_fragment(app, gpl)
     adapt_config(app, debug_uart)
@@ -225,6 +230,7 @@ def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off'):
         'sdram_bytes': 0, 'boot_info_bridge': 'fm1-nes boot_compat.c, --wrap=boot_info_init',
         'failopen_build_id': '0x{:08x}'.format(identity), 'failopen_limit': FAILOPEN_LIMIT,
         'failopen_healthy_ms': FAILOPEN_HEALTHY_MS,
+        'failopen_stable_ms': FAILOPEN_STABLE_MS, 'failopen_expected_slots': FAILOPEN_EXPECTED_SLOTS,
         'shareable': gpl == 0,
         'hardware_acceptance': False,
         'admission': 'OFFLINE ONLY; FM-1 installation needs a separate owner approval',
