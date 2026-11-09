@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>FM-1 Recovery</title>
+  <meta name="description" content="Recover an unbootable M-VAVE FM-1 to stock V15 through a Raspberry Pi Pico 2 W running FM-1-transporter, from the browser with Web Serial.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="installer.css">
+  <link rel="stylesheet" href="recovery.css">
+  <script type="module" src="recovery-page.js"></script>
+</head>
+<body class="installer-page recovery-page">
+  <header class="top installer-top">
+    <a href="index.html">Lunar Modulator</a>
+    <span>INTERGALACTIC MODULATION STATION</span>
+  </header>
+  <main>
+    <h1>FM-1 recovery</h1>
+    <p class="lede">Bring an FM-1 that no longer boots back to stock V15, or restore your own backup. The browser cannot claim the FM-1's mask-ROM USB interface (WebUSB protects mass storage), so this route goes through a Raspberry Pi Pico 2 W that does the key and the USB host work, and the page talks to the Pico over Web Serial.</p>
+
+    <section class="installer-status" id="support">
+      <p><strong>Needs Chrome, Edge or another Chromium browser</strong> on a secure page (https or localhost). Firefox and Safari have no Web Serial.</p>
+      <p id="support-note" role="status"></p>
+    </section>
+
+    <section class="installer-status" id="risk">
+      <p><strong>This writes the FM-1's flash.</strong> Use it for a unit that does not boot, or one you have decided to return to stock. The boot area <code>0x0</code>-<code>0x4000</code> is never written, by this page or by the transporter. A write that stops part way leaves the application region half written; the unit can be keyed and rewritten again.</p>
+      <p>The wiring is push-pull with no series resistors, as upstream designed it. That is an owner-approved exception for the owner's unit only (docs/17); decide it consciously for yours.</p>
+      <p><strong>Never with a running FM-1 attached.</strong> Soft-keying a running stock V15 into the mask ROM is off limits. This page never sends that command and refuses to continue if the transporter reports a running V15.</p>
+    </section>
+
+    <section class="rec-step" id="step-pico">
+      <h2><span class="rec-n">0</span> Put the transporter firmware on the Pico</h2>
+      <ol>
+        <li>Build the UF2 from source: <code>tools/fm1-transporter/build.sh</code> (pinned upstream commit plus our patch, in a container). It makes <code>fm1_transporter-pico2_w.uf2</code>. This site does not host binaries.</li>
+        <li>Unplug the Pico, hold its BOOTSEL button, plug it in, release. A drive named <code>RP2350</code> appears.</li>
+        <li>Drag the UF2 onto that drive. The Pico reboots by itself.</li>
+        <li>It now shows up as USB <code>2e8a:000a</code> "FM-1 Transporter" with two serial ports. The second one is the data port this page uses; the first is a console.</li>
+      </ol>
+      <p class="rec-note">Upstream source: kurogedelic/FM-1-transporter at commit <code>a7fb5e8</code> (<code>github.com/kurogedelic/FM-1-transporter</code>) (MIT). The UF2 flashed on the owner's unit on 2026-10-26 had SHA-256 <code>4f5fab3f…b7f482</code> [verified]; a rebuild may drift because the build image is not pinned. Wiring and details: docs/17.</p>
+    </section>
+
+    <section class="rec-step" id="step-wire">
+      <h2><span class="rec-n">1</span> Wire it</h2>
+      <p>Pico GP0 to FM-1 USB-C D+, GP1 to D-, GND to GND. <strong>No VBUS:</strong> the FM-1 runs from its battery, so charge it first (a write takes about a minute; a dead battery mid-write leaves the app region half written).</p>
+    </section>
+
+    <section class="rec-step" id="step-connect">
+      <h2><span class="rec-n">2</span> Connect</h2>
+      <p>Press Connect and choose the transporter's <strong>second</strong> serial port (the data port). The page sends only <code>ping</code> to check it. Do not pick the first port: it is a debug console that treats typed letters as commands.</p>
+      <p><button id="btn-connect" type="button">Connect</button> <span id="connect-state" role="status"></span></p>
+    </section>
+
+    <section class="rec-step" id="step-loader">
+      <h2><span class="rec-n">3</span> Loader</h2>
+      <p>Choose <code>wl82loader.bin</code> from kagaimiq's jl-uboot-tool (<code>github.com/kagaimiq/jl-uboot-tool</code>) (24,064 bytes, SHA-256 <code>d41da612…ca5376</code>). It is checked here, stays in your browser, and runs only in the FM-1's RAM. It is JieLi's file and is not shipped with this site.</p>
+      <p><input id="file-loader" type="file" accept=".bin"> <span id="loader-state" role="status"></span></p>
+    </section>
+
+    <section class="rec-step" id="step-key">
+      <h2><span class="rec-n">4</span> Enter boot mode</h2>
+      <p><label><input id="chk-off" type="checkbox"> The FM-1 is switched <strong>OFF</strong> (I checked the switch itself) and no running FM-1 is attached to the Pico.</label></p>
+      <ol>
+        <li>Press <button id="btn-rekey" type="button" disabled>Start key mode</button>. The transporter reboots and this port closes.</li>
+        <li>Press <button id="btn-reconnect" type="button" disabled>Reconnect</button> within about 10 s and choose the data port again. The loader file stays accepted; the page uploads it to the FM-1 again in the next step. A reconnect starts a new connection: identify, back up and run the dry run again before writing.</li>
+        <li>Only now switch the FM-1 <strong>ON</strong>. Within a few seconds the status below should show boot mode.</li>
+      </ol>
+      <p><button id="btn-wait" type="button" disabled>Wait for boot mode and identify</button> <span id="key-state" role="status"></span></p>
+      <p class="rec-note">If you are already in key mode (you started the Pico with the FM-1 off), skip the first two steps.</p>
+    </section>
+
+    <section class="rec-step" id="step-backup">
+      <h2><span class="rec-n">5</span> Back up</h2>
+      <p>Reads the whole 1 MiB flash twice, compares the two by SHA-256 and saves both files to your disk. Nothing is written. Keep them.</p>
+      <p><button id="btn-backup" type="button" disabled>Back up (two reads)</button></p>
+      <progress id="prog-backup" value="0" max="1" hidden></progress>
+      <p id="backup-state" role="status"></p>
+    </section>
+
+    <section class="rec-step" id="step-image">
+      <h2><span class="rec-n">6</span> Choose what to write</h2>
+      <p>Either your own 1 MiB backup, or the stock V15 package <code>FM-1.fwsc</code> (699,956 bytes, SHA-256 <code>db1642b2…db8a</code>; see docs/02). Any other package is refused. Only sectors in <code>0x4000</code>-<code>0x92FFF</code> that differ are written; an image that differs in the boot area <code>0x0</code>-<code>0x3FFF</code> is refused. The page shows the chosen file's SHA-256 and warns when it differs from the backup taken in step 5.</p>
+      <p class="rec-note"><strong>A unit whose boot area was replaced cannot be restored to stock here, by design.</strong> Felucca and SLOOP install a different <code>uboot.boot</code> (from JieLi's SDK V1.2.1), so the stock V15 package differs from such a unit in <code>0x0</code>-<code>0x3FFF</code> and the dry run refuses it. Restoring that unit's own backup still works. Rewriting the boot area is outside this route (docs/17).</p>
+      <p><input id="file-image" type="file"></p>
+      <p id="image-state" role="status"></p>
+      <p><button id="btn-plan" type="button" disabled>Dry run (read only)</button></p>
+      <pre id="plan-out" class="rec-pre" hidden></pre>
+    </section>
+
+    <section class="rec-step" id="step-write">
+      <h2><span class="rec-n">7</span> Write and verify</h2>
+      <p>Keep the FM-1 on and the wires still until the final read is done. If anything fails, do not power-cycle: keep this page and its log.</p>
+      <p><button id="btn-write" type="button" disabled>Write</button></p>
+      <progress id="prog-write" value="0" max="1" hidden></progress>
+      <p id="write-state" role="status"></p>
+      <div id="after-write" hidden>
+        <h3>Now boot it</h3>
+        <ol id="after-list"></ol>
+      </div>
+    </section>
+
+    <section class="rec-step">
+      <h2>Log</h2>
+      <pre id="log" class="rec-pre" aria-live="polite"></pre>
+    </section>
+
+    <p class="rec-note">Protocol, key mode and the write policy are kurogedelic's FM-1-transporter (MIT); this page is a Lunar Modulator client for it, derived in part from its <code>web/index.html</code>. The loader is by JieLi, distributed by kagaimiq. docs/17 in the Lunar Modulator repository (<code>docs/17-pico2w-recovery.md</code>) has the whole procedure.</p>
+  </main>
+</body>
+</html>

@@ -9,6 +9,21 @@ history.
 ## [Unreleased]
 
 ### Added
+- **Browser recovery page (`sim/web/www/recovery.html`).** Drives the
+  FM-1-transporter data port (Pico 2 W, docs/17) with Web Serial: key mode,
+  two compared dumps saved to disk, a read-only dry run, a write restricted to
+  `0x4000`-`0x92FFF` with the boot area refused, and a full readback. The soft
+  key is never sent (owner decision D2): a command allowlist refuses it, and
+  flash commands need the user's "FM-1 is off" confirmation plus a fresh
+  `uboot=1` status, and are refused outright if a running V15 is reported. The
+  page explains how to flash the transporter UF2 (BOOTSEL) and links the
+  source; it hosts no binaries. A write happens only on the connection that
+  identified the FM-1, uploaded the loader, took the backup and made the dry
+  run; reconnecting starts over. A chosen 1 MiB image shows its SHA-256 and a
+  warning when it differs from that backup. A unit whose boot area was
+  replaced (Felucca, SLOOP) cannot be restored to stock here, by design.
+  Tested against a fake transporter port (`sim/web/test/recovery-*.test.mjs`);
+  not tried on hardware.
 - **Install and roll-back panel on the installer page** (M12w part 1). Choosing a
   package shows its admission result; Install or Roll back is an explicit action, only
   enabled for an admitted package, and walks the stock update stages (7F, pause,
