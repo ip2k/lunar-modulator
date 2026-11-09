@@ -223,14 +223,25 @@ def stock_profile(raw, components):
     }
 
 
+def _check_geometry(profile):
+    """The rules below assume V15's geometry and SFC key; refuse any other.
+
+    `sfc_decode` always uses `STOCK_CHIP_KEY`, while the browser reads
+    `profile.sfc_key`, so a profile with another key would make the two
+    verifiers disagree silently."""
+    if profile['flash_bytes'] != profile['vm_base'] or profile['app_area_offset'] != APP_AREA:
+        raise ValueError('profile geometry differs from V15: flash.bin must end where VM begins')
+    if profile['sfc_key'] != STOCK_CHIP_KEY:
+        raise ValueError(f"profile SFC key {profile['sfc_key']:#06x} is not the stock key {STOCK_CHIP_KEY:#06x}")
+
+
 def _profile_for(raw, profiles):
     digest = sha256(raw)
     profile = profiles.get(digest)
     if profile is None:
         raise ValueError(f'stock package sha256 {digest[:12]}... is not a pinned stock V15 '
                          '(expected db1642b2...; use your own unmodified FM-1_015 package)')
-    if profile['flash_bytes'] != profile['vm_base']:
-        raise ValueError('profile flash.bin does not end where VM begins')
+    _check_geometry(profile)
     return profile
 
 
@@ -300,6 +311,7 @@ def check_app(app, identity, profile, elf=None, margin=0):
 
 def assemble(raw, app, identity, profile):
     """Write `app` over the stock app slot; recompute the CRCs; set the identity."""
+    _check_geometry(profile)
     log = logical(raw)
     fo, fb = profile['flash_offset'], profile['flash_bytes']
     flash = bytearray(log[fo:fo + fb])
@@ -334,6 +346,7 @@ def describe_package(pkg, profile):
         'stock': {'product': profile['product'], 'package_sha256': profile['package_sha256']},
         'stock_components_sha256': dict(profile['components_sha256']),
     }
+    _check_geometry(profile)
     if len(pkg) != profile['package_bytes']:
         raise ValueError(f'package is {len(pkg)} B; the pinned profile has {profile["package_bytes"]} B')
     product = markers_identity(pkg)
@@ -345,6 +358,8 @@ def describe_package(pkg, profile):
     package_info = {'bytes': len(pkg), 'sha256': sha256(pkg), 'logical_bytes': len(log),
                     'logical_sha256': sha256(log)}
     if sha256(pkg) == profile['package_sha256']:
+        # Unreachable while the pin is honest (the SHA covers the identity
+        # markers); kept as a defence against a mistyped profile.
         if product != profile['product']:
             raise ValueError('stock bytes with a foreign identity')
         return dict(common, kind='stock-rollback', product=product, model='FM-1',
@@ -352,8 +367,6 @@ def describe_package(pkg, profile):
                     flash=dict(flash_info, mutable_ranges=[]), app=None)
     if not LUNAR_PRODUCT_RE.fullmatch(product):
         raise ValueError(f'identity {product} is neither the pinned stock package nor a Lunar FM-1_5xx')
-    if fb != profile['vm_base'] or profile['app_area_offset'] != APP_AREA:
-        raise ValueError('profile geometry differs from V15: flash.bin must end where VM begins')
     header = header_decode(log[:64])
     hcrc, listcrc, image_size, count = struct.unpack_from('<HHIH', header)
     if crc16(header[2:]) != hcrc:
@@ -470,9 +483,23 @@ def verify_install(raw, pkg, app, identity, tree, profile, work):
     return manifest, guard, flash_changes
 
 
-def _write_new(path, data):
-    with open(path, 'xb') as handle:
-        handle.write(data)
+def _write_outputs(package_path, package, manifest_path, manifest):
+    """Write the package and its manifest, both new files, or neither."""
+    package_path, manifest_path = Path(package_path), Path(manifest_path)
+    if package_path.resolve() == manifest_path.resolve():
+        raise ValueError('the package and its manifest need different paths')
+    for path in (package_path, manifest_path):
+        if path.exists():
+            raise FileExistsError(f'{path} exists; refusing to overwrite')
+    text = (json.dumps(manifest, indent=2, sort_keys=True) + '\n').encode()
+    with open(package_path, 'xb') as handle:
+        handle.write(package)
+    try:
+        with open(manifest_path, 'xb') as handle:
+            handle.write(text)
+    except BaseException:
+        package_path.unlink()
+        raise
 
 
 def build_install(stock_path, app_path, identity, out, manifest_path=None, elf_path=None, margin=0,
@@ -486,8 +513,7 @@ def build_install(stock_path, app_path, identity, out, manifest_path=None, elf_p
         pkg = assemble(raw, app, identity, profile)
         manifest, guard, flash_changes = verify_install(raw, pkg, app, identity, tree, profile, work)
     manifest_path = Path(manifest_path or f'{out}.manifest.json')
-    _write_new(out, pkg)
-    _write_new(manifest_path, (json.dumps(manifest, indent=2, sort_keys=True) + '\n').encode())
+    _write_outputs(out, pkg, manifest_path, manifest)
     return dict(manifest=manifest, guard=guard, budget=budget, flash_changes=flash_changes,
                 out=str(out), manifest_path=str(manifest_path))
 
@@ -502,8 +528,7 @@ def build_rollback(stock_path, out, manifest_path=None, running=None, stock_unpa
     if manifest['kind'] != 'stock-rollback':
         raise ValueError('stock package did not verify as the roll-back package')
     manifest_path = Path(manifest_path or f'{out}.manifest.json')
-    _write_new(out, raw)
-    _write_new(manifest_path, (json.dumps(manifest, indent=2, sort_keys=True) + '\n').encode())
+    _write_outputs(out, raw, manifest_path, manifest)
     return dict(manifest=manifest, out=str(out), manifest_path=str(manifest_path))
 
 
@@ -568,7 +593,7 @@ def main(argv=None):
         else:
             raw = Path(args.stock).read_bytes()
             print(json.dumps(stock_profile(raw, nested.extract_stock_components(raw)), indent=2))
-    except (OSError, ValueError, KeyError, StopIteration, struct.error) as exc:
+    except (OSError, ValueError, KeyError, IndexError, StopIteration, struct.error) as exc:
         print(f'build_fwsc: refused: {exc}', file=sys.stderr)
         return 1
     return 0

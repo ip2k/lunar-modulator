@@ -21,6 +21,9 @@ export const MANIFEST_SCHEMA = 'lunar-fwsc-manifest-v1';
 export const PROFILE_SCHEMA = 'lunar-fwsc-stock-profile-v1';
 export const LUNAR_PRODUCT_RE = /^FM-1_5[0-9]{2}$/;
 const FILL = 0xff;
+// inspect_fwsc.STOCK_CHIP_KEY; build_fwsc decodes with this key only, so a
+// profile naming another would make the two verifiers disagree.
+const STOCK_SFC_KEY = 0x980f;
 const HEADER_SLOTS = 20;
 const SLOT_BYTES = 48;
 
@@ -179,6 +182,8 @@ export async function describeLunarPackage(input, profile = V15_PROFILE) {
   if (!(input instanceof Uint8Array)) throw new TypeError('package must be supplied as Uint8Array');
   if (profile?.schema !== PROFILE_SCHEMA) throw new TypeError('unsupported stock profile');
   const pkg = input;
+  if (profile.flash_bytes !== profile.vm_base) throw new Error('profile flash.bin does not end where VM begins');
+  if (profile.sfc_key !== STOCK_SFC_KEY) throw new Error('profile SFC key is not the stock key');
   if (pkg.length !== profile.package_bytes) {
     throw new Error(`package is ${pkg.length} B; the pinned profile has ${profile.package_bytes} B`);
   }
@@ -206,7 +211,6 @@ export async function describeLunarPackage(input, profile = V15_PROFILE) {
   if (!LUNAR_PRODUCT_RE.test(product)) {
     throw new Error(`identity ${product} is neither the pinned stock package nor a Lunar FM-1_5xx`);
   }
-  if (fb !== profile.vm_base) throw new Error('profile flash.bin does not end where VM begins');
   const header = xorStream(log.subarray(0, 64));
   if (crc16(header.subarray(2)) !== u16(header, 0)) throw new Error('UFW header CRC mismatch');
   if (await sha256Hex(header.subarray(4)) !== profile.header_meta_sha256) throw new Error('UFW header metadata differs from stock');

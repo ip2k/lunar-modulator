@@ -309,8 +309,40 @@ def test_describe_rejects_crc_damage_and_identity_games(stock, tmp_path):
     with pytest.raises(ValueError, match='package is'):
         bf.describe_package(pkg + b'\0', profile)
     assert bf.describe_package(raw, profile)['kind'] == 'stock-rollback'
-    with pytest.raises(ValueError, match='foreign identity|neither|exactly once'):
+    # Relabelled stock is no longer the pinned SHA, so it is judged as an
+    # install and fails on the app's FM-1_015 literal.
+    with pytest.raises(ValueError, match='exactly once'):
         bf.describe_package(bf.set_identity(raw, 'FM-1_501'), profile)
+
+
+def test_a_profile_with_another_sfc_key_or_geometry_is_refused(stock, tmp_path):
+    raw, profile, _, _ = stock
+    build(stock, tmp_path)
+    pkg = (tmp_path / 'lunar.fwsc').read_bytes()
+    for bad, message in [(dict(profile, sfc_key=profile['sfc_key'] ^ 1), 'SFC key'),
+                         (dict(profile, vm_base=profile['vm_base'] + 0x1000), 'geometry')]:
+        for data in (pkg, raw):
+            with pytest.raises(ValueError, match=message):
+                bf.describe_package(data, bad)
+        with pytest.raises(ValueError, match=message):
+            bf.assemble(raw, lunar_app(), 'FM-1_501', bad)
+
+
+# ---- the builder's own changed-range check fires --------------------------
+
+def test_verify_install_refuses_changes_outside_the_mutable_ranges(stock, tmp_path, monkeypatch):
+    # Narrow the declared ranges so the real assembled package's
+    # app_area_head CRC bytes [0x4000, 0x4004) fall outside them: the
+    # independent changed-byte walk, not describe_package, must refuse.
+    real = bf.mutable_flash_ranges
+    monkeypatch.setattr(bf, 'mutable_flash_ranges', lambda p: real(p)[1:])
+    with pytest.raises(ValueError, match=r'changed outside the mutable ranges'):
+        build(stock, tmp_path)
+    assert not (tmp_path / 'lunar.fwsc').exists()
+    monkeypatch.setattr(bf, 'mutable_flash_ranges', lambda p: [[0x3ff0, 0x4004]] + real(p)[1:])
+    with pytest.raises(ValueError, match='leaves the app area'):
+        build(stock, tmp_path)
+    assert not (tmp_path / 'lunar.fwsc').exists()
 
 
 # ---- roll-back -------------------------------------------------------------
@@ -325,6 +357,22 @@ def test_rollback_is_the_stock_package_byte_for_byte(stock, tmp_path):
         bf.build_rollback(path, tmp_path / 'again.fwsc', running='FM-1_015', profiles=profiles)
 
 
+def test_outputs_are_written_together_or_not_at_all(stock, tmp_path):
+    (tmp_path / 'lunar.fwsc.manifest.json').write_text('stale')
+    with pytest.raises(FileExistsError, match='manifest'):
+        build(stock, tmp_path)
+    assert not (tmp_path / 'lunar.fwsc').exists()
+    assert (tmp_path / 'lunar.fwsc.manifest.json').read_text() == 'stale'
+    _, _, profiles, path = stock
+    (tmp_path / 'back.fwsc.manifest.json').write_text('stale')
+    with pytest.raises(FileExistsError):
+        bf.build_rollback(path, tmp_path / 'back.fwsc', profiles=profiles)
+    assert not (tmp_path / 'back.fwsc').exists()
+    with pytest.raises(ValueError, match='different paths'):
+        bf.build_rollback(path, tmp_path / 'same.fwsc', tmp_path / 'same.fwsc', profiles=profiles)
+    assert not (tmp_path / 'same.fwsc').exists()
+
+
 def test_cli_refuses_without_writing(tmp_path):
     (tmp_path / 'not.fwsc').write_bytes(b'x' * 2000)
     (tmp_path / 'app.bin').write_bytes(lunar_app())
@@ -332,6 +380,8 @@ def test_cli_refuses_without_writing(tmp_path):
                   '--identity', 'FM-1_501', '--out', str(tmp_path / 'out.fwsc')])
     assert rc == 1 and not (tmp_path / 'out.fwsc').exists()
     assert bf.main(['verify', str(tmp_path / 'not.fwsc')]) == 1
+    (tmp_path / 'tiny.fwsc').write_bytes(b'x' * 100)
+    assert bf.main(['profile', '--stock', str(tmp_path / 'tiny.fwsc')]) == 1
 
 
 # ---- the browser verifier on the builder's output ---------------------------

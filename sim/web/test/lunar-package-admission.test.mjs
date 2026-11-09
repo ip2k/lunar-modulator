@@ -279,6 +279,12 @@ test('rejects CRC damage, wrong identities and wrong sizes', async () => {
   await assert.rejects(verifyNativePackage([...LUNAR], opts()), TypeError);
 });
 
+test('a profile with another SFC key or geometry is refused, as in build_fwsc', async () => {
+  await blocked(LUNAR, /SFC key/, { profiles: [{ ...PROFILE, sfc_key: KEY ^ 1 }] });
+  await blocked(STOCK, /SFC key/, { profiles: [{ ...PROFILE, sfc_key: KEY ^ 1 }] });
+  await blocked(LUNAR, /does not end where VM begins/, { profiles: [{ ...PROFILE, vm_base: FB + 0x1000 }] });
+});
+
 test('the pinned V15 profile is frozen and admits nothing synthetic', async () => {
   assert.ok(Object.isFrozen(V15_PROFILE) && Object.isFrozen(V15_PROFILE.components_sha256));
   assert.equal(V15_PROFILE.components_sha256['top/uboot.boot'],
