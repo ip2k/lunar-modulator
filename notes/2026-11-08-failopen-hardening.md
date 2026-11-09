@@ -480,8 +480,10 @@ went further than the evidence. Fixed in commit `5c991ad5` and in this note.
 | --- | --- | --- | --- |
 | R1 | `monitor_poll` checked the slot count and refusals only until HEALTHY. A task that registered after healthy (one slot too many), or was refused after healthy, ran unwatched, although the header promised a reset | The check holds from `healthy_ms` to the end of the boot, before and after STABLE | three new cases in `registration()`: late extra slot, late refusal, extra slot after STABLE. All three fail on the previous core (the harness aborts) [verified: run against `2c205e85`'s `failopen_core.c`] |
 | R2 | When `os_task_create` failed for the supervisor, the glue printed an error and carried on. Nothing then marked the boot healthy, caught a stall or counted it | Fault `0x30` (`LUNAR_FAILOPEN_FAULT_SUPERVISOR`), then a reset, so the count climbs to the limit like any failing boot | source-order check in `test_sources_avoid_banned_paths`; builds (below). Not forced on the kit |
-| R3 | `LUNAR_FAILOPEN_EXPECTED_SLOTS` had no range check; 0 or 5 built and then reset every boot | `#error` unless it is 1 to `LUNAR_FAILOPEN_SLOTS` | source check |
-| R4–R7 | Claims: the image-id "export asserts" cited a script not in the repository; the kit lock test was described as continuous cross-core contention; exception resets, supervisor starvation and brown-out loops were not listed as gaps | §1, §3 and §8 reworded | — |
+| R3 | `LUNAR_FAILOPEN_EXPECTED_SLOTS` had no range check; 0 or 5 built and then reset every boot | `#error` unless it is 1 to `LUNAR_FAILOPEN_SLOTS` | source check; built with 1, 2 and 4, not compiled with 0 or 5 |
+| R4 | The image-id claim cited a build-host script that is not in the repository | §1 now rests on the kit/host match | — |
+| R5 | The kit lock test read as continuous cross-core contention; it is bursts after each tick, with no negative control | §3 reworded | — |
+| R6 | Exception resets, supervisor starvation, the supervisor failure path and brown-out loops were not listed as gaps | §8 lists them; §7 adds the brown-out trade-off | — |
 
 **Builds** [verified: build host, `lunar-jieli-check:bookworm`, no network,
 labelled `project=lunar-modulator` and `session=wave2`, from `5c991ad5`]:
@@ -498,7 +500,9 @@ item on `cycle` is `no_efuse_controller_access`: a possible operand
 `objdump` shows `0x0200C322: 80 ff 10 37 01 00  call 79632 <malloc>`: the
 bytes are a relative call offset to `malloc`, not an eFuse SFR access
 [verified: vendor `objdump` of the linked `cycle` image]. The new code moved
-the SDK's layout by 32 bytes, which is why the pattern appears only here.
+the SDK's layout by 32 bytes (`cycle` grew from 170,768 to 170,800 B)
+[verified], which is presumably why the pattern appears only here
+[inferred].
 
 **Kit rerun of `recover`** [verified: kit UART capture and USB timeline],
 2026-11-09 10:37 UTC, unattended, no button presses. The bench was idle and
