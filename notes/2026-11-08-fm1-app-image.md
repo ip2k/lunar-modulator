@@ -39,7 +39,9 @@ From that tree it:
 The clock is not switched by the app: the stock SPL sets 360 MHz before the
 app runs [verified: V15 `isd_config` SYS_CLK, CLAUDE.md], and this image
 contains no clock code [inferred: no clock writes added; `clk_early_init`
-is the SDK's own].
+is the SDK's own, and docs/02 records that the app's CRT reads the clock
+tree and skips its own PLL programming when the SPL has set it, matching
+fm1-x0x's measured 360 MHz (reported there)].
 
 Built on aeon in `lunar-jieli-check:bookworm` (`--rm`, `--network none`,
 labels project=lunar-modulator, session=wave2) with
@@ -47,13 +49,19 @@ labels project=lunar-modulator, session=wave2) with
 
 ## Gates (both builds)
 
+These are the numbers for the review head (`5a1928f3`, two review fixes on
+top of `684b2624`, see "Review" below), rebuilt on aeon with the same
+script. The implementer's build of `684b2624` measured 556,540 B (+25,024 B,
+`.text` 399,776 B, build ids `0x46b5c0c2` / `0xb2d149ac`); the review fixes
+add 96 B of `.text` and change nothing else in the layout.
+
 | | FM1_GPL_MODS=0 | FM1_GPL_MODS=1 |
 | --- | --- | --- |
-| preparer build id | `0x46b5c0c2` | `0xb2d149ac` |
-| `app.bin` | 556,540 B | 556,540 B |
-| sha256 | `d204f88e…21e7ef` | `f6a1b801…aacebf` |
-| V15 slot 581,564 B: spare | **+25,024 B** | **+25,024 B** |
-| `.text` / `.ram0_data` / `.cache_ram_data` | 399,776 / 129,584 / 27,180 B | same |
+| preparer build id | `0xf1ed2f86` | `0x823238f6` |
+| `app.bin` | 556,636 B | 556,636 B |
+| sha256 | `f469510b…7b36f9cd` | `9f362a65…a1a98cd1` |
+| V15 slot 581,564 B: spare | **+24,928 B** | **+24,928 B** |
+| `.text` / `.ram0_data` / `.cache_ram_data` | 399,872 / 129,584 / 27,180 B | same |
 | cache RAM (28,672 B) | 1,492 B spare | same |
 | RAM static (`.ram0_data` + `.ram0_bss`) | 474,760 B, ends `0x1c73e88` | same |
 | heap (HEAP_END − HEAP_BEGIN) | 48,716 B: +1,504 B over the 47,212 B minimum | same |
@@ -68,7 +76,8 @@ labels project=lunar-modulator, session=wave2) with
   - there is no `0x0200012E` stub and no reference to the mailbox, to IRQ 123
     or to the eFuse SFRs.
   - Its one pending item, `sdk_meky_check`'s scheduling, was checked by hand
-    in the vendor objdump. It makes two `request_irq(123, 6, isr_check_key,
+    in the vendor objdump on the implementer's build of `684b2624` (the
+    review fixes touch only Lunar's own files). It makes two `request_irq(123, 6, isr_check_key,
     0/1)` calls and one `sys_timer_add(_mkey_check, 8000)` call, which is
     the expected vendor pattern [verified: disassembly of the GPL=0 ELF].
 - **`--wrap=boot_info_init` took effect.** The startup code calls
@@ -76,10 +85,12 @@ labels project=lunar-modulator, session=wave2) with
   `boot_info_init` (`0x2000292`) [verified: disassembly].
 - **The GPL=1 build links no GPL code.** The FM-1 module list
   (`FM1_MODULES=dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance`)
-  names no Felucca engine, so the two images differ only in 19 bytes: four
-  copies of the 4-byte fail-open build id and three digits of an SDK
-  `__TIME__` string (07:47:18 against 07:48:27) [verified: `cmp -l` and the
-  bytes at each offset; no `felucca` object in the GPL=1 build tree]. The GPL=1 image is still never to be shared
+  names no Felucca engine, so the two images differ only in 18 bytes: four
+  copies of the 4-byte fail-open build id and two digits of an SDK
+  `__TIME__` string [verified on the review build: `cmp -l` and the bytes at
+  each offset; the implementer's build showed the same pattern in 19 bytes].
+  The GPL=1 build tree holds the `engines/third_party/felucca*` sources (the
+  whole source tree is copied) but compiles none of them. The GPL=1 image is still never to be shared
   (CLAUDE.md); the GPL=0 image is the shareable variant in principle, but
   nothing is published.
 - **The heap minimum is borrowed.** The 47,212 B minimum is the dev-board
@@ -101,7 +112,66 @@ labels project=lunar-modulator, session=wave2) with
 - `tests/test_prepare_fm1_app.py`, 4 tests, using a synthetic SDK: the tree
   edits, the flag order before `include lunar-renderer.mk`, the GPL switch,
   the debug-UART option and the bad-argument refusals.
+- `tests/test_fm1_live.py`, 4 tests (2 cases, plain and ASan/UBSan; added
+  in review): the audio adapter `fm1_live.c` itself, built on the host with
+  the pipelined app and a stand-in for the native pipeline that prepares
+  each result as `worker_step` does and applies its post-consume tag check.
+  600 blocks run with every block produced, and 19 panel and MIDI events
+  applied, while the previous block is still in flight; it checks the
+  router's counts, the octave, cutoff and resonance, the L,R,L,R output
+  words, silence before the first note and sound after it. A negative
+  control calls `fm1_app_key` while a block is in flight and must be
+  refused. With the original `memset` restored the replay fails at the tag
+  check, so the test does catch the bug below.
 - The full numbers are in the PR's test results.
+
+## Review (2026-11-09)
+
+An adversarial review of `684b2624` found and fixed:
+
+1. **No audio at all (blocking).** `convert()` in `fm1_live.c` cleared the
+   whole result, tag included, after the worker had set the tag.
+   `renderer_pipeline_sdk.c` `worker_step` refuses any block whose tag does
+   not come back unchanged (`E_TAG`), so every block from tag 1 on was
+   refused and the app would have stopped in prefill [verified: the source
+   of both, and the new host test failing on the old code]. The kit adapter
+   `renderer_live.c` does not clear the result; the FM-1 adapter does not
+   any more.
+2. **Silent task exits.** Six error paths in `lunar_fm1_main` returned from
+   the task, and a run-loop refusal parked it, without a reset. Returning
+   from a FreeRTOS task function is undefined, and before its watch slot
+   existed the failure was invisible to fail-open. Every one now calls
+   `fail(stage)`: it reports, notes fault `0x40 + stage` in the fail-open
+   record (`0x41` timer, `0x42` init, `0x43` pipeline bind, `0x44` prefill,
+   `0x45` panel task, `0x46` ALNK0, `0x47` run-loop refusal) and resets, so
+   the boot counter sees a boot that did not reach healthy. The main task
+   now registers its watch slot (5 s) first and beats through init and
+   prefill, so a hang there is a stall reset too.
+3. **ISR sign shift.** The ALNK0 ISR shifted a possibly negative `int32_t`
+   left by 8; it now multiplies by 256 (same code, defined behaviour).
+4. **Crystal comment.** The `wait_ms` comment now cites the 24 MHz crystal
+   [verified: V15 `isd_config` `OSC_FREQ`, docs/02].
+
+Flagged, not changed:
+
+- **The recovery-key check is not a debounce.** Its three scans run back
+  to back, so they confirm a stable matrix reading, not a held key over
+  time. It is part of owner decision 1 below.
+- **Status line cost.** The producer prints a status line every 8,192 blocks
+  (about 11.9 s): about 250 characters at 1 Mbaud, about 2.5 ms in the
+  priority-16 producer, inside the 8-block (11.6 ms) output buffer
+  [inferred]. With PB3 unmapped it still formats the line.
+- **ISR retire path.** The ALNK0 ISR's retire posts the pipeline semaphore
+  and may yield, as the kit's DAC IRQ does; the kit's 30-minute soak
+  exercised that path (`notes/2026-10-29-devkit-soak30.md`), not on ALNK0.
+- **Fail-open under the stock SPL.** Whether the record at the top of RAM0
+  survives a warm reset under the FM-1's stock V1.1.9 SPL is [inferred]
+  (`notes/2026-11-08-failopen-watchdog.md`); it was proven only on the kit.
+  Until it is checked on an FM-1, the counter is not a proven recovery
+  route there; docs/17 is.
+- **This is a flash-install image.** docs/18 runs M5–M7 (RAM-only first)
+  before M8; no RAM-only image of the app exists yet.
+
 
 ## Not done or not tested
 
@@ -163,7 +233,8 @@ labels project=lunar-modulator, session=wave2) with
 
 ## Files left on disk
 
-On aeon, under `/datasets/lunar-modulator/fm1-wave1/fm1-app-image`:
+On aeon, under `/datasets/lunar-modulator/fm1-wave1/fm1-app-image`
+(implementer) and `.../fm1-app-image-review` (review):
 
 - **Kept as evidence**: the prepare, build, audit and budget logs, the JSON
   output, and the two `app-fm1-gpl*.bin` images. These are private builds
@@ -172,7 +243,11 @@ On aeon, under `/datasets/lunar-modulator/fm1-wave1/fm1-app-image`:
   reviewed scheduler archive, about 755 MB with everything else. Remove it
   once this PR merges.
 - **Removed** after measurement: the two build trees, both source copies, the
-  baseline inspect tree and the disassembly.
+  baseline inspect tree and the disassembly; the review's two build trees.
+- **Review lane**: its logs, JSON, the two `app-rv-gpl*.bin` images, a
+  `src/` archive of `5a1928f3` and `private/` (a symlink to the implementer's
+  SDK plus a copy of the scheduler archive), 49 MB in all. Remove with the
+  implementer's `private/` once this PR merges.
 
 Every build container ran with `--rm`. One other wave2 container was already
 running before these builds; it belongs to another lane and was left alone.

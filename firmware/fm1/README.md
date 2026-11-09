@@ -34,10 +34,9 @@ the kit's test workload for these files and the board layer
   codec, IRQ 11, CPU0), 64-frame halves [reported: Felucca, fm1-nes]. The
   pipeline runs without the kit's lifetime bound (`LUNAR_PIPELINE_UNBOUNDED`);
   its 32-bit block tag lasts about 72 days of continuous audio at 44,118 Hz
-  before the pipeline refuses the reserved tag 0xffffffff and the app parks
-  [inferred: 2^32 × 64 / 44,118 s ≈ 6.2 million s]; the parked task stops
-  beating and the supervisor resets the unit about 2 s later. A tag wrap is
-  a later fix.
+  before the pipeline refuses the reserved tag 0xffffffff [inferred: 2^32 ×
+  64 / 44,118 s ≈ 6.2 million s]; the main task then resets the unit through
+  fail-open (fault `0x47`). A tag wrap is a later fix.
 - **Controls** (sim/web's mapping, limited by the pipelined app's fence):
   keys play sound 1 at velocity 100 from F3 (note 53); OCT−/OCT+ shift ±3
   octaves; KNOB1 sets sound 1's filter cutoff in semitone steps (20–18,000
@@ -51,8 +50,11 @@ the kit's test workload for these files and the board layer
   is written and tested, but the image has no USB device stack, so the unit
   does not enumerate as `4C4A:C755` and the stock OTA update path is absent.
 - **Recovery**: fail-open boot counter (three unhealthy boots lead to mask-ROM
-  update mode), a heartbeat supervisor over the producer and the panel task
-  (2 s), and a proposed key combination: OCT− and OCT+ held alone at power on.
+  update mode), a heartbeat supervisor over the main task (5 s) and the
+  panel task (2 s), a reset with fault `0x41`–`0x47` on any startup or
+  run-loop failure, and a proposed key combination: OCT− and OCT+ held alone at power on. Whether the fail-open
+  record survives a warm reset under the FM-1's stock SPL is [inferred];
+  docs/17 is the proven route.
 
 ## Known gaps (TODO markers in the source)
 

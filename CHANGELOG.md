@@ -18,8 +18,13 @@ history.
   the FM-1 board layer (keys, encoders, MASTER, display, TRS MIDI in), and the
   fail-open recovery. Keys play sound 1, OCT shifts octaves, KNOB1 and KNOB2
   move the filter, MASTER sets the level, and TRS MIDI plays sounds 1, 3 and
-  4. Both builds (GPL modules on and off) are 556,540 B, which leaves 25,024 B
-  of the stock app slot, and pass the size, SRAM and link audits. It has not
+  4. Both builds (GPL modules on and off) are 556,636 B, which leaves 24,928 B
+  of the stock app slot, and pass the size, SRAM and link audits. Review
+  fixes before merge: the audio adapter no longer clears the block tag the
+  pipeline checks (every block would have been refused, so no sound), and
+  every startup failure now resets through the fail-open counter instead of
+  stopping silently. A new host test drives the adapter through 600 blocks
+  of keys, knobs and MIDI. It has not
   run on an FM-1 or on the dev kit. USB-MIDI, the full panel UI and the
   screen UI are still to come (`firmware/fm1/README.md`,
   `notes/2026-11-08-fm1-app-image.md`).
