@@ -77,6 +77,16 @@ policy" carries the same text.
   the stock SPL/OTA/cfg package guards, never ship a V1.2.x uboot or loader
   (CLAUDE.md trap 11).
 
+## Open owner decisions — M12 package builder, 2026-11-09
+
+- **Lunar identity range.** `tools/jieli/build_fwsc.py` and
+  `sim/web/www/lunar-package-admission.js` (PR #182) accept only `FM-1_5xx`
+  as a Lunar package identity. DEVELOPERS.md lists that range as a plan;
+  the owner has not yet decided it. Changing it is one regex in each file.
+- **Device tests of a built package** (V15 → Lunar → V15, interrupted
+  transfer, power cut) each need docs/07 §4 approval, on the dev kit first.
+  None has been given or run. Details: `notes/2026-11-08-fwsc-builder.md`.
+
 ## Active work — 2026-10-11
 
 The Song/MIDI workspace is on `feature/2026-10-11@midi-sequencer-workspace`,
