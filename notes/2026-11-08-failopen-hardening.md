@@ -1,8 +1,10 @@
 # Fail-open hardening after the PR #180 review (M7), 2026-11-08
 
-**Result:** all seven findings are fixed, each with a desktop test. Six
-also passed on the AC79 dev kit, unattended, on 2026-11-09 08:03–08:12 UTC
-[verified: kit UART captures and the host's USB timeline, §3]:
+**Result:** all seven findings are fixed, each with a desktop test. Five
+(1, 2, 3, 5, 6) also passed on the AC79 dev kit, unattended, on 2026-11-09
+08:03–08:12 UTC [verified: kit UART captures and the host's USB timeline,
+§3]. Fix 4 was checked by negative links on the build host (§2), and fix 7 is
+logged on the kit (below). On the kit:
 
 - the three failing boots of PR #180 again ended in mask-ROM UBOOT by
   themselves;
@@ -30,7 +32,7 @@ sent to the Pico 2 W transporter.
 | 1 | The build id hashed only the fail-open sources, so a changed app, SDK library or link kept the old counter | The image hashes itself at boot: FNV-1a over `.text` through the load image of `.cache_ram_data`, read through XIP (`text_begin` to `cache_ram_data_lma + cache_ram_data_size`). That is exactly the flat `app.bin` the export writes [verified: export asserts the sections are contiguous]. `tools/jieli/failopen_image_id.py` gives the host value | `test_core` checks the C hash against the Python tool on a vector and on a one-bit change | every boot prints `image=… bytes=…`; compared with the host value of each `app.bin` (§3) |
 | 2 | Registration was optional: an image with fewer registered tasks than intended could still be marked healthy | `LUNAR_FAILOPEN_EXPECTED_SLOTS` is required (`#error`). At the healthy time a slot count other than expected, expected 0, or any refused registration is `UNREGISTERED`: the supervisor records fault `0x20` and resets | `registration()` in the harness: none, fewer, more, refused, expected 0, stall wins | `escalate` boot 1 |
 | 3 | Slot registration and record writes had no lock | Every core function that changes the record or the monitor (boot, claim, healthy, stable, fault, key, init, add, beat, poll) runs between `lunar_failopen_lock()` and `_unlock()`, which the platform must define (no weak default). The SDK glue uses `CPU_CRITICAL_ENTER`/`EXIT` | instrumented lock in `test_core` (every entry point takes it, balanced); `test_lock_under_thread_sanitizer`: 6 threads and a poller under TSan, plus a no-lock control that TSan must flag | `recover` boot 2: four racing registrations, two tasks rewriting the record for 2 s |
-| 4 | Nothing checked the record's placement at link time | Five `ASSERT`s appended to the linker script: the record is at `0x1c00000 + RAM0_SIZE - 32 - 64`, at or above `_HEAP_END`, ends at or below `ORIGIN(boot_info)`, the heap is not negative, 4-byte alignment. A compile-time check keeps the record within its 64 bytes | `test_preparer` checks the text; the preparer refuses a script without `ORIGIN(boot_info)` | negative links on the build host (§3) |
+| 4 | Nothing checked the record's placement at link time | Five `ASSERT`s appended to the linker script: the record is at `0x1c00000 + RAM0_SIZE - 32 - 64`, at or above `_HEAP_END`, ends at or below `ORIGIN(boot_info)`, the heap is not negative, 4-byte alignment. A compile-time check keeps the record within its 64 bytes | `test_preparer` checks the text; the preparer refuses a script without `ORIGIN(boot_info)` | negative links on the build host (§2) |
 | 5 | A build that reached healthy and then crashed reset its counter each time and looped forever | Record `LFO2` adds `cycles`: each healthy mark adds one, a stable mark (default 300 s up, 30 s in test images) clears it. `cycles >= limit` is FALLBACK, as sticky as `count` | `escalation()` in the harness | `escalate` boots 2–5 |
 | 6 | Heartbeat timeouts could be shorter than a flash erase, which stalls every core running from flash while the clock counts | `LUNAR_FAILOPEN_MIN_TIMEOUT_MS` (3000) refuses shorter timeouts, and a refusal counts against registration (fix 2). §4 has the bound | `test_min_timeout_covers_flash_erase`; refusals in `monitor()` | `escalate` boot 1 asks for 100 ms |
 | 7 | Cold-start detection relied on the SDK's reason, which ranks SOFT above power-on and caches its answer | The `setup_arch` hook now replaces the SDK's call. It reads `JL_SYSTEM->RST_SRC`, `P3_RST_SRC`, `P3_PMU_CON1` and `R3_WKUP_SRC` raw, then calls the SDK. Raw `P3_RST_SRC` bit 0 or 1 now also counts as cold. All values are logged. §5 has what this can and cannot prove | `test_sources_avoid_banned_paths` checks the order | every boot logs the raw values (§3) |
@@ -418,3 +420,21 @@ On the build host, in the lane's folder under the project's dataset area:
 - each image's `candidate-plan.json`.
 
 The build trees and the binaries were deleted.
+
+## 10. Desktop suite
+
+- CI ran on both pushed heads, and every check passed (14 of 14):
+  - `tests (ubuntu-24.04)`: 6,225 passed, 34 skipped, 2 xfailed;
+  - `tests (macos-latest)`: 6,217 passed, 42 skipped, 2 xfailed.
+
+  [verified: CI logs]
+- **TSan test.** On the build host, GCC 12's ThreadSanitizer aborted at start
+  with `unexpected memory mapping` in a Linux container. This is a kernel
+  ASLR setting, not a race. The test now retries under `setarch -R`. It skips
+  only when TSan still cannot start, or when ASLR cannot be turned off, as
+  under Docker's default seccomp profile.
+- **`test_core` hang.** In the same container, `test_core`'s ASan/UBSan
+  binary spun at full CPU for 13 minutes on one run, and was stopped. It
+  passed in that container just before, on the Mac, and in CI on both
+  systems. The cause is unexplained [inferred: an environment one-off of the
+  same sanitizer/ASLR kind].
