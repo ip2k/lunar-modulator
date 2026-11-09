@@ -37,11 +37,14 @@ class FakeTransporter:
 
     def __init__(self, *, uboot=True, v15=False, jump='timeout', jump_ms=2003,
                  read_fail=False, info='OK key=980F type=3 id=856014', flash=FLASH,
-                 memw_reply=None, loader=False, loader_running=False, corrupt_memr=False):
+                 memw_reply=None, loader=False, loader_running=False, corrupt_memr=False,
+                 keying=False):
         self.uboot, self.v15 = uboot, v15
         self.jump, self.jump_ms = jump, jump_ms
         self.read_fail, self.info_reply, self.flash = read_fail, info, flash
         self.memw_reply, self.corrupt_memr = memw_reply, corrupt_memr
+        self.keying = keying           # core 1 busy with USB_KEY: only core 0 answers
+        self.pending = None            # the one request core 0 holds for core 1
         self.loader_buf = bytearray(LOADER) if loader else bytearray(24064)
         self.loader_have = 24064 if loader else 0
         self.loader_running = loader_running
@@ -113,6 +116,10 @@ class FakeTransporter:
             return
         if line == 'ping':
             self._tx('PONG')
+            return
+        if self.keying:
+            if self.pending is None:
+                self.pending = line        # served after the handoff; extras dropped
             return
         parts = line.split()
         if parts and parts[0] == 'wsec':
@@ -660,6 +667,46 @@ def test_rekey_only_with_nothing_mounted(tmp_path):
     fake = FakeTransporter(uboot=False)
     code, _, opened = run(fake, ['rekey'], tmp_path, log='b.jsonl')
     assert code == 1 and opened == []
+
+
+def test_status_and_rekey_while_keying(tmp_path):
+    """Core 1 does not answer `status` until the USB_KEY handoff; the tool
+    stops with an explanation, and `rekey` is never sent without a status."""
+    fake = FakeTransporter(uboot=False, keying=True)
+    code, events, _ = run(fake, ['status'], tmp_path, log='a.jsonl')
+    assert code == 3 and fake.lines == ['ping', 'status']
+    assert 'not a fault' in events[-1]['verdict'] and 'UBOOT READY' in events[-1]['verdict']
+    fake = FakeTransporter(uboot=False, keying=True)
+    code, events, _ = run(fake, ['rekey', '--fm1-is-off'], tmp_path, log='b.jsonl')
+    assert code == 3 and fake.lines == ['ping', 'status'] and not fake.rebooted
+
+
+def test_ramrun_while_keying_sends_nothing_after_status(files, tmp_path):
+    fake = FakeTransporter(uboot=False, keying=True)
+    code, _, _ = run(fake, ramrun_argv(files), tmp_path)
+    assert code == 3 and fake.lines == ['ping', 'status'] and fake.sram == {}
+
+
+def test_stale_bytes_at_open_are_logged_not_used(files, tmp_path):
+    fake = FakeTransporter()
+    fake.out += b'OK uboot=1 v15=0 loader=1 loader_running=1\n'   # an old reply
+    code, events, _ = run(fake, ramrun_argv(files), tmp_path)
+    assert code == 0
+    assert events[1]['event'] == 'rx-discarded-at-open'
+    assert 'loader_running=1' in events[1]['data']
+
+
+def test_lost_rekey_reply_is_explained(tmp_path):
+    fake = FakeTransporter(uboot=False)
+    orig = fake._rx
+
+    def swallow(b):
+        orig(b)
+        if fake.rebooted:
+            fake.out.clear()
+    fake._rx = swallow
+    code, events, _ = run(fake, ['rekey', '--fm1-is-off'], tmp_path)
+    assert code == 3 and fake.rebooted and 'took effect' in events[-1]['verdict']
 
 
 def test_status_is_read_only(tmp_path):

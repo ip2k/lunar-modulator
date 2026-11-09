@@ -246,6 +246,12 @@ class Link:
         if flush:
             flush()
 
+    def drain_at_open(self):
+        waiting = getattr(self._port, "in_waiting", 0)
+        if waiting:
+            stale = self._port.read(waiting)
+            self._log("rx-discarded-at-open", data=stale.decode("latin-1"))
+
     def _check_quiet(self):
         waiting = getattr(self._port, "in_waiting", 0)
         if waiting:
@@ -321,7 +327,10 @@ def open_port(port):
 
 
 def handshake(link):
-    """Find the data port: `ping` is answered PONG by the transporter's core 0."""
+    """Find the data port: `ping` is answered PONG by the transporter's core 0,
+    even while core 1 is still keying. Bytes already waiting predate this run:
+    they are logged and dropped, never taken as a reply."""
+    link.drain_at_open()
     reply = link.request("ping", TIMEOUT_STATUS)
     if reply != "PONG":
         raise Stop(f"no PONG from the data port (got {reply!r}); is this the transporter's -if02?")
@@ -332,6 +341,13 @@ _STATUS = re.compile(r"OK uboot=([01]) v15=([01]) loader=([01]) loader_running=(
 
 def read_status(link):
     reply = link.request("status", TIMEOUT_STATUS)
+    if not reply:
+        # Only `ping` and `rekey` are served by core 0. `status` waits for core 1,
+        # which is busy until the USB_KEY handoff (src/transporter_proto.c, main.c).
+        raise Stop("no reply to `status`: the transporter's core 1 is busy, most likely "
+                   "waiting for the console or running the USB_KEY (the console shows "
+                   "`KEY: ... packets`). This is not a fault. With the FM-1 off and the key "
+                   "running, switch the FM-1 on and wait for `UBOOT READY`; do not rekey")
     m = _STATUS.fullmatch(reply)
     if not m:
         raise Stop(f"unexpected status reply {reply!r}")
@@ -359,6 +375,10 @@ def cmd_rekey(link, args, result):
         raise Stop(f"a device is still mounted on the transporter ({st}); the FM-1 is not off. "
                    "Switch it off and rerun rekey")
     reply = link.request("rekey", TIMEOUT_STATUS)
+    if not reply:
+        raise Stop("no reply to rekey. The transporter reboots 50 ms after answering, so the "
+                   "reply can be lost: if the console shows it rebooting and `KEY: sending`, "
+                   "the rekey took effect; otherwise replug the Pico with the FM-1 off")
     if reply != "OK rekey":
         raise Stop(f"unexpected rekey reply {reply!r}")
     result["verdict"] = "transporter rebooting into USB_KEY; reopen the console, then FM-1 on"

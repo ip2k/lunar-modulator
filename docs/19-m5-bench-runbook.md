@@ -40,7 +40,7 @@ and the transporter console's `k`. Each needs its own owner yes.
 | Subcommand | Lines it can send |
 | --- | --- |
 | `status` | `ping`, `status` |
-| `rekey --fm1-is-off` | `ping`, `status`, `rekey` (only when nothing is mounted) |
+| `rekey --fm1-is-off` | `ping`, `status`, `rekey` (only when `status` answers `uboot=0 v15=0`, so only from host mode, never while the key runs) |
 | `info --loader …` | `ping`, `status`, `ldr …` ×6 (the loader into the Pico's buffer), `info` |
 | `dump OUT --loader …` | the `info` lines plus `read 0x0 1048576` |
 | `ramrun m5.bin --sha256 …` | `ping`, `status`, `memw 0x1c02000 4096 …`, `memw 0x1c03000 64 …`, `memr` ×2, `jump 0x1c02000 0x1` |
@@ -102,8 +102,8 @@ and never types into it (`k` there sends the soft key):
 stty -F $C raw -echo 115200 && cat $C | tee -a console-N.log
 ```
 
-`rekey` reboots the transporter, which ends `cat`; start it again (a new
-`N`) within 10 s of every `rekey`.
+`rekey` and a replug reboot the transporter, which ends `cat`; start it
+again (a new `N`) within 10 s of every reboot.
 
 ## 4. The session
 
@@ -113,25 +113,37 @@ stty -F $C raw -echo 115200 && cat $C | tee -a console-N.log
 - The FM-1 is **switched off**. Check the switch itself; with the ROM
   running the display stays dark, so it is no guide.
 - The Pico is wired as in docs/17 §3 (GP0 to D+, GP1 to D−, GND to GND,
-  VBUS not connected), and plugged into bench01. Nothing else is connected
-  to the FM-1.
+  VBUS not connected). Its own USB goes into bench01 in step 1. Nothing else
+  is connected to the FM-1.
 - A camera or phone is ready to photograph the TFT and the LEDs.
 
 ### Part A: dumps before (ROM entry 1)
 
-1. **Claude:** `$T --log 01-status.jsonl status`
-   - Expected: `uboot=0 v15=0`. `v15=1` means the FM-1 is on, running V15:
-     the owner switches it off, and Claude repeats this step. The tool sends
-     nothing to a running V15 but `status` itself, which goes to the Pico.
-2. **Claude:** `$T --log 02-rekey.jsonl rekey --fm1-is-off`, then restart the
-   console reader within 10 s.
-   - Expected: `OK rekey`, then on the console
-     `KEY: sending 0x16EF, polarity A (D+ clock, D- data). Switch the FM-1 ON now.`
-     and a steadily rising `KEY: … packets` count.
-   - The transporter's "power-cycle the FM-1 now" is ignored: the FM-1 stays
-     off until the count runs.
-   - **Stop** if `D+ high in gap` shows within a few packets: the FM-1 is
-     probably on. The owner switches it off; repeat step 2.
+1. **Owner:** with the FM-1 off, plug the Pico into bench01 (or unplug it
+   and plug it back in). **Claude** starts the console reader at once: the
+   transporter waits up to 10 s for it, then keys by itself, because nothing
+   pulls D+ up [verified: upstream `src/main.c`].
+   - Expected on the console: `KEY: sending 0x16EF, polarity A (D+ clock,
+     D- data). Switch the FM-1 ON now.` and a steadily rising
+     `KEY: … packets` count.
+   - **`status` does not answer while the key runs.** Only `ping` and
+     `rekey` are served by the transporter's core 0; `status` waits for
+     core 1, which is busy keying until the ROM answers
+     [verified: `src/transporter_proto.c`, `src/main.c`]. So Claude does not
+     run the tool here. If it is run anyway, it stops with "no reply to
+     `status` … This is not a fault" (exit 3), having sent only `ping` and
+     `status`.
+   - **If the console instead says `D+ already pulled up … skipping
+     USB_KEY`,** the FM-1 was on. The transporter then hosts the running V15
+     after about 6 s. Claude runs `$T --log 01-status.jsonl status`
+     (expected `v15=1`). The owner switches the FM-1 off, Claude runs
+     `$T --log 01b-status.jsonl status` (expected `uboot=0 v15=0`), then
+     `$T --log 02-rekey.jsonl rekey --fm1-is-off` and restarts the console
+     reader within 10 s. The tool never sends anything to the running V15:
+     `status` and `rekey` go to the Pico.
+2. **Stop** if the console shows `D+ high in gap` within a few packets: the
+   FM-1 is probably on after all. The owner switches it off and replugs the
+   Pico (step 1).
 3. **Owner:** switch the FM-1 **on**. Note what the TFT does (it should stay
    dark).
    - **Claude** watches for `PULSE`, then `HANDOFF` within 6 s, then
@@ -167,7 +179,12 @@ stty -F $C raw -echo 115200 && cat $C | tee -a console-N.log
 ### Part B: the RAM run (ROM entry 2)
 
 9. **Claude:** `$T --log 09-rekey.jsonl rekey --fm1-is-off`; restart the
-   console reader; the key runs as in step 2.
+   console reader; the key runs as in step 1. `rekey` works here because the
+   transporter is in host mode after step 8 (its `status` answered).
+   - The Pico reboots 50 ms after writing `OK rekey`, so the reply can be
+     lost (exit 3, "no reply to rekey"). If the console shows the
+     transporter rebooting and `KEY: sending`, the rekey took effect;
+     otherwise replug the Pico with the FM-1 off, as in step 1.
 10. **Owner:** start filming the TFT and LEDs, then switch the FM-1 **on**.
     **Claude** waits for `UBOOT READY` as in step 3.
 11. **Claude:** `$T --log 11-status.jsonl status`
@@ -266,9 +283,10 @@ before anything else is tried.
   with Part C.
 - **The transporter is stuck** (no `PONG`, or `status` still says `uboot=1`
   with the FM-1 off):
-  - unplug the Pico from bench01 and plug it back in, with the FM-1 off;
-  - a transporter that boots with nothing pulling D+ up starts keying by
-    itself [verified: upstream `src/main.c`], the same as `rekey`;
+  - unplug the Pico from bench01 and plug it back in, with the FM-1 off.
+    This is the same move as step 1: a transporter that boots with nothing
+    pulling D+ up starts keying by itself [verified: upstream `src/main.c`],
+    the same as `rekey`;
   - reopen the console and go on from the step that needs a ROM entry.
   - Never re-flash the Pico, and never open its console at 1,200 baud
     (BOOTSEL).
