@@ -95,7 +95,7 @@ class Chip:
 
 @pytest.mark.parametrize('clock,baud,by3,value', [
     (48_000_000, 1_000_000, 1, 15),        # 48 % 4 = 0 >= 48 % 3 = 0
-    (48_000_000, 115_200, 1, 137),          # div 416: 0 >= 2? no -> /4
+    (48_000_000, 115_200, 0, 103),          # div 416: 0 >= 2? no -> /4
     (48_000_000, 31_250, 1, 511),           # same rate as midi_uart.c's /4 383
 ])
 def test_baud_follows_sdk_uart_init(lib, clock, baud, by3, value):
@@ -104,8 +104,7 @@ def test_baud_follows_sdk_uart_init(lib, clock, baud, by3, value):
     div = clock // baud
     expect_by3 = (div % 4) >= (div % 3)
     assert (flag.value, got) == (int(expect_by3), div // (3 if expect_by3 else 4) - 1)
-    if baud != 115_200:
-        assert (flag.value, got) == (by3, value)
+    assert (flag.value, got) == (by3, value)
 
 
 def test_baud_rejects_nonsense(lib):

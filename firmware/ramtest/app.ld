@@ -2,7 +2,7 @@
  * the window where the mask ROM accepted and ran the vendor loader
  * (0x01c02000 + 24,064 bytes [verified: notes/2026-10-22-devkit-uart-bringup.md
  * and tools/fm1_uboot_read.py]). Same layout as firmware/m5/app.ld, held to
- * 8 KiB here so the whole image, BSS and both stacks stay in that window;
+ * 16 KiB here so the whole image, BSS and both stacks stay in that window;
  * tools/ram_runner.py refuses any upload outside it. */
 ENTRY(_start)
 MEMORY { ram (rwx) : ORIGIN = 0x01c02000, LENGTH = 16K }
