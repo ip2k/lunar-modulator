@@ -147,6 +147,10 @@ An adversarial review of `684b2624` found and fixed:
    the boot counter sees a boot that did not reach healthy. The main task
    now registers its watch slot (5 s) first and beats through init and
    prefill, so a hang there is a stall reset too.
+   Trade-off: one 5 s slot now covers init, prefill and the run loop, so a
+   producer stall resets after 5 s instead of the original 2 s. A 2 s slot
+   would need the boot screen, init and the first prefill each to finish
+   inside 2 s, which is unmeasured on an FM-1.
 3. **ISR sign shift.** The ALNK0 ISR shifted a possibly negative `int32_t`
    left by 8; it now multiplies by 256 (same code, defined behaviour).
 4. **Crystal comment.** The `wait_ms` comment now cites the 24 MHz crystal

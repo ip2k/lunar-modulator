@@ -36,7 +36,10 @@ the kit's test workload for these files and the board layer
   its 32-bit block tag lasts about 72 days of continuous audio at 44,118 Hz
   before the pipeline refuses the reserved tag 0xffffffff [inferred: 2^32 ×
   64 / 44,118 s ≈ 6.2 million s]; the main task then resets the unit through
-  fail-open (fault `0x47`). A tag wrap is a later fix.
+  fail-open (fault `0x47`) [verified in source, not run:
+  `lunar_pipeline_reserve_work` returns −1 for that tag, `produce` and `pump`
+  pass it up, and the run loop ends in `fail(STAGE_REFUSED)`]. A tag wrap is
+  a later fix.
 - **Controls** (sim/web's mapping, limited by the pipelined app's fence):
   keys play sound 1 at velocity 100 from F3 (note 53); OCT−/OCT+ shift ±3
   octaves; KNOB1 sets sound 1's filter cutoff in semitone steps (20–18,000
