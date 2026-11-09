@@ -86,8 +86,8 @@ ranges and the recovery plan.
 | M1 | Release rule on the kit | 30 min, no underrun, means ≤ 85%, worst block explained | — | — | **done** 2026-10-29 |
 | M2 | Size and SRAM budget gate | a tool that reads a pi32v2 image and map and checks it against V15's app slot and the FM-1's free SRAM; the soak image's real figure recorded | none | none | **done** 2026-11-08 (#171, #178) |
 | M3 | FM-1 board layer on main | display, keys, LEDs, MIDI in, ALNK0 audio and codec init, clocks and power left as the SPL sets them, `boot_info` bridge; built for pi32v2, `audit_link.py` and M2 pass. Sourced from Codex's branch where its licence allows, clean-room where not (decision 2) | none | none (licence: decision 1) | code in #176, #179 |
-| M4 | Bounded RAM runner on the kit | upload and jump only; erase, program, `0xFC12`, `0xA1`, syscmd 33–36/48, `5A AA A5` and the soft key refused in code; a RAM test image reports over UART | none (kit) | bench yes | after M3 pieces |
-| M5 | First Lunar code on the FM-1 since recovery, from RAM | build id and test pattern on the TFT, LEDs blink; a power cycle returns V15; a read-only dump before and after has the same hash | RAM only | §4 approval | blocked on M4 |
+| M4 | Bounded RAM runner on the kit | upload and jump only; erase, program, `0xFC12`, `0xA1`, syscmd 33–36/48, `5A AA A5` and the soft key refused in code; a RAM test image reports over UART | none (kit) | bench yes | **done on the kit** 2026-11-08: two runs, image loaded, read back, run and reset to the app (`notes/2026-11-08-ram-runner-devkit.md`) |
+| M5 | First Lunar code on the FM-1 since recovery, from RAM | build id and test pattern on the TFT, LEDs blink; a power cycle returns V15; a read-only dump before and after has the same hash | RAM only | §4 approval | plan ready for approval (`notes/2026-11-08-ram-runner-devkit.md` §5) |
 | M6 | Audio path on the FM-1 from RAM | ALNK0 at about 44,118 Hz, one reduced engine plays cleanly, per-block timing at 360 MHz reported. The full image does not fit in SRAM [inferred] | RAM only | §4 approval | blocked on M5 |
 | M7 | Fail-open boot and watchdog, power-cut tested on the kit | a boot-looping build reaches update mode by itself; a power cut at every update stage recovers (docs/07 §4 rules 4–5) | none (kit) | bench yes per run | kit-tested in #180; power cuts pending |
 | M8 | First flash install on the FM-1 | backups first; `package_guard.py` passes; the head is unchanged; writes stay inside `[0x4000, 0x93000)`; Lunar boots; fail-open tested; V15 restored and read back | **flash app region** | §4 approval | blocked on M5–M7 |
@@ -136,8 +136,11 @@ Asked 2026-10-29; answers recorded here when they come.
   and protect VM `0x93000`+ on V15 (`notes/2026-11-08-0x94600-forensics.md`).
 - The soak note's 5,332 B of heap after DAC open against 96–1,568 B in
   `pipeline-image-sizes.json`: possibly different images.
-- The RAM load-and-jump route is untested on WL82; the ROM has only loaded
-  JieLi's own loader on this unit.
+- The RAM load-and-jump route works on WL82's ROM on the dev kit (two runs,
+  2026-11-08, `notes/2026-11-08-ram-runner-devkit.md`); on the FM-1 the
+  ROM has still only loaded JieLi's own loader. `FB08` does not answer for
+  an image that never returns [inferred], so the transporter's `jump` will
+  report `ERR jump` for M5.
 - The DAC (U9, 10 leads) is unidentified. No known code writes a codec
   register, so ALNK0 alone starts audio [inferred, strong: #176]; I2S
   against left-justified is unsettled until U9 is read.
