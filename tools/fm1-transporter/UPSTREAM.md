@@ -16,7 +16,9 @@
     - there is no soft-key path (`uboot`, `ensure_uboot`) and the console
       port is never opened;
     - `ramrun` is fixed to the one approved image, address `0x01C02000` and
-      argument 1, and never uploads the loader;
+      argument 1, and never uploads the loader; the send gate carries the
+      image's bytes only, inside `[0x01C02000, 0x01C03040)`, and a lock file
+      allows one attempt per run directory;
     - `info`/`dump` only read flash: no `write`, `selftest-write`,
       `runapp` or `wsec`;
     - an allow-list gates every line it sends, and a JSONL receipt records

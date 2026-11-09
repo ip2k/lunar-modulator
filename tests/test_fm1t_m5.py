@@ -31,6 +31,32 @@ def crc(data):
     return zlib.crc32(data) & 0xFFFFFFFF
 
 
+def strtoul(text, base):
+    """C strtoul on a token: the longest valid prefix, 0 when there is none."""
+    t = text.lstrip(' \t')
+    if base == 0:
+        if t[:2].lower() == '0x':
+            base, t = 16, t[2:]
+        elif t[:1] == '0':
+            base = 8
+        else:
+            base = 10
+    elif base == 16 and t[:2].lower() == '0x':
+        t = t[2:]
+    digits = '0123456789abcdef'[:base]
+    n = 0
+    while t and t[0].lower() in digits:
+        n = n * base + digits.index(t[0].lower())
+        t = t[1:]
+    return n & 0xFFFFFFFF
+
+
+def first_word_after(line, start):
+    """`strtoul(strchr(rx_line + start, ' ') + 1, NULL, 0)`, or 0 without a space."""
+    i = line.find(' ', start)
+    return strtoul(line[i + 1:], 0) if i >= 0 else 0
+
+
 class FakeTransporter:
     """The data port's line protocol and state, after transporter_proto.c:
     core 0's line and payload collection, core 1's command handlers."""
@@ -45,6 +71,7 @@ class FakeTransporter:
         self.memw_reply, self.corrupt_memr = memw_reply, corrupt_memr
         self.keying = keying           # core 1 busy with USB_KEY: only core 0 answers
         self.pending = None            # the one request core 0 holds for core 1
+        self.dropped = []              # lines core 0 dropped while a request was pending
         self.loader_buf = bytearray(LOADER) if loader else bytearray(24064)
         self.loader_have = 24064 if loader else 0
         self.loader_running = loader_running
@@ -54,6 +81,8 @@ class FakeTransporter:
         self.lines = []                # every request line
         self.softkey_sent = False
         self.flash_written = False
+        self.runapp_sent = False
+        self.jumps = []                # (addr, arg) of every jump core 1 served
         self.rebooted = False
         self.closed = False
         self.timeout = 1
@@ -101,7 +130,7 @@ class FakeTransporter:
             line, n = self._payload
             if len(self._buf) == n:
                 self._payload = None
-                self._poll(line, bytes(self._buf))
+                self._request(line, bytes(self._buf))
             return
         if b == 0x0D:
             return
@@ -117,27 +146,33 @@ class FakeTransporter:
         if line == 'ping':
             self._tx('PONG')
             return
-        if self.keying:
-            if self.pending is None:
-                self.pending = line        # served after the handoff; extras dropped
+        if self.pending is not None:
+            self.dropped.append(line)      # `if (req_pending) continue;`
             return
-        parts = line.split()
-        if parts and parts[0] == 'wsec':
+        if line.startswith('wsec '):
             self._payload, self._buf = (line, 4096), bytearray()
             return
-        if parts and parts[0] in ('ldr', 'memw') and len(parts) >= 3:
-            n = int(parts[2], 0)
+        if line.startswith('ldr ') or line.startswith('memw '):
+            n = first_word_after(line, 4 if line.startswith('ldr ') else 5)
             if 1 <= n <= 4096:
                 self._payload, self._buf = (line, n), bytearray()
                 return
-        self._poll(line, b'')
+        self._request(line, b'')
+
+    def _request(self, line, payload):
+        """`req_pending = true`: core 1 serves it now, or after the USB_KEY
+        handoff while it is still keying (until then, core 0 drops new lines)."""
+        if self.keying:
+            self.pending = line
+            return
+        self._poll(line, payload)
 
     def _tx(self, text):
         self.out += text.encode() + b'\n'
 
     # -- core 1
     def _poll(self, line, payload):
-        argv = line.split()
+        argv = [t for t in re.split('[ \t]+', line) if t][:4]     # strtok, argc < 4
         if not argv:
             return
         cmd, argc = argv[0], len(argv)
@@ -161,9 +196,11 @@ class FakeTransporter:
             else:
                 self._tx(self.info_reply)
         elif cmd == 'read' and argc == 3:
-            addr, n = int(argv[1], 0), int(argv[2], 0)
+            addr, n = strtoul(argv[1], 0), strtoul(argv[2], 0)
             if not self.uboot:
                 self._tx('ERR no-uboot')
+            elif n == 0 or addr >= 0x100000 or n > 0x100000 - addr:
+                self._tx('ERR range')
             elif not self._ensure_loader():
                 self._tx('ERR loader')
             else:
@@ -176,25 +213,34 @@ class FakeTransporter:
                     self.out += data
                     self._tx(f'END {crc(data):08X}')
         elif cmd == 'runapp':
+            self.runapp_sent = True
+            self._tx('OK' if self.loader_running else 'ERR no-loader')
             self.loader_running = False
-            self._tx('OK')
         elif cmd == 'wsec' and argc == 3:
-            self.flash_written = True
-            self._tx('OK')
+            if self.uboot:
+                self.flash_written = True
+            self._tx('OK' if self.uboot else 'ERR no-uboot')
         elif cmd == 'ldr' and argc == 4:
-            off, n, c = int(argv[1], 0), int(argv[2], 0), int(argv[3], 16)
+            off, n, c = strtoul(argv[1], 0), strtoul(argv[2], 0), strtoul(argv[3], 16)
             if crc(payload) != c:
                 self._tx(f'ERR crc {crc(payload):08X}')
             elif self.loader_running:
                 self._tx('ERR loader-running')
             else:
-                self.loader_buf[off:off + n] = payload
-                self.loader_have = max(self.loader_have, off + n)
-                self._tx('OK')
+                if off == 0:
+                    self.loader_have = 0           # jl_loader_load: restart at 0
+                if off != self.loader_have or n > 24064 - off:
+                    self._tx('ERR loader-range')
+                else:
+                    self.loader_buf[off:off + n] = payload
+                    self.loader_have += n
+                    self._tx('OK')
         elif cmd == 'memw' and argc == 4:
-            addr, n, c = int(argv[1], 0), int(argv[2], 0), int(argv[3], 16)
+            addr, n, c = strtoul(argv[1], 0), strtoul(argv[2], 0), strtoul(argv[3], 16)
             if not self.uboot:
                 self._tx('ERR no-uboot')
+            elif not 1 <= n <= 4096:
+                self._tx('ERR len')
             elif crc(payload) != c:
                 self._tx(f'ERR crc {crc(payload):08X}')
             elif self.loader_running:
@@ -206,9 +252,11 @@ class FakeTransporter:
                     self.sram[addr + i] = b
                 self._tx('OK')
         elif cmd == 'memr' and argc == 3:
-            addr, n = int(argv[1], 0), int(argv[2], 0)
+            addr, n = strtoul(argv[1], 0), strtoul(argv[2], 0)
             if not self.uboot:
                 self._tx('ERR no-uboot')
+            elif not 1 <= n <= 4096:
+                self._tx('ERR len')
             elif self.loader_running:
                 self._tx('ERR loader-running')
             else:
@@ -219,6 +267,7 @@ class FakeTransporter:
                 self.out += data
                 self._tx(f'END {crc(data):08X}')
         elif cmd == 'jump' and argc == 3:
+            self.jumps.append((strtoul(argv[1], 0), strtoul(argv[2], 0) & 0xFFFF))
             if not self.uboot:
                 self._tx('ERR no-uboot')
             elif self.loader_running:
@@ -474,10 +523,19 @@ def test_jump_verdict_function():
     assert m5.jump_verdict('ERR jump ms=2000 extra')[0] != 0
 
 
+def write_image(link):
+    for off in (0, 4096):
+        chunk = IMAGE[off:off + 4096]
+        link.send_line(f'memw {0x1c02000 + off:#x} {len(chunk)} {crc(chunk):08X}')
+        link.send_payload(chunk)
+        assert link.recv_line(1) == 'OK'
+
+
 def test_nothing_sent_after_jump():
     fake = FakeTransporter()
-    link = m5.Link(fake, 'ramrun', lambda *a, **k: None)
+    link = m5.Link(fake, 'ramrun', lambda *a, **k: None, image=IMAGE)
     link.request('ping', 1)
+    write_image(link)
     link.request('jump 0x1c02000 0x1', 1)
     wire = bytes(fake.wire)
     for line in ('status', 'ping', 'jump 0x1c02000 0x1', 'memr 0x1c02000 64'):
@@ -488,13 +546,66 @@ def test_nothing_sent_after_jump():
 
 def test_memw_never_resent():
     fake = FakeTransporter()
-    link = m5.Link(fake, 'ramrun', lambda *a, **k: None)
-    chunk = bytes(64)
-    link.send_line(f'memw 0x1c02000 64 {crc(chunk):08X}')
+    link = m5.Link(fake, 'ramrun', lambda *a, **k: None, image=IMAGE)
+    chunk = IMAGE[:4096]
+    link.send_line(f'memw 0x1c02000 4096 {crc(chunk):08X}')
     link.send_payload(chunk)
     link.recv_line(1)
     with pytest.raises(m5.Refused, match='never resent'):
-        link.send_line(f'memw 0x1c02000 64 {crc(chunk):08X}')
+        link.send_line(f'memw 0x1c02000 4096 {crc(chunk):08X}')
+    assert fake.lines == [f'memw 0x1c02000 4096 {crc(chunk):08X}']
+
+
+def test_gate_holds_the_approved_image():
+    """Even code that bypasses cmd_ramrun cannot put other bytes, another order,
+    or an early jump on the wire in a RAM-run session."""
+    for bad in (None, bytes(4160), IMAGE[:-1]):
+        with pytest.raises(m5.Refused, match='approved M5 image'):
+            m5.Link(FakeTransporter(), 'ramrun', lambda *a, **k: None, image=bad)
+    fake = FakeTransporter()
+    link = m5.Link(fake, 'ramrun', lambda *a, **k: None, image=IMAGE)
+    with pytest.raises(m5.Refused, match='before the whole approved image'):
+        link.send_line('jump 0x1c02000 0x1')
+    rest = IMAGE[4096:]
+    with pytest.raises(m5.Refused, match='out of order'):
+        link.send_line(f'memw 0x1c03000 64 {crc(rest):08X}')
+    other = bytes(4096)
+    link.send_line(f'memw 0x1c02000 4096 {crc(other):08X}')
+    with pytest.raises(m5.Refused, match="not the approved image's bytes"):
+        link.send_payload(other)
+    assert fake.wire == f'memw 0x1c02000 4096 {crc(other):08X}\n'.encode()
+    assert fake.sram == {}                       # the header alone writes nothing
+    half = m5.Link(FakeTransporter(), 'ramrun', lambda *a, **k: None, image=IMAGE)
+    first = IMAGE[:4096]
+    half.send_line(f'memw 0x1c02000 4096 {crc(first):08X}')
+    half.send_payload(first)
+    half.recv_line(1)
+    with pytest.raises(m5.Refused, match='4096 of 4160'):
+        half.send_line('jump 0x1c02000 0x1')
+
+
+def test_second_ramrun_from_the_same_directory_is_refused(files, tmp_path):
+    fake = FakeTransporter()
+    code, events, _ = run(fake, ramrun_argv(files), tmp_path, log='first.jsonl')
+    assert code == 0
+    lock = tmp_path / m5.RAMRUN_LOCK
+    assert json.loads(lock.read_text())['receipt'] == 'first.jsonl'
+    assert events[-1]['lock'] == str(lock)
+    again = FakeTransporter()                     # say the ROM came back
+    code, events, opened = run(again, ramrun_argv(files), tmp_path, log='second.jsonl')
+    assert code == 1 and opened == [] and again.wire == b'' and events == []
+
+
+def test_lock_only_once_the_first_memw_is_due(files, tmp_path):
+    """A ramrun stopped at the status gate sent nothing to the FM-1, so it does
+    not use up the attempt; one stopped after a memw does."""
+    code, _, _ = run(FakeTransporter(uboot=False), ramrun_argv(files), tmp_path, log='a.jsonl')
+    assert code == 3 and not (tmp_path / m5.RAMRUN_LOCK).exists()
+    fake = FakeTransporter(memw_reply='ERR memw at 01C02000')
+    code, _, _ = run(fake, ramrun_argv(files), tmp_path, log='b.jsonl')
+    assert code == 3 and (tmp_path / m5.RAMRUN_LOCK).exists()
+    code, _, opened = run(FakeTransporter(), ramrun_argv(files), tmp_path, log='c.jsonl')
+    assert code == 1 and opened == []
 
 
 # -- stops on unexpected replies ---------------------------------------------
@@ -728,6 +839,9 @@ def test_forbidden_lines_unsendable_in_every_mode(mode):
              'memw 0x1c05000 4096 00000000x', 'memw 0x1c02004 4 00000000',
              'memw 0x0 4 00000000', 'memw 0x1c02000 0 00000000', 'memw 0x1c05f00 512 00000000',
              'memr 0x1c06000 4', 'memr 0x1c05000 4097', 'jump 0x1c02000 0x0',
+             'memw 0x1c05000 4096 00000000', 'memw 0x1c03000 4096 00000000',
+             'memw 0x1c03000 65 00000000', 'memw 0x1c04000 4 00000000',
+             'memr 0x1c03000 4096', 'memr 0x1c04000 4',
              'jump 0x1c03000 0x1', 'jump 0x01c02000 0x1', 'ldr 24064 1 00000000',
              'ldr 20480 4096 00000000', 'ldr 0 0 00000000', 'ldr 100 4 00000000',
              'status ', ' status', 'status\nuboot', 'ping\r', 'uboot ', 'UBOOT', 'wsec',
@@ -742,7 +856,7 @@ def test_allow_list_per_mode():
     ok = {
         'ping': 'ping', 'status': 'status', 'rekey': 'rekey', 'info': 'info',
         'ldr': 'ldr 20480 3584 0123ABCD', 'read': 'read 0x0 1048576',
-        'memw': 'memw 0x1c05000 4096 0123ABCD', 'memr': 'memr 0x1c02000 64',
+        'memw': 'memw 0x1c03000 64 0123ABCD', 'memr': 'memr 0x1c02000 64',
         'jump': 'jump 0x1c02000 0x1',
     }
     for mode, names in m5.ALLOWED.items():
@@ -772,7 +886,7 @@ def test_random_and_mutated_lines_never_escape_the_patterns():
     rng = random.Random(7)
     allowed = re.compile('|'.join(m5.PATTERNS.values()))
     seeds = ['ping', 'status', 'rekey', 'info', 'read 0x0 1048576', 'jump 0x1c02000 0x1',
-             'memw 0x1c05000 4096 0123ABCD', 'memr 0x1c02000 64', 'ldr 20480 3584 0123ABCD']
+             'memw 0x1c02000 4096 0123ABCD', 'memw 0x1c03000 64 0123ABCD', 'memr 0x1c02000 64', 'ldr 20480 3584 0123ABCD']
     alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789x ABCDEF'
     for i in range(6000):
         if i % 2:
@@ -794,23 +908,25 @@ def test_random_and_mutated_lines_never_escape_the_patterns():
             assert allowed.fullmatch(line) and name in m5.ALLOWED[mode]
             if name in ('memw', 'memr'):
                 addr, n = int(line.split()[1], 16), int(line.split()[2])
-                assert 0x01C02000 <= addr and addr + n <= 0x01C06000 and 1 <= n <= 4096
+                assert 0x01C02000 <= addr and addr + n <= 0x01C03040 and 1 <= n <= 4096
 
 
 def test_payload_only_after_matching_header():
     fake = FakeTransporter()
-    link = m5.Link(fake, 'ramrun', lambda *a, **k: None)
+    link = m5.Link(fake, 'ramrun', lambda *a, **k: None, image=IMAGE)
+    head = IMAGE[:4]
     with pytest.raises(m5.Refused):
-        link.send_payload(b'\x00' * 4)
-    link.send_line(f'memw 0x1c02000 4 {crc(bytes(4)):08X}')
+        link.send_payload(head)
+    link.send_line(f'memw 0x1c02000 4 {crc(head):08X}')
     with pytest.raises(m5.Refused):
         link.send_payload(b'\x01' * 4)               # CRC does not match
     with pytest.raises(m5.Refused):
-        link.send_payload(bytes(5))                  # length does not match
+        link.send_payload(IMAGE[:5])                 # length does not match
     with pytest.raises(m5.Refused):
         link.send_line('status')                     # payload is due
-    link.send_payload(bytes(4))
-    assert fake.lines == ['memw 0x1c02000 4 2144DF1C'] and fake.sram[0x01C02003] == 0
+    link.send_payload(head)
+    assert fake.lines == [f'memw 0x1c02000 4 {crc(head):08X}']
+    assert [fake.sram[0x01C02000 + i] for i in range(4)] == list(head)
 
 
 def test_link_is_the_only_writer():
@@ -837,3 +953,65 @@ def test_no_soft_key_bytes_in_the_tool():
     assert b'\xf0\x22\x24\x35\x7d\xf7' not in data
     assert '04 F0 22 24 07 35' not in TOOL.read_text()
 
+
+
+# -- the fake against the firmware -------------------------------------------
+
+def test_fake_drops_lines_while_a_request_is_pending():
+    """transporter_proto.c drops every line but ping/rekey while core 1 holds a
+    request, so the payload of a dropped memw header would be read as text
+    lines. The tool never sends a second request before a reply: shown here on
+    the fake, which reproduces the hazard."""
+    fake = FakeTransporter(keying=True)
+    fake.write(b'status\n')
+    payload = b'uboot\nwsec 0x4000 0\n'
+    fake.write(f'memw 0x1c02000 {len(payload)} {crc(payload):08X}\n'.encode() + payload)
+    assert fake.pending == 'status'
+    assert fake.dropped == [f'memw 0x1c02000 {len(payload)} {crc(payload):08X}',
+                            'uboot', 'wsec 0x4000 0']
+
+
+def test_fake_parses_like_the_firmware():
+    assert strtoul('0x1c02000', 0) == 0x1C02000 and strtoul('4096', 0) == 4096
+    assert strtoul('0x1', 0) == 1 and strtoul('010', 0) == 8 and strtoul('2144DF1C', 16) == 0x2144DF1C
+    assert first_word_after('memw 0x1c02000 64 ABCD', 5) == 64
+    fake = FakeTransporter()
+    fake.write(b'status x y z w\n')                      # argv[0] decides, extras ignored
+    assert fake.readline().startswith(b'OK uboot=1')
+    fake.write(b'read 0x0 0\n')
+    assert fake.readline() == b'ERR range\n'
+    fake.write(b'ldr 4096 4 ' + f'{crc(bytes(4)):08X}'.encode() + b'\n' + bytes(4))
+    assert fake.readline() == b'ERR loader-range\n'       # chunks must arrive in order
+    fake.write(b'memw 0x1c02000 0 00000000\n')
+    assert fake.readline() == b'ERR len\n'
+    fake.write(b'jump 0x1c02000 0x10001\n')
+    assert fake.jumps == [(0x1C02000, 1)]                  # (uint16_t)arg
+
+
+def test_tool_sends_exactly_what_the_firmware_reads():
+    """Every line the tool sends in a full M5 session parses on the fake as the
+    firmware would: the right command, address, length and argument."""
+    fake = FakeTransporter()
+    link = m5.Link(fake, 'ramrun', lambda *a, **k: None, image=IMAGE)
+    link.request('ping', 1)
+    write_image(link)
+    link.request('jump 0x1c02000 0x1', 1)
+    assert fake.jumps == [(0x01C02000, 1)]
+    assert sorted(fake.sram) == list(range(0x01C02000, 0x01C03040))
+    assert bytes(fake.sram[a] for a in sorted(fake.sram)) == IMAGE
+    assert fake.dropped == [] and not fake.softkey_sent and not fake.flash_written
+    assert not fake.runapp_sent
+
+
+def test_lock_created_by_a_parallel_run_stops_before_memw(files, tmp_path):
+    fake = FakeTransporter()
+    orig = fake._poll
+
+    def racing(line, payload):
+        orig(line, payload)
+        if line == 'status':                     # another invocation got there first
+            (tmp_path / m5.RAMRUN_LOCK).write_text('{}\n')
+    fake._poll = racing
+    code, events, _ = run(fake, ramrun_argv(files), tmp_path)
+    assert code == 3 and fake.lines == ['ping', 'status'] and fake.sram == {}
+    assert 'no second attempt' in events[-1]['verdict']

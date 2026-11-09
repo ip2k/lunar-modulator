@@ -23,6 +23,9 @@ history.
   `fm1t.py` for the one approved RAM run on the FM-1:
   - it cannot send the soft key and never opens the transporter's console;
   - it loads only the approved M5 image at `0x01C02000` and jumps once;
+    its send gate itself holds the image, so no other bytes, range or early
+    jump can reach the wire, and a lock file allows one attempt per run
+    directory;
   - it treats the ROM's silence after the jump as the image running;
   - it never uploads the flash loader in the RAM-run session;
   - its `info` and `dump` only read flash, and `compare` requires

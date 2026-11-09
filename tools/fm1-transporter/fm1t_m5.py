@@ -28,12 +28,16 @@ What differs from upstream fm1t.py, and why:
    image (SHA-256 a60410de..., 4,160 B, build id m5-plan-1), checked against
    --sha256 before the port is opened. There is no flag that admits another
    image; that needs a code change and a new owner approval. --addr, --arg,
-   --clear, --poke and --read do not exist.
+   --clear, --poke and --read do not exist. The gate itself holds the image:
+   memw may only carry its bytes, in order, inside [0x01C02000, 0x01C03040),
+   and the jump is refused until all of them were written.
 3. The jump is sent once. `ERR jump ms=N` with N >= 1,500 is the expected
    result for an image that never returns (the Pico's 2,000 ms transfer
    timeout); the tool exits 0 with that verdict. Nothing at all is sent after
    the jump, and no memw is ever resent. Any other reply stops the run with a
-   non-zero exit.
+   non-zero exit. A lock file next to the receipt (fm1t_m5-ramrun.lock),
+   created just before the first memw, refuses any later ramrun from the same
+   run directory, so a stopped or finished attempt is never retried.
 4. The flash loader is never uploaded in a RAM-run session: `ramrun` refuses
    --loader, refuses FM1T_LOADER in the environment, and refuses to start
    unless the transporter reports loader=0 and loader_running=0 (a fresh
@@ -73,6 +77,10 @@ RAM_BASE = 0x01C02000            # load and jump address, fixed
 RAM_END = 0x01C06000             # the image must end at or before this (M5 link budget)
 JUMP_ARG = 0x1                   # as the ROM honoured on the dev kit; upstream LOADER_ARG
 MEMW_CHUNK = 4096                # transporter limit per memw / memr (JL_SECTOR_SIZE, JL_READ_MAX)
+
+# One RAM-run attempt per run directory: created just before the first memw,
+# next to the receipt. A second attempt (a retry) needs a new owner approval.
+RAMRUN_LOCK = "fm1t_m5-ramrun.lock"
 
 # JieLi's WL82 USB loader from kagaimiq's jl-uboot-tool (docs/17 section 1).
 LOADER_SHA256 = "d41da6126760c9d66660bcc0cac8d27d221806c5e369a8036921efe68dca5376"
@@ -203,6 +211,11 @@ def crc32(data):
 
 # -- The gate ----------------------------------------------------------------
 
+def approved_write_end():
+    """The end of the SRAM range the owner approved for writing: the image."""
+    return RAM_BASE + APPROVED_IMAGE_BYTES
+
+
 def check_line(mode, line):
     """Return the pattern name `line` matches in `mode`'s allow-list, or raise."""
     if mode not in ALLOWED:
@@ -218,8 +231,10 @@ def check_line(mode, line):
             continue
         if name in ("memw", "memr"):
             addr, length = int(m.group(1), 16), int(m.group(2))
-            if not 1 <= length <= MEMW_CHUNK or addr + length > RAM_END:
-                raise Refused(f"refused: {line!r} leaves [{RAM_BASE:#x}, {RAM_END:#x})")
+            end = approved_write_end()
+            if not 1 <= length <= MEMW_CHUNK or addr + length > end:
+                raise Refused(f"refused: {line!r} leaves the approved write range "
+                              f"[{RAM_BASE:#x}, {end:#x})")
         if name == "ldr":
             off, length = int(m.group(1)), int(m.group(2))
             if not 1 <= length <= LOADER_CHUNK or off + length > LOADER_BYTES:
@@ -232,13 +247,22 @@ class Link:
     """The only code that writes to the port. Every line is checked against the
     subcommand's allow-list, logged, then written; replies are logged."""
 
-    def __init__(self, port, mode, log):
+    def __init__(self, port, mode, log, image=None):
         self._port = port
         self.mode = mode
         self._log = log
-        self._payload = None        # (len, crc32) a memw/ldr header announced
+        self._payload = None        # (name, addr, len, crc32) a memw/ldr header announced
         self._memw_sent = set()
+        self._written = 0           # image bytes handed to memw, in order
         self.sealed = None          # reason nothing more may be sent
+        self._image = None
+        if mode == "ramrun":
+            # The gate itself knows the one approved image: a memw payload must be
+            # exactly its bytes at that address, and the jump needs all of them.
+            if image is None or hashlib.sha256(image).hexdigest() != APPROVED_IMAGE_SHA256 \
+                    or len(image) != APPROVED_IMAGE_BYTES:
+                raise Refused("refused: a RAM-run link needs the approved M5 image")
+            self._image = bytes(image)
 
     def _write(self, data):
         self._port.write(data)
@@ -269,11 +293,18 @@ class Link:
             addr = int(line.split()[1], 16)
             if addr in self._memw_sent:
                 raise Refused(f"refused: memw {addr:#x} again; a memw is never resent")
-            self._memw_sent.add(addr)
+            if addr != RAM_BASE + self._written:
+                raise Refused(f"refused: memw {addr:#x} out of order; the image goes up "
+                              f"in order from {RAM_BASE:#x}")
+        if name == "jump" and self._written != APPROVED_IMAGE_BYTES:
+            raise Refused(f"refused: jump before the whole approved image was written "
+                          f"({self._written} of {APPROVED_IMAGE_BYTES} B)")
         self._check_quiet()
+        if name == "memw":
+            self._memw_sent.add(addr)
         if name in ("memw", "ldr"):
             parts = line.split()
-            self._payload = (int(parts[2]), int(parts[3], 16))
+            self._payload = (name, int(parts[1], 0), int(parts[2]), int(parts[3], 16))
         self._log("tx", line=line)
         self._write(line.encode("ascii") + b"\n")
         if name == "jump":
@@ -285,10 +316,16 @@ class Link:
     def send_payload(self, data):
         if not self._payload:
             raise Refused("refused: payload bytes without a memw/ldr header")
-        length, crc = self._payload
+        name, addr, length, crc = self._payload
         if len(data) != length or crc32(data) != crc:
             raise Refused(f"refused: payload {len(data)} B crc {crc32(data):08X} does not "
                           f"match its header ({length} B, {crc:08X})")
+        if name == "memw":
+            off = addr - RAM_BASE
+            if self._image is None or data != self._image[off:off + length]:
+                raise Refused(f"refused: memw {addr:#x} payload is not the approved image's "
+                              "bytes at that address")
+            self._written += length
         self._payload = None
         self._log("tx-bytes", len=len(data), crc32=f"{crc32(data):08X}",
                   sha256=hashlib.sha256(data).hexdigest())
@@ -323,7 +360,7 @@ class Link:
 def open_port(port):
     """Open the data port at 115200 (pyserial imported only here)."""
     import serial  # noqa: PLC0415  (pyserial; never needed offline)
-    return serial.Serial(port, BAUD, timeout=1)
+    return serial.Serial(port, BAUD, timeout=1, exclusive=True)
 
 
 def handshake(link):
@@ -494,8 +531,10 @@ def jump_verdict(reply):
                    "that does not return. Image presumed running; the TFT and LEDs are the "
                    "proof. Nothing more is sent")
     return 3, (f"ERR jump after {ms} ms, outside [{JUMP_RUNNING_MIN_MS}, "
-               f"{JUMP_RUNNING_MAX_MS}]: the jump probably was not accepted; stop; "
-               "power off; do not retry")
+               f"{JUMP_RUNNING_MAX_MS}]: either the ROM refused the jump or the FM-1 left "
+               "the bus early (the console says which: `EP .. timeout` or `device gone`). "
+               "The image may be running: watch the unit and photograph it, then power off; "
+               "stop; do not retry")
 
 
 def cmd_ramrun(link, args, result):
@@ -506,6 +545,11 @@ def cmd_ramrun(link, args, result):
     if st["loader"] or st["loader_running"]:
         raise Stop(f"the transporter holds or runs the flash loader ({st}); a RAM run needs a "
                    f"fresh ROM entry. FM-1 off, rekey, FM-1 on")
+    lock = args.log.parent / RAMRUN_LOCK
+    with open(lock, "x") as f:       # raises FileExistsError: never a second attempt
+        f.write(json.dumps({"time": round(time.time(), 3), "receipt": args.log.name,
+                            "image_sha256": APPROVED_IMAGE_SHA256}) + "\n")
+    result["lock"] = str(lock)
     mem_write(link, RAM_BASE, image)
     back = mem_read(link, RAM_BASE, len(image))
     result["readback"] = "equal" if back == image else "MISMATCH"
@@ -613,6 +657,10 @@ def admit(args, environ):
             raise Refused("FM1T_LOADER is set in the environment; unset it: the loader is "
                           "never uploaded in a RAM-run session")
         args.image_bytes = admit_image(args.image, args.sha256)
+        if args.log and (args.log.parent / RAMRUN_LOCK).exists():
+            raise Refused(f"{args.log.parent / RAMRUN_LOCK} exists: M5 was already attempted "
+                          "from this run directory. There is no second attempt; another run "
+                          "needs a new owner approval")
     if args.cmd in ("info", "dump"):
         args.loader_bytes = admit_loader(args.loader)
     if args.cmd == "dump":
@@ -667,11 +715,16 @@ def main(argv=None, environ=None, opener=None):
         port = None
         try:
             port = opener(args.port)
-            link = Link(port, args.cmd, log)
+            link = Link(port, args.cmd, log, image=getattr(args, "image_bytes", None))
             handshake(link)
             code = PORT_COMMANDS[args.cmd](link, args, result) or 0
         except Refused as exc:
-            code, result["verdict"] = 1, f"refused: {exc}"
+            # The port is open, so something may have been sent: a stop, not exit 1.
+            code, result["verdict"] = 3, f"STOP: refused mid-session: {exc}"
+        except FileExistsError as exc:
+            why = ("M5 was already attempted from this run directory; no second attempt"
+                   if str(exc.filename).endswith(RAMRUN_LOCK) else "never overwritten")
+            code, result["verdict"] = 3, f"STOP: {exc.filename} exists: {why}"
         except Stop as exc:
             code, result["verdict"] = 3, f"STOP: {exc}"
         except Exception as exc:  # noqa: BLE001  (record it, then stop)

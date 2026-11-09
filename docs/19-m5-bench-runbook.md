@@ -55,14 +55,24 @@ and the transporter console's `k`. Each needs its own owner yes.
   `FM1T_LOADER`, `--addr`, `--arg`, `--clear`, `--poke` and `--read`. It
   starts only when the transporter reports `loader=0 loader_running=0`, so
   the RAM run always follows a fresh `rekey`.
+- **The gate holds the image too.** A `memw` can carry only the approved
+  image's bytes, in order, inside `[0x01C02000, 0x01C03040)`; `memr` reads
+  only that range; the `jump` is refused until all 4,160 bytes were written,
+  and nothing is sent after it.
+- **One attempt.** Just before its first `memw`, `ramrun` creates
+  `fm1t_m5-ramrun.lock` next to its receipt. Any later `ramrun` from the same
+  run directory refuses before opening the port, whatever happened the first
+  time. A second attempt needs a new owner yes (and deleting that file is not
+  a way round it).
 - **`info` and `dump` accept only JieLi's `wl82loader.bin`** (24,064 B,
   `d41da612…`), which runs from RAM and reads flash.
 - **Receipts.** Every invocation writes a new JSONL receipt (`--log`, never
   overwritten) with every line sent and received; payloads are logged by
   length, CRC-32 and SHA-256.
 
-Exit codes: `0` as expected; `1` refused before anything was sent; `2`
-bad arguments; `3` stopped after the session started (an unexpected reply).
+Exit codes: `0` as expected; `1` refused before the port was opened; `2`
+bad arguments; `3` stopped after the port was opened (an unexpected reply,
+or a refusal mid-session).
 
 ## 3. Before the session (desk, no hardware)
 
@@ -82,6 +92,13 @@ Claude, on the Mac:
 2. Copy `fm1t_m5.py`, `m5.bin` and `wl82loader.bin` to one run directory on
    bench01, for example `~/m5-run/`, and rerun the same `preflight` there with
    `--loader wl82loader.bin` too. The tool hash must equal the Mac's.
+
+3. On bench01, check that nothing else will open the transporter's ports:
+   `systemctl is-active ModemManager` should not say `active` (it probes
+   new `ttyACM` ports with `AT` commands), and, before the console reader
+   is started, no other `fm1t*`, `cat` or terminal program has the
+   transporter's ports open (`fuser $P $C`, with the variables below,
+   prints nothing). The tool opens `$P` exclusively.
 
 On bench01, every command below runs in that directory with these set
 (`<serial>` from `ls /dev/serial/by-id/`):
@@ -196,8 +213,12 @@ again (a new `N`) within 10 s of every reboot.
       ×2 and compares, then one `jump 0x1c02000 0x1`, then nothing more.
     - Expected output: `loaded 4160 B at 0x1c02000; read-back equal`, then
       `ERR jump after ~2000 ms: … Image presumed running`, exit 0.
-    - Any other result exits 3. Do not rerun `ramrun` in this ROM entry
-      (there is no second attempt in this session).
+    - Any other result exits 3. Do not rerun `ramrun` (there is no second
+      attempt in this session; the lock file refuses it anyway).
+    - **If it exits 3 after sending the jump** (the receipt has a `tx` line
+      `jump 0x1c02000 0x1`), the image may still be running: do step 13's
+      observation and photographs first, then power off and stop (§5). If it
+      stops before the jump, nothing ran: power off and stop.
 13. **Owner, at the unit:**
     - The TFT should show the test pattern with `m5-plan-1`.
     - The LEDs should blink `step` times, pause, and repeat. Six blinks is
@@ -205,6 +226,11 @@ again (a new `N`) within 10 s of every reboot.
       means is in [`firmware/m5/README.md`](../firmware/m5/README.md).
     - Photograph the TFT and film at least two LED cycles.
     - A dark TFT is a result, not a danger: record it, and go on.
+    - **If V15's normal screen appears** (the chip reset after the jump and
+      booted its application, which the transporter then hosts), photograph
+      it and do not run any tool command; go on with step 14, then stop and
+      ask the owner before Part C. The tool cannot send the soft key, but
+      nothing in this plan expects a V15 attached to the transporter.
 14. **Owner:** switch the FM-1 **off**. SRAM, and the image with it, is lost
     [inferred]. **Claude:** `$T --log 14-status.jsonl status` must show
     `uboot=0 v15=0`. If it does not, see §5, "The transporter is stuck".
@@ -228,7 +254,8 @@ again (a new `N`) within 10 s of every reboot.
     **Claude** stops the console reader.
 19. **Owner:** switch the FM-1 **on**. V15 should boot with its normal
     display. Plug the FM-1 into bench01 with a data cable.
-20. **Claude:** the read-only identity query (D4), as in docs/17 §7:
+20. **Claude:** the read-only identity query (D4), as in docs/17 §7, from
+    the Lunar checkout on bench01 (not `~/m5-run`), as on 2026-10-26:
 
     ```bash
     tools/fm1_identify.sh
@@ -258,7 +285,8 @@ again (a new `N`) within 10 s of every reboot.
 
 - `info` is anything but `OK key=980F type=3 id=856014`;
 - `before-A` and `before-B` differ, or `after-A` differs from `before-A`;
-- any tool step exits non-zero (3), or prints a reply not listed above;
+- any tool step exits non-zero (3), or prints a reply not listed above
+  (after a jump was sent, observe and photograph first: step 12);
 - the console shows anything that suggests the FM-1 is not the one in the
   ROM (a different INQUIRY string);
 - the owner sees smoke, heat or a swelling battery, or simply says stop.
