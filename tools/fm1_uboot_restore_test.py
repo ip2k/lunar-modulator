@@ -91,6 +91,7 @@ def checked_backup(directory):
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--device',required=True)
+    ap.add_argument('--usb-path',required=True,help='sysfs bus-port of the FM-1 in ROM mode')
     ap.add_argument('--backup',required=True,type=Path)
     ap.add_argument('--out',required=True,type=Path)
     ap.add_argument('--test-unused-sector',action='store_true',help='explicitly enable the fixed program/restore proof')
@@ -104,7 +105,7 @@ def main():
             fp.write(json.dumps({'time':time.time(),'event':event,**fields})+'\n'); fp.flush(); os.fsync(fp.fileno())
         reader=None
         try:
-            reader=RestoreReader(args.device,log)
+            reader=RestoreReader(args.device,log,usb_path=args.usb_path)
             # No loader reupload; only a live session that answers the flash query.
             reader.phase='loader'
             reader.online()

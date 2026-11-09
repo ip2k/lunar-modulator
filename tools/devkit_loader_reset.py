@@ -87,7 +87,7 @@ def main():
             fp.flush()
             if event != 'command':
                 os.fsync(fp.fileno())
-        reader = ResetReader(a.device, log)
+        reader = ResetReader(a.device, log, usb_path=a.usb_path, devnum=a.devnum)
         try:
             if reader.usb.name != a.usb_path or (reader.usb/'devnum').read_text().strip() != a.devnum:
                 raise ValueError('USB connection changed; no command')

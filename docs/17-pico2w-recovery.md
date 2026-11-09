@@ -346,6 +346,17 @@ not use [inferred].
   - `k` sends the soft key `F0 22 24 35 7D F7`.
   - Either way the FM-1 drops into the mask ROM (CLAUDE.md trap 9). That is
     only for a deliberate, authorised session.
+- **Do not let a VID:PID match pick the target.** The route above never
+  exposes the FM-1's ROM to the computer: the Pico hosts it, and you select
+  the Pico by its `/dev/serial/by-id/...-if02` port. If you instead enter
+  UBOOT by the soft key or the dev kit's UART handshake, the FM-1 and the
+  AC79 dev kit both enumerate as `4c4a:8057`. Every host-side ROM tool
+  (`tools/fm1_uboot_read.py`, `fm1_uboot_restore_test.py`,
+  `fm1_softkey_probe.py` and the `devkit_*` tools) therefore takes a
+  mandatory `--usb-path` (the sysfs bus-port, e.g. `1-2`), checks it against
+  the role fixed in the tool and `tools/bench_targets.json`, and refuses when
+  it does not match or when more than one `4c4a:8057` device is present. See
+  `firmware/devkit/README.md`, "Pinning the ROM target".
 - **Do not write any package but stock V15 with these files.** The shim
   refuses others on purpose.
 - **Do not use `ramrun`, `selftest-write` or `runapp`** in this procedure.

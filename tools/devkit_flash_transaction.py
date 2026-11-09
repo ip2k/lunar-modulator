@@ -408,7 +408,7 @@ def main():
             fp.flush()
             if event != 'command':
                 os.fsync(fp.fileno())
-        r = Writer(a.device, log)
+        r = Writer(a.device, log, usb_path=a.usb_path, devnum=a.devnum)
         try:
             r.desired = target if a.mode == 'install' else factory
             if r.usb.name != a.usb_path or (r.usb/'devnum').read_text().strip() != a.devnum:

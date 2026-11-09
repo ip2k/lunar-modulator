@@ -130,6 +130,38 @@ deadline or analog soak establishes only that named arrangement; it cannot
 accept the mixed stress test or arbitrary combinations. Neither named option
 admits a flash image or establishes hardware acceptance by itself.
 
+### Pinning the ROM target (mandatory)
+
+In ROM mode the dev kit and an FM-1 both enumerate as USB `4c4a:8057`, so
+selecting by VID:PID is not safe when both are plugged into the bench host.
+Every tool that opens a ROM/SCSI-generic device now pins its target through
+one helper, `tools/bench_target.py`:
+
+- `--usb-path` is required: the sysfs bus-port of the device, for example `1-2`
+  or `3-1.2` (`ls /sys/bus/usb/devices`, or `readlink /sys/class/scsi_generic/sgN/device`).
+- The role is fixed in each tool and never a flag: `fm1_uboot_read.py`,
+  `fm1_uboot_restore_test.py` and `fm1_softkey_probe.py` are `fm1`; every
+  `devkit_*` tool that opens the ROM device is `devkit`.
+- The path must match that role in `tools/bench_targets.json` (override the file
+  with `FM1_BENCH_TARGETS`). Recorded 2026-11-08: the FM-1 is on bus 1 at
+  `1-2` [verified: its normal-mode `4c4a:c755` listing; its ROM-mode port is
+  the same port, inferred]; the dev kit is on bus 3 behind the Tigard/audio hub
+  [verified: bus 3 listing], with its exact ROM-mode port still to be recorded
+  in `paths` after the first observation (until then only the bus is pinned and
+  `--usb-path` must name the port).
+- The tool refuses, before opening the node, if more than one `4c4a:8057` device
+  is present (even when one is the requested one), if the only ROM device is at a
+  different path (for example the FM-1 in ROM while the dev kit is requested), or
+  if `/dev/sgN` does not resolve to that path. It logs `target_pinned` with the
+  role, path and devnum to `commands.jsonl`.
+- `fm1_softkey_probe.py` also checks that the MIDI device is on the pinned FM-1
+  port, refuses to send the soft key while any `4c4a:8057` device is already
+  present, and treats a post-reset ROM device anywhere but the pinned path as
+  an error.
+
+Unplug or leave the other board out of ROM mode before a session; the ambiguity
+check is a backstop, not a substitute.
+
 ### Unattended dev-board test cycle
 
 The owner requires routine future dev-board tests to run without physical
