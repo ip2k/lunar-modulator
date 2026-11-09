@@ -285,6 +285,10 @@ file under `tools/fm1-transporter/`, reviewed like the shim:
    uploaded in the RAM-run session.
 5. **Log each line sent and received** to a receipt, as `ram_runner.py` does.
 
+Written 2026-11-09 as `tools/fm1-transporter/fm1t_m5.py`, tested offline
+against a fake of the data port (`tests/test_fm1t_m5.py`); the bench steps
+are docs/19.
+
 The firmware itself could also bound `memw` to the window and drop `uboot`
 and the console `k`. That changes the UF2 and its proven hash, so it is not
 proposed for M5.
@@ -419,6 +423,8 @@ touching any device:
 ## 7. Not done
 
 - Nothing was sent to the FM-1 or the Pico; §4 and §5 are desk work.
-- The patched `fm1t.py` of §4.2 is specified, not written.
+- The patched `fm1t.py` of §4.2 was specified here and written afterwards
+  (2026-11-09, `tools/fm1-transporter/fm1t_m5.py`); it has not been run
+  against the transporter.
 - No timing or clock measurement under the ROM.
 - The fixed-loader reset adapter path was not exercised in these runs.

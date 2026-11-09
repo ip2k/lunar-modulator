@@ -360,6 +360,8 @@ not use [inferred].
 - **Do not write any package but stock V15 with these files.** The shim
   refuses others on purpose.
 - **Do not use `ramrun`, `selftest-write` or `runapp`** in this procedure.
+  The one approved Lunar RAM run (M5) uses its own patched host tool,
+  `tools/fm1-transporter/fm1t_m5.py`, and its own runbook, docs/19.
 - The procedure keeps to CLAUDE.md trap 11: the transporter never sends
   loader command `FC12` or the raw `0xA1` eFuse write, and the loader runs
   only in RAM [verified: upstream `src/jieli_uboot.c`].

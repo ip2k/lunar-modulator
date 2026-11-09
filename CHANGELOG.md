@@ -10,6 +10,10 @@ history.
 
 ### Documentation
 
+- **M5 bench runbook** (docs/19): the numbered operator steps for the first
+  Lunar code on the FM-1, from RAM, with the exact commands, what the owner
+  does at the unit at each step, stop conditions and recovery. The owner
+  approved the run on 2026-11-09 (docs/18 §3); it has not happened yet.
 - M5 run plan for the FM-1 (RAM only, awaiting owner approval) and how FM-1-transporter would load and start a RAM image, with the host-side patch it needs (`notes/2026-11-08-ram-runner-devkit.md` §4–5).
 - Forensics note settling what `0x94600` meant in the 2026-10-15 stage-7 install (in-region for the 092 layout) and its implications for the FM-1 install write plan (`notes/2026-11-08-0x94600-forensics.md`, docs/18 §4).
 
@@ -35,6 +39,23 @@ history.
   (`notes/2026-11-08-failopen-hardening.md`).
 
 ### Added
+- **M5 host tool for the Pico transporter**
+  (`tools/fm1-transporter/fm1t_m5.py`). It is adapted from FM-1-transporter's
+  `fm1t.py` for the one approved RAM run on the FM-1:
+  - it cannot send the soft key and never opens the transporter's console;
+  - it loads only the approved M5 image at `0x01C02000` and jumps once;
+    its send gate itself holds the image, so no other bytes, range or early
+    jump can reach the wire, and a lock file allows one attempt per run
+    directory;
+  - it treats the ROM's silence after the jump as the image running;
+  - it never uploads the flash loader in the RAM-run session;
+  - its `info` and `dump` only read flash, and `compare` requires
+    byte-identical dumps;
+  - an allow-list gates every line it can send, and each run writes a JSONL
+    receipt.
+
+  Tested against a fake of the transporter's data port; not yet run on
+  hardware.
 - **Bounded RAM runner for the dev kit** (`tools/ram_runner.py`). With the
   AC79 dev kit in mask-ROM UBOOT, it uploads one SHA-256-admitted image into
   SRAM, reads it back and starts it, and does nothing else: only INQUIRY and

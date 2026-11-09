@@ -103,6 +103,7 @@ module is in the repository, so the page needs no WebAssembly toolchain.
 | The hardware and the stock firmware | [The hardware](#the-hardware), [docs/01](docs/01-hardware.md)–[03](docs/03-update-protocol.md) |
 | Anything that touches an FM-1 | [The hardware rules](#the-one-rule) first, then [docs/07](docs/07-recovery-and-risk.md) §4 |
 | Recovering an FM-1 to stock V15 | [docs/17](docs/17-pico2w-recovery.md) (Pico 2 W + FM-1-transporter) |
+| The first Lunar RAM run on the FM-1 (M5) | [docs/19](docs/19-m5-bench-runbook.md) and `tools/fm1-transporter/fm1t_m5.py` |
 
 ### All the commands
 
