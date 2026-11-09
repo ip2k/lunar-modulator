@@ -93,7 +93,7 @@ def test_fm1_app_tree(prepared):
     assert '-DLUNAR_DEVKIT_RENDERER_PIPELINE_DAC' not in make
     assert 'LUNAR_DEVKIT_BOOT_CONTROL' not in make
     for flag in ('-DFM1_APP_RENDER_PIPELINE=1', '-DLUNAR_FM1_APP=1', '-DLUNAR_PIPELINE_UNBOUNDED=1',
-                 '-DLUNAR_FAILOPEN_BUILD_ID=0x{:08x}u'.format(identity), '-DLUNAR_RENDERER_POLICY_CAP8=1'):
+                 '-DLUNAR_FAILOPEN_BUILD_ID=0x{:08x}u'.format(identity), '-DLUNAR_FAILOPEN_EXPECTED_SLOTS=2', '-DLUNAR_RENDERER_POLICY_CAP8=1'):
         assert make.index(flag) < make.index('include lunar-renderer.mk'), flag
     assert make.rstrip().endswith('LFLAGS += --wrap=boot_info_init')
     for name in ('boot_command.c', 'boot_control.c', 'sdk_worker.c'):
@@ -112,7 +112,8 @@ def test_fm1_app_tree(prepared):
 
     linker = (out/'cpu/wl82/sdk_ld_sfc.c').read_text()
     assert 'PROVIDE(lunar_failopen_record = 0x1c00000 + RAM0_SIZE - 32 - 64);' in linker
-    assert 'lunar_failopen_early(system_reset_reason_get());' in (out/'cpu/wl82/setup.c').read_text()
+    assert 'lunar_failopen_early();' in (out/'cpu/wl82/setup.c').read_text()
+    assert 'ASSERT(lunar_failopen_record >= _HEAP_END' in linker
     for d in ('firmware/fm1', 'firmware/board', 'firmware/display', 'firmware/failopen'):
         assert (out/'lunar-source'/d).is_dir()
     assert (out/'lunar-source/tools/jieli/fm1-app.mk').exists()
