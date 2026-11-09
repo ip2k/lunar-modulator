@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "recorded": "2026-11-08",
-  "note": "Expected sysfs USB bus-port paths of the two mask-ROM (4c4a:8057) devices on the bench host. fm1: the owner's FM-1, root port bus 1, path 1-2 [verified: its normal-mode 4c4a:c755 enumeration, read-only sysfs listing 2026-11-08; the same port is expected in ROM mode, inferred]. devkit: the AC79 dev kit hangs off bus 3 behind the Tigard/audio hub (3-1 and 3-2); its ROM-mode port was not enumerated when this was recorded, so only the bus is pinned and the tool's explicit --usb-path must name the exact port. Add the exact path to 'paths' after it has been observed once. Override the file with FM1_BENCH_TARGETS.",
+  "note": "Expected sysfs USB bus-port paths of the two mask-ROM (4c4a:8057) devices on the bench host. fm1: the owner's FM-1, root port bus 1, path 1-2 [verified: its normal-mode 4c4a:c755 enumeration, read-only sysfs listing 2026-11-08; the same port is expected in ROM mode, inferred]. devkit: the AC79 dev kit hangs off bus 3 behind the Tigard/audio hub (3-1 and 3-2); its ROM-mode port was not enumerated when this was recorded, so only the bus is pinned and the tool's explicit --usb-path must name the exact port. Add the exact path to 'paths' after it has been observed once. devkit 3-1.2 added 2026-11-08 after the fail-open runs observed the kit's ROM device there [verified: sysfs, notes/2026-11-08-failopen-watchdog.md and notes/2026-11-08-failopen-hardening.md]. Since 2026-11-08 (evening) port 1-2 carries the Pico 2 W FM-1 transporter (2e8a:000a), not the FM-1 itself [verified: sysfs listing]; the fm1 entry is unchanged here and is for the FM-1 lane to revisit [not checked by the fail-open lane]. Override the file with FM1_BENCH_TARGETS.",
   "roles": {
     "fm1": {"paths": ["1-2"], "buses": [1]},
-    "devkit": {"paths": [], "buses": [3]}
+    "devkit": {"paths": ["3-1.2"], "buses": [3]}
   }
 }
