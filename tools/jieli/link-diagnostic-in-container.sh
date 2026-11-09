@@ -9,6 +9,9 @@ REPORT_PROFILE=$PROFILE
 if [[ $PROFILE == m5-test-pattern ]]; then
     exec bash "$SRC/tools/jieli/link-m5-in-container.sh"
 fi
+if [[ $PROFILE == ramtest ]]; then
+    exec bash "$SRC/tools/jieli/link-ramtest-in-container.sh"
+fi
 case "$PROFILE" in
     inert) FOLDER=diagnostic; SOURCES=(startup.S memory.c runtime.c) ;;
     handover) FOLDER=handover; SOURCES=(startup.S capture.c runtime.c) ;;
