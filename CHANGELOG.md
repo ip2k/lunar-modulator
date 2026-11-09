@@ -12,6 +12,22 @@ history.
 
 - Forensics note settling what `0x94600` meant in the 2026-10-15 stage-7 install (in-region for the 092 layout) and its implications for the FM-1 install write plan (`notes/2026-11-08-0x94600-forensics.md`, docs/18 §4).
 
+### Fixed
+- **The fail-open boot no longer misses some failure cases.** Fixes from
+  the review of the first version:
+  - It now notices any change to the firmware, not only a change to its own
+    code.
+  - A build where a required task never starts is no longer counted as
+    healthy.
+  - A build that starts fine and then crashes, again and again, now also
+    goes into update mode by itself.
+  - Its bookkeeping is protected when both CPU cores use it.
+  - Its memory placement is checked when the firmware is built.
+  - Heartbeat timeouts can no longer be shorter than a flash erase.
+
+  Tested on the dev board; power-cut tests still need a person at the bench
+  (`notes/2026-11-08-failopen-hardening.md`).
+
 ### Added
 - **A build that keeps failing now recovers by itself.** Lunar's fail-open
   boot counts boots that do not reach "healthy". After three in a row, the

@@ -191,28 +191,47 @@ be assumed available after a crash. This workflow does not authorize FM-1 tests.
 ### Fail-open boot and watchdog test
 
 `tools/jieli/prepare-failopen-devkit.py --sdk SDK --source . --out OUT --mode
-cycle|recover` builds on `--boot-control` and adds four things:
+cycle|escalate|recover [--limit 3 --healthy-ms 10000 --stable-ms 30000]` builds
+on `--boot-control` and adds five things:
 
 - the fail-open record (`firmware/failopen/`), 64 bytes carved from the top
-  of the heap;
-- a hook in `setup_arch` that counts boots and enters UBOOT once the limit is
+  of the heap, with link-time `ASSERT`s on its placement;
+- a hook in `setup_arch`, in place of the SDK's `system_reset_reason_get()`
+  call. It reads the raw reset registers, then the SDK's reason. It hashes the
+  application image, counts the boot, and enters UBOOT once a limit is
   reached;
-- a heartbeat supervisor;
+- a heartbeat supervisor, which requires exactly
+  `LUNAR_FAILOPEN_EXPECTED_SLOTS` registered slots;
+- a lock around the record (`CPU_CRITICAL_ENTER`);
 - `failopen_worker.c` in place of the usual worker.
 
 What each mode does:
 
-- `cycle`: the image fails three times (P33 backstop, interrupts off until
-  the watchdog fires, stalled heartbeat). On the fourth boot it enters
-  UBOOT, with no host command.
-- `recover`: the image hangs once, then reports healthy and stays up.
-  Install it from the ROM state that `cycle` leaves behind.
+- `cycle` (1 slot): the image fails three times (P33 backstop, interrupts
+  off until the watchdog fires, stalled heartbeat). On the fourth boot it
+  enters UBOOT, with no host command.
+- `escalate` (2 slots): boot 1 asks for a 100 ms timeout, which is refused
+  because it is below the 3 s minimum, and the supervisor resets with
+  `unregistered=1`. Boots 2–4 reach healthy and then reset at 12 s, before
+  the stable time. Boot 5 enters UBOOT by itself.
+- `recover` (4 slots, registered by four racing tasks): the image hangs once.
+  On boot 2, two tasks also rewrite the record for 2 s and check it under the
+  lock. Then it reports healthy and then stable, and stays up. Install it from
+  the ROM state the other modes leave behind.
+
+Every boot prints `LUNAR_FAILOPEN image=XXXXXXXX ... bytes=N`. Compare it with
+`python3 tools/jieli/failopen_image_id.py app.bin` on the flat application
+image. Note that the vendor Makefile does not relink when only the linker
+script changes. Build from a fresh tree when you test the `ASSERT`s.
 
 Before every ROM operation, the bench runner must confirm the target by its
-sysfs path: one `4c4a:8057` at the kit's port, and the FM-1's port still
-`4c4a:c755`. It refuses otherwise. Results and limits are in
-`notes/2026-11-08-failopen-watchdog.md`. The kit was verified there on
-2026-11-08; power-cut tests are still pending.
+sysfs path: exactly one `4c4a:8057`, at the kit's port `3-1.2` (now recorded
+in `tools/bench_targets.json`), and no other JieLi device. It refuses
+otherwise. It never opens the FM-1 transporter's `/dev/ttyACM*` ports, and it
+holds an exclusive lock on `~/.lunar-devkit.lock` for each run. Results and
+limits are in `notes/2026-11-08-failopen-watchdog.md` and
+`notes/2026-11-08-failopen-hardening.md`. Power-cut tests need a person at the
+bench; the second note has the script.
 
 ## Live FM6 DAC workload
 
