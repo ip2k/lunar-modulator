@@ -11,6 +11,10 @@ original conversation; last updated 2026-11-09. Read this first, then
 
 ## M5 approved, host tool ready — 2026-11-09
 
+**Checkpoint, 2026-11-09:** #171–#186 are merged (#181 made the engine cost tests take the best of three runs) to main and no workflow is
+running. The next hardware step is the M5 bench session with the owner
+present, following docs/19. docs/18 §1.1–§1.2 list what each wave delivered.
+
 **Owner approval, 2026-11-09** (choice recorded verbatim: "Yes, M5 as
 planned"; docs/18 §3 item 5, docs/07 §4):
 

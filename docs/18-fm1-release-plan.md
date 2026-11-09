@@ -74,6 +74,16 @@ owner approval; this document approves nothing.
 | Web recovery | #173 | Web Serial page for the Pico 2 W transporter, D2 enforced in code, 40 offline tests |
 | Web flasher | #174 | install and roll-back panel on the admission-gated controller; still admits nothing |
 
+### 1.2 Wave 2 results (2026-11-08 to 2026-11-09)
+
+| Lane | PR | Result |
+| --- | --- | --- |
+| `.fwsc` builder (M12) | #182 merged | builds the package from the user's own V15 and passes `package_guard.py`; web admission done offline (`notes/2026-11-08-fwsc-builder.md`) |
+| FM-1 app image (M10, M11) | #183 merged | builds for pi32v2 and fits V15's slot with keys, OCT, KNOB1/2, MASTER and TRS in wired; no USB device stack yet (`notes/2026-11-08-fm1-app-image.md`) |
+| RAM runner (M4) | #184 merged | done on the kit: two runs loaded, read back, ran and reset to the app (`notes/2026-11-08-ram-runner-devkit.md`) |
+| Fail-open hardening (M7) | #185 merged | image hash, required heartbeat slots, link-time placement asserts, crash-loop escalation; the FM-1 app build carries them; power cuts still pending (`notes/2026-11-08-failopen-hardening.md`) |
+| M5 host tool | #186 merged | `tools/fm1-transporter/fm1t_m5.py` and the runbook [docs/19](19-m5-bench-runbook.md); adversarially reviewed: writes held to the approved range and image, one attempt per run directory; tested against a fake transporter only |
+
 ## 2. Milestones
 
 Approval labels: **bench yes** is a fresh owner approval for one run;
