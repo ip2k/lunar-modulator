@@ -118,7 +118,10 @@ static int convert(void *work, uint32_t tag, int16_t out[LUNAR_PIPELINE_OUTPUT_S
         out[4 * i + ch] = out[4 * i + ch + 2] = (int16_t)x;
     }
     if (fade < FADE_FRAMES) fade += LUNAR_FM1_BLOCK;
-    memset(result, 0, sizeof *result);
+    /* The worker cleared the result and set its tag before this call, and
+     * refuses the block (E_TAG) unless the tag comes back unchanged
+     * (renderer_pipeline_sdk.c worker_step). Never clear it here. */
+    result->tag = tag;
     result->invalid = invalid;
     result->clipped = clipped;
     result->case_total = tag + 1u;
