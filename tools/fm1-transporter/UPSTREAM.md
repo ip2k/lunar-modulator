@@ -9,6 +9,21 @@
     licence. Upstream lists the Pico 2 as "builds, untested". Without the
     patch, a Pico 2 W stopped keying within milliseconds even with no target
     powered (docs/17 §5).
+  - `fm1t_m5.py` is adapted from upstream `tools/fm1t.py` at `a7fb5e8`
+    (identical at `80c5012`) and stays under upstream's MIT licence
+    (`LICENSE.upstream`). It is the M5 host tool
+    (`notes/2026-11-08-ram-runner-devkit.md` §4.2, docs/19):
+    - there is no soft-key path (`uboot`, `ensure_uboot`) and the console
+      port is never opened;
+    - `ramrun` is fixed to the one approved image, address `0x01C02000` and
+      argument 1, and never uploads the loader;
+    - `info`/`dump` only read flash: no `write`, `selftest-write`,
+      `runapp` or `wsec`;
+    - an allow-list gates every line it sends, and a JSONL receipt records
+      every line sent and received;
+    - `compare` is deliberately stricter than upstream's: two dumps must be
+      byte-identical over the whole 1 MiB, because V15 never runs between
+      the M5 dumps.
   - `build.sh`, the research shim and this file are this repository's own
     (MIT).
 - **Not here, on purpose:**

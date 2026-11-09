@@ -87,7 +87,7 @@ ranges and the recovery plan.
 | M2 | Size and SRAM budget gate | a tool that reads a pi32v2 image and map and checks it against V15's app slot and the FM-1's free SRAM; the soak image's real figure recorded | none | none | **done** 2026-11-08 (#171, #178) |
 | M3 | FM-1 board layer on main | display, keys, LEDs, MIDI in, ALNK0 audio and codec init, clocks and power left as the SPL sets them, `boot_info` bridge; built for pi32v2, `audit_link.py` and M2 pass. Sourced from Codex's branch where its licence allows, clean-room where not (decision 2) | none | none (licence: decision 1) | code in #176, #179 |
 | M4 | Bounded RAM runner on the kit | upload and jump only; erase, program, `0xFC12`, `0xA1`, syscmd 33–36/48, `5A AA A5` and the soft key refused in code; a RAM test image reports over UART | none (kit) | bench yes | **done on the kit** 2026-11-08: two runs, image loaded, read back, run and reset to the app (`notes/2026-11-08-ram-runner-devkit.md`) |
-| M5 | First Lunar code on the FM-1 since recovery, from RAM | build id and test pattern on the TFT, LEDs blink; a power cycle returns V15; a read-only dump before and after has the same hash | RAM only | §4 approval | plan ready for approval (`notes/2026-11-08-ram-runner-devkit.md` §5) |
+| M5 | First Lunar code on the FM-1 since recovery, from RAM | build id and test pattern on the TFT, LEDs blink; a power cycle returns V15; a read-only dump before and after has the same hash | RAM only | §4 approval | **approved 2026-11-09** (§3); host tool `tools/fm1-transporter/fm1t_m5.py` ready and tested offline; run pending, with the owner at the bench ([docs/19](19-m5-bench-runbook.md)) |
 | M6 | Audio path on the FM-1 from RAM | ALNK0 at about 44,118 Hz, one reduced engine plays cleanly, per-block timing at 360 MHz reported. The full image does not fit in SRAM [inferred] | RAM only | §4 approval | blocked on M5 |
 | M7 | Fail-open boot and watchdog, power-cut tested on the kit | a boot-looping build reaches update mode by itself; a power cut at every update stage recovers (docs/07 §4 rules 4–5) | none (kit) | bench yes per run | kit-tested in #180; power cuts pending |
 | M8 | First flash install on the FM-1 | backups first; `package_guard.py` passes; the head is unchanged; writes stay inside `[0x4000, 0x93000)`; Lunar boots; fail-open tested; V15 restored and read back | **flash app region** | §4 approval | blocked on M5–M7 |
@@ -126,6 +126,22 @@ Asked 2026-10-29; answers recorded here when they come.
 3. **SDK application (L1) or bare metal (L2)** for 1.0.
 4. **Whether to restore `FM-1_092`**, or drop "092 → Lunar → V15" from
    the install criteria.
+5. **M5 on the FM-1 (docs/07 §4 approval). Approved 2026-11-09,** choice
+   recorded verbatim: "Yes, M5 as planned". Scope:
+   - RAM only, one session;
+   - image `m5.bin`, 4,160 B, SHA-256
+     `a60410deb4ac5cedd5be2ab76c6155a604ae2efa43cea59430bf55c28d8d44e4`,
+     build id `m5-plan-1`;
+   - SRAM written only `[0x01C02000, 0x01C03040)`;
+   - route: the docs/17 Pico 2 W transporter, UF2 unchanged, with the
+     patched host tool of `notes/2026-11-08-ram-runner-devkit.md` §4.2
+     (`tools/fm1-transporter/fm1t_m5.py`);
+   - sequence and recovery as in that note's §5, written out as operator
+     steps in [docs/19](19-m5-bench-runbook.md).
+
+   This also settles §4's doubt about using docs/17's route to enter the ROM
+   for this one Lunar RAM run. The run happens later, with the owner at the
+   bench. Any other image, a second run or any flash write needs a new yes.
 
 ## 4. Doubts to settle
 
@@ -144,5 +160,6 @@ Asked 2026-10-29; answers recorded here when they come.
 - The DAC (U9, 10 leads) is unidentified. No known code writes a codec
   register, so ALNK0 alone starts audio [inferred, strong: #176]; I2S
   against left-justified is unsettled until U9 is read.
-- Using docs/17's route to enter the ROM for Lunar RAM runs is beyond the
-  approval for the V15 shim and needs a fresh yes.
+- ~~Using docs/17's route to enter the ROM for Lunar RAM runs is beyond the
+  approval for the V15 shim and needs a fresh yes.~~ Given for the M5 run
+  only, 2026-11-09 (§3 item 5).

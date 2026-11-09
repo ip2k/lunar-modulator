@@ -6,8 +6,38 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-10-26. Read this first, then
+original conversation; last updated 2026-11-09. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
+
+## M5 approved, host tool ready — 2026-11-09
+
+**Owner approval, 2026-11-09** (choice recorded verbatim: "Yes, M5 as
+planned"; docs/18 §3 item 5, docs/07 §4):
+
+- **Scope:** M5 on the FM-1, RAM only, one session.
+- **Image:** `m5.bin`, 4,160 B, SHA-256
+  `a60410deb4ac5cedd5be2ab76c6155a604ae2efa43cea59430bf55c28d8d44e4`,
+  build id `m5-plan-1`.
+- **SRAM written:** only `[0x01C02000, 0x01C03040)`.
+- **Route:** the docs/17 Pico transporter, UF2 unchanged, with a patched host
+  tool per `notes/2026-11-08-ram-runner-devkit.md` §4.2.
+- **Sequence and recovery:** per that note's §5.
+
+The run happens later, with the owner at the bench. Anything else (another
+image, a second run, any flash write, the soft key) needs a new yes.
+
+**Prepared, not run:**
+
+- `tools/fm1-transporter/fm1t_m5.py`, adapted from upstream `fm1t.py`
+  (MIT). It has no soft-key path and admits only the approved image,
+  address and argument. An allow-list gates every line it sends, and
+  every line goes to a JSONL receipt. It also has read-only `info`/`dump`
+  with the loader, and a strict `compare`.
+- Tested only against a fake of the transporter's data port
+  (`tests/test_fm1t_m5.py`). Nothing was sent to the FM-1 or the Pico.
+- **Operator steps:** docs/19, with the commands Claude runs on bench01
+  and what the owner does at each step. It disconnects the Pico before the
+  final V15 boot (docs/17 §7), not after as note §5 had it.
 
 ## Latest hardware update — 2026-10-26
 
