@@ -41,10 +41,20 @@
 #endif
 #define PANEL_POLLS 65536u
 #define WATCH_MS 2000u          /* a task silent this long resets the unit */
+/* The main task's watch starts before its first stage, so a stage that
+ * hangs resets too. Generous, because no stage has been timed on an FM-1:
+ * the boot screen, the app's init and the prefill [inferred: well under 1 s
+ * each from the kit, not measured here]. */
+#define MAIN_WATCH_MS 5000u
 #define MIDI_RING_BYTES 256u    /* 82 ms of 31,250-baud MIDI */
 #define MIDI_BUDGET 64u
 #define ADC_POLLS 4096u
 #define STATUS_BLOCKS 8192u     /* about 11.9 s at 44,118 Hz */
+/* Fault codes recorded in the fail-open record before a deliberate reset,
+ * beside failopen_core.h's STALL (0x10 + slot) and TEST (0x80 + case). */
+#define FAULT_APP 0x40u
+enum { STAGE_TIMER = 1, STAGE_INIT, STAGE_PIPELINE, STAGE_PREFILL, STAGE_PANEL, STAGE_ALNK0,
+       STAGE_REFUSED };
 
 /* ---- clock: TIMER4 on the 24 MHz oscillator, as every kit image ---------- */
 static uint32_t now(void) { return JL_TIMER4->CNT; }
@@ -61,8 +71,9 @@ static int timer4_take(void)
     return 1;
 }
 
-/* At least `ms` milliseconds: the oscillator is 24 MHz [verified: kit], and
- * a faster crystal only lengthens the wait. */
+/* `ms` milliseconds on a 24 MHz oscillator: the kit's, and the FM-1's
+ * crystal [verified: V15 isd_config OSC_FREQ, docs/02]. A slower clock
+ * would lengthen the wait, a faster one shorten it. */
 static int wait_ms(void *ctx, unsigned ms)
 {
     uint32_t start = now();
@@ -91,8 +102,8 @@ static ___interrupt void alnk0_irq(void)
         if (got == 1) {
             /* Output words: L, R, L, R per frame (fm1_live.c); take the first pair. */
             for (i = 0; i < LUNAR_FM1_BLOCK; ++i) {
-                half[2u * i] = lunar_alnk0_word_from_q23((int32_t)pcm[4u * i] << 8);
-                half[2u * i + 1u] = lunar_alnk0_word_from_q23((int32_t)pcm[4u * i + 1u] << 8);
+                half[2u * i] = lunar_alnk0_word_from_q23((int32_t)pcm[4u * i] * 256);
+                half[2u * i + 1u] = lunar_alnk0_word_from_q23((int32_t)pcm[4u * i + 1u] * 256);
             }
             if (lunar_pipeline_output_retire(out.next) == 1) ++out.next;
             else ++out.faults;
@@ -226,6 +237,21 @@ static void report(const char *stage)
            s.invalid, s.clipped, s.dx7_voices, battery_raw, lunar_pipeline_error());
 }
 
+/* Every failure ends here, never in a return from the task: record why,
+ * then reset. The warm reset counts as a boot that did not reach healthy,
+ * so a build that fails the same way three times in a row enters mask-ROM
+ * update mode (firmware/failopen). Returning instead would leave a silent
+ * unit that the supervisor could still mark healthy on the panel task's
+ * beats alone. */
+static void fail(unsigned stage)
+{
+    report("fail");
+    printf("LUNAR_FM1 fail=%u fault=0x%x action=reset\n", stage, FAULT_APP + stage);
+    lunar_failopen_note(FAULT_APP + stage);
+    cpu_reset();
+    for (;;) {}
+}
+
 static int pump(uint32_t *wait)
 {
     int changed;
@@ -252,9 +278,10 @@ void lunar_fm1_main(void *unused)
     uint32_t wait = 0, next_report = STATUS_BLOCKS;
     int slot, status;
     (void)unused;
+    slot = lunar_failopen_watch(MAIN_WATCH_MS);
     printf("LUNAR_FM1 build=%08x sys=%d rate=%u\n", (unsigned)LUNAR_FAILOPEN_BUILD_ID,
            clk_get("sys"), LUNAR_FM1_RATE);
-    if (!timer4_take()) { puts("LUNAR_FM1 error=timer4_busy"); return; }
+    if (!timer4_take()) { puts("LUNAR_FM1 error=timer4_busy"); fail(STAGE_TIMER); }
 
     lunar_board_native_io(&io);
     lunar_backlight_on(&io);
@@ -263,16 +290,19 @@ void lunar_fm1_main(void *unused)
         printf("LUNAR_FM1 panel=%d\n", (int)lunar_panel_m5_pattern(&panel, LUNAR_FM1_BUILD_NAME));
     else
         puts("LUNAR_FM1 panel=unbound");
+    lunar_failopen_beat(slot);
     /* TODO(display): the app's 240x240 RGB565 UI needs a 115,200 B frame
      * buffer or a strip renderer; neither fits the SRAM budget yet. */
 
-    if (!lunar_fm1_live_init()) { puts("LUNAR_FM1 error=app_init"); return; }
+    if (!lunar_fm1_live_init()) { puts("LUNAR_FM1 error=app_init"); fail(STAGE_INIT); }
     if (!lunar_pipeline_sdk_start(now) || !lunar_fm1_live_bind()) {
         puts("LUNAR_FM1 error=pipeline_start");
-        return;
+        fail(STAGE_PIPELINE);
     }
+    lunar_failopen_beat(slot);
     while (harvested < LUNAR_PIPELINE_OUTPUT_SLOTS) {
-        if (pump(&wait) < 0) { report("prefill"); return; }
+        if (pump(&wait) < 0) fail(STAGE_PREFILL);
+        lunar_failopen_beat(slot);
     }
 
     matrix_ok = lunar_matrix_init(&io);
@@ -282,7 +312,7 @@ void lunar_fm1_main(void *unused)
     lunar_fm1_panel_reset(&panel_state);
     printf("LUNAR_FM1 matrix=%d adc=%d midi=%d\n", matrix_ok, adc_ok, midi_ok);
     status = os_task_create(panel_task, NULL, 12, 1024, 0, "#C0lunar_panel");
-    if (status) printf("LUNAR_FM1 error=panel_task status=%d\n", status);
+    if (status) { printf("LUNAR_FM1 error=panel_task status=%d\n", status); fail(STAGE_PANEL); }
 
     memset(alnk0_buffer, 0, sizeof alnk0_buffer);
     alnk0.context = 0;
@@ -294,16 +324,14 @@ void lunar_fm1_main(void *unused)
     lunar_alnk0_default_config(&cfg, alnk0_buffer, (uint32_t)(uintptr_t)alnk0_buffer);
     status = lunar_alnk0_start(&alnk0, &cfg);
     printf("LUNAR_FM1 alnk0=%d\n", status);
-    if (status != LUNAR_ALNK0_OK) { report("alnk0"); return; }
+    if (status != LUNAR_ALNK0_OK) fail(STAGE_ALNK0);
 
-    slot = lunar_failopen_watch(WATCH_MS);
     for (;;) {
         if (pump(&wait) < 0) break;
         lunar_failopen_beat(slot);
         if (produced >= next_report) { next_report = produced + STATUS_BLOCKS; report("run"); }
     }
-    /* A refusal parks audio. Stop beating: the supervisor resets the unit
-     * and the boot counter decides between a retry and mask ROM. */
-    report("refused");
-    for (;;) os_time_dly(100);
+    /* A refusal parks audio: reset, and the boot counter decides between a
+     * retry and mask ROM. A refusal after healthy counts as one boot again. */
+    fail(STAGE_REFUSED);
 }
