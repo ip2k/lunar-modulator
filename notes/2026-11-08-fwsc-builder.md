@@ -63,7 +63,9 @@ SysEx was sent.** Device acceptance of a Lunar package is untested.
 5. **The app must fit.** `fm1_budget.measure` must pass with the profile's
    slot. With `--elf` it also checks SRAM and cache RAM.
    - The eight-voice soak image is refused: 597,916 B in a 581,564 B slot, a
-     margin of −16,352 B [verified]. This matches `notes/2026-11-08-fit-tables.md`.
+     margin of −16,352 B [verified: `build_fwsc.py install` on the real V15
+     with `clk320-soak30/cap8-trunc12/app.bin`, re-run 2026-11-09, refused
+     with exactly those figures]. This matches `notes/2026-11-08-fit-tables.md`.
 6. **Identity.**
    - The package identity must be `FM-1_5xx`. It cannot be the stock identity.
    - The app must contain that identity exactly once as `FM-1_5xx\0`, and no
@@ -125,6 +127,53 @@ binary came from `node:22-bookworm-slim`.
     - a check that the module has no URLs, imports or device APIs.
   - The opt-in `LUNAR_PRIVATE_FWSC` admitted the real V15 as the rollback.
 
+## Review, 2026-11-09
+
+An adversarial review of PR #182 re-ran the evidence and fixed four problems
+in new commits on the same branch:
+
+- **One SFC key.** `build_fwsc` always decoded the app area with
+  `STOCK_CHIP_KEY`, while the browser decoded with `profile.sfc_key`. Both
+  were right for the one pinned profile, but a second profile with another
+  key would have made them disagree silently. Both now refuse a profile whose
+  key is not `0x980f`, and whose `flash.bin` does not end at VM; tests cover
+  both sides.
+- **Outputs together or not at all.** `install` and `rollback` wrote the
+  package, then refused on a stale `<out>.manifest.json`, leaving a package
+  with no manifest. Both paths are now checked first, and the package is
+  removed if writing the manifest fails.
+- **The builder's own range check is now tested.** Nothing showed that
+  `verify_install`'s changed-byte walk ever fires (`describe_package`'s
+  hashes refuse every tampered package first). A test now narrows the
+  declared ranges so the real assembled package's `app_area_head` CRC falls
+  outside them, and another declares a range below `0x4000`; both refuse and
+  write nothing.
+- **Small:** `profile` on a short file is a refusal rather than a traceback;
+  the `stock bytes with a foreign identity` branch is unreachable while the
+  pin is honest (the SHA covers the identity markers) and is kept as a
+  documented defence, with the test's regex tightened to the branch that
+  really fires.
+
+Re-run evidence, 2026-11-09, `python:3.12-bookworm` on a LAN build host with
+node 22 [verified]:
+
+- `tests/test_build_fwsc.py` on synthetic packages: 34 passed, 1 skipped
+  (the real-V15 opt-in).
+- With the real V15 (`FM1_STOCK_FWSC`, and `FM1_STOCK_UNPACK` pointing at a
+  `fwunpack_newfw.py` tree with `files/eq_cfg_hw.bin` and `ota.bin` staged at
+  the paths `inspect_nested` reads): the seven suites listed below, 117
+  passed, 1 skipped. With the bare `fwunpack_newfw.py` tree, the two
+  pre-existing real-file tests in `test_inspect_stock_flash` and
+  `test_inspect_version_contract` fail on the missing files; that is the
+  unpack layout, not this branch.
+- node `lunar-package-admission.test.mjs` with `LUNAR_PRIVATE_FWSC` set to
+  the real V15: 12 of 12 passed.
+- CLI on the real V15: `rollback --running FM-1_501 --stock-unpack …` wrote a
+  file `cmp`-identical to the input, `verify --manifest` accepted it, and the
+  soak `app.bin` was refused as above.
+- The two local V15 copies (M-VAVE CDN and Baud Girl's) both hash to
+  `db1642b2…7edb8a` [verified 2026-11-09].
+
 ## Not done, not tested
 
 - **No device test.** It is unknown whether stock step 1 and the OTA loader
@@ -139,6 +188,14 @@ binary came from `node:22-bookworm-slim`.
   means re-exporting this module's `verifyNativePackage` there and checking
   that the flow's rollback (product `FM-1_015`) takes a `stock-rollback`
   admission.
+- **The head is rewritten even though it is unchanged.** The stock OTA
+  loader rewrites the second-stage bootloader from the package [reported:
+  Baud Girl FINDINGS 5.4, docs/07 risk table]. The builder keeps the head
+  byte-identical, so its content cannot change, but a power cut while the
+  loader erases and rewrites `[0, 0x4000)` would still damage the boot area,
+  which docs/17 cannot recover [inferred]. Whether the loader skips identical
+  sectors is unknown. M12's power-cut case must cover that window, on the
+  dev kit first.
 - **One stock version only.** Only V15 is pinned. Any other stock version
   needs its own reviewed profile.
 - **No code copied.** No code came from Felucca, SLOOP, Echomatter or other

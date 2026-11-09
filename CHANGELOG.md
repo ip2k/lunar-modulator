@@ -24,6 +24,7 @@ history.
   `[0x4000, 0x93000)`. The browser flasher gets the matching check,
   `sim/web/www/lunar-package-admission.js` (`verifyNativePackage`), which
   admits exactly those two kinds of package and rejects everything else.
+  The builder writes the package and its manifest together or not at all.
   Details: `notes/2026-11-08-fwsc-builder.md`.
 - **Bench tools pin their ROM target.** The FM-1 and the AC79 dev kit both
   enumerate as USB `4c4a:8057` in ROM mode, so every tool that opens a ROM
