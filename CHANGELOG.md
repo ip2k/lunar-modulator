@@ -44,6 +44,19 @@ history.
   build id and a heartbeat on the debug UART, then resets back to the
   installed application. Run twice end to end on the dev kit
   (`notes/2026-11-08-ram-runner-devkit.md`).
+- **FM-1 package builder and flasher admission** (offline only; nothing has
+  been installed on an FM-1). `tools/jieli/build_fwsc.py` takes your own stock
+  V15 `.fwsc` (pinned by SHA-256, never bundled) and a Lunar `app.bin`, and
+  makes an install package that is V15 with only the app replaced: identity
+  `FM-1_5xx`, the app inside V15's 581,564-byte slot with the rest `0xFF`,
+  boot area, `ota.bin`, `cfg` and the VM region untouched, plus a manifest
+  and a roll-back package that is your V15 byte for byte. It refuses apps that
+  do not fit, identities outside `FM-1_5xx`, and any change outside
+  `[0x4000, 0x93000)`. The browser flasher gets the matching check,
+  `sim/web/www/lunar-package-admission.js` (`verifyNativePackage`), which
+  admits exactly those two kinds of package and rejects everything else.
+  The builder writes the package and its manifest together or not at all.
+  Details: `notes/2026-11-08-fwsc-builder.md`.
 - **The first complete FM-1 application image builds and fits.** It joins
   the release-rule audio pipeline (8 voices, 44,118 Hz, ALNK0 to the codec),
   the FM-1 board layer (keys, encoders, MASTER, display, TRS MIDI in), and the
