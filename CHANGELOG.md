@@ -22,6 +22,14 @@ history.
   update mode by itself. A fixed image installed from there ran normally.
   Not yet run on an FM-1, and power-cut tests are still to do
   (`notes/2026-11-08-failopen-watchdog.md`).
+- **Bench tools pin their ROM target.** The FM-1 and the AC79 dev kit both
+  enumerate as USB `4c4a:8057` in ROM mode, so every tool that opens a ROM
+  SCSI-generic device (`fm1_uboot_read`, `fm1_uboot_restore_test`,
+  `fm1_softkey_probe` and the `devkit_*` tools) now requires `--usb-path`
+  (a sysfs bus-port), checks it against its fixed role in
+  `tools/bench_targets.json`, and refuses when more than one `4c4a:8057`
+  device is present or the device is at another path. One shared helper
+  (`tools/bench_target.py`) with fake-sysfs tests; no hardware traffic.
 - **Fit tables for the FM-1 app slot** (`notes/2026-11-08-fit-tables.md`): the
   soak image (597,916 B, 16,352 B over V15's slot) measured with each engine,
   effect, Macro model and optimisation level removed. Dropping the Terrain and
@@ -300,6 +308,22 @@ history.
 - `U2`/`U3` are SOIC-16 `74HC595`, not SOIC-20; `U5` is a QFN, not a SOIC-8.
 
 ### Added
+- **The FM-1 board layer, for firmware that runs on the FM-1 itself.** It
+  covers:
+  - the display's SPI1 transport;
+  - the 41 keys and 7 encoders behind the 74HC595 matrix;
+  - the four LED lines;
+  - the MASTER pot and battery readings;
+  - TRS MIDI in on UART1, with a running-status parser.
+
+  It is built for the FM-1's processor without JieLi's SDK and passes the link
+  audit, and desktop tests cover every part. It has not run on an FM-1 or the
+  dev kit. Audio output is not part of it yet. Details are in
+  `firmware/board/README.md` and `notes/2026-11-08-fm1-board-layer.md`.
+- **An "M5" test-pattern image, built but not run.** It is a 4 KB image that
+  runs from RAM. It shows "LUNAR M5", its build id, "TEST PATTERN" and colour
+  bars on the screen, then blinks the LEDs to report how far it got. Running
+  it on the FM-1 waits for a RAM runner and a separate approval.
 - **The dev kit can run at the FM-1's clock and power profile, for timing.**
   `prepare-pipeline-devkit.py --sys-clk 360 --stock-power` (off by default)
   switches the kit at run time from 320 to 360 MHz. HSB becomes 180 MHz and

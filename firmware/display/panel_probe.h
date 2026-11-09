@@ -27,4 +27,10 @@ enum lunar_panel_result {
  * A complete transport trace is offline evidence, not successful panel output.
  * No framebuffer, allocator, SDK, ROM, GPIO, SPI, IRQ or flash access. */
 enum lunar_panel_result lunar_panel_probe(const struct lunar_panel_transport *);
+
+/* The probe's first part, shared with the M5 pattern (m5_pattern.c): a 100 ms
+ * wait, sleep-out 0x11, a 120 ms wait and the 21-record V15 setup. */
+enum lunar_panel_result lunar_panel_setup(const struct lunar_panel_transport *);
+/* One command with no data bytes (for example 0x29, display on). */
+int lunar_panel_command(const struct lunar_panel_transport *, unsigned char command);
 #endif

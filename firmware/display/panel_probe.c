@@ -35,11 +35,9 @@ static int command(const struct lunar_panel_transport *bus, unsigned char cmd,
     return success;
 }
 
-enum lunar_panel_result lunar_panel_probe(const struct lunar_panel_transport *bus)
+enum lunar_panel_result lunar_panel_setup(const struct lunar_panel_transport *bus)
 {
-    static const unsigned short bands[] = {0xffff, 0xf800, 0x07e0, 0x001f};
-    unsigned i, row, column;
-    int success;
+    unsigned i;
     if (!bus || !bus->begin || !bus->write || !bus->end || !bus->wait_ms)
         return LUNAR_PANEL_INVALID;
     if (!bus->wait_ms(bus->context, 100)) return LUNAR_PANEL_DELAY_FAILED;
@@ -48,6 +46,21 @@ enum lunar_panel_result lunar_panel_probe(const struct lunar_panel_transport *bu
     for (i = 0; i < sizeof setup / sizeof setup[0]; ++i)
         if (!command(bus, setup[i].command, setup[i].data, setup[i].count))
             return LUNAR_PANEL_TRANSFER_FAILED;
+    return LUNAR_PANEL_OK;
+}
+
+int lunar_panel_command(const struct lunar_panel_transport *bus, unsigned char cmd)
+{
+    return command(bus, cmd, 0, 0);
+}
+
+enum lunar_panel_result lunar_panel_probe(const struct lunar_panel_transport *bus)
+{
+    static const unsigned short bands[] = {0xffff, 0xf800, 0x07e0, 0x001f};
+    unsigned row, column;
+    int success;
+    enum lunar_panel_result result = lunar_panel_setup(bus);
+    if (result != LUNAR_PANEL_OK) return result;
     success = bus->begin(bus->context, 0x2c);
     for (row = 0; success && row < 240; ++row) {
         unsigned short word = bands[row / 60];

@@ -52,7 +52,7 @@ def test_partial_softkey_write_has_no_retry(monkeypatch):
 
 
 def test_identity_timeout_never_sends_softkey(monkeypatch):
-    monkeypatch.setattr(p, 'usb_parent', lambda _: Path('/usb3/3-2'))
+    monkeypatch.setattr(p, 'usb_parent', lambda _: Path('/usb1/1-2'))
     monkeypatch.setattr(p, 'enumerate_usb', lambda: [])
     monkeypatch.setattr(p.os, 'open', lambda *a: 42)
     monkeypatch.setattr(p.os, 'close', lambda *a: None)
@@ -60,7 +60,7 @@ def test_identity_timeout_never_sends_softkey(monkeypatch):
     send = Mock()
     monkeypatch.setattr(p, 'write_message', send)
     with pytest.raises(ValueError):
-        p.probe('/dev/snd/midiC2D0', 'FM-1_092', True, Mock(), timeout=0.001)
+        p.probe('/dev/snd/midiC2D0', 'FM-1_092', True, Mock(), timeout=0.001, usb_path='1-2')
     send.assert_called_once_with(42, p.IDENTITY)
 
 
@@ -68,5 +68,5 @@ def test_unvetted_softkey_identity_refused_before_open(monkeypatch):
     open_device = Mock()
     monkeypatch.setattr(p.os, 'open', open_device)
     with pytest.raises(ValueError):
-        p.probe('/dev/snd/midiC2D0', 'FM-1_096', True, Mock())
+        p.probe('/dev/snd/midiC2D0', 'FM-1_096', True, Mock(), usb_path='1-2')
     open_device.assert_not_called()
