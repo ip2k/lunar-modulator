@@ -13,6 +13,15 @@ history.
 - Forensics note settling what `0x94600` meant in the 2026-10-15 stage-7 install (in-region for the 092 layout) and its implications for the FM-1 install write plan (`notes/2026-11-08-0x94600-forensics.md`, docs/18 §4).
 
 ### Added
+- **A build that keeps failing now recovers by itself.** Lunar's fail-open
+  boot counts boots that do not reach "healthy". After three in a row, the
+  device goes into the mask-ROM update mode on its own, so no dongle and no
+  button are needed to put a fixed build on it. A supervisor resets tasks
+  that stall, and the watchdog catches a core that hangs. Tested on the dev
+  board: a deliberately failing image failed three ways and then entered
+  update mode by itself. A fixed image installed from there ran normally.
+  Not yet run on an FM-1, and power-cut tests are still to do
+  (`notes/2026-11-08-failopen-watchdog.md`).
 - **Bench tools pin their ROM target.** The FM-1 and the AC79 dev kit both
   enumerate as USB `4c4a:8057` in ROM mode, so every tool that opens a ROM
   SCSI-generic device (`fm1_uboot_read`, `fm1_uboot_restore_test`,
