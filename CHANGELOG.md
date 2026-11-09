@@ -13,6 +13,16 @@ history.
 - Forensics note settling what `0x94600` meant in the 2026-10-15 stage-7 install (in-region for the 092 layout) and its implications for the FM-1 install write plan (`notes/2026-11-08-0x94600-forensics.md`, docs/18 §4).
 
 ### Added
+- **The first complete FM-1 application image builds and fits.** It joins
+  the release-rule audio pipeline (8 voices, 44,118 Hz, ALNK0 to the codec),
+  the FM-1 board layer (keys, encoders, MASTER, display, TRS MIDI in), and the
+  fail-open recovery. Keys play sound 1, OCT shifts octaves, KNOB1 and KNOB2
+  move the filter, MASTER sets the level, and TRS MIDI plays sounds 1, 3 and
+  4. Both builds (GPL modules on and off) are 556,540 B, which leaves 25,024 B
+  of the stock app slot, and pass the size, SRAM and link audits. It has not
+  run on an FM-1 or on the dev kit. USB-MIDI, the full panel UI and the
+  screen UI are still to come (`firmware/fm1/README.md`,
+  `notes/2026-11-08-fm1-app-image.md`).
 - **A build that keeps failing now recovers by itself.** Lunar's fail-open
   boot counts boots that do not reach "healthy". After three in a row, the
   device goes into the mask-ROM update mode on its own, so no dongle and no
