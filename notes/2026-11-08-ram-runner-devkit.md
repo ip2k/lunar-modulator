@@ -15,7 +15,7 @@ time).
 | Piece | Path | What it does |
 | --- | --- | --- |
 | Runner | `tools/ram_runner.py` | INQUIRY, `FB06` WRITE_MEMORY of the whole image in 512-byte blocks, `FD07` READ_MEMORY of every block and compare, one `FB08` JUMP. Nothing else |
-| Runner tests | `tests/test_ram_runner.py` | 42 tests, no device |
+| Runner tests | `tests/test_ram_runner.py` | 54 tests, no device |
 | RAM test image | `firmware/ramtest/` | prints a banner with its build id, ten heartbeats and a reset line on UART1 TX (PB3, 1,000,000 baud), then clears the 16-byte boot marker and resets the chip through P33 as the SDK's `__cpu_reset` does |
 | Image tests | `tests/test_ramtest_image.py` | 10 tests: the portable logic compiled natively against a recording register model |
 | Build | `tools/jieli/link-ramtest-in-container.sh`, profile `ramtest` of `tools/jieli/link-diagnostic.sh` | the JieLi clang in a container on a Docker host, `audit_link.py --runtime sdk-free`, `diagnostic_report.py` profile `ram` |
@@ -31,7 +31,13 @@ Refusals are in code and tested [verified: `tests/test_ram_runner.py`]:
 - **Refused by name as well:** `FB01` erase, `FB04` program, `FD05` flash
   read, `FC09` key, `FC0A` online device, `FC14` buffer size, `FC0C` run app,
   `FC12`, the raw `A1` eFuse write, a CDB starting `F0` (the soft key's SysEx
-  start) and `5A AA A5` online-tool frames.
+  start), `5A AA A5` online-tool frames, and a vendor syscmd frame head
+  `00 59` (docs/02 §6), with syscmd 33–36 and 48 named, bare or in their
+  `F0 35 59` SysEx wrapper.
+- **No flash-reader path.** The runner reuses `fm1_uboot_read.Reader` for
+  pinning and opening, and overrides its `load`, `online` and `dump` to
+  refuse, so the flash loader can never be uploaded or read from it; a test
+  checks that none of them sends anything.
 - **The gate checks twice.** It checks when the request is built and again on
   the final 16 CDB bytes just before `SG_IO`.
 - **Addresses:** only whole 512-byte blocks inside `[0x01C02000, 0x01C07E00)`.
@@ -84,6 +90,14 @@ LUNAR_BUILD_ID=m4-ramtest-3 LUNAR_SESSION=<label> \
   - it also built identically twice [verified];
   - the only change since is that a dead UART now costs one timeout rather
     than one per byte.
+- **Run 1 also used the earlier runner,** `tools/ram_runner.py` at
+  `ed8b7486`. Run 2 used the one at `c3116000` (SHA-256 `b855c1e9…`, the copy
+  staged on the bench host) [verified: hashes]. The opcodes, addresses and
+  argument bytes sent are the same in both logs; only block 4's CRC differs,
+  because the image differs [verified: both `commands.jsonl`]. Run 1's log
+  labels each command with the stage after it rather than at request time,
+  so its last write reads `verify`, its last read `jump` and the jump
+  `done`; `c3116000` fixed that labelling.
 
 ## 3. The two runs on the dev kit
 
@@ -149,16 +163,22 @@ LUNAR_RAMTEST reset=app
 ### 3.1 What the runs show
 
 - **Load-and-jump works on WL82's ROM** [verified, dev kit]. The ROM accepted
-  `FB06` writes of a non-JieLi image into SRAM. `FD07` read every block back
-  equal, and `FB08` ran it from `0x01C02000`. Until now the ROM had only
-  loaded JieLi's own loader (docs/18 §4).
+  `FB06` writes of a non-JieLi image into SRAM, `FD07` read every block back
+  equal after deciphering, and `FB08` ran it from `0x01C02000`. Until now the
+  ROM had only loaded JieLi's own loader (docs/18 §4).
+  - What the read-back proves: the transfer, and no corruption on the way.
+    It cannot by itself tell whether SRAM holds the plain image or the ROM
+    kept the ciphered bytes, because both read back identically through the
+    cipher [inferred: the cipher is its own inverse]. The image's own UART
+    banner is what proves SRAM held the plain image [verified, dev kit].
 - **`FB08` calls the image before it answers** [inferred]. The image never
   returns: it resets the chip. So the jump command never completed:
   - The kernel gave up after the runner's 3,000 ms `SG_IO` timeout plus its
     abort handling. That is 3.9 s in both runs, with a different host status
     each time (7 `DID_ERROR`, 3 `DID_TIME_OUT`).
   - The runner records that as `answered: false` and does not retry.
-  - A RAM image that never returns always ends this way, on any host.
+  - A RAM image that never returns should end this way on any host
+    [inferred].
 - **The image's own reset lands in the application** [verified, dev kit]:
   - the app reported `system reset reason: SOFT`, booted, and answered PING;
   - no ROM device remained.
@@ -365,7 +385,38 @@ transporter is attached:
   Pico recovers its host stack cleanly once the device vanishes. Recovery
   of the Pico is a re-plug or `rekey`, which reboots it [inferred].
 
-## 6. Not done
+## 6. Review (2026-11-09)
+
+An adversarial review of PR #184 re-checked the claims above without
+touching any device:
+
+- **Rebuilds match** [verified]. `ramtest` from `c3116000` with
+  `LUNAR_BUILD_ID=m4-ramtest-3` gave `ramtest.bin` `74104cb2…` and
+  `ramtest.elf` `d1a68cad…`; `m5-test-pattern` from the PR head with
+  `LUNAR_BUILD_ID=m5-plan-1` gave `m5.bin` `a60410de…` and `m5.elf`
+  `adb1358b…`. Both audits passed (12 checks each). The image layouts are
+  as stated in §2 and §5 (symbol tables).
+- **Run evidence** [verified: read on the bench host]. Both
+  `commands.jsonl` files have 15 lines and only `12`, `FB06`, `FD07` and
+  `FB08` CDBs; both receipts say `readback: equal` and `answered: false`
+  (host status 7 after 3,888 ms, 3 after 3,897 ms); both UART logs have the
+  banner, beats 1–10 and `reset=app`, then `reset reason: SOFT`; the
+  fail-open counter read `boots=2`→`3` and `4`→`5`. The bench copies of both
+  images hash to the values in §2.
+- **Fixed in review:** syscmd frames refused by name and tested; the
+  inherited flash-reader methods refused; a read-back error branch that
+  could never run removed; the read-back claim qualified (§3.1); a wrong,
+  skipped baud-rate test row corrected; `app.ld`'s comment said 8 KiB where
+  it reserves 16 KiB. None of these changes the bytes a run sends, which
+  `test_full_run_uploads_verifies_and_jumps_once` pins; the runner was not
+  run again on the kit.
+- **Pinning's reach.** Exact `3-1.2` now binds every dev-kit-role ROM tool,
+  not only this one: `devkit_flash_backup.py` and the tools built on it
+  (`devkit_flash_transaction.py`, `devkit_loader_reset.py`). If the kit's
+  ROM device ever enumerates on another port they refuse, and the new port
+  must be observed and recorded in `tools/bench_targets.json` first.
+
+## 7. Not done
 
 - Nothing was sent to the FM-1 or the Pico; §4 and §5 are desk work.
 - The patched `fm1t.py` of §4.2 is specified, not written.

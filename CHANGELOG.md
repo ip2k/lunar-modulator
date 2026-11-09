@@ -18,9 +18,10 @@ history.
   AC79 dev kit in mask-ROM UBOOT, it uploads one SHA-256-admitted image into
   SRAM, reads it back and starts it, and does nothing else: only INQUIRY and
   the ROM's memory write, memory read and jump are allowed, and erase,
-  program, eFuse, run-app, MIDI-shaped and online-tool commands are refused
-  in code (42 tests). It is pinned to the dev kit's ROM port, now recorded as
-  `3-1.2` in `tools/bench_targets.json`.
+  program, eFuse, run-app, MIDI-shaped, vendor syscmd and online-tool
+  commands are refused in code (54 tests). It is pinned to the dev kit's
+  ROM port, now recorded as `3-1.2` in `tools/bench_targets.json`, which
+  also binds the other dev-kit ROM tools to that port.
 - **A RAM test image for the dev kit** (`firmware/ramtest/`) that prints its
   build id and a heartbeat on the debug UART, then resets back to the
   installed application. Run twice end to end on the dev kit
