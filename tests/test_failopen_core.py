@@ -3,7 +3,9 @@ from pathlib import Path
 import hashlib
 import importlib.util
 import json
+import platform
 import re
+import shutil
 import subprocess
 
 import pytest
@@ -407,11 +409,29 @@ def test_core(tmp_path):
     assert tool.image_id(b'') == 2166136261
 
 
+TSAN_NO_START = 'unexpected memory mapping'
+
+
+def run_tsan(tmp_path, name, flags):
+    """Build and run under ThreadSanitizer. Older TSan runtimes (GCC 12) cannot
+    start on kernels with high mmap randomisation; retry with ASLR off, and
+    skip only if TSan still cannot start (or ASLR cannot be turned off, as
+    under Docker's default seccomp profile), so a real race is never skipped."""
+    result = compile_run(tmp_path, name, RACE, ['-pthread', '-fsanitize=thread', '-g', *flags],
+                         check=False)
+    if TSAN_NO_START in result.stderr and shutil.which('setarch'):
+        result = subprocess.run(['setarch', platform.machine(), '-R', str(tmp_path/name)],
+                                capture_output=True, text=True)
+    if TSAN_NO_START in result.stderr or 'failed to set personality' in result.stderr:
+        pytest.skip('ThreadSanitizer cannot start on this kernel: ' + result.stderr.strip()[:120])
+    return result
+
+
 def test_lock_under_thread_sanitizer(tmp_path):
-    result = compile_run(tmp_path, 'race', RACE, ['-pthread', '-fsanitize=thread', '-g'])
+    result = run_tsan(tmp_path, 'race', [])
+    assert result.returncode == 0, result.stderr
     assert 'refused=2 valid=1' in result.stdout
-    unlocked = compile_run(tmp_path, 'race_nolock', RACE,
-                           ['-pthread', '-fsanitize=thread', '-g', '-DNO_LOCK'], check=False)
+    unlocked = run_tsan(tmp_path, 'race_nolock', ['-DNO_LOCK'])
     assert unlocked.returncode != 0
     assert 'data race' in unlocked.stderr
 
