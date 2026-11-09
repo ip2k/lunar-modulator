@@ -9,8 +9,10 @@
  *   CLK_CON1 0x10010: [11:10] = 1 clocks the UARTs from PLL 48 MHz [reported:
  *     Felucca; also firmware/board/midi_uart.c].
  *   IOMAP 0x5101c: CON1 +4 [11:8] picks output channel 0's signal, 1 = UT1
- *     TX; CON3 +0xc bit 7 = 0 sends UART1 through the channels [verified: SDK
- *     cpu.a uart.c.o uart_set_port_map and gpio.c.o gpio_output_channle].
+ *     TX (enum gpio_out_channle CH0_UT1_TX); CON3 +0xc bit 7 = 0 sends UART1
+ *     through the channels, 1 picks its fixed pins [verified: SDK gpio.h;
+ *     cpu.a uart.c.o uart_set_port_map and uart_init, gpio.c.o
+ *     gpio_output_channle].
  *   PORTB 0x50040: OUT +0, DIR +8, DIE +0xc, PU +0x10, PD +0x14. A pin
  *     carries output channel 0 with PU = PD = 1, DIR = 0, OUT = 0, DIE = 0
  *     [verified: gpio_output_channle; SDK sdram_re_trim.c putbyte_init].
@@ -22,7 +24,10 @@
  *     DAT +0xc. __cpu_reset: select (clear bit 8, set bit 0), bytes 0x80,
  *     0xa0, 0x5e read P3_PR_PWR; deselect; select; bytes 0x00, 0xa0,
  *     value | 0x10 write it with the chip-reset bit; deselect [verified: SDK
- *     cpu.a p33.c.o __cpu_reset and p33_buf].
+ *     cpu.a p33.c.o __cpu_reset; its byte exchanges are relocated calls,
+ *     and both byte helpers in the library, p33_buf in p33.c.o and
+ *     nv_p33_buf in poweroff_reboot.c.o, have this same DAT, start, wait,
+ *     read-DAT shape].
  *   Boot marker: nvram_set_boot_state copies 16 bytes to 0x01c7fd80 and
  *     resets [verified: SDK cpu.a usb.c.o]; the string is "usb_update_mode"
  *     [reported: Codex request.c]. The dev kit's boot control enters UBOOT
@@ -95,23 +100,25 @@ int lunar_ramtest_uart_init(const struct lunar_ramtest_io *io)
     return 1;
 }
 
-int lunar_ramtest_putc(const struct lunar_ramtest_io *io, char c)
+int lunar_ramtest_putc(struct lunar_ramtest_io *io, char c)
 {
     unsigned n;
+    if (io->uart_failed) return 0;
     change(io, UART1_CON0, 2, 0, 1u << 13);
     io->write(io->context, UART1_BUF, 1, (unsigned char)c);
     io->sync(io->context);
     for (n = 0; n < LUNAR_RAMTEST_POLLS; ++n)
         if (io->read(io->context, UART1_CON0, 2) & (1u << 15)) return 1;
+    io->uart_failed = 1;
     return 0;
 }
 
-void lunar_ramtest_puts(const struct lunar_ramtest_io *io, const char *s)
+void lunar_ramtest_puts(struct lunar_ramtest_io *io, const char *s)
 {
     while (*s) lunar_ramtest_putc(io, *s++);
 }
 
-void lunar_ramtest_putu(const struct lunar_ramtest_io *io, unsigned value)
+void lunar_ramtest_putu(struct lunar_ramtest_io *io, unsigned value)
 {
     char digits[10];
     unsigned n = 0;
@@ -188,7 +195,7 @@ static const char *const failures[] = {
     "none", "args", "marker", "p33_busy", "no_reset"
 };
 
-enum lunar_ramtest_result lunar_ramtest_run(const struct lunar_ramtest_io *io,
+enum lunar_ramtest_result lunar_ramtest_run(struct lunar_ramtest_io *io,
                                             const char *build_id, unsigned image_bytes,
                                             unsigned beats)
 {
@@ -196,6 +203,7 @@ enum lunar_ramtest_result lunar_ramtest_run(const struct lunar_ramtest_io *io,
     enum lunar_ramtest_result result;
     if (!io || !io->pause || !build_id || !lunar_ramtest_uart_init(io))
         return LUNAR_RAMTEST_FAIL_ARGS;
+    io->uart_failed = 0;
     lunar_ramtest_puts(io, "\r\nLUNAR_RAMTEST ready=1 build=");
     lunar_ramtest_puts(io, build_id);
     lunar_ramtest_puts(io, " entry=0x01c02000 bytes=");

@@ -14,6 +14,9 @@ struct lunar_ramtest_io {
     void (*write)(void *, unsigned address, unsigned width, unsigned value);
     void (*sync)(void *);
     void (*pause)(void *, unsigned tenths); /* coarse, uncalibrated */
+    /* Set by the first byte whose TX-pending flag never came; later output
+     * is skipped, so a dead UART costs one timeout and the reset still runs. */
+    unsigned uart_failed;
 };
 
 enum lunar_ramtest_result {
@@ -34,16 +37,17 @@ enum lunar_ramtest_result {
 unsigned lunar_ramtest_baud(unsigned clock_hz, unsigned baud, unsigned *by3);
 /* UART1 TX only, on PB3 through output channel 0, 1,000,000 baud. */
 int lunar_ramtest_uart_init(const struct lunar_ramtest_io *io);
-/* Bounded wait for the TX-pending flag; 0 if it never came. */
-int lunar_ramtest_putc(const struct lunar_ramtest_io *io, char c);
-void lunar_ramtest_puts(const struct lunar_ramtest_io *io, const char *s);
-void lunar_ramtest_putu(const struct lunar_ramtest_io *io, unsigned value);
+/* Bounded wait for the TX-pending flag; 0 (and uart_failed set) if it never
+ * came, or if an earlier byte already failed. */
+int lunar_ramtest_putc(struct lunar_ramtest_io *io, char c);
+void lunar_ramtest_puts(struct lunar_ramtest_io *io, const char *s);
+void lunar_ramtest_putu(struct lunar_ramtest_io *io, unsigned value);
 /* Clear the 16-byte "usb_update_mode" boot marker, then the SDK's
  * __cpu_reset sequence on P33 (read P3_PR_PWR 0xa0, write it back with bit
  * 4). Only returns on failure, or on the host where nothing resets. */
 enum lunar_ramtest_result lunar_ramtest_reset_to_app(const struct lunar_ramtest_io *io);
 /* Banner, `beats` heartbeats, reset line, reset. Returns only on failure. */
-enum lunar_ramtest_result lunar_ramtest_run(const struct lunar_ramtest_io *io,
+enum lunar_ramtest_result lunar_ramtest_run(struct lunar_ramtest_io *io,
                                             const char *build_id, unsigned image_bytes,
                                             unsigned beats);
 #endif

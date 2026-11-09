@@ -238,13 +238,14 @@ class RamRunner(base.Reader):
         return data.raw[:in_size]
 
     def cmd(self, op, *, address=0, payload=b''):
+        stage = self.seq.stage
         try:
             cdb, data_out, in_size = self.build_request(op, address, payload)
             check_cdb(cdb)
         except Refused:
             self.seq.stop()
             raise
-        self.log('command', stage=self.seq.stage, cdb=cdb.hex(), out_len=len(data_out), in_len=in_size)
+        self.log('command', stage=stage, cdb=cdb.hex(), out_len=len(data_out), in_len=in_size)
         try:
             result = self.transport(cdb, data_out, in_size)
         except Exception:

@@ -21,7 +21,7 @@ ALLOWED = ({0x12100, 0x12104, 0x12108, 0x1210C, 0x10010, 0x51020, 0x51028,
 
 class IO(c.Structure):
     _fields_ = [('context', c.c_void_p), ('read', READ), ('write', WRITE),
-                ('sync', SYNC), ('pause', PAUSE)]
+                ('sync', SYNC), ('pause', PAUSE), ('uart_failed', c.c_uint)]
 
 
 @pytest.fixture(scope='module')
@@ -42,15 +42,16 @@ class Chip:
     """Registers as a dict; the UART finishes each byte at once, P33 answers
     0x5a for P3_PR_PWR's current value and goes idle after `p33_busy_reads`."""
 
-    def __init__(self, lib, *, marker_sticks=False, p33_busy_reads=1, p33_stuck=False):
+    def __init__(self, lib, *, marker_sticks=False, p33_busy_reads=1, p33_stuck=False,
+                 uart_dead=False):
         self.lib, self.regs, self.trace, self.tx, self.p33 = lib, {}, [], bytearray(), []
         self.marker_sticks, self.p33_busy_reads, self.p33_stuck = marker_sticks, p33_busy_reads, p33_stuck
-        self.busy = 0
+        self.busy, self.uart_dead = 0, uart_dead
         for i in range(0, 16, 4):
             self.regs[MARKER + i] = int.from_bytes(b'usb_update_mode\0'[i:i+4], 'little')
         self.pauses = []
         self.cb = READ(self.read), WRITE(self.write), SYNC(self.sync), PAUSE(self.pause)
-        self.io = IO(None, *self.cb)
+        self.io = IO(None, *self.cb, 0)
 
     def read(self, _, address, width):
         assert address in ALLOWED, hex(address)
@@ -68,7 +69,8 @@ class Chip:
         if address == UART1_BUF:
             assert width == 1
             self.tx.append(value)
-            self.regs[UART1_CON0] = self.regs.get(UART1_CON0, 0) | 0x8000
+            if not self.uart_dead:
+                self.regs[UART1_CON0] = self.regs.get(UART1_CON0, 0) | 0x8000
             return
         if address == UART1_CON0 and value & 0x2000:
             value &= ~0xA000
@@ -166,3 +168,13 @@ def test_only_known_registers_are_touched(lib):
     assert touched <= ALLOWED
     # Nothing in the eFuse controller range or the mkey words audit_link guards.
     assert not any(0x13700 <= a <= 0x1371F or 0x01C80108 <= a <= 0x01C80110 for a in touched)
+
+
+def test_dead_uart_costs_one_timeout_and_still_resets(lib):
+    chip = Chip(lib, uart_dead=True)
+    assert chip.run(beats=5) == 4
+    assert len(chip.tx) == 1               # first byte only, then output skipped
+    assert chip.io.uart_failed == 1
+    assert chip.p33 == [0x80, 0xA0, 0x5E, 0x00, 0xA0, 0x5A | 0x10]
+    polls = sum(1 for t in chip.trace if t[:2] == ('r', UART1_CON0))
+    assert polls <= 200_000 + 50

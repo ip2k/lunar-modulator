@@ -63,6 +63,7 @@ void lunar_ramtest_main(void)
     io.write = native_write;
     io.sync = native_sync;
     io.pause = native_pause;
+    io.uart_failed = 0;
     lunar_ramtest_run(&io, build_id, (unsigned)(__image_end - _start), BEATS);
     for (;;) {
         native_pause(0, 10u);
