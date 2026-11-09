@@ -92,7 +92,28 @@ def _inspect_app_replacement(raw, stock, app):
     return _inspect_nested(raw, stock, app)
 
 
-def _inspect_nested(raw, stock, replacement=None):
+def extract_stock_components(raw):
+    """Decode a stock-profile FWSC into its guarded components, in memory.
+
+    Runs the same strict parse and full no-op reconstruction as
+    `inspect_nested`, but binds nothing to a reference tree: it returns the
+    decoded `top/uboot.boot`, `top/isd_config.ini`, `files/cfg`,
+    `files/app.bin`, `files/cfg_tool.bin`, `files/eq_cfg_hw.bin` and the
+    container's `ota.bin`, so a caller can stage a reference tree and then run
+    `package_guard.check_package` and `inspect_nested` against it. The SPL pin
+    is not checked here; the guard does that on the staged tree."""
+    collected = {}
+    _inspect_nested(raw, None, collect=collected)
+    outer = inspect(raw, None)
+    ota = next(item for item in outer['entries'] if item['name'] == 'ota.bin')
+    logical = b''.join(raw[offset:offset + 47] for offset in range(0, 960, 48)) + raw[960:]
+    collected['ota.bin'] = bytes(logical[ota['offset']:ota['offset'] + ota['bytes']])
+    return collected
+
+
+def _inspect_nested(raw, stock, replacement=None, collect=None):
+    if (stock is None) != (collect is not None):
+        raise ValueError('nested inspection needs a stock reference, or extraction mode')
     outer = inspect(raw, stock)
     if outer['identity'] != 'FM-1_015':
         raise ValueError('nested inspection profile supports stock FM-1_015 only')
@@ -186,11 +207,13 @@ def _inspect_nested(raw, stock, replacement=None):
     application = next(child for child in blocks[0]['children'] if child['name'] == 'app.bin')
     if blocks[0]['address'] != XIP_BASE + application['address']:
         raise ValueError('stock entry disagrees with app.bin XIP placement')
-    stock = Path(stock)
     components = {'top/uboot.boot': bytes(spl_data), 'top/isd_config.ini': bytes(config_data),
                   'files/cfg': bytes(decoded[blocks[1]['header_offset']:cursor])}
     components.update({f'files/{name}': data for name, data in files.items()})
-    for path, data in components.items():
+    if collect is not None:
+        collect.update(components)
+    stock = Path(stock) if stock is not None else None
+    for path, data in components.items() if stock is not None else ():
         expected = replacement if path == 'files/app.bin' and replacement is not None else (stock / path).read_bytes()
         if data != expected:
             raise ValueError(f'guarded decoded component differs: {path}')
