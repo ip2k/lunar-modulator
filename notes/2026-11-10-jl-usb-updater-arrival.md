@@ -238,3 +238,7 @@ shadow [reported: owner]. Ask about switch positions rather than reading them fr
   `usb1-port2: connect-debounce failed` at 14:15:52 and nothing after [verified].
 - Neither try reached the ROM. The cause is the dongle or its setup, not the FM-1. Whether the kit
   was powered through the adapter is still to be confirmed. Details are in docs/21 §3–4.
+- The kit was powered during tries 5 and 6 [reported: owner].
+- **Try 7, all switches off, kit unplugged and dark, Update pressed, kit plugged in during the window:** red and green
+  on, then green flashing again a few seconds later [reported: owner]. bench01 logged nothing at all and showed no new
+  device at 14:35:16 [verified].
