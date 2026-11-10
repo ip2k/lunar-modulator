@@ -296,7 +296,8 @@ static int run_full(void)
     return 0;
 }
 
-/* The gestures where the pipelined app diverges from R0, through the live
+/* The gestures where the pipelined app diverged from R0 until 2026-11-10 (the
+ * soft locks; now a differential against it), through the live
  * adapter and the barrier (a guard trip here would be exit 72, a warm-reset
  * loop on the device): PRESETS and ALGORITHM turns on a DX7 and on Macro as
  * the current sound, SEL+PRESETS choosing sound 2, keys with Macro current,

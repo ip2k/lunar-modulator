@@ -91,15 +91,18 @@ real two-core run would be needed to see it.
    that DX7 at 12 voices [verified: `swaps` checkpoint t356 read
    `dx7_limit=12` before the fix, 8 after]. A failure is `init_error` 23.
 6. **Where the seal is cleared** [verified: every write to a unit's engine,
-   instance, arena, size or capacity in `fm1_app.c`]: `fm1_app_select`
+   instance, arena, size or capacity in `fm1_app.c`, and `SetVoiceLimit` is
+   a plain store that retires no voice, `msfa_dx7.cc:646`]: `fm1_app_select`
    (load, empty, the restore of the previous engine after a refused load,
    the pool's return of an arena) and `swap_units` clear it.
    `app_init`, and so a project reset, refuses once the pipeline has run
    (`PIPELINE_GUARD(!pipeline_owner)`), so it fails closed rather than
    changing units under a seal. `fm1_app_state.c` and `fm1_edit.c` change
-   engines only through `fm1_app_select`, and neither is linked into the
-   FM-1 image; the pipeline refuses a block while the edit layer is open
-   (`!a->edit` in preflight).
+   engines only through `fm1_app_select` [verified: source], and neither
+   appears in the FM-1 image's build files or the live replay [inferred:
+   searched `tools/jieli`, `firmware` and the `.mk` files; the prepared SDK
+   makefile was not listed]. The pipeline refuses a block while the edit
+   layer is open (`!a->edit` in preflight).
 
 The default image (`LUNAR_FM1_FULL_UI=0`) makes no structural change after
 init. Its control path is unchanged.
@@ -143,7 +146,29 @@ holds, at start or later, reports a voice limit of 8 at every checkpoint
   - with the old arpeggiator restored, 2 fail on macOS and 3 on Linux,
     naming `stmlib::Random::rng_state_` in Macro's closure.
 
-The other targeted tests and the whole suite are in §5.
+Other runs, host, macOS, at `75b56b30` [verified: pytest output]:
+
+- `tests/test_pipeline_shares.py` with `tests/test_engines_reference_plaits.py`
+  (the vendored-code pin, now with the recorded local change): 205 passed.
+- The whole suite, run once (`python -m pytest -rsx`): 6,509 passed,
+  43 skipped, 2 xfailed, 0 failed, in 31 min 49 s.
+  - The skips are references not cloned, stock images not supplied, a
+    missing `markdown` module and Linux-only harnesses. None of them is in
+    `test_fm1_live.py`, `test_pipeline_shares.py`,
+    `test_devkit_queue_integration.py` or `test_gpl_switch.py`.
+  - `test_devkit_queue_integration.py` passed whole. Earlier runs on
+    2026-11-10 timed out at 120 s under a load average of 340 to 410 from
+    other work on the Mac; this run's load was lower.
+- The simulator module (`sim/web/www/fm1.wasm`, GPL switch on as published)
+  was rebuilt with `sim/web/build-on-aeon.sh --no-screenshot`, because the
+  arpeggiator is an engine source and the committed module's source hash
+  no longer matched; `test_gpl_switch.py` skipped its licence-list check
+  with a warning until then. Parity: 108 of 108 scenarios passed, the edit
+  layer's storm had 0 late quanta. `test_gpl_switch.py` and
+  `test_sim_files.py` then gave 14 passed, 1 skipped (`markdown`).
+- With the old `limit_dx7` built into the `swaps` replay, checkpoint t356
+  read `dx7_limit=12`, which the differential's assertion (8 or 0)
+  rejects. pytest itself was not re-run against the old code.
 
 ## 4. FM-1 image size (aeon, `lunar-jieli-check:bookworm`)
 
