@@ -25,6 +25,7 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bench_target  # noqa: E402  (mandatory target pinning)
+from fm1_flash_parts import fm1_flash_part  # noqa: E402  (FM-1 flash allow-list)
 
 LOADER_SHA = 'd41da6126760c9d66660bcc0cac8d27d221806c5e369a8036921efe68dca5376'
 RAM = 0x01C02000
@@ -138,8 +139,15 @@ class Reader:
     def online(self):
         r = self.cmd(0xFC0A)
         kind, jedec = r[2], int.from_bytes(r[4:8], 'little')
-        if kind != 3 or jedec != 0x856014:
+        if kind != 3:
             raise ValueError(f'Unexpected flash type/JEDEC: {kind} {jedec:06x}')
+        part = fm1_flash_part(jedec)  # UnknownFlash (a ValueError) for any other ID
+        seen = getattr(self, 'flash_jedec', None)
+        if seen is None:
+            self.flash_jedec = jedec
+            self.log('flash_identity', jedec=f'{jedec:06x}', part=part.name, bytes=part.size)
+        elif jedec != seen:
+            raise ValueError(f'Flash JEDEC changed in the session: {seen:06x} then {jedec:06x}')
         return kind, jedec
 
     def dump(self, file):
@@ -192,8 +200,11 @@ def main():
             b = reader.dump(args.out/'dumpB.bin')
             if a['sha256'] != b['sha256'] or a['bytes'] != FLASH_SIZE or b['bytes'] != FLASH_SIZE:
                 raise ValueError('Backups differ or are incomplete')
+            part = fm1_flash_part(reader.flash_jedec)
             manifest = {'entry_log':str(args.entry_log), 'loader_sha256':LOADER_SHA,
-                        'flash_bytes':FLASH_SIZE, 'dumps':[a,b], 'identical':True}
+                        'flash_bytes':FLASH_SIZE, 'flash_jedec':f'{part.jedec:06x}',
+                        'flash_part':part.name, 'dumps':[a,b], 'identical':True}
+            print(f'Flash: {part.describe()}', file=sys.stderr, flush=True)
             with (args.out/'manifest.json').open('x') as m:
                 json.dump(manifest,m,indent=2); m.flush(); os.fsync(m.fileno())
             print(json.dumps(manifest),flush=True)

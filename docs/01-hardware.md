@@ -107,9 +107,23 @@ ran this layout from the FM-1+VA install (2026-09-29) until 2026-10-15; since th
 aroum's README assumes a 4 or 8 MB flash. The package directory and the
 SMK-37 Pro notes both point at **1 MB**. No discrete SPI flash chip is visible
 in the photos, so the flash is most likely in-package **[inferred]**. Its
-JEDEC ID reads `0x856014` (Puya, 1 MiB) on other owners' FM-1s [reported:
-FM-1-transporter, fm1-nes's guard patch, SLOOP's loader check]; in-package
-or not is still open. Read the ID on this unit in mask-ROM USB mode (docs/07).
+JEDEC ID reads `0x856014` (Puya P25Q80H, 1 MiB) on other owners' FM-1s
+[reported: FM-1-transporter, fm1-nes's guard patch, SLOOP's loader check] and
+on this unit [verified: FC0A in mask-ROM USB mode, 2026-10-26, docs/17];
+in-package or not is still open.
+
+**A second flash part.** FM-1s sold from about autumn 2026, mostly through
+AliExpress, carry a UCUN UC25HQ80 instead, JEDEC `0xB36014`, also 1 MiB
+[reported: SLOOP v2.8.5 release notes quoting The Firmware Hub; fm1-gm PR
+#76]. UCUN's datasheet (V1.2, 2022) gives the same 256 B page, 4 KB sector,
+32/64 KB block, the same status-register layout and the commands JieLi's
+driver uses, with erases of at most 10 ms [reported: datasheet]. It has no
+`31h` (write status register 2); it writes both bytes with a 16-bit `01h`,
+the form JieLi's V1.2.13 driver tries first unless its caller asks for `31h`
+[verified: `cpu.a` IR; what callers ask is open]. Lunar's tools accept both IDs from one list
+(`tools/fm1_flash_parts.py`) and name the part they find. Nothing has run on
+a UC25HQ80 unit here. Details, the comparison and every site that checks the
+ID: `notes/2026-11-10-flash-uc25hq80.md`.
 
 ## 3. The board
 
@@ -166,7 +180,7 @@ checks each row against V15 with the vendor `objdump`.
 | Audio | ALNK0 `0x12E00` (I2S), channel 3, `IIS_PORTC`, MCLK out (256 fs at the 44.1 kHz rate code [inferred]), 64 bit clocks per frame, signed 24-bit samples sign-extended in 32-bit words (Q23; M-VAVE clamps to ±2²³, F shifts Q15 left by 7) — not "left-justified in 32" as first written; the wire format (I2S or left-justified) is open; IRQ 11 at priority 3; 64 frames per half (a 1,024 B ping-pong); F runs at 24 MHz / 544 = **44,117.6 Hz**. The internal DAC (`JL_AUDIO`, `0x12F00`) is not used | F `hal/fm1_audio.h`, `src/usb.c`; N `fm1_wl82.c:166-180` | Differs from AL-255's "internal DAC" reading (§4). No source writes a codec register; the DAC is probably `U9` [inferred]. Clean-room driver: `firmware/board/alnk0_audio.c` |
 | I2S pins | PC0 MCLK, PC1 and PC2 the bit and word clocks, PC6 channel-3 data. F drives the four as GPIOs before ALNK0 takes them and called them codec control lines; that was a misreading | SDK `iis.c` port table (`IIS_PORTC`: data 0–3 on PC3–PC6, then PC0, PC1, PC2) [verified: SDK V1.2.13 IR]; M-VAVE `fm1_open` board header [reported]; N | Settled 2026-11-08: N was right (`notes/2026-11-08-alnk0-codec-driver.md`) |
 | TRS MIDI in | UART1 `0x12100` RX on PH8, through input channel 1; 31,250 baud; RX DMA ring, polled; no TX pin | F `hal/fm1_uart.h` ("RX verified on hardware" in F 1.0) | Agrees: the jack is input only, and on the owner's board MIDI IN is `J3` with optocoupler `PC1` at its pads [verified photo; inferred]. PH8 is the lead to look for when tracing PC1's output (DEVELOPERS.md, bench check 1) |
-| Flash | JEDEC `0x856014` (Puya, 1 MiB); CS# PD0; runtime writes on SPI0 `0x11C00` with the SFC off, from RAM | F `hal/fm1_flash.h`; N guard patch; FM-1-transporter | Agrees: 1 MB and no discrete flash seen [verified photos]; in-package still open (`U12`, §6) |
+| Flash | JEDEC `0x856014` (Puya P25Q80H, 1 MiB) or, on newer units, `0xB36014` (UCUN UC25HQ80, 1 MiB) [reported: SLOOP v2.8.5; §2]; CS# PD0; runtime writes on SPI0 `0x11C00` with the SFC off, from RAM | F `hal/fm1_flash.h`; N guard patch; FM-1-transporter | Agrees: 1 MB and no discrete flash seen [verified photos]; in-package still open (`U12`, §6) |
 | Watchdog | P33 `P3_WDT_CON`, about 8 s | F `hal/fm1_sys.h` | — |
 | Power (SDK builds) | VDDIOM and VDDIOW 3.2 V, VDC14 1.60 V with DCDC, SYSVDD 1.38 V, LVD 2.6 V: stock's values, not the SDK demo's | N `boot/board_power.c` | — |
 
@@ -204,8 +218,9 @@ ADC channels read) is answered in §3 and §3.1 [reported: Felucca, fm1-nes];
 I4 checks it against V15.
 
 1. **Flash**: JEDEC `0x856014`, Puya, 1 MiB on other owners' units
-   [reported, §2]. Still open: in-package or discrete, and the ID on this
-   unit (mask-ROM USB mode).
+   [reported, §2] and on this unit [verified, 2026-10-26]; newer units carry
+   a UCUN UC25HQ80, `0xB36014` [reported, §2]. Still open: in-package or
+   discrete.
 2. **Exact AC791N variant** and therefore pinout: AC7911B8 is the
    hypothesis (§1), against a QFN48-versus-LQFP48 conflict. Match the pins
    to the AC7911B datasheet; locate USB D+/D−, the UART candidates (`PB00`,

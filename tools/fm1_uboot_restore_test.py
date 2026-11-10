@@ -17,6 +17,7 @@ from pathlib import Path
 import time
 
 from fm1_uboot_read import Reader, request, CHUNK, FLASH_SIZE, LOADER_SHA
+from fm1_flash_parts import require_write_tested
 
 SECTOR = 0xD8000
 SECTOR_BYTES = 4096
@@ -42,6 +43,14 @@ def restore_request(op, phase, *, address=0, payload=b''):
 class RestoreReader(Reader):
     def build_request(self,op,address,payload):
         return restore_request(op,self.phase,address=address,payload=payload)
+
+    def online(self):
+        # This tool erases and programs. Its write path has run only on the
+        # Puya P25Q80H (856014); any other part, the UCUN UC25HQ80 included,
+        # is refused at the first query, before any read or write.
+        kind,jedec=super().online()
+        require_write_tested(jedec)
+        return kind,jedec
 
     def sector(self):
         return b''.join(self.cmd(0xFD05,address=a) for a in range(SECTOR,SECTOR+SECTOR_BYTES,CHUNK))

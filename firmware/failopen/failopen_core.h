@@ -42,8 +42,10 @@
  * clock keeps counting, so a timeout shorter than the longest erase would
  * report a healthy task as stalled. Bound: the dev kit's ZB25VQ64C 64 KB
  * block erase is 2 s at most [reported: Zbit datasheet V0.0, tBE2], the
- * FM-1's P25Q80H erases are 20 ms at most [reported: Puya datasheet V1.7],
- * plus one 100 ms supervisor period and margin. Firmware issues sector or
+ * FM-1's erases are 20 ms at most on either part it ships with: Puya P25Q80H
+ * 20 ms [reported: Puya datasheet V1.7], UCUN UC25HQ80 10 ms [reported: UCUN
+ * datasheet V1.2] (tools/fm1_flash_parts.py), plus one 100 ms supervisor
+ * period and margin. Firmware issues sector or
  * block erases only, never a chip erase (tCE up to 100 s on the kit), and
  * yields between them (notes/2026-11-08-failopen-hardening.md). */
 #ifndef LUNAR_FAILOPEN_MIN_TIMEOUT_MS

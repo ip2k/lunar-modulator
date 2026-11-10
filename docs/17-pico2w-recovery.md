@@ -236,11 +236,18 @@ step before `--write` is read-only.
 ```bash
 P=/dev/serial/by-id/...-if02
 python3 fm1t.py --port $P --loader wl82loader.bin info
-#   OK key=980F type=3 id=856014      <- anything else: not an FM-1, stop
+#   OK key=980F type=3 id=856014      <- anything else: not this unit, stop
 python3 fm1t.py --port $P --loader wl82loader.bin dump dumpA.bin
 python3 fm1t.py --port $P --loader wl82loader.bin dump dumpB.bin --compare dumpA.bin
 cmp dumpA.bin dumpB.bin                # must be identical; keep both
 ```
+
+This route is for the owner's unit, whose flash is a Puya P25Q80H
+(`856014`). FM-1s sold from about autumn 2026 carry a UCUN UC25HQ80 and
+report `id=B36014` [reported: SLOOP v2.8.5]. The transporter firmware at the
+pinned commit only prints the ID, but upstream `fm1t.py write` compares the
+whole `info` line and refuses such a unit before writing. Nothing in this
+procedure has run on one; see `notes/2026-11-10-flash-uc25hq80.md`.
 
 Before writing, check the dump:
 

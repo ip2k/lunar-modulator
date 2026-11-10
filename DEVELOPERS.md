@@ -788,7 +788,7 @@ with confidence marks, are in [docs/01](docs/01-hardware.md),
 
 | | |
 | --- | --- |
-| SoC | JieLi AC791N (WL82), LQFP48, marking `C1xxxxx-11B8` (lot varies; owner's `C188612-11B8`); two pi32v2 cores, **360 MHz** (SPL from `isd_config` `SYS_CLK` [verified: V15 bytes]; runtime [reported: fm1-x0x measurement]; HSB 180, LSB 60), the dev kit runs 320; 578 KB SRAM; 1 MB flash, JEDEC `0x856014` (Puya) [reported], probably in-package |
+| SoC | JieLi AC791N (WL82), LQFP48, marking `C1xxxxx-11B8` (lot varies; owner's `C188612-11B8`); two pi32v2 cores, **360 MHz** (SPL from `isd_config` `SYS_CLK` [verified: V15 bytes]; runtime [reported: fm1-x0x measurement]; HSB 180, LSB 60), the dev kit runs 320; 578 KB SRAM; 1 MB flash, probably in-package: Puya P25Q80H, JEDEC `0x856014` (owner's unit [verified: FC0A, 2026-10-26]), or on units sold from about autumn 2026 UCUN UC25HQ80, `0xB36014` [reported: SLOOP v2.8.5, fm1-gm #76]; accept both (`tools/fm1_flash_parts.py`, notes/2026-11-10-flash-uc25hq80.md) |
 | Memory map | flash XIP `0x02000000`, app entry `0x02000120` [verified: V15 `jlfw.yaml`], RAM `0x01C00000`, SFRs `0x1xxxx…0x5xxxx`, mask ROM `0xFFC0xxxx` |
 | USB | normal `4C4A:C755` (USB-MIDI + UAC1, full-speed, product string `FM-1`), OTA loader `4D4A:4155`, mask ROM `4C4A:8057` `UBOOT1.00` [reported] |
 | Display | 240×240 RGB565 ST7789V TFT on SPI1 (`0x11D00`), PC7–PC10, backlight PA2 [reported] |
@@ -1800,8 +1800,8 @@ Needs I6 and I3's compare script. Independent of I7 and I8. 1 session,
 2. With the unit off, start the dongle keying, then switch on.
 3. Confirm `UBOOT1.00` on a Linux host's direct USB 2.0 port, with no hub,
    and read the JEDEC ID. Expect `4C4A:8057` `WL80UBOOT1.00`, SCSI
-   `WL82`/`UBOOT1.00`/`1.00`, JEDEC `0x856014` and raw reads [reported:
-   FM-1-transporter, fm1-nes]; the dumps must still be ours. If the host
+   `WL82`/`UBOOT1.00`/`1.00`, JEDEC `0x856014` (newer units: `0xB36014`,
+   docs/01 §2) and raw reads [reported: FM-1-transporter, fm1-nes]; the dumps must still be ours. If the host
    drops the device the chip boots flash, so keep each dump, compare and
    restore in one session.
 4. Take dump 1. Power-cycle, re-enter, and take dump 2. Compare them.
