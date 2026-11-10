@@ -30,8 +30,8 @@ planned"; docs/18 §3):
   length rule of `fm1t_m6.py` (`memw`, `memr` and `ldr` lengths `[1-9][0-9]{0,3}`,
   because the transporter parses them with `strtoul(..., 0)`, so a leading 0 is
   octal). The patched file's SHA-256 is
-  `9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72`. **That hash is NOT yet approved: the owner must
-  approve it before the M5 bench session, and `preflight` must print exactly it.**
+  `9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72`. That hash was **approved by the owner on 2026-11-10** ("Approve 9673ccd8"),
+  and `~/m5-run` on bench01 holds it; `preflight` must print exactly it.
   The change is the pattern lines only (`tests/test_fm1t_m5.py`; listed in the PR).
 - **Sequence and recovery:** note §5, as below.
 

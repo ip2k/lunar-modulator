@@ -24,8 +24,8 @@ a watchdog reset seconds after the test pattern is now a recorded possible resul
 **Owner answers, 2026-11-10** (docs/18 §3 items 6–13): M6 approved to run on the
 FM-1 after M5 (`m6-plan-2`, `37334c76…`; its host tool `fm1t_m6.py` is approved at
 `d3714c83…`); M5's tool is patched with the same length rule ("Patch M5 too";
-new SHA-256 `9673ccd8…` awaits the owner's approval before M5, and bench01's
-`~/m5-run` holds the old tool until it is replaced); engine pool stays 148 KiB
+new SHA-256 `9673ccd8…`, approved by the owner 2026-11-10 and installed in
+bench01's `~/m5-run`, where `preflight` passes); engine pool stays 148 KiB
 until measured on target; UC25HQ80 flash support (`0xB36014`) is in progress on
 `feature/2026-11-10@flash-uc25hq80`, the M5/M6 tools stay pinned to `0x856014`;
 USB-MIDI stays off until measured; the M10 soft locks must be
@@ -60,8 +60,8 @@ image, a second run, any flash write, the soft key) needs a new yes.
   address and argument. An allow-list gates every line it sends, and
   every line goes to a JSONL receipt. It also has read-only `info`/`dump`
   with the loader, and a strict `compare`. Patched 2026-11-10 with the
-  length rule of `fm1t_m6.py`; its new SHA-256 `9673ccd8…` is **not yet
-  approved** (docs/19 §1).
+  length rule of `fm1t_m6.py`; its new SHA-256 `9673ccd8…` was approved by
+  the owner on 2026-11-10 (docs/19 §1).
 - Tested only against a fake of the transporter's data port
   (`tests/test_fm1t_m5.py`). Nothing was sent to the FM-1 or the Pico.
 - **Operator steps:** docs/19, with the commands Claude runs on bench01
@@ -511,7 +511,7 @@ mobile hardware editor is explicitly deferred until installable firmware; see
 2. ~~docs/09 §1–§3.~~ Done 2026-09-06 (`notes/2026-09-06-bench.md`).
 3. ~~Power-switch-off enumeration test.~~ Done 2026-09-06 (no enumeration when
    off). Still open: the case-open photo list (docs/09 §5).
-4. ~~Buy JieLi's "JL USB Updater 4.0" dongle~~ Superseded 2026-10-26: the
+4. ~~Buy JieLi's "JL USB Updater 4.0" dongle~~ Arrived 2026-11-10 (board V4.1; `notes/2026-11-10-jl-usb-updater-arrival.md`), not yet used. Superseded 2026-10-26: the
    FM-1 was recovered with a Pico 2 W and FM-1-transporter (docs/17), and
    the AC79 dev kit, in hand, is entered with its UPDATE and RESET buttons;
    a JieLi dongle is optional. (US$8–18, AliExpress/Taobao;

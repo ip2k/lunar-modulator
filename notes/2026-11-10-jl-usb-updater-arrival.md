@@ -1,0 +1,73 @@
+# 2026-11-10 — JieLi's USB updater dongle has arrived
+
+The "JL USB Updater" (强制升级工具, the forced-upgrade dongle of docs/07 §2.1,
+ordered with the dev kit, docs/14) is in hand. Nothing has been connected to
+it yet. These are observations from the owner's three photos of the case and
+the board, the case opened [verified: owner photos, 2026-11-10]. Where a photo
+does not settle a point, the point is marked as such.
+
+## What it is
+
+| | |
+| --- | --- |
+| Board | silkscreen `USB Updater V4.1`, `2023.02.24` |
+| Case | `杰理科技 JIELI TECHNOLOGY` on one face; `JL USB Updater`, an `Update` button, an LED window and a `GND RX TX` label on the other |
+| Ends | `PC端` (PC end) at the USB-A **female** socket, `样机端` (target end) at the USB-A **male** plug; male-plug pads `GND DP DM +5V` |
+| Controls | 8-way DIP switch (`ON`, 1–8), a tact switch under the `Update` button, a 3-position slide switch `5.0V / 4.2V / 3.3V` |
+| Headers and pads | 3-pin right-angle header `G RX TX`; pads `TCK TDO TMS NC TDI` |
+| Other parts | a 220 µF 16 V electrolytic by the socket, two LEDs, small SOT-23-class parts marked `A15HB`; the controller IC is not visible in the photos |
+
+The ends match the vendor manual quoted in docs/07 §2.1: the female socket
+takes a cable from a USB 2.0 port on the PC, and the male plug goes into the
+target. The FM-1 and the dev kit both need a USB-A-female-to-USB-C-male
+adapter on the male plug.
+
+## Not settled by the photos
+
+- **DIP switch positions.** They cannot be read reliably from the photo.
+  JieLi's manual covers updater **4.0** (SDK `doc/stuff/usb updater.pdf`):
+  - all off: the button cuts target power for at least 250 ms, then keys;
+  - bit 1: periodic power cut plus key;
+  - bit 3: continuous key with no power cut;
+  - bit 5: DP/DM default to UART;
+  - bit 7: USB functions and a virtual serial port.
+
+  This board is **V4.1**. That the bits mean the same here is [inferred].
+- **Supply selector position**, and whether it sets the target's VBUS or a
+  battery-style rail. 5.0 V is the expected setting for a USB-powered target
+  [inferred]. Read it before anything is plugged in.
+- **The pads.** They are four JTAG-named pads plus NC, while our earlier note
+  said "2-wire JTAG" (`notes/2026-10-05-community-repos.md`). What the
+  dongle drives on them is unknown.
+- **The key drive.** The photos do not show whether the dongle keys D+/D− open-drain or
+  push-pull, or through series resistors. docs/10 E1/E2 are written for our
+  own dongle; how the vendor's compares is unknown.
+
+## Where it fits, and what is not authorised
+
+- **Dev kit.** The kit enters UBOOT with its UPDATE and RESET buttons and
+  with acknowledged UART entry, so it does not need the dongle (docs/14).
+  The dongle is a third route there. Using it on the kit falls under the
+  standing dev-kit authorisation. Plugging it in is a physical step for the
+  owner.
+- **FM-1.** The approved recovery route stays docs/17 (Pico 2 W and our
+  patched FM-1-transporter, D2), and the M5 and M6 sessions are approved on
+  that route only. Using this dongle on the FM-1 is a **new route** and needs
+  the owner's yes first (docs/07 §4).
+- **Software.** JieLi's PC download tools (`isd_download`, the Windows
+  downloader) are writers: dev kit only, never the FM-1. Never pass
+  `-key`/`-key1`/`-mkey`, and never send `0xFC12` or raw `0xA1` (trap 11).
+
+## Proposed first checks (none run)
+
+1. **No target attached.** Owner plugs the dongle into bench01 alone. Record
+   `lsusb` and the kernel log, first with the DIP switch all off and then with bit 7 on. This shows
+   what the dongle itself enumerates as. Nothing is sent.
+2. **Dev kit, bit 3.** Dongle between bench01 and the kit. Check that the kit appears as
+   `4c4a:8057` `UBOOT1.00` through the dongle with no button pressed, then
+   return the kit to its app with the existing fixed-loader reset adapter.
+   This proves the dongle keys a WL82 ROM.
+3. **FM-1:** only after the owner approves it as a route. With bit 3 and the
+   FM-1's slide switch as the power-up, it could become a second recovery path
+   that needs no Pico. Read-only identity, then dumps compared with the
+   2026-10-26 pair, as docs/17 did.

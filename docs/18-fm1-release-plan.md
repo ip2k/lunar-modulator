@@ -197,9 +197,9 @@ Asked 2026-10-29; answers recorded here when they come.
     "Patch M5 too". `fm1t_m5.py` (approved 2026-11-09 at `c0e704e3…`) now
     admits only lengths `[1-9][0-9]{0,3}`, as `fm1t_m6.py` does (the transporter
     parses them with `strtoul(..., 0)`, so a leading 0 is octal). New SHA-256
-    `9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72`: **awaiting the owner's approval before M5**; the
-    bench01 copy in `~/m5-run` holds the old tool and must be replaced after
-    approval (docs/19 §1).
+    `9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72`: **approved by the owner 2026-11-10** ("Approve 9673ccd8"); the
+    bench01 copy in `~/m5-run` was replaced the same day and `preflight` there
+    prints it (docs/19 §1).
 12. **Engine pool size. Answered 2026-11-10:** "Measure on target first". Keep
     148 KiB; measure free SRAM on the first FM-1 app run.
 13. **Flash support. Owner request, 2026-11-10:** support the UC25HQ80 flash

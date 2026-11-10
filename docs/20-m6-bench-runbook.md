@@ -63,7 +63,7 @@ has been run and its bench note written. One M5 result decides how M6 goes:
   `fm1t_m6.py`, a copy of `fm1t_m5.py` with the approved image swapped and
   one hardening from its review (lengths, §2).
   `fm1t_m5.py` was patched with the same length rule on 2026-11-10 (new
-  SHA-256 `9673ccd8…`, awaiting the owner's approval; docs/19 §1) and is pinned
+  SHA-256 `9673ccd8…`, approved by the owner 2026-11-10; docs/19 §1) and is pinned
   by `tests/test_fm1t_m6.py`.
 - **Recovery:** a power cycle, then docs/17.
 - **The loader:** "loader not uploaded" in the M6 note's scope is read as
@@ -289,9 +289,8 @@ boot, docs/17 on the owner's go-ahead.
 - **M5's tool length gap: resolved for M5, pending approval.** The owner
   answered 2026-11-10 "Patch M5 too". `fm1t_m5.py` now has the same length
   rule as `fm1t_m6.py`; its new SHA-256 is
-  `9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72` (was `c0e704e3…`) and is **not yet
-  approved**: the owner must approve it before the M5 bench session
-  (docs/19 §1). The M6 tool is unchanged (`d3714c83…`).
+  `9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72` (was `c0e704e3…`) and was approved by the
+  owner on 2026-11-10 (docs/19 §1). The M6 tool is unchanged (`d3714c83…`).
 - **Owner item, only if M5 shows a watchdog reset:** the §0 decision.
 - **Answered by this session:** whether ALNK0 alone starts the FM-1's codec;
   the FM-1's audio rate (by pitch); the stopwatch's ticks per block on the
