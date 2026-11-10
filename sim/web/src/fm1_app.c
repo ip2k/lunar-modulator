@@ -17,6 +17,12 @@ static int pipeline_owned_unit(int unit) {
     unit==fm1_app_insert_unit(1,0) || unit==fm1_app_insert_unit(1,1);
 }
 static int pipeline_busy(void) { return pipeline_pending || pipeline_producing; }
+/* Set by the first block: from then on the arrangement (engines, inserts,
+ * their arenas, Macro's model) is the fixture's, and the UI refuses to change
+ * it (a divergence from the simulator, notes/2026-11-09-controls.md). */
+static int pipeline_geometry_sealed;
+int fm1_app_pipeline_busy(void) { return (int)pipeline_busy(); }
+int fm1_app_pipeline_locked(void) { return pipeline_geometry_sealed; }
 
 #define PIPELINE_GUARD(x) PIPELINE_REQUIRE(x)
 /* Opt-in worst-block stage marks; absent unless FM1_APP_PIPELINE_MARKS. */
@@ -1223,6 +1229,9 @@ static void mod_rebind(fm1_app_t *a, int unit, const fm1_engine_t *from) {
 
 int fm1_app_select(fm1_app_t *a, int unit, int index) {
   PIPELINE_GUARD(!pipeline_busy());
+#ifdef FM1_APP_RENDER_PIPELINE
+  if (pipeline_geometry_sealed) return FM1_APP_SELECT_LOCKED;
+#endif
   if (unit < 0 || unit >= FM1_APP_UNITS) return FM1_APP_SELECT_BAD;
   fm1_app_unit_t *u = &a->unit[unit];
   const fm1_engine_t *e = entry(index);
@@ -1475,6 +1484,10 @@ void fm1_app_set_param(fm1_app_t *a, int unit, int index, float value) {
   if (unit < 0 || unit >= FM1_APP_UNITS) return;
   fm1_app_unit_t *u = &a->unit[unit];
   if (!u->e || index < 0 || index >= u->e->n_params) return;
+#ifdef FM1_APP_RENDER_PIPELINE
+  /* The pipelined Macro path runs only model 0 (pipeline_preflight). */
+  if (pipeline_geometry_sealed && unit == fm1_app_sound_unit(1) && index == 0) value = 0.0f;
+#endif
   const float was = u->value[index];
   u->value[index] = fm1_param_clamp(&u->e->params[index], value);
   if (a->edit && memcmp(&was, &u->value[index], sizeof was) != 0) fm1_edit_note_param(a, unit, index);
@@ -2525,6 +2538,12 @@ static void swap_units(fm1_app_t *a, int ua, int ub) {
  * group (the two inserts, or the two master slots), arenas and all. */
 static void fx_swap(fm1_app_t *a, int delta) {
   if (a->fx_slot == FX_MIX) return;
+#ifdef FM1_APP_RENDER_PIPELINE
+  if (pipeline_geometry_sealed) {
+    refuse(a, FM1_APP_TONE_REFUSE, "Effect order", "is fixed", NULL);
+    return;
+  }
+#endif
   const int lo = a->fx_slot < FX_MIX ? FX_IN1 : FX_M1;
   const int hi = a->fx_slot < FX_MIX ? FX_IN2 : FX_M2;
   const int to = clampi(a->fx_slot + (delta > 0 ? 1 : -1), lo, hi);
@@ -2540,6 +2559,9 @@ static void fx_swap(fm1_app_t *a, int delta) {
  * left where it is but for a page past the new effect's last. */
 int fm1_app_swap_units(fm1_app_t *a, int ua, int ub) {
   PIPELINE_GUARD(!pipeline_busy());
+#ifdef FM1_APP_RENDER_PIPELINE
+  if (pipeline_geometry_sealed) return FM1_APP_SELECT_LOCKED;
+#endif
   const int ra = ua >= 1 && ua < FM1_APP_UNITS && unit_sound(ua) < 0;
   const int rb = ub >= 1 && ub < FM1_APP_UNITS && unit_sound(ub) < 0;
   if (!ra || !rb || ua == ub) return FM1_APP_SELECT_BAD;
@@ -3931,7 +3953,6 @@ typedef struct {
 static struct {
   const fm1_engine_t *e; void *self; unsigned char *mem; size_t bytes,cap;
 } pipeline_geometry[FM1_APP_UNITS];
-static int pipeline_geometry_sealed;
 static void pipeline_preflight(fm1_app_t *a,PipelineSlot *s,uint32_t n) {
   PIPELINE_REQUIRE(!s->live && n==64 && !a->edit && a->seq && !pipeline_producing);
   PIPELINE_REQUIRE(!pipeline_owner || pipeline_owner==a);
@@ -3970,8 +3991,9 @@ static void pipeline_preflight(fm1_app_t *a,PipelineSlot *s,uint32_t n) {
     }
   }
   }
-  /* Unsupported UI mutation paths are fenced before production starts. */
-  PIPELINE_REQUIRE(!a->arp_down && !a->popup_lines && a->ui.snap<0 && !a->ui.toast && !a->ui.follow);
+  /* A held ARP, a popup, a toast, a follow or a snap no longer stop a block:
+   * their time-driven part runs in fm1_app_pipeline_service at a drained
+   * barrier, never in the block (the guarded paths they reach need !busy). */
   if(!pipeline_geometry_sealed) {
     for(unsigned u=0;u<FM1_APP_UNITS;++u) {
       const fm1_app_unit_t *x=&a->unit[u];
@@ -4236,21 +4258,7 @@ static void pipeline_produce_block(fm1_app_t *a, uint32_t frames, void *storage)
   PIPELINE_MARK(CAPTURE);
   PROFILE_STAGE(FM1_APP_PROFILE_UI, n, 1);
   a->frames += n;
-  if (a->edit) {                         /* ARP held: Latch, for the next block: the panel's */
-    const uint8_t src = a->edit->src;
-    a->edit->src = FM1_EDIT_PANEL;
-    arp_poll(a);
-    a->edit->src = src;
-  } else {
-    arp_poll(a);
-  }
-  if (a->popup_lines && a->frames >= a->popup_until) {
-    const int was = fm1_edit_enter(a, FM1_EDIT_PANEL);
-    mod_commit(a);                       /* a picker commits a second after its last turn */
-    fm1_edit_leave(a, was);
-    a->popup_lines = 0;
-    a->dirty = 1;
-  }
+  /* ARP's hold and a popup's expiry: fm1_app_pipeline_service (barrier). */
   if (a->mod && n >= FM1_MOD_TICK) {
     /* A block of a tick or more ran the plan the last edits asked for, so
      * reading it now builds nothing (a build here could change what a knob
@@ -4268,7 +4276,7 @@ static void pipeline_produce_block(fm1_app_t *a, uint32_t frames, void *storage)
         (changed & FM1_SEQ_UI_SYNC_OVERLAY)) {
       a->dirty = 1;
     }
-    if (a->ui.toast || a->ui.follow) ui_after(a);   /* what a Capture did */
+    /* what a Capture did (toast, follow): fm1_app_pipeline_service */
   }
   update_leds(a);
   if (a->edit) fm1_edit_block_end(a);    /* module outputs' extremes, when subscribed */
@@ -4288,6 +4296,37 @@ int fm1_app_pipeline_produce(fm1_app_t *a, void *work) {
 const float *fm1_app_pipeline_consume(void *work) {
   if (fm1_app_pipeline_error()) return NULL;
   return pipeline_consume_block(work);
+}
+/* The UI's time-driven work, that a block cannot do (its guarded paths need
+ * !busy): ARP held long enough latches, a popup that has run its second
+ * commits and goes, and a toast, follow or snap the sequencer left becomes
+ * what the panel shows. The same steps, in the same order, as the tail of
+ * fm1_app_render. Due: the caller drains the pipeline, then calls it. */
+int fm1_app_pipeline_service_due(const fm1_app_t *a) {
+  if (a->popup_lines && a->frames >= a->popup_until) return 1;
+  if (a->arp_down && !a->arp_used && !a->arp_hold_done &&
+      a->frames - a->arp_down_at >= (uint64_t)(FM1_APP_ARP_HOLD_S * a->host.sample_rate)) return 1;
+  return a->seq && (a->ui.toast || a->ui.follow || a->ui.snap >= 0);
+}
+int fm1_app_pipeline_service(fm1_app_t *a) {
+  if (pipeline_busy()) return 0;
+  if (a->edit) {
+    const uint8_t src = a->edit->src;
+    a->edit->src = FM1_EDIT_PANEL;
+    arp_poll(a);
+    a->edit->src = src;
+  } else {
+    arp_poll(a);
+  }
+  if (a->popup_lines && a->frames >= a->popup_until) {
+    const int was = fm1_edit_enter(a, FM1_EDIT_PANEL);
+    mod_commit(a);
+    fm1_edit_leave(a, was);
+    a->popup_lines = 0;
+    a->dirty = 1;
+  }
+  if (a->seq && (a->ui.toast || a->ui.follow || a->ui.snap >= 0)) ui_after(a);
+  return 1;
 }
 int fm1_app_pipeline_retire(void *work) {
   if (fm1_app_pipeline_error()) return 0;

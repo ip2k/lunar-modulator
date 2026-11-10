@@ -39,13 +39,14 @@ class Queue(c.Structure):
 
 class Action(c.Structure):
     _fields_ = [('kind', c.c_uint8), ('sound', c.c_uint8), ('note', c.c_uint8),
-                ('velocity', c.c_uint8), ('value', c.c_float)]
+                ('velocity', c.c_uint8), ('down', c.c_uint8), ('value', c.c_float)]
 
 
 class Router(c.Structure):
     _fields_ = [('octave', c.c_int), ('key_note', c.c_uint8 * 27),
                 ('held', (c.c_uint8 * 128) * 4), ('cutoff', c.c_float), ('resonance', c.c_float),
-                ('applied', c.c_uint), ('deferred', c.c_uint), ('ignored', c.c_uint)]
+                ('applied', c.c_uint), ('deferred', c.c_uint), ('ignored', c.c_uint),
+                ('full', c.c_int)]
 
 
 class Msg(c.Structure):
@@ -182,12 +183,12 @@ def test_encoder_cycle_gives_two_detents(lib, index, enc):
 
 def test_master_sends_first_reading_then_filtered_moves(lib):
     p = Panel(lib)
-    assert p.scan(master=0) == [(MASTER, 0, 0, 0, 0)]
+    assert p.scan(master=0) == [(MASTER, 0, 1, 0, 0)]   # the panel pot shows its popup
     assert p.scan(master=3) == []
     moved = []
     for _ in range(10):
         moved += p.scan(master=800)
-    assert moved == [(MASTER, 100, 0, 0, 0)]
+    assert moved == [(MASTER, 100, 1, 0, 0)]
 
 
 # ---- MIDI ---------------------------------------------------------------------
@@ -204,7 +205,7 @@ def test_midi_messages_follow_the_virtual_fm1(lib):
     assert midi(lib, 0x83, 61, 40) == (NOTE_OFF, 61, 0, 3, 0)
     assert midi(lib, 0xE0, 0, 0x40) == (BEND, 0, 0, 0, 0)
     assert midi(lib, 0xE0, 0x7f, 0x7f) == (BEND, 0, 0, 0, 8191)
-    assert midi(lib, 0xB0, 7, 99) == (MASTER, 99, 0, 0, 0)
+    assert midi(lib, 0xB0, 7, 99) == (MASTER, 99, 0, 0, 0)     # MIDI CC7 shows no popup
     assert midi(lib, 0xB5, 123, 0) == (PANIC, 0, 0, 0, 0)
     assert midi(lib, 0xB0, 74, 10) is None
     assert midi(lib, 0xC0, 5, 0, 2) is None
@@ -280,3 +281,131 @@ def test_knob2_resonance_and_other_controls(lib, router):
                 (BUTTON, BTN_PLAY, 1, 0, 0), (BEND, 0, 0, 0, 4000))
     assert got == [(ACT_RES, 0, 0, 0, 0.4), (ACT_RES, 0, 0, 0, 1.0), (ACT_MASTER, 0, 0, 0, 1.0)]
     assert router.deferred == 3
+
+
+# ---- full-UI mode (LUNAR_FM1_FULL_UI): every control reaches the app ---------------
+
+(ACT_UI_KEY, ACT_UI_BUTTON, ACT_UI_ENCODER, ACT_BEND, ACT_PANIC) = range(6, 11)
+
+
+class Peekable(Queue):
+    pass
+
+
+def route_full(lib, router, *events):
+    got = []
+    emit = EMIT(lambda ctx, a: got.append((a.contents.kind, a.contents.note, a.contents.velocity,
+                                           a.contents.down, round(a.contents.value, 4))))
+    for kind, a, b, ch, value in events:
+        lib.lunar_fm1_route(c.byref(router), c.byref(Event(kind, a, b, ch, value)), emit, None)
+    return got
+
+
+@pytest.fixture
+def full_router(lib):
+    r = Router()
+    lib.lunar_fm1_router_reset(c.byref(r))
+    lib.lunar_fm1_router_set_full(c.byref(r), 1)
+    return r
+
+
+def test_full_mode_sends_all_14_buttons_both_edges(lib, full_router):
+    events = [(BUTTON, b, d, 0, 0) for b in range(14) for d in (1, 0)]
+    got = route_full(lib, full_router, *events)
+    assert got == [(ACT_UI_BUTTON, b, 0, d, 0.0) for b in range(14) for d in (1, 0)]
+    assert route_full(lib, full_router, (BUTTON, 14, 1, 0, 0)) == []     # out of range
+
+
+def test_full_mode_sends_all_7_encoders_both_ways(lib, full_router):
+    events = [(ENCODER, e, 0, 0, d) for e in range(7) for d in (1, -1)]
+    got = route_full(lib, full_router, *events)
+    assert got == [(ACT_UI_ENCODER, e, 0, 0, float(d)) for e in range(7) for d in (1, -1)]
+    assert route_full(lib, full_router, (ENCODER, 7, 0, 0, 1), (ENCODER, 0, 0, 0, 0)) == []
+
+
+def test_full_mode_sends_all_27_keys_with_the_default_velocity(lib, full_router):
+    got = route_full(lib, full_router, *[(KEY, k, 1, 0, 0) for k in range(27)])
+    assert [g[:2] for g in got] == [(ACT_UI_KEY, k) for k in range(27)]
+    assert {g[2] for g in got} == {100}
+    assert route_full(lib, full_router, (KEY, 27, 1, 100, 0)) == []
+
+
+def test_full_mode_bend_follows_the_simulator_scale(lib, full_router):
+    got = route_full(lib, full_router, (BEND, 0, 0, 0, 0), (BEND, 0, 0, 0, 8191),
+                     (BEND, 0, 0, 0, -8192))
+    assert [g[4] for g in got] == [0.0, 1.9998, -2.0]
+
+
+def test_full_mode_master_carries_the_popup_flag(lib, full_router):
+    got = route_full(lib, full_router, (MASTER, 127, 1, 0, 0), (MASTER, 64, 0, 0, 0))
+    assert got == [(ACT_MASTER, 0, 1, 0, 1.0), (ACT_MASTER, 0, 0, 0, round(64 / 127, 4))]
+
+
+def test_full_mode_panic_clears_the_note_balance(lib, full_router):
+    route_full(lib, full_router, (NOTE_ON, 70, 90, 2, 0))
+    got = route_full(lib, full_router, (PANIC, 0, 0, 0, 0))
+    assert got == [(ACT_PANIC, 0, 0, 0, 0.0)]
+    assert route_full(lib, full_router, (NOTE_OFF, 70, 0, 2, 0)) == []
+
+
+def barrier(lib, router, *event):
+    return lib.lunar_fm1_event_barrier(c.byref(router), c.byref(Event(*event)))
+
+
+def test_barrier_classification(lib, router, full_router):
+    ui = [(KEY, 0, 1, 100, 0), (BUTTON, 3, 1, 0, 0), (ENCODER, 2, 0, 0, 1), (BEND, 0, 0, 0, 5),
+          (PANIC, 0, 0, 0, 0), (NOTE_ON, 60, 90, 1, 0), (NOTE_OFF, 60, 0, 1, 0)]
+    for e in ui:
+        assert barrier(lib, full_router, *e) == 1, e
+        assert barrier(lib, router, *e) == 0, e          # default mode never holds
+    for e in [(NOTE_ON, 60, 90, 0, 0), (NOTE_ON, 36, 90, 2, 0), (NOTE_OFF, 62, 0, 3, 0),
+              (MASTER, 10, 1, 0, 0)]:
+        assert barrier(lib, full_router, *e) == 0, e     # the fast path
+
+
+def test_queue_peek_does_not_consume(lib):
+    q = Queue()
+    lib.lunar_fm1_queue_reset(c.byref(q))
+    e = Event()
+    assert lib.lunar_fm1_queue_peek(c.byref(q), c.byref(e)) == 0
+    lib.lunar_fm1_queue_push(c.byref(q), c.byref(Event(KEY, 5, 1, 100, 0)))
+    lib.lunar_fm1_queue_push(c.byref(q), c.byref(Event(KEY, 6, 1, 100, 0)))
+    assert lib.lunar_fm1_queue_peek(c.byref(q), c.byref(e)) == 1 and e.a == 5
+    assert lib.lunar_fm1_queue_peek(c.byref(q), c.byref(e)) == 1 and e.a == 5
+    assert [x[1] for x in drain(lib, q)] == [5, 6]
+
+
+# ---- LEDs and battery ----------------------------------------------------------
+
+def pack(lib, lit):
+    led = (c.c_uint8 * 41)(*[1 if i in lit else 0 for i in range(41)])
+    cols = (c.c_ubyte * 11)()
+    placed = lib.lunar_fm1_leds_pack(led, cols)
+    return placed, list(cols)
+
+
+def test_every_led_has_its_own_cell_and_line(lib):
+    seen = set()
+    for i in range(41):
+        placed, cols = pack(lib, {i})
+        assert placed == 41
+        lit = [(col, bit) for col, m in enumerate(cols) for bit in range(4) if m >> bit & 1]
+        assert len(lit) == 1, i
+        assert lit[0] not in seen, i
+        seen.add(lit[0])
+        id_ = 14 + i if i < 27 else i - 27
+        cell = lib.lunar_key_cell(id_)
+        assert lit[0] == (cell >> 4, (cell & 15) - 1)    # LED line = row bit - 1
+    assert len(seen) == 41
+
+
+def test_leds_all_off_and_all_on(lib):
+    assert pack(lib, set()) == (41, [0] * 11)
+    placed, cols = pack(lib, set(range(41)))
+    assert placed == 41 and all(m & ~0xf == 0 for m in cols) and sum(bin(m).count('1') for m in cols) == 41
+
+
+@pytest.mark.parametrize('raw,cls', [(0, 0), (530, 0), (531, 1), (560, 1), (561, 2), (590, 2),
+                                     (591, 3), (1023, 3)])
+def test_battery_class_thresholds(lib, raw, cls):
+    assert lib.lunar_fm1_battery_class(raw) == cls

@@ -8,6 +8,18 @@ history.
 
 ## [Unreleased]
 
+### Added
+
+- **M10 controls wired through a drain barrier (host-tested, not on hardware).** The FM-1 app
+  image can now route all 27 keys, 14 buttons, 7 encoders, pitch bend, MIDI panic and sound 2's
+  notes to the panel's own handlers, light the 41 LEDs from the app's state and classify the
+  battery, behind the build switch `LUNAR_FM1_FULL_UI` (off by default). The producer waits for
+  the audio pipeline to drain before applying such an event, so the app's fail-closed guard is
+  never relaxed. On the host the full panel matches the unpipelined app on mode, popup, LEDs,
+  screen and every audio sample. The full image is 39,104 B over V15's slot, so the shipped image
+  keeps the fenced subset until the owner picks how to fit it (`notes/2026-11-09-controls.md`).
+  With it on, engine and effect swaps are refused with a popup once audio runs.
+
 ### Documentation
 
 - **M5 bench runbook** (docs/19): the numbered operator steps for the first

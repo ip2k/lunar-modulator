@@ -48,6 +48,15 @@ int lunar_fm1_queue_push(struct lunar_fm1_queue *q, const struct lunar_fm1_event
     return 1;
 }
 
+int lunar_fm1_queue_peek(const struct lunar_fm1_queue *q, struct lunar_fm1_event *e)
+{
+    if (!q || !e) return 0;
+    if (q->tail == q->head) return 0;
+    FENCE();
+    *e = q->slot[q->tail & (LUNAR_FM1_QUEUE_SIZE - 1u)];
+    return 1;
+}
+
 int lunar_fm1_queue_pop(struct lunar_fm1_queue *q, struct lunar_fm1_event *e)
 {
     uint32_t tail;
@@ -129,7 +138,7 @@ unsigned lunar_fm1_panel_update(struct lunar_fm1_panel *p,
         int moved = lunar_pot_update(&p->pot, (unsigned)master_raw);
         if (moved || !p->master_seen) {
             /* The first reading is sent too, so the level follows the knob. */
-            if (push(q, LUNAR_FM1_EV_MASTER, p->pot.level, 0, 0, 0)) {
+            if (push(q, LUNAR_FM1_EV_MASTER, p->pot.level, 1, 0, 0)) {   /* b = show the popup */
                 ++n;
                 p->master_seen = 1;
             }
@@ -200,6 +209,26 @@ int lunar_fm1_usb_midi_packet(const unsigned char packet[4], struct lunar_midi_m
     return 0;
 }
 
+unsigned lunar_fm1_leds_pack(const uint8_t led[41], unsigned char columns[LUNAR_MATRIX_COLUMNS])
+{
+    unsigned i, placed = 0;
+    for (i = 0; i < LUNAR_MATRIX_COLUMNS; ++i) columns[i] = 0;
+    if (!led) return 0;
+    for (i = 0; i < 41u; ++i) {
+        unsigned id = i < 27u ? 14u + i : i - 27u;
+        unsigned cell = lunar_key_cell(id), row = cell & 15u;
+        if (cell == 0xffu || row < 1u || row > 4u) continue;
+        ++placed;
+        if (led[i]) columns[cell >> 4] |= (unsigned char)(1u << (row - 1u));
+    }
+    return placed;
+}
+
+unsigned lunar_fm1_battery_class(unsigned raw)
+{
+    return raw >= 591u ? 3u : raw >= 561u ? 2u : raw >= 531u ? 1u : 0u;
+}
+
 /* ---- the router ---------------------------------------------------------- */
 
 void lunar_fm1_router_reset(struct lunar_fm1_router *r)
@@ -213,6 +242,29 @@ void lunar_fm1_router_reset(struct lunar_fm1_router *r)
     r->cutoff = LUNAR_FM1_CUTOFF_START;
     r->resonance = LUNAR_FM1_RESONANCE_START;
     r->applied = r->deferred = r->ignored = 0;
+}
+
+void lunar_fm1_router_set_full(struct lunar_fm1_router *r, int full)
+{
+    if (r) r->full = full != 0;
+}
+
+int lunar_fm1_event_barrier(const struct lunar_fm1_router *r, const struct lunar_fm1_event *e)
+{
+    if (!r || !e || !r->full) return 0;
+    switch (e->kind) {
+    case LUNAR_FM1_EV_KEY:
+    case LUNAR_FM1_EV_BUTTON:
+    case LUNAR_FM1_EV_ENCODER:
+    case LUNAR_FM1_EV_BEND:
+    case LUNAR_FM1_EV_PANIC:
+        return 1;
+    case LUNAR_FM1_EV_NOTE_ON:
+    case LUNAR_FM1_EV_NOTE_OFF:
+        return (e->c & 0x0fu) == 1u;     /* sound 2: the CPU1 worker's */
+    default:
+        return 0;
+    }
 }
 
 int lunar_fm1_channel_sound(unsigned channel)
@@ -232,6 +284,7 @@ static unsigned act(lunar_fm1_action_fn emit, void *ctx, unsigned kind, unsigned
     a.sound = (uint8_t)sound;
     a.note = (uint8_t)note;
     a.velocity = (uint8_t)velocity;
+    a.down = 0;
     a.value = value;
     if (emit) emit(ctx, &a);
     return 1;
@@ -276,6 +329,51 @@ unsigned lunar_fm1_route(struct lunar_fm1_router *r, const struct lunar_fm1_even
     unsigned n = 0, s, k;
     int sound, note;
     if (!r || !e) return 0;
+    if (r->full) {
+        struct lunar_fm1_action a;
+        switch (e->kind) {
+        case LUNAR_FM1_EV_KEY:
+        case LUNAR_FM1_EV_BUTTON:
+        case LUNAR_FM1_EV_ENCODER:
+            if (e->kind == LUNAR_FM1_EV_KEY && e->a >= 27u) { ++r->ignored; return 0; }
+            if (e->kind == LUNAR_FM1_EV_BUTTON && e->a >= 14u) { ++r->ignored; return 0; }
+            if (e->kind == LUNAR_FM1_EV_ENCODER && (e->a >= 7u || !e->value)) { ++r->ignored; return 0; }
+            a.kind = e->kind == LUNAR_FM1_EV_KEY ? LUNAR_FM1_ACT_UI_KEY
+                   : e->kind == LUNAR_FM1_EV_BUTTON ? LUNAR_FM1_ACT_UI_BUTTON
+                   : LUNAR_FM1_ACT_UI_ENCODER;
+            a.sound = 0; a.note = e->a; a.down = e->b ? 1u : 0u;
+            a.velocity = e->kind == LUNAR_FM1_EV_KEY ? (e->c ? e->c : LUNAR_FM1_KEY_VELOCITY) : 0;
+            a.value = (float)e->value;
+            ++r->applied;
+            if (emit) emit(ctx, &a);
+            return 1;
+        case LUNAR_FM1_EV_BEND:
+            ++r->applied;
+            return act(emit, ctx, LUNAR_FM1_ACT_BEND, 0, 0, 0, (float)e->value / 8192.0f * 2.0f);
+        case LUNAR_FM1_EV_PANIC:
+            for (s = 0; s < LUNAR_FM1_SOUNDS; ++s)
+                for (k = 0; k < 128u; ++k) r->held[s][k] = 0;
+            for (k = 0; k < 27u; ++k) r->key_note[k] = 0;
+            ++r->applied;
+            return act(emit, ctx, LUNAR_FM1_ACT_PANIC, 0, 0, 0, 0.0f);
+        case LUNAR_FM1_EV_MASTER:
+            ++r->applied;
+            a.kind = LUNAR_FM1_ACT_MASTER; a.sound = 0; a.note = 0; a.down = 0;
+            a.velocity = e->b ? 1u : 0u;
+            a.value = (float)(e->a & 0x7fu) / 127.0f;
+            if (emit) emit(ctx, &a);
+            return 1;
+        case LUNAR_FM1_EV_NOTE_ON:
+            sound = (e->c & 0x0fu) == 1u ? 1 : lunar_fm1_channel_sound(e->c & 0x0fu);
+            return note_on(r, (unsigned)sound, e->a & 0x7fu, e->b & 0x7fu, emit, ctx);
+        case LUNAR_FM1_EV_NOTE_OFF:
+            sound = (e->c & 0x0fu) == 1u ? 1 : lunar_fm1_channel_sound(e->c & 0x0fu);
+            return note_off(r, (unsigned)sound, e->a & 0x7fu, emit, ctx);
+        default:
+            ++r->ignored;
+            return 0;
+        }
+    }
     switch (e->kind) {
     case LUNAR_FM1_EV_KEY:
         if (e->a >= 27u) { ++r->ignored; return 0; }

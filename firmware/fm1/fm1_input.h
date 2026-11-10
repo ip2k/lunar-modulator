@@ -50,6 +50,8 @@ struct lunar_fm1_queue {
 void lunar_fm1_queue_reset(struct lunar_fm1_queue *q);
 /* 1 when queued; 0 when full (counted in `dropped`, the event is lost). */
 int lunar_fm1_queue_push(struct lunar_fm1_queue *q, const struct lunar_fm1_event *e);
+/* 1 when the oldest event was copied and left queued (single consumer). */
+int lunar_fm1_queue_peek(const struct lunar_fm1_queue *q, struct lunar_fm1_event *e);
 /* 1 when an event was taken. */
 int lunar_fm1_queue_pop(struct lunar_fm1_queue *q, struct lunar_fm1_event *e);
 
@@ -90,6 +92,21 @@ unsigned lunar_fm1_panel_update(struct lunar_fm1_panel *p,
                                 const unsigned char rows[LUNAR_MATRIX_COLUMNS],
                                 int master_raw, struct lunar_fm1_queue *q);
 
+/* The app's 41 LED states (fm1_app_t.led: keys 0..26, then the 14 buttons;
+ * nonzero = lit) as the matrix's per-column LED line masks
+ * (lunar_matrix_scan_lit). An LED sits at its switch's own cell, and the
+ * four LED lines are the row bits 1..4 of that cell, bit n-1 for row bit n
+ * [reported: Felucca hal/fm1_input.h fm1_led_key and fm1__led_lines, facts
+ * only; the cells are lunar_key_cell, fm1-nes's table]. Returns the number of
+ * LEDs placed (41 for a full table). */
+unsigned lunar_fm1_leds_pack(const uint8_t led[41], unsigned char columns[LUNAR_MATRIX_COLUMNS]);
+
+/* Battery class from the PB1 ADC reading: 0 empty .. 3 full, at the
+ * thresholds 531, 561 and 591 [reported: Felucca, fm1-nes; unconfirmed on
+ * this unit]. The simulator has no battery semantics, so nothing in the app
+ * uses it; the status line shows it. */
+unsigned lunar_fm1_battery_class(unsigned raw);
+
 /* A parsed MIDI message (TRS or USB) as an event; the channel is kept for
  * the router. TODO: honour the app's MIDI-in channel setting. Returns 1 when
  * `e` is set; messages the virtual FM-1 ignores (program change, other CCs,
@@ -110,8 +127,10 @@ int lunar_fm1_usb_midi_packet(const unsigned char packet[4], struct lunar_midi_m
  * allows between blocks: fm1_app_unit_note_on/off on sounds 0, 2 and 3, set
  * parameters on sound 0's filter insert, and fm1_app_master without its
  * popup. The router turns events into those actions and counts the rest.
- * TODO(app): the full panel UI (modes, menus, sequencer editing, sound 2's
- * notes, pitch bend) needs the app's pipeline fence widened (docs/18). */
+ * The full panel UI (modes, menus, sequencer editing, sound 2's notes, pitch
+ * bend) is the router's full mode (set_full, LUNAR_FM1_FULL_UI): the app's
+ * handlers run only at a drained barrier, never inside the fence (docs/18 M10,
+ * notes/2026-11-09-controls.md). */
 #define LUNAR_FM1_KEY_BASE_NOTE 53   /* key 0 is F3 at octave 0 (fm1_app.h) */
 #define LUNAR_FM1_OCTAVE_MAX 3
 #define LUNAR_FM1_SOUNDS 4u
@@ -126,10 +145,17 @@ enum lunar_fm1_action_kind {
     LUNAR_FM1_ACT_NOTE_OFF,    /* sound, note */
     LUNAR_FM1_ACT_MASTER,      /* value 0..1 (fm1_app_master position) */
     LUNAR_FM1_ACT_CUTOFF,      /* value Hz, sound 0's filter insert, parameter 1 */
-    LUNAR_FM1_ACT_RESONANCE    /* value 0..1, same insert, parameter 2 */
+    LUNAR_FM1_ACT_RESONANCE,   /* value 0..1, same insert, parameter 2 */
+    /* Full-UI actions (router.full): the app's own panel paths, applied only
+     * at a drained barrier (lunar_fm1_event_barrier). */
+    LUNAR_FM1_ACT_UI_KEY,      /* note = key 0..26, down, velocity */
+    LUNAR_FM1_ACT_UI_BUTTON,   /* note = FM1_BTN_*, down */
+    LUNAR_FM1_ACT_UI_ENCODER,  /* note = FM1_ENC_*, value = detents */
+    LUNAR_FM1_ACT_BEND,        /* value semitones, +/-2 over the 14-bit range */
+    LUNAR_FM1_ACT_PANIC        /* fm1_app_all_notes_off */
 };
 struct lunar_fm1_action {
-    uint8_t kind, sound, note, velocity;
+    uint8_t kind, sound, note, velocity, down;
     float value;
 };
 typedef void (*lunar_fm1_action_fn)(void *ctx, const struct lunar_fm1_action *action);
@@ -140,7 +166,17 @@ struct lunar_fm1_router {
     uint8_t held[LUNAR_FM1_SOUNDS][128];/* note-ons not yet released, per sound */
     float cutoff, resonance;
     unsigned applied, deferred, ignored;
+    int full;                           /* full-UI mode (set by the adapter) */
 };
+/* Full-UI mode: keys, buttons, encoders, bend, panic and sound 2's notes go to
+ * the app's own handlers (octave, modes, menus, sequencer and every page are
+ * the app's, as in the virtual FM-1); the router keeps only note balance. In
+ * the default mode it is the fenced subset described above. */
+void lunar_fm1_router_set_full(struct lunar_fm1_router *r, int full);
+/* 1 when applying `e` needs the app drained (no block produced and not yet
+ * retired): every full-mode event but MASTER and notes on sounds 1, 3 and 4.
+ * Always 0 outside full mode. */
+int lunar_fm1_event_barrier(const struct lunar_fm1_router *r, const struct lunar_fm1_event *e);
 void lunar_fm1_router_reset(struct lunar_fm1_router *r);
 /* MIDI channel to sound: channels 1, 3 and 4 play sounds 1, 3 and 4 (S1,
  * S3 drums, S4); channel 2 would be sound 2, which this image defers; every

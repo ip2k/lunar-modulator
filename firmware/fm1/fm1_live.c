@@ -11,7 +11,7 @@
 #include "fm1_mod.h"
 #include <string.h>
 
-#if !FM1_APP_RENDER_PIPELINE
+#if !FM1_APP_RENDER_PIPELINE && !defined(LUNAR_FM1_HOST_REFERENCE)
 #error The FM-1 application needs the pipelined app (FM1_APP_RENDER_PIPELINE)
 #endif
 #if !FM1_APP_EXTERNAL_ARENAS
@@ -92,6 +92,7 @@ int lunar_fm1_live_init(void)
     }
     lunar_fm1_queue_reset(&queue);
     lunar_fm1_router_reset(&router);
+    lunar_fm1_router_set_full(&router, LUNAR_FM1_FULL_UI);
     ready = 1;
     return 1;
 }
@@ -140,6 +141,12 @@ int lunar_fm1_live_bind(void)
 
 struct lunar_fm1_queue *lunar_fm1_live_queue(void) { return &queue; }
 
+void lunar_fm1_live_leds(uint8_t led[41])
+{
+    unsigned i;
+    for (i = 0; i < 41u; ++i) led[i] = LUNAR_FM1_FULL_UI ? app.led[i] : 0;
+}
+
 static void apply(void *ctx, const struct lunar_fm1_action *a)
 {
     (void)ctx;
@@ -151,7 +158,8 @@ static void apply(void *ctx, const struct lunar_fm1_action *a)
         fm1_app_unit_note_off(&app, a->sound, a->note);
         break;
     case LUNAR_FM1_ACT_MASTER:
-        fm1_app_master(&app, a->value, 0);   /* no popup: the pipeline fences it */
+        /* The popup only in full-UI mode, where popups are serviced at a barrier. */
+        fm1_app_master(&app, a->value, LUNAR_FM1_FULL_UI ? a->velocity : 0);
         break;
     case LUNAR_FM1_ACT_CUTOFF:
         fm1_app_set_param(&app, units[4], 1, a->value);
@@ -159,9 +167,39 @@ static void apply(void *ctx, const struct lunar_fm1_action *a)
     case LUNAR_FM1_ACT_RESONANCE:
         fm1_app_set_param(&app, units[4], 2, a->value);
         break;
+#if LUNAR_FM1_FULL_UI
+    /* The panel's own paths, as sim/web/src/fm1_web.c calls them. */
+    case LUNAR_FM1_ACT_UI_KEY:
+        fm1_app_key(&app, a->note, a->down, a->velocity);
+        break;
+    case LUNAR_FM1_ACT_UI_BUTTON:
+        fm1_app_button(&app, a->note, a->down);
+        break;
+    case LUNAR_FM1_ACT_UI_ENCODER:
+        fm1_app_encoder(&app, a->note, (int)a->value);
+        break;
+    case LUNAR_FM1_ACT_BEND:
+        fm1_app_pitch_bend(&app, a->value);
+        break;
+    case LUNAR_FM1_ACT_PANIC:
+        fm1_app_all_notes_off(&app);
+        break;
+#endif
     default:
         break;
     }
+}
+
+int lunar_fm1_live_barrier_hold(void)
+{
+    struct lunar_fm1_event e;
+    if (!LUNAR_FM1_FULL_UI || !bound || !fm1_app_pipeline_busy()) return 0;
+    if ((lunar_fm1_queue_peek(&queue, &e) && lunar_fm1_event_barrier(&router, &e)) ||
+        fm1_app_pipeline_service_due(&app)) {
+        ++state.barrier_holds;
+        return 1;
+    }
+    return 0;
 }
 
 int lunar_fm1_live_produce(void *work)
@@ -170,10 +208,16 @@ int lunar_fm1_live_produce(void *work)
     unsigned budget = LUNAR_FM1_QUEUE_SIZE;
     if (!bound || lunar_pipeline_error()) return 0;
     /* Between reserve and produce: the only window controls may run. */
-    while (budget-- && lunar_fm1_queue_pop(&queue, &e)) {
+    while (budget-- && lunar_fm1_queue_peek(&queue, &e)) {
+        if (lunar_fm1_event_barrier(&router, &e) && fm1_app_pipeline_busy()) break; /* in order */
+        if (lunar_fm1_event_barrier(&router, &e)) ++state.barrier_events;
+        lunar_fm1_queue_pop(&queue, &e);
         ++state.events;
         lunar_fm1_route(&router, &e, apply, 0);
     }
+#if LUNAR_FM1_FULL_UI
+    if (fm1_app_pipeline_service_due(&app) && fm1_app_pipeline_service(&app)) ++state.services;
+#endif
     if (!fm1_app_pipeline_produce(&app, work)) return 0;
     ++state.blocks;
     return 1;

@@ -232,6 +232,40 @@ def test_led_lines_follow_the_selected_column(sim):
     assert sim.sim_counter(5) == 0xffff
 
 
+DWELL = c.CFUNCTYPE(None, c.c_void_p, c.c_uint)
+
+
+def test_scan_lit_dwells_once_per_lit_column_with_its_leds_on(sim):
+    sim.lunar_matrix_scan_lit.argtypes = [c.c_void_p, c.c_void_p, c.c_void_p, DWELL, c.c_void_p,
+                                          c.c_uint]
+    io = sim.sim_io()
+    sim.lunar_matrix_init(io)
+    leds = (c.c_ubyte * 11)(0b0001, 0, 0b0110, 0, 0, 0, 0, 0, 0, 0b1000, 0)
+    seen = []
+
+    def dwell(ctx, us):
+        pa, ph = reg(sim, PA + OUT), reg(sim, PH + OUT)
+        seen.append((us, pa >> 9 & 3, (ph >> 6 & 1) | (ph >> 9 & 1) << 1))
+
+    rows = (c.c_ubyte * 11)()
+    assert sim.lunar_matrix_scan_lit(io, leds, rows, DWELL(dwell), None, 200)
+    assert [x[0] for x in seen] == [200, 200, 200]       # columns 0, 2, 9 only, equal dwell
+    lines = [(pa | ph << 2) for _, pa, ph in seen]
+    assert lines == [0b0001, 0b0110, 0b1000]
+    assert reg(sim, PA + OUT) & 0x600 == 0 and reg(sim, PH + OUT) & 0x240 == 0   # all off after
+
+
+def test_scan_lit_without_leds_never_dwells(sim):
+    sim.lunar_matrix_scan_lit.argtypes = [c.c_void_p, c.c_void_p, c.c_void_p, DWELL, c.c_void_p,
+                                          c.c_uint]
+    io = sim.sim_io()
+    sim.lunar_matrix_init(io)
+    rows = (c.c_ubyte * 11)()
+    calls = []
+    assert sim.lunar_matrix_scan_lit(io, None, rows, DWELL(lambda *_: calls.append(1)), None, 200)
+    assert calls == []
+
+
 def test_backlight_pa2_active_low(sim):
     io = sim.sim_io()
     sim.sim_set_reg(PA + OUT, 0x4)

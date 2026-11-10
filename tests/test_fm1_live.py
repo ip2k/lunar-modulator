@@ -18,12 +18,18 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULES = 'dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance'
 
 
-def build(tmp_path, sanitize):
+def build(tmp_path, sanitize, full=False, ref=False):
     cc, cxx = shutil.which('clang'), shutil.which('clang++')
     if not cc or not cxx or not shutil.which('make'):
         pytest.skip('native clang toolchain unavailable')
-    out = tmp_path / ('asan' if sanitize else 'plain')
-    flags = '-O2 -ffp-contract=off -DFM1_APP_EXTERNAL_ARENAS=1 -DFM1_APP_RENDER_PIPELINE=1'
+    out = tmp_path / (('ref-' if ref else 'full-' if full else '') + ('asan' if sanitize else 'plain'))
+    flags = '-O2 -ffp-contract=off -DFM1_APP_EXTERNAL_ARENAS=1'
+    if not ref:
+        flags += ' -DFM1_APP_RENDER_PIPELINE=1'
+    if full or ref:
+        flags += ' -DLUNAR_FM1_FULL_UI=1'
+    if ref:
+        flags += ' -DREPLAY_REF=1'
     if sanitize:
         flags += ' -fsanitize=address,undefined -fno-sanitize=shift -fno-omit-frame-pointer'
     exe = out / 'fm1-live-replay'
@@ -79,4 +85,65 @@ def test_fm1_live_fence_is_live(replay):
     _, exe = replay
     result = run(exe, 'guard')
     assert result.returncode == 72, (result.returncode, result.stderr)
+    assert 'pipeline refusal' in result.stderr
+
+
+# ---- the full-UI image (LUNAR_FM1_FULL_UI=1): every control, behind a drain barrier ----
+
+@pytest.fixture(scope='module')
+def full_exes(tmp_path_factory):
+    base = tmp_path_factory.mktemp('fm1full')
+    return (build(base, False, full=True), build(base, True, full=True),
+            build(base, False, ref=True))
+
+
+def state_lines(text):
+    return [line for line in text.splitlines() if line.startswith(('t', 'state'))]
+
+
+def test_full_ui_matches_the_unpipelined_app_at_every_checkpoint(full_exes):
+    """The same script of 68 events (all 14 buttons, 7 encoders both ways, SEL
+    combos, PLAY/REC, ARP tap and hold, keys, bend, MASTER, panic) goes to the
+    pipelined adapter through the drain barrier and to the same arrangement
+    with no pipeline. Mode, page, sound, octave, popup, the 41 LEDs, a hash of
+    the 240x240 screen and a hash of every PCM word agree at 13 checkpoints."""
+    live, _, ref = full_exes
+    a = run(live, 'full')
+    b = run(ref, 'ref')
+    assert a.returncode == 0, a.stderr
+    assert b.returncode == 0, b.stderr
+    a_lines, b_lines = state_lines(a.stdout), state_lines(b.stdout)
+    assert len(a_lines) == len(b_lines) == 13
+    assert a_lines == b_lines
+    # The screens and PCM actually moved: a differential of constants proves nothing.
+    assert len({line.split('screen=')[1].split()[0] for line in a_lines}) >= 8
+    assert len({line.split('pcm=')[1].split()[0] for line in a_lines}) == 13
+    assert 'popup_lines=0' in a_lines[-1]       # the popup expired after the last event
+
+
+def test_full_ui_events_wait_for_a_drained_app(full_exes):
+    live, asan, _ = full_exes
+    for exe in (live, asan):                    # the app's fence would exit 72 otherwise
+        result = run(exe, 'full')
+        assert result.returncode == 0, result.stderr
+        n = {k: int(v) for k, v in (i.split('=') for i in
+                                  next(l for l in result.stdout.splitlines()
+                                       if l.startswith('pushed=')).split())}
+        assert n['pushed'] == n['events'] == n['applied'] == 68
+        assert n['barrier_events'] == 67        # all but the MASTER, the fast path
+        assert n['barrier_holds'] >= 60         # the producer held back, then drained
+        assert n['services'] >= 2               # the popup expiry and the ARP hold ran
+
+
+def test_full_ui_soft_locks_refuse_swaps_once_blocks_run(full_exes):
+    live, _, _ = full_exes
+    result = run(live, 'refuse')
+    assert result.returncode == 0, result.stderr
+    assert 'refused=1' in result.stdout
+
+
+def test_full_ui_fence_is_still_live(full_exes):
+    live, _, _ = full_exes
+    result = run(live, 'guard')
+    assert result.returncode == 72
     assert 'pipeline refusal' in result.stderr
