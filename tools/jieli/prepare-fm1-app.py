@@ -31,6 +31,12 @@ FM-1 application:
   control also builds the app, the step-sequencer UI and the panel's input
   and display units at -Oz (dev-kit timing in notes/2026-11-10-size-levers.md);
   off, the default, changes nothing.
+- --init-tables on fills four derived tables at startup instead of storing
+  them (kSinTab12, kExp2Tab, the resampler kernel pairs, Plaits' lut_sine;
+  prepare-pipeline-devkit.py --init-tables, notes/2026-11-10-init-tables.md);
+  off, the default, changes nothing.
+- --profile fm1-1.0 is the 1.0 image by name: --full-ui on --size-levers
+  control --init-tables on, USB-MIDI off. A switch given with it must agree.
 
 Output is a private SDK tree with JieLi's libraries: never share a build of
 it while FM1_GPL_MODS=1 (CLAUDE.md, the GPL switch). It is not a package:
@@ -54,6 +60,13 @@ DEBUG_UART = ('off', 'pb3')
 USB_MIDI = ('off', 'on')
 FULL_UI = ('off', 'on')
 SIZE_LEVERS = ('off', 'cold', 'control')
+INIT_TABLES = ('off', 'on')
+# Named images (owner, 2026-11-10: "Control + build tables" for 1.0). A profile
+# only sets switches; the image is the one the same switches give one by one.
+PROFILES = {
+    'fm1-1.0': {'full_ui': 'on', 'size_levers': 'control', 'init_tables': 'on', 'usb_midi': 'off'},
+}
+DEFAULTS = {'debug_uart': 'off', 'usb_midi': 'off', 'full_ui': 'off', 'size_levers': 'off', 'init_tables': 'off'}
 POWER = {
     # macro or field, kit value, FM-1 stock value [reported: fm1-nes board_power.c]
     'vdc14': ('VDC14_VOL_SEL_140V', 'VDC14_VOL_SEL_160V'),
@@ -80,7 +93,7 @@ def checked_replace(text, before, after, count=1):
     return text.replace(before, after)
 
 
-def build_id(source, gpl, debug_uart, usb_midi='off', full_ui='off', size_levers='off'):
+def build_id(source, gpl, debug_uart, usb_midi='off', full_ui='off', size_levers='off', init_tables='off'):
     digest = hashlib.sha256()
     for name in BUILD_ID_SOURCES:
         path = source / name
@@ -94,6 +107,8 @@ def build_id(source, gpl, debug_uart, usb_midi='off', full_ui='off', size_levers
         options += ' full_ui={}'.format(full_ui)
     if size_levers != 'off':
         options += ' size_levers={}'.format(size_levers)
+    if init_tables != 'off':
+        options += ' init_tables={}'.format(init_tables)
     digest.update(options.encode())
     return int.from_bytes(digest.digest()[:4], 'big') or 1
 
@@ -195,8 +210,22 @@ def adapt_failopen(failopen, out, app, source):
     return setup
 
 
+def resolve_profile(profile, **given):
+    """Switches for a named profile; an explicit switch must agree with it. None means not given."""
+    if profile is None:
+        return {k: DEFAULTS[k] if v is None else v for k, v in given.items()}
+    if profile not in PROFILES:
+        raise ValueError('Profile: ' + ', '.join(sorted(PROFILES)))
+    chosen = dict(DEFAULTS, **PROFILES[profile])
+    for key, value in given.items():
+        if value is not None and value != chosen[key]:
+            raise ValueError('--profile {} sets {} {}, not {}'.format(profile, key.replace('_', '-'),
+                                                                        chosen[key], value))
+    return {k: chosen[k] for k in given}
+
+
 def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off', usb_midi='off',
-            full_ui='off', size_levers='off'):
+            full_ui='off', size_levers='off', init_tables='off', profile=None):
     if gpl not in (0, 1):
         raise ValueError('FM1_GPL_MODS is 0 or 1')
     if debug_uart not in DEBUG_UART:
@@ -207,12 +236,19 @@ def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off', usb_midi=
         raise ValueError('Full UI: ' + ', '.join(FULL_UI))
     if size_levers not in SIZE_LEVERS:
         raise ValueError('Size levers: ' + ', '.join(SIZE_LEVERS))
+    if init_tables not in INIT_TABLES:
+        raise ValueError('Init tables: ' + ', '.join(INIT_TABLES))
+    if profile is not None:
+        switches = dict(debug_uart=debug_uart, usb_midi=usb_midi, full_ui=full_ui, size_levers=size_levers,
+                        init_tables=init_tables)
+        if resolve_profile(profile, **switches) != switches:
+            raise ValueError('Switches disagree with --profile ' + str(profile))
     pipeline = load(source, 'prepare-pipeline-devkit.py', 'pipeline_prepare')
     failopen = load(source, 'prepare-failopen-devkit.py', 'failopen_prepare')
     # 320 MHz: the stock SPL sets the FM-1's 360 MHz before the app runs
     # [verified: V15 isd_config SYS_CLK]; the app does not switch clocks.
     pipeline.prepare_pipeline(sdk, source, out, system_archive, policy='cap8', dx7_sine='trunc12',
-                              size_profile=True)
+                              size_profile=True, init_tables=init_tables == 'on')
     app = out / 'apps/demo/demo_hello'
     staging = out / 'lunar-source'
     for directory in FM1_DIRS:
@@ -223,7 +259,7 @@ def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off', usb_midi=
     shutil.copyfile(source / 'tools/jieli/fm1-app.mk', staging / 'tools/jieli/fm1-app.mk')
     shutil.copyfile(source / 'firmware/third_party/fm1-nes/boot_compat.c', app / 'boot_compat.c')
 
-    identity = build_id(source, gpl, debug_uart, usb_midi, full_ui, size_levers)
+    identity = build_id(source, gpl, debug_uart, usb_midi, full_ui, size_levers, init_tables)
     remove_boot_control(app)
     setup = adapt_failopen(failopen, out, app, source)
     flags = ('CFLAGS += -DLUNAR_FM1_APP=1 -DLUNAR_PIPELINE_UNBOUNDED=1\n'
@@ -237,6 +273,9 @@ def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off', usb_midi=
                  identity, FAILOPEN_LIMIT, FAILOPEN_HEALTHY_MS, FAILOPEN_STABLE_MS,
                  FAILOPEN_EXPECTED_SLOTS)
     makefile = adapt_makefile(app, flags)
+    if init_tables == 'on':
+        # The table check is the dev kit's (its worker prints it); the FM-1 does not link it.
+        makefile.write_text(checked_replace(makefile.read_text(), pipeline.INIT_TABLES_CHECK_FLAGS, ''))
     adapt_fragment(app, gpl)
     adapt_config(app, debug_uart)
 
@@ -260,6 +299,7 @@ def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off', usb_midi=
         'fm1_gpl_mods': gpl, 'debug_uart': debug_uart,
         'usb_midi': usb_midi == 'on',
         'full_ui': full_ui == 'on', 'size_levers': size_levers,
+        'init_tables': init_tables == 'on', 'profile': profile,
         'power': {k: v[1] for k, v in POWER.items()},
         'sdram_bytes': 0, 'boot_info_bridge': 'fm1-nes boot_compat.c, --wrap=boot_info_init',
         'failopen_build_id': '0x{:08x}'.format(identity), 'failopen_limit': FAILOPEN_LIMIT,
@@ -284,15 +324,26 @@ if __name__ == '__main__':
     parser.add_argument('--pipeline-system-archive', type=Path, required=True)
     parser.add_argument('--gpl', type=int, choices=(0, 1), default=1,
                         help='FM1_GPL_MODS (default 1, on while we test; a GPL build is never shared)')
-    parser.add_argument('--debug-uart', choices=DEBUG_UART, default='off')
-    parser.add_argument('--usb-midi', choices=USB_MIDI, default='off',
+    parser.add_argument('--profile', choices=sorted(PROFILES),
+                        help='a named image: fm1-1.0 is --full-ui on --size-levers control --init-tables on '
+                             '(USB-MIDI off); any switch also given must agree')
+    parser.add_argument('--debug-uart', choices=DEBUG_UART)
+    parser.add_argument('--usb-midi', choices=USB_MIDI,
                         help='the USB-MIDI device (default off until the owner decides)')
-    parser.add_argument('--full-ui', choices=FULL_UI, default='off',
+    parser.add_argument('--full-ui', choices=FULL_UI,
                         help='the whole UI through the panel and MIDI (default off: it does not fit V15 alone)')
-    parser.add_argument('--size-levers', choices=SIZE_LEVERS, default='off',
+    parser.add_argument('--size-levers', choices=SIZE_LEVERS,
                         help='cold: -Oz on units that never run in a block, and the exact strtod; '
                              'control: also the per-block UI/control units (notes/2026-11-10-size-levers.md)')
+    parser.add_argument('--init-tables', choices=INIT_TABLES,
+                        help='fill four derived tables at startup instead of storing them '
+                             '(notes/2026-11-10-init-tables.md; default off)')
     args = parser.parse_args()
+    try:
+        switches = resolve_profile(args.profile, debug_uart=args.debug_uart, usb_midi=args.usb_midi,
+                                   full_ui=args.full_ui, size_levers=args.size_levers, init_tables=args.init_tables)
+    except ValueError as e:
+        parser.error(str(e))
     print('0x{:08x}'.format(prepare(args.sdk.resolve(), args.source.resolve(), args.out.absolute(),
-                                    args.pipeline_system_archive.resolve(), args.gpl, args.debug_uart,
-                                    args.usb_midi, args.full_ui, args.size_levers)))
+                                    args.pipeline_system_archive.resolve(), args.gpl, profile=args.profile,
+                                    **switches)))

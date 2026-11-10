@@ -19,12 +19,22 @@ the kit's test workload for these files and the board layer
 (`firmware/board`, `firmware/display`, fm1-nes's key tables). On a LAN node:
 `TOOLCHAIN=… tools/jieli/build-fm1-app-on-aeon.sh R NAME SESSION GPL`.
 
+**The 1.0 image** (owner, 2026-11-10: "Control + build tables") is
+`--profile fm1-1.0`, passed to either command: the full UI,
+`--size-levers control` and `--init-tables on`, with USB-MIDI off. It links
+to 560,856 B, 20,708 B under V15's slot [verified: offline link; not run on
+any device] (`notes/2026-11-10-init-tables.md`). With no switches the
+preparer still builds the default image, the full UI fenced.
+
 ## What it does
 
 - **Boot** [inferred: SDK source and the prepared tree; not run]: the stock
   SPL starts the app; fm1-nes's `boot_info` bridge (`--wrap=boot_info_init`,
   checked in the disassembly) gives the V1.2.13 libraries the words they
-  expect. `setup_arch` counts the boot (fail-open). `app_main` honours the
+  expect. `setup_arch` counts the boot (fail-open) and, with
+  `--init-tables on`, fills the four derived tables last, with interrupts
+  still off and before the scheduler, CPU1 or audio start [verified:
+  disassembly of the `fm1-1.0` image]. `app_main` honours the
   recovery combination, starts the supervisor, and starts `lunar_fm1_main`.
 - **Screen**: backlight on (PA2, active low), the M5 test pattern labelled
   "LUNAR FM-1" over SPI1 [reported pins: Felucca, fm1-nes]. There is no UI

@@ -38,7 +38,7 @@ import re
 TICKS_PER_US = 24
 BUDGET_TICKS = 34829
 STAGES = ('controls', 'preflight', 'seq', 'dispatch', 'inserts', 'capture', 'ui')
-HEX_FIELDS = ('hash', 'fold')
+HEX_FIELDS = ('hash', 'fold', 'sin12', 'exp2', 'pairs', 'lut_sine')
 TICK_RANGE = (2352000, 2424000)  # ten 10 ms OS ticks in TIMER4 counts, -2 %..+1 %
 FM1_CLOCKS = dict(sys=360000000, hsb=180000000, lsb=60000000)
 # Where each stage's code runs. Only the DX7 note path is placed in XIP by
@@ -302,6 +302,13 @@ def parse(data, sys_clk=None):
         result['buffered'] = buffered_rule(end, service, soak, ready[0] if ready else None, pipeline)
     if clock:
         result['clock360'] = clock
+    # --init-tables images (notes/2026-11-10-init-tables.md): the worker checks
+    # every entry of the four tables filled at startup before audio opens.
+    tables = one('LUNAR_INIT_TABLES', required=False)
+    if tables:
+        if tables.get('bad') != 0:
+            raise ValueError('LUNAR_INIT_TABLES: tables differ from the stored ones (mask {})'.format(tables.get('bad')))
+        result['init_tables'] = tables
 
     worst_rows = rows('LUNAR_WORST_BLOCK')
     summary = one('LUNAR_WORST_SUMMARY', required=bool(worst_rows))
