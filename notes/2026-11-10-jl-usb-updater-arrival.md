@@ -228,3 +228,13 @@ shadow [reported: owner]. Ask about switch positions rather than reading them fr
 - The port is ruled out. The summary and the comparison with the Pico route are in
   `docs/21-jl-usb-updater.md`.
 - Return state: the FM-1 is on V15. Nothing beyond the approved tries was run.
+
+## Dev-kit control (standing dev-kit authorisation, owner-run)
+
+- **Try 5, switch 3, kit plugged into the dongle:** LEDs red on, green on. bench01 saw nothing
+  (14:10–14:14:50).
+- **Try 6, all switches off, dongle re-plugged, Update pressed once:** the green LED went from
+  flashing to solid, then back to flashing a few seconds later [reported: owner]. bench01 logged
+  `usb1-port2: connect-debounce failed` at 14:15:52 and nothing after [verified].
+- Neither try reached the ROM. The cause is the dongle or its setup, not the FM-1. Whether the kit
+  was powered through the adapter is still to be confirmed. Details are in docs/21 §3–4.
