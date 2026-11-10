@@ -46,6 +46,15 @@ $(BUILD)/devkit/renderer_queue_sdk.o: SIM_CFLAGS += -std=gnu99
 endif
 endif
 
+# Derived tables filled at startup (prepare-pipeline-devkit.py --init-tables,
+# notes/2026-11-10-init-tables.md): the preparer drops the stored definitions
+# from its private copies and calls lunar_init_tables() from setup_arch().
+# It runs once, so it is built for size where a size profile sets COLDOPT.
+ifneq ($(filter -DFM1_INIT_TABLES=1,$(EXTRA)),)
+DEVKIT_RENDERER_OBJ += $(BUILD)/our/src/fm1_init_tables.o
+$(BUILD)/our/src/fm1_init_tables.o: COMMON += $(COLDOPT)
+endif
+
 $(BUILD)/devkit/%.o: $(DEVKIT)/%.cc
 	@mkdir -p $(dir $@)
 	$(CXX) $(COMMON) $(OUR_WARN) -I$(DEVKIT) -c $< -o $@

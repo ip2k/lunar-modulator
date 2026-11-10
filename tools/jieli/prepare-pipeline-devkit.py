@@ -10,6 +10,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import re
 import shutil
 
 SYSTEM = Path('cpu/wl82/liba/system.a')
@@ -496,9 +497,106 @@ def adapt_size_profile(out, source):
     receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
 
 
+# Size lever (a), derived tables filled at startup (notes/2026-11-10-init-tables.md):
+# the four cache-RAM tables tools/init_tables.py generates. Each entry names the
+# private prepared file, the stored definition removed from it, and declarations
+# made non-const so no translation unit (or LTO) treats the storage as constant.
+INIT_TABLES_DEFINITIONS = (
+    ('engines/src/msfa_rom.cc', r'extern const int16_t kSinTab12\[4096\] __attribute__\(\(section\("\.lunar_cache_tables"\)\)\) = \{.*?\n\};\n'),
+    ('engines/src/msfa_rom.cc', r'extern const int32_t kExp2Tab\[2048\] __attribute__\(\(section\("\.lunar_cache_tables"\)\)\) = \{.*?\n\};\n'),
+    ('engines/src/mi_macro.cc', r'extern const float fm1_resampler_kernel_pairs\[\(FM1_RESAMPLER_KERNEL_LEN - 1\) \* 2\] __attribute__\(\(section\("\.lunar_cache_tables"\)\)\) = \{.*?\n\};\n'),
+    ('engines/third_party/mutable/plaits/resources.cc', r'const float lut_sine\[\] __attribute__\(\(section\("\.lunar_cache_tables"\)\)\) = \{.*?\n\};\n'),
+)
+INIT_TABLES_DECLARATIONS = (
+    ('engines/src/msfa.h', 'extern const int16_t kSinTab12[1 << 12];'),
+    ('engines/src/msfa.h', 'extern const int32_t kExp2Tab[EXP2_N_SAMPLES << 1];'),
+    ('engines/src/msfa_sin_trunc12.h', 'extern const int16_t kSinTab12[1 << 12];'),
+    ('engines/include/fm1_resampler.h', 'extern const float fm1_resampler_kernel_pairs[(FM1_RESAMPLER_KERNEL_LEN - 1) * 2];'),
+    ('engines/third_party/mutable/plaits/resources.h', 'extern const float lut_sine[];'),
+)
+INIT_TABLES_FLAGS = 'CFLAGS += -DFM1_INIT_TABLES=1\n'
+INIT_TABLES_CHECK_FLAGS = 'CFLAGS += -DFM1_INIT_TABLES_CHECK=1\n'
+# The tables' own output section: after the SDK's .cache_ram_bss, NOLOAD, so it
+# takes cache RAM but no app.bin bytes. Nothing in the SDK copies or clears it.
+INIT_TABLES_SECTION = ('\n    .lunar_cache_init ALIGN(4) (NOLOAD):\n    {\n        *(.lunar_cache_init)\n'
+                       '        . = ALIGN(4);\n    } > cache_ram\n')
+INIT_TABLES_SETUP_ANCHOR = '    p33_io_latch_init();\n}'
+# The last statement of setup_arch(): the SDK's main() calls setup_arch() before
+# it creates a task, starts the scheduler (and with it CPU1) or opens audio, and
+# the startup code has already copied the data images and set up the cache-RAM
+# ways. The linker script has no constructors, so nothing reads the tables earlier.
+INIT_TABLES_SETUP_HOOK = ('    p33_io_latch_init();\n'
+                          '    /* Lunar: derived tables (prepare-pipeline-devkit.py --init-tables). */\n'
+                          '    extern void lunar_init_tables(void);\n'
+                          '    lunar_init_tables();\n}')
+INIT_TABLES_WORKER_ANCHOR = '    printf("LUNAR_DEVKIT timer_check_ticks=%u delay_os_ticks=10\\n", now()-before);\n'
+INIT_TABLES_WORKER_CHECK = (
+    '    {\n'
+    '        /* Dev kit only: every entry against the stored tables (FNV-1a per table). */\n'
+    '        extern unsigned int lunar_init_tables_check(unsigned int out[4]);\n'
+    '        unsigned int h[4];\n'
+    '        unsigned int bad = lunar_init_tables_check(h);\n'
+    '        printf("LUNAR_INIT_TABLES bad=%u sin12=%08x exp2=%08x pairs=%08x lut_sine=%08x\\n",\n'
+    '               bad, h[0], h[1], h[2], h[3]);\n'
+    '    }\n')
+
+
+def adapt_init_tables(out, source):
+    """Fill the four derived tables at startup instead of storing them (size lever (a))."""
+    staging = out / 'lunar-source'
+    if not (staging / 'engines/src/fm1_init_tables.cc').is_file():
+        raise ValueError('Missing engines/src/fm1_init_tables.cc; run tools/init_tables.py')
+    changed = set()
+    for name, pattern in INIT_TABLES_DEFINITIONS:
+        path = staging / name
+        text = path.read_text()
+        found = re.findall(pattern, text, flags=re.S)
+        if len(found) != 1:
+            raise ValueError('Unexpected stored table definition in ' + name + '; review --init-tables')
+        path.write_text(text.replace(found[0], '', 1))
+        changed.add(name)
+    for name, declaration in INIT_TABLES_DECLARATIONS:
+        path = staging / name
+        path.write_text(checked_replace(path.read_text(), declaration, declaration.replace('extern const ', 'extern ', 1)))
+        changed.add(name)
+    linker = out / 'cpu/wl82/sdk_ld_sfc.c'
+    script = linker.read_text()
+    start = script.find('    .cache_ram_bss ALIGN(4):\n')
+    if start < 0 or script.count('    .cache_ram_bss ALIGN(4):\n') != 1 or '.lunar_cache_init' in script:
+        raise ValueError('Unexpected cache RAM linker layout; review --init-tables')
+    end = script.index('    } > cache_ram\n', start) + len('    } > cache_ram\n')
+    linker.write_text(script[:end] + INIT_TABLES_SECTION + script[end:])
+    setup = out / 'cpu/wl82/setup.c'
+    setup.write_text(checked_replace(setup.read_text(), INIT_TABLES_SETUP_ANCHOR, INIT_TABLES_SETUP_HOOK))
+    app = out / 'apps/demo/demo_hello'
+    makefile = app / 'board/wl82/Makefile'
+    pipeline_line = ('CFLAGS += -DLUNAR_DEVKIT_RENDERER_PIPELINE=1 '
+                     '-DLUNAR_DEVKIT_RENDERER_PIPELINE_DAC=1 -DFM1_APP_RENDER_PIPELINE=1\n')
+    makefile.write_text(checked_replace(makefile.read_text(), pipeline_line,
+                                        pipeline_line + INIT_TABLES_FLAGS + INIT_TABLES_CHECK_FLAGS))
+    worker = app / 'sdk_worker.c'
+    worker.write_text(checked_replace(worker.read_text(), INIT_TABLES_WORKER_ANCHOR,
+                                      INIT_TABLES_WORKER_ANCHOR + INIT_TABLES_WORKER_CHECK))
+    receipt_path = out / 'lunar-devkit-input.json'
+    receipt = json.loads(receipt_path.read_text())
+    for name in sorted(changed):
+        receipt['inputs'][name] = sha256(staging / name)
+    receipt['inputs']['tools/init_tables.py'] = sha256(source / 'tools/init_tables.py')
+    receipt['init_tables'] = {
+        'tables': ['kSinTab12', 'kExp2Tab', 'fm1_resampler_kernel_pairs', 'plaits::lut_sine'],
+        'section': '.lunar_cache_init (NOLOAD, cache_ram)',
+        'filled_by': 'lunar_init_tables() at the end of setup_arch(), before main() starts tasks, CPU1 or audio',
+        'device_check': 'LUNAR_INIT_TABLES line (dev kit worker)',
+    }
+    receipt['prepared_board_makefile_sha256'] = sha256(makefile)
+    receipt['prepared_setup_sha256'] = sha256(setup)
+    receipt['prepared_sdk_worker_sha256'] = sha256(worker)
+    receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
+
+
 def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cycles=3, burst_hot=False,
                      policy='fixed12', worst_block=False, *, dx7_sine='trunc12', poly47_at_44100=False,
-                     sys_clk=320, stock_power=False, sfc_mhz=60, size_profile=False):
+                     sys_clk=320, stock_power=False, sfc_mhz=60, size_profile=False, init_tables=False):
     preset = renderer_preset(dx7_sine)
     if sys_clk not in SYS_CLOCKS:
         raise ValueError('System clock must be 320 or 360 MHz')
@@ -537,6 +635,8 @@ def prepare_pipeline(sdk, source, out, system_archive, adaptive_three=False, cyc
                    poly47_at_44100, sys_clk, stock_power, sfc_mhz)
     if size_profile:
         adapt_size_profile(out, source)
+    if init_tables:
+        adapt_init_tables(out, source)
 
 
 if __name__ == '__main__':
@@ -572,9 +672,14 @@ if __name__ == '__main__':
                         help='Image-size levers (tools/jieli/size-profile.mk): libc++ extern-template fix and -Oz on '
                              'cold setup/edit/parser units. Compiler flags only; hot code is not rebuilt at another '
                              'level. Default off, so every earlier image stays reproducible')
+    parser.add_argument('--init-tables', action='store_true',
+                        help='Size lever (a): fill kSinTab12, kExp2Tab, the resampler kernel pairs and Plaits\' '
+                             'lut_sine at startup from smaller seeds (engines/src/fm1_init_tables.cc) in a NOLOAD '
+                             'cache-RAM section; the worker checks every entry. Default off')
     args = parser.parse_args()
     prepare_pipeline(args.sdk.resolve(), args.source.resolve(), args.out.absolute(),
                      args.pipeline_system_archive.resolve(), args.adaptive_three, args.cycles, args.burst_hot,
                      args.policy, args.worst_block, dx7_sine=args.dx7_sine,
                      poly47_at_44100=args.poly47_at_44100, sys_clk=args.sys_clk,
-                     stock_power=args.stock_power, sfc_mhz=args.sfc_mhz, size_profile=args.size_profile)
+                     stock_power=args.stock_power, sfc_mhz=args.sfc_mhz, size_profile=args.size_profile,
+                     init_tables=args.init_tables)

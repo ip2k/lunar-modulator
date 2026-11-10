@@ -46,11 +46,13 @@ def sdk_fixture(tmp_path):
         'RAM0_SIZE = 0x1c7fe00 - 0x1c00000 - TLB_SIZE - BOOT_INFO_SIZE - 128;\n'
         '        *(.text*)\n        *(.rodata*)\n'
         '        *(.volatile_ram_code)\n    .cache_ram_data ALIGN(4):\n    {\n    } > cache_ram\n'
+        '    .cache_ram_bss ALIGN(4):\n    {\n        *(.memp_memory_x)\n    } > cache_ram\n'
         '    _HEAP_END = 0x1c00000 + RAM0_SIZE - 32;\n'
         '    PROVIDE(HEAP_END = 0x1c00000 + RAM0_SIZE - 32);\n'
         '    _MALLOC_SIZE = _HEAP_END - _HEAP_BEGIN;\n')
     (sdk/'cpu/wl82/setup.c').write_text('void setup_arch()\n{\n    wdt_init(0xc);\n'
-                                        '    system_reset_reason_get();\n    puts("x");\n}\n')
+                                        '    system_reset_reason_get();\n    puts("x");\n'
+                                        '    p33_io_latch_init();\n}\n')
     (sdk/'cpu/wl82/liba/system.a').write_bytes(b'original fixture archive')
     correction = tmp_path/'corrected.a'
     correction.write_bytes(b'reviewed fixture archive')
@@ -241,6 +243,12 @@ def test_refuses_bad_arguments(tmp_path):
         module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', full_ui='yes')
     with pytest.raises(ValueError):
         module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', size_levers='all')
+    with pytest.raises(ValueError):
+        module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', init_tables='yes')
+    with pytest.raises(ValueError):
+        module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', profile='fm1-2.0')
+    with pytest.raises(ValueError, match='sets full-ui on, not off'):
+        module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', profile='fm1-1.0')
 
 
 def test_fragment_swaps_the_kit_workload():
@@ -249,3 +257,76 @@ def test_fragment_swaps_the_kit_workload():
         assert gone in text
     assert '$(error The FM-1 application needs -DLUNAR_PIPELINE_UNBOUNDED=1)' in text
     assert 'fm1/fm1_sdk_main' in text and 'board/alnk0_audio' in text
+
+
+def test_init_tables_switch(prepared):
+    off, id_off = prepared(gpl=0, name='default')
+    on, id_on = prepared(gpl=0, name='tables', init_tables='on')
+    assert id_on != id_off
+    app = 'apps/demo/demo_hello/'
+    make_off, make_on = ((x/app/'board/wl82/Makefile').read_text() for x in (off, on))
+    assert 'FM1_INIT_TABLES' not in make_off
+    # On the FM-1 the tables are filled but the kit's check is not linked.
+    assert make_on.index('-DFM1_INIT_TABLES=1') < make_on.index('include lunar-renderer.mk')
+    assert 'FM1_INIT_TABLES_CHECK' not in make_on
+    assert not (on/app/'sdk_worker.c').exists()
+    setup = (on/'cpu/wl82/setup.c').read_text()
+    assert setup.index('lunar_init_tables();') > setup.index('p33_io_latch_init();')
+    assert 'lunar_init_tables' not in (off/'cpu/wl82/setup.c').read_text()
+    # The fail-open hook (system_reset_reason_get) is still in place beside it.
+    assert 'lunar_failopen' in setup or setup.count('system_reset_reason_get') == 1
+    assert '.lunar_cache_init ALIGN(4) (NOLOAD)' in (on/'cpu/wl82/sdk_ld_sfc.c').read_text()
+    assert '.lunar_cache_init' not in (off/'cpu/wl82/sdk_ld_sfc.c').read_text()
+    receipt = json.loads((on/'lunar-devkit-input.json').read_text())
+    assert receipt['init_tables'] is True and receipt['profile'] is None
+    assert json.loads((off/'lunar-devkit-input.json').read_text())['init_tables'] is False
+
+
+def test_profile_fm1_1_0_is_the_explicit_switches(prepared):
+    explicit, id_explicit = prepared(gpl=0, name='explicit', full_ui='on', size_levers='control', init_tables='on')
+    named, id_named = prepared(gpl=0, name='named', full_ui='on', size_levers='control', init_tables='on',
+                               profile='fm1-1.0')
+    assert id_named == id_explicit
+
+    def files(root):
+        return {p.relative_to(root): p.read_bytes().replace(str(root).encode(), b'@OUT@')
+                for p in root.rglob('*') if p.is_file()}
+    a, b = files(explicit), files(named)
+    assert sorted(a) == sorted(b)
+    assert [str(k) for k in a if a[k] != b[k]] == ['lunar-devkit-input.json']
+    ra, rb = (json.loads(x[Path('lunar-devkit-input.json')]) for x in (a, b))
+    assert rb.pop('profile') == 'fm1-1.0' and ra.pop('profile') is None
+    ra.pop('prepared_board_makefile_sha256'), rb.pop('prepared_board_makefile_sha256')
+    assert ra == rb
+    assert rb['usb_midi'] is False and rb['full_ui'] is True and rb['size_levers'] == 'control'
+
+
+def test_resolve_profile():
+    module = load('prepare-fm1-app.py', 'fm1_prepare_profile')
+    none = dict(debug_uart=None, usb_midi=None, full_ui=None, size_levers=None, init_tables=None)
+    assert module.resolve_profile(None, **none) == module.DEFAULTS
+    assert module.resolve_profile('fm1-1.0', **none) == dict(
+        debug_uart='off', usb_midi='off', full_ui='on', size_levers='control', init_tables='on')
+    assert module.resolve_profile('fm1-1.0', **dict(none, full_ui='on'))['init_tables'] == 'on'
+    for key, value in (('usb_midi', 'on'), ('size_levers', 'cold'), ('init_tables', 'off'), ('full_ui', 'off')):
+        with pytest.raises(ValueError, match='--profile fm1-1.0 sets'):
+            module.resolve_profile('fm1-1.0', **dict(none, **{key: value}))
+
+
+def test_profile_cli_refuses_a_conflicting_switch(tmp_path):
+    import subprocess
+    import sys
+    r = subprocess.run([sys.executable, str(ROOT/'tools/jieli/prepare-fm1-app.py'), '--sdk', str(tmp_path),
+                        '--source', str(ROOT), '--out', str(tmp_path/'o'), '--pipeline-system-archive',
+                        str(tmp_path/'a'), '--profile', 'fm1-1.0', '--usb-midi', 'on'],
+                       capture_output=True, text=True)
+    assert r.returncode == 2 and 'sets usb-midi off, not on' in r.stderr
+    assert not (tmp_path/'o').exists()
+
+
+def test_default_build_id_ignores_init_tables_off():
+    module = load('prepare-fm1-app.py', 'fm1_prepare_id2')
+    assert (module.build_id(ROOT, 1, 'off', 'off', 'on', 'control')
+            == module.build_id(ROOT, 1, 'off', 'off', 'on', 'control', 'off'))
+    assert (module.build_id(ROOT, 1, 'off', 'off', 'on', 'control', 'on')
+            != module.build_id(ROOT, 1, 'off', 'off', 'on', 'control'))
