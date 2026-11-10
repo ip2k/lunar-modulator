@@ -152,6 +152,32 @@ Asked 2026-10-29; answers recorded here when they come.
    This also settles §4's doubt about using docs/17's route to enter the ROM
    for this one Lunar RAM run. The run happens later, with the owner at the
    bench. Any other image, a second run or any flash write needs a new yes.
+6. **M6 on the FM-1 (docs/07 §4 approval). Approved 2026-11-10, to run after
+   M5,** choice recorded verbatim: "Yes, after M5 (Recommended)". Scope:
+   - RAM only, one session, after the M5 session;
+   - image `m6.bin`, 9,796 B, SHA-256
+     `37334c76760831e3137ec1c9d45943c3ef383f91a8fe632bfd78db07cbde3647`,
+     build id `m6-plan-2`; image bytes `[0x01C02000, 0x01C04644)`, nothing
+     used at or above `0x01C06C70`, inside the accepted `0x01C07E00` bound;
+   - accepted with it: timing at the ROM's clock (360 MHz timing moves to the
+     first image that sets the clock) and the -18 dBFS test arpeggio until
+     power-off (notes/2026-11-09-m6-image.md §5–6);
+   - route: docs/17's transporter with a host tool extended from
+     `fm1t_m5.py` (note §5 sketch; not written yet, and reviewed before use);
+     recovery a power cycle, then docs/17.
+
+   Any other image, a second run or any flash write needs a new yes.
+7. **USB-MIDI default (#190). Answered 2026-11-10:** "Off until measured
+   (Recommended)". `--usb-midi` stays off until a hardware run measures heap
+   use (with controls it leaves +128 B over the minimum).
+8. **The M10 soft locks. Answered 2026-11-10:** "Must lift before 1.0". The
+   full-UI FM-1 build must let engines, effect order and Macro's model change
+   while audio plays, as R0 does; this is added M10 work.
+9. **How the full UI fits V15's slot** (39,136 B over). Open: the owner asked
+   whether Terrain and Wavetable fail on the FM-1. They do not fail as
+   engines; today's pipelined build runs Macro's model 0 only, and the two
+   share a 50,688 B wave table (notes/2026-11-08-fit-tables.md). With item 8,
+   dropping them would remove playable models.
 
 ## 4. Doubts to settle
 
