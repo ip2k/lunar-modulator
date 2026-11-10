@@ -34,6 +34,8 @@ history.
 
 ### Documentation
 
+- docs/19: a reset to V15 some seconds after M5's test pattern is recorded as a
+  possible result (an armed watchdog under the ROM), with what to note.
 - **M5 bench runbook** (docs/19): the numbered operator steps for the first
   Lunar code on the FM-1, from RAM, with the exact commands, what the owner
   does at the unit at each step, stop conditions and recovery. The owner

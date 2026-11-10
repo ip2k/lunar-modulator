@@ -231,6 +231,12 @@ again (a new `N`) within 10 s of every reboot.
       it and do not run any tool command; go on with step 14, then stop and
       ask the owner before Part C. The tool cannot send the soft key, but
       nothing in this plan expects a V15 attached to the transporter.
+    - **If that happens some seconds after the test pattern appeared**, read
+      the delay from the video and record it. `m5.bin` never clears the
+      watchdog, so a reset a few seconds in would mean the FM-1's
+      cold-entered ROM leaves the watchdog armed [inferred]; M6's image
+      clears it only if armed, and needs to know (notes/2026-11-09-m6-image.md
+      §5). It is a result, not a danger.
 14. **Owner:** switch the FM-1 **off**. SRAM, and the image with it, is lost
     [inferred]. **Claude:** `$T --log 14-status.jsonl status` must show
     `uboot=0 v15=0`. If it does not, see §5, "The transporter is stuck".
