@@ -1,5 +1,7 @@
 """The FM-1 flash allow-list: both known parts accepted and named, anything else
 refused, writes only on the tested part, and the timing worst case. No hardware."""
+import hashlib
+import json
 from pathlib import Path
 import sys
 
@@ -87,6 +89,66 @@ def test_reader_refuses_other_device_type_and_a_changed_id():
     r.online()
     with pytest.raises(ValueError, match='changed in the session: 856014 then b36014'):
         r.online()
+
+
+def run_backup_main(tmp_path, monkeypatch, jedec):
+    """fm1_uboot_read.main() end to end with a fake loader and a fake Reader."""
+    loader = tmp_path / 'loader.bin'
+    loader.write_bytes(b'\0' * 16)
+    monkeypatch.setattr(uboot, 'LOADER_SIZE', 16)
+    monkeypatch.setattr(uboot, 'LOADER_SHA', hashlib.sha256(b'\0' * 16).hexdigest())
+    usb = tmp_path / '1-2'
+    usb.mkdir()
+    (usb / 'devnum').write_text('7\n')
+    entry = tmp_path / 'entry.jsonl'
+    entry.write_text('\n'.join(json.dumps(e) for e in [
+        {'event': 'identity', 'decoded': {'identity': 'FM-1_015'}},
+        {'event': 'uboot_enumerated',
+         'usb': [{'vid': '4c4a', 'pid': '8057', 'path': '1-2', 'devnum': '7'}]}]))
+
+    class FakeReader(uboot.Reader):
+        def __init__(self, device, log, usb_path):
+            self.log, self.usb = log, usb
+
+        def cmd(self, op, **_k):
+            assert op == 0xFC0A, f'unexpected {op:04x}'
+            return fc0a(3, jedec)
+
+        def load(self, _loader):
+            self.online()
+
+        def dump(self, file):
+            file.write_bytes(b'\xff' * uboot.FLASH_SIZE)
+            return {'file': file.name, 'bytes': uboot.FLASH_SIZE, 'sha256': 'same'}
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(uboot, 'Reader', FakeReader)
+    out = tmp_path / 'out'
+    monkeypatch.setattr(sys, 'argv', ['fm1_uboot_read.py', '--device', '/dev/sg9',
+                                      '--usb-path', '1-2', '--loader', str(loader),
+                                      '--entry-log', str(entry), '--out', str(out)])
+    uboot.main()
+    return out
+
+
+@pytest.mark.parametrize('jedec,name', [(PUYA, 'Puya P25Q80H'), (UCUN, 'UCUN UC25HQ80')])
+def test_backup_manifest_log_and_output_name_the_part(tmp_path, monkeypatch, capsys, jedec, name):
+    out = run_backup_main(tmp_path, monkeypatch, jedec)
+    manifest = json.loads((out / 'manifest.json').read_text())
+    assert (manifest['flash_jedec'], manifest['flash_part']) == (f'{jedec:06x}', name)
+    assert f'Flash: {name} (JEDEC {jedec:06X}, 1024 KiB)' in capsys.readouterr().err
+    events = [json.loads(line) for line in (out / 'commands.jsonl').read_text().splitlines()]
+    assert [e['part'] for e in events if e['event'] == 'flash_identity'] == [name]
+
+
+def test_backup_stops_on_an_unknown_part_without_a_manifest(tmp_path, monkeypatch, capsys):
+    with pytest.raises(SystemExit):
+        run_backup_main(tmp_path, monkeypatch, 0xEF4014)
+    out = tmp_path / 'out'
+    assert not (out / 'manifest.json').exists()
+    assert 'Stopped: Flash JEDEC EF4014 is not a known FM-1 flash' in capsys.readouterr().out
 
 
 def test_restore_tool_writes_only_on_puya():

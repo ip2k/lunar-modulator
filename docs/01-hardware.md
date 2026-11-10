@@ -107,10 +107,11 @@ ran this layout from the FM-1+VA install (2026-09-29) until 2026-10-15; since th
 aroum's README assumes a 4 or 8 MB flash. The package directory and the
 SMK-37 Pro notes both point at **1 MB**. No discrete SPI flash chip is visible
 in the photos, so the flash is most likely in-package **[inferred]**. Its
-JEDEC ID reads `0x856014` (Puya P25Q80H, 1 MiB) on other owners' FM-1s
-[reported: FM-1-transporter, fm1-nes's guard patch, SLOOP's loader check] and
-on this unit [verified: FC0A in mask-ROM USB mode, 2026-10-26, docs/17];
-in-package or not is still open.
+JEDEC ID reads `0x856014` on other owners' FM-1s [reported:
+FM-1-transporter, fm1-nes's guard patch, SLOOP's loader check] and on this
+unit [verified: FC0A in mask-ROM USB mode, 2026-10-26, docs/17]. That ID is
+the Puya P25Q80H, 1 MiB [reported: the same sources; the part name is not
+checked against Puya's datasheet here]; in-package or not is still open.
 
 **A second flash part.** FM-1s sold from about autumn 2026, mostly through
 AliExpress, carry a UCUN UC25HQ80 instead, JEDEC `0xB36014`, also 1 MiB
@@ -124,7 +125,7 @@ takes both status bytes in a 16-bit `01h`, the form JieLi's V1.2.13 driver
 uses first and for its plain unprotect, unless its caller asks for `31h`
 [verified: `cpu.a` IR; what callers ask is open]. It ships with QE clear
 (status register `00h`) while the FM-1's flash bus runs 4-wire (docs/02),
-and the SDK driver never sets QE, so whether stock V15's SPL starts such a
+and the SDK's `vm_sfc` driver never sets QE, so whether stock V15's SPL starts such a
 unit is open [inferred risk]. Lunar's tools accept both IDs from one list
 (`tools/fm1_flash_parts.py`) and name the part they find. Nothing has run on
 a UC25HQ80 unit here. Details, the comparison and every site that checks the
@@ -222,8 +223,8 @@ The knob question (which encoders use hardware decoders, and what the two
 ADC channels read) is answered in §3 and §3.1 [reported: Felucca, fm1-nes];
 I4 checks it against V15.
 
-1. **Flash**: JEDEC `0x856014`, Puya, 1 MiB on other owners' units
-   [reported, §2] and on this unit [verified, 2026-10-26]; newer units carry
+1. **Flash**: JEDEC `0x856014` (Puya, 1 MiB [reported]) on other owners'
+   units [reported, §2] and on this unit [verified ID, 2026-10-26]; newer units carry
    a UCUN UC25HQ80, `0xB36014` [reported, §2]. Still open: in-package or
    discrete.
 2. **Exact AC791N variant** and therefore pinout: AC7911B8 is the

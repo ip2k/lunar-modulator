@@ -14,7 +14,8 @@ history.
   2026 carry a UC25HQ80 (JEDEC `0xB36014`) in place of the Puya P25Q80H (`0x856014`), as
   isod89's SLOOP v2.8.5 notes (passing on The Firmware Hub's report) and fm1-gm describe. The
   read-only flash backup tool now accepts either part and names the one it finds in its log,
-  manifest and output. Any other chip is still refused. The one-sector restore proof still
+  manifest and output; it still starts only from a soft-key entry on stock V15 or FM-1+VA,
+  so units that ship with M-VAVE's V16 are not covered. Any other chip is still refused. The one-sector restore proof still
   writes only on the Puya part and refuses the UC25HQ80 by name, because no write has run on
   that part yet. The fail-open timeout bound is now checked against the slower of the two
   chips. Nothing has run on a UC25HQ80 unit here (`notes/2026-11-10-flash-uc25hq80.md`).

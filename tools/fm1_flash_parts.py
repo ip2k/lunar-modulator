@@ -4,9 +4,10 @@ One allow-list for every Python check that asks "is this an FM-1 flash?".
 The ID is the three bytes of the RDID command (9Fh), manufacturer first, as
 JieLi's loader reports it (FC0A) and as FM-1-transporter prints it.
 
-- `0x856014`, Puya P25Q80H: the owner's unit [verified: FC0A on 2026-10-26,
-  notes/2026-10-26-fm1-stock-v15-recovery.md] and other owners' units
-  [reported: FM-1-transporter, fm1-nes, SLOOP]. Timings [reported: Puya
+- `0x856014`, Puya P25Q80H: the ID on the owner's unit [verified: FC0A on
+  2026-10-26, notes/2026-10-26-fm1-stock-v15-recovery.md] and other owners'
+  units [reported: FM-1-transporter, fm1-nes, SLOOP]; the part name is
+  [reported] by the same sources. Timings [reported: Puya
   P25Q80H datasheet V1.7, via notes/2026-11-08-failopen-hardening.md §4].
 - `0xB36014`, UCUN UC25HQ80: FM-1s sold from about autumn 2026 [reported:
   SLOOP v2.8.5 release notes quoting The Firmware Hub; fm1-gm PR #76].
