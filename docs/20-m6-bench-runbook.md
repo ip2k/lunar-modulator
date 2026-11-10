@@ -101,8 +101,10 @@ on which the two differ. What changes:
   jump until all 9,796 B were written [verified: test].
 - **How the transporter writes it.** Each `memw` goes to the ROM in 512 B
   writes, so the third chunk ends with a 68 B write (M5's image ends with a
-  64 B one) [verified: transporter `do_memw`, `JL_IO_SIZE` 512]. A short
-  final ROM write has not run on hardware yet; M5 is its first test. If the
+  64 B one) [verified: transporter `do_memw`, `JL_IO_SIZE` 512]. This
+  project's records show no RAM-run write with a short final ROM write on
+  hardware yet, so M5 is its first test here [inferred: this repo's notes;
+  other transporter users' runs not checked]. If the
   ROM handles it differently, the three `memr` read-backs differ and the tool
   stops before the jump [verified: test with a corrupted `memr`].
 - **One attempt.** The lock is `fm1t_m6-ramrun.lock` next to the receipt.
@@ -282,6 +284,18 @@ boot, docs/17 on the owner's go-ahead.
   before use (docs/18 §3 item 6). Its SHA-256 at this writing is in
   `notes/2026-11-10-m6-tool.md`; any change after the review changes it,
   and `preflight` prints it on bench01.
+- **Owner item: M5's tool has the same length gap.** `fm1t_m5.py` admits
+  a length with a leading zero (`memw 0x1c02000 04096 …`), which the
+  transporter would read as octal; M6's tool now refuses it
+  (`notes/2026-11-10-m6-tool.md`, Review). M5's own code never sends such a
+  line [verified: its gate admits `memw 0x1c02000 04096 …`, run
+  2026-11-10], and a length read short makes the line's CRC disagree, so
+  no wrong byte should land [inferred: transporter source, `strtoul(…, 0)`
+  and the CRC over the parsed length]. Options:
+  (a) leave `fm1t_m5.py` as approved (recommended; costs nothing, keeps the
+  approved hash `c0e704e3…`), or (b) apply the same one-line pattern change,
+  which changes its hash and needs the M5 tool approved again before the
+  bench session. With no answer, M5 runs with the approved file.
 - **Owner item, only if M5 shows a watchdog reset:** the §0 decision.
 - **Answered by this session:** whether ALNK0 alone starts the FM-1's codec;
   the FM-1's audio rate (by pitch); the stopwatch's ticks per block on the
