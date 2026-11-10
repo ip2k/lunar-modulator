@@ -22,8 +22,9 @@ notes `2026-11-09-usb-midi.md` §7, `2026-11-09-m6-image.md` §6 and
 a watchdog reset seconds after the test pattern is now a recorded possible result.
 
 **Owner answers, 2026-11-10** (docs/18 §3 items 6–9): M6 approved to run on the
-FM-1 after M5 (`m6-plan-2`, `37334c76…`; its host tool is still to be written
-and reviewed); USB-MIDI stays off until measured; the M10 soft locks must be
+FM-1 after M5 (`m6-plan-2`, `37334c76…`; its host tool, `fm1t_m6.py`, is written in
+PR #193 and awaits review; the review's open item on M5's tool, a length
+gap, is in docs/20 §6); USB-MIDI stays off until measured; the M10 soft locks must be
 lifted before 1.0 (done on the host 2026-11-10, PR #194,
 `notes/2026-11-10-soft-locks.md`); how the full UI fits the slot is still open.
 
