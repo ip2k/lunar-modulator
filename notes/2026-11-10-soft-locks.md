@@ -71,9 +71,12 @@ real two-core run would be needed to see it.
    - The model-0 clamp in `fm1_app_set_param` and the `value[0]==0`
      requirement in preflight and record are removed.
    - Effect on sound: one Chip voice in random mode gives the stream the
-     shared generator gave it from a fresh seed. Several voices, or Chip
-     beside Drums, now each have their own stream rather than interleaved
-     draws [inferred from the code].
+     shared generator gave it from a fresh seed. Chip beside Drums no longer
+     interleaves draws with Drums. Several Chip voices do not get different
+     streams: every voice's `Init` seeds `0x21`, so voices started together
+     step through the same sequence in lockstep, where the shared generator
+     gave each the next draws [verified: `arpeggiator.h:55`, review
+     2026-11-10; the audible effect is not listened to]. Owner item, §6.
 4. **Arenas** (`fm1_app_set_arena_pool`, `firmware/fm1/fm1_live.c`):
    - The FM-1 adapter hands the app its whole 148 KiB pool.
    - An engine that does not fit its unit's arena takes the first 16-byte
@@ -98,11 +101,13 @@ real two-core run would be needed to see it.
    `app_init`, and so a project reset, refuses once the pipeline has run
    (`PIPELINE_GUARD(!pipeline_owner)`), so it fails closed rather than
    changing units under a seal. `fm1_app_state.c` and `fm1_edit.c` change
-   engines only through `fm1_app_select` [verified: source], and neither
-   appears in the FM-1 image's build files or the live replay [inferred:
-   searched `tools/jieli`, `firmware` and the `.mk` files; the prepared SDK
-   makefile was not listed]. The pipeline refuses a block while the edit
-   layer is open (`!a->edit` in preflight).
+   engines only through `fm1_app_select` [verified: source]. Both are
+   linked into the image: `SIM_APP_OBJ` (`sim/web/mk/sim.mk:40-43`) is part
+   of `DEVKIT_RENDERER_OBJ` (`tools/jieli/renderer.mk:5`) [verified: review
+   2026-11-10; an earlier draft of this note said they were absent]. No
+   panel path loads a project state, and the edit layer changes units only
+   while it is open, when the pipeline refuses a block (`!a->edit` in
+   preflight) [verified: source].
 
 The default image (`LUNAR_FM1_FULL_UI=0`) makes no structural change after
 init. Its control path is unchanged.
@@ -136,11 +141,20 @@ holds, at start or later, reports a voice limit of 8 at every checkpoint
     global;
   - engines whose globals meet share a group;
   - nothing outside the engines refers to that state.
-- Two kinds of symbol are exempt:
-  - the msfa tables, written only while a DX7 is created, which happens at
-    a barrier [verified: `msfa_dx7.cc:221-224`, `690`; `lfo.cc:28`];
-  - Braids' arrays of pointers, never written [inferred: not written in
-    the source].
+- Three kinds of symbol are exempt (corrected in review, 2026-11-10):
+  - the DX7 rate and the LFO and pitch-envelope units, written only by the
+    first DX7 create, at a barrier [verified: `msfa_dx7.cc:217-226`,
+    `lfo.cc:28`, `pitchenv.cc:23`];
+  - `fm1_freqlut`, which is not create-only as the first draft said:
+    every DX7 `RenderBlock` stores it (`msfa_dx7.cc:690`), so two DX7s on
+    two cores both write it. At 44,118 Hz every instance stores the address
+    of the one ROM table, the same word each time; at another host rate each
+    instance stores its own table's address (equal contents). A new test
+    pins `kFreqLutRateHz` (`msfa.h:63`) to `LUNAR_FM1_RATE`
+    (`firmware/fm1/fm1_live.h`) [verified: source, test];
+  - `fm1_sintab`/`fm1_exp2tab`, initialised to const tables and never
+    assigned, and Braids' arrays of pointers, never written [inferred: not
+    written in the source].
 - Results [verified]:
   - 4 passed on macOS (clang) and 4 passed on aeon (Linux, gcc, `objdump`);
   - with the old arpeggiator restored, 2 fail on macOS and 3 on Linux,
@@ -169,6 +183,29 @@ Other runs, host, macOS, at `75b56b30` [verified: pytest output]:
 - With the old `limit_dx7` built into the `swaps` replay, checkpoint t356
   read `dx7_limit=12`, which the differential's assertion (8 or 0)
   rejects. pytest itself was not re-run against the old code.
+
+### Review additions (adversarial review, 2026-11-10)
+
+- `tests/test_pipeline_shares.py`, now 6 tests:
+  - the descriptor search also finds `mi_fx.cc`'s `FM1_MI_FX` macro, and
+    the set found must equal every sound and audio effect `fm1-render
+    --list` registers, so a missed descriptor fails instead of going
+    unchecked [verified: 6 passed, macOS];
+  - `test_freqlut_rate_is_the_fm1_rate` (above);
+  - `test_no_device_master_effect_shares_state`: no audio effect in
+    `LUNAR_MODULES` (`tools/jieli/devkit-renderer-sdk.mk`) is in the shares
+    table, so no master pick on the FM-1 can reach admission's fail-closed
+    park.
+- `tests/test_fm1_live.py`: the differentials now check which core ran
+  Sound 2's chain at every checkpoint. A host-only accessor
+  (`fm1_app_pipeline_sound2_deferred`, under `FM1_APP_PIPELINE_HOST_PROBE`,
+  never in a device image) is printed by the replay, and the test works the
+  expected route out of the printed units and the shares table. `swaps`
+  must show both routes. Before this, a deferral that was always 0 or
+  always 1 passed, since a sequential replay gives the same PCM either way.
+  Three mutations of `pipeline_admit` (always inline, always deferred,
+  ignoring `SHARE_RNG`) each fail 2 tests; restored, 10 passed [verified:
+  pytest, macOS].
 
 ## 4. FM-1 image size (aeon, `lunar-jieli-check:bookworm`)
 
@@ -239,3 +276,14 @@ full UI was turned on with `sed` on the aeon copy of `fm1_live.h`.
   meter already refuses on the device budget.
 
 If there is no answer, (c) is how the build behaves now.
+
+Raised in review (2026-11-10):
+
+- **Chip arpeggiator seeding** (§2.3). Recommended: seed each voice
+  differently (for example from the voice index) so several Chip voices do
+  not run in lockstep; it changes the local patch in
+  `engines/third_party/mutable/`. Without an answer the lockstep stays.
+- **`fm1_freqlut` stored every block.** Safe on the FM-1 at 44,118 Hz.
+  Recommended follow-up: store it only when it changes, or pass the table
+  per instance, so a DX7 at another rate could share cores. Without an
+  answer the exemption and its rate test stand.

@@ -17,11 +17,13 @@ collects the writable data (.data/.bss/common) it can reach. Then:
   objects in sim/web/src are not checked here, and reach engines only
   through their descriptors.
 
-Two kinds of writable symbol are exempt, each named below: tables that are
-written only while an engine is created (at a drained barrier, nothing in
-flight), and arrays the compiler places in writable data because they are
-arrays of pointers, never written. notes/2026-11-10-soft-locks.md."""
+Three kinds of writable symbol are exempt, each named below: rate units
+written only by the first create (at a drained barrier, nothing in flight),
+msfa's frequency-table pointer, which every DX7 block stores with the same
+value on the FM-1, and pointers or arrays of pointers placed in writable data
+but never written. notes/2026-11-10-soft-locks.md."""
 import collections
+import json
 import platform
 import re
 import shutil
@@ -32,13 +34,20 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Written only by create (fm1_msfa_dx7 create: the rate, the LFO and pitch
-# envelope units, the table pointers), which the app calls at a drained
-# barrier (fm1_app_select's PIPELINE_GUARD), always with the same values.
-CREATE_ONLY = {
-    '_ZN3fm13dx79g_rate_hzE', '_ZN8fm1_msfa11fm1_exp2tabE', '_ZN8fm1_msfa11fm1_freqlutE',
-    '_ZN8fm1_msfa3Lfo5unit_E', '_ZN8fm1_msfa8PitchEnv5unit_E',
-}
+# Written only by the first DX7 create (msfa_dx7.cc SharedInit: the rate and
+# the LFO and pitch-envelope units); later creates only compare the rate. The
+# app creates engines at a drained barrier (fm1_app_select's PIPELINE_GUARD).
+CREATE_ONLY = {'_ZN3fm13dx79g_rate_hzE', '_ZN8fm1_msfa3Lfo5unit_E', '_ZN8fm1_msfa8PitchEnv5unit_E'}
+# Stored at the top of every DX7 RenderBlock (fm1_freqlut = Lut()), so two
+# DX7s on two cores both write it. At 44,118 Hz every instance stores the
+# address of the one ROM table (kFreqLut44118), the same word each time:
+# test_freqlut_rate_is_the_fm1_rate pins that rate to the FM-1's. At any other
+# host rate each instance points it at a table of its own (equal contents,
+# different address), which is only safe while one core renders DX7s.
+SAME_EVERY_BLOCK = {'_ZN8fm1_msfa11fm1_freqlutE'}
+# Initialised to a const table's address and never assigned (msfa_tables.cc).
+NEVER_ASSIGNED = {'_ZN8fm1_msfa11fm1_exp2tabE', '_ZN8fm1_msfa10fm1_sintabE'}
+EXEMPT = CREATE_ONLY | SAME_EVERY_BLOCK | NEVER_ASSIGNED
 # Braids' tables of pointers: not const, never written.
 NEVER_WRITTEN = re.compile(r'^_ZN6braids(\d+\w+_table|\d+\w+9fn_table_)E$')
 
@@ -116,11 +125,23 @@ def engines(tmp_path_factory):
         src = ROOT / 'engines/src' / (o.stem + '.cc')
         if rel[:2] != ('our', 'src') or not src.exists():
             continue
-        for m in re.finditer(r'fm1_engine_t\s+\w+\s*=\s*\{[^"{}]*?"([a-z0-9-]+)"', src.read_text()):
+        text = src.read_text()
+        for m in re.finditer(r'fm1_engine_t\s+\w+\s*=\s*\{[^"{}]*?"([a-z0-9-]+)"', text):
             ids[m.group(1)] = o
+        # mi_fx.cc defines its three descriptors through a macro
+        for m in re.finditer(r'^FM1_MI_FX\(\s*\w+,\s*\w+,\s*"([a-z0-9-]+)"', text, re.M):
+            ids[m.group(1)] = o
+    # Every sound engine and audio effect the build registers, as fm1-render
+    # lists them: a descriptor the patterns above miss fails here, rather
+    # than leaving that engine's shared state unchecked.
+    listed = json.loads(subprocess.run([str(out / 'fm1-render'), '--list'], capture_output=True,
+                                       text=True, check=True).stdout)
+    registered = {e['id'] for e in listed if e['kind'] in ('sound', 'audio_fx')}
+    assert set(ids) == registered, (sorted(registered - set(ids)), sorted(set(ids) - registered))
     closures = {i: closure(o) for i, o in ids.items()}
     reach = {i: set().union(*(wdata[x] for x in c)) for i, c in closures.items()}
-    return objs, undef, closures, reach
+    kinds = {e['id']: e['kind'] for e in listed}
+    return objs, undef, closures, reach, kinds
 
 
 def table():
@@ -131,13 +152,13 @@ def table():
 
 
 def shared(reach):
-    return {s for s in reach if s not in CREATE_ONLY and not NEVER_WRITTEN.match(s)}
+    return {s for s in reach if s not in EXEMPT and not NEVER_WRITTEN.match(s)}
 
 
 def test_every_engine_with_shared_state_is_in_the_table(engines):
-    _, _, _, reach = engines
+    _, _, _, reach, _ = engines
     t = table()
-    assert len(reach) >= 30, sorted(reach)      # the descriptors were found
+    assert len(reach) >= 40, sorted(reach)      # the descriptors were found
     assert set(t) <= set(reach), set(t) - set(reach)
     for i, r in sorted(reach.items()):
         s = shared(r)
@@ -145,7 +166,7 @@ def test_every_engine_with_shared_state_is_in_the_table(engines):
 
 
 def test_engines_whose_state_meets_share_a_bit(engines):
-    _, _, _, reach = engines
+    _, _, _, reach, _ = engines
     t = table()
     ids = sorted(reach)
     for n, a in enumerate(ids):
@@ -156,9 +177,9 @@ def test_engines_whose_state_meets_share_a_bit(engines):
 
 
 def test_nothing_outside_the_engines_touches_their_state(engines):
-    objs, undef, closures, reach = engines
+    objs, undef, closures, reach, _ = engines
     inside = set().union(*closures.values())
-    state = set().union(*(shared(r) | (r & CREATE_ONLY) for r in reach.values()))
+    state = set().union(*(shared(r) | (r & EXEMPT) for r in reach.values()))
     for o in objs:
         if o not in inside:
             assert not (undef[o] & state), (o.name, sorted(undef[o] & state))
@@ -168,6 +189,30 @@ def test_macro_reaches_no_shared_state(engines):
     """Macro's Chip arpeggiator kept its random walk in stmlib::Random's one
     global until 2026-11-10 (engines/third_party/mutable/UPSTREAM.md); Macro
     can now run on CPU1 beside Drums on CPU0."""
-    _, _, _, reach = engines
+    _, _, _, reach, _ = engines
     assert not shared(reach['macro'])
     assert 'macro' not in table()
+
+
+def test_freqlut_rate_is_the_fm1_rate():
+    """The SAME_EVERY_BLOCK exemption holds only while msfa's ROM frequency
+    table is for the rate the FM-1 image runs the engines at."""
+    msfa = (ROOT / 'engines/src/msfa.h').read_text()
+    live = (ROOT / 'firmware/fm1/fm1_live.h').read_text()
+    a = int(re.search(r'kFreqLutRateHz\s*=\s*(\d+)', msfa).group(1))
+    b = int(re.search(r'#define\s+LUNAR_FM1_RATE\s+(\d+)u?', live).group(1))
+    assert a == b == 44118, (a, b)
+
+
+def test_no_device_master_effect_shares_state(engines):
+    """pipeline_admit fails closed (a park, exit 72 on the host) when a master
+    effect shares a group with CPU0, because the masters always run on CPU1.
+    No audio effect the device image registers is in the table, so no master
+    pick can reach that park; adding one must change the masters' core first."""
+    *_, kinds = engines
+    mk = (ROOT / 'tools/jieli/devkit-renderer-sdk.mk').read_text()
+    modules = re.search(r'^LUNAR_MODULES \?= (\S+)', mk, re.M).group(1).split(',')
+    t = table()
+    fx = [m for m in modules if kinds.get(m) == 'audio_fx']
+    assert fx, modules
+    assert not [m for m in fx if m in t], [(m, t[m]) for m in fx if m in t]

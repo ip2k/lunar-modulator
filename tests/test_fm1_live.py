@@ -8,6 +8,7 @@ fm1_app_key refuses); each consumed result keeps the tag the worker set
 output words are L, R, L, R; nothing sounds before the first note. No SDK,
 no IRQ, no timing and no device."""
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -31,6 +32,8 @@ def build(tmp_path, sanitize, full=False, ref=False, modules=MODULES):
         flags += ' -DFM1_APP_RENDER_PIPELINE=1'
     if full or ref:
         flags += ' -DLUNAR_FM1_FULL_UI=1'
+    if full and not ref:
+        flags += ' -DFM1_APP_PIPELINE_HOST_PROBE=1'   # the replay prints Sound 2's core
     if ref:
         flags += ' -DREPLAY_REF=1'
     if sanitize:
@@ -159,6 +162,34 @@ def dx7_limits(line):
     return [int(v) for v in line.split('dx7_limit=')[1].split()[0].split(',')]
 
 
+def shares_table():
+    """pipeline_shares' table in sim/web/src/fm1_app.c: engine id -> its groups."""
+    src = (ROOT / 'sim/web/src/fm1_app.c').read_text()
+    body = src[src.index('static unsigned pipeline_shares('):]
+    body = body[:body.index('};')]
+    return {i: {s} for i, s in re.findall(r'\{\s*"([a-z0-9-]+)",\s*(SHARE_\w+)\s*\}', body)}
+
+
+# Unit ids (fm1_app_sound_unit, fm1_app_insert_unit): Sound 1 is 0, the
+# masters 1 and 2, Sounds 2-4 are 3-5, then two inserts a sound from 6.
+SOUND2_CHAIN = (3, 8, 9)
+CPU0_UNITS = (0, 4, 5, 6, 7, 10, 11, 12, 13)
+
+
+def expected_deferral(units_):
+    """pipeline_admit's rule, worked out here from the printed arrangement:
+    Sound 2's chain goes to CPU1 when it has an engine and shares no group
+    with a unit CPU0 renders."""
+    table = shares_table()
+    groups = lambda us: set().union(*(table.get(units_[u], set()) for u in us))
+    return int(units_[3] != '-' and not (groups(SOUND2_CHAIN) & groups(CPU0_UNITS)))
+
+
+def routes(text):
+    """Each checkpoint's 'route TAG deferred=D' line, in order."""
+    return [int(l.split('deferred=')[1]) for l in text.splitlines() if l.startswith('route ')]
+
+
 def differential(full_exes, mode, checkpoints):
     """The script through the live adapter and the barrier, plain and under
     ASan, against the same arrangement with no pipeline: units, Macro's
@@ -176,8 +207,15 @@ def differential(full_exes, mode, checkpoints):
         assert state_lines(a.stdout) == want
         n = counters(a.stdout)
         assert n['pushed'] == n['events'] == n['applied']
+        # Sound 2's chain ran on the core the sharing rule gives it, at every
+        # checkpoint (a sequential replay cannot see a race, but it does see
+        # which path ran).
+        got = routes(a.stdout)
+        assert len(got) == len(want), (len(got), len(want))
+        assert got == [expected_deferral(units(l)) for l in want], list(zip(got, (units(l) for l in want)))
     assert len({line.split('pcm=')[1].split()[0] for line in want}) == checkpoints
     assert 'popup_lines=0' in want[-1]
+    differential.routes = got
     # every DX7 a sound gets, at start or later, plays at most eight voices
     assert all(v in (0, 8) for line in want for v in dx7_limits(line)), want
     return want, n
@@ -211,6 +249,7 @@ def test_full_ui_engine_swaps_and_every_macro_model_match(full_exes):
     assert any(units(l)[0] != 'dx7' for l in want)        # Sound 1 changed too
     masters = {tuple(units(l)[1:3]) for l in want}
     assert len(masters) >= 4 and ('comp', 'echo') in masters   # the effect order swapped
+    assert {0, 1} <= set(differential.routes)              # Sound 2 on CPU1, and inline on CPU0
 
 
 def test_full_ui_insert_changes_match(full_exes):

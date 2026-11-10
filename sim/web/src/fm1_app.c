@@ -30,6 +30,14 @@ static int pipeline_geometry_sealed;
 static int pipeline_defer_sound1;
 int fm1_app_pipeline_busy(void) { return (int)pipeline_busy(); }
 int fm1_app_pipeline_sealed(void) { return pipeline_geometry_sealed; }
+#ifdef FM1_APP_PIPELINE_HOST_PROBE
+/* Host replay only (tests/fixtures/fm1_live): 1 when the admitted
+ * arrangement gives Sound 2's chain to CPU1, 0 when CPU0 renders it inline,
+ * -1 while unsealed. Never in a device image. */
+int fm1_app_pipeline_sound2_deferred(void) {
+  return pipeline_geometry_sealed ? pipeline_defer_sound1 : -1;
+}
+#endif
 
 #define PIPELINE_GUARD(x) PIPELINE_REQUIRE(x)
 /* Opt-in worst-block stage marks; absent unless FM1_APP_PIPELINE_MARKS. */

@@ -226,6 +226,15 @@ static void state_line(const char *tag)
            app.seq != 0, app.led[27 + FM1_BTN_PLAY], app.mode, app.page, app.sound, app.octave, app.transpose, app.popup_lines,
            app.popup_lines ? app.popup[0] : "", leds, (unsigned long long)screen,
            (unsigned long long)fnv, (unsigned long long)app.frames);
+#if defined(FM1_APP_PIPELINE_HOST_PROBE) && !defined(REPLAY_REF)
+    /* Which core the last admitted arrangement gave Sound 2's chain (1: CPU1,
+     * 0: inline on CPU0). Not a state line: the ref build has no pipeline.
+     * tests/test_fm1_live.py checks it against pipeline_shares' rule. */
+    {
+        extern int fm1_app_pipeline_sound2_deferred(void);
+        printf("route %s deferred=%d\n", tag, fm1_app_pipeline_sound2_deferred());
+    }
+#endif
 }
 
 /* The active script and its snapshot ticks (the state lines must agree at
