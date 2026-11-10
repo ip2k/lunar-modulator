@@ -7,6 +7,9 @@
 #ifdef LUNAR_DEVKIT_QUEUE_SDK
 #include "renderer_queue_sdk.h"
 #endif
+#ifdef LUNAR_DEVKIT_USB_MIDI
+#include "usb_midi_probe.h"
+#endif
 #ifdef LUNAR_DEVKIT_FM6_SDK
 #include "fm6_pair_sdk.h"
 #endif
@@ -172,6 +175,8 @@ void lunar_devkit_worker(void *unused)
 #endif
 #elif defined(LUNAR_DEVKIT_FM6_BENCHMARK)
     printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=fm6-no-dac\n", clk_get("sys"));
+#elif defined(LUNAR_DEVKIT_USB_MIDI)
+    printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=usb-midi-probe\n", clk_get("sys"));
 #else
     printf("\nLUNAR_DEVKIT schema=1 sys=%d timer_clock=OSC_24M irq=enabled source=resampler-only\n", clk_get("sys"));
 #endif
@@ -245,6 +250,10 @@ void lunar_devkit_worker(void *unused)
     lunar_devkit_audio_probe();
 #elif defined(LUNAR_DEVKIT_FM6_BENCHMARK)
     printf("LUNAR_DEVKIT complete=%d\n", lunar_devkit_fm6_benchmark(now, emit_fm6));
+#elif defined(LUNAR_DEVKIT_USB_MIDI)
+    /* After the recovery window, so UART ARM/ENTER works whatever USB does. */
+    JL_TIMER4->CON = (1u << 14);
+    lunar_devkit_usb_midi_probe();
 #else
     printf("LUNAR_DEVKIT complete=%d\n", lunar_devkit_benchmark(now, emit));
 #endif
