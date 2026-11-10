@@ -102,7 +102,7 @@ and nothing was sent to the FM-1 or to the dongle.
 | 8 | **dev kit**, as 7 but the dongle's `Update` held while plugging in | red + green on → idle | no ROM | nothing |
 | 9 | **dev kit**, switches off, the kit's own K1 (UPDATE) held while plugging it into the dongle, dongle button not pressed | not recorded | not seen by the PC | nothing |
 | 10 | **control, no dongle:** dev kit straight into bench01 through the same A-to-C adapter, K1 held | — | `UBOOT1.00` | `4c4a:8057` `WL80UBOOT1.00`, SCSI `WL82 UBOOT1.00` (14:38:50) |
-| 11 | **dev kit**, switch 2 (`ispkey`) only, dongle re-plugged to re-read its switches, `Update` pressed | red + green on → idle a few seconds later | no ROM | nothing |
+| 11 | **dev kit**, switch 2 (`ispkey`) only, dongle re-plugged to re-read its switches, kit plugged in a few seconds before `Update` was pressed | red + green on → idle a few seconds later | no ROM | nothing |
 
 [FM-1 and LEDs: reported, owner. bench01: verified, `dmesg -w` and `lsusb`.]
 
