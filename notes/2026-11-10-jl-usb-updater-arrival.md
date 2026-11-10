@@ -203,6 +203,19 @@ The owner answered "Approve bit 3 try". The approved scope:
 
 **Correction (owner, 13:39):** before the switch-3 try, the owner moved the supply selector to
 **5.0 V**. The earlier tries ran at the selector's previous setting, and the "looks centred, 4.2 V"
-reading above was not confirmed. The owner set switch 3 to ON. A later photo had looked as if it
-were still off, so the switch positions cannot be told reliably from photos; ask instead. As of
+reading above was not confirmed. The owner set switch 3 to ON. In a later photo it looked off, but that was a
+shadow [reported: owner]. Ask about switch positions rather than reading them from photos. As of
 13:39:21, bench01 had logged nothing since the watch started.
+
+## Result of the switch-3 try (port 3-1)
+
+- The FM-1 **booted V15 normally** [reported: owner].
+- The dongle stayed **red on, green on**, the manual's "keying" state. It never reached "green off",
+  which would mean the target is in upgrade mode [reported: owner].
+- bench01 logged **nothing**: no connect, no device [verified: `dmesg -w`, 13:37–13:41].
+- So the dongle keyed through the FM-1's power-up, but the FM-1's mask ROM did not take the key,
+  while the Pico's key does work (docs/17). Open causes:
+  - the manual forbids USB 3.0 ports, and 3-1 is on bench01's USB 3 controller;
+  - the key's timing or electrical drive versus the FM-1's power-up.
+- The owner offered a retry on a USB 2 port. That changes one variable under the same switch-3
+  scope.
