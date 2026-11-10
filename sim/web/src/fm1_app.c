@@ -17,12 +17,19 @@ static int pipeline_owned_unit(int unit) {
     unit==fm1_app_insert_unit(1,0) || unit==fm1_app_insert_unit(1,1);
 }
 static int pipeline_busy(void) { return pipeline_pending || pipeline_producing; }
-/* Set by the first block: from then on the arrangement (engines, inserts,
- * their arenas, Macro's model) is the fixture's, and the UI refuses to change
- * it (a divergence from the simulator, notes/2026-11-09-controls.md). */
+/* Set when a block admits the arrangement (engines, inserts, their arenas):
+ * every later block checks it is unchanged. A change of engine, an empty
+ * unit or an effect swap (all !busy, at a drained barrier) clears it, and
+ * the next block admits the new arrangement afresh (pipeline_preflight). */
 static int pipeline_geometry_sealed;
+#define PIPELINE_UNSEAL() (pipeline_geometry_sealed = 0)
+/* Sound 2's engine and inserts run on CPU1 (deferred) unless they share
+ * something with a unit CPU0 renders; then they run on CPU0 in dispatch
+ * order, as the one-core app runs them, and CPU1 keeps the level, the sum
+ * and the masters. Set with the seal (pipeline_admit). */
+static int pipeline_defer_sound1;
 int fm1_app_pipeline_busy(void) { return (int)pipeline_busy(); }
-int fm1_app_pipeline_locked(void) { return pipeline_geometry_sealed; }
+int fm1_app_pipeline_sealed(void) { return pipeline_geometry_sealed; }
 
 #define PIPELINE_GUARD(x) PIPELINE_REQUIRE(x)
 /* Opt-in worst-block stage marks; absent unless FM1_APP_PIPELINE_MARKS. */
@@ -33,6 +40,7 @@ int fm1_app_pipeline_locked(void) { return pipeline_geometry_sealed; }
 #endif
 #else
 #define PIPELINE_GUARD(x) ((void)0)
+#define PIPELINE_UNSEAL() ((void)0)
 #endif
 
 #include <limits.h>
@@ -828,6 +836,43 @@ int fm1_app_init_arenas(fm1_app_t *a, float sample_rate,
   return 0;
 }
 
+int fm1_app_set_arena_pool(fm1_app_t *a, unsigned char *pool, size_t bytes) {
+  const uintptr_t app = (uintptr_t)a, p = (uintptr_t)pool;
+  if (!a || !a->external_arenas || !pool || !bytes || (p & 15u) || bytes > UINTPTR_MAX - p ||
+      app > UINTPTR_MAX - sizeof *a || (p < app + sizeof *a && app < p + bytes)) return -1;
+  a->arena_pool = pool;
+  a->arena_pool_bytes = bytes;
+  return 0;
+}
+
+/* The first 16-byte aligned place in the pool for `bytes` that no unit's
+ * arena but `unit`'s own covers, or NULL. */
+static unsigned char *pool_fit(const fm1_app_t *a, int unit, size_t bytes) {
+  if (!a->arena_pool || !bytes || bytes > a->arena_pool_bytes) return NULL;
+  const uintptr_t base = (uintptr_t)a->arena_pool, end = base + a->arena_pool_bytes;
+  uintptr_t at = base;
+  for (;;) {
+    uintptr_t past = 0;
+    if (bytes > end - at) return NULL;
+    for (int v = 0; v < FM1_APP_UNITS; ++v) {
+      const uintptr_t q = (uintptr_t)a->unit[v].mem, n = a->unit[v].cap;
+      if (v == unit || !q || !n) continue;
+      if (q < at + bytes && at < q + n && q + n > past) past = q + n;
+    }
+    if (!past) return (unsigned char *)at;
+    at = (past + 15u) & ~(uintptr_t)15u;   /* strictly past `at`: this ends */
+    if (at < past || at > end) return NULL;
+  }
+}
+
+/* An emptied unit's arena goes back to the pool when it came from there. */
+static void pool_return(fm1_app_t *a, fm1_app_unit_t *u) {
+  const uintptr_t q = (uintptr_t)u->mem, base = (uintptr_t)a->arena_pool;
+  if (!a->arena_pool || !q || q < base || q - base >= a->arena_pool_bytes) return;
+  u->mem = NULL;
+  u->cap = 0;
+}
+
 /* ---- modulation: the runtime on the bridge (docs/16 MG3) ------------------------ */
 
 int fm1_app_mod_unit(int unit) {
@@ -1229,9 +1274,6 @@ static void mod_rebind(fm1_app_t *a, int unit, const fm1_engine_t *from) {
 
 int fm1_app_select(fm1_app_t *a, int unit, int index) {
   PIPELINE_GUARD(!pipeline_busy());
-#ifdef FM1_APP_RENDER_PIPELINE
-  if (pipeline_geometry_sealed) return FM1_APP_SELECT_LOCKED;
-#endif
   if (unit < 0 || unit >= FM1_APP_UNITS) return FM1_APP_SELECT_BAD;
   fm1_app_unit_t *u = &a->unit[unit];
   const fm1_engine_t *e = entry(index);
@@ -1241,6 +1283,8 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   if (index == -1 && unit > 0) {
     if (snd >= 0) release_sound(a, snd);
     release(u);
+    PIPELINE_UNSEAL();
+    pool_return(a, u);
     mod_rebind(a, unit, from);
     if (snd < 0 && fx_unit_at(a, a->fx_slot) == unit) a->fx_page = 0;   /* an empty slot has one page */
     if (snd == a->sound) {
@@ -1266,7 +1310,11 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
     }
   }
   size_t bytes = e->instance_size(&a->host);
-  if (!u->mem || bytes > u->cap) return FM1_APP_SELECT_ARENA;
+  unsigned char *fit = NULL;             /* a larger arena from the pool */
+  if (!u->mem || bytes > u->cap) {
+    fit = pool_fit(a, unit, bytes);
+    if (!fit) return FM1_APP_SELECT_ARENA;
+  }
   {
     /* The RAM meter: refuse what would take the chain past the FM-1's
      * budget, unless it does not grow (a chain already past it, after a
@@ -1286,6 +1334,11 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
   memcpy(prev_value, u->value, sizeof prev_value);
   if (snd >= 0) release_sound(a, snd);   /* this sound's notes; the others play on */
   release(u);
+  PIPELINE_UNSEAL();
+  if (fit) {                             /* larger than prev_bytes too: prev fits back */
+    u->mem = fit;
+    u->cap = bytes;
+  }
   if (!load(a, u, index, bytes)) {
     /* The engine refused this host (the Plaits-based ones refuse rates
      * above 47,872 Hz): put the previous engine back with its values,
@@ -1296,6 +1349,7 @@ int fm1_app_select(fm1_app_t *a, int unit, int index) {
         u->e->set_param(u->self, i, prev_value[i]);
       }
     }
+    if (!u->e) pool_return(a, u);
     mod_rebind(a, unit, from);
     a->dirty = 1;
     return -3;
@@ -1484,10 +1538,6 @@ void fm1_app_set_param(fm1_app_t *a, int unit, int index, float value) {
   if (unit < 0 || unit >= FM1_APP_UNITS) return;
   fm1_app_unit_t *u = &a->unit[unit];
   if (!u->e || index < 0 || index >= u->e->n_params) return;
-#ifdef FM1_APP_RENDER_PIPELINE
-  /* The pipelined Macro path runs only model 0 (pipeline_preflight). */
-  if (pipeline_geometry_sealed && unit == fm1_app_sound_unit(1) && index == 0) value = 0.0f;
-#endif
   const float was = u->value[index];
   u->value[index] = fm1_param_clamp(&u->e->params[index], value);
   if (a->edit && memcmp(&was, &u->value[index], sizeof was) != 0) fm1_edit_note_param(a, unit, index);
@@ -2527,6 +2577,8 @@ static void fx_step(fm1_app_t *a, int delta) {
 
 /* Two effect units trade places, arenas and cables and all. */
 static void swap_units(fm1_app_t *a, int ua, int ub) {
+  PIPELINE_GUARD(!pipeline_busy());
+  PIPELINE_UNSEAL();
   fm1_app_unit_t t = a->unit[ub];
   a->unit[ub] = a->unit[ua];
   a->unit[ua] = t;
@@ -2538,12 +2590,6 @@ static void swap_units(fm1_app_t *a, int ua, int ub) {
  * group (the two inserts, or the two master slots), arenas and all. */
 static void fx_swap(fm1_app_t *a, int delta) {
   if (a->fx_slot == FX_MIX) return;
-#ifdef FM1_APP_RENDER_PIPELINE
-  if (pipeline_geometry_sealed) {
-    refuse(a, FM1_APP_TONE_REFUSE, "Effect order", "is fixed", NULL);
-    return;
-  }
-#endif
   const int lo = a->fx_slot < FX_MIX ? FX_IN1 : FX_M1;
   const int hi = a->fx_slot < FX_MIX ? FX_IN2 : FX_M2;
   const int to = clampi(a->fx_slot + (delta > 0 ? 1 : -1), lo, hi);
@@ -2559,9 +2605,6 @@ static void fx_swap(fm1_app_t *a, int delta) {
  * left where it is but for a page past the new effect's last. */
 int fm1_app_swap_units(fm1_app_t *a, int ua, int ub) {
   PIPELINE_GUARD(!pipeline_busy());
-#ifdef FM1_APP_RENDER_PIPELINE
-  if (pipeline_geometry_sealed) return FM1_APP_SELECT_LOCKED;
-#endif
   const int ra = ua >= 1 && ua < FM1_APP_UNITS && unit_sound(ua) < 0;
   const int rb = ub >= 1 && ub < FM1_APP_UNITS && unit_sound(ub) < 0;
   if (!ra || !rb || ua == ub) return FM1_APP_SELECT_BAD;
@@ -3522,13 +3565,12 @@ static int pipeline_recording;
 static int pipeline_record(const fm1_app_sink_ctx_t *c,unsigned kind,float *out,
     uint32_t frames,unsigned index,unsigned key,unsigned velocity,float value) {
   if(!pipeline_recording) return 0;
-  if(c->sound!=1) return 0;
+  if(c->sound!=1 || !pipeline_defer_sound1) return 0;
   PIPELINE_REQUIRE(c->a==pipeline_owner && c->sound<FM1_APP_SOUNDS);
   const fm1_app_unit_t *u=sound_of(c->a,c->sound);
   PIPELINEStream *s=&pipeline_recorded[c->sound];
   PIPELINE_REQUIRE(u->e && u->self && s->count<PIPELINE_CAPACITY && kind<=PIPELINE_NOTE);
   PIPELINE_REQUIRE(!s->count || (s->engine==u->e && s->instance==u->self));
-  PIPELINE_REQUIRE(!(c->sound==1 && kind==PIPELINE_PARAM && index==0 && value!=0.0f));
   s->engine=u->e;s->instance=u->self;
   PIPELINEOp *op=&s->op[s->count++];
   memset(op,0,sizeof *op);
@@ -3947,17 +3989,68 @@ typedef struct {
   float sound[FM1_APP_SOUNDS][128];
   PostFxView drive[FM1_APP_INSERTS];
   float macro_level; uint32_t mix_count; unsigned export_mask;
+  unsigned present_mask; int defer;   /* sounds with an engine; Sound 2 on CPU1 */
   fm1_app_mix_write_t mix_writes[FM1_APP_SEQ_EVENTS + FM1_APP_SEQ_TRACKS * FM1_SEQ_LANES];
 } PipelineSlot;
 /* Private serial proof, after V88 definitions and extended PipelineSlot. */
 static struct {
   const fm1_engine_t *e; void *self; unsigned char *mem; size_t bytes,cap;
 } pipeline_geometry[FM1_APP_UNITS];
+/* What an engine's code shares with other instances while it renders: the
+ * writable globals in its link closure (notes/2026-11-10-soft-locks.md,
+ * tests/test_pipeline_shares.py keeps this table and the objects in step).
+ * Units whose sets meet never run on different cores. Every other engine
+ * keeps its state in its instance. */
+enum { SHARE_RNG = 1u, SHARE_FELUCCA = 2u, SHARE_SCHWUNG = 4u };
+static unsigned pipeline_shares(const fm1_app_unit_t *u) {
+  static const struct { const char *id; unsigned share; } t[] = {
+    { "drums", SHARE_RNG }, { "macro-heavy", SHARE_RNG },     /* stmlib::Random */
+    { "shapes", SHARE_RNG }, { "sixop", SHARE_RNG },
+    { "drawbar", SHARE_FELUCCA }, { "trio", SHARE_FELUCCA },  /* the bridge's world */
+    { "phase-bend", SHARE_FELUCCA },
+    { "sw-sophie", SHARE_SCHWUNG }, { "sw-psxverb", SHARE_SCHWUNG },   /* the shim, g_state */
+  };
+  if (!u->e) return 0;
+  PIPELINE_REQUIRE(u->e->id != NULL);
+  for (unsigned k = 0; k < sizeof t / sizeof t[0]; ++k)
+    if (!strcmp(u->e->id, t[k].id)) return t[k].share;
+  return 0;
+}
+
+/* Admit the arrangement the UI left: every unit of the right kind for its
+ * place, in its own arena, and no two units on different cores sharing
+ * state. Only at a drained barrier (nothing pending). */
+static void pipeline_admit(fm1_app_t *a) {
+  unsigned cpu0 = 0, chain = 0, masters = 0;
+  PIPELINE_REQUIRE(pipeline_pending==0);
+  for(unsigned u=0;u<FM1_APP_UNITS;++u) {
+    const fm1_app_unit_t *x=&a->unit[u];
+    if(!x->e) continue;
+    const int snd=unit_sound((int)u);
+    const int is_sound=snd>=0 && (int)u==fm1_app_sound_unit(snd);
+    PIPELINE_REQUIRE(x->e->magic==FM1_ENGINE_MAGIC && x->e->kind==(is_sound?FM1_KIND_SOUND:FM1_KIND_AUDIO_FX));
+    if(is_sound) PIPELINE_REQUIRE(x->e->render && x->e->note_on && x->e->note_off && x->e->set_param);
+    else PIPELINE_REQUIRE(x->e->set_param && (x->e->render || x->e->render_ext));
+    uintptr_t p=(uintptr_t)x->self;
+    PIPELINE_REQUIRE(p && x->self==x->mem && x->bytes && x->bytes<=x->cap && x->cap<=UINTPTR_MAX-p);
+    for(unsigned v=0;v<u;++v) {
+      const fm1_app_unit_t *y=&a->unit[v];if(!y->e)continue;
+      uintptr_t q=(uintptr_t)y->self;
+      PIPELINE_REQUIRE(!(p<q+y->cap && q<p+x->cap));
+    }
+    if(snd<0) masters|=pipeline_shares(x);
+    else if(snd==1) chain|=pipeline_shares(x);
+    else cpu0|=pipeline_shares(x);
+  }
+  pipeline_defer_sound1=sound_of(a,1)->e!=NULL && !(chain&cpu0);
+  if(!pipeline_defer_sound1) cpu0|=chain;
+  PIPELINE_REQUIRE(!(cpu0&masters));
+}
+
 static void pipeline_preflight(fm1_app_t *a,PipelineSlot *s,uint32_t n) {
   PIPELINE_REQUIRE(!s->live && n==64 && !a->edit && a->seq && !pipeline_producing);
   PIPELINE_REQUIRE(!pipeline_owner || pipeline_owner==a);
   PIPELINE_REQUIRE(pipeline_pending<2);
-  PIPELINE_REQUIRE(a->unit[fm1_app_sound_unit(1)].value[0]==0.0f);
   if(pipeline_geometry_sealed) {
     for(unsigned u=0;u<FM1_APP_UNITS;++u) {
       const fm1_app_unit_t *x=&a->unit[u];
@@ -3965,36 +4058,7 @@ static void pipeline_preflight(fm1_app_t *a,PipelineSlot *s,uint32_t n) {
         x->mem==pipeline_geometry[u].mem && x->bytes==pipeline_geometry[u].bytes && x->cap==pipeline_geometry[u].cap);
     }
   } else {
-  static const char *const ids[4]={"dx7","macro","drums","dx7"};
-  for(int k=0;k<4;++k) {
-    const fm1_app_unit_t *u=sound_of(a,k);
-    PIPELINE_REQUIRE(u->e && u->e->id && !strcmp(u->e->id,ids[k]) && u->e->kind==FM1_KIND_SOUND);
-    for(int j=0;j<FM1_APP_INSERTS;++j) {
-      const fm1_app_unit_t *f=&a->unit[fm1_app_insert_unit(k,j)];
-      if(!f->e) continue;
-      PIPELINE_REQUIRE(k<2 && f->e->id && !strcmp(f->e->id,k?"drive":"filter"));
-      PIPELINE_REQUIRE(f->e->kind==FM1_KIND_AUDIO_FX && f->e->render && f->e->set_param && !f->e->render_ext);
-    }
-  }
-  PIPELINE_REQUIRE(a->unit[1].e && !strcmp(a->unit[1].e->id,"echo"));
-  PIPELINE_REQUIRE(a->unit[2].e && !strcmp(a->unit[2].e->id,"comp"));
-  for(unsigned u=0;u<FM1_APP_UNITS;++u) {
-    const fm1_app_unit_t *x=&a->unit[u];
-    if(x->e) {
-      uintptr_t p=(uintptr_t)x->self;
-      PIPELINE_REQUIRE(p && x->self==x->mem && x->bytes && x->bytes<=x->cap && x->cap<=UINTPTR_MAX-p);
-      for(unsigned v=0;v<u;++v) {
-        const fm1_app_unit_t *y=&a->unit[v];if(!y->e)continue;
-        uintptr_t q=(uintptr_t)y->self;
-        PIPELINE_REQUIRE(!(p<q+y->cap && q<p+x->cap));
-      }
-    }
-  }
-  }
-  /* A held ARP, a popup, a toast, a follow or a snap no longer stop a block:
-   * their time-driven part runs in fm1_app_pipeline_service at a drained
-   * barrier, never in the block (the guarded paths they reach need !busy). */
-  if(!pipeline_geometry_sealed) {
+    pipeline_admit(a);
     for(unsigned u=0;u<FM1_APP_UNITS;++u) {
       const fm1_app_unit_t *x=&a->unit[u];
       pipeline_geometry[u].e=x->e;pipeline_geometry[u].self=x->self;pipeline_geometry[u].mem=x->mem;
@@ -4002,6 +4066,12 @@ static void pipeline_preflight(fm1_app_t *a,PipelineSlot *s,uint32_t n) {
     }
     pipeline_geometry_sealed=1;
   }
+  /* A held ARP, a popup, a toast, a follow or a snap no longer stop a block:
+   * their time-driven part runs in fm1_app_pipeline_service at a drained
+   * barrier, never in the block (the guarded paths they reach need !busy). */
+  s->defer=pipeline_defer_sound1;
+  s->present_mask=0;
+  for(unsigned k=0;k<FM1_APP_SOUNDS;++k) if(sound_of(a,(int)k)->e) s->present_mask|=1u<<k;
   if(!pipeline_owner)pipeline_owner=a; /* Stable after first publication. */
   pipeline_producing=1;s->owner=a;s->generation=pipeline_next_produce;
 }
@@ -4012,7 +4082,8 @@ static void pipeline_capture_drive(fm1_app_t *a,PipelineSlot *s) {
     fm1_app_unit_t *u=&a->unit[unit];PostFxView *f=&s->drive[j];
     f->engine=u->e;f->instance=u->self;f->driven=&u->driven;
     f->code=fm1_app_mod_unit(unit);f->desired_driven=0;
-    if(!u->e)continue;
+    if(!s->defer || !(s->present_mask&2u))f->engine=NULL; /* CPU0 ran them, or none */
+    if(!f->engine)continue;
     int driven=a->mod && f->code>=0 ? fm1_mod_unit_routed(a->mod,(unsigned)f->code):0;
     for(unsigned t=0;!driven && t<FM1_APP_SEQ_TRACKS;++t)
       for(unsigned l=0;l<FM1_SEQ_LANES;++l) {
@@ -4041,14 +4112,19 @@ static void pipeline_level_apply(const PipelineSlot *s,float *out,uint32_t n) {
 
 static void pipeline_finish_sound_slot(PipelineSlot *s) {
   PIPELINE_REQUIRE(s->owner==pipeline_owner && s->generation==pipeline_next_consume && s->view.frames==64);
-  pipeline_validate_stream(&s->macro,s->sound[1],64);
-  pipeline_execute(&s->macro);
-  for(int j=0;j<FM1_APP_INSERTS;++j)
-    if(s->drive[j].engine)post_fx_run(&s->view,&s->drive[j],s->sound[1]);
-  pipeline_level_apply(s,s->sound[1],64);
+  if(s->defer) {
+    pipeline_validate_stream(&s->macro,s->sound[1],64);
+    pipeline_execute(&s->macro);
+    for(int j=0;j<FM1_APP_INSERTS;++j)
+      if(s->drive[j].engine)post_fx_run(&s->view,&s->drive[j],s->sound[1]);
+  } else {
+    PIPELINE_REQUIRE(!s->macro.count && !s->drive[0].engine && !s->drive[1].engine);
+  }
+  if(s->present_mask&2u)pipeline_level_apply(s,s->sound[1],64);
   int first=1;
   for(unsigned k=0;k<4;++k) {
-    if(!(s->export_mask&(1u<<k)))continue;
+    /* The one-core app's sum: sounds with an engine, in unit order. */
+    if(!(s->export_mask&s->present_mask&(1u<<k)))continue;
     if(first)memcpy(s->pcm,s->sound[k],sizeof s->pcm);
     else for(unsigned i=0;i<128;++i)s->pcm[i]+=s->sound[k][i];
     first=0;
@@ -4094,8 +4170,14 @@ static void pipeline_render_sounds(fm1_app_t *a, uint32_t n, PipelineSlot *owned
   }
   PIPELINE_MARK(DISPATCH);
 
-  /* CPU0 executes its sinks in original dispatch order; only Macro is deferred. */
-  pipeline_validate_stream(&pipeline_recorded[1],owned->sound[1],n);
+  /* CPU0 executes its sinks in original dispatch order; only Sound 2's,
+   * when deferred, wait for CPU1 (pipeline_admit). */
+  if(owned->defer) {
+    PIPELINE_REQUIRE(owned->present_mask&2u);
+    pipeline_validate_stream(&pipeline_recorded[1],owned->sound[1],n);
+  } else {
+    PIPELINE_REQUIRE(!pipeline_recorded[1].count);
+  }
   owned->macro.engine=pipeline_recorded[1].engine;
   owned->macro.instance=pipeline_recorded[1].instance;
   owned->macro.count=pipeline_recorded[1].count;
@@ -4113,13 +4195,17 @@ static void pipeline_render_sounds(fm1_app_t *a, uint32_t n, PipelineSlot *owned
       for(uint32_t i=0;i<owned->mix_count;++i)
         if(owned->mix_writes[i].sound==1)final=owned->mix_writes[i].level;
       a->seq_level[1]=final;
+      if(owned->defer)continue;
+    }
+    if(!slot[k].sink) {                 /* empty: its level's carry only */
+      if(k!=1)apply_mix_level(a,k,owned->sound[k],n);
       continue;
     }
     for(int j=0;j<FM1_APP_INSERTS;++j) {
       const int unit=fm1_app_insert_unit((int)k,j);
       if(a->unit[unit].e)render_fx(a,unit,owned->sound[k],n);
     }
-    apply_mix_level(a,k,owned->sound[k],n);
+    if(k!=1)apply_mix_level(a,k,owned->sound[k],n);
   }
 }
 

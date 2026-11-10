@@ -31,12 +31,30 @@ static struct lunar_fm1_router router;
 static struct lunar_fm1_live_status state;
 static int ready, bound;
 static int units[8];
+static void *dx7_limited[4];   /* the DX7 instance each sound's eight-voice limit went to */
 
 /* Consumer-only (CPU1 worker): never read by the producer while it runs. */
 static uint32_t consume_next, fade, invalid, clipped;
 
 uint32_t fm1_app_pipeline_error(void) { return lunar_pipeline_error(); }
 void fm1_app_pipeline_fail(uint32_t code) { lunar_pipeline_fail_park(code); }
+
+/* Every DX7 instance plays at most eight voices: the ones made at start and
+ * any a sound gets later from the panel (owner, 2026-10-29). Runs where the
+ * engines may change: at start and after the events of a drained barrier. */
+static int limit_dx7(void)
+{
+    const int dx7 = fm1_app_find("dx7");
+    unsigned k;
+    for (k = 0; k < 4u; ++k) {
+        const fm1_app_unit_t *u = &app.unit[fm1_app_sound_unit((int)k)];
+        if (!u->e || u->index != dx7) { dx7_limited[k] = 0; continue; }
+        if (u->self == dx7_limited[k]) continue;
+        if (!fm1_dx7_set_voice_limit(u->self, DX7_VOICES)) return 0;
+        dx7_limited[k] = u->self;
+    }
+    return 1;
+}
 
 int lunar_fm1_live_init(void)
 {
@@ -64,15 +82,15 @@ int lunar_fm1_live_init(void)
         if (used > sizeof pool) { state.init_error = 2; return 0; }
     }
     if (fm1_app_init_arenas(&app, (float)LUNAR_FM1_RATE, arenas)) { state.init_error = 3; return 0; }
+    /* The rest of the pool, and what an emptied unit gives back, is where a
+     * larger engine chosen later goes (fm1_app_set_arena_pool). */
+    if (fm1_app_set_arena_pool(&app, pool, sizeof pool)) { state.init_error = 3; return 0; }
     for (i = 0; i < 8u; ++i)
         if (fm1_app_select(&app, units[i], fm1_app_find(ids[i]))) { state.init_error = 4 + i; return 0; }
-    for (i = 0; i < 8u; ++i)
-        if (!strcmp(ids[i], "dx7") && !fm1_dx7_set_voice_limit(app.unit[units[i]].self, DX7_VOICES)) {
-            state.init_error = 23; return 0;
-        }
+    memset(dx7_limited, 0, sizeof dx7_limited);
+    if (!limit_dx7()) { state.init_error = 23; return 0; }
     state.dx7_voices = DX7_VOICES;
-    /* The dev-kit pipeline's patches, models and wet levels. Sound 2's model
-     * must stay 0 (VA): the pipelined Macro path refuses any other. */
+    /* The dev-kit pipeline's patches, models and wet levels. */
     fm1_app_set_param(&app, units[0], 0, 19);   /* WARM PAD */
     fm1_app_set_param(&app, units[1], 0, 0);    /* VA model */
     fm1_app_set_param(&app, units[3], 0, 25);   /* SAW LEAD */
@@ -217,6 +235,8 @@ int lunar_fm1_live_produce(void *work)
     }
 #if LUNAR_FM1_FULL_UI
     if (fm1_app_pipeline_service_due(&app) && fm1_app_pipeline_service(&app)) ++state.services;
+    /* A panel event may have given a sound a new DX7 (it ran drained). */
+    if (!fm1_app_pipeline_busy() && !limit_dx7()) { state.init_error = 23; return 0; }
 #endif
     if (!fm1_app_pipeline_produce(&app, work)) return 0;
     ++state.blocks;
