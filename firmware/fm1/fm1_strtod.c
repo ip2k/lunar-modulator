@@ -10,7 +10,8 @@
  * so the references resolve here, inside the LTO object, and nothing is
  * pulled. In today's FM-1 image neither parser is reachable, so LTO drops
  * them and this file; the image's only strtod is then the SDK's own
- * (common_lib.a strtod.c.o, for its vsscanf), which these parsers never call.
+ * (common_lib.a strtod.c.o, kept for its Vsprintf.c.o), which these parsers
+ * never call.
  * Host, simulator and WebAssembly builds never see this file.
  *
  * Accepted text: optional leading white space, an optional sign, decimal

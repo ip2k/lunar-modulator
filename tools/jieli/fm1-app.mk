@@ -33,8 +33,8 @@ FM1_SIZE_VARS := SIM_CFLAGS SEQ_CFLAGS MOD_CFLAGS STATE_CFLAGS ARP_CFLAGS COMMON
 # (-Oz); and the two text parsers' strtod/strtof mapped to firmware/fm1's
 # exact fast-path parser, so newlib's strtod.o is not pulled into the link.
 # (Neither parser is reachable in today's image, so LTO drops them and the
-# replacement; the one strtod left is the SDK's own, which its vsscanf
-# references [verified: map, 2026-11-10].)
+# replacement; the one strtod left is the SDK's own, kept for its Vsprintf.c.o
+# [verified: map, 2026-11-10], probably its vsscanf [inferred].)
 # SRAM code is unchanged [verified: nm, 2026-11-10].
 ifneq ($(filter -DLUNAR_FM1_SIZE_COLD=1,$(EXTRA)),)
 ifeq ($(strip $(COLDOPT)),)
@@ -54,20 +54,21 @@ $(foreach v,$(FM1_SIZE_VARS),$(foreach o,$(FM1_SIZE_STRTOD),\
 FM1_APP_SOURCES += fm1/fm1_strtod
 endif
 # control: also the app (including its produce step), the step-sequencer UI
-# and capture, and the panel task's key, encoder, ADC and MIDI input and the
+# and capture, and the panel task's matrix, ADC and MIDI drivers and the
 # display transport at COLDOPT. This changes SRAM code. On the dev kit the
 # first three cost about 2.4% of the producer's mean block time with
 # bit-identical audio; the panel-task units are FM-1 only and untimed. The
 # sequencer engine, the arpeggiator and the modulation runtime stay at the
-# build's level, because at COLDOPT they cost about 6.4%, and so does fm1_live
-# (the FM-1's per-block producer wrapper and consumer conversion, which no kit
-# image runs; 1,056 B). notes/2026-11-10-size-levers.md. Needs cold.
+# build's level, because at COLDOPT they cost about 6.4%. So do fm1_live and
+# fm1_input: the FM-1's per-block producer wrapper, consumer conversion, event
+# queue and router, which no kit image runs, so their -Oz cost is untimed.
+# notes/2026-11-10-size-levers.md. Needs cold.
 ifneq ($(filter -DLUNAR_FM1_SIZE_CONTROL=1,$(EXTRA)),)
 ifeq ($(filter -DLUNAR_FM1_SIZE_COLD=1,$(EXTRA)),)
 $(error -DLUNAR_FM1_SIZE_CONTROL=1 needs -DLUNAR_FM1_SIZE_COLD=1)
 endif
 FM1_SIZE_CONTROL := sim/src/fm1_app sim/src/fm1_seq_ui c/seq/seq_capture \
-  fm1app/fm1/fm1_input fm1app/board/matrix fm1app/board/adc \
+  fm1app/board/matrix fm1app/board/adc \
   fm1app/board/midi_parser fm1app/board/midi_uart fm1app/display/spi1_transport
 $(foreach v,$(FM1_SIZE_VARS),$(foreach o,$(FM1_SIZE_CONTROL),$(eval $$(BUILD)/$(o).o: $(v) += $(COLDOPT))))
 endif

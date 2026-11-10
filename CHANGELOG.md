@@ -12,10 +12,11 @@ history.
 
 - **Size levers for the full-UI FM-1 image (measured offline and on the dev kit, not on the
   FM-1).** `prepare-fm1-app.py` gains `--full-ui on` (the full panel, until now a source edit)
-  and `--size-levers cold|control`. With `control` the full-UI image is 574,492 B, 7,072 B
-  under V15's slot (32 B with USB-MIDI on), with all eight Macro models kept. On the dev kit
-  the units it contains give bit-identical audio and the producer's mean block time rises
-  about 2.4%; the FM-1-only panel-input and display units at `-Oz` are untimed. `cold` maps
+  and `--size-levers cold|control`. With `control` the full-UI image is 575,068 B, 6,496 B
+  under V15's slot (672 B over with USB-MIDI on, which stays off), with all eight Macro models
+  kept. On the dev kit the units it contains give bit-identical audio and the producer's mean
+  block time rises about 2.4%; the FM-1-only panel-task drivers and display transport at `-Oz`
+  are untimed, and the FM-1's per-block `fm1_live` and `fm1_input` stay at `-O3`. `cold` maps
   the two text parsers to an exact fast-path parser (`firmware/fm1/fm1_strtod.c`) that
   refuses what it cannot convert exactly, so newlib's `strtod` leaves the link; neither parser
   is reachable in today's image, so the parser itself is not linked. Both switches are off by

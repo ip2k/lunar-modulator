@@ -13,11 +13,12 @@ which adds code. This note measures each lever, alone and combined.
 **Result.** One combination fits and keeps every feature: `--size-levers
 control`, the new switch on `prepare-fm1-app.py`.
 
-- **Size.** The full-UI image becomes 574,492 B: 7,072 B under the slot, with
+- **Size.** The full-UI image becomes 575,068 B: 6,496 B under the slot, with
   1,664 B more heap than today [verified: offline link, `audit_link` PASS,
-  `fm1_budget`]. With USB-MIDI on it is 581,532 B, only 32 B under the slot
-  [verified]. (Before review, `control` also built `fm1_live` at `-Oz`, for
-  573,436 B and 580,604 B; see §8.)
+  `fm1_budget`]. With USB-MIDI on it is 582,236 B, **672 B over** the slot
+  [verified]; USB-MIDI stays off for now (docs/18 §3 item 7). (Before review,
+  `control` also built `fm1_live` and `fm1_input` at `-Oz`, for 573,436 B and
+  580,604 B; see §8.)
 - **Audio.** On the dev kit, the `-Oz` units that exist in its pipeline image
   (`fm1_app`, the step-sequencer UI and capture, and the cold units) give
   bit-identical audio (all four case hashes match main) [verified].
@@ -26,8 +27,9 @@ control`, the new switch on `prepare-fm1-app.py`.
   blocks go from 2 to 6, and the worst producer block from 38,909 to 41,541
   ticks (the budget is 34,829). The 64-block buffer absorbed all of them: no
   fault, gap or underrun [verified: kit receipts]. The FM-1-only units in
-  `control` (the panel task's key, encoder, ADC and MIDI input and the display
-  transport) are in no kit image, so their timing is unmeasured.
+  `control` (the panel task's matrix, ADC and MIDI drivers and the display
+  transport) are in no kit image, so their timing is unmeasured; they run in
+  `panel_task`, not in the audio path [verified: `fm1_sdk_main.c`].
 - **The `strtod` replacement is not in today's image.** Neither text parser
   is reachable in the FM-1 app, so LTO drops them and the replacement in every
   build, `cold` and `control` included [verified: `nm`, map]. `cold` saves its
@@ -122,15 +124,15 @@ Each option enters the build-id option string only when it is not the default.
 | `--full-ui on --usb-midi on` | 627,772 | −46,208 | +896 | PASS |
 | `--full-ui on --size-levers cold` | 609,884 | −28,320 | +1,856 | PASS |
 | `… cold --usb-midi on` | 617,052 | −35,488 | +1,056 | PASS |
-| **`--full-ui on --size-levers control`** (after review) | **574,492** | **+7,072** | **+3,392** | PASS |
-| `… control`, GPL 1 (after review) | 574,492 | +7,072 | +3,392 | PASS |
-| `… control --usb-midi on` (after review) | 581,532 | +32 | +2,592 | PASS |
-| `control` before review (with `fm1_live` at `-Oz`) | 573,436 | +8,128 | +3,392 | PASS |
+| **`--full-ui on --size-levers control`** (after review) | **575,068** | **+6,496** | **+3,392** | PASS |
+| `… control`, GPL 1 (after review) | 575,068 | +6,496 | +3,392 | PASS |
+| `… control --usb-midi on` (after review) | 582,236 | **−672** | +2,592 | PASS |
+| `control` before review (`fm1_live`, `fm1_input` at `-Oz`) | 573,436 | +8,128 | +3,392 | PASS |
 | … `--usb-midi on`, before review | 580,604 | +960 | +2,592 | PASS |
 | … GPL 1, before review, USB off and on | 573,436 / 580,604 | +8,128 / +960 | +3,392 / +2,592 | PASS |
 
 All rows are [verified]. The "after review" rows were built on aeon from this
-branch with `fm1_live` removed from `control` (§8); the others from
+branch with `fm1_live` and `fm1_input` removed from `control` (§8); the others from
 `8aacd792`. Notes on the table:
 
 - **The default images.** Main's and this branch's default images differ in 4
@@ -195,7 +197,7 @@ branch with `fm1_live` removed from `control` (§8); the others from
      so the replacement is dropped by LTO too and nothing on the FM-1 parses
      with it today. What `cold` changes is which `strtod` the link keeps: the
      map shows `common_lib.a(strtod.c.o)`, the SDK's own 492 B `strtod`,
-     included for the SDK's `Vsprintf.c.o` (its `vsscanf`), where the full-UI
+     included for the SDK's `Vsprintf.c.o` (its `vsscanf` [inferred]), where the full-UI
      baseline kept newlib's. Lunar's `sscanf` calls (`fm1_app.c`,
      `state_clip.c`) convert integers and strings only, so that `strtod` is not
      reached by Lunar code [inferred: from their format strings]. The refusal
@@ -214,18 +216,19 @@ charset strings and `__mb_cur_max`, −136 B [verified: `nm`, names normalised].
 
 - `fm1_app.c`, the app, including its pipeline produce and consume steps;
 - the step-sequencer UI and capture;
-- the panel task's key, encoder, ADC and MIDI input (`fm1_input`, the matrix,
-  ADC, MIDI parser and UART units), which run in `panel_task`, not in the
-  audio path;
+- the panel task's matrix, ADC, MIDI parser and UART drivers, which run in
+  `panel_task`, not in the audio path;
 - the display transport.
 
 **It leaves these alone.** The sequencer engine, the arpeggiator, the effect
 hosts and the modulation runtime keep the build's level, because at `-Oz` they
 cost 6.4% (§4). So do the renderer and every engine, which stay at `-O3`, and
-`fm1_live`, the FM-1's per-block producer wrapper (`lunar_fm1_live_produce`)
-and consumer conversion (`convert`). No kit image contains `fm1_live`, so its
-`-Oz` cost was never timed; keeping it at the build's level costs 1,056 B
-[verified: after-review links, §8].
+two FM-1-only units on the per-block path: `fm1_live` (the producer wrapper
+`lunar_fm1_live_produce` and the consumer conversion `convert`) and
+`fm1_input` (the event queue, `lunar_fm1_event_barrier` and
+`lunar_fm1_route`, which the producer wrapper calls every block). No kit image
+contains either, so their `-Oz` cost was never timed. Keeping them at the
+build's level costs 1,056 B and 576 B [verified: after-review links, §8].
 
 **SRAM effect of `control`.** It changes SRAM code: about −1.7 KB. For example,
 `fm1_app_pipeline_produce` goes from 3,522 to 3,050 B, and `render_fx` is
@@ -327,17 +330,19 @@ today, only unreachable. So the new code is control logic, an estimated 3–8 KB
 [inferred: the size of today's preflight and seal paths in `fm1_app.c`, not
 measured]. Against that:
 
-- `control` with USB off (+7,072 B) may absorb it, if the work lands at the
+- `control` with USB off (+6,496 B) may absorb it, if the work lands at the
   low end of that estimate;
-- `control` with USB on (+32 B) does not.
+- `control` with USB on (−672 B) does not fit even now.
 
 The next feature-preserving lever is the derived tables (about 13 KB).
 
 ## 6. Recommendation (owner decision)
 
 1. **Adopt `--size-levers control` for the full-UI FM-1 image** (recommended).
-   - It fits V15's slot with 7,072 B to spare with USB off (32 B with USB on,
-     which stays off per docs/18 §3 item 7).
+   - It fits V15's slot with 6,496 B to spare with USB off. With USB on it is
+     672 B over; USB stays off per docs/18 §3 item 7.
+   - Timing `fm1_live` and `fm1_input` at `-Oz` on hardware (a full-UI kit or
+     FM-1 run) and then adding them back would return 1,632 B (USB on +960 B).
    - All eight Macro models stay.
    - Audio is bit-identical on the kit, for the units the kit image contains.
    - It costs about 2.4% of the producer's mean block time. Its worst
@@ -378,23 +383,30 @@ not in the repository.
 An adversarial review of PR #192 at `3d342c99` changed these [verified unless
 marked]:
 
-- **`fm1_live` left `control`.** The kit's pipeline image has no `fm1app/*`
-  units, so the kit timing never covered `fm1_live.c`, whose `convert` runs on
-  the consumer for every block and whose `lunar_fm1_live_produce` wraps the
-  producer. It now keeps the build's level. Cost, from offline links on aeon
-  of this branch with only that change: USB off 574,492 B (+7,072 B, was
-  +8,128), USB on 581,532 B (+32 B, was +960); heap margins and `.ram0_data`
-  (127,664 B) unchanged; `audit_link` PASS. The four kit runs in §4 are
-  unaffected: none of them contained `fm1_live`.
+- **`fm1_live` and `fm1_input` left `control`.** The kit's pipeline image has
+  no `fm1app/*` units, so the kit timing never covered them. `fm1_live.c`'s
+  `convert` runs on the consumer for every block and its
+  `lunar_fm1_live_produce` wraps the producer, calling `fm1_input.c`'s queue
+  peek/pop, `lunar_fm1_event_barrier` and `lunar_fm1_route` every block. Both
+  now keep the build's level. Offline links on aeon of this branch:
+  - `fm1_live` out: USB off 574,492 B (+7,072), USB on 581,532 B (+32);
+  - both out: USB off 575,068 B (+6,496), GPL 1 the same; USB on 582,236 B
+    (−672);
+  - heap margins and `.ram0_data` (127,664 B) unchanged in every link;
+    `audit_link` PASS (0 fail, 1 pending) in every link.
+
+  The four kit runs in §4 are unaffected: none of them contained either unit.
 - **The refusal limits were wrong.** "Below about 1e-22" holds only for
   one-digit text; `%.9g` text is refused from about 1e-14 down and `%.12g`
   text from about 1e-11 down (§2). A committed test now pins the writers'
   formats and these limits.
 - **The parsers are not in the image** (§2), so `cold` changes no behaviour
   today; its saving comes from which `strtod` object the link keeps. The SDK's
-  `common_lib.a(strtod.c.o)` replaces newlib's, for the SDK's `vsscanf`.
+  `common_lib.a(strtod.c.o)` replaces newlib's, included for the SDK's
+  `Vsprintf.c.o` [verified: map] (its `vsscanf` [inferred]).
 - **A guard:** `fm1-app.mk` stops with an error if `cold` is asked for without
   `COLDOPT`, so a receipt can never name a lever that built nothing at `-Oz`.
 - Not re-run: the dev kit (no kit image differs), the FM-1 (no traffic), and
   the GPL 1 USB-on row after the change [inferred: same size as GPL 0, as in
-  every earlier pair].
+  every earlier pair]. The dev kit on bench01 was only read (receipt files);
+  nothing was sent to any device.
