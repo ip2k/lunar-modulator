@@ -86,8 +86,10 @@ def test_default_build_is_unchanged_by_the_option(sdk, tmp_path):
 def test_probe_reads_one_packet_a_pass_after_the_recovery_window():
     probe = PROBE.read_text()
     # R1: the waiting packet's own length is logged before the one read a pass.
-    assert 'usb_read_rxcount(0, LUNAR_USB_MIDI_EP)' in probe
-    assert probe.index('usb_read_rxcount') < probe.index('lunar_usb_midi_poll(emit, 0)')
+    # Index the calls, not the names: the header comment names usb_read_rxcount too.
+    read_count = probe.index('= usb_read_rxcount(0, LUNAR_USB_MIDI_EP);')
+    poll = probe.index('= lunar_usb_midi_poll(emit, 0);')
+    assert probe.count('lunar_usb_midi_poll(') == 1 and read_count < poll
     assert '#define POLL_TICKS 50u' in probe
     for banned in ('uac_audio', 'ch9.h', 'usb_stack.h', 'usb/device/', 'usb_g_ep_read(',
                    'efuse', 'sfc_', 'norflash_write', 'norflash_erase'):

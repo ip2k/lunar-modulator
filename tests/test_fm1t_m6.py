@@ -105,9 +105,12 @@ def test_approved_constants():
     assert 'APPROVED_BUILD_ID = "m6-plan-2"' in src
     assert 'LOADER_SHA256 = "d41da6126760c9d66660bcc0cac8d27d221806c5e369a8036921efe68dca5376"' in src
     assert m6.APPROVED_IMAGE_SHA256 == M6_SHA256 and m6.APPROVED_IMAGE_BYTES == M6_BYTES
-    assert m6.RAM_BASE == 0x01C02000 and m6.RAM_END == 0x01C07E00 and m6.JUMP_ARG == 1
-    assert m6.RUNTIME_TOP == 0x01C06C70
-    assert m6.RAM_BASE + M6_BYTES == 0x01C04644 <= m6.RUNTIME_TOP <= m6.RAM_END
+    # As the approved sketch (M6 note section 5): RAM_END stays M5's 0x01C06000
+    # for the image bytes; the runtime top is checked against the ROM window.
+    assert m6.RAM_BASE == 0x01C02000 and m6.RAM_END == m5.RAM_END == 0x01C06000
+    assert m6.JUMP_ARG == 1
+    assert m6.RUNTIME_TOP == 0x01C06C70 and m6.ROM_WINDOW_END == 0x01C07E00
+    assert m6.RAM_BASE + M6_BYTES == 0x01C04644 <= m6.RAM_END <= m6.RUNTIME_TOP <= m6.ROM_WINDOW_END
     assert m6.RAMRUN_LOCK == 'fm1t_m6-ramrun.lock' != m5.RAMRUN_LOCK
     assert m5.RAMRUN_LOCK in m6.OTHER_RAMRUN_LOCKS
 
@@ -141,10 +144,10 @@ EXPECTED_CODE_DIFF = [
     '+APPROVED_IMAGE_SHA256 = "37334c76760831e3137ec1c9d45943c3ef383f91a8fe632bfd78db07cbde3647"',
     '+APPROVED_IMAGE_BYTES = 9796',
     '+APPROVED_BUILD_ID = "m6-plan-2"',
-    '-RAM_END = 0x01C06000             # the image must end at or before this (M5 link budget)',
-    "+RAM_END = 0x01C07E00             # the ROM upload window's end, the owner-accepted bound",
     '+RUNTIME_TOP = 0x01C06C70         # m6-plan-2 uses nothing at or above this (its SSP stack top)',
-    '+assert RAM_BASE + APPROVED_IMAGE_BYTES <= RUNTIME_TOP <= RAM_END',
+    "+ROM_WINDOW_END = 0x01C07E00      # the ROM upload window's end, the owner-accepted bound",
+    '+if not RAM_BASE + APPROVED_IMAGE_BYTES <= RAM_END <= RUNTIME_TOP <= ROM_WINDOW_END:',
+    '+    raise SystemExit("fm1t_m6: the approved image\'s RAM bounds are inconsistent")',
     '-RAMRUN_LOCK = "fm1t_m5-ramrun.lock"',
     '+RAMRUN_LOCK = "fm1t_m6-ramrun.lock"',
     "+# M5's lock in the same directory also refuses: M6 needs its own run directory.",
@@ -155,8 +158,16 @@ EXPECTED_CODE_DIFF = [
     '+                 "FM-1 OFF, run `fm1t_m6.py ... rekey --fm1-is-off`, reopen the console, wait "',
     '-_RAM_ADDRS = "|".join(f"{a:#x}" for a in range(RAM_BASE, RAM_END, MEMW_CHUNK))',
     '+# Only the chunk addresses of the approved image: 0x1c02000, 0x1c03000, 0x1c04000.',
+    '+# A length the transporter reads as the same number (strtoul base 0: no leading 0).',
+    '+_LEN = r"[1-9][0-9]{0,3}"',
     '+_RAM_ADDRS = "|".join(f"{a:#x}" for a in range(RAM_BASE, RAM_BASE + APPROVED_IMAGE_BYTES,',
     '+                                               MEMW_CHUNK))',
+    '-    "ldr": rf"ldr ({_LDR_OFFSETS}) (\\d+) ({_HEX8})",',
+    '+    "ldr": rf"ldr ({_LDR_OFFSETS}) ({_LEN}) ({_HEX8})",',
+    '-    "memw": rf"memw ({_RAM_ADDRS}) (\\d+) ({_HEX8})",',
+    '-    "memr": rf"memr ({_RAM_ADDRS}) (\\d+)",',
+    '+    "memw": rf"memw ({_RAM_ADDRS}) ({_LEN}) ({_HEX8})",',
+    '+    "memr": rf"memr ({_RAM_ADDRS}) ({_LEN})",',
     '-    power off; do not retry (docs/19)."""',
     '+    power off; do not retry (docs/20)."""',
     '-    """The image must fit the M5 window and be exactly the approved image."""',
@@ -272,6 +283,19 @@ def test_preflight_offline(approved, files, capsys):
     assert 'approved M6 image, 9796 B' in capsys.readouterr().out
 
 
+def test_info_and_dump_still_pass_the_ldr_gate(approved, files, tmp_path):
+    """The ldr length pattern differs from M5's (plain decimal only), so the
+    loader upload is exercised here too: six chunks, the last 3,584 B."""
+    for cmd in (['info', '--loader', str(files / 'wl82loader.bin')],
+                ['dump', str(tmp_path / 'out.bin'), '--loader', str(files / 'wl82loader.bin')]):
+        fake = FakeTransporter()
+        code, events, _ = run(fake, cmd, tmp_path, log=f'{cmd[0]}.jsonl')
+        assert code == 0 and events[-1]['exit'] == 0
+        ldr = [l for l in fake.lines if l.startswith('ldr')]
+        assert [l.split()[1:3] for l in ldr] == [[str(o), '4096'] for o in range(0, 20480, 4096)] + [['20480', '3584']]
+        assert not fake.sram and not fake.jumps and not fake.flash_written
+
+
 # -- bounds ------------------------------------------------------------------
 
 @pytest.mark.parametrize('line', [
@@ -296,6 +320,23 @@ def test_image_range_admitted():
                  'memw 0x1c04000 1604 0123ABCD', 'memr 0x1c04000 1604', 'memr 0x1c03000 4096'):
         assert m6.check_line('ramrun', line) == line.split()[0]
     assert set(m6._RAM_ADDRS.split('|')) == {'0x1c02000', '0x1c03000', '0x1c04000'}
+
+
+@pytest.mark.parametrize('line', [
+    'memw 0x1c02000 04096 0123ABCD',   # strtoul(.., 0) on the Pico: octal 040 = 32 B
+    'memw 0x1c04000 01604 0123ABCD', 'memw 0x1c02000 010 0123ABCD', 'memw 0x1c02000 0 0123ABCD',
+    'memr 0x1c04000 01604', 'memr 0x1c02000 0100', 'memr 0x1c02000 00004',
+    'memw 0x1c02000 0x100 0123ABCD', 'memr 0x1c02000 0x10',
+    'ldr 0 04096 0123ABCD', 'ldr 4096 0100 0123ABCD',
+])
+def test_lengths_the_transporter_would_read_differently_are_refused(line):
+    """The transporter parses memw/memr/ldr lengths with strtoul(..., NULL, 0)
+    (src/transporter_proto.c at 80c5012): a leading 0 is octal there but decimal
+    here, so the header and the payload would disagree. Only plain decimal passes."""
+    for mode in m6.ALLOWED:
+        with pytest.raises(m6.Refused):
+            m6.check_line(mode, line)
+    assert int('4096', 0) == 4096 and m6.check_line('ramrun', 'memr 0x1c02000 4096') == 'memr'
 
 
 @pytest.mark.parametrize('mode', sorted(m6.ALLOWED))
@@ -338,6 +379,9 @@ def test_random_and_mutated_lines_never_escape_the_image():
             if name in ('memw', 'memr'):
                 addr, n = int(line.split()[1], 16), int(line.split()[2])
                 assert 0x01C02000 <= addr and addr + n <= 0x01C04644 and 1 <= n <= 4096
+            if name in ('memw', 'memr', 'ldr'):
+                # The transporter parses lengths with strtoul(..., 0).
+                assert int(line.split()[2], 0) == int(line.split()[2])
 
 
 # -- the gate holds the image ------------------------------------------------

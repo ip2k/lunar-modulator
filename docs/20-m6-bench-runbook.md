@@ -60,10 +60,17 @@ has been run and its bench note written. One M5 result decides how M6 goes:
 - **Accepted with it:** timing at the ROM's clock, not 360 MHz, and the
   −18 dBFS test arpeggio until power-off.
 - **Route:** docs/17's Pico 2 W transporter (UF2 unchanged), driven by
-  `fm1t_m6.py`, a copy of `fm1t_m5.py` with the approved image swapped.
+  `fm1t_m6.py`, a copy of `fm1t_m5.py` with the approved image swapped and
+  one hardening from its review (lengths, §2).
   `fm1t_m5.py` itself is unchanged (its SHA-256 `c0e704e3…` is pinned by
   `tests/test_fm1t_m6.py`).
 - **Recovery:** a power cycle, then docs/17.
+- **The loader:** "loader not uploaded" in the M6 note's scope is read as
+  M5's note words it, "not uploaded in the RAM-run session": Part B's ROM
+  entry never sees JieLi's loader, while Parts A and C upload it for the
+  read-only `info` and `dump`, exactly as docs/19 does. The M6 note's own
+  sequence ("as docs/19 for M5 … checks the identity") needs it there
+  [inferred: reading of the two notes].
 
 Not covered: any other image or build id (including `m6-plan-3`), any flash
 write or erase, the soft key, a second RAM run in the session, upstream
@@ -73,7 +80,11 @@ own owner yes.
 ## 2. What the tool will and will not send
 
 `fm1t_m6.py` has the same subcommands, allow-lists, refusals and exit codes
-as `fm1t_m5.py` (docs/19 §2). `tests/test_fm1t_m6.py` pins every code line
+as `fm1t_m5.py` (docs/19 §2), except that every `memw`, `memr` and `ldr`
+length must be plain decimal with no leading zero. The transporter parses
+lengths with `strtoul(..., 0)` (`src/transporter_proto.c` at `80c5012`), so
+`010` would be 8 B there and 10 B here [verified: source]; the tool's own
+code never writes one, and the allow-list now refuses one too. `tests/test_fm1t_m6.py` pins every code line
 on which the two differ. What changes:
 
 | Subcommand | Lines it can send |
@@ -88,6 +99,12 @@ on which the two differ. What changes:
   `0x1c02000`, `0x1c03000` and `0x1c04000` only, and must end at or before
   `0x01C04644`; the gate also holds the bytes, their order, and refuses the
   jump until all 9,796 B were written [verified: test].
+- **How the transporter writes it.** Each `memw` goes to the ROM in 512 B
+  writes, so the third chunk ends with a 68 B write (M5's image ends with a
+  64 B one) [verified: transporter `do_memw`, `JL_IO_SIZE` 512]. A short
+  final ROM write has not run on hardware yet; M5 is its first test. If the
+  ROM handles it differently, the three `memr` read-backs differ and the tool
+  stops before the jump [verified: test with a corrupted `memr`].
 - **One attempt.** The lock is `fm1t_m6-ramrun.lock` next to the receipt.
   A run directory that holds M5's `fm1t_m5-ramrun.lock` is refused too, so
   M6 runs from its own directory.
@@ -175,9 +192,10 @@ the RAM run in Part B starts from a fresh ROM entry with no loader.
     - Any other result exits 3; do not rerun. If the receipt has a `tx` line
       `jump 0x1c02000 0x1`, observe and record step 13 first.
 13. **Owner, at the unit:** what to look for and listen for is in the table
-    below. Photograph the panel at about 5 s and again at about 30 s, and
-    record at least 10 s of sound. Write down how long after the switch-on
-    each thing appeared.
+    below. Photograph the panel at about 5 s and again at about 30 s after
+    the jump (when the tool prints its verdict), and record at least 10 s of
+    sound. Write down how long after the jump each thing appeared; the
+    receipt's `jump` line has the time it was sent.
 14. **Owner:** switch the FM-1 **off**; the sound stops and SRAM is lost
     [inferred]. **Claude:** `$T --log 14-status.jsonl status` must show
     `uboot=0 v15=0`.
@@ -218,13 +236,16 @@ cleared), 128 a watchdog clear hit a busy P33 bus.
 | Lines and `PCM 92CF0315` but silence | ALNK0 runs but the codec did not start from ALNK0 alone (#176's assumption [inferred, strong] fails). A finding, not a fault |
 | `STEP 6 … F 2` | ALNK0 never produced a block (no clock) |
 | `STEP 5` with `RC` not 0 and `F 32` | `lunar_alnk0_start` refused; `RC` is its result code |
-| `LATE` or `MISS` not 0, or `F 4` | timing trouble at the ROM clock; record the numbers |
+| `LATE` or `MISS` not 0 | timing trouble at the ROM clock; record the numbers |
+| The sound stops, the lines keep redrawing, `F 4` | ALNK0 stopped delivering blocks after it started (a stall): the image stops ALNK0 and keeps the panel up (`firmware/m6/m6_core.c`) [verified: source]. Record `BLK` and when the sound stopped |
+| Lines with `BLK 0`, `STEP 4`, silence | the stopwatch (TIMER4) did not count, so ALNK0 was never started [verified: `main_fm1.c`] |
+| Dark TFT but the arpeggio plays | the panel failed (`F 16`, not visible) and audio ran without it; record it and go on with step 14 |
 | The arpeggio a sixth high | the rate is about 73.5 kHz: the oscillator is 40 MHz, not 24 |
-| Frame, then V15's normal screen before the lines | a watchdog reset during the frame draw (§0). Safe. Do not run any tool command against the running V15; go on with step 14 |
+| Frame, then V15's normal screen before the lines | a watchdog reset during the frame draw (§0). Safe. Do not run any tool command against the running V15; go on with step 14, then stop and ask the owner before Part C (docs/19 step 13) |
 | Dark TFT and silence | record it; the run has proven nothing harmful. Go on with step 14 |
 
 If V15's normal screen appears at any point, photograph it and send nothing
-to it, as in docs/19 step 13.
+to it, as in docs/19 step 13: step 14, then the owner decides on Part C.
 
 ### Part C: dump after (ROM entry 3)
 

@@ -4,7 +4,8 @@
 A copy of fm1t_m5.py (itself adapted from kurogedelic's FM-1-transporter
 `tools/fm1t.py` at a7fb5e8; MIT, Copyright (c) 2026 kurogedelic; licence in
 LICENSE.upstream next to this file) with the approved image swapped for M6's,
-as notes/2026-11-09-m6-image.md section 5 sketches it. The owner approved the
+as notes/2026-11-09-m6-image.md section 5 sketches it, and one hardening from
+its review: memw, memr and ldr lengths must be plain decimal (point 2). The owner approved the
 M6 RAM run on 2026-11-10 ("Yes, after M5 (Recommended)"; docs/18 section 3
 item 6). fm1t_m5.py is left untouched; tests/test_fm1t_m6.py pins the lines
 on which the two tools differ.
@@ -26,7 +27,7 @@ What differs from upstream fm1t.py, and why:
    uboot=1, and otherwise exits with the USB_KEY instructions (FM-1 off,
    rekey, FM-1 on; docs/17 section 4).
 2. `ramrun` is bounded: address fixed at 0x01C02000, arg fixed at 1, the image
-   must end at or before the ROM upload window's end 0x01C07E00, and it must
+   must end at or before 0x01C06000 (M5's bound, kept), and it must
    be exactly the approved M6 image (SHA-256 37334c76..., 9,796 B, build id
    m6-plan-2), checked against --sha256 before the port is opened. There is
    no flag that admits another image; that needs a code change and a new
@@ -35,7 +36,10 @@ What differs from upstream fm1t.py, and why:
    inside [0x01C02000, 0x01C04644) (three chunks: 4,096 + 4,096 + 1,604 B),
    and the jump is refused until all of them were written. At run time the
    image uses SRAM up to 0x01C06C70 (its stacks), checked at import against
-   the 0x01C07E00 bound the owner accepted.
+   the ROM window's end 0x01C07E00, the bound the owner accepted (M6 note
+   section 5). Every length in a memw, memr or ldr line is plain decimal with
+   no leading zero, because the transporter parses it with strtoul(..., 0),
+   which reads a leading 0 as octal.
 3. The jump is sent once. `ERR jump ms=N` with N >= 1,500 is the expected
    result for an image that never returns (the Pico's 2,000 ms transfer
    timeout); the tool exits 0 with that verdict. Nothing at all is sent after
@@ -83,11 +87,13 @@ APPROVED_IMAGE_SHA256 = "37334c76760831e3137ec1c9d45943c3ef383f91a8fe632bfd78db0
 APPROVED_IMAGE_BYTES = 9796
 APPROVED_BUILD_ID = "m6-plan-2"
 RAM_BASE = 0x01C02000            # load and jump address, fixed
-RAM_END = 0x01C07E00             # the ROM upload window's end, the owner-accepted bound
+RAM_END = 0x01C06000             # the image must end at or before this (M5 link budget)
 RUNTIME_TOP = 0x01C06C70         # m6-plan-2 uses nothing at or above this (its SSP stack top)
+ROM_WINDOW_END = 0x01C07E00      # the ROM upload window's end, the owner-accepted bound
 JUMP_ARG = 0x1                   # as the ROM honoured on the dev kit; upstream LOADER_ARG
 MEMW_CHUNK = 4096                # transporter limit per memw / memr (JL_SECTOR_SIZE, JL_READ_MAX)
-assert RAM_BASE + APPROVED_IMAGE_BYTES <= RUNTIME_TOP <= RAM_END
+if not RAM_BASE + APPROVED_IMAGE_BYTES <= RAM_END <= RUNTIME_TOP <= ROM_WINDOW_END:
+    raise SystemExit("fm1t_m6: the approved image's RAM bounds are inconsistent")
 
 # One RAM-run attempt per run directory: created just before the first memw,
 # next to the receipt. A second attempt (a retry) needs a new owner approval.
@@ -132,17 +138,19 @@ USB_KEY_STEPS = ("ROM entry is by USB_KEY only (docs/20 and docs/17 section 4): 
 _HEX8 = r"[0-9A-F]{8}"
 _LDR_OFFSETS = "|".join(str(o) for o in range(0, LOADER_BYTES, LOADER_CHUNK))
 # Only the chunk addresses of the approved image: 0x1c02000, 0x1c03000, 0x1c04000.
+# A length the transporter reads as the same number (strtoul base 0: no leading 0).
+_LEN = r"[1-9][0-9]{0,3}"
 _RAM_ADDRS = "|".join(f"{a:#x}" for a in range(RAM_BASE, RAM_BASE + APPROVED_IMAGE_BYTES,
                                                MEMW_CHUNK))
 PATTERNS = {
     "ping": r"ping",
     "status": r"status",
     "rekey": r"rekey",
-    "ldr": rf"ldr ({_LDR_OFFSETS}) (\d+) ({_HEX8})",
+    "ldr": rf"ldr ({_LDR_OFFSETS}) ({_LEN}) ({_HEX8})",
     "info": r"info",
     "read": rf"read 0x0 {FLASH_SIZE}",
-    "memw": rf"memw ({_RAM_ADDRS}) (\d+) ({_HEX8})",
-    "memr": rf"memr ({_RAM_ADDRS}) (\d+)",
+    "memw": rf"memw ({_RAM_ADDRS}) ({_LEN}) ({_HEX8})",
+    "memr": rf"memr ({_RAM_ADDRS}) ({_LEN})",
     "jump": rf"jump {RAM_BASE:#x} {JUMP_ARG:#x}",
 }
 ALLOWED = {

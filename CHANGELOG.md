@@ -13,7 +13,8 @@ history.
 - **M6 host tool and bench runbook (written, not run; awaiting review).**
   `tools/fm1-transporter/fm1t_m6.py` loads the approved M6 audio image into the
   FM-1's RAM through the Pico transporter and starts it once, with the same
-  refusals as M5's tool; it admits only `m6.bin` and only that image's RAM range.
+  refusals as M5's tool, plus a stricter check that every length is read the same
+  way by the transporter; it admits only `m6.bin` and only that image's RAM range.
   docs/20 is the operator runbook: it waits on M5's watchdog result, and lists
   what the panel should show (`PCM 92CF0315`) and how the arpeggio's pitch tells
   the audio rate. Tested against a fake transporter only; M5's tool is unchanged.
