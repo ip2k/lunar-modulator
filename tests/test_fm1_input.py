@@ -183,12 +183,12 @@ def test_encoder_cycle_gives_two_detents(lib, index, enc):
 
 def test_master_sends_first_reading_then_filtered_moves(lib):
     p = Panel(lib)
-    assert p.scan(master=0) == [(MASTER, 0, 1, 0, 0)]   # the panel pot shows its popup
+    assert p.scan(master=0) == [(MASTER, 0, 0, 0, 0)]   # the boot reading: no popup (sim init)
     assert p.scan(master=3) == []
     moved = []
     for _ in range(10):
         moved += p.scan(master=800)
-    assert moved == [(MASTER, 100, 1, 0, 0)]
+    assert moved == [(MASTER, 100, 1, 0, 0)]            # a move shows the popup
 
 
 # ---- MIDI ---------------------------------------------------------------------
@@ -397,6 +397,16 @@ def test_every_led_has_its_own_cell_and_line(lib):
         cell = lib.lunar_key_cell(id_)
         assert lit[0] == (cell >> 4, (cell & 15) - 1)    # LED line = row bit - 1
     assert len(seen) == 41
+
+
+def test_button_leds_follow_the_button_map(lib):
+    # A button's LED is at the physical cell the panel reads that button from.
+    bmap = list((c.c_uint8 * 14).in_dll(lib, 'lunar_fm1_button_map'))
+    for button in range(14):
+        placed, cols = pack(lib, {27 + button})
+        lit = [(col, bit) for col, m in enumerate(cols) for bit in range(4) if m >> bit & 1]
+        cell = lib.lunar_key_cell(bmap.index(button))
+        assert lit == [(cell >> 4, (cell & 15) - 1)], button
 
 
 def test_leds_all_off_and_all_on(lib):

@@ -138,7 +138,9 @@ unsigned lunar_fm1_panel_update(struct lunar_fm1_panel *p,
         int moved = lunar_pot_update(&p->pot, (unsigned)master_raw);
         if (moved || !p->master_seen) {
             /* The first reading is sent too, so the level follows the knob. */
-            if (push(q, LUNAR_FM1_EV_MASTER, p->pot.level, 1, 0, 0)) {   /* b = show the popup */
+            /* b = show the popup: on a move, not for the boot reading (the
+             * simulator's start sets MASTER without one, worklet.js init). */
+            if (push(q, LUNAR_FM1_EV_MASTER, p->pot.level, p->master_seen ? 1 : 0, 0, 0)) {
                 ++n;
                 p->master_seen = 1;
             }
@@ -211,12 +213,21 @@ int lunar_fm1_usb_midi_packet(const unsigned char packet[4], struct lunar_midi_m
 
 unsigned lunar_fm1_leds_pack(const uint8_t led[41], unsigned char columns[LUNAR_MATRIX_COLUMNS])
 {
-    unsigned i, placed = 0;
+    unsigned i, j, placed = 0;
     for (i = 0; i < LUNAR_MATRIX_COLUMNS; ++i) columns[i] = 0;
     if (!led) return 0;
     for (i = 0; i < 41u; ++i) {
-        unsigned id = i < 27u ? 14u + i : i - 27u;
-        unsigned cell = lunar_key_cell(id), row = cell & 15u;
+        /* A key's LED is at physical id 14 + key. A button's LED is at the
+         * physical id the panel reads that button from (lunar_fm1_button_map,
+         * inverted), so the LEDs follow the map when its TODO(hardware)
+         * labels change. */
+        unsigned id = i < 27u ? 14u + i : 0xffu;
+        unsigned cell, row;
+        if (i >= 27u)
+            for (j = 0; j < 14u; ++j)
+                if (lunar_fm1_button_map[j] == i - 27u) { id = j; break; }
+        cell = lunar_key_cell(id);
+        row = cell & 15u;
         if (cell == 0xffu || row < 1u || row > 4u) continue;
         ++placed;
         if (led[i]) columns[cell >> 4] |= (unsigned char)(1u << (row - 1u));

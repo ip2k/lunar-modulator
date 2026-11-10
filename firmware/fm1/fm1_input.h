@@ -94,7 +94,8 @@ unsigned lunar_fm1_panel_update(struct lunar_fm1_panel *p,
 
 /* The app's 41 LED states (fm1_app_t.led: keys 0..26, then the 14 buttons;
  * nonzero = lit) as the matrix's per-column LED line masks
- * (lunar_matrix_scan_lit). An LED sits at its switch's own cell, and the
+ * (lunar_matrix_scan_lit). An LED sits at its switch's own cell (a button's
+ * at the physical id lunar_fm1_button_map reads it from), and the
  * four LED lines are the row bits 1..4 of that cell, bit n-1 for row bit n
  * [reported: Felucca hal/fm1_input.h fm1_led_key and fm1__led_lines, facts
  * only; the cells are lunar_key_cell, fm1-nes's table]. Returns the number of
@@ -102,8 +103,9 @@ unsigned lunar_fm1_panel_update(struct lunar_fm1_panel *p,
 unsigned lunar_fm1_leds_pack(const uint8_t led[41], unsigned char columns[LUNAR_MATRIX_COLUMNS]);
 
 /* Battery class from the PB1 ADC reading: 0 empty .. 3 full, at the
- * thresholds 531, 561 and 591 [reported: Felucca, fm1-nes; unconfirmed on
- * this unit]. The simulator has no battery semantics, so nothing in the app
+ * thresholds 531, 561 and 591 [reported: Felucca firmware/src/ui_draw.c
+ * batt_level, facts only; fm1-nes 870f305 has none; unconfirmed on this
+ * unit]. The simulator has no battery semantics, so nothing in the app
  * uses it; the status line shows it. */
 unsigned lunar_fm1_battery_class(unsigned raw);
 
