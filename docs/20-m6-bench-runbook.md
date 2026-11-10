@@ -62,8 +62,9 @@ has been run and its bench note written. One M5 result decides how M6 goes:
 - **Route:** docs/17's Pico 2 W transporter (UF2 unchanged), driven by
   `fm1t_m6.py`, a copy of `fm1t_m5.py` with the approved image swapped and
   one hardening from its review (lengths, §2).
-  `fm1t_m5.py` itself is unchanged (its SHA-256 `c0e704e3…` is pinned by
-  `tests/test_fm1t_m6.py`).
+  `fm1t_m5.py` was patched with the same length rule on 2026-11-10 (new
+  SHA-256 `9673ccd8…`, awaiting the owner's approval; docs/19 §1) and is pinned
+  by `tests/test_fm1t_m6.py`.
 - **Recovery:** a power cycle, then docs/17.
 - **The loader:** "loader not uploaded" in the M6 note's scope is read as
   M5's note words it, "not uploaded in the RAM-run session": Part B's ROM
@@ -80,8 +81,9 @@ own owner yes.
 ## 2. What the tool will and will not send
 
 `fm1t_m6.py` has the same subcommands, allow-lists, refusals and exit codes
-as `fm1t_m5.py` (docs/19 §2), except that every `memw`, `memr` and `ldr`
-length must be plain decimal with no leading zero. The transporter parses
+as `fm1t_m5.py` (docs/19 §2). Every `memw`, `memr` and `ldr` length must be
+plain decimal with no leading zero, a rule this tool's review added and
+`fm1t_m5.py` was patched to share on 2026-11-10. The transporter parses
 lengths with `strtoul(..., 0)` (`src/transporter_proto.c` at `80c5012`), so
 `010` would be 8 B there and 10 B here [verified: source]; the tool's own
 code never writes one, and the allow-list now refuses one too. `tests/test_fm1t_m6.py` pins every code line
@@ -284,18 +286,12 @@ boot, docs/17 on the owner's go-ahead.
   before use (docs/18 §3 item 6). Its SHA-256 at this writing is in
   `notes/2026-11-10-m6-tool.md`; any change after the review changes it,
   and `preflight` prints it on bench01.
-- **Owner item: M5's tool has the same length gap.** `fm1t_m5.py` admits
-  a length with a leading zero (`memw 0x1c02000 04096 …`), which the
-  transporter would read as octal; M6's tool now refuses it
-  (`notes/2026-11-10-m6-tool.md`, Review). M5's own code never sends such a
-  line [verified: its gate admits `memw 0x1c02000 04096 …`, run
-  2026-11-10], and a length read short makes the line's CRC disagree, so
-  no wrong byte should land [inferred: transporter source, `strtoul(…, 0)`
-  and the CRC over the parsed length]. Options:
-  (a) leave `fm1t_m5.py` as approved (recommended; costs nothing, keeps the
-  approved hash `c0e704e3…`), or (b) apply the same one-line pattern change,
-  which changes its hash and needs the M5 tool approved again before the
-  bench session. With no answer, M5 runs with the approved file.
+- **M5's tool length gap: resolved for M5, pending approval.** The owner
+  answered 2026-11-10 "Patch M5 too". `fm1t_m5.py` now has the same length
+  rule as `fm1t_m6.py`; its new SHA-256 is
+  `9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72` (was `c0e704e3…`) and is **not yet
+  approved**: the owner must approve it before the M5 bench session
+  (docs/19 §1). The M6 tool is unchanged (`d3714c83…`).
 - **Owner item, only if M5 shows a watchdog reset:** the §0 decision.
 - **Answered by this session:** whether ALNK0 alone starts the FM-1's codec;
   the FM-1's audio rate (by pitch); the stopwatch's ticks per block on the

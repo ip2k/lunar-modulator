@@ -97,8 +97,8 @@ ranges and the recovery plan.
 | M2 | Size and SRAM budget gate | a tool that reads a pi32v2 image and map and checks it against V15's app slot and the FM-1's free SRAM; the soak image's real figure recorded | none | none | **done** 2026-11-08 (#171, #178) |
 | M3 | FM-1 board layer on main | display, keys, LEDs, MIDI in, ALNK0 audio and codec init, clocks and power left as the SPL sets them, `boot_info` bridge; built for pi32v2, `audit_link.py` and M2 pass. Sourced from Codex's branch where its licence allows, clean-room where not (decision 2) | none | none (licence: decision 1) | code in #176, #179 |
 | M4 | Bounded RAM runner on the kit | upload and jump only; erase, program, `0xFC12`, `0xA1`, syscmd 33–36/48, `5A AA A5` and the soft key refused in code; a RAM test image reports over UART | none (kit) | bench yes | **done on the kit** 2026-11-08: two runs, image loaded, read back, run and reset to the app (`notes/2026-11-08-ram-runner-devkit.md`) |
-| M5 | First Lunar code on the FM-1 since recovery, from RAM | build id and test pattern on the TFT, LEDs blink; a power cycle returns V15; a read-only dump before and after has the same hash | RAM only | §4 approval | **approved 2026-11-09** (§3); host tool `tools/fm1-transporter/fm1t_m5.py` ready and tested offline; run pending, with the owner at the bench ([docs/19](19-m5-bench-runbook.md)) |
-| M6 | Audio path on the FM-1 from RAM | ALNK0 at about 44,118 Hz, one reduced engine plays cleanly, per-block timing at 360 MHz reported. The full image does not fit in SRAM [inferred] | RAM only | §4 approval | image built (`m6-plan-2`); kit run passed 2026-11-09 (40,960 blocks, 0 late/missed, about 44.1 kHz by the host clock [verified], 24 MHz oscillator [inferred], ROM clock not 360 MHz; review: images unchanged, note corrected); FM-1 run **not approved**, request in `notes/2026-11-09-m6-image.md` §5; needs M5 first |
+| M5 | First Lunar code on the FM-1 since recovery, from RAM | build id and test pattern on the TFT, LEDs blink; a power cycle returns V15; a read-only dump before and after has the same hash | RAM only | §4 approval | **approved 2026-11-09** (§3); host tool `tools/fm1-transporter/fm1t_m5.py` tested offline, patched 2026-11-10 with the length rule, **new hash awaits the owner's approval** (§3 item 11); run pending, with the owner at the bench ([docs/19](19-m5-bench-runbook.md)) |
+| M6 | Audio path on the FM-1 from RAM | ALNK0 at about 44,118 Hz, one reduced engine plays cleanly, per-block timing at 360 MHz reported. The full image does not fit in SRAM [inferred] | RAM only | §4 approval | image built (`m6-plan-2`); kit run passed 2026-11-09 (40,960 blocks, 0 late/missed, about 44.1 kHz by the host clock [verified], 24 MHz oscillator [inferred], ROM clock not 360 MHz; review: images unchanged, note corrected); FM-1 run **approved 2026-11-10** (§3 item 6; host tool `fm1t_m6.py` approved, item 10), request in `notes/2026-11-09-m6-image.md` §5; runs after M5 ([docs/20](20-m6-bench-runbook.md)) |
 | M7 | Fail-open boot and watchdog, power-cut tested on the kit | a boot-looping build reaches update mode by itself; a power cut at every update stage recovers (docs/07 §4 rules 4–5) | none (kit) | bench yes per run | kit-tested in #180, hardened after review (notes/2026-11-08-failopen-hardening.md); power cuts pending (owner script there) |
 | M8 | First flash install on the FM-1 | backups first; `package_guard.py` passes; the head is unchanged; writes stay inside `[0x4000, 0x93000)`; Lunar boots; fail-open tested; V15 restored and read back | **flash app region** | §4 approval | blocked on M5–M7 |
 | M9 | Release rule on the FM-1 | 8 voices at 360 MHz for ≥ 30 min: no underrun, means ≤ 85%, worst block explained, pre-DAC hashes equal to the host replay, the stereo out captured clean; 12 voices measured as the stretch goal | flash app | bench yes | blocked on M8 |
@@ -191,6 +191,22 @@ Asked 2026-10-29; answers recorded here when they come.
    560,856 B, 20,708 B under the slot, heap +3,264 B over the minimum; on the
    kit the derived tables are hash-equal and the audio is bit-identical to
    main's, at +1.5% producer mean (`notes/2026-11-10-init-tables.md`).
+10. **M6 host tool `fm1t_m6.py` approved, 2026-11-10,** at SHA-256
+    `d3714c83b639ad5803d0081aa9fb727f43b0f4653f487d5aab74d476ed1e07a5`, for the
+    one approved M6 session after M5 (item 6).
+11. **M5 host tool: patch it with the length rule. Answered 2026-11-10:**
+    "Patch M5 too". `fm1t_m5.py` (approved 2026-11-09 at `c0e704e3…`) now
+    admits only lengths `[1-9][0-9]{0,3}`, as `fm1t_m6.py` does (the transporter
+    parses them with `strtoul(..., 0)`, so a leading 0 is octal). New SHA-256
+    `9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72`: **awaiting the owner's approval before M5**; the
+    bench01 copy in `~/m5-run` holds the old tool and must be replaced after
+    approval (docs/19 §1).
+12. **Engine pool size. Answered 2026-11-10:** "Measure on target first". Keep
+    148 KiB; measure free SRAM on the first FM-1 app run.
+13. **Flash support. Owner request, 2026-11-10:** support the UC25HQ80 flash
+    (JEDEC `0xB36014`) found on newer FM-1s [reported: SLOOP v2.8.5 release
+    notes]. In progress on branch `feature/2026-11-10@flash-uc25hq80`. The M5/M6
+    tools stay pinned to the owner's unit (`0x856014`).
 
 ## 4. Doubts to settle
 

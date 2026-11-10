@@ -909,6 +909,56 @@ def test_random_and_mutated_lines_never_escape_the_patterns():
             if name in ('memw', 'memr'):
                 addr, n = int(line.split()[1], 16), int(line.split()[2])
                 assert 0x01C02000 <= addr and addr + n <= 0x01C03040 and 1 <= n <= 4096
+            if name in ('memw', 'memr', 'ldr'):
+                # The transporter parses lengths with strtoul(..., 0): no leading 0.
+                assert int(line.split()[2], 0) == int(line.split()[2])
+
+
+@pytest.mark.parametrize('line', [
+    'memw 0x1c02000 04096 0123ABCD',   # strtoul(.., 0) on the Pico: octal 040 = 32 B
+    'memw 0x1c03000 064 0123ABCD', 'memw 0x1c02000 010 0123ABCD', 'memw 0x1c02000 0 0123ABCD',
+    'memr 0x1c02000 064', 'memr 0x1c02000 0100', 'memr 0x1c02000 00004',
+    'memw 0x1c02000 0x100 0123ABCD', 'memr 0x1c02000 0x10',
+    'ldr 0 04096 0123ABCD', 'ldr 4096 0100 0123ABCD', 'ldr 20480 03584 0123ABCD',
+])
+def test_lengths_the_transporter_would_read_differently_are_refused(line):
+    """The transporter parses memw/memr/ldr lengths with strtoul(..., NULL, 0)
+    (src/transporter_proto.c at 80c5012): a leading 0 is octal there but decimal
+    here. Only plain decimal passes, in every mode."""
+    for mode in m5.ALLOWED:
+        with pytest.raises(m5.Refused):
+            m5.check_line(mode, line)
+    assert m5.check_line('ramrun', 'memr 0x1c02000 64') == 'memr'
+
+
+def test_every_admitted_length_has_no_leading_zero():
+    """Deterministic sweep (the fuzz above rarely builds an admitted leading-zero
+    length): every decimal length 1..4096 that a line can carry passes only in
+    plain form, and its zero-prefixed forms are refused in every mode."""
+    forms = [('ldr', 'ldr 0 {} 0123ABCD'), ('memw', 'memw 0x1c02000 {} 0123ABCD'),
+             ('memr', 'memr 0x1c02000 {}')]
+    for n in range(1, 4097):
+        for name, form in forms:
+            for zeros in ('0', '00'):
+                for mode in m5.ALLOWED:
+                    with pytest.raises(m5.Refused):
+                        m5.check_line(mode, form.format(zeros + str(n)))
+    assert re.fullmatch(m5.PATTERNS['memr'], 'memr 0x1c02000 4096')
+    assert not re.fullmatch(m5.PATTERNS['memr'], 'memr 0x1c02000 04096')
+
+
+def test_info_and_dump_still_pass_the_ldr_gate(files, tmp_path):
+    """The ldr length pattern changed (plain decimal only), so the loader upload
+    is driven through the fake here too: six chunks, the last 3,584 B."""
+    for cmd in (['info', '--loader', str(files / 'wl82loader.bin')],
+                ['dump', str(tmp_path / 'out.bin'), '--loader', str(files / 'wl82loader.bin')]):
+        fake = FakeTransporter()
+        code, events, _ = run(fake, cmd, tmp_path, log=f'{cmd[0]}.jsonl')
+        assert code == 0 and events[-1]['exit'] == 0
+        ldr = [l for l in fake.lines if l.startswith('ldr')]
+        assert [l.split()[1:3] for l in ldr] == [[str(o), '4096'] for o in range(0, 20480, 4096)] + [['20480', '3584']]
+        assert bytes(fake.loader_buf) == LOADER
+        assert not fake.softkey_sent and not fake.flash_written
 
 
 def test_payload_only_after_matching_header():

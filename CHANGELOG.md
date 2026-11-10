@@ -8,6 +8,15 @@ history.
 
 ## [Unreleased]
 
+### Changed
+
+- **M5 host tool refuses lengths the transporter would read differently (owner: "Patch M5 too", 2026-11-10).**
+  `tools/fm1-transporter/fm1t_m5.py` now admits only plain-decimal `memw`, `memr` and
+  `ldr` lengths (`[1-9][0-9]{0,3}`), as `fm1t_m6.py` does, because the transporter
+  parses them with `strtoul(..., 0)` and a leading 0 is octal. Only the three patterns
+  changed. Its SHA-256 is now `9673ccd8…` (was `c0e704e3…`) and needs the owner's
+  approval before the M5 bench session; `~/m5-run` on bench01 must be refreshed then.
+
 ### Added
 
 - **The 1.0 FM-1 image has a name: `prepare-fm1-app.py --profile fm1-1.0` (measured offline
@@ -25,7 +34,7 @@ history.
   way by the transporter; it admits only `m6.bin` and only that image's RAM range.
   docs/20 is the operator runbook: it waits on M5's watchdog result, and lists
   what the panel should show (`PCM 92CF0315`) and how the arpeggio's pitch tells
-  the audio rate. Tested against a fake transporter only; M5's tool is unchanged.
+  the audio rate. Tested against a fake transporter only.
 - **Dev kit USB-MIDI probe (`prepare-devkit.py --usb-midi`).** The FM-1's USB-MIDI device
   now runs on the AC79 dev kit. On the kit it enumerated as `FM-1` (`4C4A:C755`) at full speed
   with a non-zero serial, its descriptors matched the expected bytes, Linux listed it as a MIDI

@@ -22,7 +22,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 TOOL = ROOT / 'tools' / 'fm1-transporter' / 'fm1t_m6.py'
 M5_TOOL = ROOT / 'tools' / 'fm1-transporter' / 'fm1t_m5.py'
-M5_TOOL_SHA256 = 'c0e704e3c6e5de4c3a37e428ea2f73092a7ac8068b1b0ff51c6851deb0d955df'
+M5_TOOL_SHA256 = '9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72'
 
 
 def _load(name, path):
@@ -158,16 +158,8 @@ EXPECTED_CODE_DIFF = [
     '+                 "FM-1 OFF, run `fm1t_m6.py ... rekey --fm1-is-off`, reopen the console, wait "',
     '-_RAM_ADDRS = "|".join(f"{a:#x}" for a in range(RAM_BASE, RAM_END, MEMW_CHUNK))',
     '+# Only the chunk addresses of the approved image: 0x1c02000, 0x1c03000, 0x1c04000.',
-    '+# A length the transporter reads as the same number (strtoul base 0: no leading 0).',
-    '+_LEN = r"[1-9][0-9]{0,3}"',
     '+_RAM_ADDRS = "|".join(f"{a:#x}" for a in range(RAM_BASE, RAM_BASE + APPROVED_IMAGE_BYTES,',
     '+                                               MEMW_CHUNK))',
-    '-    "ldr": rf"ldr ({_LDR_OFFSETS}) (\\d+) ({_HEX8})",',
-    '+    "ldr": rf"ldr ({_LDR_OFFSETS}) ({_LEN}) ({_HEX8})",',
-    '-    "memw": rf"memw ({_RAM_ADDRS}) (\\d+) ({_HEX8})",',
-    '-    "memr": rf"memr ({_RAM_ADDRS}) (\\d+)",',
-    '+    "memw": rf"memw ({_RAM_ADDRS}) ({_LEN}) ({_HEX8})",',
-    '+    "memr": rf"memr ({_RAM_ADDRS}) ({_LEN})",',
     '-    power off; do not retry (docs/19)."""',
     '+    power off; do not retry (docs/20)."""',
     '-    """The image must fit the M5 window and be exactly the approved image."""',
@@ -284,8 +276,9 @@ def test_preflight_offline(approved, files, capsys):
 
 
 def test_info_and_dump_still_pass_the_ldr_gate(approved, files, tmp_path):
-    """The ldr length pattern differs from M5's (plain decimal only), so the
-    loader upload is exercised here too: six chunks, the last 3,584 B."""
+    """The ldr length pattern is plain decimal only (M5's tool has had the same
+    rule since 2026-11-10), so the loader upload is exercised here too: six
+    chunks, the last 3,584 B."""
     for cmd in (['info', '--loader', str(files / 'wl82loader.bin')],
                 ['dump', str(tmp_path / 'out.bin'), '--loader', str(files / 'wl82loader.bin')]):
         fake = FakeTransporter()

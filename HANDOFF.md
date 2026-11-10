@@ -6,7 +6,7 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-11-09. Read this first, then
+original conversation; last updated 2026-11-10. Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
 ## M5 approved, host tool ready — 2026-11-09
@@ -21,12 +21,18 @@ notes `2026-11-09-usb-midi.md` §7, `2026-11-09-m6-image.md` §6 and
 `2026-11-09-controls.md`. M5 still waits for the owner at the bench (docs/19);
 a watchdog reset seconds after the test pattern is now a recorded possible result.
 
-**Owner answers, 2026-11-10** (docs/18 §3 items 6–9): M6 approved to run on the
-FM-1 after M5 (`m6-plan-2`, `37334c76…`; its host tool, `fm1t_m6.py`, is written in
-PR #193 and awaits review; the review's open item on M5's tool, a length
-gap, is in docs/20 §6); USB-MIDI stays off until measured; the M10 soft locks must be
+**Owner answers, 2026-11-10** (docs/18 §3 items 6–13): M6 approved to run on the
+FM-1 after M5 (`m6-plan-2`, `37334c76…`; its host tool `fm1t_m6.py` is approved at
+`d3714c83…`); M5's tool is patched with the same length rule ("Patch M5 too";
+new SHA-256 `9673ccd8…` awaits the owner's approval before M5, and bench01's
+`~/m5-run` holds the old tool until it is replaced); engine pool stays 148 KiB
+until measured on target; UC25HQ80 flash support (`0xB36014`) is in progress on
+`feature/2026-11-10@flash-uc25hq80`, the M5/M6 tools stay pinned to `0x856014`;
+USB-MIDI stays off until measured; the M10 soft locks must be
 lifted before 1.0 (done on the host 2026-11-10, PR #194,
-`notes/2026-11-10-soft-locks.md`); how the full UI fits the slot is still open.
+`notes/2026-11-10-soft-locks.md`); the full UI fits the slot with "Control +
+build tables" (`--full-ui on --size-levers control`, 575,996 B, +5,568 B margin;
+startup tables on `feature/2026-11-10@init-tables`).
 
 **Checkpoint, 2026-11-09:** #171–#186 are merged (#181 made the engine cost tests take the best of three runs) to main and no workflow is
 running. The next hardware step is the M5 bench session with the owner
@@ -53,7 +59,9 @@ image, a second run, any flash write, the soft key) needs a new yes.
   (MIT). It has no soft-key path and admits only the approved image,
   address and argument. An allow-list gates every line it sends, and
   every line goes to a JSONL receipt. It also has read-only `info`/`dump`
-  with the loader, and a strict `compare`.
+  with the loader, and a strict `compare`. Patched 2026-11-10 with the
+  length rule of `fm1t_m6.py`; its new SHA-256 `9673ccd8…` is **not yet
+  approved** (docs/19 §1).
 - Tested only against a fake of the transporter's data port
   (`tests/test_fm1t_m5.py`). Nothing was sent to the FM-1 or the Pico.
 - **Operator steps:** docs/19, with the commands Claude runs on bench01
