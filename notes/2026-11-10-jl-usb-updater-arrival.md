@@ -71,3 +71,16 @@ adapter on the male plug.
    FM-1's slide switch as the power-up, it could become a second recovery path
    that needs no Pico. Read-only identity, then dumps compared with the
    2026-10-26 pair, as docs/17 did.
+
+## First observation, 13:04 PST (nothing sent)
+
+The owner reported the dongle plugged into bench01, with the FM-1 powered on
+behind it. bench01 showed **no device at all**: `lsusb` listed only the four root hubs,
+and the kernel log has no new-device line and no enumeration error since
+12:56:25–12:56:33. At that time the Pico (`1-2`), the `3-2` device, the
+external hub `3-1` and its FTDI adapter (`3-1.4`) all disconnected
+[verified: bench01 `lsusb`, `dmesg`]. A running V15 passed straight through
+would show as `4c4a:c755` `FM-1`, and a keyed ROM as `4c4a:8057`. Neither
+appeared, and no failed attempt was logged either. Still open: whether the
+dongle is on a powered bench01 port, its DIP and supply-selector settings,
+and its LEDs.
