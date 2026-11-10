@@ -59,7 +59,7 @@ def sdk_fixture(tmp_path):
 
 @pytest.fixture
 def prepared(tmp_path, monkeypatch):
-    def run(gpl=1, debug_uart='off', name='out', usb_midi='off'):
+    def run(gpl=1, debug_uart='off', name='out', usb_midi='off', **switches):
         module = load('prepare-fm1-app.py', 'fm1_prepare')
         sdk, correction = sdk_fixture(tmp_path/name)
         real = module.load
@@ -72,7 +72,7 @@ def prepared(tmp_path, monkeypatch):
             return mod
         monkeypatch.setattr(module, 'load', patched)
         out = tmp_path/name/'prepared'
-        identity = module.prepare(sdk, ROOT, out, correction, gpl, debug_uart, usb_midi)
+        identity = module.prepare(sdk, ROOT, out, correction, gpl, debug_uart, usb_midi, **switches)
         return out, identity
     return run
 
@@ -152,6 +152,83 @@ def test_usb_midi_switch(prepared):
         assert name in receipt['inputs'] and (on/'lunar-source'/name).exists()
 
 
+def test_full_ui_and_size_levers(prepared):
+    off, id_off = prepared(gpl=0, name='default')
+    make_off = (off/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
+    for flag in ('LUNAR_FM1_FULL_UI', 'LUNAR_FM1_SIZE_COLD', 'LUNAR_FM1_SIZE_CONTROL'):
+        assert flag not in make_off
+    receipt = json.loads((off/'lunar-devkit-input.json').read_text())
+    assert receipt['full_ui'] is False and receipt['size_levers'] == 'off'
+    seen = {id_off}
+    for name, switches, flags in (
+            ('full', dict(full_ui='on'), ['-DLUNAR_FM1_FULL_UI=1']),
+            ('cold', dict(size_levers='cold'), ['-DLUNAR_FM1_SIZE_COLD=1']),
+            ('control', dict(full_ui='on', size_levers='control'),
+             ['-DLUNAR_FM1_FULL_UI=1', '-DLUNAR_FM1_SIZE_COLD=1', '-DLUNAR_FM1_SIZE_CONTROL=1'])):
+        out, identity = prepared(gpl=0, name=name, **switches)
+        assert identity not in seen
+        seen.add(identity)
+        make = (out/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
+        for flag in flags:
+            # Before the engine make captures EXTRA, as the other application switches.
+            assert make.index(flag) < make.index('include lunar-renderer.mk'), flag
+        if 'control' not in name:
+            assert '-DLUNAR_FM1_SIZE_CONTROL' not in make
+        receipt = json.loads((out/'lunar-devkit-input.json').read_text())
+        assert receipt['full_ui'] is (switches.get('full_ui') == 'on')
+        assert receipt['size_levers'] == switches.get('size_levers', 'off')
+        assert 'firmware/fm1/fm1_strtod.c' in receipt['inputs']
+
+
+def test_default_build_id_string_is_unchanged():
+    # A later switch left at its default must not change the hashed option
+    # string, so default images differ from earlier ones only by the sources.
+    module = load('prepare-fm1-app.py', 'fm1_prepare_id')
+    assert module.build_id(ROOT, 0, 'off', 'off') == module.build_id(ROOT, 0, 'off', 'off', 'off', 'off')
+    assert module.build_id(ROOT, 0, 'off', 'off', 'on') != module.build_id(ROOT, 0, 'off', 'off')
+    assert module.build_id(ROOT, 0, 'off', 'off', 'off', 'cold') != module.build_id(ROOT, 0, 'off', 'off')
+
+
+def test_size_lever_fragment():
+    text = (ROOT/'tools/jieli/fm1-app.mk').read_text()
+    def unit_list(name):
+        start = text.index(name + ' :=')
+        return text[start + len(name) + 3:text.index('\n$(', start)].replace('\\', ' ')
+    cold, control = unit_list('FM1_SIZE_COLD'), unit_list('FM1_SIZE_CONTROL')
+    # The renderer and the engines never take COLDOPT.
+    for unit in (cold + control).split():
+        assert not unit.startswith(('tp/', 'engines/', 'src/')), unit
+    for unit in ('sim/src/fm1_app ', 'sim/src/fm1_seq_ui', 'fm1app/board/matrix'):
+        assert unit not in cold and unit in control
+    # The sequencer engine, the arpeggiator and the modulation runtime keep
+    # the build's level: at COLDOPT they cost 6.4% of the producer's block.
+    # So do fm1_live and fm1_input, the FM-1's per-block producer wrapper,
+    # consumer conversion, event queue and router: no dev-kit image runs
+    # them, so their timing at COLDOPT is unmeasured.
+    for hot in ('c/seq/seq_engine', 'midi_fx/fm1_arp', 'midi_fx/arp_engine', 'mod/mod/mod_core', 'mod/mod/mp_lfo',
+                'fm1app/fm1/fm1_live', 'fm1app/fm1/fm1_input'):
+        assert hot not in cold and hot not in control
+    assert '-Dstrtod=lunar_fm1_strtod -Dstrtof=lunar_fm1_strtof' in text
+    assert 'FM1_APP_SOURCES += fm1/fm1_strtod' in text
+    assert '$(error -DLUNAR_FM1_SIZE_CONTROL=1 needs -DLUNAR_FM1_SIZE_COLD=1)' in text
+    # Without COLDOPT the levers would build nothing at -Oz while the receipt names them.
+    assert 'ifeq ($(strip $(COLDOPT)),)' in text
+    # The objects are named as the rules name them: each COLD/CONTROL unit
+    # must resolve to a source file in the tree.
+    prefixes = {'sim/src/': 'sim/web/src/', 'c/seq/': 'engines/seq/', 'c/state/': 'engines/state/',
+                'c/host/': 'engines/host/', 'state/host/': 'engines/host/',
+                'state/state/': 'engines/state/', 'our/src/': 'engines/src/', 'midi_fx/': 'engines/midi_fx/',
+                'mod/mod/': 'engines/mod/', 'fm1app/': 'firmware/'}
+    for unit in (cold + control).split():
+        for prefix, directory in prefixes.items():
+            if unit.startswith(prefix):
+                stem = directory + unit[len(prefix):]
+                assert any((ROOT/(stem + ext)).exists() for ext in ('.c', '.cc')), unit
+                break
+        else:
+            raise AssertionError('unmapped unit ' + unit)
+
+
 def test_refuses_bad_arguments(tmp_path):
     module = load('prepare-fm1-app.py', 'fm1_prepare_args')
     with pytest.raises(ValueError):
@@ -160,6 +237,10 @@ def test_refuses_bad_arguments(tmp_path):
         module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', debug_uart='pb4')
     with pytest.raises(ValueError):
         module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', usb_midi='yes')
+    with pytest.raises(ValueError):
+        module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', full_ui='yes')
+    with pytest.raises(ValueError):
+        module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', size_levers='all')
 
 
 def test_fragment_swaps_the_kit_workload():

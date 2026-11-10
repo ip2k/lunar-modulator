@@ -25,6 +25,53 @@ FM1_APP_SOURCES := fm1/fm1_input fm1/fm1_live fm1/fm1_sdk_main \
 ifneq ($(filter -DLUNAR_FM1_USB_MIDI=1,$(EXTRA)),)
 FM1_APP_SOURCES += fm1/fm1_usb_midi fm1/fm1_usb_sdk
 endif
+# Size levers (prepare-fm1-app.py --size-levers; notes/2026-11-10-size-levers.md).
+# Each object appends to every object variable, as size-profile.mk does.
+FM1_SIZE_VARS := SIM_CFLAGS SEQ_CFLAGS MOD_CFLAGS STATE_CFLAGS ARP_CFLAGS COMMON
+# cold: units that run on an edit, a load or a save, at boot or in the
+# panel's drawing, never in a block or at the drained barrier, at COLDOPT
+# (-Oz); and the two text parsers' strtod/strtof mapped to firmware/fm1's
+# exact fast-path parser, so newlib's strtod.o is not pulled into the link.
+# (Neither parser is reachable in today's image, so LTO drops them and the
+# replacement; the one strtod left is the SDK's own, kept for its Vsprintf.c.o
+# [verified: map, 2026-11-10], probably its vsscanf [inferred].)
+# SRAM code is unchanged [verified: nm, 2026-11-10].
+ifneq ($(filter -DLUNAR_FM1_SIZE_COLD=1,$(EXTRA)),)
+ifeq ($(strip $(COLDOPT)),)
+$(error -DLUNAR_FM1_SIZE_COLD=1 needs COLDOPT, set by the size profile (prepare-pipeline-devkit.py))
+endif
+FM1_SIZE_COLD := sim/src/fm1_mod_ui sim/src/fm1_app_state c/seq/seq_persist \
+  c/state/fm1_known c/state/fm1_meta state/host/state_clip state/state/fm1_deflate \
+  state/state/fm1_json state/state/fm1_num state/state/state_bin state/state/state_json_read \
+  state/state/state_json_write state/state/state_mod state/state/state_movy1 \
+  state/state/state_names state/state/state_print state/state/state_registry \
+  our/src/editor_meta our/src/registry midi_fx/registry \
+  fm1app/display/m5_pattern fm1app/display/panel_probe fm1app/third_party/fm1-nes/fm1_keys
+$(foreach v,$(FM1_SIZE_VARS),$(foreach o,$(FM1_SIZE_COLD),$(eval $$(BUILD)/$(o).o: $(v) += $(COLDOPT))))
+FM1_SIZE_STRTOD := c/host/mod_script sim/src/fm1_edit
+$(foreach v,$(FM1_SIZE_VARS),$(foreach o,$(FM1_SIZE_STRTOD),\
+  $(eval $$(BUILD)/$(o).o: $(v) += -Dstrtod=lunar_fm1_strtod -Dstrtof=lunar_fm1_strtof)))
+FM1_APP_SOURCES += fm1/fm1_strtod
+endif
+# control: also the app (including its produce step), the step-sequencer UI
+# and capture, and the panel task's matrix, ADC and MIDI drivers and the
+# display transport at COLDOPT. This changes SRAM code. On the dev kit the
+# first three cost about 2.4% of the producer's mean block time with
+# bit-identical audio; the panel-task units are FM-1 only and untimed. The
+# sequencer engine, the arpeggiator and the modulation runtime stay at the
+# build's level, because at COLDOPT they cost about 6.4%. So do fm1_live and
+# fm1_input: the FM-1's per-block producer wrapper, consumer conversion, event
+# queue and router, which no kit image runs, so their -Oz cost is untimed.
+# notes/2026-11-10-size-levers.md. Needs cold.
+ifneq ($(filter -DLUNAR_FM1_SIZE_CONTROL=1,$(EXTRA)),)
+ifeq ($(filter -DLUNAR_FM1_SIZE_COLD=1,$(EXTRA)),)
+$(error -DLUNAR_FM1_SIZE_CONTROL=1 needs -DLUNAR_FM1_SIZE_COLD=1)
+endif
+FM1_SIZE_CONTROL := sim/src/fm1_app sim/src/fm1_seq_ui c/seq/seq_capture \
+  fm1app/board/matrix fm1app/board/adc \
+  fm1app/board/midi_parser fm1app/board/midi_uart fm1app/display/spi1_transport
+$(foreach v,$(FM1_SIZE_VARS),$(foreach o,$(FM1_SIZE_CONTROL),$(eval $$(BUILD)/$(o).o: $(v) += $(COLDOPT))))
+endif
 FM1_APP_OBJ := $(FM1_APP_SOURCES:%=$(BUILD)/fm1app/%.o)
 DEVKIT_RENDERER_OBJ += $(FM1_APP_OBJ)
 
