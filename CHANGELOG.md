@@ -10,7 +10,7 @@ history.
 
 ### Added
 
-- **M6 host tool and bench runbook (written, not run; awaiting review).**
+- **M6 host tool and bench runbook (written, not run; approved by the owner 2026-11-10 at SHA-256 `d3714c83…`).**
   `tools/fm1-transporter/fm1t_m6.py` loads the approved M6 audio image into the
   FM-1's RAM through the Pico transporter and starts it once, with the same
   refusals as M5's tool, plus a stricter check that every length is read the same
@@ -23,6 +23,18 @@ history.
   with a non-zero serial, its descriptors matched the expected bytes, Linux listed it as a MIDI
   port, and a short packet followed by a full one was read whole and echoed back three times.
   Not yet run on an FM-1.
+- **Size levers for the full-UI FM-1 image (measured offline and on the dev kit, not on the
+  FM-1).** `prepare-fm1-app.py` gains `--full-ui on` (the full panel, until now a source edit)
+  and `--size-levers cold|control`. With `control` the full-UI image is 575,068 B, 6,496 B
+  under V15's slot (672 B over with USB-MIDI on, which stays off), with all eight Macro models
+  kept. On the dev kit the units it contains give bit-identical audio and the producer's mean
+  block time rises about 2.4%; the FM-1-only panel-task drivers and display transport at `-Oz`
+  are untimed, and the FM-1's per-block `fm1_live` and `fm1_input` stay at `-O3`. `cold` maps
+  the two text parsers to an exact fast-path parser (`firmware/fm1/fm1_strtod.c`) that
+  refuses what it cannot convert exactly, so newlib's `strtod` leaves the link; neither parser
+  is reachable in today's image, so the parser itself is not linked. Both switches are off by
+  default, and the default image is unchanged apart from its build id
+  (`notes/2026-11-10-size-levers.md`).
 - **The full-UI FM-1 build changes engines, inserts, effect order and Macro's model while audio
   plays (host-tested, not on hardware).** The refusals of 2026-11-09 are gone: PRESETS, the
   effect swap and every Macro model work as they do in the browser, and on the host they match
