@@ -132,3 +132,13 @@ What would make it work, by the manual and inference (not run, needs a new yes):
 power-up keying, i.e. the FM-1's slide switch off and then on while the dongle is
 keying. That is either this solid-green state, or DIP bit 3 (continuous key, no
 power cut). The Pico route (docs/17) does the same power-up keying.
+
+## Owner approval, 2026-11-10: one power-up keying try
+
+The owner answered "Approve power-up try". The approved scope is one try:
+- The dongle stays in its current solid-green state, with the DIP switch all off and unchanged.
+- The owner switches the FM-1 off and then on with its slide switch.
+- bench01 only watches. If the mask ROM appears, the kernel reads its descriptors and nothing else
+  is sent: no dump, no write, no ROM or loader command.
+- Return: the owner unplugs the dongle, power-cycles the FM-1, and connects it directly. Then the
+  read-only identity query runs.
