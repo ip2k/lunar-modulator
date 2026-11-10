@@ -159,3 +159,44 @@ The owner answered "Approve power-up try". The approved scope is one try:
 
 Next candidate, per the 4.0 manual (needs a new yes): **DIP bit 3**, continuous key with no power
 cut, followed by an FM-1 power-up. This is the same principle the Pico route uses (docs/17).
+
+## What JieLi's 4.0 manual says (read 2026-11-10)
+
+Source: SDK `doc/stuff/usb updater.pdf`, §3 and §(4) [verified: read]. Summarised and translated:
+
+- **DIP positions are the switch numbers 1–8.** "Bit 3" is switch 3.
+- **Low four switches** (only one on at a time):
+  - none: sends `usbkey`; needs a button press;
+  - 1: power-cycles periodically and keys each time;
+  - 2: sends `ispkey`, for chips that need it;
+  - 3: **keys continuously with no power cut**. The chip must be power-on reset ("quick plug-in or
+    chip wake-up");
+  - 4: reserved.
+- **High four switches:**
+  - 5: DP/DM default to UART;
+  - 6: SH50 flash mode;
+  - 7: the tool has USB functions (virtual serial, PC commands), after power-up;
+  - 8: stay in upgrade mode.
+- **How entry works:** the chip must restart from its boot code, the tool keys at that moment,
+  and on a successful handshake the PC sees a disk device. A button press **stops the tool's power
+  output for at least 250 ms**. That restarts only a target powered by the tool, which explains the
+  first FM-1 try.
+- **LEDs:**
+  - at power-up, both flash once;
+  - idle: red on, green flashing;
+  - button pressed: red on, green on;
+  - **target in upgrade mode: red on, green off**;
+  - JTAG failure: both flash.
+- **Flash pads:** on PC command, the tool can drive a SPI flash directly. RX goes to CS, DP to CLK,
+  and DM to both DO and DI. These are brought out as the JTAG pads (TCK = DP, TDO = TDI = DM,
+  TMS = RX). This is noted only: it is not a route for the FM-1, whose flash is in-package.
+
+## Owner approval, 2026-11-10: one switch-3 try
+
+The owner answered "Approve bit 3 try". The approved scope:
+- Only switch 3 is turned on; the rest stay off.
+- The dongle is re-plugged so it reads the switches at power-up.
+- The FM-1 is switched off, then on, once.
+- bench01 only watches; the same no-dump, no-write, no-command rule applies.
+- Return: the owner sets switch 3 back off, unplugs the dongle, and power-cycles the FM-1 directly.
+  Then the read-only identity query runs.
