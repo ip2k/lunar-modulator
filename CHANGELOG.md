@@ -16,7 +16,8 @@ history.
   battery, behind the build switch `LUNAR_FM1_FULL_UI` (off by default). The producer waits for
   the audio pipeline to drain before applying such an event, so the app's fail-closed guard is
   never relaxed. On the host the full panel matches the unpipelined app on mode, popup, LEDs,
-  screen and every audio sample. The full image is 39,104 B over V15's slot, so the shipped image
+  screen and every audio sample; the FM-1 itself does not draw the app's screen yet. The full
+  image is 39,136 B over V15's slot, so the shipped image
   keeps the fenced subset until the owner picks how to fit it (`notes/2026-11-09-controls.md`).
   With it on, engine and effect swaps are refused with a popup once audio runs.
 
