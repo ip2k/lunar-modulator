@@ -219,3 +219,12 @@ shadow [reported: owner]. Ask about switch positions rather than reading them fr
   - the key's timing or electrical drive versus the FM-1's power-up.
 - The owner offered a retry on a USB 2 port. That changes one variable under the same switch-3
   scope.
+
+## Result of the switch-3 retry on a USB 2-only port (≈14:05)
+
+- The dongle stayed **red on, green on**, and the FM-1 **booted V15 normally** [reported: owner].
+- bench01 logged nothing; its last kernel line is still 13:14:23. No device was present at
+  14:06:33 [verified].
+- The port is ruled out. The summary and the comparison with the Pico route are in
+  `docs/21-jl-usb-updater.md`.
+- Return state: the FM-1 is on V15. Nothing beyond the approved tries was run.

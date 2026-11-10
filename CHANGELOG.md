@@ -10,6 +10,7 @@ history.
 
 ### Added
 
+- docs/21: JieLi's USB updater dongle (V4.1). It has photos, the manual's switch and LED tables, and four owner-approved tries on the FM-1. None reached the mask ROM; the FM-1 stayed on V15 throughout. It is compared with the Pico 2 W route, which remains the recovery route.
 - A note on JieLi's USB updater dongle (board V4.1), which has arrived: its markings, what the photos do not settle, and the first checks proposed. It is not yet approved for use on the FM-1 (`notes/2026-11-10-jl-usb-updater-arrival.md`).
 
 ### Changed
