@@ -149,24 +149,28 @@ The other targeted tests and the whole suite are in §5.
 
 Built with `tools/jieli/build-fm1-app-on-aeon.sh` in containers labelled
 `session=soft-locks-1110`. The base is `091df132`, which has the same code as
-`origin/main` `fb6d4d6f` (docs only since then). The lane is `c0c6f593`. The
+`origin/main` `fb6d4d6f` (docs only since then). The lane was measured at
+`c0c6f593` and again at `75b56b30`, after `limit_dx7` lost its cache; the
+table gives `75b56b30`, the image's last source change in this lane. The
 full UI was turned on with `sed` on the aeon copy of `fm1_live.h`.
 [verified: `fm1_budget.py` and `audit_link.py` logs]
 
 | Build | `app.bin` | Slot margin (581,564 B) | `.text` | RAM margin over minimum | `audit_link` | `fm1_budget` |
 | --- | --- | --- | --- | --- | --- | --- |
 | base, default, GPL 0 | 550,300 B | +31,264 | 393,024 | +960 B | PASS | PASS |
-| lane, default, GPL 0 | 551,324 B (+1,024) | +30,240 | 394,016 | +864 B | PASS | PASS |
+| lane, default, GPL 0 | 551,260 B (+960) | +30,304 | 393,952 | +864 B | PASS | PASS |
 | base, full UI, GPL 0 | 620,700 B | -39,136 | 464,192 | +1,728 B | PASS | FAIL `app_slot` |
-| lane, full UI, GPL 0 | 621,244 B (+544) | **-39,680** | 464,672 | +1,632 B | PASS | FAIL `app_slot` only |
-| lane, full UI, GPL 1 | 621,244 B | -39,680 | 464,672 | +1,632 B | PASS | FAIL `app_slot` only |
+| lane, full UI, GPL 0 | 621,148 B (+448) | **-39,584** | 464,576 | +1,632 B | PASS | FAIL `app_slot` only |
+| lane, full UI, GPL 1 | 621,148 B | -39,584 | 464,576 | +1,632 B | PASS | FAIL `app_slot` only |
 
-- Lifting the locks costs 544 B in the full-UI image and 1,024 B in the
-  default image.
+- Lifting the locks costs 448 B in the full-UI image and 960 B in the
+  default image. At `c0c6f593`, before the `limit_dx7` fix, they were
+  621,244 B (+544) and 551,324 B (+1,024).
 - The default image grows more, which is not explained [inferred: admission,
   the shares table and the pool search are linked into both images; the
   difference is not bisected].
-- The GPL 0 and 1 full-UI images differ in content at equal size.
+- The GPL 0 and 1 full-UI images differ in content at equal size (first
+  difference at byte 173,707).
 - The GPL 1 image is not shared and was not copied off aeon.
 
 ## 5. What is not done or not verified

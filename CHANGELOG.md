@@ -15,8 +15,9 @@ history.
   effect swap and every Macro model work as they do in the browser, and on the host they match
   the unpipelined app on every audio sample, screen and LED. A larger engine fits only in the
   free part of the image's 148 KiB engine memory; when it does not, PRESETS skips it with the
-  usual "does not fit" popup. Chip's random arpeggio now has its own random stream per voice.
-  The full image grows by 544 B, to 39,680 B over V15's slot (`notes/2026-11-10-soft-locks.md`).
+  usual "does not fit" popup. A DX7 chosen later plays at most eight voices, as the ones at
+  start do. Chip's random arpeggio now has its own random stream per voice.
+  The full image grows by 448 B, to 39,584 B over V15's slot (`notes/2026-11-10-soft-locks.md`).
 - **M10 controls wired through a drain barrier (host-tested, not on hardware).** The FM-1 app
   image can now route all 27 keys, 14 buttons, 7 encoders, pitch bend, MIDI panic and sound 2's
   notes to the panel's own handlers, light the 41 LEDs from the app's state and classify the
