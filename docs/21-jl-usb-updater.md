@@ -101,6 +101,7 @@ and nothing was sent to the FM-1 or to the dongle.
 | 7 | **dev kit**, switches off, kit unplugged and dark, `Update` pressed, kit plugged in at once | red + green on → idle a few seconds later | no ROM | nothing at all |
 | 8 | **dev kit**, as 7 but the dongle's `Update` held while plugging in | red + green on → idle | no ROM | nothing |
 | 9 | **dev kit**, switches off, the kit's own K1 (UPDATE) held while plugging it into the dongle, dongle button not pressed | not recorded | not seen by the PC | nothing |
+| 10 | **control, no dongle:** dev kit straight into bench01 through the same A-to-C adapter, K1 held | — | `UBOOT1.00` | `4c4a:8057` `WL80UBOOT1.00`, SCSI `WL82 UBOOT1.00` (14:38:50) |
 
 [FM-1 and LEDs: reported, owner. bench01: verified, `dmesg -w` and `lsusb`.]
 
@@ -121,9 +122,13 @@ What this shows:
   opens, and no device afterwards.
 - **The kit's own boot button did not help** (try 9). K1 puts the kit into
   `UBOOT1.00` on its own USB port, but through the dongle bench01 saw no
-  device. Either the dongle connects the target's D+/D− to the PC only after
-  its own key succeeds, or the dongle/adapter path does not carry USB to the
-  kit at all.
+  device.
+- **The adapter is fine; the dongle is what blocks** (try 10). The same
+  adapter and kit, with the dongle removed and K1 held, enumerated as
+  `4c4a:8057` straight away. So the dongle does not pass a target that is
+  already in `UBOOT1.00` through to the PC. Either it connects D+/D− only after
+  its own key handshake succeeds, and that handshake fails with the WL82, or
+  it needs a mode or firmware this unit lacks.
 - **When not keying successfully, the dongle passes nothing through.** With
   switch 7 off, the dongle never appeared on bench01. Neither did the running
   FM-1 behind it (`4c4a:c755`). So it cannot double as a pass-through cable.
@@ -159,9 +164,7 @@ before those tries.
 3. **The key itself.** The dongle may send a different `usbkey` from the
    `0x16EF` the WL82 ROM accepts. The manual lists the WL83 family, not the
    WL82.
-4. **The adapter.** Every try went through a USB-A-female-to-USB-C-male
-   adapter. If it does not carry D+/D− cleanly, or presents the wrong CC
-   termination, no key would arrive.
+4. ~~**The adapter.**~~ Ruled out by try 10.
 5. **The dongle's firmware.** V4.1 may need a firmware or `pkgman` update
    (manual §1) to support the WL82. That needs switch 7 and JieLi's Windows
    tooling.

@@ -246,3 +246,6 @@ shadow [reported: owner]. Ask about switch positions rather than reading them fr
 - **Try 9:** switches off, the kit's own K1 (UPDATE) held while plugging it into the updater, updater button not pressed.
   No device and no kernel message on bench01 at 14:37:45 [verified]. K1 alone enters `UBOOT1.00` on the kit's own port,
   so the updater either gates D+/D− until its own key succeeds or the updater/adapter path does not carry USB.
+- **Try 10 (control):** the kit straight into bench01 through the same A-to-C adapter, no updater, K1 held. It enumerated at
+  14:38:50 as `4c4a:8057`, strings `WL80UBOOT1.00`, SCSI `WL82 UBOOT1.00` [verified]. The adapter is fine; the updater
+  does not pass a WL82 ROM through to the PC. Nothing was sent to the kit.
