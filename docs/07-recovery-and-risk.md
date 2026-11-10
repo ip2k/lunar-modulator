@@ -199,8 +199,9 @@ are pending. Details: `notes/2026-11-08-failopen-watchdog.md`.
   back.
 - Heartbeat timeouts are at least 3 s. The kit flash's 64 KB block erase
   takes up to 2 s [reported: Zbit datasheet] and stalls every core running
-  from flash. The FM-1's flash erases in at most 20 ms [reported: Puya
-  datasheet]. Firmware must never issue a chip erase.
+  from flash. The FM-1's flash erases in at most 20 ms on
+  either part it ships with: Puya P25Q80H 20 ms, UCUN UC25HQ80 10 ms
+  [reported: their datasheets; `tools/fm1_flash_parts.py`]. Firmware must never issue a chip erase.
 - The power-on test now also reads the raw `P3_RST_SRC` before the SDK
   clears its power-on mark. Whether that bit really marks a power cut is
   [inferred] until the owner's power-cut test (§4 rule 5) runs. The note

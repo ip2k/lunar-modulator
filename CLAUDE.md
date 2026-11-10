@@ -214,7 +214,7 @@ stock SPL/OTA/cfg package guards, and never ship a V1.2.x uboot or loader
 
 | | |
 | --- | --- |
-| SoC | JieLi AC791N (WL82), LQFP48, marking `C1xxxxx-11B8` (lot varies; owner's `C188612-11B8`); pi32v2 core, **360 MHz** (SPL from `isd_config` `SYS_CLK` [verified: V15 bytes]; runtime [reported: fm1-x0x measurement]; HSB 180, LSB 60), the dev kit runs 320; 578 KB SRAM; 1 MB flash, JEDEC `0x856014` (Puya) [reported], probably in-package |
+| SoC | JieLi AC791N (WL82), LQFP48, marking `C1xxxxx-11B8` (lot varies; owner's `C188612-11B8`); pi32v2 core, **360 MHz** (SPL from `isd_config` `SYS_CLK` [verified: V15 bytes]; runtime [reported: fm1-x0x measurement]; HSB 180, LSB 60), the dev kit runs 320; 578 KB SRAM; 1 MB flash, probably in-package: JEDEC `0x856014` (owner's unit [verified: FC0A, 2026-10-26]), the Puya P25Q80H [reported: FM-1-transporter, fm1-nes, SLOOP], or on units sold from about autumn 2026 UCUN UC25HQ80, `0xB36014` [reported: SLOOP v2.8.5, fm1-gm #76]; accept both (`tools/fm1_flash_parts.py`, notes/2026-11-10-flash-uc25hq80.md) |
 | Memory map | flash XIP `0x02000000`, app entry `0x02000120` [verified: V15 `jlfw.yaml`], RAM `0x01C00000`, SFRs `0x1xxxx…0x5xxxx`, mask ROM `0xFFC0xxxx` |
 | USB | normal `4C4A:C755` (USB-MIDI + UAC1, full-speed, product string `FM-1`), OTA loader `4D4A:4155`, mask ROM `4C4A:8057` `UBOOT1.00` [reported] |
 | Display | 240×240 RGB565 ST7789V TFT on SPI1 (`0x11D00`): CS PC7, D/C PC8, SCK PC9, MOSI PC10; backlight PA2, active low [reported] |
