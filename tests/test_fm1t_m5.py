@@ -909,6 +909,33 @@ def test_random_and_mutated_lines_never_escape_the_patterns():
             if name in ('memw', 'memr'):
                 addr, n = int(line.split()[1], 16), int(line.split()[2])
                 assert 0x01C02000 <= addr and addr + n <= 0x01C03040 and 1 <= n <= 4096
+            if name in ('memw', 'memr', 'ldr'):
+                # The transporter parses lengths with strtoul(..., 0): no leading 0.
+                assert int(line.split()[2], 0) == int(line.split()[2])
+
+
+@pytest.mark.parametrize('line', [
+    'memw 0x1c02000 04096 0123ABCD',   # strtoul(.., 0) on the Pico: octal 040 = 32 B
+    'memw 0x1c03000 064 0123ABCD', 'memw 0x1c02000 010 0123ABCD', 'memw 0x1c02000 0 0123ABCD',
+    'memr 0x1c02000 064', 'memr 0x1c02000 0100', 'memr 0x1c02000 00004',
+    'memw 0x1c02000 0x100 0123ABCD', 'memr 0x1c02000 0x10',
+    'ldr 0 04096 0123ABCD', 'ldr 4096 0100 0123ABCD', 'ldr 20480 03584 0123ABCD',
+])
+def test_lengths_the_transporter_would_read_differently_are_refused(line):
+    """The transporter parses memw/memr/ldr lengths with strtoul(..., NULL, 0)
+    (src/transporter_proto.c at 80c5012): a leading 0 is octal there but decimal
+    here. Only plain decimal passes, in every mode."""
+    for mode in m5.ALLOWED:
+        with pytest.raises(m5.Refused):
+            m5.check_line(mode, line)
+    assert m5.check_line('ramrun', 'memr 0x1c02000 64') == 'memr'
+
+
+def test_info_and_dump_lines_still_pass_the_ldr_gate():
+    assert m5.check_line('dump', 'ldr 20480 3584 0123ABCD') == 'ldr'
+    assert m5.check_line('dump', 'ldr 0 4096 0123ABCD') == 'ldr'
+    assert m5.check_line('info', 'ldr 0 4096 0123ABCD') == 'ldr'
+    assert m5.check_line('info', 'info') == 'info'
 
 
 def test_payload_only_after_matching_header():

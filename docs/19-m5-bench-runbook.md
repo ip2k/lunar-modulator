@@ -25,6 +25,14 @@ planned"; docs/18 §3):
   (its UF2 `4f5fab3f…` unchanged), driven by the patched host tool
   [`tools/fm1-transporter/fm1t_m5.py`](../tools/fm1-transporter/fm1t_m5.py)
   (note §4.2).
+- **Tool hash:** the tool as first approved (2026-11-09) had SHA-256
+  `c0e704e3c6e5de4c3a37e428ea2f73092a7ac8068b1b0ff51c6851deb0d955df`. On 2026-11-10 the owner chose to patch it with the
+  length rule of `fm1t_m6.py` (`memw`, `memr` and `ldr` lengths `[1-9][0-9]{0,3}`,
+  because the transporter parses them with `strtoul(..., 0)`, so a leading 0 is
+  octal). The patched file's SHA-256 is
+  `9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72`. **That hash is NOT yet approved: the owner must
+  approve it before the M5 bench session, and `preflight` must print exactly it.**
+  The change is the pattern lines only (`tests/test_fm1t_m5.py`; listed in the PR).
 - **Sequence and recovery:** note §5, as below.
 
 Not covered: any other image or build id, any flash write or erase, the soft
@@ -92,6 +100,9 @@ Claude, on the Mac:
 2. Copy `fm1t_m5.py`, `m5.bin` and `wl82loader.bin` to one run directory on
    bench01, for example `~/m5-run/`, and rerun the same `preflight` there with
    `--loader wl82loader.bin` too. The tool hash must equal the Mac's.
+   **`~/m5-run` on bench01 holds the OLD tool (`c0e704e3…`).** After the owner
+   approves the new hash, replace `fm1t_m5.py` there with the patched file and
+   check `preflight` prints `9673ccd8…`; do not run the old file.
 
 3. On bench01, check that nothing else will open the transporter's ports:
    `systemctl is-active ModemManager` should not say `active` (it probes

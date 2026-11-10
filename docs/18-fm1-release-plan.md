@@ -185,6 +185,27 @@ Asked 2026-10-29; answers recorded here when they come.
    dropping them would remove playable models.
    **Answered 2026-11-10:** "Measure, then decide (Recommended)": build each
    lever on the merged tree, check timing on the dev kit, then decide.
+   **Answered 2026-11-10 (after the measurement):** "Control + build tables".
+   The 1.0 FM-1 image is `prepare-fm1-app.py --full-ui on --size-levers
+   control`, and startup-computed tables are being implemented (another lane,
+   branch `feature/2026-11-10@init-tables`). Post-#194 size: 575,996 B, +5,568 B
+   slot margin, heap +3,200 B; with `--usb-midi on` -1,088 B.
+10. **M6 host tool `fm1t_m6.py` approved, 2026-11-10,** at SHA-256
+    `d3714c83b639ad5803d0081aa9fb727f43b0f4653f487d5aab74d476ed1e07a5`, for the
+    one approved M6 session after M5 (item 6).
+11. **M5 host tool: patch it with the length rule. Answered 2026-11-10:**
+    "Patch M5 too". `fm1t_m5.py` (approved 2026-11-09 at `c0e704e3…`) now
+    admits only lengths `[1-9][0-9]{0,3}`, as `fm1t_m6.py` does (the transporter
+    parses them with `strtoul(..., 0)`, so a leading 0 is octal). New SHA-256
+    `9673ccd83622a208644ae2b467a1fa5964b01807d2639b3d409537d5136c1a72`: **awaiting the owner's approval before M5**; the
+    bench01 copy in `~/m5-run` holds the old tool and must be replaced after
+    approval (docs/19 §1).
+12. **Engine pool size. Answered 2026-11-10:** "Measure on target first". Keep
+    148 KiB; measure free SRAM on the first FM-1 app run.
+13. **Flash support. Owner request, 2026-11-10:** support the UC25HQ80 flash
+    (JEDEC `0xB36014`) found on newer FM-1s [reported: SLOOP v2.8.5 release
+    notes]. In progress on branch `feature/2026-11-10@flash-uc25hq80`. The M5/M6
+    tools stay pinned to the owner's unit (`0x856014`).
 
 ## 4. Doubts to settle
 
