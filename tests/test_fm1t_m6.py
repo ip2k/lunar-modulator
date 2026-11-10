@@ -276,8 +276,9 @@ def test_preflight_offline(approved, files, capsys):
 
 
 def test_info_and_dump_still_pass_the_ldr_gate(approved, files, tmp_path):
-    """The ldr length pattern differs from M5's (plain decimal only), so the
-    loader upload is exercised here too: six chunks, the last 3,584 B."""
+    """The ldr length pattern is plain decimal only (M5's tool has had the same
+    rule since 2026-11-10), so the loader upload is exercised here too: six
+    chunks, the last 3,584 B."""
     for cmd in (['info', '--loader', str(files / 'wl82loader.bin')],
                 ['dump', str(tmp_path / 'out.bin'), '--loader', str(files / 'wl82loader.bin')]):
         fake = FakeTransporter()

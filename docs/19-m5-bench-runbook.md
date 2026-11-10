@@ -53,6 +53,9 @@ and the transporter console's `k`. Each needs its own owner yes.
 | `dump OUT --loader …` | the `info` lines plus `read 0x0 1048576` |
 | `ramrun m5.bin --sha256 …` | `ping`, `status`, `memw 0x1c02000 4096 …`, `memw 0x1c03000 64 …`, `memr` ×2, `jump 0x1c02000 0x1` |
 
+- **Lengths are plain decimal.** Every `memw`, `memr` and `ldr` length must
+  match `[1-9][0-9]{0,3}` (no leading zero), because the transporter parses it
+  with `strtoul(..., 0)` and would read `010` as 8 (patched 2026-11-10, §1).
 - **Never:** `uboot` (the transporter answers it with the soft key
   `F0 22 24 35 7D F7`), `wsec` (flash erase and program), `runapp`, or any
   other line. The tool never opens the console port (interface 0, where `k`

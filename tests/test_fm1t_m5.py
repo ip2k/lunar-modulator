@@ -931,11 +931,34 @@ def test_lengths_the_transporter_would_read_differently_are_refused(line):
     assert m5.check_line('ramrun', 'memr 0x1c02000 64') == 'memr'
 
 
-def test_info_and_dump_lines_still_pass_the_ldr_gate():
-    assert m5.check_line('dump', 'ldr 20480 3584 0123ABCD') == 'ldr'
-    assert m5.check_line('dump', 'ldr 0 4096 0123ABCD') == 'ldr'
-    assert m5.check_line('info', 'ldr 0 4096 0123ABCD') == 'ldr'
-    assert m5.check_line('info', 'info') == 'info'
+def test_every_admitted_length_has_no_leading_zero():
+    """Deterministic sweep (the fuzz above rarely builds an admitted leading-zero
+    length): every decimal length 1..4096 that a line can carry passes only in
+    plain form, and its zero-prefixed forms are refused in every mode."""
+    forms = [('ldr', 'ldr 0 {} 0123ABCD'), ('memw', 'memw 0x1c02000 {} 0123ABCD'),
+             ('memr', 'memr 0x1c02000 {}')]
+    for n in range(1, 4097):
+        for name, form in forms:
+            for zeros in ('0', '00'):
+                for mode in m5.ALLOWED:
+                    with pytest.raises(m5.Refused):
+                        m5.check_line(mode, form.format(zeros + str(n)))
+    assert re.fullmatch(m5.PATTERNS['memr'], 'memr 0x1c02000 4096')
+    assert not re.fullmatch(m5.PATTERNS['memr'], 'memr 0x1c02000 04096')
+
+
+def test_info_and_dump_still_pass_the_ldr_gate(files, tmp_path):
+    """The ldr length pattern changed (plain decimal only), so the loader upload
+    is driven through the fake here too: six chunks, the last 3,584 B."""
+    for cmd in (['info', '--loader', str(files / 'wl82loader.bin')],
+                ['dump', str(tmp_path / 'out.bin'), '--loader', str(files / 'wl82loader.bin')]):
+        fake = FakeTransporter()
+        code, events, _ = run(fake, cmd, tmp_path, log=f'{cmd[0]}.jsonl')
+        assert code == 0 and events[-1]['exit'] == 0
+        ldr = [l for l in fake.lines if l.startswith('ldr')]
+        assert [l.split()[1:3] for l in ldr] == [[str(o), '4096'] for o in range(0, 20480, 4096)] + [['20480', '3584']]
+        assert bytes(fake.loader_buf) == LOADER
+        assert not fake.softkey_sent and not fake.flash_written
 
 
 def test_payload_only_after_matching_header():

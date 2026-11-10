@@ -81,8 +81,9 @@ own owner yes.
 ## 2. What the tool will and will not send
 
 `fm1t_m6.py` has the same subcommands, allow-lists, refusals and exit codes
-as `fm1t_m5.py` (docs/19 §2), except that every `memw`, `memr` and `ldr`
-length must be plain decimal with no leading zero. The transporter parses
+as `fm1t_m5.py` (docs/19 §2). Every `memw`, `memr` and `ldr` length must be
+plain decimal with no leading zero, a rule this tool's review added and
+`fm1t_m5.py` was patched to share on 2026-11-10. The transporter parses
 lengths with `strtoul(..., 0)` (`src/transporter_proto.c` at `80c5012`), so
 `010` would be 8 B there and 10 B here [verified: source]; the tool's own
 code never writes one, and the allow-list now refuses one too. `tests/test_fm1t_m6.py` pins every code line
