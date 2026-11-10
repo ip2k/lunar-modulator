@@ -99,6 +99,8 @@ and nothing was sent to the FM-1 or to the dongle.
 | 5 | **dev kit** (WL82), switch 3, kit plugged into the dongle (power-up) | red + green on (keying) | no ROM | nothing |
 | 6 | **dev kit**, switches off, dongle re-plugged, `Update` pressed once | idle → red + green on → idle a few seconds later | no ROM | one `usb1-port2: connect-debounce failed` (14:15:52), then nothing |
 | 7 | **dev kit**, switches off, kit unplugged and dark, `Update` pressed, kit plugged in at once | red + green on → idle a few seconds later | no ROM | nothing at all |
+| 8 | **dev kit**, as 7 but the dongle's `Update` held while plugging in | red + green on → idle | no ROM | nothing |
+| 9 | **dev kit**, switches off, the kit's own K1 (UPDATE) held while plugging it into the dongle, dongle button not pressed | not recorded | not seen by the PC | nothing |
 
 [FM-1 and LEDs: reported, owner. bench01: verified, `dmesg -w` and `lsusb`.]
 
@@ -111,12 +113,17 @@ What this shows:
 - **The port was not the cause.** A USB 2-only port changed nothing.
 - **The FM-1 is not the cause either.** The dev kit, a WL82 that its own
   UPDATE/RESET buttons put into `UBOOT1.00` [verified, docs/14], did not key
-  through the dongle in switch-3 mode or in the default mode (tries 5–7).
+  through the dongle in switch-3 mode or in the default mode (tries 5–8).
   The kit takes its power from the dongle, so the default mode's power cut
   should restart it. The kit was powered during tries 5 and 6 [reported: owner]. Try 7 plugged the kit in during the keying window, which is the manual's "quick plug-in" power-on reset; that failed too.
 - **Every press shows the same signature on the PC side:** one
   `connect-debounce failed` on the dongle's port as the keying window
   opens, and no device afterwards.
+- **The kit's own boot button did not help** (try 9). K1 puts the kit into
+  `UBOOT1.00` on its own USB port, but through the dongle bench01 saw no
+  device. Either the dongle connects the target's D+/D− to the PC only after
+  its own key succeeds, or the dongle/adapter path does not carry USB to the
+  kit at all.
 - **When not keying successfully, the dongle passes nothing through.** With
   switch 7 off, the dongle never appeared on bench01. Neither did the running
   FM-1 behind it (`4c4a:c755`). So it cannot double as a pass-through cable.
@@ -136,7 +143,7 @@ What this shows:
 
 Why the dongle fails here, as candidates, all [inferred]:
 
-The dev-kit result (tries 5–7) points at the dongle, or at how it was
+The dev-kit result (tries 5–8) points at the dongle, or at how it was
 set up, rather than at the FM-1. Candidates 1 and 2 below were written
 before those tries.
 

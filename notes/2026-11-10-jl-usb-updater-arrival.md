@@ -242,3 +242,7 @@ shadow [reported: owner]. Ask about switch positions rather than reading them fr
 - **Try 7, all switches off, kit unplugged and dark, Update pressed, kit plugged in during the window:** red and green
   on, then green flashing again a few seconds later [reported: owner]. bench01 logged nothing at all and showed no new
   device at 14:35:16 [verified].
+- **Try 8:** as 7, holding the updater's Update button while plugging the kit in. Same LEDs; nothing on bench01 [verified, 14:36:48].
+- **Try 9:** switches off, the kit's own K1 (UPDATE) held while plugging it into the updater, updater button not pressed.
+  No device and no kernel message on bench01 at 14:37:45 [verified]. K1 alone enters `UBOOT1.00` on the kit's own port,
+  so the updater either gates D+/D− until its own key succeeds or the updater/adapter path does not carry USB.
