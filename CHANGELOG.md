@@ -20,6 +20,17 @@ history.
   image is 39,136 B over V15's slot, so the shipped image
   keeps the fenced subset until the owner picks how to fit it (`notes/2026-11-09-controls.md`).
   With it on, engine and effect swaps are refused with a popup once audio runs.
+- M6 audio-path RAM image (`firmware/m6/`, `link-diagnostic.sh ... m6`): ALNK0
+  at about 44,118 Hz through the codec driver, one two-operator FM voice,
+  per-block timing in a RAM status block and on the FM-1's screen. The dev-kit
+  build ran a full minute on the AC79 kit with no late or missed blocks; the
+  FM-1 build has not run and awaits the owner's approval.
+- RAM diagnostic images clear the chip watchdog if an application left it
+  armed (`lunar_ramtest_wdt_kick`).
+
+### Fixed
+
+- The ALNK0 register access file compiled to nothing in SDK-free builds.
 
 ### Documentation
 
@@ -52,6 +63,13 @@ history.
   (`notes/2026-11-08-failopen-hardening.md`).
 
 ### Added
+- **USB-MIDI in the FM-1 application image, behind a switch**
+  (`--usb-midi on`, off by default). With it on, the unit shows up on a
+  computer as the stock FM-1 does: a class-compliant MIDI device called
+  "FM-1", with the same USB ids. Notes and controllers sent from the
+  computer play the unit just like the TRS MIDI jack. It has not run on any
+  device yet, sends nothing back to the computer, and has no USB audio
+  (`notes/2026-11-09-usb-midi.md`).
 - **M5 host tool for the Pico transporter**
   (`tools/fm1-transporter/fm1t_m5.py`). It is adapted from FM-1-transporter's
   `fm1t.py` for the one approved RAM run on the FM-1:

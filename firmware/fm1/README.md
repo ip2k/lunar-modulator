@@ -10,6 +10,8 @@ open items.
 | `fm1_input.c/.h` | event queue, panel debounce and encoder detents, MASTER, TRS/USB-MIDI decoding, and the router to the app's fence-safe controls; portable C99, host-tested (`tests/test_fm1_input.py`) | MIT |
 | `fm1_live.c/.h` | the audio adapter: the pipelined app at 44,118 Hz, cap 8 DX7 voices, arenas, the int16 conversion with a 50 ms fade-in; applies routed actions between blocks | MIT |
 | `fm1_sdk_main.c` | the SDK glue: TIMER4, board I/O, boot screen, the producer, the ALNK0 interrupt, the panel/MIDI task, the recovery key combination, and fail-open heartbeats | MIT |
+| `fm1_usb_midi.c/.h` | USB-MIDI 1.0 descriptors, string descriptors, the IN batch and the event-packet encoder and splitter; portable C99, host-tested byte for byte (`tests/test_fm1_usb_midi.py`) | MIT |
+| `fm1_usb_sdk.c` | the USB device glue on the SDK's low-level driver in `cpu.a` (`--usb-midi on` only): descriptor overrides, endpoint 4, the control interrupt, the poll | MIT |
 
 Built by `tools/jieli/prepare-fm1-app.py` (on top of the dev-kit pipeline tree:
 cap8, trunc12, `--size-profile`) and `tools/jieli/fm1-app.mk`, which swaps
@@ -49,9 +51,14 @@ the kit's test workload for these files and the board layer
   channels 1, 3 and 4 play sounds 1, 3 and 4; channel 2 (sound 2) is
   deferred; other channels play sound 1. CC 7 is MASTER, CC 123 all notes
   off. Pitch bend is deferred.
-- **USB-MIDI**: not in this image. The decoder (`lunar_fm1_usb_midi_packet`)
-  is written and tested, but the image has no USB device stack, so the unit
-  does not enumerate as `4C4A:C755` and the stock OTA update path is absent.
+- **USB-MIDI** (`--usb-midi on`; off by default): the unit enumerates as
+  stock does, `4C4A:C755`, product "FM-1", full speed, with a
+  class-compliant MIDIStreaming interface on endpoints 0x84/0x04
+  [inferred: descriptors host-tested against V15's bytes; not run on any
+  device]. Packets from the host go through the same decoder and router as
+  TRS. Nothing sends MIDI to the host yet. There is no USB audio, and the
+  stock OTA update service is not in this image. About 7.2 KB of flash and
+  0.8 KB of RAM; details in `notes/2026-11-09-usb-midi.md`.
 - **Recovery**: fail-open boot counter (three unhealthy boots lead to mask-ROM
   update mode), a heartbeat supervisor over the main task (5 s) and the
   panel task (2 s), a reset with fault `0x41`–`0x47` on any startup or

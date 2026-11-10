@@ -14,16 +14,22 @@ from audit_link import Elf, EM_PI32V2, ET_EXEC
 FLASH = 0x02000120
 RAM = 0x01C02000
 BUDGET = 16 * 1024
+# The whole mask-ROM upload window [0x01C02000, 0x01C07E00): JieLi's 24,064-byte
+# loader was written there and ran (tools/ram_runner.py WINDOW_SIZE; M4 dev-kit
+# runs, notes/2026-11-08-ram-runner-devkit.md). Profile "ram-window" (M6) may
+# use all of it; profile "ram" keeps the 16 KiB M5 budget.
+WINDOW_BUDGET = 24064
 SHT_PROGBITS = 1
 
 
 RAM_SECTIONS = (".image", ".bss", ".stack", ".ssp_stack")
 
 
-def report_ram(elf_bytes, app, audit):
+def report_ram(elf_bytes, app, audit, budget=BUDGET, profile="ram"):
     """RAM-only image (firmware/m5/app.ld): one loaded .image section at RAM,
-    then BSS and two guarded 4 KiB stacks, all inside the 16 KiB budget. The
-    flat image is exactly the .image bytes; nothing is placed in flash."""
+    then BSS and two guarded 4 KiB stacks, all inside the budget (16 KiB, or
+    the 24,064-byte ROM window for "ram-window"). The flat image is exactly
+    the .image bytes; nothing is placed in flash."""
     image = Elf(elf_bytes)
     if image.e_type != ET_EXEC or image.e_machine != EM_PI32V2:
         raise ValueError("requires a linked pi32v2 executable")
@@ -42,7 +48,7 @@ def report_ram(elf_bytes, app, audit):
         raise ValueError("missing RAM image boundary symbols")
     if not (RAM < b["__image_end"] <= b["__bss_begin"] <= b["__bss_end"] <= b["__stack_guard"]
             < b["__stack_bottom"] < b["__stack_top"] <= b["__ssp_guard"] < b["__ssp_bottom"]
-            < b["__ssp_top"] <= RAM + BUDGET):
+            < b["__ssp_top"] <= RAM + budget):
         raise ValueError("invalid or overlapping RAM ranges")
     for stack in ("stack", "ssp"):
         top, bottom, guard = (b[f"__{stack}_top"], b[f"__{stack}_bottom"], b[f"__{stack}_guard"])
@@ -75,10 +81,10 @@ def report_ram(elf_bytes, app, audit):
     required = set(RAM_SECTIONS) - ({".bss"} if b["__bss_end"] == b["__bss_begin"] else set())
     if seen != required:
         raise ValueError("missing required RAM image section")
-    return dict(profile="ram", entry=entry, image_bytes=length,
+    return dict(profile=profile, entry=entry, image_bytes=length,
                 bss_bytes=b["__bss_end"] - b["__bss_begin"], stack_bytes=4096,
                 stack_guard_bytes=16, ssp_stack_bytes=4096, ssp_guard_bytes=16,
-                ram_reserved_bytes=b["__ssp_top"] - RAM, ram_budget_bytes=BUDGET,
+                ram_reserved_bytes=b["__ssp_top"] - RAM, ram_budget_bytes=budget,
                 unresolved_symbols=[], sdk_libraries=[], sections=sections, bounds=b,
                 device_execution="unverified", package="not created")
 
@@ -86,6 +92,8 @@ def report_ram(elf_bytes, app, audit):
 def report(elf_bytes, app, audit, profile="inert"):
     if profile == "ram":
         return report_ram(elf_bytes, app, audit)
+    if profile == "ram-window":
+        return report_ram(elf_bytes, app, audit, WINDOW_BUDGET, "ram-window")
     if profile not in ("inert", "handover"):
         raise ValueError("unknown diagnostic profile")
     image = Elf(elf_bytes)

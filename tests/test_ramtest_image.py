@@ -177,3 +177,42 @@ def test_dead_uart_costs_one_timeout_and_still_resets(lib):
     assert chip.p33 == [0x80, 0xA0, 0x5E, 0x00, 0xA0, 0x5A | 0x10]
     polls = sum(1 for t in chip.trace if t[:2] == ('r', UART1_CON0))
     assert polls <= 200_000 + 50
+
+
+def kick(lib, chip):
+    con = c.c_uint(0xDEAD)
+    ok = lib.lunar_ramtest_wdt_kick(c.byref(chip.io), c.byref(con))
+    return ok, con.value
+
+
+def test_wdt_kick_reads_then_sets_clear_bit_when_armed(lib):
+    # The SDK's wdt_clear is p33_or_1byte(P3_WDT_CON 0x80, BIT(6)) [cpu.a IR].
+    # The fake answers 0x5a for every read: bit 4 set, so armed.
+    chip = Chip(lib)
+    ok, con = kick(lib, chip)
+    assert (ok, con) == (1, 0x5A)
+    assert chip.p33 == [0x80, 0x80, 0x5E, 0x00, 0x80, 0x5A | 0x40]
+    assert not chip.regs[P33_CON] & 0x101
+    assert chip.tx == bytearray()
+
+
+def test_wdt_kick_leaves_an_unarmed_watchdog_alone(lib):
+    chip = Chip(lib)
+    orig = chip.write
+
+    def write(ctx, address, width, value):
+        orig(ctx, address, width, value)
+        if address == P33_CON and value & 0x10:
+            chip.regs[P33_DAT] = 0x0F      # time bits only, bit 4 clear
+    chip.cb = (chip.cb[0], WRITE(write), chip.cb[2], chip.cb[3])
+    chip.io = IO(None, *chip.cb, 0)
+    ok, con = kick(lib, chip)
+    assert (ok, con) == (1, 0x0F)
+    assert chip.p33 == [0x80, 0x80, 0x5E]
+
+
+def test_wdt_kick_on_a_stuck_bus_fails_without_writing(lib):
+    chip = Chip(lib, p33_stuck=True)
+    chip.busy = 1
+    ok, _ = kick(lib, chip)
+    assert ok == 0 and chip.p33 == []

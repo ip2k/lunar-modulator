@@ -32,6 +32,9 @@
 #include "../board/alnk0_audio.h"
 #include "../display/spi1_transport.h"
 #include "../display/m5_pattern.h"
+#if LUNAR_FM1_USB_MIDI
+#include "fm1_usb_midi.h"
+#endif
 
 #if !defined(LUNAR_PIPELINE_UNBOUNDED)
 #error The FM-1 application needs the unbounded pipeline lifetime
@@ -160,6 +163,17 @@ static void led_dwell(void *ctx, unsigned us)
     while (n--) {}
 }
 
+#if LUNAR_FM1_USB_MIDI
+/* USB-MIDI packets join TRS MIDI here: the same decoder output, the same
+ * events, the same queue (one producer, this task). */
+static int usb_ok;
+static void usb_emit(void *ctx, const unsigned char packet[4])
+{
+    struct lunar_midi_message m;
+    if (lunar_fm1_usb_midi_packet(packet, &m)) midi_emit(ctx, &m);
+}
+#endif
+
 static void panel_task(void *unused)
 {
     unsigned char leds[LUNAR_MATRIX_COLUMNS];
@@ -181,6 +195,9 @@ static void panel_task(void *unused)
             lunar_fm1_panel_update(&panel_state, rows, master, q);
         }
         if (midi_ok) lunar_midi_uart_poll(&midi, MIDI_BUDGET, midi_emit, q);
+#if LUNAR_FM1_USB_MIDI
+        if (usb_ok) lunar_usb_midi_poll(usb_emit, q);
+#endif
         if (adc_ok && !(++scans & 1023u) && lunar_adc_read(&adc, LUNAR_ADC_BATTERY, &raw))
             battery_raw = raw;
         /* TODO(hardware): one SDK tick (10 ms) a pass. Encoders decode on two
@@ -254,6 +271,15 @@ static void report(const char *stage)
            out.irq_max, p_max, c_max, s.events, s.applied, s.deferred, s.ignored, s.dropped,
            s.invalid, s.clipped, s.dx7_voices, battery_raw, lunar_fm1_battery_class(battery_raw),
            s.barrier_events, s.barrier_holds, s.services, lunar_pipeline_error());
+#if LUNAR_FM1_USB_MIDI
+    {
+        struct lunar_usb_midi_stats u;
+        lunar_usb_midi_stats(&u);
+        printf("LUNAR_FM1 usb=%u online=%u configurations=%u resets=%u received=%u sent=%u "
+               "dropped=%u busy=%u\n", u.started, u.online, u.configurations, u.resets,
+               u.received, u.sent, u.dropped, u.busy);
+    }
+#endif
 }
 
 /* Every failure ends here, never in a return from the task: record why,
@@ -330,6 +356,11 @@ void lunar_fm1_main(void *unused)
                                         (unsigned)(uintptr_t)midi_ring);
     lunar_fm1_panel_reset(&panel_state);
     printf("LUNAR_FM1 matrix=%d adc=%d midi=%d\n", matrix_ok, adc_ok, midi_ok);
+#if LUNAR_FM1_USB_MIDI
+    /* Not fatal: without USB the unit still plays from the panel and TRS. */
+    usb_ok = lunar_usb_midi_start();
+    printf("LUNAR_FM1 usb=%d\n", usb_ok);
+#endif
     status = os_task_create(panel_task, NULL, 12, 1024, 0, "#C0lunar_panel");
     if (status) { printf("LUNAR_FM1 error=panel_task status=%d\n", status); fail(STAGE_PANEL); }
 
