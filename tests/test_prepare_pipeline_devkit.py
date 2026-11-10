@@ -275,3 +275,104 @@ def test_size_profile_is_opt_in_and_compiler_flags_only(tmp_path, monkeypatch):
     ra.pop('prepared_board_makefile_sha256'), rb.pop('prepared_board_makefile_sha256')
     assert ra == rb
     assert sorted(str(k) for k in b if k not in a) == ['lunar-source/tools/jieli/size-profile.mk']
+
+
+INIT_TABLES_BSS = ('    .cache_ram_bss ALIGN(4):\n    {\n        *(.memp_memory_x)\n'
+                   '        . = ALIGN(4); // must at tail, make ram0_data size align 4\n    } > cache_ram\n')
+INIT_TABLES_SETUP = 'void setup_arch()\n{\n    system_reset_reason_get();\n\n    p33_io_latch_init();\n}\n'
+
+
+def init_tables_fixture(tmp_path, monkeypatch, module):
+    sdk, correction = sdk_fixture(tmp_path)
+    linker = sdk/'cpu/wl82/sdk_ld_sfc.c'
+    linker.write_text(linker.read_text() + '\n' + INIT_TABLES_BSS + '}\n')
+    (sdk/'cpu/wl82/setup.c').write_text(INIT_TABLES_SETUP)
+    monkeypatch.setattr(module, 'ORIGINAL_SYSTEM_SHA256', module.sha256(sdk/module.SYSTEM))
+    monkeypatch.setattr(module, 'PIPELINE_SYSTEM_SHA256', module.sha256(correction))
+    return sdk, correction
+
+
+def test_init_tables_is_opt_in_and_removes_only_the_four_definitions(tmp_path, monkeypatch):
+    """--init-tables drops four stored tables from private copies, adds a NOLOAD section and one call."""
+    module = load_prepare()
+    sdk, correction = init_tables_fixture(tmp_path, monkeypatch, module)
+    plain, tables = tmp_path/'plain', tmp_path/'tables'
+    module.prepare_pipeline(sdk, ROOT, plain, correction, policy='cap8', worst_block=True, size_profile=True)
+    module.prepare_pipeline(sdk, ROOT, tables, correction, policy='cap8', worst_block=True, size_profile=True,
+                            init_tables=True)
+
+    def files(root):
+        return {str(p.relative_to(root)): p.read_text(errors='replace').replace(str(root), '@OUT@')
+                for p in root.rglob('*') if p.is_file()}
+    a, b = files(plain), files(tables)
+    assert sorted(b) == sorted(a)   # no new or removed files; the generated TU is staged in both
+    differ = sorted(k for k in a if a[k] != b[k])
+    src = 'lunar-source/'
+    assert differ == sorted([
+        'apps/demo/demo_hello/board/wl82/Makefile', 'apps/demo/demo_hello/sdk_worker.c',
+        'cpu/wl82/sdk_ld_sfc.c', 'cpu/wl82/setup.c', 'lunar-devkit-input.json',
+        src+'engines/include/fm1_resampler.h', src+'engines/src/mi_macro.cc', src+'engines/src/msfa.h',
+        src+'engines/src/msfa_rom.cc', src+'engines/src/msfa_sin_trunc12.h',
+        src+'engines/third_party/mutable/plaits/resources.cc',
+        src+'engines/third_party/mutable/plaits/resources.h'])
+    # Each stored definition is gone from the private copy: the whole block from its
+    # first line to its closing brace, and nothing else.
+    expected = {}
+    for name, table in (('engines/src/msfa_rom.cc', 'kSinTab12[4096]'), ('engines/src/msfa_rom.cc', 'kExp2Tab[2048]'),
+                        ('engines/src/mi_macro.cc', 'fm1_resampler_kernel_pairs['),
+                        ('engines/third_party/mutable/plaits/resources.cc', 'lut_sine[] __attribute__')):
+        text = expected.get(name, a[src+name])
+        line = [x for x in text.splitlines() if table in x and x.endswith('= {')]
+        assert len(line) == 1 and table not in b[src+name]
+        start = text.index(line[0])
+        expected[name] = text[:start] + text[text.index('\n};\n', start) + 4:]
+    for name, text in expected.items():
+        assert b[src+name] == text
+    assert 'kFreqLut44118[1025]' in b[src+'engines/src/msfa_rom.cc']
+    # Declarations lose const and nothing else.
+    expected = {}
+    for name, declaration in module.INIT_TABLES_DECLARATIONS:
+        text = expected.get(name, a[src+name])
+        assert text.count(declaration) == 1
+        expected[name] = text.replace(declaration, declaration.replace('extern const ', 'extern ', 1))
+    for name, text in expected.items():
+        assert b[src+name] == text
+    assert 'extern int16_t kSinTab12[1 << 12];' in b[src+'engines/src/msfa_sin_trunc12.h']
+    # The SDK edits: one NOLOAD section after .cache_ram_bss, one call at setup_arch's end, two flags.
+    link = b['cpu/wl82/sdk_ld_sfc.c']
+    assert link.replace(module.INIT_TABLES_SECTION, '') == a['cpu/wl82/sdk_ld_sfc.c']
+    assert link.index('.lunar_cache_init ALIGN(4) (NOLOAD)') > link.index('.cache_ram_bss')
+    assert b['cpu/wl82/setup.c'] == INIT_TABLES_SETUP.replace(module.INIT_TABLES_SETUP_ANCHOR,
+                                                               module.INIT_TABLES_SETUP_HOOK)
+    mk = 'apps/demo/demo_hello/board/wl82/Makefile'
+    assert b[mk].replace(module.INIT_TABLES_FLAGS + module.INIT_TABLES_CHECK_FLAGS, '') == a[mk]
+    worker = 'apps/demo/demo_hello/sdk_worker.c'
+    assert b[worker].replace(module.INIT_TABLES_WORKER_CHECK, '') == a[worker]
+    receipt = json.loads(b['lunar-devkit-input.json'].replace('@OUT@', str(tables)))
+    assert receipt['init_tables']['section'].startswith('.lunar_cache_init')
+    assert receipt['inputs']['tools/init_tables.py'] == module.sha256(ROOT/'tools/init_tables.py')
+    assert receipt['inputs']['engines/src/msfa_rom.cc'] == module.sha256(tables/'lunar-source/engines/src/msfa_rom.cc')
+
+
+def test_init_tables_refuses_reapplication(tmp_path, monkeypatch):
+    module = load_prepare()
+    sdk, correction = init_tables_fixture(tmp_path, monkeypatch, module)
+    out = tmp_path/'tables'
+    module.prepare_pipeline(sdk, ROOT, out, correction, policy='cap8', size_profile=True, init_tables=True)
+    with pytest.raises(ValueError, match='init-tables'):
+        module.adapt_init_tables(out, ROOT)
+
+
+def test_renderer_mk_links_the_init_tables_object_only_with_its_flag(tmp_path):
+    import shutil, subprocess
+    if not shutil.which('make'):
+        pytest.skip('no make')
+    def objs(extra):
+        r = subprocess.run(['make', '--no-print-directory', '-s', '-C', str(ROOT/'engines'), '-f', 'Makefile',
+                            '-f', str(ROOT/'sim/web/mk/sim.mk'), '-f', str(ROOT/'tools/jieli/renderer.mk'),
+                            f'SIM={ROOT/"sim/web"}', f'BUILD={tmp_path/"b"}', 'FM1_GPL_MODS=0',
+                            f'EXTRA={extra}', 'print-devkit-renderer-objs'], check=True, capture_output=True, text=True)
+        return r.stdout.split()
+    plain, tables = objs(''), objs('-DFM1_INIT_TABLES=1')
+    assert sorted(set(tables) - set(plain)) == [str(tmp_path/'b/our/src/fm1_init_tables.o')]
+    assert set(plain) <= set(tables)
