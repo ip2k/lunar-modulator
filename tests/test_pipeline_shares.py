@@ -12,8 +12,10 @@ collects the writable data (.data/.bss/common) it can reach. Then:
 - an engine is in the table exactly when its closure reaches such state;
 - two engines whose closures meet have a share bit in common, so they never
   run on different cores;
-- no object outside every engine's closure refers to that state (the app,
-  the sequencer and the modulation code on CPU0 never touch it).
+- no object outside every engine's closure refers to that state. The build
+  is the engines' own (fm1-render and its renderer), not the app: the app's
+  objects in sim/web/src are not checked here, and reach engines only
+  through their descriptors.
 
 Two kinds of writable symbol are exempt, each named below: tables that are
 written only while an engine is created (at a drained barrier, nothing in

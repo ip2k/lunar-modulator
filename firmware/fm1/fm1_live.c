@@ -31,7 +31,6 @@ static struct lunar_fm1_router router;
 static struct lunar_fm1_live_status state;
 static int ready, bound;
 static int units[8];
-static void *dx7_limited[4];   /* the DX7 instance each sound's eight-voice limit went to */
 
 /* Consumer-only (CPU1 worker): never read by the producer while it runs. */
 static uint32_t consume_next, fade, invalid, clipped;
@@ -41,17 +40,17 @@ void fm1_app_pipeline_fail(uint32_t code) { lunar_pipeline_fail_park(code); }
 
 /* Every DX7 instance plays at most eight voices: the ones made at start and
  * any a sound gets later from the panel (owner, 2026-10-29). Runs where the
- * engines may change: at start and after the events of a drained barrier. */
+ * engines may change: at start and after the events of a drained barrier,
+ * with nothing in flight. A new instance can sit at the old one's address
+ * (DX7, another engine and DX7 again in one batch), so the limit is set on
+ * every DX7 each time, not remembered by address: one store, idempotent. */
 static int limit_dx7(void)
 {
     const int dx7 = fm1_app_find("dx7");
     unsigned k;
     for (k = 0; k < 4u; ++k) {
         const fm1_app_unit_t *u = &app.unit[fm1_app_sound_unit((int)k)];
-        if (!u->e || u->index != dx7) { dx7_limited[k] = 0; continue; }
-        if (u->self == dx7_limited[k]) continue;
-        if (!fm1_dx7_set_voice_limit(u->self, DX7_VOICES)) return 0;
-        dx7_limited[k] = u->self;
+        if (u->e && u->index == dx7 && !fm1_dx7_set_voice_limit(u->self, DX7_VOICES)) return 0;
     }
     return 1;
 }
@@ -87,7 +86,6 @@ int lunar_fm1_live_init(void)
     if (fm1_app_set_arena_pool(&app, pool, sizeof pool)) { state.init_error = 3; return 0; }
     for (i = 0; i < 8u; ++i)
         if (fm1_app_select(&app, units[i], fm1_app_find(ids[i]))) { state.init_error = 4 + i; return 0; }
-    memset(dx7_limited, 0, sizeof dx7_limited);
     if (!limit_dx7()) { state.init_error = 23; return 0; }
     state.dx7_voices = DX7_VOICES;
     /* The dev-kit pipeline's patches, models and wet levels. */

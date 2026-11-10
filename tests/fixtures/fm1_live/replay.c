@@ -212,6 +212,15 @@ static void state_line(const char *tag)
     printf("%s units=", tag);              /* the arrangement: every unit's engine */
     for (i = 0; i < FM1_APP_UNITS; ++i) printf("%s%s", i ? "," : "", app.unit[i].e ? app.unit[i].e->id : "-");
     printf(" model=%g ", app.unit[fm1_app_sound_unit(1)].e ? (double)fm1_app_get_param(&app, fm1_app_sound_unit(1), 0) : -1.0);
+    printf("dx7_limit=");                  /* each sound's DX7 voice limit, 0 when it is not a DX7 */
+    for (i = 0; i < 4u; ++i) {
+        const fm1_app_unit_t *u = &app.unit[fm1_app_sound_unit((int)i)];
+        fm1_dx7_budget_stats_t st;
+        unsigned lim = 0;
+        if (u->e && !strcmp(u->e->id, "dx7")) lim = fm1_dx7_get_budget_stats(u->self, &st) ? (unsigned)st.limit : 99u;
+        printf("%s%u", i ? "," : "", lim);
+    }
+    printf(" ");
     printf("seq=%d play_led=%d mode=%d page=%d sound=%d octave=%d transpose=%d popup_lines=%d popup0=[%s] leds=%s "
            "screen=%016llx pcm=%016llx frames=%llu\n",
            app.seq != 0, app.led[27 + FM1_BTN_PLAY], app.mode, app.page, app.sound, app.octave, app.transpose, app.popup_lines,
@@ -356,6 +365,9 @@ static const struct step swap_script[] = {
     MIDI(340, LUNAR_FM1_EV_NOTE_OFF, 64, 0, 1),
     /* Sound 1 (the first DX7): other engines, then back */
     BTN(350, FM1_BTN_SEL, 1), ENC(351, FM1_ENC_PRESETS, -1), BTN(352, FM1_BTN_SEL, 0),
+    /* away from the DX7 and back in one drained batch: the new DX7 lands at
+     * the old one's address and must still get the eight-voice limit */
+    ENC(355, FM1_ENC_PRESETS, 1), ENC(355, FM1_ENC_PRESETS, -1),
     ENC(360, FM1_ENC_PRESETS, 1), MIDI(364, LUNAR_FM1_EV_NOTE_ON, 36, 110, 0),
     MIDI(380, LUNAR_FM1_EV_NOTE_OFF, 36, 0, 0),
     ENC(400, FM1_ENC_PRESETS, -2), MIDI(404, LUNAR_FM1_EV_NOTE_ON, 60, 110, 0),
@@ -371,7 +383,7 @@ static const struct step swap_script[] = {
     BTN(580, FM1_BTN_HOME, 1), BTN(581, FM1_BTN_HOME, 0),
 };
 static const unsigned swap_at[] = {13, 19, 21, 41, 61, 79, 91, 111, 131, 151, 171, 201, 241, 262,
-                                   281, 321, 353, 361, 401, 452, 463, 481, 501, 513, 521, 531,
+                                   281, 321, 353, 356, 361, 401, 452, 463, 481, 501, 513, 521, 531,
                                    551, 582, 1500};
 
 /* Inserts on every sound and on Sound 2 one with engine API v3's extension

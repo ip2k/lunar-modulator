@@ -155,6 +155,10 @@ def units(line):
     return line.split('units=')[1].split()[0].split(',')
 
 
+def dx7_limits(line):
+    return [int(v) for v in line.split('dx7_limit=')[1].split()[0].split(',')]
+
+
 def differential(full_exes, mode, checkpoints):
     """The script through the live adapter and the barrier, plain and under
     ASan, against the same arrangement with no pipeline: units, Macro's
@@ -174,6 +178,8 @@ def differential(full_exes, mode, checkpoints):
         assert n['pushed'] == n['events'] == n['applied']
     assert len({line.split('pcm=')[1].split()[0] for line in want}) == checkpoints
     assert 'popup_lines=0' in want[-1]
+    # every DX7 a sound gets, at start or later, plays at most eight voices
+    assert all(v in (0, 8) for line in want for v in dx7_limits(line)), want
     return want, n
 
 
@@ -187,17 +193,19 @@ def test_full_ui_gestures_match_the_unpipelined_app(full_exes):
     assert n['pushed'] == 28 and n['barrier_events'] == 28
     assert [units(l)[3] for l in (want[0], want[5], want[10])] == ['macro', 'dx7', 'drums']
     assert ('comp', 'echo') in {tuple(units(l)[1:3]) for l in want}   # the effect swap
-    assert 'model=1' in want[6]                           # ALGORITHM moved Macro off VA
+    assert units(want[6])[3] == 'dx7' and 'model=1' in want[6]   # ALGORITHM reached the DX7's parameter 0
 
 
 def test_full_ui_engine_swaps_and_every_macro_model_match(full_exes):
     """Every Macro model with notes held on Sound 2 across each change, the
     Chip random arpeggio beside Drums, Sound 2 as DX7, as Drums with Sound 3
     also Drums (both on CPU0: they share stmlib::Random), empty, and Macro
-    again; Sound 1's engine changed; the master effects swapped and picked."""
-    want, _ = differential(full_exes, 'swaps', 30)
-    models = [int(l.split('model=')[1].split()[0]) for l in want]
-    assert set(range(8)) <= set(models)                   # all eight models ran
+    again; Sound 1's engine changed, and away from the DX7 and back in one
+    drained batch (the new DX7 at the old address still limited to eight
+    voices); the master effects swapped and picked."""
+    want, _ = differential(full_exes, 'swaps', 31)
+    models = [int(l.split('model=')[1].split()[0]) for l in want if units(l)[3] == 'macro']
+    assert set(range(8)) <= set(models)                   # all eight Macro models ran
     sound2 = [units(l)[3] for l in want]
     assert {'macro', 'dx7', 'drums', '-'} <= set(sound2)
     assert any(units(l)[0] != 'dx7' for l in want)        # Sound 1 changed too

@@ -84,8 +84,22 @@ real two-core run would be needed to see it.
      RAM refusal shows the same words plus the RAM it would need.
    - `project_reset` keeps the pool.
 5. **DX7 voice limit:** a DX7 created later is limited to 8 voices, like
-   the startup ones. `limit_dx7` runs after each drained service, and a
-   failure is `init_error` 23.
+   the startup ones. `limit_dx7` runs after each drained service and sets
+   the limit on every DX7 each time (one store), rather than remembering
+   instances by address: a DX7 replaced and re-created in one batch lands
+   at the old address. A first version did remember addresses and left
+   that DX7 at 12 voices [verified: `swaps` checkpoint t356 read
+   `dx7_limit=12` before the fix, 8 after]. A failure is `init_error` 23.
+6. **Where the seal is cleared** [verified: every write to a unit's engine,
+   instance, arena, size or capacity in `fm1_app.c`]: `fm1_app_select`
+   (load, empty, the restore of the previous engine after a refused load,
+   the pool's return of an arena) and `swap_units` clear it.
+   `app_init`, and so a project reset, refuses once the pipeline has run
+   (`PIPELINE_GUARD(!pipeline_owner)`), so it fails closed rather than
+   changing units under a seal. `fm1_app_state.c` and `fm1_edit.c` change
+   engines only through `fm1_app_select`, and neither is linked into the
+   FM-1 image; the pipeline refuses a block while the edit layer is open
+   (`!a->edit` in preflight).
 
 The default image (`LUNAR_FM1_FULL_UI=0`) makes no structural change after
 init. Its control path is unchanged.
@@ -98,13 +112,15 @@ engine API v3's `render_ext`. Each differential runs the script through the
 live adapter and the drain barrier, plain and under ASan+UBSan, against the
 same arrangement with no pipeline (`ref MODE`). At every checkpoint these
 are equal [verified]: unit ids, Macro's model, mode, page, sound, popup, the
-41 LEDs, the screen hash and a hash of every PCM word.
+41 LEDs, the screen hash and a hash of every PCM word. Every DX7 a sound
+holds, at start or later, reports a voice limit of 8 at every checkpoint
+(`dx7_limit=`).
 
 | Script | Checkpoints | What changes mid-stream |
 | --- | --- | --- |
 | `full` | 13 | the 68-event panel script of 2026-11-09 |
-| `gestures` | 16 | the script that was refused on 2026-11-09:<br>- Sound 2 goes Macro → DX7 → Drums;<br>- the masters swap order (Echo,Comp → Comp,Echo);<br>- Macro moves to model 1 |
-| `swaps` | 30 | - Macro models 0 to 7 and back to 0, each with a note held across the change;<br>- Chip's random arpeggio beside Drums;<br>- Sound 2 goes DX7 → Drums (inline, since Sound 3 is Drums) → empty → Macro;<br>- Sound 1 goes DX7 → Drums;<br>- the masters are swapped and picked six ways |
+| `gestures` | 16 | the script that was refused on 2026-11-09:<br>- Sound 2 goes Macro → DX7 → Drums;<br>- Sound 1 goes Drums → DX7;<br>- the masters swap order (Echo,Comp → Comp,Echo);<br>- ALGORITHM reaches the new DX7 on Sound 2 (Macro stays on model 0 in this script) |
+| `swaps` | 31 | - Macro models 0 to 7 and back to 0, each with a note held across the change;<br>- Chip's random arpeggio beside Drums;<br>- Sound 2 goes DX7 → Drums (inline, since Sound 3 is Drums) → empty → Macro;<br>- Sound 1 goes DX7 → Drums → DX7 in one drained batch, then DX7 → Drums;<br>- the masters are swapped and picked six ways |
 | `inserts` | 19 | - Sound 2's first insert is set to Filter, Test Ext (`render_ext` on CPU1), Comp and back, while its engine goes Macro → DX7 → Drums → empty;<br>- then Sound 1's inserts |
 
 `tests/test_pipeline_shares.py` (4 tests, new):
