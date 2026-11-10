@@ -99,3 +99,14 @@ and its LEDs.
   [inferred]; bit 7 would be needed for it to show up itself.
 - Nothing was pressed or sent. Pressing Update with the FM-1 attached would key it into mask ROM,
   which makes this a new FM-1 route. That needs the owner's yes.
+
+## Owner approval, 2026-11-10: one FM-1 keying test
+
+The owner answered "Approve FM-1 keying test". The approved scope:
+- The owner presses Update **once**, with the DIP switch all off and the FM-1 attached.
+- bench01 only watches for the mask ROM (`4c4a:8057`) and reads the descriptors the kernel collects.
+- No dump, no write, and no ROM or loader command.
+- The owner then power-cycles the FM-1 back to V15, and its identity is read with the read-only
+  query.
+
+Anything more needs a new yes.
