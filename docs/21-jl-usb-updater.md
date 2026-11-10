@@ -85,18 +85,17 @@ directly through its JTAG pads:
 This is no route for the FM-1, whose flash is inside the chip package
 (docs/01).
 
-## 3. What happened on the FM-1
+## 3. What happened on the FM-1 and the dev kit
 
 The FM-1 was running stock V15. bench01 (Linux) watched only its kernel log,
 and nothing was sent to the FM-1 or to the dongle.
 
-| Try | Setup | Dongle LEDs | FM-1 | bench01 |
+| Try | Setup | Dongle LEDs | Target | bench01 |
 | --- | --- | --- | --- | --- |
 | 1 | switches off, `Update` pressed once, port on the USB 3 controller | idle → red + green on | kept running V15, no reboot | one `usb3-port1: connect-debounce failed`, then nothing |
 | 2 | same, FM-1 switched off and on | idle (window had ended) | booted V15 | nothing |
 | 3 | switch 3 on, selector 5.0 V, dongle re-plugged, FM-1 switched off and on | red + green on (keying) | booted V15 | nothing |
 | 4 | as 3, dongle on a USB 2-only port | red + green on (keying) | booted V15 | nothing |
-
 | 5 | **dev kit** (WL82), switch 3, kit plugged into the dongle (power-up) | red + green on (keying) | no ROM | nothing |
 | 6 | **dev kit**, switches off, dongle re-plugged, `Update` pressed once | idle → red + green on → idle a few seconds later | no ROM | one `usb1-port2: connect-debounce failed` (14:15:52), then nothing |
 
@@ -125,7 +124,7 @@ What this shows:
 
 | | JL USB updater V4.1 | Pico 2 W + FM-1-transporter (docs/17) |
 | --- | --- | --- |
-| Reached `UBOOT1.00` on this FM-1 | **no** (4 tries, 2026-11-10) | **yes** (2026-10-26) [verified] |
+| Reached `UBOOT1.00` on this FM-1 | **no** (4 tries, 2026-11-10; the dev kit failed too) | **yes** (2026-10-26) [verified] |
 | VBUS to the FM-1 | **yes**, 5.0/4.2/3.3 V selectable | **none**: GND, D+, D− only; the FM-1 runs on its battery |
 | Key | closed firmware; `usbkey` (the manual's term) | open; `0x16EF`, D+ clock (docs/10, trap 3), with a patched ACK check (docs/17 §5) |
 | Key drive | unknown | push-pull, no series resistors (owner's D2 exception) |
@@ -152,7 +151,6 @@ before those tries.
 3. **The key itself.** The dongle may send a different `usbkey` from the
    `0x16EF` the WL82 ROM accepts. The manual lists the WL83 family, not the
    WL82.
-
 4. **The adapter.** Every try went through a USB-A-female-to-USB-C-male
    adapter. If it does not carry D+/D− cleanly, or presents the wrong CC
    termination, no key would arrive.
