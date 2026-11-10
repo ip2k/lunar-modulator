@@ -662,8 +662,10 @@ static int lunar_queue_dispatch(void) {
     if not header.endswith("#else\n#define PIPELINE_GUARD(x) ((void)0)\n#endif\n"):
         raise ValueError("Unexpected pipeline guard; review queue")
     text = text[:header_start] + "#define PIPELINE_GUARD(x) ((void)0)\n" + text[header_end:]
-    # Remove the three pipeline-only declarations/bodies too: they contain
-    # intentionally duplicated dispatch/profiling anchors that are not queue code.
+    # Remove the pipeline-only blocks too: three declarations/bodies contain
+    # intentionally duplicated dispatch/profiling anchors that are not queue code,
+    # and four are the M10 geometry-lock refusals in fm1_app_select,
+    # fm1_app_set_param, fx_swap and fm1_app_swap_units (pipelined build only).
     lines, selected, depth, removed = text.splitlines(keepends=True), [], 0, 0
     for line in lines:
         directive = line.strip()
@@ -678,7 +680,7 @@ static int lunar_queue_dispatch(void) {
                 raise ValueError("Unexpected pipeline alternative; review queue")
         else:
             selected.append(line)
-    if depth or removed != 3:
+    if depth or removed != 7:
         raise ValueError("Unexpected pipeline bodies; review queue")
     text = "".join(selected)
     text = ("#ifdef FM1_APP_RENDER_PIPELINE\n"

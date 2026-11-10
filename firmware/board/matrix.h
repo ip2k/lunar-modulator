@@ -34,6 +34,15 @@ unsigned lunar_matrix_select(const struct lunar_board_io *io, unsigned column, u
 /* One pass over all 11 columns; LEDs of the last column stay lit. */
 int lunar_matrix_scan(const struct lunar_board_io *io, const unsigned char leds[11],
                       unsigned char rows[11]);
+/* As lunar_matrix_scan, but a column that has an LED lit stays selected for
+ * `dwell_us` microseconds (dwell(context, us), caller-supplied, bounded) with
+ * its LEDs on, so every lit LED gets the same on-time instead of the last
+ * column getting the task's whole sleep. Every column's LEDs are off again
+ * when the call returns. */
+typedef void (*lunar_matrix_dwell_fn)(void *context, unsigned microseconds);
+int lunar_matrix_scan_lit(const struct lunar_board_io *io, const unsigned char leds[11],
+                          unsigned char rows[11], lunar_matrix_dwell_fn dwell, void *context,
+                          unsigned dwell_us);
 /* LEDs off and no column selected. */
 void lunar_matrix_release(const struct lunar_board_io *io);
 

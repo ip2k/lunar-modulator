@@ -17,6 +17,16 @@ void fm1_app_pipeline_fail(uint32_t code) __attribute__((noreturn));
  * after publication; CPU0 retires only after DONE acquire. Never reuse before
  * retirement, or free pending storage on failure. No tasking is enabled here. */
 void *fm1_app_pipeline_work(unsigned index);
+/* 1 while a block is produced or not yet retired (CPU0 state only). Every
+ * panel path (key, button, encoder, bend, panic, sound 2's notes) needs 0. */
+int fm1_app_pipeline_busy(void);
+/* 1 once blocks run: engines, inserts and Macro's model can no longer change
+ * (the UI refuses with FM1_APP_SELECT_LOCKED). */
+int fm1_app_pipeline_locked(void);
+/* The UI's time-driven work (ARP hold, popup expiry, toast/follow/snap): due
+ * when it has any, run only when !busy (returns 0 if busy). */
+int fm1_app_pipeline_service_due(const fm1_app_t *app);
+int fm1_app_pipeline_service(fm1_app_t *app);
 int fm1_app_pipeline_produce(fm1_app_t *app, void *work);
 const float *fm1_app_pipeline_consume(void *work);
 int fm1_app_pipeline_retire(void *work);

@@ -152,6 +152,17 @@ static void midi_emit(void *ctx, const struct lunar_midi_message *m)
     if (lunar_fm1_midi_event(m, &e)) lunar_fm1_queue_push((struct lunar_fm1_queue *)ctx, &e);
 }
 
+/* 200 us a lit column, so up to ~2 ms of each 10 ms pass is spent lit (about
+ * 20% duty at most). Felucca's 40 us assumes a faster scan [reported]; the
+ * brightness and the busy-wait cost are unmeasured: TODO(hardware). */
+#define LED_DWELL_US 200u
+static void led_dwell(void *ctx, unsigned us)
+{
+    volatile unsigned n = us * 60u; /* about 360 MHz / 6 cycles per us-iteration; TODO(hardware): measure */
+    (void)ctx;
+    while (n--) {}
+}
+
 #if LUNAR_FM1_USB_MIDI
 /* USB-MIDI packets join TRS MIDI here: the same decoder output, the same
  * events, the same queue (one producer, this task). */
@@ -165,7 +176,8 @@ static void usb_emit(void *ctx, const unsigned char packet[4])
 
 static void panel_task(void *unused)
 {
-    static const unsigned char leds[LUNAR_MATRIX_COLUMNS] = {0}; /* TODO(app): LED state */
+    unsigned char leds[LUNAR_MATRIX_COLUMNS];
+    uint8_t app_led[41];
     struct lunar_fm1_queue *q = lunar_fm1_live_queue();
     unsigned char rows[LUNAR_MATRIX_COLUMNS];
     unsigned scans = 0;
@@ -174,7 +186,11 @@ static void panel_task(void *unused)
     for (;;) {
         unsigned raw = 0;
         int master = -1;
-        if (matrix_ok && lunar_matrix_scan(&io, leds, rows)) {
+        lunar_fm1_live_leds(app_led);
+        lunar_fm1_leds_pack(app_led, leds);
+        /* Each lit column dwells LED_DWELL_US with its LEDs on, so the LEDs
+         * get equal on-time (Felucca uses a per-column dwell too [reported]). */
+        if (matrix_ok && lunar_matrix_scan_lit(&io, leds, rows, led_dwell, 0, LED_DWELL_US)) {
             if (adc_ok && lunar_adc_read(&adc, LUNAR_ADC_MASTER, &raw)) master = (int)raw;
             lunar_fm1_panel_update(&panel_state, rows, master, q);
         }
@@ -231,7 +247,9 @@ static int produce(void)
 {
     void *work = 0;
     uint32_t begin, end;
-    int n = lunar_pipeline_reserve_work(produced, &work);
+    int n;
+    if (lunar_fm1_live_barrier_hold()) return 0; /* drain first; harvest then asks again */
+    n = lunar_pipeline_reserve_work(produced, &work);
     if (n <= 0) return n;
     lunar_pipeline_sdk_parent_block();
     begin = now();
@@ -248,10 +266,11 @@ static void report(const char *stage)
     lunar_fm1_live_status(&s);
     printf("LUNAR_FM1 stage=%s produced=%u harvested=%u out=%u callbacks=%u underruns=%u faults=%u "
            "irq_max=%u p_max=%u c_max=%u events=%u applied=%u deferred=%u ignored=%u dropped=%u "
-           "invalid=%u clipped=%u voices=%u battery=%u error=%u\n",
+           "invalid=%u clipped=%u voices=%u battery=%u bclass=%u barrier_events=%u barrier_holds=%u services=%u error=%u\n",
            stage, produced, harvested, out.next, out.callbacks, out.underruns, out.faults,
            out.irq_max, p_max, c_max, s.events, s.applied, s.deferred, s.ignored, s.dropped,
-           s.invalid, s.clipped, s.dx7_voices, battery_raw, lunar_pipeline_error());
+           s.invalid, s.clipped, s.dx7_voices, battery_raw, lunar_fm1_battery_class(battery_raw),
+           s.barrier_events, s.barrier_holds, s.services, lunar_pipeline_error());
 #if LUNAR_FM1_USB_MIDI
     {
         struct lunar_usb_midi_stats u;
