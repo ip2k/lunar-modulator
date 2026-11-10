@@ -3,8 +3,9 @@
  * image, with the FM-1's board layer left out. No panel, PA2 or key matrix:
  * on the kit PA0-PA7 carry camera data and PC7-PC10 are LCD and touch pins
  * [verified: SDK DevKitBoard.c]. ALNK0's PORTC pin writes (OUT, DIR, PU, PD
- * at 0x50080-0x50094) are dropped and counted, so no kit pin changes
- * direction; the rest of the sequence runs as on the FM-1. Reports go out on
+ * at 0x50080-0x50094; the driver drives PC0, PC1, PC2 and PC6, and PC0 is
+ * the kit LCD's TE pin [verified: DevKitBoard.c]) are dropped and counted,
+ * so no kit pin changes direction; the rest of the sequence runs as on the FM-1. Reports go out on
  * the M4 debug UART (UART1 TX, PB3, 1,000,000 baud, ramtest.c): a banner, a
  * line per 1,024-block window sent a byte at a time in each block's slack, a
  * summary, then the M4 reset back to the kit's application. The P33

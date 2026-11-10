@@ -21,10 +21,12 @@ Details, evidence and the FM-1 approval request:
 The voice: two-operator FM (modulator at twice the carrier, index up to
 π/2), a 128-sample linear attack and a slow exponential decay, an A3–C#4–E4–A4
 arpeggio at 512 blocks per note, −18 dBFS of Q23, L = R. The PCM hash of the
-first 1,024 blocks is `0x92CF0315` on the host and on the kit.
+first 1,024 blocks is `0x92CF0315` on the host and on the kit [verified:
+`tests/test_m6_image.py`, kit run c].
 
 Interrupts stay masked: the loop polls ALNK0's pending flag (CON2 bit 7) and
-acknowledges it by writing bit 3. Both entries clear the P33 watchdog every
+acknowledges it by writing bit 3 (#176's driver, `board/alnk0_audio.c`; run
+on the kit [verified: run c, 0 missed blocks]). Both entries clear the P33 watchdog every
 256 blocks if an application left it armed (SDK `wdt_clear`,
 `lunar_ramtest_wdt_kick`).
 
