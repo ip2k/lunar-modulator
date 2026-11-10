@@ -409,7 +409,8 @@ int main(void) {
 
 # Bounds behind LUNAR_FAILOPEN_MIN_TIMEOUT_MS (notes/2026-11-08-failopen-hardening.md):
 KIT_BLOCK_ERASE_MAX_MS = 2000      # ZB25VQ64C tBE2 (64 KB) max [reported: Zbit datasheet V0.0]
-FM1_ERASE_MAX_MS = 20              # P25Q80H tSE/tBE max [reported: Puya datasheet V1.7]
+# Every FM-1 flash part's erase bound (tools/fm1_flash_parts.py): Puya P25Q80H
+# 20 ms [reported: datasheet V1.7], UCUN UC25HQ80 10 ms [reported: datasheet V1.2].
 SUPERVISOR_PERIOD_MS = 100         # failopen_sdk.c SUPERVISOR_PERIOD_TICKS at 10 ms
 
 
@@ -473,7 +474,12 @@ def test_min_timeout_covers_flash_erase():
     header = (ROOT/'firmware/failopen/failopen_core.h').read_text()
     minimum = int(re.search(r'#define LUNAR_FAILOPEN_MIN_TIMEOUT_MS (\d+)u', header).group(1))
     assert minimum >= KIT_BLOCK_ERASE_MAX_MS + SUPERVISOR_PERIOD_MS
-    assert minimum >= FM1_ERASE_MAX_MS + SUPERVISOR_PERIOD_MS
+    parts = load_tool('fm1_flash_parts', 'tools/fm1_flash_parts.py')
+    assert parts.FM1_FLASH_ERASE_MAX_MS == max(
+        p.erase_max_ms for p in parts.FM1_FLASH_PARTS.values())
+    assert minimum >= parts.FM1_FLASH_ERASE_MAX_MS + SUPERVISOR_PERIOD_MS
+    for part in parts.FM1_FLASH_PARTS.values():
+        assert minimum >= part.erase_max_ms + SUPERVISOR_PERIOD_MS, part.name
     glue = (ROOT/'firmware/failopen/failopen_sdk.c').read_text()
     assert '#define SUPERVISOR_PERIOD_TICKS 10 ' in glue
     worker = (ROOT/'firmware/devkit/failopen_worker.c').read_text()
