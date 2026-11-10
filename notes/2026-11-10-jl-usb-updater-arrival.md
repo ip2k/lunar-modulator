@@ -252,3 +252,5 @@ shadow [reported: owner]. Ask about switch positions rather than reading them fr
 - **Try 11, switch 2 (`ispkey`) only, updater re-plugged, kit plugged in a few seconds before Update was pressed:** red and green on, then green flashing a few
   seconds later [reported: owner]. bench01 logged only the kit's earlier direct disconnect (14:41:12) and showed no device
   at 14:41:42 [verified].
+- **Try 12, switch 2 only, Update pressed first, kit plugged in while both LEDs were on:** no device and no kernel message
+  on bench01 at 14:43:03 [verified]. `ispkey` mode fails in both orders.
