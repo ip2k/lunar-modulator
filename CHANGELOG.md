@@ -39,6 +39,13 @@ history.
   (`notes/2026-11-08-failopen-hardening.md`).
 
 ### Added
+- **USB-MIDI in the FM-1 application image, behind a switch**
+  (`--usb-midi on`, off by default). With it on, the unit shows up on a
+  computer as the stock FM-1 does: a class-compliant MIDI device called
+  "FM-1", with the same USB ids. Notes and controllers sent from the
+  computer play the unit just like the TRS MIDI jack. It has not run on any
+  device yet, sends nothing back to the computer, and has no USB audio
+  (`notes/2026-11-09-usb-midi.md`).
 - **M5 host tool for the Pico transporter**
   (`tools/fm1-transporter/fm1t_m5.py`). It is adapted from FM-1-transporter's
   `fm1t.py` for the one approved RAM run on the FM-1:

@@ -20,6 +20,11 @@ FM1_APP_SOURCES := fm1/fm1_input fm1/fm1_live fm1/fm1_sdk_main \
   board/alnk0_audio board/alnk0_audio_mmio \
   display/spi1_transport display/panel_probe display/m5_pattern \
   third_party/fm1-nes/fm1_keys
+# USB-MIDI device (prepare-fm1-app.py --usb-midi on): our descriptors and
+# the glue on cpu.a's low-level driver; no SDK device class is compiled.
+ifneq ($(filter -DLUNAR_FM1_USB_MIDI=1,$(EXTRA)),)
+FM1_APP_SOURCES += fm1/fm1_usb_midi fm1/fm1_usb_sdk
+endif
 FM1_APP_OBJ := $(FM1_APP_SOURCES:%=$(BUILD)/fm1app/%.o)
 DEVKIT_RENDERER_OBJ += $(FM1_APP_OBJ)
 
