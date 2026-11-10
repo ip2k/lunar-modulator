@@ -26,6 +26,14 @@
     - `compare` is deliberately stricter than upstream's: two dumps must be
       byte-identical over the whole 1 MiB, because V15 never runs between
       the M5 dumps.
+  - `fm1t_m6.py` is a copy of `fm1t_m5.py` (same licence) with only the
+    approved image swapped for M6's (`m6.bin`, build `m6-plan-2`, three
+    `memw` chunks inside `[0x01C02000, 0x01C04644)`), its own lock file, a
+    refusal of M5's run directory (docs/20), and one hardening from review:
+    `memw`/`memr`/`ldr` lengths must be plain decimal with no leading zero,
+    because the transporter parses them with `strtoul(..., 0)`, which reads a
+    leading `0` as octal. `tests/test_fm1t_m6.py` pins
+    every code line on which the two differ; `fm1t_m5.py` is unchanged.
   - `build.sh`, the research shim and this file are this repository's own
     (MIT).
 - **Not here, on purpose:**

@@ -18,6 +18,19 @@ history.
   off. On the dev kit the audio is bit-identical to main's and the tables match their stored
   versions entry for entry. The producer's mean block time rises about 1.5%. The default image is
   unchanged apart from its build id (`notes/2026-11-10-init-tables.md`).
+- **M6 host tool and bench runbook (written, not run; approved by the owner 2026-11-10 at SHA-256 `d3714c83…`).**
+  `tools/fm1-transporter/fm1t_m6.py` loads the approved M6 audio image into the
+  FM-1's RAM through the Pico transporter and starts it once, with the same
+  refusals as M5's tool, plus a stricter check that every length is read the same
+  way by the transporter; it admits only `m6.bin` and only that image's RAM range.
+  docs/20 is the operator runbook: it waits on M5's watchdog result, and lists
+  what the panel should show (`PCM 92CF0315`) and how the arpeggio's pitch tells
+  the audio rate. Tested against a fake transporter only; M5's tool is unchanged.
+- **Dev kit USB-MIDI probe (`prepare-devkit.py --usb-midi`).** The FM-1's USB-MIDI device
+  now runs on the AC79 dev kit. On the kit it enumerated as `FM-1` (`4C4A:C755`) at full speed
+  with a non-zero serial, its descriptors matched the expected bytes, Linux listed it as a MIDI
+  port, and a short packet followed by a full one was read whole and echoed back three times.
+  Not yet run on an FM-1.
 - **Size levers for the full-UI FM-1 image (measured offline and on the dev kit, not on the
   FM-1).** `prepare-fm1-app.py` gains `--full-ui on` (the full panel, until now a source edit)
   and `--size-levers cold|control`. With `control` the full-UI image is 575,068 B, 6,496 B
