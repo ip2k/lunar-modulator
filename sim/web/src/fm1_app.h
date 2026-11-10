@@ -251,7 +251,8 @@ enum {
   FM1_APP_SELECT_BAD = -1,      /* wrong kind, unknown, or no such unit */
   FM1_APP_SELECT_ARENA = -2,    /* larger than the unit's arena */
   FM1_APP_SELECT_RATE = -3,     /* the engine refused this host */
-  FM1_APP_SELECT_RAM = -4       /* the chain would pass the FM-1's RAM budget */
+  FM1_APP_SELECT_RAM = -4,      /* the chain would pass the FM-1's RAM budget */
+  FM1_APP_SELECT_LOCKED = -5    /* pipelined build: the arrangement is fixed once blocks run */
 };
 
 /* A sound unit's level into the mix, in percent (100: unity, as before). */

@@ -98,6 +98,21 @@ int lunar_matrix_scan(const struct lunar_board_io *io, const unsigned char leds[
     return 1;
 }
 
+int lunar_matrix_scan_lit(const struct lunar_board_io *io, const unsigned char leds[11],
+                          unsigned char rows[11], lunar_matrix_dwell_fn dwell, void *context,
+                          unsigned dwell_us)
+{
+    unsigned column;
+    if (!lunar_board_io_valid(io) || !rows) return 0;
+    for (column = 0; column < LUNAR_MATRIX_COLUMNS; ++column) {
+        unsigned lit = leds ? (leds[column] & LUNAR_LED_LINES) : 0;
+        rows[column] = (unsigned char)lunar_matrix_select(io, column, lit);
+        if (lit && dwell) dwell(context, dwell_us);
+    }
+    lunar_matrix_release(io);
+    return 1;
+}
+
 void lunar_matrix_release(const struct lunar_board_io *io)
 {
     if (!lunar_board_io_valid(io)) return;
