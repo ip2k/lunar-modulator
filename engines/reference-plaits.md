@@ -102,13 +102,18 @@ adaptation: Speech (upstream `SpeechEngine` against the wrapper's
 - **By hash.** `test_vendored_plaits_code_is_pinned` hashes the 129 vendored
   files that `fm1-ref-plaits` compiles and that it and the three wrappers
   include.
-- **Against upstream.** All 129 are byte-identical to local clones of
+- **Against upstream.** All 129 were byte-identical to local clones of
   eurorack `08460a69` and stmlib `e3bd7c9c` [verified: file comparison,
-  2026-09-30].
+  2026-09-30]. Since 2026-11-10 one carries a local change: Chip's
+  `arpeggiator.h` keeps its own copy of `stmlib::Random`'s generator
+  (`third_party/mutable/UPSTREAM.md`). The test undoes that exact edit and
+  checks the upstream digest, then checks the tree's digest, so no other
+  change can slip in. The render comparison cannot see this change, because
+  both sides compile it.
 
 So for the Plaits-derived engines the exit test is met for the wrapper
 layer, at Plaits' rate and at the FM-1's, and the engine code is upstream's
-own, pinned.
+own apart from the one recorded arpeggiator change, pinned.
 
 **No wrapper code was changed by the comparison itself.** Nothing found at
 the native rate is a defect in a wrapper. The findings (below) are:

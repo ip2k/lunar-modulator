@@ -696,8 +696,9 @@ path; their scoped results are summarized below and in the dated notes.
 
 ### Sealed app blocks (opt-in)
 
-`FM1_APP_RENDER_PIPELINE=1` adds the fixed-arrangement interface in
-`sim/web/src/fm1_app_pipeline.h`. CPU0 records Macro model-0 callbacks, copies
+`FM1_APP_RENDER_PIPELINE=1` adds the sealed-block interface in
+`sim/web/src/fm1_app_pipeline.h`. CPU0 records Sound 2's callbacks (any engine
+and Macro model whose code shares no writable state with CPU0's units), copies
 frame-tagged writes/events and captures the metronome setting. CPU1 executes
 that stream, its instance-owned Drive inserts, ordered summation and the sealed
 master/amp/click/limiter work. Other sounds retain their original producer order.
@@ -705,9 +706,10 @@ The captured metronome helper leaves the ordinary sequencer click API unchanged.
 Two static app slots remain owned until explicit retirement; the SDK backend's
 separate output lease can outlive that retirement.
 
-This lane permits the reviewed DX7/Macro/Drums/DX7, Filter/Drive and Echo/Comp
-fixture only. It rejects layout/arena alias changes and worker-state edits while
-pending. App initialization is single-lifetime once bound; draw calls require a
+This dev-kit lane sets up the reviewed DX7/Macro/Drums/DX7, Filter/Drive and
+Echo/Comp fixture. Since 2026-11-10 the app admits any arrangement at a drained
+barrier and re-seals it (`notes/2026-11-10-soft-locks.md`); it still rejects
+layout/arena alias changes and worker-state edits while a block is pending. App initialization is single-lifetime once bound; draw calls require a
 drained barrier. Editor subscriptions and render observers are unsupported.
 Failure hooks must record permanent refusal and never return into partially
 advanced DSP. Only explicit pipeline preparation activates this path; ordinary

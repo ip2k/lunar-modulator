@@ -754,10 +754,36 @@ def vendored_closure():
     return sorted(seen)
 
 
-def vendored_digest(files):
+# The one local change (UPSTREAM.md, notes/2026-11-10-soft-locks.md): Chip's
+# arpeggiator keeps its own copy of stmlib::Random's LCG. Each pair is (as
+# vendored, as changed); undone, the files must hash to the upstream digest.
+ARP = "plaits/dsp/engine2/arpeggiator.h"
+LOCAL_CHANGES = {ARP: [
+    ("    mode_ = ARPEGGIATOR_MODE_UP;\n    Reset();",
+     "    mode_ = ARPEGGIATOR_MODE_UP;\n"
+     "    // Lunar Modulator local change (UPSTREAM.md): the random mode draws from\n"
+     "    // this arpeggiator's own generator, stmlib::Random's LCG from its initial\n"
+     "    // state, so a Chip voice touches no global state and can run on another\n"
+     "    // core while other engines use stmlib::Random.\n"
+     "    rng_state_ = 0x21;\n    Reset();"),
+    ("        uint32_t w = stmlib::Random::GetWord();",
+     "        rng_state_ = rng_state_ * 1664525L + 1013904223L;\n        uint32_t w = rng_state_;"),
+    ("  int direction_;\n  \n", "  int direction_;\n  uint32_t rng_state_;\n  \n"),
+]}
+
+
+def upstream_bytes(rel):
+    data = (MUTABLE / rel).read_bytes()
+    for upstream, ours in LOCAL_CHANGES.get(rel, []):
+        assert data.count(ours.encode()) == 1, (rel, ours)
+        data = data.replace(ours.encode(), upstream.encode())
+    return data
+
+
+def vendored_digest(files, read=lambda rel: (MUTABLE / rel).read_bytes()):
     h = hashlib.sha256()
     for rel in files:
-        h.update(rel.encode() + b"\0" + hashlib.sha256((MUTABLE / rel).read_bytes()).digest())
+        h.update(rel.encode() + b"\0" + hashlib.sha256(read(rel)).digest())
     return h.hexdigest()
 
 
@@ -766,17 +792,24 @@ def vendored_digest(files):
 # checkouts of those commits (reference-plaits.md, "What the comparison covers").
 VENDORED_FILES = 129
 VENDORED_DIGEST = "28654e0480717756681e0cb219f4850dfa7b3856198b7686f8e7eb20dbdf8165"
+# The same with LOCAL_CHANGES applied, as the tree carries them.
+LOCAL_DIGEST = "bf042a4013226e5d11a01de8fc08c40ccf5bf985d6e6c107cf63156cb8cf2bc9"
 
 
 def test_vendored_plaits_code_is_pinned(wavs):
     """fm1-ref-plaits and fm1-render link the same compiled vendored DSP, so a
     local change to it moves both sides together and no render comparison
-    can see it. The files are pinned here instead: a re-vendor at a new
-    upstream commit updates the digest; nothing else should."""
+    can see it. The files are pinned here instead: with the one recorded
+    local change undone they are the upstream files, and with it they are the
+    tree's. A re-vendor at a new upstream commit updates the digests; nothing
+    else should."""
     files = vendored_closure()
-    assert (len(files), vendored_digest(files)) == (VENDORED_FILES, VENDORED_DIGEST), (
-        "third_party/mutable differs from the pinned upstream files that the Plaits "
-        "reference comparison relies on; UPSTREAM.md says they carry no local changes")
+    assert ARP in files
+    assert (len(files), vendored_digest(files, upstream_bytes)) == (VENDORED_FILES, VENDORED_DIGEST), (
+        "third_party/mutable differs from the pinned upstream files beyond the local change "
+        "recorded in UPSTREAM.md")
+    assert vendored_digest(files) == LOCAL_DIGEST, (
+        "third_party/mutable carries a change UPSTREAM.md does not record")
 
 
 # --- native rate ---------------------------------------------------------------------------
