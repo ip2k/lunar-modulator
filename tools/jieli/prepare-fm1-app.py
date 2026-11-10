@@ -18,7 +18,11 @@ FM-1 application:
   board_power.c]: VDC14 1.60 V, SYSVDD 1.38 V, VDDIOW 3.2 V, LVD 2.6 V
   (VDDIOM is already 3.2 V);
 - the debug UART keeps its driver but maps no pin by default (PB3's role on
-  the FM-1 is unknown); --debug-uart pb3 keeps the SDK's PB3 TX.
+  the FM-1 is unknown); --debug-uart pb3 keeps the SDK's PB3 TX;
+- --usb-midi on adds the USB-MIDI device (firmware/fm1/fm1_usb_*.c:
+  4C4A:C755 "FM-1", MIDI in and out, no USB audio) on cpu.a's low-level
+  driver; off (the default until the owner decides) leaves the image as it
+  was. notes/2026-11-09-usb-midi.md has its cost and the licence review.
 
 Output is a private SDK tree with JieLi's libraries: never share a build of
 it while FM1_GPL_MODS=1 (CLAUDE.md, the GPL switch). It is not a package:
@@ -39,6 +43,7 @@ BUILD_ID_SOURCES = ('firmware/fm1', 'firmware/board', 'firmware/display', 'firmw
                     'firmware/third_party/fm1-nes', 'firmware/devkit/renderer_pipeline_sdk.c',
                     'tools/jieli/fm1-app.mk', 'tools/jieli/prepare-fm1-app.py')
 DEBUG_UART = ('off', 'pb3')
+USB_MIDI = ('off', 'on')
 POWER = {
     # macro or field, kit value, FM-1 stock value [reported: fm1-nes board_power.c]
     'vdc14': ('VDC14_VOL_SEL_140V', 'VDC14_VOL_SEL_160V'),
@@ -65,15 +70,15 @@ def checked_replace(text, before, after, count=1):
     return text.replace(before, after)
 
 
-def build_id(source, gpl, debug_uart):
+def build_id(source, gpl, debug_uart, usb_midi='off'):
     digest = hashlib.sha256()
     for name in BUILD_ID_SOURCES:
         path = source / name
         files = sorted(p for p in path.rglob('*') if p.is_file()) if path.is_dir() else [path]
         for f in files:
             digest.update(str(f.relative_to(source)).encode() + b'\0' + f.read_bytes() + b'\0')
-    digest.update('gpl={} debug_uart={} limit={} healthy_ms={}'.format(
-        gpl, debug_uart, FAILOPEN_LIMIT, FAILOPEN_HEALTHY_MS).encode())
+    digest.update('gpl={} debug_uart={} usb_midi={} limit={} healthy_ms={}'.format(
+        gpl, debug_uart, usb_midi, FAILOPEN_LIMIT, FAILOPEN_HEALTHY_MS).encode())
     return int.from_bytes(digest.digest()[:4], 'big') or 1
 
 
@@ -174,11 +179,13 @@ def adapt_failopen(failopen, out, app, source):
     return setup
 
 
-def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off'):
+def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off', usb_midi='off'):
     if gpl not in (0, 1):
         raise ValueError('FM1_GPL_MODS is 0 or 1')
     if debug_uart not in DEBUG_UART:
         raise ValueError('Debug UART: ' + ', '.join(DEBUG_UART))
+    if usb_midi not in USB_MIDI:
+        raise ValueError('USB-MIDI: ' + ', '.join(USB_MIDI))
     pipeline = load(source, 'prepare-pipeline-devkit.py', 'pipeline_prepare')
     failopen = load(source, 'prepare-failopen-devkit.py', 'failopen_prepare')
     # 320 MHz: the stock SPL sets the FM-1's 360 MHz before the app runs
@@ -195,10 +202,11 @@ def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off'):
     shutil.copyfile(source / 'tools/jieli/fm1-app.mk', staging / 'tools/jieli/fm1-app.mk')
     shutil.copyfile(source / 'firmware/third_party/fm1-nes/boot_compat.c', app / 'boot_compat.c')
 
-    identity = build_id(source, gpl, debug_uart)
+    identity = build_id(source, gpl, debug_uart, usb_midi)
     remove_boot_control(app)
     setup = adapt_failopen(failopen, out, app, source)
     flags = ('CFLAGS += -DLUNAR_FM1_APP=1 -DLUNAR_PIPELINE_UNBOUNDED=1\n'
+             + ('CFLAGS += -DLUNAR_FM1_USB_MIDI=1\n' if usb_midi == 'on' else '') +
              'CFLAGS += -DLUNAR_FAILOPEN_BUILD_ID=0x{:08x}u -DLUNAR_FAILOPEN_LIMIT={} '
              '-DLUNAR_FAILOPEN_HEALTHY_MS={} -DLUNAR_FAILOPEN_STABLE_MS={} '
              '-DLUNAR_FAILOPEN_EXPECTED_SLOTS={}\n').format(
@@ -226,6 +234,7 @@ def prepare(sdk, source, out, system_archive, gpl=1, debug_uart='off'):
         'pipeline_unbounded': True, 'pipeline_polyphony': 'cap8',
         'rate_hz': 44118, 'audio': 'ALNK0 IRQ 11 CPU0, 64-frame halves',
         'fm1_gpl_mods': gpl, 'debug_uart': debug_uart,
+        'usb_midi': usb_midi == 'on',
         'power': {k: v[1] for k, v in POWER.items()},
         'sdram_bytes': 0, 'boot_info_bridge': 'fm1-nes boot_compat.c, --wrap=boot_info_init',
         'failopen_build_id': '0x{:08x}'.format(identity), 'failopen_limit': FAILOPEN_LIMIT,
@@ -251,6 +260,9 @@ if __name__ == '__main__':
     parser.add_argument('--gpl', type=int, choices=(0, 1), default=1,
                         help='FM1_GPL_MODS (default 1, on while we test; a GPL build is never shared)')
     parser.add_argument('--debug-uart', choices=DEBUG_UART, default='off')
+    parser.add_argument('--usb-midi', choices=USB_MIDI, default='off',
+                        help='the USB-MIDI device (default off until the owner decides)')
     args = parser.parse_args()
     print('0x{:08x}'.format(prepare(args.sdk.resolve(), args.source.resolve(), args.out.absolute(),
-                                    args.pipeline_system_archive.resolve(), args.gpl, args.debug_uart)))
+                                    args.pipeline_system_archive.resolve(), args.gpl, args.debug_uart,
+                                    args.usb_midi)))

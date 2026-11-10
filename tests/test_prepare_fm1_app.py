@@ -59,7 +59,7 @@ def sdk_fixture(tmp_path):
 
 @pytest.fixture
 def prepared(tmp_path, monkeypatch):
-    def run(gpl=1, debug_uart='off', name='out'):
+    def run(gpl=1, debug_uart='off', name='out', usb_midi='off'):
         module = load('prepare-fm1-app.py', 'fm1_prepare')
         sdk, correction = sdk_fixture(tmp_path/name)
         real = module.load
@@ -72,7 +72,7 @@ def prepared(tmp_path, monkeypatch):
             return mod
         monkeypatch.setattr(module, 'load', patched)
         out = tmp_path/name/'prepared'
-        identity = module.prepare(sdk, ROOT, out, correction, gpl, debug_uart)
+        identity = module.prepare(sdk, ROOT, out, correction, gpl, debug_uart, usb_midi)
         return out, identity
     return run
 
@@ -136,12 +136,30 @@ def test_switch_and_debug_uart(prepared):
     assert '.tx_pin = IO_PORTB_03,' in (app1/'board/wl82/board.c').read_text()
 
 
+def test_usb_midi_switch(prepared):
+    off, id_off = prepared(gpl=0, name='usboff')
+    on, id_on = prepared(gpl=0, name='usbon', usb_midi='on')
+    assert id_off != id_on
+    make_off = (off/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
+    make_on = (on/'apps/demo/demo_hello/board/wl82/Makefile').read_text()
+    assert '-DLUNAR_FM1_USB_MIDI' not in make_off
+    # Before the engine make captures EXTRA, as the other application switches.
+    assert make_on.index('-DLUNAR_FM1_USB_MIDI=1') < make_on.index('include lunar-renderer.mk')
+    assert json.loads((off/'lunar-devkit-input.json').read_text())['usb_midi'] is False
+    receipt = json.loads((on/'lunar-devkit-input.json').read_text())
+    assert receipt['usb_midi'] is True
+    for name in ('firmware/fm1/fm1_usb_midi.c', 'firmware/fm1/fm1_usb_sdk.c'):
+        assert name in receipt['inputs'] and (on/'lunar-source'/name).exists()
+
+
 def test_refuses_bad_arguments(tmp_path):
     module = load('prepare-fm1-app.py', 'fm1_prepare_args')
     with pytest.raises(ValueError):
         module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', gpl=2)
     with pytest.raises(ValueError):
         module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', debug_uart='pb4')
+    with pytest.raises(ValueError):
+        module.prepare(tmp_path, ROOT, tmp_path/'o', tmp_path/'a', usb_midi='yes')
 
 
 def test_fragment_swaps_the_kit_workload():
