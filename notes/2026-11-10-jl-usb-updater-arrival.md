@@ -142,3 +142,20 @@ The owner answered "Approve power-up try". The approved scope is one try:
   is sent: no dump, no write, no ROM or loader command.
 - Return: the owner unplugs the dongle, power-cycles the FM-1, and connects it directly. Then the
   read-only identity query runs.
+
+## Result of the power-up try, 13:2x PST
+
+- By the time of the power cycle, the dongle had gone back from solid green to **flashing green**
+  [reported: owner]. When the FM-1 was switched off and on, it **booted normally into V15**, on the
+  same screen [reported: owner].
+- bench01 logged **nothing at all**: no connect, no debounce failure, no device, checked at
+  13:26:21 [verified: `dmesg -w`, `lsusb`].
+- So with the DIP switch all off, the dongle keys only in a short window after its own button
+  press and power cut. Solid green is that window, and it ends by itself. When idle (flashing
+  green), it neither keys the target at power-up nor passes the target's USB through to the PC
+  [inferred from the two runs].
+- For a battery-powered FM-1, the all-off mode cannot work unless the FM-1 happens to be powered up
+  inside that window.
+
+Next candidate, per the 4.0 manual (needs a new yes): **DIP bit 3**, continuous key with no power
+cut, followed by an FM-1 power-up. This is the same principle the Pico route uses (docs/17).
