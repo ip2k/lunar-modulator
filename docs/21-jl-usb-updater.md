@@ -102,6 +102,7 @@ and nothing was sent to the FM-1 or to the dongle.
 | 8 | **dev kit**, as 7 but the dongle's `Update` held while plugging in | red + green on → idle | no ROM | nothing |
 | 9 | **dev kit**, switches off, the kit's own K1 (UPDATE) held while plugging it into the dongle, dongle button not pressed | not recorded | not seen by the PC | nothing |
 | 10 | **control, no dongle:** dev kit straight into bench01 through the same A-to-C adapter, K1 held | — | `UBOOT1.00` | `4c4a:8057` `WL80UBOOT1.00`, SCSI `WL82 UBOOT1.00` (14:38:50) |
+| 11 | **dev kit**, switch 2 (`ispkey`) only, dongle re-plugged to re-read its switches, `Update` pressed | red + green on → idle a few seconds later | no ROM | nothing |
 
 [FM-1 and LEDs: reported, owner. bench01: verified, `dmesg -w` and `lsusb`.]
 
@@ -114,7 +115,7 @@ What this shows:
 - **The port was not the cause.** A USB 2-only port changed nothing.
 - **The FM-1 is not the cause either.** The dev kit, a WL82 that its own
   UPDATE/RESET buttons put into `UBOOT1.00` [verified, docs/14], did not key
-  through the dongle in switch-3 mode or in the default mode (tries 5–8).
+  through the dongle in switch-3 mode or in the default mode (tries 5–8), nor in `ispkey` mode (try 11).
   The kit takes its power from the dongle, so the default mode's power cut
   should restart it. The kit was powered during tries 5 and 6 [reported: owner]. Try 7 plugged the kit in during the keying window, which is the manual's "quick plug-in" power-on reset; that failed too.
 - **Every press shows the same signature on the PC side:** one
@@ -148,7 +149,7 @@ What this shows:
 
 Why the dongle fails here, as candidates, all [inferred]:
 
-The dev-kit result (tries 5–8) points at the dongle, or at how it was
+The dev-kit result (tries 5–8), nor in `ispkey` mode (try 11) points at the dongle, or at how it was
 set up, rather than at the FM-1. Candidates 1 and 2 below were written
 before those tries.
 
@@ -169,8 +170,8 @@ before those tries.
    (manual §1) to support the WL82. That needs switch 7 and JieLi's Windows
    tooling.
 
-Not tried: switch 1 (periodic power cut), switch 2 (`ispkey`), another A-to-C
-adapter, a VBUS-free lead, and the dongle's own firmware update. Dev-kit
+Not tried: switch 1 (periodic power cut), a VBUS-free lead, and the dongle's
+own firmware update or its USB functions (switch 7, JieLi's Windows tooling). Dev-kit
 tries fall under the standing dev-kit authorisation. Each further FM-1 try needs
 the owner's yes (docs/07 §4).
 

@@ -249,3 +249,6 @@ shadow [reported: owner]. Ask about switch positions rather than reading them fr
 - **Try 10 (control):** the kit straight into bench01 through the same A-to-C adapter, no updater, K1 held. It enumerated at
   14:38:50 as `4c4a:8057`, strings `WL80UBOOT1.00`, SCSI `WL82 UBOOT1.00` [verified]. The adapter is fine; the updater
   does not pass a WL82 ROM through to the PC. Nothing was sent to the kit.
+- **Try 11, switch 2 (`ispkey`) only, updater re-plugged, Update pressed:** red and green on, then green flashing a few
+  seconds later [reported: owner]. bench01 logged only the kit's earlier direct disconnect (14:41:12) and showed no device
+  at 14:41:42 [verified].
