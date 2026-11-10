@@ -8,14 +8,19 @@ history.
 
 ## [Unreleased]
 
+### Added
+
+- docs/21: JieLi's USB updater dongle (V4.1). It has photos, the manual's switch and LED tables, and four owner-approved tries on the FM-1. None reached the mask ROM; the FM-1 stayed on V15 throughout. It is compared with the Pico 2 W route, which remains the recovery route.
+- A note on JieLi's USB updater dongle (board V4.1), which has arrived: its markings, what the photos do not settle, and the first checks proposed. It is not yet approved for use on the FM-1 (`notes/2026-11-10-jl-usb-updater-arrival.md`).
+
 ### Changed
 
 - **M5 host tool refuses lengths the transporter would read differently (owner: "Patch M5 too", 2026-11-10).**
   `tools/fm1-transporter/fm1t_m5.py` now admits only plain-decimal `memw`, `memr` and
   `ldr` lengths (`[1-9][0-9]{0,3}`), as `fm1t_m6.py` does, because the transporter
   parses them with `strtoul(..., 0)` and a leading 0 is octal. Only the three patterns
-  changed. Its SHA-256 is now `9673ccd8…` (was `c0e704e3…`) and needs the owner's
-  approval before the M5 bench session; `~/m5-run` on bench01 must be refreshed then.
+  changed. Its SHA-256 is now `9673ccd8…` (was `c0e704e3…`) and was approved by the
+  owner on 2026-11-10; `~/m5-run` on bench01 holds it.
 
 ### Added
 
