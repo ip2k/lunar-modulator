@@ -659,13 +659,14 @@ static int lunar_queue_dispatch(void) {
     header_start = text.index("#ifdef FM1_APP_RENDER_PIPELINE\n")
     header_end = text.index("#endif\n\n#include <limits.h>", header_start) + len("#endif\n")
     header = text[header_start:header_end]
-    if not header.endswith("#else\n#define PIPELINE_GUARD(x) ((void)0)\n#endif\n"):
+    plain = "#define PIPELINE_GUARD(x) ((void)0)\n#define PIPELINE_UNSEAL() ((void)0)\n"
+    if not header.endswith("#else\n" + plain + "#endif\n"):
         raise ValueError("Unexpected pipeline guard; review queue")
-    text = text[:header_start] + "#define PIPELINE_GUARD(x) ((void)0)\n" + text[header_end:]
+    text = text[:header_start] + plain + text[header_end:]
     # Remove the pipeline-only blocks too: three declarations/bodies contain
-    # intentionally duplicated dispatch/profiling anchors that are not queue code,
-    # and four are the M10 geometry-lock refusals in fm1_app_select,
-    # fm1_app_set_param, fx_swap and fm1_app_swap_units (pipelined build only).
+    # intentionally duplicated dispatch/profiling anchors that are not queue code.
+    # (The four M10 geometry-lock refusals that were also here went on
+    # 2026-11-10, notes/2026-11-10-soft-locks.md.)
     lines, selected, depth, removed = text.splitlines(keepends=True), [], 0, 0
     for line in lines:
         directive = line.strip()
@@ -680,7 +681,7 @@ static int lunar_queue_dispatch(void) {
                 raise ValueError("Unexpected pipeline alternative; review queue")
         else:
             selected.append(line)
-    if depth or removed != 7:
+    if depth or removed != 3:
         raise ValueError("Unexpected pipeline bodies; review queue")
     text = "".join(selected)
     text = ("#ifdef FM1_APP_RENDER_PIPELINE\n"

@@ -48,6 +48,11 @@ class Arpeggiator{
   
   void Init() {
     mode_ = ARPEGGIATOR_MODE_UP;
+    // Lunar Modulator local change (UPSTREAM.md): the random mode draws from
+    // this arpeggiator's own generator, stmlib::Random's LCG from its initial
+    // state, so a Chip voice touches no global state and can run on another
+    // core while other engines use stmlib::Random.
+    rng_state_ = 0x21;
     Reset();
   }
   
@@ -76,7 +81,8 @@ class Arpeggiator{
     
     if (mode_ == ARPEGGIATOR_MODE_RANDOM) {
       while (true) {
-        uint32_t w = stmlib::Random::GetWord();
+        rng_state_ = rng_state_ * 1664525L + 1013904223L;
+        uint32_t w = rng_state_;
         int octave = (w >> 4) % range_;
         int note = (w >> 20) % num_notes;
         if (octave != octave_ || note != note_) {
@@ -124,6 +130,7 @@ class Arpeggiator{
   int note_;
   int octave_;
   int direction_;
+  uint32_t rng_state_;
   
   DISALLOW_COPY_AND_ASSIGN(Arpeggiator);
 };

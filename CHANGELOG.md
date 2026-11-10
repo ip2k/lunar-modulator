@@ -10,6 +10,15 @@ history.
 
 ### Added
 
+- **The full-UI FM-1 build changes engines, inserts, effect order and Macro's model while audio
+  plays (host-tested, not on hardware).** The refusals of 2026-11-09 are gone: PRESETS, the
+  effect swap and every Macro model work as they do in the browser, and on the host they match
+  the unpipelined app on every audio sample, screen and LED. A larger engine fits only in the
+  free part of the image's 148 KiB engine memory; when it does not, PRESETS skips it with the
+  usual "does not fit" popup. A DX7 chosen later plays at most eight voices, as the ones at
+  start do. Chip's random arpeggio no longer shares Drums' random generator; every Chip voice
+  starts from the same seed, so voices started together play the same random sequence.
+  The full image grows by 448 B, to 39,584 B over V15's slot (`notes/2026-11-10-soft-locks.md`).
 - **M10 controls wired through a drain barrier (host-tested, not on hardware).** The FM-1 app
   image can now route all 27 keys, 14 buttons, 7 encoders, pitch bend, MIDI panic and sound 2's
   notes to the panel's own handlers, light the 41 LEDs from the app's state and classify the
@@ -19,7 +28,8 @@ history.
   screen and every audio sample; the FM-1 itself does not draw the app's screen yet. The full
   image is 39,136 B over V15's slot, so the shipped image
   keeps the fenced subset until the owner picks how to fit it (`notes/2026-11-09-controls.md`).
-  With it on, engine and effect swaps are refused with a popup once audio runs.
+  With it on, engine and effect swaps were refused with a popup once audio ran (lifted
+  2026-11-10, above).
 - M6 audio-path RAM image (`firmware/m6/`, `link-diagnostic.sh ... m6`): ALNK0
   at about 44,118 Hz through the codec driver, one two-operator FM voice,
   per-block timing in a RAM status block and on the FM-1's screen. The dev-kit

@@ -15,11 +15,15 @@
  *   replay full      -> the whole panel script through the drain barrier:
  *                       events wait for a drained app, the loop is the one in
  *                       fm1_sdk_main.c (hold, harvest, ask again, produce)
- *   replay refuse    -> the engine, insert and effect swaps are refused once
- *                       blocks run
- *   replay ref       -> the same script on the same arrangement with no
+ *   replay gestures  -> PRESETS, ALGORITHM, SEL+PRESETS, the effect swap
+ *   replay swaps     -> engine and insert changes on every sound, emptied
+ *                       sounds, every Macro model with notes held on Sound 2,
+ *                       Chip's random arpeggio beside Drums, effect swaps
+ *   replay inserts   -> inserts on every sound (render_ext ones too, in a
+ *                       build with the test-ext module)
+ *   replay ref MODE  -> the same script on the same arrangement with no
  *                       pipeline (built without FM1_APP_RENDER_PIPELINE and
- *                       with -DREPLAY_REF=1): the reference "full" must equal
+ *                       with -DREPLAY_REF=1): the pipelined MODE must equal
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +40,7 @@
 static const float *ref_samples;
 void *fm1_app_pipeline_work(unsigned i) { (void)i; return 0; }
 int fm1_app_pipeline_busy(void) { return 0; }
-int fm1_app_pipeline_locked(void) { return 0; }
+int fm1_app_pipeline_sealed(void) { return 0; }
 int fm1_app_pipeline_service_due(const fm1_app_t *a) { (void)a; return 0; }
 int fm1_app_pipeline_service(fm1_app_t *a) { (void)a; return 0; }
 int fm1_app_pipeline_produce(fm1_app_t *a, void *w) { (void)a; (void)w; return 0; }
@@ -205,11 +209,32 @@ static void state_line(const char *tag)
     }
     for (i = 0; i < 41u; ++i) leds[i] = app.led[i] ? '1' : '0';
     leds[41] = 0;
-    printf("%s seq=%d play_led=%d mode=%d page=%d sound=%d octave=%d transpose=%d popup_lines=%d popup0=[%s] leds=%s "
+    printf("%s units=", tag);              /* the arrangement: every unit's engine */
+    for (i = 0; i < FM1_APP_UNITS; ++i) printf("%s%s", i ? "," : "", app.unit[i].e ? app.unit[i].e->id : "-");
+    printf(" model=%g ", app.unit[fm1_app_sound_unit(1)].e ? (double)fm1_app_get_param(&app, fm1_app_sound_unit(1), 0) : -1.0);
+    printf("dx7_limit=");                  /* each sound's DX7 voice limit, 0 when it is not a DX7 */
+    for (i = 0; i < 4u; ++i) {
+        const fm1_app_unit_t *u = &app.unit[fm1_app_sound_unit((int)i)];
+        fm1_dx7_budget_stats_t st;
+        unsigned lim = 0;
+        if (u->e && !strcmp(u->e->id, "dx7")) lim = fm1_dx7_get_budget_stats(u->self, &st) ? (unsigned)st.limit : 99u;
+        printf("%s%u", i ? "," : "", lim);
+    }
+    printf(" ");
+    printf("seq=%d play_led=%d mode=%d page=%d sound=%d octave=%d transpose=%d popup_lines=%d popup0=[%s] leds=%s "
            "screen=%016llx pcm=%016llx frames=%llu\n",
-           tag, app.seq != 0, app.led[27 + FM1_BTN_PLAY], app.mode, app.page, app.sound, app.octave, app.transpose, app.popup_lines,
+           app.seq != 0, app.led[27 + FM1_BTN_PLAY], app.mode, app.page, app.sound, app.octave, app.transpose, app.popup_lines,
            app.popup_lines ? app.popup[0] : "", leds, (unsigned long long)screen,
            (unsigned long long)fnv, (unsigned long long)app.frames);
+#if defined(FM1_APP_PIPELINE_HOST_PROBE) && !defined(REPLAY_REF)
+    /* Which core the last admitted arrangement gave Sound 2's chain (1: CPU1,
+     * 0: inline on CPU0). Not a state line: the ref build has no pipeline.
+     * tests/test_fm1_live.py checks it against pipeline_shares' rule. */
+    {
+        extern int fm1_app_pipeline_sound2_deferred(void);
+        printf("route %s deferred=%d\n", tag, fm1_app_pipeline_sound2_deferred());
+    }
+#endif
 }
 
 /* The active script and its snapshot ticks (the state lines must agree at
@@ -271,6 +296,7 @@ static int run_full(void)
     CHECK(!fm1_app_pipeline_busy());
     lunar_fm1_live_status(&s);
     CHECK(s.dropped == 0 && s.events == pushed && s.invalid == 0);
+    CHECK(s.init_error == 0);                 /* 23: a new DX7 was left unlimited */
     CHECK(s.barrier_holds >= 1 && s.barrier_events >= 1 && s.services >= 1);
     CHECK(holds_seen == s.barrier_holds);
     printf("pushed=%u events=%u applied=%u barrier_events=%u barrier_holds=%u services=%u\n",
@@ -279,7 +305,8 @@ static int run_full(void)
     return 0;
 }
 
-/* The gestures where the pipelined app diverges from R0, through the live
+/* The gestures where the pipelined app diverged from R0 until 2026-11-10 (the
+ * soft locks; now a differential against it), through the live
  * adapter and the barrier (a guard trip here would be exit 72, a warm-reset
  * loop on the device): PRESETS and ALGORITHM turns on a DX7 and on Macro as
  * the current sound, SEL+PRESETS choosing sound 2, keys with Macro current,
@@ -302,40 +329,110 @@ static const struct step gesture_script[] = {
 };
 static const unsigned gesture_at[] = {11, 31, 51, 72, 81, 131, 151, 171, 202, 241, 261, 291, 343, 351, 1400};
 
-static int run_full(void);
-static int run_gestures(void)
-{
-    const fm1_engine_t *before[8];
-    unsigned i;
-    for (i = 0; i < 8u; ++i) before[i] = app.unit[units[i]].e;
-    cur_script = gesture_script;
-    cur_n = sizeof gesture_script / sizeof *gesture_script;
-    cur_at = gesture_at;
-    cur_at_n = sizeof gesture_at / sizeof *gesture_at;
-    CHECK(run_full() == 0);
-    /* The arrangement is the one it started with and Macro is still on VA. */
-    for (i = 0; i < 8u; ++i) CHECK(app.unit[units[i]].e == before[i]);
-    CHECK(fm1_app_get_param(&app, units[1], 0) == 0.0f);
-    puts("gestures=1");
-    return 0;
-}
+/* Engine and insert changes on every sound, emptied sounds, every Macro
+ * model with notes held on Sound 2, Chip's random arpeggio (Timbre high)
+ * beside Drums (both used stmlib::Random's one global before 2026-11-10),
+ * Sound 2 as DX7, as Drums with Sound 3 also Drums (rendered on CPU0: they
+ * share the generator) and empty, then the effect swap and picks. */
+static const struct step swap_script[] = {
+    /* Sound 2 current; Timbre and Harmonics up */
+    BTN(10, FM1_BTN_SEL, 1), ENC(11, FM1_ENC_PRESETS, 1), BTN(12, FM1_BTN_SEL, 0),
+    ENC(14, FM1_ENC_KNOB3, 45), ENC(15, FM1_ENC_KNOB2, 20),
+    /* Drums and DX7 play throughout; a note held on Sound 2 across a model change */
+    MIDI(16, LUNAR_FM1_EV_NOTE_ON, 36, 110, 2), MIDI(17, LUNAR_FM1_EV_NOTE_ON, 67, 80, 3),
+    MIDI(18, LUNAR_FM1_EV_NOTE_ON, 60, 100, 1), ENC(20, FM1_ENC_ALGORITHM, 1),
+    MIDI(30, LUNAR_FM1_EV_NOTE_OFF, 60, 0, 1), MIDI(31, LUNAR_FM1_EV_NOTE_OFF, 36, 0, 2),
+    MIDI(36, LUNAR_FM1_EV_NOTE_ON, 62, 100, 1), ENC(40, FM1_ENC_ALGORITHM, 1),
+    MIDI(50, LUNAR_FM1_EV_NOTE_OFF, 62, 0, 1),
+    MIDI(56, LUNAR_FM1_EV_NOTE_ON, 64, 100, 1), ENC(60, FM1_ENC_ALGORITHM, 1),   /* Chip */
+    MIDI(62, LUNAR_FM1_EV_NOTE_ON, 38, 120, 2), MIDI(63, LUNAR_FM1_EV_NOTE_OFF, 64, 0, 1),
+    /* Chip's arpeggio clocks on every note: a run of them between drum hits */
+    MIDI(64, LUNAR_FM1_EV_NOTE_ON, 65, 100, 1), MIDI(66, LUNAR_FM1_EV_NOTE_ON, 40, 120, 2),
+    MIDI(67, LUNAR_FM1_EV_NOTE_OFF, 65, 0, 1), MIDI(68, LUNAR_FM1_EV_NOTE_ON, 67, 100, 1),
+    MIDI(70, LUNAR_FM1_EV_NOTE_ON, 42, 120, 2), MIDI(71, LUNAR_FM1_EV_NOTE_OFF, 67, 0, 1),
+    MIDI(72, LUNAR_FM1_EV_NOTE_ON, 69, 100, 1), MIDI(74, LUNAR_FM1_EV_NOTE_ON, 36, 120, 2),
+    MIDI(75, LUNAR_FM1_EV_NOTE_OFF, 69, 0, 1), MIDI(76, LUNAR_FM1_EV_NOTE_ON, 71, 100, 1),
+    MIDI(78, LUNAR_FM1_EV_NOTE_OFF, 71, 0, 1),
+    MIDI(84, LUNAR_FM1_EV_NOTE_ON, 60, 100, 1), ENC(90, FM1_ENC_ALGORITHM, 1),
+    MIDI(94, LUNAR_FM1_EV_NOTE_OFF, 60, 0, 1),
+    MIDI(104, LUNAR_FM1_EV_NOTE_ON, 62, 100, 1), ENC(110, FM1_ENC_ALGORITHM, 1),
+    MIDI(114, LUNAR_FM1_EV_NOTE_OFF, 62, 0, 1),
+    MIDI(124, LUNAR_FM1_EV_NOTE_ON, 64, 100, 1), ENC(130, FM1_ENC_ALGORITHM, 1),
+    MIDI(134, LUNAR_FM1_EV_NOTE_OFF, 64, 0, 1),
+    MIDI(144, LUNAR_FM1_EV_NOTE_ON, 65, 100, 1), ENC(150, FM1_ENC_ALGORITHM, 1),
+    MIDI(154, LUNAR_FM1_EV_NOTE_OFF, 65, 0, 1),
+    MIDI(164, LUNAR_FM1_EV_NOTE_ON, 67, 100, 1), ENC(170, FM1_ENC_ALGORITHM, 1),   /* back to 0 */
+    MIDI(180, LUNAR_FM1_EV_NOTE_OFF, 67, 0, 1), MIDI(181, LUNAR_FM1_EV_NOTE_OFF, 67, 0, 3),
+    /* Sound 2's engine: the next ones in PRESETS, a note on each */
+    ENC(200, FM1_ENC_PRESETS, 1), MIDI(204, LUNAR_FM1_EV_NOTE_ON, 60, 100, 1),
+    MIDI(220, LUNAR_FM1_EV_NOTE_OFF, 60, 0, 1),
+    MIDI(238, LUNAR_FM1_EV_NOTE_ON, 62, 100, 1), ENC(240, FM1_ENC_PRESETS, 1),
+    MIDI(244, LUNAR_FM1_EV_NOTE_ON, 38, 100, 1), MIDI(246, LUNAR_FM1_EV_NOTE_ON, 36, 110, 2),
+    MIDI(260, LUNAR_FM1_EV_NOTE_OFF, 38, 0, 1), MIDI(261, LUNAR_FM1_EV_NOTE_OFF, 36, 0, 2),
+    ENC(280, FM1_ENC_PRESETS, 1), MIDI(284, LUNAR_FM1_EV_NOTE_ON, 64, 100, 1),
+    MIDI(300, LUNAR_FM1_EV_NOTE_OFF, 64, 0, 1),
+    ENC(320, FM1_ENC_PRESETS, 1), MIDI(324, LUNAR_FM1_EV_NOTE_ON, 64, 100, 1),
+    MIDI(340, LUNAR_FM1_EV_NOTE_OFF, 64, 0, 1),
+    /* Sound 1 (the first DX7): other engines, then back */
+    BTN(350, FM1_BTN_SEL, 1), ENC(351, FM1_ENC_PRESETS, -1), BTN(352, FM1_BTN_SEL, 0),
+    /* away from the DX7 and back in one drained batch: the new DX7 lands at
+     * the old one's address and must still get the eight-voice limit */
+    ENC(355, FM1_ENC_PRESETS, 1), ENC(355, FM1_ENC_PRESETS, -1),
+    ENC(360, FM1_ENC_PRESETS, 1), MIDI(364, LUNAR_FM1_EV_NOTE_ON, 36, 110, 0),
+    MIDI(380, LUNAR_FM1_EV_NOTE_OFF, 36, 0, 0),
+    ENC(400, FM1_ENC_PRESETS, -2), MIDI(404, LUNAR_FM1_EV_NOTE_ON, 60, 110, 0),
+    MIDI(420, LUNAR_FM1_EV_NOTE_OFF, 60, 0, 0),
+    /* The effects: FX mode, a swap, picks on a master and an insert */
+    MIDI(440, LUNAR_FM1_EV_NOTE_ON, 67, 80, 3), MIDI(441, LUNAR_FM1_EV_NOTE_ON, 60, 100, 1),
+    BTN(450, FM1_BTN_FX, 1), BTN(451, FM1_BTN_FX, 0),
+    BTN(460, FM1_BTN_SEL, 1), ENC(461, FM1_ENC_SELECT, 1), BTN(462, FM1_BTN_SEL, 0),
+    ENC(480, FM1_ENC_ALGORITHM, 1), ENC(500, FM1_ENC_ALGORITHM, 1),
+    BTN(510, FM1_BTN_SEL, 1), ENC(511, FM1_ENC_SELECT, -1), BTN(512, FM1_BTN_SEL, 0),
+    ENC(520, FM1_ENC_SELECT, -2), ENC(530, FM1_ENC_ALGORITHM, 1), ENC(550, FM1_ENC_ALGORITHM, 2),
+    MIDI(570, LUNAR_FM1_EV_NOTE_OFF, 67, 0, 3), MIDI(571, LUNAR_FM1_EV_NOTE_OFF, 60, 0, 1),
+    BTN(580, FM1_BTN_HOME, 1), BTN(581, FM1_BTN_HOME, 0),
+};
+static const unsigned swap_at[] = {13, 19, 21, 41, 61, 79, 91, 111, 131, 151, 171, 201, 241, 262,
+                                   281, 321, 353, 356, 361, 401, 452, 463, 481, 501, 513, 521, 531,
+                                   551, 582, 1500};
 
-/* Selecting an engine or insert, swapping effects and moving Macro off the VA
- * model are the pipeline's soft locks (R0 diverges here, on purpose). */
-static int run_refuse(void)
+/* Inserts on every sound and on Sound 2 one with engine API v3's extension
+ * (render_ext; built with the test-ext module), through FX mode. */
+static const struct step insert_script[] = {
+    /* Sound 2 current: its inserts first, with its engine changed under them */
+    BTN(2, FM1_BTN_SEL, 1), ENC(3, FM1_ENC_PRESETS, 1), BTN(4, FM1_BTN_SEL, 0),
+    MIDI(5, LUNAR_FM1_EV_NOTE_ON, 60, 100, 0), MIDI(6, LUNAR_FM1_EV_NOTE_ON, 64, 100, 1),
+    MIDI(7, LUNAR_FM1_EV_NOTE_ON, 36, 110, 2), MIDI(8, LUNAR_FM1_EV_NOTE_ON, 67, 100, 3),
+    BTN(10, FM1_BTN_FX, 1), BTN(11, FM1_BTN_FX, 0), ENC(12, FM1_ENC_SELECT, -3),
+    ENC(20, FM1_ENC_ALGORITHM, 1), ENC(30, FM1_ENC_SELECT, 1), ENC(31, FM1_ENC_ALGORITHM, 2),
+    BTN(40, FM1_BTN_SEL, 1), ENC(41, FM1_ENC_PRESETS, 1), BTN(42, FM1_BTN_SEL, 0),
+    ENC(50, FM1_ENC_ALGORITHM, -1), ENC(60, FM1_ENC_SELECT, -1), ENC(61, FM1_ENC_ALGORITHM, -1),
+    BTN(70, FM1_BTN_SEL, 1), ENC(71, FM1_ENC_PRESETS, 1), BTN(72, FM1_BTN_SEL, 0),
+    ENC(80, FM1_ENC_ALGORITHM, 1), ENC(90, FM1_ENC_SELECT, 1), ENC(91, FM1_ENC_ALGORITHM, 1),
+    BTN(100, FM1_BTN_SEL, 1), ENC(101, FM1_ENC_PRESETS, 1), BTN(102, FM1_BTN_SEL, 0),
+    ENC(110, FM1_ENC_ALGORITHM, 1), ENC(120, FM1_ENC_SELECT, -1), ENC(121, FM1_ENC_ALGORITHM, 3),
+    /* then Sound 1's inserts */
+    BTN(130, FM1_BTN_HOME, 1), BTN(131, FM1_BTN_HOME, 0),
+    BTN(140, FM1_BTN_SEL, 1), ENC(141, FM1_ENC_PRESETS, -1), BTN(142, FM1_BTN_SEL, 0),
+    BTN(150, FM1_BTN_FX, 1), BTN(151, FM1_BTN_FX, 0), ENC(152, FM1_ENC_SELECT, -3),
+    ENC(160, FM1_ENC_ALGORITHM, 1), ENC(170, FM1_ENC_SELECT, 1), ENC(171, FM1_ENC_ALGORITHM, 2),
+    MIDI(200, LUNAR_FM1_EV_NOTE_OFF, 60, 0, 0), MIDI(201, LUNAR_FM1_EV_NOTE_OFF, 64, 0, 1),
+    MIDI(202, LUNAR_FM1_EV_NOTE_OFF, 36, 0, 2), MIDI(203, LUNAR_FM1_EV_NOTE_OFF, 67, 0, 3),
+    BTN(210, FM1_BTN_HOME, 1), BTN(211, FM1_BTN_HOME, 0),
+};
+static const unsigned insert_at[] = {13, 21, 32, 43, 51, 62, 73, 81, 92, 103, 111, 122, 132, 143,
+                                     161, 172, 204, 1200};
+
+static int run_full(void);
+static void use_script(const char *mode)
 {
-    int before = app.unit[units[0]].self ? 1 : 0;
-    CHECK(before);
-    CHECK(lunar_fm1_live_produce(works[0]));
-    complete(0, 1);                              /* drained: the lock, not the fence */
-    CHECK(fm1_app_pipeline_locked());
-    CHECK(fm1_app_select(&app, units[0], fm1_app_find("macro")) == FM1_APP_SELECT_LOCKED);
-    CHECK(fm1_app_select(&app, units[4], fm1_app_find("drive")) == FM1_APP_SELECT_LOCKED);
-    CHECK(fm1_app_swap_units(&app, 1, 2) == FM1_APP_SELECT_LOCKED);
-    fm1_app_set_param(&app, units[1], 0, 2);     /* Terrain: held at VA */
-    CHECK(fm1_app_get_param(&app, units[1], 0) == 0.0f);
-    puts("refused=1");
-    return 0;
+#define USE(s, at) do { cur_script = s; cur_n = sizeof s / sizeof *s; cur_at = at; \
+                         cur_at_n = sizeof at / sizeof *at; } while (0)
+    if (!strcmp(mode, "gestures")) USE(gesture_script, gesture_at);
+    else if (!strcmp(mode, "swaps")) USE(swap_script, swap_at);
+    else if (!strcmp(mode, "inserts")) USE(insert_script, insert_at);
+    else { CHECK(!strcmp(mode, "full")); USE(full_script, full_at); }
+#undef USE
 }
 #endif
 
@@ -352,6 +449,7 @@ static int run_ref(void)
         lunar_pipeline_result_t r;
         pushed += script_at(tag, 0);
         while (lunar_fm1_queue_pop(&queue, &e)) lunar_fm1_route(&router, &e, apply, 0);
+        CHECK(limit_dx7());                  /* as lunar_fm1_live_produce after its events */
         ref_samples = fm1_app_render(&app, LUNAR_FM1_BLOCK);
         memset(&r, 0, sizeof r);
         r.tag = tag;
@@ -375,9 +473,10 @@ int main(int argc, char **argv)
     unsigned pushed = 0;
     uint32_t tag;
     const uint32_t total = 600;
-    CHECK(argc == 2);
+    CHECK(argc >= 2);
 #ifdef REPLAY_REF
-    CHECK(!strcmp(argv[1], "ref"));
+    CHECK(argc == 3 && !strcmp(argv[1], "ref"));
+    use_script(argv[2]);
     CHECK(lunar_fm1_live_init());
     return run_ref();
 #endif
@@ -392,9 +491,10 @@ int main(int argc, char **argv)
         return 0;                             /* reached only if the fence is off */
     }
 #if LUNAR_FM1_FULL_UI
-    if (!strcmp(argv[1], "full")) return run_full();
-    if (!strcmp(argv[1], "refuse")) return run_refuse();
-    if (!strcmp(argv[1], "gestures")) return run_gestures();
+    if (strcmp(argv[1], "delayed")) {        /* full, gestures, swaps, inserts */
+        use_script(argv[1]);
+        return run_full();
+    }
 #endif
     CHECK(!strcmp(argv[1], "delayed"));
     for (tag = 0; tag < total; ++tag) {

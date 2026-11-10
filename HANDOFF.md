@@ -24,7 +24,8 @@ a watchdog reset seconds after the test pattern is now a recorded possible resul
 **Owner answers, 2026-11-10** (docs/18 §3 items 6–9): M6 approved to run on the
 FM-1 after M5 (`m6-plan-2`, `37334c76…`; its host tool is still to be written
 and reviewed); USB-MIDI stays off until measured; the M10 soft locks must be
-lifted before 1.0; how the full UI fits the slot is still open.
+lifted before 1.0 (done on the host 2026-11-10, PR #194,
+`notes/2026-11-10-soft-locks.md`); how the full UI fits the slot is still open.
 
 **Checkpoint, 2026-11-09:** #171–#186 are merged (#181 made the engine cost tests take the best of three runs) to main and no workflow is
 running. The next hardware step is the M5 bench session with the owner

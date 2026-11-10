@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: MIT. Opt-in fixed-arrangement app pipeline. */
+/* SPDX-License-Identifier: MIT. Opt-in two-core app pipeline. */
 #ifndef FM1_APP_PIPELINE_H
 #define FM1_APP_PIPELINE_H
 #include "fm1_app.h"
@@ -10,8 +10,12 @@ extern "C" {
 uint32_t fm1_app_pipeline_error(void);
 void fm1_app_pipeline_fail(uint32_t code) __attribute__((noreturn));
 /* Two static slots, bound once to a single app. Fixed 64-frame stereo blocks.
- * Supported fixture only: dx7/macro(model0)/drums/dx7, Filter/Drive inserts,
- * Echo/Comp masters, no editor/observer. Unsupported or changed layout fails closed.
+ * Any arrangement the UI can make: each block's first after a change admits
+ * it (kinds, arenas, shared state), and Sound 2's engine and inserts run on
+ * CPU1 unless they share state with a unit on CPU0. No editor/observer. An
+ * arrangement changed while a block is pending, or one that cannot be split
+ * safely, fails closed. Engines, inserts and effect order change only at a
+ * drained barrier (fm1_app_select and fm1_app_swap_units need !busy).
  * Once used, do not reinitialize the bound app. Draw only at a drained barrier.
  * CPU0 produces after reserving a free backend work slot. CPU1 consumes only
  * after publication; CPU0 retires only after DONE acquire. Never reuse before
@@ -20,9 +24,9 @@ void *fm1_app_pipeline_work(unsigned index);
 /* 1 while a block is produced or not yet retired (CPU0 state only). Every
  * panel path (key, button, encoder, bend, panic, sound 2's notes) needs 0. */
 int fm1_app_pipeline_busy(void);
-/* 1 once blocks run: engines, inserts and Macro's model can no longer change
- * (the UI refuses with FM1_APP_SELECT_LOCKED). */
-int fm1_app_pipeline_locked(void);
+/* 1 while the arrangement a block admitted is unchanged; 0 after a change
+ * of engine, an emptied unit or an effect swap, until the next block. */
+int fm1_app_pipeline_sealed(void);
 /* The UI's time-driven work (ARP hold, popup expiry, toast/follow/snap): due
  * when it has any, run only when !busy (returns 0 if busy). */
 int fm1_app_pipeline_service_due(const fm1_app_t *app);
