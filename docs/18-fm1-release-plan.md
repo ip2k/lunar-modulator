@@ -163,7 +163,8 @@ Asked 2026-10-29; answers recorded here when they come.
      first image that sets the clock) and the -18 dBFS test arpeggio until
      power-off (notes/2026-11-09-m6-image.md §5–6);
    - route: docs/17's transporter with a host tool extended from
-     `fm1t_m5.py` (note §5 sketch; not written yet, and reviewed before use);
+     `fm1t_m5.py` (note §5 sketch; written 2026-11-10 as `fm1t_m6.py`, PR #193;
+     to be reviewed before use);
      recovery a power cycle, then docs/17.
 
    Any other image, a second run or any flash write needs a new yes.
