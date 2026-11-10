@@ -33,7 +33,9 @@
     `memw`/`memr`/`ldr` lengths must be plain decimal with no leading zero,
     because the transporter parses them with `strtoul(..., 0)`, which reads a
     leading `0` as octal. `tests/test_fm1t_m6.py` pins
-    every code line on which the two differ; `fm1t_m5.py` is unchanged.
+    every code line on which the two differ. `fm1t_m5.py` was patched with the
+    same length rule on 2026-11-10 (owner: "Patch M5 too"), changing only its
+    `memw`/`memr`/`ldr` patterns; its new hash awaits the owner's approval.
   - `build.sh`, the research shim and this file are this repository's own
     (MIT).
 - **Not here, on purpose:**

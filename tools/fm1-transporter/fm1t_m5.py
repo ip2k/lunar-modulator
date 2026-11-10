@@ -119,15 +119,17 @@ USB_KEY_STEPS = ("ROM entry is by USB_KEY only (docs/19 and docs/17 section 4): 
 _HEX8 = r"[0-9A-F]{8}"
 _LDR_OFFSETS = "|".join(str(o) for o in range(0, LOADER_BYTES, LOADER_CHUNK))
 _RAM_ADDRS = "|".join(f"{a:#x}" for a in range(RAM_BASE, RAM_END, MEMW_CHUNK))
+# A length the transporter reads as the same number (strtoul base 0: no leading 0).
+_LEN = r"[1-9][0-9]{0,3}"
 PATTERNS = {
     "ping": r"ping",
     "status": r"status",
     "rekey": r"rekey",
-    "ldr": rf"ldr ({_LDR_OFFSETS}) (\d+) ({_HEX8})",
+    "ldr": rf"ldr ({_LDR_OFFSETS}) ({_LEN}) ({_HEX8})",
     "info": r"info",
     "read": rf"read 0x0 {FLASH_SIZE}",
-    "memw": rf"memw ({_RAM_ADDRS}) (\d+) ({_HEX8})",
-    "memr": rf"memr ({_RAM_ADDRS}) (\d+)",
+    "memw": rf"memw ({_RAM_ADDRS}) ({_LEN}) ({_HEX8})",
+    "memr": rf"memr ({_RAM_ADDRS}) ({_LEN})",
     "jump": rf"jump {RAM_BASE:#x} {JUMP_ARG:#x}",
 }
 ALLOWED = {
