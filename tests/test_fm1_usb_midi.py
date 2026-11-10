@@ -244,6 +244,16 @@ def test_glue_text():
     # Never call the spinning write while the endpoint still holds a packet.
     poll = glue[glue.index('unsigned lunar_usb_midi_poll'):]
     assert poll.index('TXCSR_PKT_READY') < poll.index('usb_g_ep_write(0')
+    # One OUT packet a read, sized by rxcount: usb_g_ep_read keeps reading
+    # waiting packets until `len` is used up and releases a packet it only
+    # partly copied, so a fixed 64 could cut the second buffer's tail
+    # (found in review, 2026-11-09).
+    read = re.search(r'usb_g_ep_read\(0, LUNAR_USB_MIDI_EP, data, (\w+), 0\)', poll)
+    assert read and read.group(1) == 'want'
+    assert poll.index('usb_read_rxcount(0, LUNAR_USB_MIDI_EP)') < read.start()
+    # Arm endpoint 4 only for a SET_CONFIGURATION the library accepts.
+    hook = glue[glue.index('static u32 setup_hook'):glue.index('static u32 function_config')]
+    assert 'req->wIndex == 0 && req->wLength == 0' in hook
     assert 'usb_slave_init' not in glue.split('*/', 1)[1].replace('usb_slave_init inlined', '')
     make = (ROOT / 'tools/jieli/fm1-app.mk').read_text()
     assert 'ifneq ($(filter -DLUNAR_FM1_USB_MIDI=1,$(EXTRA)),)\nFM1_APP_SOURCES += fm1/fm1_usb_midi fm1/fm1_usb_sdk' in make

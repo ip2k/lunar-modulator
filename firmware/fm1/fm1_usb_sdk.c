@@ -77,7 +77,6 @@ extern u8 *get_norflash_uuid(void);
 #define EP0_STALL 3u                /* usb_phy.h USB_EP0_SET_STALL */
 #define XFER_BULK 2u
 #define TXCSR_PKT_READY 0x01u
-#define RXCSR_PKT_READY 0x01u
 #define REQ_GET_STATUS 0x00u
 #define REQ_SET_CONFIGURATION 0x09u
 #define REQ_GET_INTERFACE 0x0au
@@ -158,7 +157,11 @@ static void bus_reset(struct usb_device_t *dev, u32 itf)
 static u32 setup_hook(struct usb_device_t *dev, struct lunar_usb_setup *req)
 {
     (void)dev;
-    if (req->bRequestType == 0x00u && req->bRequest == REQ_SET_CONFIGURATION) {
+    /* The library stalls SET_CONFIGURATION with a non-zero wIndex or
+     * wLength [verified: IR]; arm only for a request it accepts. (It also
+     * stalls one before SET_ADDRESS, which hosts do not send.) */
+    if (req->bRequestType == 0x00u && req->bRequest == REQ_SET_CONFIGURATION
+        && req->wIndex == 0 && req->wLength == 0) {
         if (req->wValue == 1u) {
             endpoints_arm();
             configured = 1;
@@ -212,8 +215,13 @@ int lunar_usb_midi_start(void)
     if (!device) return 0;
     usb_set_setup_hook(device, setup_hook);
 
-    /* The SDK's usb_device_init for full speed, its usb_slave_init inlined
-     * (usb_phy.c.o is not linked) [verified: IR]. */
+    /* The SDK's usb_device_init, its usb_slave_init inlined (usb_phy.c.o
+     * is not linked) [verified: IR]. 0x60 is the SDK's FUSB_MODE 0 value
+     * (asm/usb.h sets 0; 0x40 is its full-speed-only value), which stock's
+     * bcdUSB 2.00 also suggests. USB0 is the musb-style controller and runs
+     * at full speed: the library allows test mode only on USB1, and the
+     * SDK's own bulk endpoints are 64 B on USB0 and 512 B on USB1
+     * [inferred]. The kit run must show full speed. */
     usb_g_sie_init(0);                                /* PHY, D+ pull-up: attach */
     usb_write_power(0, 0x60);
     usb_write_intr_usbe(0, 0);
@@ -235,11 +243,25 @@ unsigned lunar_usb_midi_poll(void (*emit)(void *ctx, const unsigned char packet[
 {
     unsigned got = 0;
     if (!stats.started || !configured) return 0;
-    if (usb_read_rxcsr(0, LUNAR_USB_MIDI_EP) & RXCSR_PKT_READY) {
-        u8 data[LUNAR_USB_MIDI_MAX_PACKET];
-        u32 n = usb_g_ep_read(0, LUNAR_USB_MIDI_EP, data, sizeof data, 0);
-        got = lunar_usb_midi_split(data, n > sizeof data ? sizeof data : n, emit, ctx);
-        stats.received += got;
+    /* Exactly one packet a pass. usb_g_ep_read keeps reading until `len`
+     * bytes are in, taking min(rxcount, what is left) from each waiting
+     * packet and releasing it [verified: IR]. With len 64, a short packet
+     * followed by a full one in the second OUT buffer would lose the
+     * second packet's tail (a note-off, say). rxcount is 0 unless RxPktRdy
+     * is set [verified: IR], so it is also the readiness check. A
+     * zero-length packet is never released by the non-blocking read and
+     * would leave the endpoint NAKing until the next reset; hosts do not
+     * send one to a MIDI OUT endpoint [inferred]. */
+    {
+        u32 want = usb_read_rxcount(0, LUNAR_USB_MIDI_EP);
+        if (want) {
+            u8 data[LUNAR_USB_MIDI_MAX_PACKET];
+            u32 n;
+            if (want > sizeof data) want = sizeof data;
+            n = usb_g_ep_read(0, LUNAR_USB_MIDI_EP, data, want, 0);
+            got = lunar_usb_midi_split(data, n > want ? want : n, emit, ctx);
+            stats.received += got;
+        }
     }
     if (batch.length) {
         /* usb_g_ep_write spins while TxPktRdy is set; never call it then. */

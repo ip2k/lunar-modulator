@@ -20,9 +20,9 @@ FM-1 application:
 - the debug UART keeps its driver but maps no pin by default (PB3's role on
   the FM-1 is unknown); --debug-uart pb3 keeps the SDK's PB3 TX;
 - --usb-midi on adds the USB-MIDI device (firmware/fm1/fm1_usb_*.c:
-  4C4A:C755 "FM-1", MIDI in and out, no USB audio) on cpu.a's low-level
-  driver; off (the default until the owner decides) leaves the image as it
-  was. notes/2026-11-09-usb-midi.md has its cost and the licence review.
+  4C4A:C755 "FM-1", MIDI in only for now, no USB audio) on cpu.a's
+  low-level driver; off (the default until the owner decides) leaves the
+  image as it was. notes/2026-11-09-usb-midi.md has its cost and the licence review.
 
 Output is a private SDK tree with JieLi's libraries: never share a build of
 it while FM1_GPL_MODS=1 (CLAUDE.md, the GPL switch). It is not a package:
