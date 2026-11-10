@@ -10,6 +10,13 @@ history.
 
 ### Added
 
+- **M6 host tool and bench runbook (written, not run; awaiting review).**
+  `tools/fm1-transporter/fm1t_m6.py` loads the approved M6 audio image into the
+  FM-1's RAM through the Pico transporter and starts it once, with the same
+  refusals as M5's tool; it admits only `m6.bin` and only that image's RAM range.
+  docs/20 is the operator runbook: it waits on M5's watchdog result, and lists
+  what the panel should show (`PCM 92CF0315`) and how the arpeggio's pitch tells
+  the audio rate. Tested against a fake transporter only; M5's tool is unchanged.
 - **M10 controls wired through a drain barrier (host-tested, not on hardware).** The FM-1 app
   image can now route all 27 keys, 14 buttons, 7 encoders, pitch bend, MIDI panic and sound 2's
   notes to the panel's own handlers, light the 41 LEDs from the app's state and classify the
