@@ -47,7 +47,7 @@ static void report(unsigned passes)
     printf("LUNAR_USB stats passes=%u started=%u online=%u configurations=%u resets=%u "
            "received=%u sent=%u dropped=%u busy=%u power=0x%02x\n", passes, s.started, s.online,
            s.configurations, s.resets, s.received, s.sent, s.dropped, s.busy,
-           (unsigned)usb_read_power(0));   /* musb POWER: bit 4 set would be high speed */
+           (unsigned)usb_read_power(0));   /* raw POWER register, logged only; the kit read 0x70 while the host saw 12 Mb/s (notes/2026-11-10-m6-tool.md) */
 }
 
 void lunar_devkit_usb_midi_probe(void)

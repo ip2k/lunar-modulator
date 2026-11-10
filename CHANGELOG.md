@@ -17,6 +17,11 @@ history.
   docs/20 is the operator runbook: it waits on M5's watchdog result, and lists
   what the panel should show (`PCM 92CF0315`) and how the arpeggio's pitch tells
   the audio rate. Tested against a fake transporter only; M5's tool is unchanged.
+- **Dev kit USB-MIDI probe (`prepare-devkit.py --usb-midi`).** The FM-1's USB-MIDI device
+  now runs on the AC79 dev kit. On the kit it enumerated as `FM-1` (`4C4A:C755`) at full speed
+  with a non-zero serial, its descriptors matched the expected bytes, Linux listed it as a MIDI
+  port, and a short packet followed by a full one was read whole and echoed back three times.
+  Not yet run on an FM-1.
 - **M10 controls wired through a drain barrier (host-tested, not on hardware).** The FM-1 app
   image can now route all 27 keys, 14 buttons, 7 encoders, pitch bend, MIDI panic and sound 2's
   notes to the panel's own handlers, light the 41 LEDs from the app's state and classify the

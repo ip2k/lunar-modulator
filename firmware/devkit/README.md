@@ -249,6 +249,25 @@ limits are in `notes/2026-11-08-failopen-watchdog.md` and
 `notes/2026-11-08-failopen-hardening.md`. Power-cut tests need a person at the
 bench; the second note has the script.
 
+## USB-MIDI device probe
+
+`tools/jieli/prepare-devkit.py --boot-control --usb-midi` builds the FM-1's
+USB-MIDI device (`firmware/fm1/fm1_usb_midi.c`, `fm1_usb_sdk.c`) into the
+kit image with a probe, `usb_midi_probe.c`. It needs `--boot-control` and
+takes no other diagnostic. After the 200-tick recovery window it starts the
+device and polls it every 500 ms. Each pass logs the length of the waiting
+OUT packet (`LUNAR_USB pass=N rx=BYTES events=N`) before the single read,
+echoes every event back to the host (`LUNAR_USB event=… echo=1`), and every
+20 passes prints the driver's counters (`LUNAR_USB stats …`).
+
+On the host, the kit enumerates at `3-1.2` as `4c4a:c755`, product `FM-1`.
+Resolve its ALSA card from sysfs (`/sys/bus/usb/devices/3-1.2:1.*/sound/card*`),
+never by number: card 0 on the bench host is another interface. The device
+needs no driver beyond `snd-usb-audio`. Enter the ROM with the usual UART
+`ARM`/`ENTER`; the probe leaves the control task running. The first run, its
+evidence and the R1 check (a short packet, then a full one) are in
+`notes/2026-11-10-m6-tool.md`.
+
 ## Live FM6 DAC workload
 
 Prepare with `--fm6-audio --fm6-ram --boot-control`. All three flags are required
