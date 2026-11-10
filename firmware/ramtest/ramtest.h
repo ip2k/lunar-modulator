@@ -46,6 +46,9 @@ void lunar_ramtest_putu(struct lunar_ramtest_io *io, unsigned value);
  * __cpu_reset sequence on P33 (read P3_PR_PWR 0xa0, write it back with bit
  * 4). Only returns on failure, or on the host where nothing resets. */
 enum lunar_ramtest_result lunar_ramtest_reset_to_app(const struct lunar_ramtest_io *io);
+/* Clear the P33 watchdog if it is armed (SDK wdt_clear). Returns 1 on
+ * success; *wdt_con, if given, gets P3_WDT_CON as read (bit 4: armed). */
+int lunar_ramtest_wdt_kick(const struct lunar_ramtest_io *io, unsigned *wdt_con);
 /* Banner, `beats` heartbeats, reset line, reset. Returns only on failure. */
 enum lunar_ramtest_result lunar_ramtest_run(struct lunar_ramtest_io *io,
                                             const char *build_id, unsigned image_bytes,

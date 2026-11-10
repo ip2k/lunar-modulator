@@ -8,6 +8,20 @@ history.
 
 ## [Unreleased]
 
+### Added
+
+- M6 audio-path RAM image (`firmware/m6/`, `link-diagnostic.sh ... m6`): ALNK0
+  at about 44,118 Hz through the codec driver, one two-operator FM voice,
+  per-block timing in a RAM status block and on the FM-1's screen. The dev-kit
+  build ran a full minute on the AC79 kit with no late or missed blocks; the
+  FM-1 build has not run and awaits the owner's approval.
+- RAM diagnostic images clear the chip watchdog if an application left it
+  armed (`lunar_ramtest_wdt_kick`).
+
+### Fixed
+
+- The ALNK0 register access file compiled to nothing in SDK-free builds.
+
 ### Documentation
 
 - **M5 bench runbook** (docs/19): the numbered operator steps for the first

@@ -58,6 +58,9 @@
 #define P33_RTC 0x100u
 #define P3_PR_PWR 0xa0u
 #define P3_CHIP_RESET 0x10u
+#define P3_WDT_CON 0x80u      /* SDK p33.h [verified] */
+#define P3_WDT_ENABLE 0x10u   /* wdt_enable: BIT(4) [verified: cpu.a IR] */
+#define P3_WDT_CLEAR 0x40u    /* wdt_clear: BIT(6) [verified: cpu.a IR] */
 
 static void change(const struct lunar_ramtest_io *io, unsigned address, unsigned width,
                    unsigned clear, unsigned set)
@@ -189,6 +192,39 @@ enum lunar_ramtest_result lunar_ramtest_reset_to_app(const struct lunar_ramtest_
     /* The chip resets here on hardware. Give it time before giving up. */
     if (io->pause) io->pause(io->context, 10u);
     return LUNAR_RAMTEST_FAIL_NO_RESET;
+}
+
+/* The SDK's wdt_clear(): p33_or_1byte(P3_WDT_CON 0x80, BIT(6)) [verified:
+ * AC79 SDK V1.2.13 cpu.a wdt.c.o IR; bit 4 enables, bits 0-3 time]. Done
+ * here as a read, then a write of the value with bit 6 set, the way
+ * lunar_ramtest_reset_to_app reaches P3_PR_PWR. The watchdog sits in the P33
+ * domain, so an application that armed it leaves it running through the
+ * jump into the mask ROM. *wdt_con gets the value read (bit 4: armed). */
+int lunar_ramtest_wdt_kick(const struct lunar_ramtest_io *io, unsigned *wdt_con)
+{
+    unsigned ignored, value;
+    if (!io || !io->read || !io->write || !io->sync) return 0;
+    if (!p33_idle(io)) return 0;
+    p33_select(io);
+    if (!p33_byte(io, 0x80u | ((P3_WDT_CON >> 8) & 3u), &ignored) ||
+        !p33_byte(io, P3_WDT_CON & 0xffu, &ignored) ||
+        !p33_byte(io, 0x5eu, &value)) {
+        p33_deselect(io);
+        return 0;
+    }
+    p33_deselect(io);
+    if (wdt_con) *wdt_con = value;
+    if (!(value & P3_WDT_ENABLE)) return 1;   /* not armed: nothing to clear */
+    p33_select(io);
+    if (!p33_byte(io, 0x00u | ((P3_WDT_CON >> 8) & 3u), &ignored) ||
+        !p33_byte(io, P3_WDT_CON & 0xffu, &ignored) ||
+        !p33_byte(io, value | P3_WDT_CLEAR, &ignored)) {
+        p33_deselect(io);
+        return 0;
+    }
+    p33_deselect(io);
+    io->sync(io->context);
+    return 1;
 }
 
 static const char *const failures[] = {

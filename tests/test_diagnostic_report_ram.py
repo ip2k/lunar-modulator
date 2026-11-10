@@ -91,3 +91,29 @@ def test_requires_complete_sdk_free_audit():
     for audit in (dict(AUDIT, passed=False), dict(AUDIT, n_pending=1), dict(AUDIT, runtime="sdk")):
         with pytest.raises(ValueError, match="audit"):
             report(ram_fixture(), IMAGE, audit, "ram")
+
+
+def high_stacks(ssp_top):
+    """The fixture with its stacks moved up so the reservation ends at ssp_top."""
+    stack_guard = ssp_top - 2 * 4112
+    bounds = dict(__bss_end=stack_guard, __stack_guard=stack_guard,
+                  __stack_bottom=stack_guard + 16, __stack_top=stack_guard + 4112,
+                  __ssp_guard=stack_guard + 4112, __ssp_bottom=stack_guard + 4128,
+                  __ssp_top=ssp_top)
+    sections = [(1, 3, stack_guard - RAM - 8), (2, 1, stack_guard), (3, 1, stack_guard + 4112)]
+    return ram_fixture(bounds, sections)
+
+
+def test_ram_window_profile_allows_the_whole_rom_window():
+    # M6 (firmware/m6/app.ld): up to 0x01C07E00, the 24,064-byte ROM window
+    elf = high_stacks(RAM + 24064)
+    result = report(elf, IMAGE, AUDIT, "ram-window")
+    assert result["profile"] == "ram-window" and result["ram_budget_bytes"] == 24064
+    assert result["ram_reserved_bytes"] == 24064
+    with pytest.raises(ValueError, match="overlapping"):
+        report(elf, IMAGE, AUDIT, "ram")          # M5's 16 KiB stays the M5 bound
+
+
+def test_ram_window_profile_stops_at_the_window_end():
+    with pytest.raises(ValueError, match="overlapping"):
+        report(high_stacks(RAM + 24064 + 16), IMAGE, AUDIT, "ram-window")
