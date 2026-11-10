@@ -205,28 +205,34 @@ static void state_line(const char *tag)
     }
     for (i = 0; i < 41u; ++i) leds[i] = app.led[i] ? '1' : '0';
     leds[41] = 0;
-    printf("%s mode=%d page=%d sound=%d octave=%d transpose=%d popup_lines=%d popup0=[%s] leds=%s "
+    printf("%s seq=%d play_led=%d mode=%d page=%d sound=%d octave=%d transpose=%d popup_lines=%d popup0=[%s] leds=%s "
            "screen=%016llx pcm=%016llx frames=%llu\n",
-           tag, app.mode, app.page, app.sound, app.octave, app.transpose, app.popup_lines,
+           tag, app.seq != 0, app.led[27 + FM1_BTN_PLAY], app.mode, app.page, app.sound, app.octave, app.transpose, app.popup_lines,
            app.popup_lines ? app.popup[0] : "", leds, (unsigned long long)screen,
            (unsigned long long)fnv, (unsigned long long)app.frames);
 }
 
-/* Snapshot ticks: the state lines must agree at each, not only at the end. */
+/* The active script and its snapshot ticks (the state lines must agree at
+ * each, not only at the end). */
+static const struct step *cur_script = full_script;
+static unsigned cur_n = sizeof full_script / sizeof *full_script;
+static const unsigned full_at[] = {18, 66, 90, 110, 190, 330, 450, 615, 640, 770, 850, 1200};
+static const unsigned *cur_at = full_at;
+static unsigned cur_at_n = sizeof full_at / sizeof *full_at;
+
 static int checkpoint(unsigned tick)
 {
-    static const unsigned at[] = {18, 66, 90, 110, 190, 330, 450, 615, 640, 770, 850, 1200};
     unsigned i;
-    for (i = 0; i < sizeof at / sizeof *at; ++i) if (at[i] == tick) return 1;
+    for (i = 0; i < cur_at_n; ++i) if (cur_at[i] == tick) return 1;
     return 0;
 }
 
 static unsigned script_at(unsigned tick, unsigned from)
 {
     unsigned n = 0, i;
-    for (i = from; i < sizeof full_script / sizeof *full_script; ++i)
-        if (full_script[i].tick == tick) {
-            const struct step *s = &full_script[i];
+    for (i = from; i < cur_n; ++i)
+        if (cur_script[i].tick == tick) {
+            const struct step *s = &cur_script[i];
             ev(s->kind, s->a, s->b, s->c, s->value);
             ++n;
         }
@@ -257,6 +263,8 @@ static int run_full(void)
             while (done < tag + 1u) complete_hashed(done++);
             snprintf(name, sizeof name, "t%u", (unsigned)tag);
             state_line(name);
+            lunar_fm1_live_status(&s);
+            printf("holds t%u %u\n", (unsigned)tag, (unsigned)s.barrier_holds);
         }
     }
     while (done < FULL_BLOCKS) complete_hashed(done++);
@@ -268,6 +276,47 @@ static int run_full(void)
     printf("pushed=%u events=%u applied=%u barrier_events=%u barrier_holds=%u services=%u\n",
            pushed, s.events, s.applied, s.barrier_events, s.barrier_holds, s.services);
     state_line("state");
+    return 0;
+}
+
+/* The gestures where the pipelined app diverges from R0, through the live
+ * adapter and the barrier (a guard trip here would be exit 72, a warm-reset
+ * loop on the device): PRESETS and ALGORITHM turns on a DX7 and on Macro as
+ * the current sound, SEL+PRESETS choosing sound 2, keys with Macro current,
+ * FX mode with SEL grabbed and SELECT turned (the effect swap), ALGORITHM in
+ * FX (an effect pick), and MIDI notes on channel 2. */
+#define MIDI(t, k, n, v, ch) {t, k, n, v, ch, 0}
+static const struct step gesture_script[] = {
+    ENC(10, FM1_ENC_PRESETS, 1), ENC(30, FM1_ENC_PRESETS, -1), ENC(50, FM1_ENC_ALGORITHM, 1),
+    BTN(70, FM1_BTN_SEL, 1), ENC(71, FM1_ENC_PRESETS, 1), BTN(72, FM1_BTN_SEL, 0),
+    KEYS(80, 0, 1), KEYS(120, 0, 0),
+    ENC(130, FM1_ENC_PRESETS, 1), ENC(150, FM1_ENC_ALGORITHM, 1), ENC(170, FM1_ENC_ALGORITHM, -1),
+    BTN(190, FM1_BTN_FX, 1), BTN(191, FM1_BTN_FX, 0),
+    BTN(200, FM1_BTN_SEL, 1), ENC(201, FM1_ENC_SELECT, 1), ENC(220, FM1_ENC_SELECT, -1),
+    BTN(221, FM1_BTN_SEL, 0),
+    ENC(240, FM1_ENC_ALGORITHM, 1), ENC(260, FM1_ENC_PRESETS, 1),
+    BTN(280, FM1_BTN_HOME, 1), BTN(281, FM1_BTN_HOME, 0),
+    MIDI(290, LUNAR_FM1_EV_NOTE_ON, 64, 90, 1), MIDI(330, LUNAR_FM1_EV_NOTE_OFF, 64, 0, 1),
+    BTN(340, FM1_BTN_SEL, 1), ENC(341, FM1_ENC_PRESETS, -1), BTN(342, FM1_BTN_SEL, 0),
+    KEYS(350, 2, 1), KEYS(390, 2, 0),
+};
+static const unsigned gesture_at[] = {11, 31, 51, 72, 81, 131, 151, 171, 202, 241, 261, 291, 343, 351, 1400};
+
+static int run_full(void);
+static int run_gestures(void)
+{
+    const fm1_engine_t *before[8];
+    unsigned i;
+    for (i = 0; i < 8u; ++i) before[i] = app.unit[units[i]].e;
+    cur_script = gesture_script;
+    cur_n = sizeof gesture_script / sizeof *gesture_script;
+    cur_at = gesture_at;
+    cur_at_n = sizeof gesture_at / sizeof *gesture_at;
+    CHECK(run_full() == 0);
+    /* The arrangement is the one it started with and Macro is still on VA. */
+    for (i = 0; i < 8u; ++i) CHECK(app.unit[units[i]].e == before[i]);
+    CHECK(fm1_app_get_param(&app, units[1], 0) == 0.0f);
+    puts("gestures=1");
     return 0;
 }
 
@@ -345,6 +394,7 @@ int main(int argc, char **argv)
 #if LUNAR_FM1_FULL_UI
     if (!strcmp(argv[1], "full")) return run_full();
     if (!strcmp(argv[1], "refuse")) return run_refuse();
+    if (!strcmp(argv[1], "gestures")) return run_gestures();
 #endif
     CHECK(!strcmp(argv[1], "delayed"));
     for (tag = 0; tag < total; ++tag) {

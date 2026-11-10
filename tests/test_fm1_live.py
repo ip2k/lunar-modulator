@@ -102,7 +102,7 @@ def state_lines(text):
 
 
 def test_full_ui_matches_the_unpipelined_app_at_every_checkpoint(full_exes):
-    """The same script of 68 events (all 14 buttons, 7 encoders both ways, SEL
+    """The same script of 68 events (all 14 buttons, 5 encoders both ways, SEL
     combos, PLAY/REC, ARP tap and hold, keys, bend, MASTER, panic) goes to the
     pipelined adapter through the drain barrier and to the same arrangement
     with no pipeline. Mode, page, sound, octave, popup, the 41 LEDs, a hash of
@@ -147,3 +147,22 @@ def test_full_ui_fence_is_still_live(full_exes):
     result = run(live, 'guard')
     assert result.returncode == 72
     assert 'pipeline refusal' in result.stderr
+
+
+def test_full_ui_gestures_that_diverge_from_r0_do_not_trip_the_guard(full_exes):
+    """PRESETS and ALGORITHM turns, SEL+PRESETS (Macro current), keys on Macro,
+    the FX-mode effect swap and pick, and channel-2 MIDI notes, through the
+    live adapter and the barrier, plain and under ASan, with 1,400 blocks
+    after the popups. A guard trip would exit 72 (a warm-reset loop on the
+    device). The engines stay as they were and Macro stays on VA."""
+    live, asan, _ = full_exes
+    for exe in (live, asan):
+        result = run(exe, 'gestures')
+        assert result.returncode == 0, result.stderr
+        assert 'gestures=1' in result.stdout
+        assert 'Effect order' in result.stdout          # the swap was refused, with a popup
+        n = {k: int(v) for k, v in (i.split('=') for i in
+                                      next(l for l in result.stdout.splitlines()
+                                           if l.startswith('pushed=')).split())}
+        assert n['pushed'] == n['events'] == n['applied'] == 28 and n['barrier_events'] == 28
+        assert 'popup_lines=0' in state_lines(result.stdout)[-1]
