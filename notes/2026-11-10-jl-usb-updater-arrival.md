@@ -110,3 +110,25 @@ The owner answered "Approve FM-1 keying test". The approved scope:
   query.
 
 Anything more needs a new yes.
+
+## Result of the keying test, 13:14 PST (one press)
+
+- **bench01** logged a single line, `usb usb3-port1: connect-debounce failed`, at
+  13:14:23 [verified: `dmesg -w`]. Port 1 of bus 3 is the dongle's port. The host
+  saw the line change state but never got a stable connection, so nothing
+  enumerated: no `8057` and no `c755`. No device was present 30 s later either.
+- **The dongle's LEDs** went from solid red with flashing green to **solid red
+  and solid green** [reported: owner].
+- **The FM-1** stayed on its normal V15 screen and **did not reboot**
+  [reported: owner]. The dongle's power cut did not reset it. That matches the
+  earlier inference that a battery-powered FM-1 is not reset by cutting VBUS
+  (docs/07 §2.1). The mask ROM only looks for the key at power-up, so no key was
+  seen.
+- Nothing else was sent or pressed. V15 is still running, so no recovery was
+  needed. The identity read waits for a direct USB connection, because the dongle
+  does not pass the FM-1 through.
+
+What would make it work, by the manual and inference (not run, needs a new yes):
+power-up keying, i.e. the FM-1's slide switch off and then on while the dongle is
+keying. That is either this solid-green state, or DIP bit 3 (continuous key, no
+power cut). The Pico route (docs/17) does the same power-up keying.
