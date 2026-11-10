@@ -17,16 +17,26 @@ control`, the new switch on `prepare-fm1-app.py`.
   1,664 B more heap than today [verified: offline link, `audit_link` PASS,
   `fm1_budget`]. With USB-MIDI on it is 580,604 B, 960 B under the slot
   [verified].
-- **Audio.** On the dev kit the same unit set gives bit-identical audio (all
-  four case hashes match main) [verified].
+- **Audio.** On the dev kit, the same `-Oz` unit set gives bit-identical audio
+  (all four case hashes match main) [verified].
 - **Timing.** The producer's mean block time rises by about 2.4%, from 76.0% to
-  77.8% of the budget. The full-workload producer late blocks go from 2 to 6.
-  All of them were absorbed by the buffer: no fault, gap or underrun
+  77.8% of the budget. The full-workload producer late blocks go from 2 to 6,
+  and the worst producer block from 38,909 to 41,541 ticks (the budget is
+  34,829). The 64-block buffer absorbed all of them: no fault, gap or underrun
   [verified: kit receipts].
+- **Not run on any target:** the `strtod` replacement. The kit image had only
+  the `-Oz` unit set, and nothing on the kit parses text. The parser is tested
+  on the host only. That the target's double arithmetic gives the same results
+  is [inferred]: IEEE `-mfprev1` with `-ffp-contract=off`, and no fast-math
+  flag in the compile line [verified: build log].
 - **Not run on the FM-1** (no FM-1 traffic in this lane).
+- **Not done:** lever (a), derived tables computed at init. It was measured only
+  as arithmetic (about 13 KB [inferred]) and not implemented (§3). Every margin
+  that counts on it stays [inferred].
 
 Both new switches default to off, and the default image is unchanged except
-for its build-id constant [verified].
+for its build-id constant [verified]. So an image pinned by SHA for the M5/M6
+sessions must be built from its pinned commit, not from this branch.
 
 ## 1. Method
 
@@ -143,10 +153,24 @@ All rows are [verified]. Notes on the table:
      - subnormal floats.
 
      Both callers treat a refusal as "not a number".
-   - **Test.** `tests/test_fm1_strtod.py` checks 60,105 inputs against the host
-     C library. Every value it accepts is bit-identical with the same end
-     pointer, every value it refuses comes back as 0, and it must accept more
-     than 60% of them [verified: 2 passed].
+   - **Test.** `tests/test_fm1_strtod.py` checks 60,054 inputs against the host
+     C library: fixed edge cases and random text. The parser accepts 45,492 of
+     them for doubles and 45,491 for floats. Every accepted value is
+     bit-identical with the same end pointer, and every refused value comes
+     back as 0 [verified: 2 passed].
+   - **What the device's own writers print** [verified: host run against the
+     parser]. These are the lines the panel emits and the parsers read back:
+     - **`slot … amt=%.12g ofs=%.12g`.** All 65,536 Q1.14 values (×100/16384)
+       are accepted and exact.
+     - **`set … %.9g` and `level`/`param … %.9g` floats.** Every sampled float
+       with magnitude between 2^-33 and 2^34 (about 1e-10 to 1.7e10) is
+       accepted and exact: 523,245 of 523,245.
+     - **What is refused.** Floats below about 1e-22 or above about 1e22 in
+       magnitude, and subnormal floats. The simulator's libc accepts these, so
+       a value printed that small would be rejected on the FM-1. No panel step
+       produces such a value, apart from exact 0, which is accepted
+       [inferred: from the parameter ranges]. This is the one behavioural
+       difference `cold` brings.
 
 **SRAM effect of `cold`.** Its SRAM code is identical to the full-UI baseline's
 function for function. Only newlib's locale objects leave SRAM: `lconv`, the
@@ -277,7 +301,11 @@ The next feature-preserving lever is the derived tables (about 13 KB).
    - It fits V15's slot with 8,128 B to spare with USB off.
    - All eight Macro models stay.
    - Audio is bit-identical on the kit.
-   - It costs about 2.4% of the producer's mean block time.
+   - It costs about 2.4% of the producer's mean block time. Its worst
+     producer block is 41,541 ticks against main's 38,909 (budget 34,829), and
+     it has 6 buffered late blocks against 2.
+   - Its parser refuses floats below about 1e-22 and subnormals, which the
+     simulator accepts (§2).
    - Before shipping it still needs the M5/M6 hardware gates that every FM-1
      image needs, and a kit run of the full-UI barrier.
 2. **If the soft-lock work or USB-MIDI overflows that margin**, implement the
