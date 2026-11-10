@@ -200,3 +200,9 @@ The owner answered "Approve bit 3 try". The approved scope:
 - bench01 only watches; the same no-dump, no-write, no-command rule applies.
 - Return: the owner sets switch 3 back off, unplugs the dongle, and power-cycles the FM-1 directly.
   Then the read-only identity query runs.
+
+**Correction (owner, 13:39):** before the switch-3 try, the owner moved the supply selector to
+**5.0 V**. The earlier tries ran at the selector's previous setting, and the "looks centred, 4.2 V"
+reading above was not confirmed. The owner set switch 3 to ON. A later photo had looked as if it
+were still off, so the switch positions cannot be told reliably from photos; ask instead. As of
+13:39:21, bench01 had logged nothing since the watch started.
