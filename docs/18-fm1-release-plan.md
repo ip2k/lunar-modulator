@@ -178,6 +178,8 @@ Asked 2026-10-29; answers recorded here when they come.
    engines; today's pipelined build runs Macro's model 0 only, and the two
    share a 50,688 B wave table (notes/2026-11-08-fit-tables.md). With item 8,
    dropping them would remove playable models.
+   **Answered 2026-11-10:** "Measure, then decide (Recommended)": build each
+   lever on the merged tree, check timing on the dev kit, then decide.
 
 ## 4. Doubts to settle
 
