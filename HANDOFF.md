@@ -11,6 +11,21 @@ original conversation; last updated 2026-11-09. Read this first, then
 
 ## M5 approved, host tool ready — 2026-11-09
 
+**Checkpoint, 2026-11-10:** wave 3 merged — #190 (USB-MIDI device behind
+`--usb-midi`, off by default; M11), #189 (M6 audio-path RAM image; the dev-kit
+run passes, the FM-1 run is **not approved**), #188 (M10 controls, LEDs and
+battery behind `LUNAR_FM1_FULL_UI`, off: the full UI is about 39 KB over V15's
+slot). Merged-tree builds: default 550,300 B; with USB 557,500 B and only
++128 B of heap over the minimum. Open owner decisions from wave 3 are in the
+notes `2026-11-09-usb-midi.md` §7, `2026-11-09-m6-image.md` §6 and
+`2026-11-09-controls.md`. M5 still waits for the owner at the bench (docs/19);
+a watchdog reset seconds after the test pattern is now a recorded possible result.
+
+**Owner answers, 2026-11-10** (docs/18 §3 items 6–9): M6 approved to run on the
+FM-1 after M5 (`m6-plan-2`, `37334c76…`; its host tool is still to be written
+and reviewed); USB-MIDI stays off until measured; the M10 soft locks must be
+lifted before 1.0; how the full UI fits the slot is still open.
+
 **Checkpoint, 2026-11-09:** #171–#186 are merged (#181 made the engine cost tests take the best of three runs) to main and no workflow is
 running. The next hardware step is the M5 bench session with the owner
 present, following docs/19. docs/18 §1.1–§1.2 list what each wave delivered.
