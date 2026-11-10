@@ -84,3 +84,18 @@ would show as `4c4a:c755` `FM-1`, and a keyed ROM as `4c4a:8057`. Neither
 appeared, and no failed attempt was logged either. Still open: whether the
 dongle is on a powered bench01 port, its DIP and supply-selector settings,
 and its LEDs.
+
+**Owner's report, then a closer look at the board photo:**
+- The dongle is in a port directly on bench01, not on the hub. Its red LED is solid and its green
+  LED flashes. The vendor manual pairs red with power and blue with download, and says nothing of a
+  flashing green.
+- The DIP switch is at its default: all eight actuators sit on the side away from `ON`, so
+  **all off** [verified: enlarged photo]. In JieLi's 4.0 manual, all off means the dongle keys only
+  when the Update button is pressed, after a power cut of at least 250 ms.
+- The supply selector's slider looks centred, which would be **4.2 V** [inferred: photo]. That is to
+  be confirmed by eye.
+- With all bits off, the dongle neither enumerates on bench01 nor passes the running FM-1 through
+  [verified: no USB event, above]. This fits the dongle holding the target's D+/D− until it keys
+  [inferred]; bit 7 would be needed for it to show up itself.
+- Nothing was pressed or sent. Pressing Update with the FM-1 attached would key it into mask ROM,
+  which makes this a new FM-1 route. That needs the owner's yes.
