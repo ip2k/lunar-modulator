@@ -10,6 +10,14 @@ history.
 
 ### Added
 
+- **The 1.0 FM-1 image has a name: `prepare-fm1-app.py --profile fm1-1.0` (measured offline
+  and on the dev kit, not on the FM-1).** It is the full UI with `--size-levers control` and
+  the new `--init-tables on`. That switch fills four derived tables at startup instead of
+  storing them: the DX7 sine and exponential tables, the resampler's kernel pairs and Plaits'
+  sine. It saves 15,140 B, so the image is 560,856 B, 20,708 B under V15's slot. USB-MIDI stays
+  off. On the dev kit the audio is bit-identical to main's and the tables match their stored
+  versions entry for entry. The producer's mean block time rises about 1.5%. The default image is
+  unchanged apart from its build id (`notes/2026-11-10-init-tables.md`).
 - **Size levers for the full-UI FM-1 image (measured offline and on the dev kit, not on the
   FM-1).** `prepare-fm1-app.py` gains `--full-ui on` (the full panel, until now a source edit)
   and `--size-levers cold|control`. With `control` the full-UI image is 575,068 B, 6,496 B

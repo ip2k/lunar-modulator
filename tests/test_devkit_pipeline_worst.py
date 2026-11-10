@@ -302,3 +302,19 @@ def test_buffered_summary_refuses_an_unexplained_firmware_failure():
     assert not b['firmware_failure_is_per_block_deadline_only'] and not b['pass_soak_receipts']
     clean = result_parser.parse(soak_receipts(p_late=(0, 0, 0, 0), failure_line=''), 320)['buffered']
     assert clean['firmware_failure_line'] is None and clean['pass_soak_receipts']
+
+
+def test_parser_reads_and_gates_the_init_tables_check():
+    """--init-tables kit images print one LUNAR_INIT_TABLES line; any bad table refuses the run."""
+    gen_spec = importlib.util.spec_from_file_location('init_tables_gen', ROOT/'tools/init_tables.py')
+    gen = importlib.util.module_from_spec(gen_spec)
+    gen_spec.loader.exec_module(gen)
+    h = ['%08x' % x for x in gen.tables()['hashes']]
+    line = 'LUNAR_INIT_TABLES bad=0 sin12={} exp2={} pairs={} lut_sine={}\n'.format(*h)
+    parsed = result_parser.parse(line + dac_receipts())
+    assert parsed['init_tables'] == dict(bad=0, sin12=h[0], exp2=h[1], pairs=h[2], lut_sine=h[3])
+    assert 'init_tables' not in result_parser.parse(dac_receipts())
+    with pytest.raises(ValueError, match='mask 4'):
+        result_parser.parse(line.replace('bad=0', 'bad=4') + dac_receipts())
+    with pytest.raises(ValueError, match='exactly one LUNAR_INIT_TABLES'):
+        result_parser.parse(line + line + dac_receipts())

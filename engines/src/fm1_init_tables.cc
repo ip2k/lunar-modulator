@@ -18,8 +18,10 @@
 #include <stdint.h>
 #include <string.h>
 
-// The tables are zero-initialised storage in a NOLOAD cache-RAM section: no
-// flash image. The host test builds with an empty section.
+// The tables live in a NOLOAD cache-RAM section: no flash image, and nothing at
+// startup copies or clears them (the SDK's cache_way_config copies
+// .cache_ram_data and clears only .cache_ram_bss). lunar_init_tables() writes
+// every entry before first use. The host test builds with an empty section.
 #ifndef FM1_INIT_TABLES_SECTION
 #define FM1_INIT_TABLES_SECTION __attribute__((section(".lunar_cache_init")))
 #endif

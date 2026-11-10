@@ -517,7 +517,9 @@ INIT_TABLES_DECLARATIONS = (
 INIT_TABLES_FLAGS = 'CFLAGS += -DFM1_INIT_TABLES=1\n'
 INIT_TABLES_CHECK_FLAGS = 'CFLAGS += -DFM1_INIT_TABLES_CHECK=1\n'
 # The tables' own output section: after the SDK's .cache_ram_bss, NOLOAD, so it
-# takes cache RAM but no app.bin bytes. Nothing in the SDK copies or clears it.
+# takes cache RAM but no app.bin bytes. Nothing at startup copies or clears it:
+# cache_way_config, called once from startup.S, copies .cache_ram_data and clears
+# .cache_ram_bss (size 0) only [verified: kit and FM-1 ELF disassembly, 2026-11-10].
 INIT_TABLES_SECTION = ('\n    .lunar_cache_init ALIGN(4) (NOLOAD):\n    {\n        *(.lunar_cache_init)\n'
                        '        . = ALIGN(4);\n    } > cache_ram\n')
 INIT_TABLES_SETUP_ANCHOR = '    p33_io_latch_init();\n}'
