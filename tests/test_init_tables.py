@@ -89,6 +89,23 @@ def test_generator_refuses_a_table_that_is_not_derivable(tmp_path, table):
         gen.tables(tmp_path)
 
 
+def test_generator_refuses_kernel_pairs_that_are_not_derivable(monkeypatch):
+    """The pairs are derived from the same kernel as the stored ones, so only the
+    reference side can disagree: perturb one stored slope by one ulp."""
+    gen = generator()
+    stored = gen.stored_pairs
+
+    def perturbed(header):
+        v = stored(header)
+        w = gen.f32_bits(v[101]) + 1
+        v[101] = struct.unpack('<f', struct.pack('<I', w))[0]
+        return v
+
+    monkeypatch.setattr(gen, 'stored_pairs', perturbed)
+    with pytest.raises(ValueError, match='fm1_resampler_kernel_pairs is not exactly derivable'):
+        gen.tables()
+
+
 @pytest.mark.parametrize('opt', ['-O0', '-O2', '-Os'])
 def test_host_build_regenerates_every_entry(tmp_path, opt):
     cxx = shutil.which('c++') or shutil.which('clang++') or shutil.which('g++')

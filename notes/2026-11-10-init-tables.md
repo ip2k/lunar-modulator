@@ -263,3 +263,70 @@ at 76.0%, this one at 74.2%. Adding them is not a measurement.
 - Control and tables were not timed together on the kit (§5).
 - The boot-time cost of the fill was not measured.
 - The cause of the +1.5% is not pinned (§4).
+
+## 8. Adversarial review (2026-11-10)
+
+Reviewed at `5167dd7a`. Rebuilt on aeon from that commit with the pinned SDK,
+in containers labelled `session=init-tables`, and read the bench01 receipts
+without touching the kit.
+
+**Reproduced.**
+
+- `--profile fm1-1.0`, GPL 1: 560,856 B, +20,708 B slot margin, heap
+  +3,264 B over the minimum, `audit_link: PASS (0 fail, 1 pending, linked)`
+  [verified]. Its `nm -S` (size, type, name) equals the measured `t-p1`
+  image's, and the kit `--init-tables` image rebuilt from head equals `kt`'s
+  the same way (554,008 B). The commits after `f2cf8e4e` change comments, and
+  code under `LUNAR_DEVKIT_USB_MIDI`, which the pipeline image does not
+  define. So the kit timing and hashes were measured on `f2cf8e4e`'s image,
+  and head's builds the same code. Its target SHA-256 differs, through the
+  build time.
+- The bench01 receipts match §4: the `LUNAR_INIT_TABLES` line, the four case
+  hashes in all three runs, the producer means and the late counts, and the
+  session order km, kt, km2 under the lock.
+
+**The bit-exact chain, closed on the target.**
+
+- The kit's `bad=0` compares the target's fill with the generator's model of
+  the stored tables. The missing link was the model against the bytes the
+  pi32v2 compiler emits.
+- A stored-table kit image rebuilt from head carries all four tables in
+  `.cache_ram_data`. Read from the ELF, every entry equals `tables()`
+  (kSinTab12, kExp2Tab, the pairs and lut_sine) [verified].
+- The FM-1 image's fill was compared with the kit's in the vendor objdump:
+  - the kernel-slope loop has the same two float instructions as the kit's,
+    and they differ only in the register that holds `0x37800000` (2^-16);
+  - the vendor objdump shows them as "unknown instruction", so this is a
+    byte comparison, not a decode;
+  - the kit's sequence passed the on-target hash.
+  - Every other table is integer copies and sign flips (`^ 0x80000000` for
+    lut_sine).
+
+**Ordering in the `fm1-1.0` image** [verified: vendor objdump]. `main` starts
+with `__local_irq_disable`. The fill follows `p33_io_latch_init` and precedes
+`os_init`, `task_create` and `os_start`, and `__local_irq_enable` comes after
+`os_start`. The ELF has no `.init_array` or `.ctors`. `.lunar_cache_init` is
+NOBITS at `0x1F28828`–`0x1F2EA2C`, inside `cache_ram` (`0x1F28000`, 28,672 B).
+That is apart from the heap (ends `0x1C7FCEC`) and `.boot_info`
+(`0x1C7FD4C`).
+
+**Changed in review.**
+
+- The generator's refusal is now tested for the kernel pairs. One stored
+  slope is moved by one ulp. Disabling the pairs check makes that test fail.
+- `firmware/fm1/README.md` names the 1.0 build and the fill's place in boot.
+- Mutants killed by the existing tests:
+  - a shortened lut_sine loop in the generated file;
+  - const declarations kept;
+  - the mask check removed from the parser;
+  - the FM-1 build keeping the check flags;
+  - the profile without the tables.
+
+**Not changed.**
+
+- The SDK's boot banner `REMAIN_SIZE` for cache RAM does not count
+  `.lunar_cache_init`. It is a debug print only.
+- The default image's build id changes with every edit of
+  `prepare-fm1-app.py`. That is by design (`BUILD_ID_SOURCES`). The approved
+  M5/M6 RAM images are built by `link-m6-in-container.sh` and
+  `link-diagnostic.sh`, not by this preparer, so they are unaffected.
