@@ -10,6 +10,14 @@ history.
 
 ### Added
 
+- **Size levers for the full-UI FM-1 image (measured offline and on the dev kit, not on the
+  FM-1).** `prepare-fm1-app.py` gains `--full-ui on` (the full panel, until now a source edit)
+  and `--size-levers cold|control`. With `control` the full-UI image is 573,436 B, 8,128 B
+  under V15's slot (960 B with USB-MIDI on), with all eight Macro models kept. On the dev kit
+  its audio is bit-identical and the producer's mean block time rises about 2.4%. `cold` swaps
+  newlib's `strtod` for an exact fast-path parser (`firmware/fm1/fm1_strtod.c`) that refuses
+  what it cannot convert exactly. Both switches are off by default, and the default image is
+  unchanged apart from its build id (`notes/2026-11-10-size-levers.md`).
 - **M10 controls wired through a drain barrier (host-tested, not on hardware).** The FM-1 app
   image can now route all 27 keys, 14 buttons, 7 encoders, pitch bend, MIDI panic and sound 2's
   notes to the panel's own handlers, light the 41 LEDs from the app's state and classify the
