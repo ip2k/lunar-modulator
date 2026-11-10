@@ -7,7 +7,20 @@
 | Author | Emilie Gillet (Mutable Instruments) |
 | Licence | MIT. Every vendored `.h`/`.cc` carries its MIT header (checked with grep on 2026-09-30); `stmlib/LICENSE` is copied alongside. stmlib's GPL-3 `ui/event_queue.h` is **not** vendored |
 | Copied by | `vendor.py`, which follows `#include`s from the files listed in its `ROOTS` and copies the whole of `plaits/dsp`. Only Rings' reverb and its `fx_engine.h` come from `rings/`, and only Clouds' reverb, diffuser, `fx_engine.h` and `frame.h` from `clouds/` |
-| Local changes | **None.** Files are byte-identical to upstream; fixes and adaptations live in our wrappers (`engines/src/mi_*.cc`) |
+| Local changes | **One** (2026-11-10, below). Every other file is byte-identical to upstream; fixes and adaptations live in our wrappers (`engines/src/mi_*.cc`) |
+
+Local change, `plaits/dsp/engine2/arpeggiator.h` (2026-11-10): the random
+arpeggio mode (Macro's Chip model) draws from the arpeggiator's own
+`rng_state_`, the same LCG as `stmlib::Random` (×1664525 + 1013904223),
+seeded 0x21 in `Init()`, instead of the global `stmlib::Random::GetWord()`.
+Why: the FM-1 renders Sound 2 on the second core while Drums, Shapes and
+the six-operator engine use the global generator on the first; a shared
+global would be a data race and would make the two-core render differ from
+the one-core one. Effect: a single Chip voice draws the numbers it drew
+before from a fresh 0x21 state (the reference test's shared seed); each
+of Macro's voices now has its own stream rather than one stream shared by
+every voice and engine. Re-vendoring overwrites this file: re-apply the
+change (lane soft-locks, `notes/2026-11-10-soft-locks.md`).
 
 Re-vendoring:
 

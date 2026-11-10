@@ -8,6 +8,7 @@ fm1_app_key refuses); each consumed result keeps the tag the worker set
 output words are L, R, L, R; nothing sounds before the first note. No SDK,
 no IRQ, no timing and no device."""
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -16,9 +17,12 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULES = 'dx7,macro,drums,filter,drive,echo,comp,arp,lfo,env,chance'
+# The full-UI fixtures add an insert with engine API v3's render_ext, so a
+# deferred Sound 2 chain runs one on CPU1 (post_fx_run) in the inserts script.
+FULL_MODULES = MODULES + ',test-ext'
 
 
-def build(tmp_path, sanitize, full=False, ref=False):
+def build(tmp_path, sanitize, full=False, ref=False, modules=MODULES):
     cc, cxx = shutil.which('clang'), shutil.which('clang++')
     if not cc or not cxx or not shutil.which('make'):
         pytest.skip('native clang toolchain unavailable')
@@ -28,6 +32,8 @@ def build(tmp_path, sanitize, full=False, ref=False):
         flags += ' -DFM1_APP_RENDER_PIPELINE=1'
     if full or ref:
         flags += ' -DLUNAR_FM1_FULL_UI=1'
+    if full and not ref:
+        flags += ' -DFM1_APP_PIPELINE_HOST_PROBE=1'   # the replay prints Sound 2's core
     if ref:
         flags += ' -DREPLAY_REF=1'
     if sanitize:
@@ -37,7 +43,7 @@ def build(tmp_path, sanitize, full=False, ref=False):
                     '-f', str(ROOT / 'sim/web/mk/sim.mk'),
                     '-f', str(ROOT / 'tests/fixtures/fm1_live/host.mk'),
                     f'SIM={ROOT / "sim/web"}', f'BUILD={out}', 'FM1_GPL_MODS=0',
-                    f'FM1_MODULES={MODULES}', f'CC={cc}', f'CXX={cxx}', f'EXTRA={flags}',
+                    f'FM1_MODULES={modules}', f'CC={cc}', f'CXX={cxx}', f'EXTRA={flags}',
                     '-j4', str(exe)], check=True, stdout=subprocess.DEVNULL,
                    stderr=subprocess.DEVNULL)
     return exe
@@ -48,9 +54,9 @@ def replay(request, tmp_path_factory):
     return request.param, build(tmp_path_factory.mktemp('fm1live'), request.param)
 
 
-def run(exe, mode):
+def run(exe, *args):
     env = dict(os.environ, ASAN_OPTIONS='halt_on_error=1', UBSAN_OPTIONS='halt_on_error=1')
-    return subprocess.run([str(exe), mode], env=env, capture_output=True, text=True, timeout=120)
+    return subprocess.run([str(exe), *args], env=env, capture_output=True, text=True, timeout=180)
 
 
 def test_fm1_live_controls_under_the_pipeline_fence(replay):
@@ -93,8 +99,9 @@ def test_fm1_live_fence_is_live(replay):
 @pytest.fixture(scope='module')
 def full_exes(tmp_path_factory):
     base = tmp_path_factory.mktemp('fm1full')
-    return (build(base, False, full=True), build(base, True, full=True),
-            build(base, False, ref=True))
+    return (build(base, False, full=True, modules=FULL_MODULES),
+            build(base, True, full=True, modules=FULL_MODULES),
+            build(base, False, ref=True, modules=FULL_MODULES))
 
 
 def state_lines(text):
@@ -109,7 +116,7 @@ def test_full_ui_matches_the_unpipelined_app_at_every_checkpoint(full_exes):
     the 240x240 screen and a hash of every PCM word agree at 13 checkpoints."""
     live, _, ref = full_exes
     a = run(live, 'full')
-    b = run(ref, 'ref')
+    b = run(ref, 'ref', 'full')
     assert a.returncode == 0, a.stderr
     assert b.returncode == 0, b.stderr
     a_lines, b_lines = state_lines(a.stdout), state_lines(b.stdout)
@@ -135,13 +142,6 @@ def test_full_ui_events_wait_for_a_drained_app(full_exes):
         assert n['services'] >= 2               # the popup expiry and the ARP hold ran
 
 
-def test_full_ui_soft_locks_refuse_swaps_once_blocks_run(full_exes):
-    live, _, _ = full_exes
-    result = run(live, 'refuse')
-    assert result.returncode == 0, result.stderr
-    assert 'refused=1' in result.stdout
-
-
 def test_full_ui_fence_is_still_live(full_exes):
     live, _, _ = full_exes
     result = run(live, 'guard')
@@ -149,20 +149,113 @@ def test_full_ui_fence_is_still_live(full_exes):
     assert 'pipeline refusal' in result.stderr
 
 
-def test_full_ui_gestures_that_diverge_from_r0_do_not_trip_the_guard(full_exes):
-    """PRESETS and ALGORITHM turns, SEL+PRESETS (Macro current), keys on Macro,
-    the FX-mode effect swap and pick, and channel-2 MIDI notes, through the
-    live adapter and the barrier, plain and under ASan, with 1,400 blocks
-    after the popups. A guard trip would exit 72 (a warm-reset loop on the
-    device). The engines stay as they were and Macro stays on VA."""
-    live, asan, _ = full_exes
+def counters(text):
+    return {k: int(v) for k, v in (i.split('=') for i in
+                                  next(l for l in text.splitlines() if l.startswith('pushed=')).split())}
+
+
+def units(line):
+    return line.split('units=')[1].split()[0].split(',')
+
+
+def dx7_limits(line):
+    return [int(v) for v in line.split('dx7_limit=')[1].split()[0].split(',')]
+
+
+def shares_table():
+    """pipeline_shares' table in sim/web/src/fm1_app.c: engine id -> its groups."""
+    src = (ROOT / 'sim/web/src/fm1_app.c').read_text()
+    body = src[src.index('static unsigned pipeline_shares('):]
+    body = body[:body.index('};')]
+    return {i: {s} for i, s in re.findall(r'\{\s*"([a-z0-9-]+)",\s*(SHARE_\w+)\s*\}', body)}
+
+
+# Unit ids (fm1_app_sound_unit, fm1_app_insert_unit): Sound 1 is 0, the
+# masters 1 and 2, Sounds 2-4 are 3-5, then two inserts a sound from 6.
+SOUND2_CHAIN = (3, 8, 9)
+CPU0_UNITS = (0, 4, 5, 6, 7, 10, 11, 12, 13)
+
+
+def expected_deferral(units_):
+    """pipeline_admit's rule, worked out here from the printed arrangement:
+    Sound 2's chain goes to CPU1 when it has an engine and shares no group
+    with a unit CPU0 renders."""
+    table = shares_table()
+    groups = lambda us: set().union(*(table.get(units_[u], set()) for u in us))
+    return int(units_[3] != '-' and not (groups(SOUND2_CHAIN) & groups(CPU0_UNITS)))
+
+
+def routes(text):
+    """Each checkpoint's 'route TAG deferred=D' line, in order."""
+    return [int(l.split('deferred=')[1]) for l in text.splitlines() if l.startswith('route ')]
+
+
+def differential(full_exes, mode, checkpoints):
+    """The script through the live adapter and the barrier, plain and under
+    ASan, against the same arrangement with no pipeline: units, Macro's
+    model, mode, page, sound, popup, the 41 LEDs, a hash of the screen and a
+    hash of every PCM word, equal at every checkpoint. A guard trip would
+    exit 72 (a warm-reset loop on the device)."""
+    live, asan, ref = full_exes
+    b = run(ref, 'ref', mode)
+    assert b.returncode == 0, b.stderr
+    want = state_lines(b.stdout)
+    assert len(want) == checkpoints
     for exe in (live, asan):
-        result = run(exe, 'gestures')
-        assert result.returncode == 0, result.stderr
-        assert 'gestures=1' in result.stdout
-        assert 'Effect order' in result.stdout          # the swap was refused, with a popup
-        n = {k: int(v) for k, v in (i.split('=') for i in
-                                      next(l for l in result.stdout.splitlines()
-                                           if l.startswith('pushed=')).split())}
-        assert n['pushed'] == n['events'] == n['applied'] == 28 and n['barrier_events'] == 28
-        assert 'popup_lines=0' in state_lines(result.stdout)[-1]
+        a = run(exe, mode)
+        assert a.returncode == 0, a.stderr
+        assert state_lines(a.stdout) == want
+        n = counters(a.stdout)
+        assert n['pushed'] == n['events'] == n['applied']
+        # Sound 2's chain ran on the core the sharing rule gives it, at every
+        # checkpoint (a sequential replay cannot see a race, but it does see
+        # which path ran).
+        got = routes(a.stdout)
+        assert len(got) == len(want), (len(got), len(want))
+        assert got == [expected_deferral(units(l)) for l in want], list(zip(got, (units(l) for l in want)))
+    assert len({line.split('pcm=')[1].split()[0] for line in want}) == checkpoints
+    assert 'popup_lines=0' in want[-1]
+    differential.routes = got
+    # every DX7 a sound gets, at start or later, plays at most eight voices
+    assert all(v in (0, 8) for line in want for v in dx7_limits(line)), want
+    return want, n
+
+
+def test_full_ui_gestures_match_the_unpipelined_app(full_exes):
+    """PRESETS and ALGORITHM turns on a DX7 and on Macro as the current
+    sound, SEL+PRESETS choosing sound 2, keys with Macro current, the
+    FX-mode effect swap and pick, channel-2 MIDI notes, 1,400 blocks. Until
+    2026-11-10 the pipelined build refused the engine changes and the swap
+    and held Macro on VA; now they happen, at the drain barrier."""
+    want, n = differential(full_exes, 'gestures', 16)
+    assert n['pushed'] == 28 and n['barrier_events'] == 28
+    assert [units(l)[3] for l in (want[0], want[5], want[10])] == ['macro', 'dx7', 'drums']
+    assert ('comp', 'echo') in {tuple(units(l)[1:3]) for l in want}   # the effect swap
+    assert units(want[6])[3] == 'dx7' and 'model=1' in want[6]   # ALGORITHM reached the DX7's parameter 0
+
+
+def test_full_ui_engine_swaps_and_every_macro_model_match(full_exes):
+    """Every Macro model with notes held on Sound 2 across each change, the
+    Chip random arpeggio beside Drums, Sound 2 as DX7, as Drums with Sound 3
+    also Drums (both on CPU0: they share stmlib::Random), empty, and Macro
+    again; Sound 1's engine changed, and away from the DX7 and back in one
+    drained batch (the new DX7 at the old address still limited to eight
+    voices); the master effects swapped and picked."""
+    want, _ = differential(full_exes, 'swaps', 31)
+    models = [int(l.split('model=')[1].split()[0]) for l in want if units(l)[3] == 'macro']
+    assert set(range(8)) <= set(models)                   # all eight Macro models ran
+    sound2 = [units(l)[3] for l in want]
+    assert {'macro', 'dx7', 'drums', '-'} <= set(sound2)
+    assert any(units(l)[0] != 'dx7' for l in want)        # Sound 1 changed too
+    masters = {tuple(units(l)[1:3]) for l in want}
+    assert len(masters) >= 4 and ('comp', 'echo') in masters   # the effect order swapped
+    assert {0, 1} <= set(differential.routes)              # Sound 2 on CPU1, and inline on CPU0
+
+
+def test_full_ui_insert_changes_match(full_exes):
+    """Sound 2's inserts picked and cleared (one of them test-ext, through
+    render_ext on CPU1) while its engine changes under them, then Sound 1's."""
+    want, _ = differential(full_exes, 'inserts', 19)
+    sound2_inserts = {units(l)[8] for l in want}
+    assert {'filter', 'comp', 'test-ext'} <= sound2_inserts
+    assert {'-', 'comp'} <= {units(l)[6] for l in want}

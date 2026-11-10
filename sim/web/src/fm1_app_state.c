@@ -1430,8 +1430,12 @@ static void project_reset(fm1_app_t *a) {
   void *cmd_ctx = a->on_cmd_ctx;
   struct fm1_edit *edit = a->edit;       /* the edit layer's ring goes on (fm1_edit.h) */
   fm1_app_all_notes_off(a);
+  unsigned char *pool = a->arena_pool;  /* the host's pool goes on too */
+  const size_t pool_bytes = a->arena_pool_bytes;
   if (external) fm1_app_init_arenas(a, rate, arenas);
   else fm1_app_init(a, rate);
+  a->arena_pool = pool;
+  a->arena_pool_bytes = pool_bytes;
   a->edit = edit;
   a->master = master;
   a->gain = master * master;

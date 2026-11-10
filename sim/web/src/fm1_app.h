@@ -251,8 +251,7 @@ enum {
   FM1_APP_SELECT_BAD = -1,      /* wrong kind, unknown, or no such unit */
   FM1_APP_SELECT_ARENA = -2,    /* larger than the unit's arena */
   FM1_APP_SELECT_RATE = -3,     /* the engine refused this host */
-  FM1_APP_SELECT_RAM = -4,      /* the chain would pass the FM-1's RAM budget */
-  FM1_APP_SELECT_LOCKED = -5    /* pipelined build: the arrangement is fixed once blocks run */
+  FM1_APP_SELECT_RAM = -4       /* the chain would pass the FM-1's RAM budget */
 };
 
 /* A sound unit's level into the mix, in percent (100: unity, as before). */
@@ -414,6 +413,8 @@ typedef struct fm1_app {
   fm1_host_t ram_host;           /* host at FM1_APP_RAM_RATE: the RAM rule's sizes */
   fm1_app_unit_t unit[FM1_APP_UNITS];   /* by id: see FM1_APP_UNITS */
   uint8_t external_arenas;       /* project loads preserve host-owned storage */
+  unsigned char *arena_pool;     /* fm1_app_set_arena_pool: where larger arenas come from */
+  size_t arena_pool_bytes;
   fm1_mix_limiter_t limiter;
   float master;                  /* MASTER position, 0..1 */
   float gain;                    /* master * master */
@@ -595,6 +596,16 @@ typedef struct {
  * the render path are unchanged. */
 int fm1_app_init_arenas(fm1_app_t *a, float sample_rate,
                         const fm1_app_arena_t arenas[FM1_APP_UNITS]);
+
+/* After fm1_app_init_arenas: `pool` (16-byte aligned, alive, not overlapping
+ * the app; the unit arenas may lie inside it) is where fm1_app_select finds
+ * a larger arena when a unit's own is too small for the engine chosen: the
+ * first 16-byte aligned gap, low to high, that no other unit's arena covers
+ * (the unit's own counts as free, since its engine goes first). A unit that
+ * becomes empty gives its arena back when it lies in the pool. Without a
+ * pool, or with no gap large enough, the choice is refused with
+ * FM1_APP_SELECT_ARENA as before. Returns 0, or -1 for an invalid pool. */
+int fm1_app_set_arena_pool(fm1_app_t *a, unsigned char *pool, size_t bytes);
 
 /* The registry index of an engine id, or -1. */
 int fm1_app_find(const char *id);
