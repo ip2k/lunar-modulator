@@ -115,12 +115,17 @@ in-package or not is still open.
 **A second flash part.** FM-1s sold from about autumn 2026, mostly through
 AliExpress, carry a UCUN UC25HQ80 instead, JEDEC `0xB36014`, also 1 MiB
 [reported: SLOOP v2.8.5 release notes quoting The Firmware Hub; fm1-gm PR
-#76]. UCUN's datasheet (V1.2, 2022) gives the same 256 B page, 4 KB sector,
-32/64 KB block, the same status-register layout and the commands JieLi's
-driver uses, with erases of at most 10 ms [reported: datasheet]. It has no
-`31h` (write status register 2); it writes both bytes with a 16-bit `01h`,
-the form JieLi's V1.2.13 driver tries first unless its caller asks for `31h`
-[verified: `cpu.a` IR; what callers ask is open]. Lunar's tools accept both IDs from one list
+#76]. UCUN's datasheet (V1.2, 2022) gives a 256 B page, 4 KB sector,
+32/64 KB blocks, a Winbond-style status register and every command JieLi's
+driver sends except `31h`, with erases of at most 10 ms [reported:
+datasheet]; the Puya side of that comparison has not been re-checked
+against Puya's datasheet. Without `31h` (write status register 2) the part
+takes both status bytes in a 16-bit `01h`, the form JieLi's V1.2.13 driver
+uses first and for its plain unprotect, unless its caller asks for `31h`
+[verified: `cpu.a` IR; what callers ask is open]. It ships with QE clear
+(status register `00h`) while the FM-1's flash bus runs 4-wire (docs/02),
+and the SDK driver never sets QE, so whether stock V15's SPL starts such a
+unit is open [inferred risk]. Lunar's tools accept both IDs from one list
 (`tools/fm1_flash_parts.py`) and name the part they find. Nothing has run on
 a UC25HQ80 unit here. Details, the comparison and every site that checks the
 ID: `notes/2026-11-10-flash-uc25hq80.md`.

@@ -30,8 +30,10 @@ class FlashPart:
     vendor: str
     part: str
     size: int
-    # Largest page/sector/32 KB/64 KB erase time (tPE, tSE, tBE1, tBE2), ms.
-    # Chip erase is left out on purpose: firmware never issues one.
+    # Largest sector/32 KB/64 KB erase time (tSE, tBE1, tBE2), ms, and page
+    # erase (tPE) where the source records it: UCUN gives 10 ms, the Puya
+    # figures on record (notes/2026-11-08-failopen-hardening.md) do not
+    # include tPE. Chip erase is left out on purpose: firmware never issues one.
     erase_max_ms: int
     program_max_ms: int        # tPP, one 256-byte page
     source: str

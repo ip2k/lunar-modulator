@@ -128,6 +128,21 @@ policy" carries the same text.
   the stock SPL/OTA/cfg package guards, never ship a V1.2.x uboot or loader
   (CLAUDE.md trap 11).
 
+## Open owner decisions — UC25HQ80 flash, 2026-11-10
+
+PR #195 makes the read-only backup tool accept the UCUN UC25HQ80
+(`0xB36014`) that newer FM-1s carry, besides the Puya P25Q80H. Nothing has
+run on such a unit. Three decisions are open, with context and cost, in
+`notes/2026-11-10-flash-uc25hq80.md` §6:
+
+1. Writes on a UC25HQ80 unit through `tools/fm1_uboot_restore_test.py`
+   (recommended: keep refused until such a unit gives two identical dumps).
+2. A second FM-1-transporter patch to accept `B36014` (recommended: not now).
+3. V16 / new-unit boot area for Lunar packages (recommended: a separate
+   stream once V16's package is pinned and read). V15's SPL on a UC25HQ80
+   is unproven: the bus runs 4-wire and that part ships with QE clear
+   (note §2 item 4).
+
 ## Open owner decisions — M12 package builder, 2026-11-09
 
 - **Lunar identity range.** `tools/jieli/build_fwsc.py` and
