@@ -16,16 +16,24 @@ FM6_HEADERS = ['dx7_voice.h', 'dx7_loop.h', 'dx7_bank.h', 'msfa.h', 'msfa_prelud
                'glide.h', 'note_offsets.h']
 FM6_API_HEADERS = ['fm1_engine.h', 'fm1_math.h', 'fm1_midi_ev.h', 'fm1_dx7.h', 'fm1_smooth.h']
 MSFA_UNITS = ['dx7note', 'env', 'fm_core', 'fm_op_kernel', 'freqlut', 'lfo', 'patch', 'pitchenv']
+# --usb-midi: the FM-1 application's USB-MIDI device (firmware/fm1, cpu.a's
+# low-level driver, no SDK device class) under a dev-kit probe that logs every
+# OUT packet's length and event on the debug UART (notes/2026-11-09-usb-midi.md).
+USB_MIDI_FILES = ['fm1_usb_midi.c', 'fm1_usb_midi.h', 'fm1_usb_sdk.c']
 
 
 def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False, boot_control=False,
-            fm6_ram=False, fm6_audio=False):
-    if sum((audio_probe, fm6_benchmark, fm6_audio)) > 1:
+            fm6_ram=False, fm6_audio=False, usb_midi=False):
+    if sum((audio_probe, fm6_benchmark, fm6_audio, usb_midi)) > 1:
         raise ValueError('Choose one diagnostic; FM6 timing does not enable DAC output')
     if fm6_ram and not (fm6_benchmark or fm6_audio):
         raise ValueError('FM6 SRAM placement requires the FM6 benchmark or audio mode')
     if fm6_audio and not (fm6_ram and boot_control):
         raise ValueError('Live FM6 requires SRAM placement and unattended UART control')
+    if usb_midi and not boot_control:
+        # The probe takes the kit's USB port from the ROM's; UART ARM/ENTER is
+        # the only way back to the ROM without a button.
+        raise ValueError('USB-MIDI requires unattended UART control (--boot-control)')
     if out.exists():
         raise ValueError('Output must not exist; preserve prior build evidence')
     shutil.copytree(sdk, out)
@@ -74,8 +82,15 @@ def prepare(sdk, source, out, audio_probe=False, fm6_benchmark=False, boot_contr
         names += ['fm6_live.cc', 'fm6_live.h']
     if boot_control:
         names += ['boot_command.c', 'boot_command.h', 'boot_control.c']
+    if usb_midi:
+        names += ['usb_midi_probe.c', 'usb_midi_probe.h']
     for name in names:
         shutil.copyfile(source/'firmware/devkit'/name, app/name)
+    usb_inputs = []
+    if usb_midi:
+        for name in USB_MIDI_FILES:
+            shutil.copyfile(source/'firmware/fm1'/name, app/name)
+            usb_inputs.append(source/'firmware/fm1'/name)
     shutil.copyfile(source/'engines/include/fm1_resampler.h', app/'fm1_resampler.h')
     makefile = app/'board/wl82/Makefile'
     text = makefile.read_text()
@@ -124,6 +139,12 @@ UART1_PLATFORM_DATA_END();
         # := snapshots the global flags now, so every mode define must precede
         # the target-specific override. A later += does not update this object.
         text += 'objs/apps/demo/demo_hello/audio_probe.c.o: CFLAGS := $(filter-out -Oz -flto,$(CFLAGS)) -O2 -ffp-contract=off -fno-data-sections\n'
+    if usb_midi:
+        text = text.replace('c_SRC_FILES := ' + chr(92),
+                            'c_SRC_FILES := \\\n' + ''.join(
+                                '\t../../../../../apps/demo/demo_hello/' + name + ' \\\n'
+                                for name in ('usb_midi_probe.c', 'fm1_usb_midi.c', 'fm1_usb_sdk.c'))[:-1], 1)
+        text += '\nCFLAGS += -DLUNAR_DEVKIT_USB_MIDI=1 -DLUNAR_FM1_USB_MIDI=1\n'
     engine_inputs = []
     if fm6_benchmark or fm6_audio:
         for subdir, files in [('src', FM6_SOURCES + FM6_HEADERS), ('include', FM6_API_HEADERS)]:
@@ -182,17 +203,21 @@ UART1_PLATFORM_DATA_END();
     receipts = {'sdk_commit_required': 'e30b1ee375d1f2993fc23bf92c8b99006a6e5f9d',
                 'placement': ('FM6 object code/constants in startup-copied ram0_data; external callees may remain XIP'
                               if fm6_ram else 'XIP code/constants; internal SRAM state; SDK CONFIG_NO_SDRAM_ENABLE'),
-                'measurement': ('live FM6 through internal DAC; no mixer/effects; includes note events' if fm6_audio
+                'measurement': ('USB-MIDI device probe: descriptors, speed, OUT packets logged on UART; no audio'
+                                if usb_midi else
+                                'live FM6 through internal DAC; no mixer/effects; includes note events' if fm6_audio
                                 else 'internal-DAC reference tone; no instrument workload' if audio_probe
                                 else 'real FM6, no DAC/mixer/effects, raw oscillator timer ticks' if fm6_benchmark
                                 else 'resampler-only, IRQ enabled, raw oscillator timer ticks'),
                 'download_disabled': True,
                 'settings_backends': 'empty registered range; records retained outside it',
                 'boot_control': 'UART1 RX PA5, 1Mbaud, explicit ARM/ENTER, linked ROM path requires review' if boot_control else False,
+                'usb_midi': ('4C4A:C755 "FM-1" on USB0 (IRQ 9, priority 1), firmware/fm1 descriptors; '
+                             'probe polls OUT every 500 ms and echoes events IN') if usb_midi else False,
                 'inputs': {str(p.relative_to(source)): hashlib.sha256(p.read_bytes()).hexdigest()
                            for p in [*(source/'firmware/devkit'/name for name in names),
                                      source/'tools/jieli/prepare-devkit.py',
-                                     source/'engines/include/fm1_resampler.h', *engine_inputs]}}
+                                     source/'engines/include/fm1_resampler.h', *engine_inputs, *usb_inputs]}}
     (out/'lunar-devkit-input.json').write_text(json.dumps(receipts, indent=2)+'\n')
 
 
@@ -208,10 +233,13 @@ if __name__ == '__main__':
                       help='Time real FM6 instrument rendering without DAC output')
     mode.add_argument('--fm6-audio', action='store_true',
                       help='Play real FM6 through DAC; requires --fm6-ram --boot-control')
+    mode.add_argument('--usb-midi', action='store_true',
+                      help='Run the FM-1 USB-MIDI device as a probe on the kit; requires --boot-control')
     ap.add_argument('--boot-control', action='store_true',
                     help='Opt in to dev-kit-only UART1 command input on PA5 (requires extra TX wire)')
     ap.add_argument('--fm6-ram', action='store_true',
                     help='Place FM6 object code/constants in SRAM; requires an FM6 mode')
     a = ap.parse_args()
     prepare(a.sdk, a.source, a.out, audio_probe=a.audio_probe, fm6_benchmark=a.fm6_benchmark,
-            boot_control=a.boot_control, fm6_ram=a.fm6_ram, fm6_audio=a.fm6_audio)
+            boot_control=a.boot_control, fm6_ram=a.fm6_ram, fm6_audio=a.fm6_audio,
+            usb_midi=a.usb_midi)

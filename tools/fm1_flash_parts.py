@@ -18,7 +18,7 @@ Comparison, sources and the inventory of every site that uses this list:
 notes/2026-11-10-flash-uc25hq80.md. MIT licence, like this repository.
 
 Owner-unit tools that pin the exact `info` line (tools/fm1-transporter/
-fm1t_m5.py) deliberately do not use this list: there a different ID means
+fm1t_m5.py and fm1t_m6.py) deliberately do not use this list: there a different ID means
 "not the owner's unit", which is a stop, not a new part.
 """
 from dataclasses import dataclass
