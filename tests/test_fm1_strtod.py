@@ -173,3 +173,65 @@ int main(int argc, char **argv) {
     # Refused rather than approximated: hexadecimal and inf/nan spellings.
     out = subprocess.run([str(exe), '0x10', 'inf', 'nan'], capture_output=True, text=True, check=True).stdout
     assert out.split('\n')[:3] == ['0 0', '0 0', '0 0']
+
+
+WRITERS = r"""
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+double lunar_fm1_strtod(const char *s, char **end);
+float lunar_fm1_strtof(const char *s, char **end);
+/* One line per input, "d TEXT" or "f TEXT"; prints A (accepted, identical to
+ * the C library), R (refused) or X (accepted but different). */
+int main(void) {
+    char line[256];
+    while (fgets(line, sizeof line, stdin)) {
+        char *s = line + 2, *a, *b;
+        line[strcspn(line, "\n")] = 0;
+        if (line[0] == 'd') {
+            double x = lunar_fm1_strtod(s, &a), y = strtod(s, &b);
+            putchar(a == s ? 'R' : (a == b && !memcmp(&x, &y, sizeof x)) ? 'A' : 'X');
+        } else {
+            float x = lunar_fm1_strtof(s, &a), y = strtof(s, &b);
+            putchar(a == s ? 'R' : (a == b && !memcmp(&x, &y, sizeof x)) ? 'A' : 'X');
+        }
+    }
+    putchar('\n');
+    return 0;
+}
+"""
+
+
+@pytest.mark.skipif(shutil.which('cc') is None, reason='needs a C compiler')
+def test_device_writer_formats_and_limits(tmp_path):
+    # The formats the panel writes for these parsers (sim/web/src/fm1_mod_ui.c,
+    # fm1_edit.c): amt=/ofs= with %.12g of a Q1.14 value x100/16384, and %.9g
+    # floats. The documented limits of the fast path are pinned here as well
+    # (notes/2026-11-10-size-levers.md §2): %.9g text is refused below about
+    # 1e-14 in magnitude and %.12g text below about 1e-11, because the power
+    # of ten falls under 10^-22.
+    import struct
+    src = tmp_path/'writers.c'
+    src.write_text(WRITERS)
+    exe = tmp_path/'writers'
+    subprocess.run(['cc', '-std=c99', '-O2', '-ffp-contract=off', '-o', str(exe), str(src),
+                    str(ROOT/'firmware/fm1/fm1_strtod.c')], check=True)
+
+    def run(lines):
+        out = subprocess.run([str(exe)], input='\n'.join(lines) + '\n', capture_output=True,
+                             text=True, check=True).stdout.strip()
+        assert len(out) == len(lines)
+        return out
+
+    amounts = ['d %.12g' % (q * 100 / 16384) for q in range(-32768, 32768)]
+    assert set(run(amounts)) == {'A'}
+    rnd = random.Random(20261110)
+    floats = []
+    while len(floats) < 20000:
+        x = struct.unpack('<f', struct.pack('<I', rnd.getrandbits(32)))[0]
+        if 1e-14 <= abs(x) <= 1e37:
+            floats.append('%.9g' % x)
+    assert set(run(['f ' + t for t in floats] + ['d ' + t for t in floats])) == {'A'}
+    # Just outside: refused, never approximated.
+    assert run(['f 1.23456789e-15', 'd 1.23456789e-15', 'd 1.23456789012e-12',
+                'f 3.40282347e+38', 'f 1.17549435e-38']) == 'RRRRR'

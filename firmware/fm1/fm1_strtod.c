@@ -8,7 +8,10 @@
  * (notes/2026-11-10-size-levers.md). With the lever on, fm1-app.mk compiles
  * those two units with -Dstrtod=lunar_fm1_strtod -Dstrtof=lunar_fm1_strtof,
  * so the references resolve here, inside the LTO object, and nothing is
- * pulled. Host, simulator and WebAssembly builds never see this file.
+ * pulled. In today's FM-1 image neither parser is reachable, so LTO drops
+ * them and this file; the image's only strtod is then the SDK's own
+ * (common_lib.a strtod.c.o, for its vsscanf), which these parsers never call.
+ * Host, simulator and WebAssembly builds never see this file.
  *
  * Accepted text: optional leading white space, an optional sign, decimal
  * digits with an optional point, an optional exponent ("e", optional sign,

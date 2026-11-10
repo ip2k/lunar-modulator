@@ -198,15 +198,20 @@ def test_size_lever_fragment():
     # The renderer and the engines never take COLDOPT.
     for unit in (cold + control).split():
         assert not unit.startswith(('tp/', 'engines/', 'src/')), unit
-    for unit in ('sim/src/fm1_app ', 'sim/src/fm1_seq_ui', 'fm1app/fm1/fm1_live'):
+    for unit in ('sim/src/fm1_app ', 'sim/src/fm1_seq_ui', 'fm1app/fm1/fm1_input'):
         assert unit not in cold and unit in control
     # The sequencer engine, the arpeggiator and the modulation runtime keep
     # the build's level: at COLDOPT they cost 6.4% of the producer's block.
-    for hot in ('c/seq/seq_engine', 'midi_fx/fm1_arp', 'midi_fx/arp_engine', 'mod/mod/mod_core', 'mod/mod/mp_lfo'):
+    # So does fm1_live, the FM-1's per-block producer wrapper and consumer
+    # conversion, which no dev-kit image runs, so its timing is unmeasured.
+    for hot in ('c/seq/seq_engine', 'midi_fx/fm1_arp', 'midi_fx/arp_engine', 'mod/mod/mod_core', 'mod/mod/mp_lfo',
+                'fm1app/fm1/fm1_live'):
         assert hot not in cold and hot not in control
     assert '-Dstrtod=lunar_fm1_strtod -Dstrtof=lunar_fm1_strtof' in text
     assert 'FM1_APP_SOURCES += fm1/fm1_strtod' in text
     assert '$(error -DLUNAR_FM1_SIZE_CONTROL=1 needs -DLUNAR_FM1_SIZE_COLD=1)' in text
+    # Without COLDOPT the levers would build nothing at -Oz while the receipt names them.
+    assert 'ifeq ($(strip $(COLDOPT)),)' in text
     # The objects are named as the rules name them: each COLD/CONTROL unit
     # must resolve to a source file in the tree.
     prefixes = {'sim/src/': 'sim/web/src/', 'c/seq/': 'engines/seq/', 'c/state/': 'engines/state/',
