@@ -12,6 +12,9 @@ fi
 if [[ $PROFILE == ramtest ]]; then
     exec bash "$SRC/tools/jieli/link-ramtest-in-container.sh"
 fi
+if [[ $PROFILE == m6 ]]; then
+    exec bash "$SRC/tools/jieli/link-m6-in-container.sh"
+fi
 case "$PROFILE" in
     inert) FOLDER=diagnostic; SOURCES=(startup.S memory.c runtime.c) ;;
     handover) FOLDER=handover; SOURCES=(startup.S capture.c runtime.c) ;;

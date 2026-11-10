@@ -4,11 +4,14 @@
  * Register accessors for lunar_alnk0_ops on the chip itself: volatile loads
  * and stores at the SFR addresses, and pi32v2's `csync` as the barrier.
  * The interrupt and delay callbacks belong to the runtime that links this.
- * Compile-checked with JieLi's pi32v2 clang; not yet run on a chip.
+ * JieLi's pi32v2 clang predefines __PI32V2__; the SDK's CFLAGS add
+ * __GCC_PI32V2__. Until M6 the guard knew only the SDK's macro, so an
+ * SDK-free build (no SDK CFLAGS) compiled this file to nothing and the link
+ * failed. Not yet run on a chip.
  */
 #include "alnk0_audio.h"
 
-#if defined(__pi32v2__) || defined(__GCC_PI32V2__)
+#if defined(__PI32V2__) || defined(__pi32v2__) || defined(__GCC_PI32V2__)
 
 uint32_t lunar_alnk0_mmio_read(void *context, uint32_t address, unsigned bytes)
 {
