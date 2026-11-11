@@ -19,7 +19,8 @@ kit run and desk work. §4 is the sequence to run once the port is free.
 `ram_runner.py` accepts only the kit's pinned sysfs path `3-1.2`
 (`tools/bench_targets.json`) and its allow-list stays unwidened.
 
-- **The port now holds the transporter.** bench01's USB tree at 18:58 PST:
+- **The port now holds the transporter.** bench01's USB tree at 18:58 PST,
+  unchanged at 19:31 PST (2026-11-11T03:31Z):
   - `1-2` FM-1 (`4c4a:c755`);
   - `3-1` hub (`0424:2514`);
   - `3-1.2` FM-1 Transporter (`2e8a:000a`);
@@ -33,7 +34,8 @@ kit run and desk work. §4 is the sequence to run once the port is free.
     run at 15:15.
 - **The kit's application is up.** It answered `LUNAR PING`, run under
   `flock -n ~/.lunar-devkit.lock` on bench01 at about 18:32 PST, with
-  "Diagnostic PING acknowledged; no reset requested." [verified].
+  "Diagnostic PING acknowledged; no reset requested." [verified]. It
+  answered again at 19:31 PST, after the probe work [verified].
 - **ROM entry was not attempted.** `--enter-uboot` would put the kit in a
   ROM whose USB device is either off the bus or on an unpinned port. The
   runner would refuse to load the return image, and getting out of the ROM
@@ -309,9 +311,14 @@ The runs:
 
 - **a, K1 and K2:** `wdtprobe-read.bin`. Expect the snapshot, then a
   `WDT` reset about 4 s after the jump. The report gives the oscillator and
-  the ready-to-reset time.
+  the ready-to-reset time. That time is an upper bound on the watchdog
+  period: it includes the application's boot up to its reset-reason line.
+  The last beat's time (`t_last_beat`) is the lower bound.
 - **b, K2 control:** `wdtprobe-kick.bin`. Expect 150 beats, the
-  `m5_pixels` line, then `SOFT`.
+  `m5_pixels` line, then `SOFT`. 150 beats last 15 s at a 24 MHz oscillator
+  but only 9 s at 40 MHz. Check the beat span in the report; if it is under
+  10 s, raise `BEATS` in `firmware/wdtprobe/main.c` and rebuild before counting the run
+  as the brief's 10 s kicked run.
 - **c, K1 ROM arming:** `wdtprobe-disarm.bin`. Expect `reset=uboot`, and
   `4c4a:8057` at `3-1.2` again without step 3. Then load
   `wdtprobe-read.bin` straight away (steps 2 and 4) and read `wdt_con`:
