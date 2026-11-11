@@ -7,9 +7,13 @@ turns the plan in
 [`notes/2026-11-08-ram-runner-devkit.md`](../notes/2026-11-08-ram-runner-devkit.md)
 §5 into numbered steps. Confidence marks as elsewhere.
 
-**Status: prepared, not run.** Nothing in this document has been sent to the
-FM-1 or to the Pico 2 W transporter. The host tool was tested only against a
-scripted fake of the transporter's data port (`tests/test_fm1t_m5.py`).
+**Status: run on 2026-11-10.** The image loaded and the jump was sent, but
+the FM-1 showed nothing and reset to V15 3.89 s later; flash was unchanged.
+The result is in
+[`notes/2026-11-10-m5-fm1-ram-run.md`](../notes/2026-11-10-m5-fm1-ram-run.md).
+Every step below ran as written, except that step 1 found `v15=0` (the
+transporter had started before the FM-1 was on) and Part C ran about an hour
+after Part B.
 
 ## 1. What is approved, and what is not
 
