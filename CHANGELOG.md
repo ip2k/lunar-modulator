@@ -10,6 +10,8 @@ history.
 
 ### Added
 
+- The first Lunar code was loaded into the FM-1's memory (milestone M5). It loaded and started, but showed nothing and the unit restarted into the stock firmware a few seconds later. The firmware on the unit was not changed. Bench record: `notes/2026-11-10-m5-fm1-ram-run.md`.
+
 - docs/21: JieLi's USB updater dongle (V4.1). It has photos, the manual's switch and LED tables, and four owner-approved tries on the FM-1. None reached the mask ROM; the FM-1 stayed on V15 throughout. It is compared with the Pico 2 W route, which remains the recovery route.
 - A note on JieLi's USB updater dongle (board V4.1), which has arrived: its markings, what the photos do not settle, and the first checks proposed. It is not yet approved for use on the FM-1 (`notes/2026-11-10-jl-usb-updater-arrival.md`).
 

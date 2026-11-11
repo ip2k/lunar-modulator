@@ -6,8 +6,29 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-11-10. Read this first, then
+original conversation; last updated 2026-11-10 (M5 run). Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
+
+## M5 run on the FM-1: no pattern, reset to V15 — 2026-11-10
+
+**M5 ran on 2026-11-10** (`notes/2026-11-10-m5-fm1-ram-run.md`). `m5.bin`
+loaded into SRAM through the Pico 2 W transporter and read back equal; the
+jump was sent; the FM-1 showed no test pattern and no LED blinks and reset to
+stock V15 3.89 s after the jump. Flash identical before and after
+(`96a27486…`), identity `FM-1_015` afterwards. The power switch fully cuts
+the SoC with the battery in. The one-attempt lock is set: a second M5 run
+needs a new owner yes. **Next:** diagnose the blank run (watchdog, entry
+state, stack placement) before M6 runs on the FM-1.
+
+**Owner decisions, 2026-11-10:**
+
+- "You can write flash since we proved that the pico 2w can recover a
+  corrupted flash" — then, asked how to proceed, chose **"M5 now, M8 next"**:
+  no flash write in that session; the M8 flash-install tool and plan are
+  built next, and M8 runs later with a concrete image hash for the owner to
+  approve.
+- The JL USB updater does not key a WL82 here (docs/21); testing stopped
+  ("Stop here").
 
 ## M5 approved, host tool ready — 2026-11-09
 
