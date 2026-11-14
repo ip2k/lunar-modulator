@@ -43,8 +43,8 @@ switches, which are both off by default.
 | Image | Build id | Switches | Ends |
 | --- | --- | --- | --- |
 | `m5p2.bin` | `m5-plan-2` | none (FM-1 default) | never; kicks and blinks until power-off |
-| `m5p2-mailbox.bin` | `m5-plan-2m` | `LUNAR_M5P2_MAILBOX=1` | writes the `usb_update_mode` marker at entry, stops kicking after 18 s nominal; the armed watchdog then resets into UBOOT with the breadcrumbs kept |
-| `m5p2-kit.bin` | `m5-plan-2k` | `LUNAR_M5P2_KIT=1` | dev kit only: FM-1 pins and SPI1 stubbed, UART1 trace on PB3 at 1,000,000 baud, P33 reset to the application after 9 s nominal |
+| `m5p2-mailbox.bin` | `m5-plan-2m` | `LUNAR_M5P2_MAILBOX=1` | writes the `usb_update_mode` marker at entry, stops kicking after 18,000 ms of nominal waits (about 40 s at kit clocks); the armed watchdog then resets into UBOOT with the breadcrumbs kept |
+| `m5p2-kit.bin` | `m5-plan-2k` | `LUNAR_M5P2_KIT=1` | dev kit only: FM-1 pins and SPI1 stubbed, UART1 trace on PB3 at 1,000,000 baud, P33 reset to the application after 9,000 ms of nominal waits (26.6 s on the kit) |
 | `m5p2-kit-mailbox.bin` | `m5-plan-2km` | both | dev kit only: as the mailbox image, with the trace and 20 heartbeat lines after the last kick |
 
 On the kit, PA0–PA10, PB7 and PC7–PC10 belong to its camera, keys and LCD

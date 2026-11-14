@@ -40,8 +40,10 @@ struct lunar_m5p2_config {
     unsigned trace;     /* kit: UART1 TX on PB3, 1,000,000 baud, as ramtest */
     unsigned mailbox;   /* write the "usb_update_mode" marker at entry */
     unsigned finish;    /* enum lunar_m5p2_finish */
-    /* Nominal milliseconds (at the 40 MHz binding) after which `finish`
-     * happens; 0 = never (only meaningful with LUNAR_M5P2_FOREVER). */
+    /* Nominal milliseconds of wait_ms (40 MHz binding) after which `finish`
+     * happens, checked once per blink cycle; spin-timed work (measurement,
+     * cadence B, the frame) is not counted. 0 = never (only meaningful with
+     * LUNAR_M5P2_FOREVER). */
     unsigned finish_ms;
     /* After STOP_KICKING: heartbeat lines (trace only) before returning. */
     unsigned beats;

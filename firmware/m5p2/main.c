@@ -7,7 +7,9 @@
  *                         (the kit's PA0-PA10, PB7 and PC7-PC10 belong to its
  *                         camera, keys and LCD), a UART1 trace on PB3, and a
  *                         P33 soft reset into the kit's application after
- *                         ~9 s nominal (15 s at the kit's 24 MHz oscillator).
+ *                         9,000 ms of nominal waits (26.6 s on the kit: the
+ *                         waits run 1.67x long at 24 MHz, and cadence B, the
+ *                         frame and the trace come on top).
  *   LUNAR_M5P2_MAILBOX=1  write the "usb_update_mode" marker at entry, and
  *                         stop kicking after FINISH_MS so the ROM's watchdog
  *                         resets into UBOOT with the breadcrumbs kept.
@@ -32,7 +34,8 @@
 #define BEATS 20u
 #else
 #define FINISH (LUNAR_M5P2_MAILBOX ? LUNAR_M5P2_STOP_KICKING : LUNAR_M5P2_FOREVER)
-/* Mailbox: 18 s nominal, 30 s at a 24 MHz oscillator; default: never. */
+/* Mailbox: 18,000 ms of nominal waits (30 s of waits at 24 MHz plus cadence
+ * B and the frame, ~40 s at kit clocks); default: never. */
 #define FINISH_MS (LUNAR_M5P2_MAILBOX ? 18000u : 0u)
 #define BEATS 0u
 #endif
