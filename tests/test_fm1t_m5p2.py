@@ -945,6 +945,19 @@ def test_crumbs_needs_the_rom_without_the_loader(tmp_path, kw, stop):
         assert 'power off' not in events[-1]['verdict'] and 'OFF, run' not in events[-1]['verdict']
 
 
+def test_crumbs_busy_transporter_stop_never_says_power_off(tmp_path):
+    """Core 1 still keying: `status` gets no reply. The shared stop text must not
+    tell the operator to power off or rekey either (breadcrumbs in SRAM)."""
+    _run2_dir(tmp_path)
+    fake = crumbs_fake(keying=True)
+    code, events, _ = run(fake, ['crumbs'], tmp_path)
+    verdict = events[-1]['verdict']
+    assert code == 3 and fake.lines == ['ping', 'status'] and 'memr' not in fake.wire.decode()
+    assert verdict.startswith("STOP: no reply to `status`") and 'do not rekey' in verdict
+    assert 'power off' not in verdict.lower() and 'OFF, run' not in verdict
+    assert not (tmp_path / CRUMBS_LOCK).exists()
+
+
 def test_crumbs_err_reply_takes_no_lock_and_may_be_retried(tmp_path):
     """A stale mount (docs/19 section 7.6): the ROM read fails, nothing was
     read, so the read may be tried again; once DATA came, never again."""
