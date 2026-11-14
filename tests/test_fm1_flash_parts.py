@@ -159,9 +159,9 @@ def test_restore_tool_writes_only_on_puya():
         fake(restore.RestoreReader, [fc0a(3, 0xEF4014)]).online()
 
 
-@pytest.mark.parametrize('tool', ['fm1t_m5.py', 'fm1t_m6.py'])
+@pytest.mark.parametrize('tool', ['fm1t_m5.py', 'fm1t_m6.py', 'fm1t_m8.py'])
 def test_owner_unit_tools_still_pin_the_owner_part(tool):
-    # The M5/M6 tools are bound to the owner's unit: a different ID there
+    # The M5/M6/M8 tools are bound to the owner's unit: a different ID there
     # means "not this unit", so they must keep the exact Puya line.
     text = (TOOLS / 'fm1-transporter' / tool).read_text()
     assert 'EXPECTED_INFO = "OK key=980F type=3 id=856014"' in text
