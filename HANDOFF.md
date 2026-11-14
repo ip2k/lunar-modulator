@@ -29,6 +29,13 @@ state, stack placement) before M6 runs on the FM-1.
   approve.
 - The JL USB updater does not key a WL82 here (docs/21); testing stopped
   ("Stop here").
+- After the diagnosis (likely the ROM's ~4 s watchdog, firing before the
+  panel's display-on): **"Hold M6"**. The approved M6 FM-1 run waits for a
+  kit-measured fix and is rebuilt as `m6-plan-3`.
+- Next work: **"Both, in parallel"**: dev-kit tests K1–K3 and `m5-plan-2`
+  on branch `feature/2026-11-10@m5-kit-watchdog`, and the M8 flash-install
+  tool in a separate session (proposed as a card; it runs once the owner
+  starts it).
 
 ## M5 approved, host tool ready — 2026-11-09
 
