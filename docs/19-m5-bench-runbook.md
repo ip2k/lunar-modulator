@@ -529,7 +529,11 @@ with seconds) that stays in the video frame next to the TFT and the LEDs.
 ### 7.5 Was run 1 inconclusive?
 
 Claude and the owner look at the video together, after step 14, and decide
-by this table. Run 2 follows only on an "inconclusive" row.
+by this table. Run 2 follows only on an "inconclusive" row, and only if run
+1's receipt (`12-ramrun.jsonl`) has the `tx` line `jump 0x1c02000 0x1`.
+**A step-12 exit 3 before the jump is a §5 stop, not an inconclusive run:**
+nothing ran, and run 2 does not follow, although the tool would admit it
+(run 1's lock is taken before the first `memw`).
 
 | What run 1 showed | Verdict | Next |
 | --- | --- | --- |
@@ -572,6 +576,13 @@ Same run directory, same session, after step 14.
 - **R6. Wait** until one of these, at most **15 minutes** after the jump:
   - **(a)** the console shows the ROM back: `INQUIRY OK: … product="UBOOT1.00 …"`
     and a new `UBOOT READY` after the jump. Go to R7.
+    - If the transporter saw the reset as a detach but nothing mounts within
+      3 s, it reboots itself (up to three times) and comes back through the
+      `D+ already pulled up … skipping USB_KEY` path [verified in source,
+      not on the bench: upstream `src/pio_host.c`, `REATTACH_AFTER_MS`].
+      That ends the console reader: restart it at once, and wait for
+      `UBOOT READY` as above. This is the automatic form
+      of the replug below.
   - **(b)** the LEDs have gone dark and stayed dark for 30 s, with no new
     `UBOOT READY`. Go to R7 anyway; if it fails, see "Stale mount" below.
   - **(c)** V15's screen appears, or `status` answers `v15=1`: the FM-1 did
@@ -610,11 +621,16 @@ again:
    key and hosts the device after about 6 s, as in §4 step 1's
    `D+ already pulled up` case [inferred: that path was seen with V15
    attached, never with the ROM]. Expected on the console: `INQUIRY OK: …
-   UBOOT1.00` and `UBOOT READY`.
+   UBOOT1.00` and `UBOOT READY`. The self-reboot in R6 (a) does not help
+   here: it waits for a detach, and a stale mount never saw one.
 3. Repeat R7.
 
-If that still fails, the breadcrumbs cannot be read with the tools we have:
-go to R8. Closing the gap for good would need a transporter firmware change,
+**Stop instead** if, after the replug, the console shows `KEY: sending …`:
+the transporter did not find D+ pulled up and is keying into a powered
+FM-1. Run nothing; go to R8 (no readback).
+
+If R7 still fails after the replug, the breadcrumbs cannot be read with the
+tools we have: go to R8. Closing the gap for good would need a transporter firmware change,
 which this plan does not make: a data-port command that forces a USB bus
 reset and re-enumeration of the attached device, or a mount counter in
 `status` so the host can tell a fresh enumeration from a stale one; and, if
