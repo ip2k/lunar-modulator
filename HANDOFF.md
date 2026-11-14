@@ -36,6 +36,19 @@ state, stack placement) before M6 runs on the FM-1.
   on branch `feature/2026-11-10@m5-kit-watchdog`, and the M8 flash-install
   tool in a separate session (proposed as a card; it runs once the owner
   starts it).
+- **Owner decisions, 2026-11-14** (after `m5-plan-2`, PR #203):
+  - **"Approve"**: `m5p2.bin`, SHA-256
+    `aba6ed7ceaa0cac990dedcaf664b10707632a139be83b3bea5e0f62739bf968c`, may
+    run once more in RAM on the FM-1, watchdog kicks included, with the owner at
+    the bench. Write and review the pinned host tool `fm1t_m5p2.py` (its own
+    one-attempt lock) and the docs/19 changes first.
+  - **"Approve now too"**: `m5p2-mailbox.bin`, SHA-256
+    `b63a643e14983ac07a883867d073368733f6f714b7f35116aa85a4e91d80421c`, may run
+    as a second RAM run in the same bench session if the first is
+    inconclusive: it writes the `usb_update_mode` marker at `0x01C7FD80` so a
+    watchdog reset returns to the mask ROM, then the breadcrumbs are read back.
+  - Unchanged: no flash writes, no soft key, D2 bans, and any other image or
+    tool hash needs a new yes.
 
 ## M5 approved, host tool ready — 2026-11-09
 
