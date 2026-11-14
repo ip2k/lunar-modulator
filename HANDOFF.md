@@ -6,8 +6,20 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-11-10 (M5 run). Read this first, then
+original conversation; last updated 2026-11-14 (M8 tool prepared). Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
+
+## M8 flash-install tool prepared, not run — 2026-11-14
+
+`tools/fm1-transporter/fm1t_m8.py` and its runbook docs/22 are ready for
+review and the owner's approvals (docs/22 §1): the image hash (none yet:
+`APPROVED_PACKAGE_SHA256 = None`, M5–M7 come first), the tool hash, and the
+§4 bench session. It installs an approved package and restores stock V15,
+writing only inside `[0x4000, 0x93000)`. Offline tests only
+(`tests/test_fm1t_m8.py`, a fake transporter with the real `wsec` rules).
+**Owner item:** `restore` accepts any app region (an interrupted install
+leaves a mix), still requiring two identical reads, V15's head and the pinned
+V15 package; it has no lock. Confirm with the §1 approvals.
 
 ## M5 run on the FM-1: no pattern, reset to V15 — 2026-11-10
 
@@ -36,6 +48,19 @@ state, stack placement) before M6 runs on the FM-1.
   on branch `feature/2026-11-10@m5-kit-watchdog`, and the M8 flash-install
   tool in a separate session (proposed as a card; it runs once the owner
   starts it).
+- **Owner decisions, 2026-11-14** (after `m5-plan-2`, PR #203):
+  - **"Approve"**: `m5p2.bin`, SHA-256
+    `aba6ed7ceaa0cac990dedcaf664b10707632a139be83b3bea5e0f62739bf968c`, may
+    run once more in RAM on the FM-1, watchdog kicks included, with the owner at
+    the bench. Write and review the pinned host tool `fm1t_m5p2.py` (its own
+    one-attempt lock) and the docs/19 changes first.
+  - **"Approve now too"**: `m5p2-mailbox.bin`, SHA-256
+    `b63a643e14983ac07a883867d073368733f6f714b7f35116aa85a4e91d80421c`, may run
+    as a second RAM run in the same bench session if the first is
+    inconclusive: it writes the `usb_update_mode` marker at `0x01C7FD80` so a
+    watchdog reset returns to the mask ROM, then the breadcrumbs are read back.
+  - Unchanged: no flash writes, no soft key, D2 bans, and any other image or
+    tool hash needs a new yes.
 
 ## M5 approved, host tool ready — 2026-11-09
 
