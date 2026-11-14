@@ -36,6 +36,15 @@
     every code line on which the two differ. `fm1t_m5.py` was patched with the
     same length rule on 2026-11-10 (owner: "Patch M5 too"), changing only its
     `memw`/`memr`/`ldr` patterns; its new hash awaits the owner's approval.
+  - `fm1t_m5p2.py` is a copy of `fm1t_m5.py` (same licence) for m5-plan-2
+    (docs/19 §7): two pinned images, `m5p2.bin` (run 1) and
+    `m5p2-mailbox.bin` (run 2, only after run 1 sent its jump), each with
+    its own lock and jump marker;
+    two `memw` chunks inside `[0x01C02000, 0x01C03EF0)`; a `crumbs`
+    subcommand that sends one `memr 0x1c05fc0 48` (the transporter's
+    existing ROM memory read) after run 2; and `v15=0` required wherever the
+    ROM is needed. `tests/test_fm1t_m5p2.py` pins every code line on which it
+    differs from `fm1t_m5.py`.
   - `fm1t_m8.py` (same licence) keeps `fm1t_m6.py`'s port pin, loader pin,
     `info` check, allow-listed `Link` and JSONL receipt, drops `memw`/`jump`,
     and adds the two flash writes of M8 (docs/22): `install` of an
