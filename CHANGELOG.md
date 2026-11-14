@@ -10,6 +10,7 @@ history.
 
 ### Added
 
+- **Dev-kit watchdog probes (K1–K3).** Four RAM test images (`firmware/wdtprobe/`) and a timed UART capture measured the AC79 dev kit's mask ROM. It runs a 24 MHz crystal, and its watchdog is armed for about 4 s every time the chip enters the ROM. Kicking the watchdog keeps an image running. A watchdog reset normally restarts the application; with the update marker set, it returns to the ROM, and memory notes survive. M5's test pattern should have drawn well within 4 s at the kit's clock speed. So the FM-1 either starts much slower or stopped M5 for another reason. Bench record: `notes/2026-11-10-devkit-watchdog-probes.md`.
 - The first Lunar code was loaded into the FM-1's memory (milestone M5). It loaded and started, but showed nothing and the unit restarted into the stock firmware a few seconds later. The firmware on the unit was not changed. Bench record: `notes/2026-11-10-m5-fm1-ram-run.md`.
 
 - docs/21: JieLi's USB updater dongle (V4.1). It has photos, the manual's switch and LED tables, and four owner-approved tries on the FM-1. None reached the mask ROM; the FM-1 stayed on V15 throughout. It is compared with the Pico 2 W route, which remains the recovery route.
