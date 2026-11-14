@@ -15,6 +15,11 @@ Every step below ran as written, except that step 1 found `v15=0` (the
 transporter had started before the FM-1 was on) and Part C ran about an hour
 after Part B.
 
+**m5-plan-2 (2026-11-14):** §7 adds the steps for the two RAM runs the owner
+approved after it: `m5p2.bin`, and `m5p2-mailbox.bin` with a breadcrumb read
+if the first is inconclusive. Not yet run; the tool's hash awaits the owner's
+approval (§7.1).
+
 ## 1. What is approved, and what is not
 
 **Owner approval, 2026-11-09** (choice recorded verbatim: "Yes, M5 as
@@ -353,3 +358,287 @@ From note §5:
   it does not);
 - how the transporter behaves after an unanswered `jump` (step 14's
   `status`, and the console log).
+
+## 7. m5-plan-2: run 1 and, if needed, run 2 (approved 2026-11-14)
+
+The steps for M5's successor, from
+[`notes/2026-11-14-m5-plan-2.md`](../notes/2026-11-14-m5-plan-2.md) §5–§7.
+Sections 1–6 above stay the record of the 2026-11-10 M5 run; this section
+reuses their steps and lists only what differs.
+
+**Status: not yet run.** The tool's hash (§7.1) **awaits the owner's
+approval**; the bench session does not start before it is given.
+
+### 7.1 What is approved, and what is not
+
+**Owner approval, 2026-11-14** (HANDOFF "Owner decisions, 2026-11-14"; note
+§9):
+
+- **Run 1, "Approve":** `m5p2.bin`, 7,920 B, SHA-256
+  `aba6ed7ceaa0cac990dedcaf664b10707632a139be83b3bea5e0f62739bf968c`, build
+  id `m5-plan-2`, may run once in RAM on the FM-1, **its watchdog kicks (P33
+  `WDT_CON` writes) included**, with the owner at the bench.
+- **Run 2, "Approve now too":** `m5p2-mailbox.bin`, 7,920 B, SHA-256
+  `b63a643e14983ac07a883867d073368733f6f714b7f35116aa85a4e91d80421c`, build
+  id `m5-plan-2m`, may run once, in the same bench session, **only if run 1
+  is inconclusive** (§7.5). It also writes the `usb_update_mode` marker at
+  `0x01C7FD80`, so that a watchdog reset returns to the mask ROM, and the
+  host then reads the 48 B of breadcrumbs at `0x01C05FC0` once.
+- **SRAM the tool writes:** only `[0x01C02000, 0x01C03EF0)`, two `memw`
+  chunks (4,096 + 3,824 B). The image itself writes its stacks and
+  breadcrumbs below `0x01C06000`, and run 2 the marker.
+- **Tool:** [`tools/fm1-transporter/fm1t_m5p2.py`](../tools/fm1-transporter/fm1t_m5p2.py),
+  SHA-256
+  `2cbdaa687aa03f6df7b15c7d6214ee7b75d1486a00c8abafcad277402d21f7ab`.
+  **This hash needs its own owner approval before the bench run**; the image
+  approvals do not cover it. `preflight` must print exactly it, on the Mac
+  and in the run directory.
+- **Route:** the Pico 2 W transporter of [docs/17](17-pico2w-recovery.md),
+  its UF2 unchanged, as for M5.
+
+Not covered: any other image, build id or tool hash; run 2 when run 1 was
+conclusive; a second attempt of either run; any flash write or erase; the
+soft key `F0 22 24 35 7D F7`, syscmd 33–36/48, `5A AA A5` frames or the
+`7F` upgrade command; loader command `0xFC12` or a raw `0xA1` write; any
+eFuse access; any write to `0x0`–`0x4000`; upstream `fm1t.py`, and
+`fm1t info`, `dump`, `write`, `uboot` or console `k` while a running V15 is
+attached. Each needs its own owner yes. (`dump` reads the whole 1 MiB,
+`0x0`–`0x4000` included, as in Parts A and C; it never writes.)
+
+### 7.2 What the tool will and will not send
+
+`fm1t_m5p2.py` is `fm1t_m5.py` with the lines below changed and nothing
+else [verified: `tests/test_fm1t_m5p2.py` pins every differing code line].
+§2's rules all hold, with these rows:
+
+| Subcommand | Lines it can send |
+| --- | --- |
+| `ramrun m5p2.bin --run 1 --sha256 …` | `ping`, `status`, `memw 0x1c02000 4096 …`, `memw 0x1c03000 3824 …`, `memr` ×2 (the same ranges), `jump 0x1c02000 0x1` |
+| `ramrun m5p2-mailbox.bin --run 2 --sha256 …` | the same lines, with run 2's bytes |
+| `crumbs` | `ping`, `status`, `memr 0x1c05fc0 48` |
+
+- **Two pinned images.** `--run 1` admits only `aba6ed7c…`, `--run 2` only
+  `b63a643e…`. Each `memw` must carry that run's bytes, in order; the jump
+  waits for all 7,920.
+- **One lock per run.** Run 1 creates `fm1t_m5p2-ramrun.lock`, run 2
+  `fm1t_m5p2-mailbox-ramrun.lock`, next to the receipt, just before the
+  first `memw`. A run whose lock exists refuses before opening the port.
+  **Run 2 refuses unless run 1's lock is in the same run directory**, and run
+  1 refuses where run 2's lock is. Either refuses beside M5's or M6's lock.
+- **`crumbs` runs once, after run 2.** It is admitted only in a run directory
+  holding run 2's lock and no `fm1t_m5p2-crumbs.lock`. `status` must answer
+  `uboot=1 v15=0 loader=0 loader_running=0`: the flash loader is loaded at
+  `0x01C02000` and is 24,064 B long, so it would overwrite the breadcrumbs.
+  `memr` is the transporter's existing ROM memory read (FD07); no
+  transporter or Pico change is involved. The lock is created when the
+  transporter answers `DATA 48`: a read that never happened (no reply, or
+  `ERR …` on a stale mount, §7.6) may be tried again, and a read that
+  happened may not. The 48 bytes go into the receipt as hex before they are
+  checked or decoded.
+- **`v15=0` wherever the ROM is needed.** `ramrun` and `crumbs` stop at
+  `status` unless it answers `uboot=1 v15=0`, so with a running V15 attached
+  the tool sends only `ping` and `status`, which the Pico answers itself.
+
+Exit codes as in §2; `crumbs` also exits 3 when the read worked but the
+magic or its complement does not match (the bytes are kept).
+
+### 7.3 Before the session (desk, no hardware)
+
+Claude, on the Mac:
+
+1. Build the images as the note §2 did (`link-diagnostic.sh … m5-plan-2`,
+   [`firmware/m5p2/README.md`](../firmware/m5p2/README.md)) and check both:
+
+   ```bash
+   python3 tools/fm1-transporter/fm1t_m5p2.py preflight \
+     --image <scratch-dir>/m5p2.bin --sha256 aba6ed7ceaa0cac990dedcaf664b10707632a139be83b3bea5e0f62739bf968c
+   python3 tools/fm1-transporter/fm1t_m5p2.py preflight \
+     --image <scratch-dir>/m5p2-mailbox.bin --sha256 b63a643e14983ac07a883867d073368733f6f714b7f35116aa85a4e91d80421c
+   ```
+
+   Expected: `approved run 1 image (m5-plan-2), 7920 B` and `approved run 2
+   image (m5-plan-2m), 7920 B`, and the tool hash of §7.1.
+2. Copy `fm1t_m5p2.py`, `m5p2.bin`, `m5p2-mailbox.bin` and `wl82loader.bin`
+   to **one new run directory** on bench01, for example `~/m5p2-run/` (not
+   `~/m5-run`: the tool refuses beside M5's lock). Rerun both `preflight`
+   commands there with `--loader wl82loader.bin` too. Both runs use this one
+   directory: run 2 needs run 1's lock beside it.
+3. As §3 step 3 (ModemManager, nobody else on the ports).
+
+On bench01, every command below runs in that directory with:
+
+```bash
+cd ~/m5p2-run
+unset FM1T_LOADER
+P=/dev/serial/by-id/usb-kurogedelic_FM-1_Transporter_<serial>-if02   # data port
+C=/dev/serial/by-id/usb-kurogedelic_FM-1_Transporter_<serial>-if00   # console, read only
+T="python3 fm1t_m5p2.py --port $P"
+SHA1=aba6ed7ceaa0cac990dedcaf664b10707632a139be83b3bea5e0f62739bf968c
+SHA2=b63a643e14983ac07a883867d073368733f6f714b7f35116aa85a4e91d80421c
+```
+
+The console reader is §3's, watching only.
+
+**Owner, before step 1:** as §4, plus a clock (a phone stopwatch or a clock
+with seconds) that stays in the video frame next to the TFT and the LEDs.
+
+### 7.4 Parts A and B: dumps, then run 1
+
+- **Part A (steps 1–8):** as §4, with `$T` above and
+  `python3 fm1t_m5p2.py compare …` in step 7.
+- **Steps 9–11:** as §4.
+- **Step 10:** the owner starts filming **before** switching the FM-1 on,
+  with the clock in frame, and keeps filming until step 14.
+- **Step 12:** `$T --log 12-ramrun.jsonl ramrun m5p2.bin --run 1 --sha256 $SHA1`
+  - It sends `memw` ×2 (`0x1c02000` 4,096 B, `0x1c03000` 3,824 B), `memr`
+    ×2, then one `jump 0x1c02000 0x1`, then nothing more.
+  - Expected output: `loaded 7920 B at 0x1c02000; read-back equal`, then
+    `ERR jump after ~2000 ms: … Image presumed running`, exit 0.
+  - On exit 3, as §4 step 12: after a jump, observe first; before it,
+    nothing ran. Do not rerun: the lock refuses.
+- **Step 13, owner at the unit, for at least 2 minutes after the jump.**
+  What to expect if PA2 is the backlight and the clocks are as on the kit
+  (note §5, option 1):
+  1. **The backlight comes on at once.**
+  2. **Cadence A:** three off/on flashes; each half is
+     `0.4 s × 40 MHz / f_osc` (0.67 s at 24 MHz, 0.40 s at 40 MHz).
+  3. **Cadence B:** three off/on flashes (five if TIMER4 is dead); each
+     half is about `56 M cycles / f_cpu` (1.18 s at 48 MHz).
+  4. **The panel:** the test pattern with the label
+     `m5-plan-2 <WDT_CON hex> <ticks per block hex>`, about 11.5 s after
+     the jump on kit clocks. **Photograph the label so both numbers can be
+     read.**
+  5. **The LED code**, repeating: 3 blinks per cycle = frame sent with
+     TIMER4 alive, 2 = frame sent on spin waits, 1 = the panel failed. Count
+     it over three cycles.
+  6. The image kicks and blinks until power-off; it never ends by itself.
+  - From the video: `f_osc ≈ 16 MHz·s / T_A` and `f_cpu ≈ 56 M cycles / T_B`,
+    where `T_A` and `T_B` are one half (one off or one on) of each cadence,
+    averaged over its halves [inferred: assumes the kit's cycles per spin,
+    note §5]. The label gives the same ratio: ticks per block
+    `= 200,000 × 14.1 × f_osc / (16 × f_cpu)`.
+  - **A reset to V15's screen** is now a result about the kicks, not a
+    danger. Read its time after the jump from the video (within ~4 s: the
+    kicks do not reach the FM-1's watchdog). Photograph V15's screen and run
+    no tool command (§4 step 13 applies unchanged).
+  - A dark TFT is a result: record it and go on.
+- **Step 14:** as §4: the owner switches the FM-1 off; `$T --log
+  14-status.jsonl status` must show `uboot=0 v15=0`. Then decide §7.5
+  before Part C.
+
+### 7.5 Was run 1 inconclusive?
+
+Claude and the owner look at the video together, after step 14, and decide
+by this table. Run 2 follows only on an "inconclusive" row.
+
+| What run 1 showed | Verdict | Next |
+| --- | --- | --- |
+| The label photographed and legible (both hex numbers) | conclusive | Part C |
+| Both cadences seen and timed, no reset before the end of cadence B (panel dark or not) | conclusive on the clocks | Part C |
+| Nothing at all: no backlight change, no panel, no LEDs, no reset | inconclusive | run 2 (§7.6) |
+| A reset to V15 (or a console `device gone`) before cadence A's three flashes ended | inconclusive | run 2 |
+| The video is unusable (missed, out of focus, no clock) | inconclusive | run 2 |
+| Cadences seen but the panel dark, or a reset during cadence B or the frame | borderline: the owner decides at the bench | run 2 adds the stage reached and the panel result |
+
+Run 2's breadcrumbs give the numbers the video could not: the last stage,
+`WDT_CON` at entry, ticks per block, the longest kick gap, the kick counts,
+the panel result and the elapsed time.
+
+### 7.6 Run 2 and the breadcrumb read (only after an inconclusive run 1)
+
+Same run directory, same session, after step 14.
+
+- **R1.** `$T --log r1-rekey.jsonl rekey --fm1-is-off`; restart the console
+  reader (as step 9).
+- **R2. Owner:** start filming with the clock in frame, then switch the FM-1
+  **on**. **Claude** waits for `UBOOT READY`.
+- **R3.** `$T --log r3-status.jsonl status`: expected
+  `uboot=1 v15=0 loader=0 loader_running=0`.
+- **R4.** `$T --log r4-ramrun.jsonl ramrun m5p2-mailbox.bin --run 2 --sha256 $SHA2`
+  - The same lines and expected output as step 12; exit 0.
+  - It refuses (exit 1, nothing sent) if run 1's lock is not in the
+    directory.
+- **R5. Owner, at the unit: the same sequence as step 13**, then the end:
+  - after 18,000 nominal ms of waits (about 40 s after the jump at kit
+    clocks; minutes if TIMER4 is dead) the image stops kicking at the end of
+    an LED cycle, with the LEDs off;
+  - about 4 s later the armed watchdog resets the chip into the mask ROM,
+    with SRAM kept [verified on the kit; inferred on the FM-1];
+  - if the kicks never reach the watchdog, that reset comes ~4 s after the
+    jump instead.
+  - **Do not switch the FM-1 off before R7.** Power-off clears SRAM and
+    the breadcrumbs with it [inferred]. Do not `rekey`: it needs the FM-1
+    off (and refuses while `uboot=1`).
+- **R6. Wait** until one of these, at most **15 minutes** after the jump:
+  - **(a)** the console shows the ROM back: `INQUIRY OK: … product="UBOOT1.00 …"`
+    and a new `UBOOT READY` after the jump. Go to R7.
+  - **(b)** the LEDs have gone dark and stayed dark for 30 s, with no new
+    `UBOOT READY`. Go to R7 anyway; if it fails, see "Stale mount" below.
+  - **(c)** V15's screen appears, or `status` answers `v15=1`: the FM-1 did
+    not honour the marker. Photograph it, run no other tool command, and go
+    to R8. The breadcrumbs are lost; this is a result.
+  - **(d)** 15 minutes pass with the LEDs still blinking or no change: the
+    watchdog is not armed or never fired. Go to R8; no readback.
+- **R7.** `$T --log r7-status.jsonl status`, then, only if it answers
+  `uboot=1 v15=0 loader=0 loader_running=0`:
+  `$T --log r7-crumbs.jsonl crumbs`
+  - Expected: the twelve words by name, then
+    `stage …, timer_dead …, panel …, valid True` and
+    `breadcrumbs read and valid; last stage …`, exit 0.
+  - Exit 3 with `does not match`: the read worked but the breadcrumbs did
+    not survive or were never written. The raw bytes are in the receipt.
+    That is the result; there is no second read.
+  - **Never** run `info` or `dump` before `crumbs`: the loader would land on
+    top of the breadcrumbs.
+- **R8. Owner:** switch the FM-1 **off**. **Claude:**
+  `$T --log r8-status.jsonl status` must show `uboot=0 v15=0`. Then Part C.
+
+**Stale mount: the readback gap.** Whether the transporter notices the ROM
+coming back is untested [inferred: unknown]. The Pico's host stack clears its
+"mounted" state only on a detach. On the kit, a watchdog reset into the ROM
+showed Linux only a port reset, no detach
+(`notes/2026-11-10-devkit-watchdog-probes.md`); on the FM-1, M5's reset into
+V15 did show a detach 3.89 s after the jump, and nothing mounted after it
+(`notes/2026-11-10-m5-fm1-ram-run.md`). So `status` may answer `uboot=1` for
+a device that is no longer enumerated, and `crumbs` then gets `ERR …` or no
+reply. It exits 3 **without taking its lock**, so the read may be tried
+again:
+
+1. With the FM-1 left **on**, unplug the Pico's own USB from bench01 and plug
+   it back in; restart the console reader at once.
+2. The transporter boots, finds D+ already pulled up by the ROM, skips the
+   key and hosts the device after about 6 s, as in §4 step 1's
+   `D+ already pulled up` case [inferred: that path was seen with V15
+   attached, never with the ROM]. Expected on the console: `INQUIRY OK: …
+   UBOOT1.00` and `UBOOT READY`.
+3. Repeat R7.
+
+If that still fails, the breadcrumbs cannot be read with the tools we have:
+go to R8. Closing the gap for good would need a transporter firmware change,
+which this plan does not make: a data-port command that forces a USB bus
+reset and re-enumeration of the attached device, or a mount counter in
+`status` so the host can tell a fresh enumeration from a stale one; and, if
+the ROM does not pull D+ up again without VBUS, a VBUS feed (docs/17 §3 leaves
+VBUS unconnected). Each would be a new Pico UF2 and needs its own owner yes.
+
+### 7.7 Parts C and D
+
+As §4 steps 15–20, after step 14 (or R8): `rekey`, power on,
+`dump after-A.bin --compare before-A.bin` (expected `IDENTICAL`: neither run
+wrote flash), power off, Pico disconnected, V15 boots, identity `FM-1_015`.
+Use `$T` and `fm1t_m5p2.py compare`.
+
+### 7.8 Stop conditions, open points and the record
+
+- **Stop conditions and recovery:** §5, unchanged, plus: stop at R6 (c) or
+  (d) without any further tool command but `status`.
+- **Open points** (note §7): the FM-1's cold-ROM oscillator and CPU clocks;
+  whether PA2 is the backlight; whether the panel path (SPI1, ST7789,
+  display-on before the frame) works; whether the kicks hold the FM-1's
+  watchdog; and, for run 2, whether the marker returns the FM-1 to the ROM,
+  whether the transporter re-mounts it, and whether SRAM survives.
+- **The bench note** `notes/YYYY-MM-DD-m5p2-fm1-ram-run.md` records, as §4
+  "After the session" does: the tool and image hashes, the jump replies,
+  the flash and label timings from the video, the §7.5 verdict and why, the
+  crumbs receipt's raw hex and decode, the dump hashes and the identity.
+  Copy the `*.lock` files with the receipts.
