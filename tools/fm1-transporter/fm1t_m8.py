@@ -25,8 +25,11 @@ What `install` and `restore` do, in one session each:
 
 1. `status` must say uboot=1 and v15=0 (D2: nothing is sent to a running
    V15). The ROM is entered by USB_KEY only (docs/17 section 4).
-2. The loader (JieLi's wl82loader.bin, pinned) goes up if the transporter
-   does not hold it, then `info` must be exactly `OK key=980F type=3
+2. The loader (JieLi's wl82loader.bin, pinned) goes up. `install --write`
+   always uploads it itself and refuses a transporter that already holds one
+   (so it runs first in a fresh ROM entry); the dry run and `restore` use a
+   held loader and record that, so `restore` can follow a failed install
+   without a power cycle. Then `info` must be exactly `OK key=980F type=3
    id=856014` (the owner's chip key and Puya P25Q80H flash).
 3. Two full 1 MiB reads, saved next to the receipt, must be byte-identical.
 4. Preconditions on that before-image:
@@ -60,6 +63,10 @@ port (serial 560A5ACCF298BDCB, interface 02); every line sent is checked
 against an allow-list by Link, the only code that writes to the port; a
 `wsec` payload must be the target's own bytes for a sector in the planned
 list; and every line and payload goes to a JSONL receipt (--log, a new file).
+Each `wsec` goes out through Link.send_wsec, which checks the payload before
+the header, so a refusal never leaves the transporter waiting for 4,096
+bytes. `install` refuses root and sudo, because its lock is under $HOME. Once
+any `wsec` went out, every stop, including Ctrl-C, says to run `restore`.
 Single file, standard library only (pyserial is imported only to open the
 port), so this file's hash covers all of its logic.
 """
@@ -267,7 +274,7 @@ def check_port_path(port):
     if not port:
         raise Refused("--port is required (the transporter's /dev/serial/by-id/...-if02); "
                       "this tool does not probe for ports")
-    if os.path.basename(port) != expected_port_name():
+    if port != f"/dev/serial/by-id/{expected_port_name()}":
         raise Refused(f"{port}: not the pinned transporter's data port; pass "
                       f"/dev/serial/by-id/{expected_port_name()} (never the console, -if00)")
 
@@ -338,6 +345,7 @@ class Link:
         self._target = None
         self._planned = frozenset()
         self._write_end = WRITE_MIN
+        self._wsec_ready = None     # set only inside send_wsec
         self.written = []           # sectors whose wsec went out, in order
 
     def arm(self, target, write_end, planned):
@@ -390,6 +398,9 @@ class Link:
                 raise Refused(f"refused: wsec {addr:#x} is not a planned sector")
             if addr in self.written:
                 raise Refused(f"refused: wsec {addr:#x} again; a sector is never resent")
+            if self._wsec_ready != addr:
+                raise Refused("refused: wsec goes out only through send_wsec, which checks "
+                              "the payload before the header")
         self._check_quiet()
         if name in ("wsec", "ldr"):
             parts = line.split()
@@ -403,6 +414,20 @@ class Link:
         if name == "rekey":
             self.sealed = "rekey (the transporter reboots)"
         return name
+
+    def send_wsec(self, addr, data):
+        """One sector: the payload is checked against the target before the header
+        goes out, so a refusal never leaves core 0 waiting for 4,096 bytes."""
+        if self._target is None:
+            raise Refused("refused: wsec before the write was planned and armed")
+        if data != self._target[addr:addr + SECTOR]:
+            raise Refused(f"refused: wsec {addr:#x} payload is not the target's bytes there")
+        self._wsec_ready = addr
+        try:
+            self.send_line(f"wsec {addr:#x} {crc32(data):08X}")
+        finally:
+            self._wsec_ready = None
+        self.send_payload(data)
 
     def send_payload(self, data):
         if not self._payload:
@@ -457,7 +482,12 @@ def handshake(link):
     link.drain_at_open()
     reply = link.request("ping", TIMEOUT_STATUS)
     if reply != "PONG":
-        raise Stop(f"no PONG from the data port (got {reply!r}); is this the transporter's -if02?")
+        raise Stop(f"no PONG from the data port (got {reply!r}). Either this is not the "
+                   "transporter's -if02, or an earlier session stopped in the middle of a "
+                   "4,096-byte payload and the transporter is still counting bytes (it has no "
+                   "timeout). Then replug the Pico only, not the FM-1 [inferred: the FM-1 runs on "
+                   "its battery and has no VBUS from the Pico, so it stays on], and check "
+                   "`status` before anything else (docs/22 section 5)")
 
 
 _STATUS = re.compile(r"OK uboot=([01]) v15=([01]) loader=([01]) loader_running=([01])")
@@ -468,7 +498,9 @@ def read_status(link):
     if not reply:
         raise Stop("no reply to `status`: the transporter's core 1 is busy, most likely "
                    "running the USB_KEY. With the FM-1 off and the key running, switch the "
-                   "FM-1 on and wait for `UBOOT READY`; do not rekey")
+                   "FM-1 on and wait for `UBOOT READY`; do not rekey. If instead a `wsec` "
+                   "timed out in the previous session, core 1 may still be busy: leave the "
+                   "FM-1 on, wait 30 s and run `status` again (docs/22 section 5)")
     m = _STATUS.fullmatch(reply)
     if not m:
         raise Stop(f"unexpected status reply {reply!r}")
@@ -480,7 +512,10 @@ def require_uboot(st):
         raise Stop(f"a running V15 is attached to the transporter ({st}); nothing is sent to "
                    "it (D2). Switch the FM-1 off, then enter UBOOT by USB_KEY. " + USB_KEY_STEPS)
     if st["uboot"] != 1:
-        raise Stop(f"no UBOOT on the transporter (status {st}). {USB_KEY_STEPS}")
+        raise Stop(f"no UBOOT on the transporter (status {st}). If this follows a failed "
+                   "install, the ROM is no longer mounted, so re-entering it means switching the "
+                   "FM-1 off; the boot area [0x0, 0x4000) is never written, so docs/17 still "
+                   f"recovers it (D1). {USB_KEY_STEPS}")
 
 
 # -- Subcommands that use the port ------------------------------------------
@@ -518,11 +553,22 @@ def upload_loader(link, loader):
             raise Stop(f"loader upload to the transporter failed at {off}: {reply!r}")
 
 
-def prepare_loader(link, loader, result):
+def prepare_loader(link, loader, result, fresh=False):
+    """fresh: the pinned loader must be uploaded in this session (install --write).
+    Otherwise a loader the transporter already holds is used and recorded as such;
+    restore accepts one so that it can follow a failed install without a power cycle."""
     st = read_status(link)
     result["status_before"] = st
     require_uboot(st)
-    if st["loader"] != 1:
+    if fresh and (st["loader"] or st["loader_running"]):
+        raise Stop(f"the transporter already holds a loader ({st}); `install --write` uploads "
+                   "the pinned loader itself, in a fresh ROM entry. Nothing was written: switch "
+                   "the FM-1 off, rekey, and run the write as the first step after "
+                   "`UBOOT READY` (docs/22 section 4)")
+    if st["loader"] == 1:
+        result["loader"] = "held from an earlier session; not re-uploaded"
+        print("loader: the transporter already holds one (not re-uploaded this session)")
+    else:
         upload_loader(link, loader)
         st = read_status(link)
         result["status_after_upload"] = st
@@ -613,8 +659,7 @@ def write_sectors(link, target, sectors, result):
     result["sectors_written"] = done
     for s in sectors:
         chunk = target[s:s + SECTOR]
-        link.send_line(f"wsec {s:#x} {crc32(chunk):08X}")
-        link.send_payload(chunk)
+        link.send_wsec(s, chunk)
         reply = link.recv_line(TIMEOUT_WSEC)
         if reply != "OK":
             raise Stop(f"wsec {s:#x}: {reply!r}. The sector may be erased or partly written. "
@@ -630,7 +675,8 @@ def write_sectors(link, target, sectors, result):
 
 def cmd_write(link, args, result):
     mode = args.cmd
-    prepare_loader(link, args.loader_bytes, result)
+    prepare_loader(link, args.loader_bytes, result,
+                   fresh=(mode == "install" and args.write))
     paths = dump_paths(args.log)
     a = read_flash(link)
     save_new(paths["before-a"], a)
@@ -669,15 +715,21 @@ def cmd_write(link, args, result):
     link.arm(target, write_end, sectors)
     write_sectors(link, target, sectors, result)
     after = read_flash(link)
-    save_new(paths["after"], after)
     expected = target + a[REGION_BYTES:]
-    result["after"] = {"path": str(paths["after"]), "sha256": sha256(after)}
+    result["after"] = {"path": str(paths["after"]), "sha256": sha256(after),
+                       "equal": after == expected}
+    try:
+        save_new(paths["after"], after)
+    except OSError as exc:      # the verdict below still stands
+        result["after"]["save_error"] = f"{type(exc).__name__}: {exc}"
     if after != expected:
         raise Stop("the final read differs from the expected flash in sectors "
                    + " ".join(f"{s:#07x}" for s in sector_diff(after, expected, 0, FLASH_SIZE))
                    + ". Do not power-cycle: run `restore` (docs/22 section 5)")
     result["verdict"] = (f"{mode} done: {len(sectors)} sectors written and read back; the final "
                          "read equals the target over [0, 0x93000) and the before-read above")
+    if "save_error" in result["after"]:
+        result["verdict"] += f"; the after-dump was not saved ({result['after']['save_error']})"
     print(result["verdict"])
     return 0
 
@@ -824,6 +876,11 @@ def admit(args):
             raise Refused(f"{args.compare}: no such reference dump")
     if args.cmd == "rekey" and not args.fm1_is_off:
         raise Refused("rekey needs --fm1-is-off: switch the FM-1 off and check the switch first")
+    if args.cmd == "install" and (getattr(os, "geteuid", lambda: 1)() == 0
+                                  or os.environ.get("SUDO_USER")):
+        raise Refused("install does not run as root or under sudo: its one-attempt lock is in "
+                      "the user's home (~/.local/state/fm1t_m8), so another account would not "
+                      "see it. Give your user the serial port (group dialout) instead")
     check_port_path(args.port)
     if not args.log:
         raise Refused("--log is required: every line sent and received is recorded")
@@ -862,6 +919,7 @@ def main(argv=None, opener=None):
             build_id=APPROVED_BUILD_ID if args.cmd == "install" else None,
             write=bool(getattr(args, "write", False)))
         port = None
+        link = None
         try:
             port = opener(args.port)
             link = Link(port, args.cmd, log)
@@ -877,7 +935,15 @@ def main(argv=None, opener=None):
             code, result["verdict"] = 3, f"STOP: {exc}"
         except Exception as exc:  # noqa: BLE001  (record it, then stop)
             code, result["verdict"] = 3, f"STOP: {type(exc).__name__}: {exc}"
+        except KeyboardInterrupt:
+            code, result["verdict"] = 3, "STOP: interrupted"
         finally:
+            if link is not None and link.written:
+                result["wsec_sent"] = [f"{s:#07x}" for s in link.written]
+                if code and "run `restore`" not in result.get("verdict", ""):
+                    result["verdict"] = (result.get("verdict", "STOP") + ". Writes began this "
+                                         "session: do not power-cycle the FM-1; run `restore` "
+                                         "(docs/22 section 5)")
             if port is not None:
                 try:
                     port.close()

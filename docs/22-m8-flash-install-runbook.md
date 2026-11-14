@@ -70,10 +70,10 @@ new file). In `install` and `restore`:
 | Line | When | Limits |
 | --- | --- | --- |
 | `ping`, `status` | first | stop unless `uboot=1 v15=0` |
-| `ldr offsets N CRC`, then the loader | if the transporter has no loader | loader pinned by SHA-256 `d41da612…`, 24,064 B |
+| `ldr offsets N CRC`, then the loader | always for `install --write` (which refuses a transporter already holding a loader); otherwise only if none is held | loader pinned by SHA-256 `d41da612…`, 24,064 B |
 | `info` | once | must be exactly `OK key=980F type=3 id=856014` |
 | `read 0x0 1048576` | twice before, once after | full 1 MiB dumps, saved next to the receipt |
-| `wsec 0xADDR CRC` + 4,096 B | each planned sector, once | `0x4000 ≤ ADDR < 0x93000`, sector-aligned, lower-case hex with no leading zero (the transporter reads a leading `0` as octal); payload must be the target's own bytes |
+| `wsec 0xADDR CRC` + 4,096 B | each planned sector, once | `0x4000 ≤ ADDR < 0x93000`, sector-aligned, lower-case hex with no leading zero (the transporter reads a leading `0` as octal); the payload is checked against the target's own bytes before the header goes out |
 | `read 0xADDR 4096` | after each `wsec` | same range as `wsec` |
 
 Never sendable: `uboot`, `k`, `runapp`, `memw`, `jump`, `memr`, `rekey`
@@ -138,8 +138,13 @@ python3 fm1t_m8.py --port $P --log s1/status.jsonl status    # uboot=1 v15=0
    The plan must match preflight's. Keep `s1/dry-before-a.bin` and
    `-before-b.bin`: they are this session's backups (the two must be equal;
    the tool checks).
-2. **Write.** Same command plus `--write --tool-sha256 <approved>`, with a new
-   `--log`. It takes the one-attempt lock
+2. **Write, in a fresh ROM entry.** The dry run left the pinned loader on the
+   transporter, and `install --write` refuses a held loader so that the one it
+   writes with is the one it uploaded itself. So: FM-1 off, `rekey
+   --fm1-is-off`, FM-1 on, `UBOOT READY`, `status`, then the same command plus
+   `--write --tool-sha256 <approved>`, with a new `--log`. Run it as your own
+   user, not root or sudo (the lock is under your home; give your user the
+   serial port through the `dialout` group). It takes the one-attempt lock
    (`~/.local/state/fm1t_m8/install-<sha>.lock`) just before the first
    `wsec`, writes each planned sector once, reads each back, and ends with a
    full read that must equal the package over `[0, 0x93000)` and the
@@ -164,6 +169,8 @@ Keep dumps and receipts in `scratch/`; never commit them.
 
 | The tool says | What it means | Do |
 | --- | --- | --- |
+| no `PONG` | the wrong port, or an earlier session stopped inside a 4,096-byte payload and the transporter is still counting bytes (it has no timeout) | replug the Pico only, not the FM-1; then `status` [inferred: the FM-1 runs on its battery with no VBUS from the Pico, so it stays on; not yet checked on the bench] |
+| no reply to `status` after a failed write | core 1 may still be finishing a `wsec` | leave the FM-1 on, wait 30 s, `status` again |
 | `D2` / `v15=1` | a running V15 is attached | nothing more; disconnect, start over from docs/17 §4 |
 | `uboot=0` | the ROM is not entered | rekey (docs/17 §4) |
 | `info` other than expected | another chip key or flash part | stop; not this unit |
@@ -173,8 +180,10 @@ Keep dumps and receipts in `scratch/`; never commit them.
 | identity does not match | wrong `--identity`, or the wrong unit | read the identity again (§3 step 3) |
 | a failed `wsec`, no reply, or a read-back mismatch | a sector is erased or partly written | **do not power-cycle and do not retry the install**: keep the FM-1 on and in UBOOT, and run `restore` |
 | final read differs | something outside the planned sectors changed | keep the FM-1 on; run `restore`; then compare the dumps |
+| any stop, or Ctrl-C, after a `wsec` went out | the tool adds "run `restore`" and lists `wsec_sent` in the receipt | keep the FM-1 on; run `restore` |
 
-`restore` rereads the flash twice, writes back only the sectors that differ
+`restore` uses the loader a failed install left on the transporter (and
+records that it did), so it needs no rekey. It rereads the flash twice, writes back only the sectors that differ
 from stock V15, and checks each one. It can be run again after it fails. If
 the transporter itself stops answering, power-cycle the transporter, not the
 FM-1, if you can; otherwise follow docs/17 from §4, which recovers an

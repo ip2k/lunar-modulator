@@ -606,19 +606,24 @@ def test_random_and_mutated_lines_never_escape_the_range():
     assert accepted > 50
 
 
+class RecPort:
+    in_waiting = 0
+
+    def __init__(self):
+        self.sent = []
+
+    def write(self, data):
+        self.sent.append(bytes(data))
+
+
 def test_link_refuses_wsec_until_armed_and_only_planned_sectors_once():
-    sent = []
-
-    class Port:
-        in_waiting = 0
-
-        def write(self, data):
-            sent.append(bytes(data))
-
-    link = m8.Link(Port(), 'install', lambda *a, **k: None)
+    port = RecPort()
+    link = m8.Link(port, 'install', lambda *a, **k: None)
     chunk = LUNAR_REGION[0x4000:0x5000]
     with pytest.raises(m8.Refused):                      # unarmed: the range is empty
         link.send_line(f'wsec 0x4000 {crc(chunk):08X}')
+    with pytest.raises(m8.Refused, match='before the write was planned'):
+        link.send_wsec(0x4000, chunk)
     with pytest.raises(m8.Refused):
         link.arm(LUNAR_REGION, 0x93000, [0x3000])
     with pytest.raises(m8.Refused):
@@ -626,19 +631,21 @@ def test_link_refuses_wsec_until_armed_and_only_planned_sectors_once():
     link.arm(LUNAR_REGION, 0x93000, [0x4000, 0x5000])
     with pytest.raises(m8.Refused, match='armed once'):
         link.arm(LUNAR_REGION, 0x93000, [0x6000])
+    with pytest.raises(m8.Refused, match='only through send_wsec'):
+        link.send_line(f'wsec 0x4000 {crc(chunk):08X}')   # a bare header is never sent
     with pytest.raises(m8.Refused, match='not a planned sector'):
-        link.send_line(f'wsec 0x6000 {crc(LUNAR_REGION[0x6000:0x7000]):08X}')
-    link.send_line(f'wsec 0x4000 {crc(chunk):08X}')
-    link.send_payload(chunk)
+        link.send_wsec(0x6000, LUNAR_REGION[0x6000:0x7000])
+    link.send_wsec(0x4000, chunk)
+    assert port.sent[-2:] == [f'wsec 0x4000 {crc(chunk):08X}\n'.encode(), chunk]
     with pytest.raises(m8.Refused, match='never resent'):
-        link.send_line(f'wsec 0x4000 {crc(chunk):08X}')
-    other = V15_REGION[0x5000:0x6000]
-    link.send_line(f'wsec 0x5000 {crc(other):08X}')
+        link.send_wsec(0x4000, chunk)
+    n = len(port.sent)
     with pytest.raises(m8.Refused, match="not the target's"):
-        link.send_payload(other)
-    with pytest.raises(m8.Refused, match='nothing is sent'):
-        link.send_line('status')
-    assert sent[-1].startswith(b'wsec 0x5000')            # the bad payload never went out
+        link.send_wsec(0x5000, V15_REGION[0x5000:0x6000])
+    assert len(port.sent) == n                           # neither header nor payload went out
+    assert not link.sealed                               # so the session can still go on
+    link.send_wsec(0x5000, LUNAR_REGION[0x5000:0x6000])
+    assert link.written == [0x4000, 0x5000]
 
 
 def test_link_refuses_arming_in_read_only_modes():
@@ -725,3 +732,143 @@ def test_fake_wsec_follows_the_firmware():
     zero = f'ERR crc {crc(bytes(SEC)):08X}'
     assert f.out.decode().splitlines() == [zero, zero, 'ERR range', 'ERR write']   # no loader yet
     assert bytes(f.flash) == FLASH_V15
+
+
+# -- Hardening from the adversarial review ------------------------------------
+
+def test_install_write_needs_a_fresh_pinned_loader(tmp_path):
+    fake = FlashFake(loader=True)
+    fake.loader_buf[100] ^= 1                    # whatever an earlier session left there
+    code, events, _ = run(fake, install(tmp_path), tmp_path)
+    assert code == 3 and 'already holds a loader' in events[-1]['verdict']
+    assert fake.lines == ['ping', 'status'] and not fake.flash_written
+    assert not m8.LOCK_DIR.exists()
+    # a dry run may use it (it only reads); the write then needs a fresh ROM entry
+    code, events, _ = run(FlashFake(loader=True), install(tmp_path, write=False), tmp_path,
+                          log='dry/log.jsonl')
+    assert code == 0 and events[-1]['loader'].startswith('held')
+
+
+def test_install_write_uploads_the_pinned_loader(tmp_path):
+    fake = FlashFake()
+    assert run(fake, install(tmp_path), tmp_path)[0] == 0
+    assert bytes(fake.loader_buf) == LOADER
+    assert sum(1 for ln in fake.lines if ln.startswith('ldr ')) >= 1
+
+
+def test_restore_may_use_the_loader_a_failed_install_left(tmp_path):
+    fake = FlashFake(wsec_fault={0x4000: 'write'})
+    assert run(fake, install(tmp_path), tmp_path)[0] == 3
+    fake.wsec_fault, fake.lines = {}, []
+    code, events, _ = run(fake, restore(tmp_path), tmp_path, log='r/log.jsonl')
+    assert code == 0 and not any(ln.startswith('ldr') for ln in fake.lines)
+    assert events[-1]['loader'].startswith('held')
+
+
+def test_interrupt_records_a_stop_and_the_sectors_sent(tmp_path, monkeypatch):
+    real = m8.read_span
+
+    def interrupted(link, line, n):
+        if line == 'read 0x5000 4096':
+            raise KeyboardInterrupt
+        return real(link, line, n)
+    monkeypatch.setattr(m8, 'read_span', interrupted)
+    fake = FlashFake()
+    code, events, _ = run(fake, install(tmp_path), tmp_path)
+    end = events[-1]
+    assert code == 3 and end['exit'] == 3 and 'interrupted' in end['verdict']
+    assert end['wsec_sent'] == ['0x04000', '0x05000']
+    assert end['sectors_written'] == ['0x04000']
+    assert 'do not power-cycle' in end['verdict'] and 'restore' in end['verdict']
+
+
+@pytest.mark.parametrize('where', ['info', 'final'])
+def test_every_stop_after_a_write_points_at_restore(tmp_path, monkeypatch, where):
+    fake = FlashFake()
+    if where == 'final':
+        real = m8.read_flash
+        calls = []
+
+        def third_fails(link):
+            calls.append(1)
+            if len(calls) == 3:
+                raise m8.Stop('read 0x0 1048576: unexpected reply END FAIL')
+            return real(link)
+        monkeypatch.setattr(m8, 'read_flash', third_fails)
+        code, events, _ = run(fake, install(tmp_path), tmp_path)
+        assert code == 3 and 'run `restore`' in events[-1]['verdict']
+    else:                       # no write yet: no restore advice is added
+        code, events, _ = run(FlashFake(info='ERR info'), install(tmp_path), tmp_path)
+        assert code == 3 and 'restore' not in events[-1]['verdict']
+
+
+def test_a_session_stuck_in_a_payload_names_the_case(tmp_path):
+    fake = FlashFake()
+    fake.write(b'wsec 0x4000 00000000\n' + b'\0' * 100)   # an earlier session died here
+    fake.out.clear()
+    code, events, _ = run(fake, restore(tmp_path), tmp_path)
+    assert code == 3 and 'counting bytes' in events[-1]['verdict']
+    assert 'replug the Pico only' in events[-1]['verdict']
+    assert bytes(fake.flash) == FLASH_V15
+
+
+def test_send_wsec_never_leaves_a_header_without_its_payload(tmp_path, monkeypatch):
+    fake = FlashFake()
+    real = m8.Link.send_wsec
+
+    def wrong_bytes(self, addr, data):
+        return real(self, addr, bytes(SEC) if addr == 0x5000 else data)
+    monkeypatch.setattr(m8.Link, 'send_wsec', wrong_bytes)
+    code, events, _ = run(fake, install(tmp_path), tmp_path)
+    assert code == 3 and "not the target's" in events[-1]['verdict']
+    assert [ln for ln in fake.lines if ln.startswith('wsec')] == [
+        f'wsec 0x4000 {crc(LUNAR_REGION[0x4000:0x5000]):08X}']
+
+
+@pytest.mark.parametrize('how', ['euid', 'sudo'])
+def test_install_refuses_root(tmp_path, monkeypatch, how):
+    if how == 'euid':
+        monkeypatch.setattr(m8.os, 'geteuid', lambda: 0)
+    else:
+        monkeypatch.setenv('SUDO_USER', 'someone')
+    code, _, opened = run(FlashFake(), install(tmp_path), tmp_path)
+    assert code == 1 and not opened
+
+
+@pytest.mark.parametrize('port', [
+    f'/tmp/usb-kurogedelic_FM-1_Transporter_{SERIAL}-if02',
+    f'/dev/serial/by-id/../by-id/usb-kurogedelic_FM-1_Transporter_{SERIAL}-if02',
+    f'dev/serial/by-id/usb-kurogedelic_FM-1_Transporter_{SERIAL}-if02'])
+def test_port_must_be_the_by_id_path(tmp_path, port):
+    code, _, opened = run(FlashFake(), install(tmp_path), tmp_path, port=port)
+    assert code == 1 and not opened
+
+
+def test_after_dump_save_failure_still_compares(tmp_path, monkeypatch):
+    real = m8.save_new
+
+    def full_disk(path, data):
+        if str(path).endswith('-after.bin'):
+            raise OSError(28, 'No space left on device')
+        return real(path, data)
+    monkeypatch.setattr(m8, 'save_new', full_disk)
+    fake = FlashFake()
+    code, events, _ = run(fake, install(tmp_path), tmp_path)
+    assert code == 0 and events[-1]['after']['equal'] is True
+    assert 'not saved' in events[-1]['verdict']
+
+
+def test_region_offset_matches_the_research_shim():
+    shim = (ROOT / 'tools' / 'fm1-transporter' / 'research-shim' / 'tools' / 'fm1fw.py').read_text()
+    assert '"data_off": 0x414, "size": 0x93000' in shim
+    assert m8.REGION_FILE_OFFSET == 0x414 and m8.REGION_BYTES == 0x93000
+
+
+def test_no_bare_port_writes_outside_link():
+    tree = ast.parse(TOOL.read_text())
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr in ('write', 'writelines', 'send')):
+            base = node.func.value
+            name = base.attr if isinstance(base, ast.Attribute) else getattr(base, 'id', None)
+            assert name in ('_port', 'f', 'fp', 'sys', 'stdout', 'stderr'), ast.unparse(node)
