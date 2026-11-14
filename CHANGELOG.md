@@ -10,6 +10,8 @@ history.
 
 ### Added
 
+- **A tool and runbook for the first Lunar flash install on the FM-1 (milestone M8), prepared but not run.** `tools/fm1-transporter/fm1t_m8.py` writes an owner-approved install package into the FM-1's app region through the Pico 2 W transporter, and restores stock V15 with the same tool. It writes only inside `[0x4000, 0x93000)`, needs two identical fresh dumps first, reads back every sector and checks a full dump afterwards. No image is approved yet, so `install` refuses everything. Tested only against a fake transporter (`tests/test_fm1t_m8.py`). Runbook: docs/22.
+
 - The first Lunar code was loaded into the FM-1's memory (milestone M5). It loaded and started, but showed nothing and the unit restarted into the stock firmware a few seconds later. The firmware on the unit was not changed. Bench record: `notes/2026-11-10-m5-fm1-ram-run.md`.
 
 - docs/21: JieLi's USB updater dongle (V4.1). It has photos, the manual's switch and LED tables, and four owner-approved tries on the FM-1. None reached the mask ROM; the FM-1 stayed on V15 throughout. It is compared with the Pico 2 W route, which remains the recovery route.

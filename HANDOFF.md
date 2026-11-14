@@ -6,8 +6,20 @@ the M-VAVE FM-1". Naming rules are in `CLAUDE.md` → "What this is".
 
 Written 2026-09-06 at the end of the research session that created this
 repository, so a fresh Claude project (or a human) can continue without the
-original conversation; last updated 2026-11-10 (M5 run). Read this first, then
+original conversation; last updated 2026-11-14 (M8 tool prepared). Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
+
+## M8 flash-install tool prepared, not run — 2026-11-14
+
+`tools/fm1-transporter/fm1t_m8.py` and its runbook docs/22 are ready for
+review and the owner's approvals (docs/22 §1): the image hash (none yet:
+`APPROVED_PACKAGE_SHA256 = None`, M5–M7 come first), the tool hash, and the
+§4 bench session. It installs an approved package and restores stock V15,
+writing only inside `[0x4000, 0x93000)`. Offline tests only
+(`tests/test_fm1t_m8.py`, a fake transporter with the real `wsec` rules).
+**Owner item:** `restore` accepts any app region (an interrupted install
+leaves a mix), still requiring two identical reads, V15's head and the pinned
+V15 package; it has no lock. Confirm with the §1 approvals.
 
 ## M5 run on the FM-1: no pattern, reset to V15 — 2026-11-10
 

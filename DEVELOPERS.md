@@ -105,6 +105,7 @@ module is in the repository, so the page needs no WebAssembly toolchain.
 | Recovering an FM-1 to stock V15 | [docs/17](docs/17-pico2w-recovery.md) (Pico 2 W + FM-1-transporter) |
 | JieLi's USB updater dongle: tried on the FM-1, did not key it | [docs/21](docs/21-jl-usb-updater.md) |
 | The first Lunar RAM run on the FM-1 (M5) | [docs/19](docs/19-m5-bench-runbook.md) and `tools/fm1-transporter/fm1t_m5.py` |
+| The first Lunar flash install on the FM-1 (M8; prepared, no image approved) | [docs/22](docs/22-m8-flash-install-runbook.md) and `tools/fm1-transporter/fm1t_m8.py` |
 
 ### All the commands
 
