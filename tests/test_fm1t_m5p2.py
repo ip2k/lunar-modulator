@@ -50,6 +50,7 @@ SHA = {n: hashlib.sha256(d).hexdigest() for n, d in IMG.items()}
 NAME = {1: 'm5p2.bin', 2: 'm5p2-mailbox.bin'}
 LOCK1, LOCK2, CRUMBS_LOCK = ('fm1t_m5p2-ramrun.lock', 'fm1t_m5p2-mailbox-ramrun.lock',
                             'fm1t_m5p2-crumbs.lock')
+JUMPED1, JUMPED2 = 'fm1t_m5p2-ramrun.jumped', 'fm1t_m5p2-mailbox-ramrun.jumped'
 
 # The dev kit's c-read of m5p2-mailbox (notes/2026-11-14-m5-plan-2.md).
 KIT_WORDS = [0x3250354d, 0x0000000d, 0x0000001c, 0x0001595e, 0x00015e84, 0x00001cb2,
@@ -112,6 +113,28 @@ def memw_line(addr, chunk):
     return f'memw {addr:#x} {len(chunk)} {crc(chunk):08X}'
 
 
+def write_record(directory, n, kind, **change):
+    """Run n's lock or jump marker as the tool writes it, with the hash pinned
+    in t.RUNS at call time (the synthetic one under `approved`)."""
+    rec = {'run': n, 'image_sha256': t.RUNS[n]['sha256']}
+    rec.update(change)
+    (directory / t.RUNS[n][kind]).write_text(json.dumps(rec) + '\n')
+
+
+def jumped(directory, *runs):
+    """A run directory in which each of `runs` took its lock and sent its jump."""
+    for n in runs:
+        write_record(directory, n, 'lock')
+        write_record(directory, n, 'jumped')
+
+
+def crumbs_with(**words):
+    w = list(KIT_WORDS)
+    for name, value in words.items():
+        w[t.CRUMB_NAMES.index(name)] = value
+    return b''.join(x.to_bytes(4, 'little') for x in w)
+
+
 def crumbs_fake(data=KIT_CRUMBS, **kw):
     """A transporter back in the ROM after run 2's watchdog reset: SRAM holds
     the breadcrumbs, nothing else."""
@@ -129,7 +152,9 @@ def test_approved_constants():
     assert t.RUNS[1]['sha256'] == RUN1_SHA256 and t.RUNS[2]['sha256'] == RUN2_SHA256
     assert t.RUNS[1]['build_id'] == 'm5-plan-2' and t.RUNS[2]['build_id'] == 'm5-plan-2m'
     assert t.RUNS[1]['lock'] == LOCK1 and t.RUNS[2]['lock'] == LOCK2
-    assert t.RUNS[1]['needs'] is None and t.RUNS[2]['needs'] == LOCK1
+    assert t.RUNS[1]['jumped'] == JUMPED1 and t.RUNS[2]['jumped'] == JUMPED2
+    assert t.RUNS[1]['after'] is None and t.RUNS[2]['after'] == 1
+    assert t.EXIT_SUSPECT == 4
     assert sorted(t.RUNS) == [1, 2] and t.APPROVED_IMAGE_BYTES == IMAGE_BYTES
     assert 'LOADER_SHA256 = "d41da6126760c9d66660bcc0cac8d27d221806c5e369a8036921efe68dca5376"' in src
     assert t.RAM_BASE == 0x01C02000 and t.RAM_END == m5.RAM_END == 0x01C06000
@@ -177,10 +202,11 @@ EXPECTED_CODE_DIFF = [
     '+#    command-line override. Run 2 only after run 1, in the same run directory.',
     '+RUNS = {',
     '+    1: {"sha256": "aba6ed7ceaa0cac990dedcaf664b10707632a139be83b3bea5e0f62739bf968c",',
-    '+        "build_id": "m5-plan-2", "lock": "fm1t_m5p2-ramrun.lock", "needs": None},',
+    '+        "build_id": "m5-plan-2", "lock": "fm1t_m5p2-ramrun.lock",',
+    '+        "jumped": "fm1t_m5p2-ramrun.jumped", "after": None},',
     '+    2: {"sha256": "b63a643e14983ac07a883867d073368733f6f714b7f35116aa85a4e91d80421c",',
     '+        "build_id": "m5-plan-2m", "lock": "fm1t_m5p2-mailbox-ramrun.lock",',
-    '+        "needs": "fm1t_m5p2-ramrun.lock"},',
+    '+        "jumped": "fm1t_m5p2-mailbox-ramrun.jumped", "after": 1},',
     '+}',
     '+APPROVED_IMAGE_BYTES = 7920      # both images',
     '-# One RAM-run attempt per run directory: created just before the first memw,',
@@ -189,6 +215,9 @@ EXPECTED_CODE_DIFF = [
     '+# One RAM-run attempt per run and run directory: created just before the first',
     '+# memw, next to the receipt. A second attempt (a retry) needs a new owner approval.',
     '+RAMRUN_LOCKS = tuple(r["lock"] for r in RUNS.values())',
+    '+# A jump marker per run, written right after the jump line is sent: run 2',
+    "+# and crumbs need the earlier run's lock and marker, both naming that run and",
+    '+# its pinned image.',
     "+# M5's and M6's locks in the same directory also refuse: m5p2 needs its own.",
     '+OTHER_RAMRUN_LOCKS = ("fm1t_m5-ramrun.lock", "fm1t_m6-ramrun.lock")',
     '+',
@@ -206,6 +235,7 @@ EXPECTED_CODE_DIFF = [
     '+TIMER_DEAD_FLAG = 0x100          # in the stage word: TIMER4 failed at some point',
     '+PANEL_RESULTS = {0: "ok", 1: "invalid", 2: "transfer_failed", 3: "delay_failed",',
     '+                 0xFF: "not_run"}',
+    '+EXIT_SUSPECT = 4                 # crumbs: magic valid, contents implausible',
     '+if not (RAM_BASE + APPROVED_IMAGE_BYTES <= CRUMBS_ADDR',
     '+        and CRUMBS_ADDR + CRUMBS_BYTES <= RAM_END):',
     '+    raise SystemExit("fm1t_m5p2: the image and the breadcrumbs overlap or leave the window")',
@@ -250,12 +280,50 @@ EXPECTED_CODE_DIFF = [
     '+                   "the LEDs are the proof. Nothing more is sent")',
     '+    run = RUNS[args.run]',
     '-    lock = args.log.parent / RAMRUN_LOCK',
-    '+    if run["needs"] and not (args.log.parent / run["needs"]).exists():',
-    '+        raise Stop(f"{run[\'needs\']} is gone from {args.log.parent}: run {args.run} only after "',
-    '+                   "run 1, from the same run directory")',
+    '+    if run["after"]:',
+    '+        for kind in ("lock", "jumped"):',
+    '+            why = run_record_problem(args.log.parent, run["after"], kind)',
+    '+            if why:',
+    '+                raise Stop(f"{why}: run {args.run} only after run {run[\'after\']} sent its "',
+    '+                           "jump, from the same run directory")',
     '+    lock = args.log.parent / run["lock"]',
     '-                            "image_sha256": APPROVED_IMAGE_SHA256}) + "\\n")',
     '+                            "run": args.run, "image_sha256": run["sha256"]}) + "\\n")',
+    '-    reply = link.request(f"jump {RAM_BASE:#x} {JUMP_ARG:#x}", TIMEOUT_JUMP)',
+    '+    line = f"jump {RAM_BASE:#x} {JUMP_ARG:#x}"',
+    '+    link.send_line(line)',
+    '+    marker = args.log.parent / run["jumped"]',
+    '+    try:',
+    '+        with open(marker, "x") as f:     # the jump went out; run 2 and crumbs need this',
+    '+            f.write(json.dumps({"time": round(time.time(), 3), "receipt": args.log.name,',
+    '+                                "run": args.run, "image_sha256": run["sha256"],',
+    '+                                "jump": line}) + "\\n")',
+    '+        result["jumped"] = str(marker)',
+    '+    except OSError as exc:',
+    '+        result["jump_marker_error"] = f"{type(exc).__name__}: {exc}"',
+    '+    reply = link.recv_line(TIMEOUT_JUMP)',
+    '+    if "jump_marker_error" in result:',
+    '+        code, verdict = 3, (f"{verdict}. The jump marker {marker} could not be written "',
+    '+                            f"({result[\'jump_marker_error\']}): the later steps will refuse")',
+    '+',
+    '+',
+    '+def run_record_problem(directory, run, kind):',
+    '+    """None if `directory` holds run `run`\'s lock or jump marker (`kind`),',
+    "+    recording that run and its pinned image; otherwise why not. The file's",
+    '+    name alone is not trusted."""',
+    '+    path = directory / RUNS[run][kind]',
+    '+    try:',
+    '+        rec = json.loads(path.read_text())',
+    '+    except FileNotFoundError:',
+    '+        return f"no {path.name} in {directory}"',
+    '+    except (OSError, ValueError) as exc:',
+    '+        return f"{path} is unreadable ({type(exc).__name__})"',
+    '+    if (not isinstance(rec, dict) or rec.get("run") != run',
+    '+            or rec.get("image_sha256") != RUNS[run]["sha256"]):',
+    '+        return f"{path} does not record run {run} with its pinned image"',
+    '+    return None',
+    '+',
+    '+',
     '+def decode_crumbs(data):',
     '+    """The twelve words by name, with the stage and the panel result spelled out."""',
     '+    words = [int.from_bytes(data[i:i + 4], "little") for i in range(0, CRUMBS_BYTES, 4)]',
@@ -265,31 +333,65 @@ EXPECTED_CODE_DIFF = [
     '+    out["stage_name"] = STAGES[stage] if 0 < stage < len(STAGES) else f"unknown {stage}"',
     '+    out["timer_dead"] = bool(words[1] & TIMER_DEAD_FLAG)',
     '+    out["panel_name"] = PANEL_RESULTS.get(words[7], f"unknown {words[7]}")',
+    '+    doubts = []',
+    '+    if words[1] & ~(0xFF | TIMER_DEAD_FLAG) or not 0 < stage < len(STAGES):',
+    '+        doubts.append(f"stage word {words[1]:#x} is not a stage 1-{len(STAGES) - 1} "',
+    '+                      "with at most the timer-dead flag")',
+    '+    if words[7] not in PANEL_RESULTS:',
+    '+        doubts.append(f"panel result {words[7]:#x} is unknown")',
+    '+    if out["kick_failures"] > out["kicks"]:',
+    '+        doubts.append(f"kick_failures {out[\'kick_failures\']} exceed kicks {out[\'kicks\']}")',
+    '+    out["doubts"] = doubts',
     '+    return out',
+    '+',
+    '+',
+    '+# Stops for crumbs: never "power off" while the breadcrumbs may still be in SRAM.',
+    '+CRUMBS_STOP_V15 = ("status answers v15=1: the FM-1 booted V15 instead of returning to the "',
+    '+                   "mask ROM, so the breadcrumbs are lost (docs/19 section 7.6, R6 (c)). "',
+    '+                   "Send nothing else: photograph the unit, then power off (R8)")',
+    '+CRUMBS_STOP_NO_UBOOT = ("status answers uboot=0: the transporter has not mounted the mask "',
+    '+                        "ROM. Keep the FM-1 ON and do not rekey: power-off clears the "',
+    '+                        "breadcrumbs. Replug the transporter\'s USB with the FM-1 left on "',
+    '+                        "(docs/19 section 7.6), wait for `UBOOT READY`, then run crumbs again")',
+    '+CRUMBS_STOP_LOADER_HELD = ("status answers loader=1: the transporter holds the flash loader "',
+    '+                           "from an earlier step. Keep the FM-1 ON and do not rekey. Replug "',
+    '+                           "the transporter\'s USB with the FM-1 left on (docs/19 section 7.6), "',
+    '+                           "wait for `UBOOT READY`, then run crumbs again")',
+    '+CRUMBS_STOP_LOADER_RUNNING = ("status answers loader_running=1: the flash loader runs at "',
+    '+                              "0x1c02000, over the breadcrumbs, so they are lost. Send nothing "',
+    '+                              "else; power off (docs/19 section 7.6, R8)")',
     '+',
     '+',
     '+def cmd_crumbs(link, args, result):',
     '+    st = read_status(link)',
     '+    result["status"] = st',
-    '+    require_uboot(st)',
-    '+    if st["loader"] or st["loader_running"]:',
-    '+        raise Stop(f"the transporter holds or runs the flash loader ({st}). The loader is "',
-    '+                   f"loaded at {RAM_BASE:#x} over the breadcrumbs, so they cannot be read in "',
-    '+                   "this ROM session: power off")',
+    '+    if st["v15"]:',
+    '+        raise Stop(CRUMBS_STOP_V15)',
+    '+    if st["uboot"] != 1:',
+    '+        raise Stop(CRUMBS_STOP_NO_UBOOT)',
+    '+    if st["loader_running"]:',
+    '+        raise Stop(CRUMBS_STOP_LOADER_RUNNING)',
+    '+    if st["loader"]:',
+    '+        raise Stop(CRUMBS_STOP_LOADER_HELD)',
     '+    line = f"memr {CRUMBS_ADDR:#x} {CRUMBS_BYTES}"',
     '+    reply = link.request(line, TIMEOUT_MEM)',
     '+    if reply != f"DATA {CRUMBS_BYTES}":',
-    '+        raise Stop(f"{line}: {reply!r}. Nothing was read and no crumbs lock was taken. If the "',
-    '+                   "console showed no new `UBOOT READY` after the jump, the transporter\'s "',
-    '+                   "mount may be stale: docs/19 section 7.6, then run crumbs again")',
-    '+    lock = args.log.parent / CRUMBS_LOCK',
-    '+    with open(lock, "x") as f:       # raises FileExistsError: the read happened before',
-    '+        f.write(json.dumps({"time": round(time.time(), 3), "receipt": args.log.name,',
-    '+                            "read": line}) + "\\n")',
-    '+    result["lock"] = str(lock)',
-    '+    data = link.recv_bytes(CRUMBS_BYTES, TIMEOUT_MEM)',
-    '+    result["crumbs_hex"] = data.hex()            # raw, before any check or decoding',
-    '+    link._log("crumbs-raw", hex=data.hex())',
+    '+        raise Stop(f"{line}: {reply!r}. No DATA came, so no crumbs lock was taken (with no "',
+    '+                   "reply at all the read may still have happened; reading again is "',
+    '+                   "harmless). Keep the FM-1 ON and do not rekey. If the console showed no "',
+    '+                   "new `UBOOT READY` after the jump, the transporter\'s mount may be stale: "',
+    '+                   "docs/19 section 7.6, then run crumbs again")',
+    '+    data = b""',
+    '+    try:',
+    '+        data = link.recv_bytes(CRUMBS_BYTES, TIMEOUT_MEM)',
+    '+        result["crumbs_hex"] = data.hex()        # raw, before anything else',
+    '+        link._log("crumbs-raw", hex=data.hex())',
+    '+    finally:',
+    '+        lock = args.log.parent / CRUMBS_LOCK     # DATA came: the read happened',
+    '+        with open(lock, "x") as f:               # FileExistsError: it happened before',
+    '+            f.write(json.dumps({"time": round(time.time(), 3), "receipt": args.log.name,',
+    '+                                "read": line, "crumbs_hex": data.hex()}) + "\\n")',
+    '+        result["lock"] = str(lock)',
     '+    end = link.recv_line(TIMEOUT_MEM)',
     '+    if len(data) != CRUMBS_BYTES or end != f"END {crc32(data):08X}":',
     '+        raise Stop(f"{line}: transfer check failed ({end!r}); the raw bytes are in the receipt")',
@@ -304,11 +406,15 @@ EXPECTED_CODE_DIFF = [
     '+                             "they did not survive, or were never written. Power off")',
     '+        print(result["verdict"])',
     '+        return 3',
+    '+    if crumbs["doubts"]:',
+    '+        result["verdict"] = ("breadcrumbs read and the magic is valid, but SUSPECT: "',
+    '+                             + "; ".join(crumbs["doubts"])',
+    '+                             + ". Keep the raw bytes; do not trust the decode")',
+    '+        print(result["verdict"])',
+    '+        return EXIT_SUSPECT',
     '+    result["verdict"] = f"breadcrumbs read and valid; last stage {crumbs[\'stage_name\']}"',
     '+    print(result["verdict"])',
     '+    return 0',
-    '+',
-    '+',
     '-        admit_image(args.image, args.sha256)',
     '-        print(f"image {args.image}: approved M5 image, {APPROVED_IMAGE_BYTES} B, "',
     '-              f"{APPROVED_IMAGE_SHA256}, ends at {RAM_BASE + APPROVED_IMAGE_BYTES:#010x}")',
@@ -345,10 +451,13 @@ EXPECTED_CODE_DIFF = [
     '+            if here and (here / other).exists():',
     '+                raise Refused(f"{here / other} exists: this is M5\'s or M6\'s run directory; "',
     '+                              "run m5p2 from a new one (docs/19 section 7)")',
-    '+        needs = RUNS[args.run]["needs"]',
-    '+        if here and needs and not (here / needs).exists():',
-    '+            raise Refused(f"no {needs} in {here}: run {args.run} is allowed only after run 1, "',
-    '+                          "from the same run directory")',
+    '+        after = RUNS[args.run]["after"]',
+    '+        if here and after:',
+    '+            for kind in ("lock", "jumped"):',
+    '+                why = run_record_problem(here, after, kind)',
+    '+                if why:',
+    '+                    raise Refused(f"{why}: run {args.run} is allowed only after run {after} "',
+    '+                                  "sent its jump, from the same run directory")',
     '+        if here and args.run == 1 and (here / RUNS[2]["lock"]).exists():',
     '+            raise Refused(f"{here / RUNS[2][\'lock\']} exists: run 1 never follows run 2")',
     '+    if args.cmd == "crumbs":',
@@ -356,12 +465,15 @@ EXPECTED_CODE_DIFF = [
     '+            raise Refused("FM1T_LOADER is set in the environment; unset it: the loader would "',
     '+                          "overwrite the breadcrumbs")',
     '+        here = args.log.parent if args.log else None',
-    '+        if here and not (here / RUNS[2]["lock"]).exists():',
-    '+            raise Refused(f"no {RUNS[2][\'lock\']} in {here}: crumbs reads run 2\'s breadcrumbs "',
-    '+                          "and runs only in run 2\'s directory")',
     '+        if here and (here / CRUMBS_LOCK).exists():',
     '+            raise Refused(f"{here / CRUMBS_LOCK} exists: the breadcrumbs were already read "',
     '+                          "from this run directory")',
+    '+        if here:',
+    '+            for kind in ("lock", "jumped"):',
+    '+                why = run_record_problem(here, 2, kind)',
+    '+                if why:',
+    '+                    raise Refused(f"{why}: crumbs reads run 2\'s breadcrumbs, only after run 2 "',
+    '+                                  "sent its jump, from run 2\'s run directory")',
     '-                print(f"fm1t_m5: refused: ramrun {flag}: {RAMRUN_REFUSED_FLAGS[flag]}",',
     '+                print(f"fm1t_m5p2: refused: ramrun {flag}: {RAMRUN_REFUSED_FLAGS[flag]}",',
     '-        print(f"fm1t_m5: {exc}", file=sys.stderr)',
@@ -451,7 +563,11 @@ def test_run1_happy_path(approved, files, tmp_path):
     assert 'presumed running' in end['verdict'] and 'backlight' in end['verdict']
     lock = json.loads((tmp_path / LOCK1).read_text())
     assert lock['receipt'] == 'run1.jsonl' and lock['run'] == 1 and lock['image_sha256'] == SHA[1]
-    assert not (tmp_path / LOCK2).exists()
+    marker = json.loads((tmp_path / JUMPED1).read_text())
+    assert marker['receipt'] == 'run1.jsonl' and marker['run'] == 1
+    assert marker['image_sha256'] == SHA[1] and marker['jump'] == 'jump 0x1c02000 0x1'
+    assert end['jumped'] == str(tmp_path / JUMPED1)
+    assert not (tmp_path / LOCK2).exists() and not (tmp_path / JUMPED2).exists()
 
 
 def test_run2_after_run1_in_the_same_directory(approved, files, tmp_path):
@@ -462,6 +578,7 @@ def test_run2_after_run1_in_the_same_directory(approved, files, tmp_path):
     _assert_ramrun_wire(fake, 2)
     assert events[0]['build_id'] == 'm5-plan-2m' and events[0]['run'] == 2
     assert json.loads((tmp_path / LOCK2).read_text())['run'] == 2
+    assert json.loads((tmp_path / JUMPED2).read_text())['image_sha256'] == SHA[2]
 
 
 def test_run2_refused_before_run1(approved, files, tmp_path, capsys):
@@ -472,25 +589,86 @@ def test_run2_refused_before_run1(approved, files, tmp_path, capsys):
     assert not (tmp_path / LOCK2).exists()
 
 
-def test_run1_lock_vanishing_mid_session_stops_run2(approved, files, tmp_path):
-    (tmp_path / LOCK1).write_text('{}\n')
+@pytest.mark.parametrize('gone', [LOCK1, JUMPED1])
+def test_run1_record_vanishing_mid_session_stops_run2(approved, files, tmp_path, gone):
+    jumped(tmp_path, 1)
     fake = FakeTransporter()
     orig = fake._poll
 
     def racing(line, payload):
         orig(line, payload)
         if line == 'status':
-            (tmp_path / LOCK1).unlink()
+            (tmp_path / gone).unlink()
     fake._poll = racing
     code, events, _ = run(fake, ramrun_argv(files, 2), tmp_path)
     assert code == 3 and fake.lines == ['ping', 'status'] and fake.sram == {}
-    assert not (tmp_path / LOCK2).exists() and 'only after run 1' in events[-1]['verdict']
+    assert not (tmp_path / LOCK2).exists()
+    assert f'no {gone}' in events[-1]['verdict']
+    assert 'only after run 1 sent its jump' in events[-1]['verdict']
+
+
+@pytest.mark.parametrize('setup,why', [
+    (lambda d: write_record(d, 1, 'lock'), 'no fm1t_m5p2-ramrun.jumped'),
+    (lambda d: write_record(d, 1, 'jumped'), 'no fm1t_m5p2-ramrun.lock'),
+    (lambda d: (jumped(d, 1), write_record(d, 1, 'jumped', run=2)), 'does not record run 1'),
+    (lambda d: (jumped(d, 1), write_record(d, 1, 'lock', image_sha256='0' * 64)),
+     'does not record run 1'),
+    (lambda d: (jumped(d, 1), (d / JUMPED1).write_text('{}\n')), 'does not record run 1'),
+    (lambda d: (jumped(d, 1), (d / JUMPED1).write_text('[1]\n')), 'does not record run 1'),
+    (lambda d: (jumped(d, 1), (d / LOCK1).write_text('not json')), 'is unreadable'),
+])
+def test_run2_needs_run1s_lock_and_jump_marker_by_content(approved, files, tmp_path, capsys,
+                                                          setup, why):
+    setup(tmp_path)
+    fake = FakeTransporter()
+    code, events, opened = run(fake, ramrun_argv(files, 2), tmp_path)
+    assert code == 1 and opened == [] and fake.wire == b'' and events == []
+    err = capsys.readouterr().err
+    assert why in err and 'only after run 1 sent its jump' in err
+    assert not (tmp_path / LOCK2).exists()
+
+
+def test_jump_marker_is_written_only_after_the_jump_line(approved, files, tmp_path):
+    fake = FakeTransporter()
+    orig = fake._poll
+    seen = []
+
+    def watch(line, payload):
+        seen.append((line, (tmp_path / JUMPED1).exists()))
+        orig(line, payload)
+    fake._poll = watch
+    assert run(fake, ramrun_argv(files, 1), tmp_path)[0] == 0
+    assert seen[-1] == ('jump 0x1c02000 0x1', False)
+    assert all(not exists for _, exists in seen)
+    assert (tmp_path / JUMPED1).exists()
+
+
+def test_no_jump_marker_when_stopped_before_the_jump(approved, files, tmp_path):
+    fake = FakeTransporter(corrupt_memr=True)
+    code, events, _ = run(fake, ramrun_argv(files, 1), tmp_path)
+    assert code == 3 and 'not jumping' in events[-1]['verdict'] and not fake.jumps
+    assert (tmp_path / LOCK1).exists() and not (tmp_path / JUMPED1).exists()
+    # So run 2 is refused: run 1 never jumped.
+    again = FakeTransporter()
+    code, _, opened = run(again, ramrun_argv(files, 2), tmp_path, log='run2.jsonl')
+    assert code == 1 and opened == [] and again.wire == b''
+
+
+def test_jump_marker_write_failure_is_a_stop(approved, files, tmp_path):
+    (tmp_path / JUMPED1).write_text('left over\n')       # open(..., "x") fails
+    fake = FakeTransporter()
+    code, events, _ = run(fake, ramrun_argv(files, 1), tmp_path)
+    assert code == 3 and fake.jumps == [(0x01C02000, 1)]
+    assert 'FileExistsError' in events[-1]['jump_marker_error']
+    assert 'could not be written' in events[-1]['verdict']
+    assert 'presumed running' in events[-1]['verdict']
+    assert (tmp_path / JUMPED1).read_text() == 'left over\n'
 
 
 @pytest.mark.parametrize('n', [1, 2])
 def test_second_attempt_of_a_run_is_refused(approved, files, tmp_path, n):
     if n == 2:
-        (tmp_path / LOCK1).write_text('{}\n')
+        jumped(tmp_path, 1)
     assert run(FakeTransporter(), ramrun_argv(files, n), tmp_path, log='first.jsonl')[0] == 0
     again = FakeTransporter()
     code, events, opened = run(again, ramrun_argv(files, n), tmp_path, log='second.jsonl')
@@ -537,7 +715,7 @@ def test_ramrun_needs_a_fresh_rom_entry(approved, files, tmp_path, kw):
     fake = FakeTransporter(**kw)
     code, _, _ = run(fake, ramrun_argv(files, 1), tmp_path)
     assert code == 3 and fake.lines == ['ping', 'status'] and fake.sram == {}
-    assert not (tmp_path / LOCK1).exists()
+    assert not (tmp_path / LOCK1).exists() and not (tmp_path / JUMPED1).exists()
 
 
 @pytest.mark.parametrize('mode,ms,code', [
@@ -549,6 +727,8 @@ def test_jump_verdicts(approved, files, tmp_path, mode, ms, code):
     assert got == code
     assert fake.lines.count('jump 0x1c02000 0x1') == 1 and fake.lines[-1] == 'jump 0x1c02000 0x1'
     assert fake.closed and events[-1]['exit'] == code
+    # The jump line went out, whatever came back: the marker records that.
+    assert json.loads((tmp_path / JUMPED1).read_text())['jump'] == 'jump 0x1c02000 0x1'
     if mode == 'ok':
         assert 'm5p2 never does' in events[-1]['verdict']
 
@@ -592,8 +772,8 @@ def test_info_and_dump_still_pass_the_ldr_gate(approved, files, tmp_path):
 # -- crumbs ------------------------------------------------------------------
 
 def _run2_dir(tmp_path):
-    (tmp_path / LOCK1).write_text('{}\n')
-    (tmp_path / LOCK2).write_text('{}\n')
+    """Run 2's directory as the real runs leave it (real hashes: no `approved`)."""
+    jumped(tmp_path, 1, 2)
 
 
 def test_crumbs_reads_once_and_decodes_the_kit_vector(tmp_path, capsys):
@@ -617,7 +797,9 @@ def test_crumbs_reads_once_and_decodes_the_kit_vector(tmp_path, capsys):
     raw = kinds.index('crumbs-raw')
     assert events[raw]['hex'] == KIT_CRUMBS.hex()
     assert events[raw + 1]['event'] == 'rx' and events[raw + 1]['line'].startswith('END ')
-    assert json.loads((tmp_path / CRUMBS_LOCK).read_text())['receipt'] == 'crumbs.jsonl'
+    lock = json.loads((tmp_path / CRUMBS_LOCK).read_text())
+    assert lock['receipt'] == 'crumbs.jsonl' and lock['crumbs_hex'] == KIT_CRUMBS.hex()
+    assert c['doubts'] == [] and 'SUSPECT' not in end['verdict']
     assert 'last stage finishing' in capsys.readouterr().out
 
 
@@ -631,6 +813,37 @@ def test_crumbs_decode_flags_and_unknowns():
     words[1], words[7], words[11] = 0x2A, 9, 0
     d = t.decode_crumbs(b''.join(w.to_bytes(4, 'little') for w in words))
     assert not d['valid'] and d['stage_name'] == 'unknown 42' and d['panel_name'] == 'unknown 9'
+
+
+@pytest.mark.parametrize('words,doubt', [
+    ({'stage': 0}, 'stage word 0x0 is not a stage 1-13'),
+    ({'stage': 14}, 'stage word 0xe is not a stage 1-13'),
+    ({'stage': 0x100 | 14}, 'stage word 0x10e'),
+    ({'stage': 0x200 | 13}, 'stage word 0x20d'),
+    ({'stage': 0x10000 | 13}, 'stage word 0x1000d'),
+    ({'panel': 4}, 'panel result 0x4 is unknown'),
+    ({'panel': 0x100}, 'panel result 0x100 is unknown'),
+    ({'kick_failures': 0x1cb3}, 'kick_failures 7347 exceed kicks 7346'),
+])
+def test_crumbs_with_a_valid_magic_but_odd_words_are_suspect(tmp_path, capsys, words, doubt):
+    _run2_dir(tmp_path)
+    data = crumbs_with(**words)
+    code, events, _ = run(crumbs_fake(data), ['crumbs'], tmp_path)
+    end = events[-1]
+    assert code == t.EXIT_SUSPECT == 4 and end['exit'] == 4
+    assert end['crumbs']['valid'] and any(doubt in d for d in end['crumbs']['doubts'])
+    assert end['verdict'].startswith('breadcrumbs read and the magic is valid, but SUSPECT: ')
+    assert doubt in end['verdict'] and end['crumbs_hex'] == data.hex()
+    assert json.loads((tmp_path / CRUMBS_LOCK).read_text())['crumbs_hex'] == data.hex()
+    assert 'SUSPECT' in capsys.readouterr().out
+
+
+def test_crumbs_timer_dead_flag_on_a_known_stage_is_not_suspect(tmp_path):
+    _run2_dir(tmp_path)
+    code, events, _ = run(crumbs_fake(crumbs_with(stage=0x100 | 4, kick_failures=0x1cb2)),
+                          ['crumbs'], tmp_path)
+    assert code == 0 and events[-1]['crumbs']['timer_dead']
+    assert events[-1]['crumbs']['doubts'] == []
 
 
 def test_crumbs_without_the_magic_exit_3_and_keep_the_bytes(tmp_path):
@@ -661,16 +874,32 @@ def test_crumbs_transfer_failure_keeps_the_raw_bytes(tmp_path):
     assert (tmp_path / CRUMBS_LOCK).exists()
 
 
-@pytest.mark.parametrize('locks,why', [
-    ((), 'crumbs reads run 2'), ((LOCK1,), 'crumbs reads run 2'),
-    ((LOCK1, LOCK2, CRUMBS_LOCK), 'already read')])
-def test_crumbs_admission(tmp_path, capsys, locks, why):
-    for name in locks:
-        (tmp_path / name).write_text('{}\n')
+@pytest.mark.parametrize('setup,why', [
+    (lambda d: None, 'no fm1t_m5p2-mailbox-ramrun.lock'),
+    (lambda d: jumped(d, 1), 'no fm1t_m5p2-mailbox-ramrun.lock'),
+    (lambda d: (jumped(d, 1), write_record(d, 2, 'lock')), 'no fm1t_m5p2-mailbox-ramrun.jumped'),
+    (lambda d: (jumped(d, 1, 2), write_record(d, 2, 'jumped', run=1)), 'does not record run 2'),
+    (lambda d: (jumped(d, 1, 2), write_record(d, 2, 'lock', image_sha256=RUN1_SHA256)),
+     'does not record run 2'),
+    (lambda d: (jumped(d, 1, 2), (d / JUMPED2).write_text('{}\n')), 'does not record run 2'),
+    (lambda d: (jumped(d, 1, 2), (d / JUMPED2).write_bytes(b'\xff\xfe')), 'is unreadable'),
+])
+def test_crumbs_needs_run2s_lock_and_jump_marker_by_content(tmp_path, capsys, setup, why):
+    setup(tmp_path)
     fake = crumbs_fake()
     code, events, opened = run(fake, ['crumbs'], tmp_path)
     assert code == 1 and opened == [] and fake.wire == b'' and events == []
-    assert why in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert why in err and 'only after run 2 sent its jump' in err
+
+
+def test_crumbs_refused_once_read(tmp_path, capsys):
+    _run2_dir(tmp_path)
+    (tmp_path / CRUMBS_LOCK).write_text('{}\n')
+    fake = crumbs_fake()
+    code, events, opened = run(fake, ['crumbs'], tmp_path)
+    assert code == 1 and opened == [] and fake.wire == b'' and events == []
+    assert 'already read' in capsys.readouterr().err
 
 
 def test_crumbs_refuses_fm1t_loader_env(tmp_path):
@@ -680,15 +909,40 @@ def test_crumbs_refuses_fm1t_loader_env(tmp_path):
     assert code == 1 and opened == [] and fake.wire == b''
 
 
-@pytest.mark.parametrize('kw', [{'uboot': False}, {'uboot': True, 'v15': True},
-                                {'loader': True}, {'loader_running': True}])
-def test_crumbs_needs_the_rom_without_the_loader(tmp_path, kw):
+CRUMBS_STOPS = {
+    'uboot=0': ("status answers uboot=0: the transporter has not mounted the mask ROM. Keep "
+                "the FM-1 ON and do not rekey: power-off clears the breadcrumbs. Replug the "
+                "transporter's USB with the FM-1 left on (docs/19 section 7.6), wait for "
+                "`UBOOT READY`, then run crumbs again"),
+    'v15=1': ("status answers v15=1: the FM-1 booted V15 instead of returning to the mask ROM, "
+              "so the breadcrumbs are lost (docs/19 section 7.6, R6 (c)). Send nothing else: "
+              "photograph the unit, then power off (R8)"),
+    'loader=1': ("status answers loader=1: the transporter holds the flash loader from an "
+                 "earlier step. Keep the FM-1 ON and do not rekey. Replug the transporter's USB "
+                 "with the FM-1 left on (docs/19 section 7.6), wait for `UBOOT READY`, then run "
+                 "crumbs again"),
+    'loader_running=1': ("status answers loader_running=1: the flash loader runs at 0x1c02000, "
+                         "over the breadcrumbs, so they are lost. Send nothing else; power off "
+                         "(docs/19 section 7.6, R8)"),
+}
+
+
+@pytest.mark.parametrize('kw,stop', [
+    ({'uboot': False}, 'uboot=0'), ({'uboot': False, 'v15': True}, 'v15=1'),
+    ({'uboot': True, 'v15': True}, 'v15=1'), ({'loader': True}, 'loader=1'),
+    ({'loader_running': True}, 'loader_running=1'),
+    ({'loader': True, 'loader_running': True}, 'loader_running=1')])
+def test_crumbs_needs_the_rom_without_the_loader(tmp_path, kw, stop):
+    """The stop text says exactly what to do. Where the breadcrumbs may still be
+    in SRAM it never says to power off or rekey (USB_KEY_STEPS would)."""
     _run2_dir(tmp_path)
     fake = crumbs_fake(**kw)
     code, events, _ = run(fake, ['crumbs'], tmp_path)
     assert code == 3 and fake.lines == ['ping', 'status']
     assert not (tmp_path / CRUMBS_LOCK).exists()
-    assert events[-1]['verdict'].startswith('STOP')
+    assert events[-1]['verdict'] == 'STOP: ' + CRUMBS_STOPS[stop]
+    if stop in ('uboot=0', 'loader=1'):
+        assert 'power off' not in events[-1]['verdict'] and 'OFF, run' not in events[-1]['verdict']
 
 
 def test_crumbs_err_reply_takes_no_lock_and_may_be_retried(tmp_path):
@@ -707,6 +961,8 @@ def test_crumbs_err_reply_takes_no_lock_and_may_be_retried(tmp_path):
     code, events, _ = run(fake, ['crumbs'], tmp_path, log='first.jsonl')
     assert code == 3 and fake.lines == ['ping', 'status', 'memr 0x1c05fc0 48']
     assert 'no crumbs lock' in events[-1]['verdict'] and not (tmp_path / CRUMBS_LOCK).exists()
+    assert 'Keep the FM-1 ON and do not rekey' in events[-1]['verdict']
+    assert 'reading again is harmless' in events[-1]['verdict']
     code, events, _ = run(crumbs_fake(), ['crumbs'], tmp_path, log='second.jsonl')
     assert code == 0 and (tmp_path / CRUMBS_LOCK).exists()
     third = crumbs_fake()
@@ -726,6 +982,28 @@ def test_crumbs_lock_created_by_a_parallel_read_stops_after_data(tmp_path):
     fake._poll = racing
     code, events, _ = run(fake, ['crumbs'], tmp_path)
     assert code == 3 and 'already attempted' in events[-1]['verdict']
+    # The bytes were logged before the lock was tried, so they are kept.
+    assert events[-1]['crumbs_hex'] == KIT_CRUMBS.hex()
+    assert any(e['event'] == 'crumbs-raw' for e in events)
+    assert (tmp_path / CRUMBS_LOCK).read_text() == '{}\n'
+
+
+def test_crumbs_lock_is_taken_even_when_the_bytes_do_not_arrive(tmp_path):
+    """DATA came, so the read happened: the lock is taken in a finally."""
+    _run2_dir(tmp_path)
+    fake = crumbs_fake()
+    orig = fake._poll
+
+    def short(line, payload):
+        if line.startswith('memr'):
+            fake._tx('DATA 48')
+            fake.out += KIT_CRUMBS[:20]
+            return
+        orig(line, payload)
+    fake._poll = short
+    code, events, _ = run(fake, ['crumbs'], tmp_path)
+    assert code == 3 and events[-1]['exit'] == 3
+    assert (tmp_path / CRUMBS_LOCK).exists()
 
 
 def test_nothing_is_sent_after_the_crumbs_read():

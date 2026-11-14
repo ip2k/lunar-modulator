@@ -38,7 +38,8 @@
     `memw`/`memr`/`ldr` patterns; its new hash awaits the owner's approval.
   - `fm1t_m5p2.py` is a copy of `fm1t_m5.py` (same licence) for m5-plan-2
     (docs/19 §7): two pinned images, `m5p2.bin` (run 1) and
-    `m5p2-mailbox.bin` (run 2, only after run 1), each with its own lock;
+    `m5p2-mailbox.bin` (run 2, only after run 1 sent its jump), each with
+    its own lock and jump marker;
     two `memw` chunks inside `[0x01C02000, 0x01C03EF0)`; a `crumbs`
     subcommand that sends one `memr 0x1c05fc0 48` (the transporter's
     existing ROM memory read) after run 2; and `v15=0` required wherever the

@@ -389,7 +389,7 @@ approval**; the bench session does not start before it is given.
   breadcrumbs below `0x01C06000`, and run 2 the marker.
 - **Tool:** [`tools/fm1-transporter/fm1t_m5p2.py`](../tools/fm1-transporter/fm1t_m5p2.py),
   SHA-256
-  `2cbdaa687aa03f6df7b15c7d6214ee7b75d1486a00c8abafcad277402d21f7ab`.
+  `b216ab672bc86dce29f8e7ff90857e4cbf04c22eadedd976ab559701ccdf2c4c`.
   **This hash needs its own owner approval before the bench run**; the image
   approvals do not cover it. `preflight` must print exactly it, on the Mac
   and in the run directory.
@@ -420,27 +420,59 @@ else [verified: `tests/test_fm1t_m5p2.py` pins every differing code line].
 - **Two pinned images.** `--run 1` admits only `aba6ed7c…`, `--run 2` only
   `b63a643e…`. Each `memw` must carry that run's bytes, in order; the jump
   waits for all 7,920.
-- **One lock per run.** Run 1 creates `fm1t_m5p2-ramrun.lock`, run 2
-  `fm1t_m5p2-mailbox-ramrun.lock`, next to the receipt, just before the
-  first `memw`. A run whose lock exists refuses before opening the port.
-  **Run 2 refuses unless run 1's lock is in the same run directory**, and run
-  1 refuses where run 2's lock is. Either refuses beside M5's or M6's lock.
-- **`crumbs` runs once, after run 2.** It is admitted only in a run directory
-  holding run 2's lock and no `fm1t_m5p2-crumbs.lock`. `status` must answer
-  `uboot=1 v15=0 loader=0 loader_running=0`: the flash loader is loaded at
-  `0x01C02000` and is 24,064 B long, so it would overwrite the breadcrumbs.
-  `memr` is the transporter's existing ROM memory read (FD07); no
-  transporter or Pico change is involved. The lock is created when the
-  transporter answers `DATA 48`: a read that never happened (no reply, or
-  `ERR …` on a stale mount, §7.6) may be tried again, and a read that
-  happened may not. The 48 bytes go into the receipt as hex before they are
-  checked or decoded.
+- **One lock and one jump marker per run.**
+  - Run 1 creates `fm1t_m5p2-ramrun.lock`, run 2
+    `fm1t_m5p2-mailbox-ramrun.lock`, next to the receipt, just before the
+    first `memw`. A run whose lock exists refuses before opening the port.
+  - Right after the jump line has gone out, and before it waits for the
+    reply, each run writes its jump marker: `fm1t_m5p2-ramrun.jumped` or
+    `fm1t_m5p2-mailbox-ramrun.jumped`. A run that stopped before the jump
+    writes none. If the marker cannot be written, the run exits 3 and says
+    so; the image is still presumed running.
+  - **Run 2 refuses unless run 1's lock and jump marker are in the same run
+    directory**, and run 1 refuses where run 2's lock is. Either refuses
+    beside M5's or M6's lock.
+  - The tool reads each lock and marker it relies on. It refuses unless the
+    file is JSON naming the right run and that run's pinned image hash; the
+    file name alone is not enough.
+- **The guards see only the `--log` directory.** The tool looks for the
+  locks and markers in the directory of the `--log` file and nowhere else.
+  Always `cd ~/m5p2-run` and pass a bare file name (`--log
+  r7-crumbs.jsonl`), never a path into another directory: there the earlier
+  runs' locks would not be seen.
+- **`crumbs` runs once, after run 2 sent its jump.** It is admitted only in
+  a run directory holding run 2's lock and jump marker (both checked by
+  content, as above) and no `fm1t_m5p2-crumbs.lock`.
+  - `status` must answer `uboot=1 v15=0 loader=0 loader_running=0`: the
+    flash loader is loaded at `0x01C02000` and is 24,064 B long, so it
+    would overwrite the breadcrumbs.
+  - Otherwise it stops (exit 3) with its own text, and never says to power
+    off while the breadcrumbs may still be in SRAM. `uboot=0` or `loader=1`:
+    keep the FM-1 **on**, do not rekey, replug the Pico (§7.6 "Stale
+    mount"), then run `crumbs` again. `v15=1`: the breadcrumbs are lost
+    (R6 (c)). `loader_running=1`: the loader sits on top of the
+    breadcrumbs; R8.
+  - `memr` is the transporter's existing ROM memory read (FD07); no
+    transporter or Pico change is involved.
+  - The lock is created once the transporter answers `DATA 48`: the read
+    happened, and may not happen again. The 48 bytes go into the receipt as
+    hex first; the lock is then created even if receiving them failed, and
+    holds the same hex.
+  - `ERR …` (a stale mount, §7.6) takes no lock, and the read may be tried
+    again. **No reply at all is ambiguous**: no lock is taken, but the ROM
+    may have served the read. Reading again is harmless; it is only a read.
 - **`v15=0` wherever the ROM is needed.** `ramrun` and `crumbs` stop at
   `status` unless it answers `uboot=1 v15=0`, so with a running V15 attached
   the tool sends only `ping` and `status`, which the Pico answers itself.
 
-Exit codes as in §2; `crumbs` also exits 3 when the read worked but the
-magic or its complement does not match (the bytes are kept).
+Exit codes as in §2, and for `crumbs`, after a read that worked (the bytes
+are kept in the receipt and the lock in both cases):
+
+- **3** when the magic or its complement does not match;
+- **4, suspect**, when the magic is valid but a word is impossible: the
+  stage is not 1–13 (apart from the timer-dead flag `0x100`), the panel
+  result is not 0, 1, 2, 3 or `0xFF`, or `kick_failures` exceeds `kicks`.
+  Do not trust a suspect decode; keep and record the raw hex.
 
 ### 7.3 Before the session (desk, no hardware)
 
@@ -530,10 +562,10 @@ with seconds) that stays in the video frame next to the TFT and the LEDs.
 
 Claude and the owner look at the video together, after step 14, and decide
 by this table. Run 2 follows only on an "inconclusive" row, and only if run
-1's receipt (`12-ramrun.jsonl`) has the `tx` line `jump 0x1c02000 0x1`.
+1's receipt (`12-ramrun.jsonl`) has the `tx` line `jump 0x1c02000 0x1` and
+its jump marker `fm1t_m5p2-ramrun.jumped` is in the run directory.
 **A step-12 exit 3 before the jump is a §5 stop, not an inconclusive run:**
-nothing ran, and run 2 does not follow, although the tool would admit it
-(run 1's lock is taken before the first `memw`).
+nothing ran, run 1 wrote no jump marker, and the tool refuses run 2.
 
 | What run 1 showed | Verdict | Next |
 | --- | --- | --- |
@@ -560,8 +592,8 @@ Same run directory, same session, after step 14.
   `uboot=1 v15=0 loader=0 loader_running=0`.
 - **R4.** `$T --log r4-ramrun.jsonl ramrun m5p2-mailbox.bin --run 2 --sha256 $SHA2`
   - The same lines and expected output as step 12; exit 0.
-  - It refuses (exit 1, nothing sent) if run 1's lock is not in the
-    directory.
+  - It refuses (exit 1, nothing sent) unless run 1's lock and jump marker
+    are in the directory, each naming run 1 and its pinned hash.
 - **R5. Owner, at the unit: the same sequence as step 13**, then the end:
   - after 18,000 nominal ms of waits (about 40 s after the jump at kit
     clocks; minutes if TIMER4 is dead) the image stops kicking at the end of
@@ -593,12 +625,23 @@ Same run directory, same session, after step 14.
 - **R7.** `$T --log r7-status.jsonl status`, then, only if it answers
   `uboot=1 v15=0 loader=0 loader_running=0`:
   `$T --log r7-crumbs.jsonl crumbs`
+  - If `status` answers otherwise, keep the FM-1 **on**:
+    - `uboot=0 v15=0` (or `loader=1`): the transporter has not mounted the
+      ROM. Do not rekey; do the replug of "Stale mount" below, then R7
+      again.
+    - `v15=1`: R6 (c).
+    - `loader_running=1`: the breadcrumbs are lost; R8.
   - Expected: the twelve words by name, then
     `stage …, timer_dead …, panel …, valid True` and
     `breadcrumbs read and valid; last stage …`, exit 0.
   - Exit 3 with `does not match`: the read worked but the breadcrumbs did
     not survive or were never written. The raw bytes are in the receipt.
     That is the result; there is no second read.
+  - Exit 4 with `SUSPECT`: the magic is valid but a word is impossible
+    (§7.2). Record the raw hex and the decode as untrusted; there is no
+    second read.
+  - Exit 3 at `status`: do what its text says (as above). Exit 3 with
+    `No DATA came`: "Stale mount" below.
   - **Never** run `info` or `dump` before `crumbs`: the loader would land on
     top of the breadcrumbs.
 - **R8. Owner:** switch the FM-1 **off**. **Claude:**
@@ -613,7 +656,8 @@ V15 did show a detach 3.89 s after the jump, and nothing mounted after it
 (`notes/2026-11-10-m5-fm1-ram-run.md`). So `status` may answer `uboot=1` for
 a device that is no longer enumerated, and `crumbs` then gets `ERR …` or no
 reply. It exits 3 **without taking its lock**, so the read may be tried
-again:
+again (after no reply at all, the ROM may already have served it; reading
+again is harmless):
 
 1. With the FM-1 left **on**, unplug the Pico's own USB from bench01 and plug
    it back in; restart the console reader at once.
@@ -657,4 +701,4 @@ Use `$T` and `fm1t_m5p2.py compare`.
   "After the session" does: the tool and image hashes, the jump replies,
   the flash and label timings from the video, the §7.5 verdict and why, the
   crumbs receipt's raw hex and decode, the dump hashes and the identity.
-  Copy the `*.lock` files with the receipts.
+  Copy the `*.lock` and `*.jumped` files with the receipts.

@@ -25,8 +25,12 @@ What differs from fm1t_m5.py, and why:
      fm1t_m5p2-ramrun.lock;
    - run 2, `m5p2-mailbox.bin` (build id m5-plan-2m, SHA-256 b63a643e...),
      lock fm1t_m5p2-mailbox-ramrun.lock. It is admitted only from a run
-     directory that already holds run 1's lock, and run 1 is refused where
-     run 2's lock exists. Either run is refused where M5's or M6's lock is.
+     directory that already holds run 1's lock and run 1's jump marker, each
+     a JSON record naming run 1 and its pinned image (a file's name alone is
+     not trusted). Run 1 is refused where run 2's lock exists. Either run is
+     refused where M5's or M6's lock is.
+   Each run writes its jump marker (fm1t_m5p2-ramrun.jumped,
+   fm1t_m5p2-mailbox-ramrun.jumped) right after the jump line is sent.
    Both images are 7,920 B, so memw carries exactly two chunks
    (4,096 + 3,824 B) inside [0x01C02000, 0x01C03EF0), and the jump is
    refused until all of them were written. `--run` must name the run whose
@@ -37,11 +41,15 @@ What differs from fm1t_m5.py, and why:
    the flash loader would overwrite the breadcrumbs: it is loaded at
    0x01C02000 and is 24,064 B long) and exactly one `memr 0x1c05fc0 48`, the
    transporter's existing ROM memory read. It is admitted only in a run
-   directory holding run 2's lock. Its own lock, fm1t_m5p2-crumbs.lock, is
-   created when the transporter answers `DATA 48`, so a read that never
-   happened (no reply, or `ERR memr at ...` on a stale mount) can be tried
-   again, and a read that happened cannot. The 48 bytes are logged as hex
-   before they are checked or decoded.
+   directory holding run 2's lock and run 2's jump marker. Its own lock,
+   fm1t_m5p2-crumbs.lock, is created once the transporter has answered
+   `DATA 48` (in a `finally`, after the 48 bytes are logged as hex), so a
+   read that never happened (no reply, or `ERR memr at ...` on a stale
+   mount) can be tried again, and a read that happened cannot. Its stops
+   never say to power off while the breadcrumbs may still be in SRAM. It
+   exits 0 only for valid, plausible breadcrumbs, 4 for valid but suspect
+   ones (an unknown stage or panel result, or more kick failures than
+   kicks), 3 otherwise.
 3. `status` must also answer v15=0 wherever the ROM is needed, so nothing
    but `ping`, `status` and `rekey` (which refuses a mounted device) is ever
    sent while a running V15 is attached.
@@ -75,10 +83,11 @@ import zlib
 #    command-line override. Run 2 only after run 1, in the same run directory.
 RUNS = {
     1: {"sha256": "aba6ed7ceaa0cac990dedcaf664b10707632a139be83b3bea5e0f62739bf968c",
-        "build_id": "m5-plan-2", "lock": "fm1t_m5p2-ramrun.lock", "needs": None},
+        "build_id": "m5-plan-2", "lock": "fm1t_m5p2-ramrun.lock",
+        "jumped": "fm1t_m5p2-ramrun.jumped", "after": None},
     2: {"sha256": "b63a643e14983ac07a883867d073368733f6f714b7f35116aa85a4e91d80421c",
         "build_id": "m5-plan-2m", "lock": "fm1t_m5p2-mailbox-ramrun.lock",
-        "needs": "fm1t_m5p2-ramrun.lock"},
+        "jumped": "fm1t_m5p2-mailbox-ramrun.jumped", "after": 1},
 }
 APPROVED_IMAGE_BYTES = 7920      # both images
 RAM_BASE = 0x01C02000            # load and jump address, fixed
@@ -89,6 +98,9 @@ MEMW_CHUNK = 4096                # transporter limit per memw / memr (JL_SECTOR_
 # One RAM-run attempt per run and run directory: created just before the first
 # memw, next to the receipt. A second attempt (a retry) needs a new owner approval.
 RAMRUN_LOCKS = tuple(r["lock"] for r in RUNS.values())
+# A jump marker per run, written right after the jump line is sent: run 2
+# and crumbs need the earlier run's lock and marker, both naming that run and
+# its pinned image.
 # M5's and M6's locks in the same directory also refuse: m5p2 needs its own.
 OTHER_RAMRUN_LOCKS = ("fm1t_m5-ramrun.lock", "fm1t_m6-ramrun.lock")
 
@@ -106,6 +118,7 @@ STAGES = ("", "entry", "pa2_on", "timer_ok", "timer_dead", "measured", "cadence_
 TIMER_DEAD_FLAG = 0x100          # in the stage word: TIMER4 failed at some point
 PANEL_RESULTS = {0: "ok", 1: "invalid", 2: "transfer_failed", 3: "delay_failed",
                  0xFF: "not_run"}
+EXIT_SUSPECT = 4                 # crumbs: magic valid, contents implausible
 if not (RAM_BASE + APPROVED_IMAGE_BYTES <= CRUMBS_ADDR
         and CRUMBS_ADDR + CRUMBS_BYTES <= RAM_END):
     raise SystemExit("fm1t_m5p2: the image and the breadcrumbs overlap or leave the window")
@@ -585,9 +598,12 @@ def cmd_ramrun(link, args, result):
     if st["loader"] or st["loader_running"]:
         raise Stop(f"the transporter holds or runs the flash loader ({st}); a RAM run needs a "
                    f"fresh ROM entry. FM-1 off, rekey, FM-1 on")
-    if run["needs"] and not (args.log.parent / run["needs"]).exists():
-        raise Stop(f"{run['needs']} is gone from {args.log.parent}: run {args.run} only after "
-                   "run 1, from the same run directory")
+    if run["after"]:
+        for kind in ("lock", "jumped"):
+            why = run_record_problem(args.log.parent, run["after"], kind)
+            if why:
+                raise Stop(f"{why}: run {args.run} only after run {run['after']} sent its "
+                           "jump, from the same run directory")
     lock = args.log.parent / run["lock"]
     with open(lock, "x") as f:       # raises FileExistsError: never a second attempt
         f.write(json.dumps({"time": round(time.time(), 3), "receipt": args.log.name,
@@ -599,11 +615,42 @@ def cmd_ramrun(link, args, result):
     print(f"loaded {len(image)} B at {RAM_BASE:#x}; read-back {result['readback']}")
     if back != image:
         raise Stop("image read-back mismatch; not jumping")
-    reply = link.request(f"jump {RAM_BASE:#x} {JUMP_ARG:#x}", TIMEOUT_JUMP)
+    line = f"jump {RAM_BASE:#x} {JUMP_ARG:#x}"
+    link.send_line(line)
+    marker = args.log.parent / run["jumped"]
+    try:
+        with open(marker, "x") as f:     # the jump went out; run 2 and crumbs need this
+            f.write(json.dumps({"time": round(time.time(), 3), "receipt": args.log.name,
+                                "run": args.run, "image_sha256": run["sha256"],
+                                "jump": line}) + "\n")
+        result["jumped"] = str(marker)
+    except OSError as exc:
+        result["jump_marker_error"] = f"{type(exc).__name__}: {exc}"
+    reply = link.recv_line(TIMEOUT_JUMP)
     code, verdict = jump_verdict(reply)
+    if "jump_marker_error" in result:
+        code, verdict = 3, (f"{verdict}. The jump marker {marker} could not be written "
+                            f"({result['jump_marker_error']}): the later steps will refuse")
     result.update(jump_reply=reply, verdict=verdict)
     print(verdict)
     return code
+
+
+def run_record_problem(directory, run, kind):
+    """None if `directory` holds run `run`'s lock or jump marker (`kind`),
+    recording that run and its pinned image; otherwise why not. The file's
+    name alone is not trusted."""
+    path = directory / RUNS[run][kind]
+    try:
+        rec = json.loads(path.read_text())
+    except FileNotFoundError:
+        return f"no {path.name} in {directory}"
+    except (OSError, ValueError) as exc:
+        return f"{path} is unreadable ({type(exc).__name__})"
+    if (not isinstance(rec, dict) or rec.get("run") != run
+            or rec.get("image_sha256") != RUNS[run]["sha256"]):
+        return f"{path} does not record run {run} with its pinned image"
+    return None
 
 
 def decode_crumbs(data):
@@ -615,31 +662,65 @@ def decode_crumbs(data):
     out["stage_name"] = STAGES[stage] if 0 < stage < len(STAGES) else f"unknown {stage}"
     out["timer_dead"] = bool(words[1] & TIMER_DEAD_FLAG)
     out["panel_name"] = PANEL_RESULTS.get(words[7], f"unknown {words[7]}")
+    doubts = []
+    if words[1] & ~(0xFF | TIMER_DEAD_FLAG) or not 0 < stage < len(STAGES):
+        doubts.append(f"stage word {words[1]:#x} is not a stage 1-{len(STAGES) - 1} "
+                      "with at most the timer-dead flag")
+    if words[7] not in PANEL_RESULTS:
+        doubts.append(f"panel result {words[7]:#x} is unknown")
+    if out["kick_failures"] > out["kicks"]:
+        doubts.append(f"kick_failures {out['kick_failures']} exceed kicks {out['kicks']}")
+    out["doubts"] = doubts
     return out
+
+
+# Stops for crumbs: never "power off" while the breadcrumbs may still be in SRAM.
+CRUMBS_STOP_V15 = ("status answers v15=1: the FM-1 booted V15 instead of returning to the "
+                   "mask ROM, so the breadcrumbs are lost (docs/19 section 7.6, R6 (c)). "
+                   "Send nothing else: photograph the unit, then power off (R8)")
+CRUMBS_STOP_NO_UBOOT = ("status answers uboot=0: the transporter has not mounted the mask "
+                        "ROM. Keep the FM-1 ON and do not rekey: power-off clears the "
+                        "breadcrumbs. Replug the transporter's USB with the FM-1 left on "
+                        "(docs/19 section 7.6), wait for `UBOOT READY`, then run crumbs again")
+CRUMBS_STOP_LOADER_HELD = ("status answers loader=1: the transporter holds the flash loader "
+                           "from an earlier step. Keep the FM-1 ON and do not rekey. Replug "
+                           "the transporter's USB with the FM-1 left on (docs/19 section 7.6), "
+                           "wait for `UBOOT READY`, then run crumbs again")
+CRUMBS_STOP_LOADER_RUNNING = ("status answers loader_running=1: the flash loader runs at "
+                              "0x1c02000, over the breadcrumbs, so they are lost. Send nothing "
+                              "else; power off (docs/19 section 7.6, R8)")
 
 
 def cmd_crumbs(link, args, result):
     st = read_status(link)
     result["status"] = st
-    require_uboot(st)
-    if st["loader"] or st["loader_running"]:
-        raise Stop(f"the transporter holds or runs the flash loader ({st}). The loader is "
-                   f"loaded at {RAM_BASE:#x} over the breadcrumbs, so they cannot be read in "
-                   "this ROM session: power off")
+    if st["v15"]:
+        raise Stop(CRUMBS_STOP_V15)
+    if st["uboot"] != 1:
+        raise Stop(CRUMBS_STOP_NO_UBOOT)
+    if st["loader_running"]:
+        raise Stop(CRUMBS_STOP_LOADER_RUNNING)
+    if st["loader"]:
+        raise Stop(CRUMBS_STOP_LOADER_HELD)
     line = f"memr {CRUMBS_ADDR:#x} {CRUMBS_BYTES}"
     reply = link.request(line, TIMEOUT_MEM)
     if reply != f"DATA {CRUMBS_BYTES}":
-        raise Stop(f"{line}: {reply!r}. Nothing was read and no crumbs lock was taken. If the "
-                   "console showed no new `UBOOT READY` after the jump, the transporter's "
-                   "mount may be stale: docs/19 section 7.6, then run crumbs again")
-    lock = args.log.parent / CRUMBS_LOCK
-    with open(lock, "x") as f:       # raises FileExistsError: the read happened before
-        f.write(json.dumps({"time": round(time.time(), 3), "receipt": args.log.name,
-                            "read": line}) + "\n")
-    result["lock"] = str(lock)
-    data = link.recv_bytes(CRUMBS_BYTES, TIMEOUT_MEM)
-    result["crumbs_hex"] = data.hex()            # raw, before any check or decoding
-    link._log("crumbs-raw", hex=data.hex())
+        raise Stop(f"{line}: {reply!r}. No DATA came, so no crumbs lock was taken (with no "
+                   "reply at all the read may still have happened; reading again is "
+                   "harmless). Keep the FM-1 ON and do not rekey. If the console showed no "
+                   "new `UBOOT READY` after the jump, the transporter's mount may be stale: "
+                   "docs/19 section 7.6, then run crumbs again")
+    data = b""
+    try:
+        data = link.recv_bytes(CRUMBS_BYTES, TIMEOUT_MEM)
+        result["crumbs_hex"] = data.hex()        # raw, before anything else
+        link._log("crumbs-raw", hex=data.hex())
+    finally:
+        lock = args.log.parent / CRUMBS_LOCK     # DATA came: the read happened
+        with open(lock, "x") as f:               # FileExistsError: it happened before
+            f.write(json.dumps({"time": round(time.time(), 3), "receipt": args.log.name,
+                                "read": line, "crumbs_hex": data.hex()}) + "\n")
+        result["lock"] = str(lock)
     end = link.recv_line(TIMEOUT_MEM)
     if len(data) != CRUMBS_BYTES or end != f"END {crc32(data):08X}":
         raise Stop(f"{line}: transfer check failed ({end!r}); the raw bytes are in the receipt")
@@ -654,6 +735,12 @@ def cmd_crumbs(link, args, result):
                              "they did not survive, or were never written. Power off")
         print(result["verdict"])
         return 3
+    if crumbs["doubts"]:
+        result["verdict"] = ("breadcrumbs read and the magic is valid, but SUSPECT: "
+                             + "; ".join(crumbs["doubts"])
+                             + ". Keep the raw bytes; do not trust the decode")
+        print(result["verdict"])
+        return EXIT_SUSPECT
     result["verdict"] = f"breadcrumbs read and valid; last stage {crumbs['stage_name']}"
     print(result["verdict"])
     return 0
@@ -769,10 +856,13 @@ def admit(args, environ):
             if here and (here / other).exists():
                 raise Refused(f"{here / other} exists: this is M5's or M6's run directory; "
                               "run m5p2 from a new one (docs/19 section 7)")
-        needs = RUNS[args.run]["needs"]
-        if here and needs and not (here / needs).exists():
-            raise Refused(f"no {needs} in {here}: run {args.run} is allowed only after run 1, "
-                          "from the same run directory")
+        after = RUNS[args.run]["after"]
+        if here and after:
+            for kind in ("lock", "jumped"):
+                why = run_record_problem(here, after, kind)
+                if why:
+                    raise Refused(f"{why}: run {args.run} is allowed only after run {after} "
+                                  "sent its jump, from the same run directory")
         if here and args.run == 1 and (here / RUNS[2]["lock"]).exists():
             raise Refused(f"{here / RUNS[2]['lock']} exists: run 1 never follows run 2")
     if args.cmd == "crumbs":
@@ -780,12 +870,15 @@ def admit(args, environ):
             raise Refused("FM1T_LOADER is set in the environment; unset it: the loader would "
                           "overwrite the breadcrumbs")
         here = args.log.parent if args.log else None
-        if here and not (here / RUNS[2]["lock"]).exists():
-            raise Refused(f"no {RUNS[2]['lock']} in {here}: crumbs reads run 2's breadcrumbs "
-                          "and runs only in run 2's directory")
         if here and (here / CRUMBS_LOCK).exists():
             raise Refused(f"{here / CRUMBS_LOCK} exists: the breadcrumbs were already read "
                           "from this run directory")
+        if here:
+            for kind in ("lock", "jumped"):
+                why = run_record_problem(here, 2, kind)
+                if why:
+                    raise Refused(f"{why}: crumbs reads run 2's breadcrumbs, only after run 2 "
+                                  "sent its jump, from run 2's run directory")
     if args.cmd in ("info", "dump"):
         args.loader_bytes = admit_loader(args.loader)
     if args.cmd == "dump":
