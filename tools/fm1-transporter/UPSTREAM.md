@@ -45,6 +45,15 @@
     existing ROM memory read) after run 2; and `v15=0` required wherever the
     ROM is needed. `tests/test_fm1t_m5p2.py` pins every code line on which it
     differs from `fm1t_m5.py`.
+  - `fm1t_m8.py` (same licence) keeps `fm1t_m6.py`'s port pin, loader pin,
+    `info` check, allow-listed `Link` and JSONL receipt, drops `memw`/`jump`,
+    and adds the two flash writes of M8 (docs/22): `install` of an
+    owner-approved package (none approved yet) and `restore` to stock V15,
+    both by `wsec` inside `[0x4000, 0x93000)` only, each sector read back,
+    with two identical full reads before and one after. The port is pinned
+    to the bench transporter's serial `560A5ACCF298BDCB`. Its lock lives in
+    `~/.local/state/fm1t_m8/`, keyed by package hash. `tests/test_fm1t_m8.py`
+    extends the M5 fake with the transporter's real `wsec` behaviour.
   - `build.sh`, the research shim and this file are this repository's own
     (MIT).
 - **Not here, on purpose:**
