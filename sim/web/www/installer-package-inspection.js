@@ -26,7 +26,7 @@ function describeInspection(file, inspection) {
   } else if (inspection.reason) {
     lines.push(`Inspection: ${inspection.reason}`);
   }
-  lines.push('Release admission: not established. Installation is unavailable.');
+  lines.push('Release admission is not part of this inspection; the install panel checks it separately.');
   return lines.join('\n');
 }
 

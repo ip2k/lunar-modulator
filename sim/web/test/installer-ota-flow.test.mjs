@@ -8,17 +8,18 @@ import { HS_QUERY, UPGRADE } from '../www/third_party/fm1-ota/fm1ota.js';
 import { mountOtaInstallFlow, guidanceFor, listPortPairs, STOCK_PRODUCT } from '../www/installer-ota-flow.js';
 import { mountInstallerPage } from '../www/installer-page.js';
 import { OTA_STAGES } from '../www/native-ota-controller.js';
+import { verifyNativePackage } from '../www/lunar-package-admission.js';
+import { LUNAR, PROFILE, STOCK } from './lunar-package-fixture.mjs';
 
-const PACKAGE = Uint8Array.of(9, 8, 7);
-const hex = (bytes) => [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, '0')).join('');
+// The admission check is the real one (lunar-package-admission.js), run
+// against a synthetic stock profile so no vendor byte is needed: '501' is a
+// Lunar install package, '015' the matching stock roll-back package.
+const PACKAGES = { '501': LUNAR, '015': STOCK };
 
 function verifierFor(version) {
-  return async (bytes) => {
-    assert.deepEqual(bytes, PACKAGE);
-    const logicalImage = Uint8Array.of(1, 2, 3, 4);
-    const digest = await crypto.subtle.digest('SHA-256', logicalImage);
-    return { format: 'lunar-native-package-admission-v1', product: `FM-1_${version}`,
-      model: 'FM-1', version: Number(version), logicalImage, logicalImageSha256: hex(digest) };
+  return (bytes) => {
+    assert.deepEqual(bytes, PACKAGES[version]);
+    return verifyNativePackage(bytes, { profiles: [PROFILE] });
   };
 }
 
@@ -72,10 +73,10 @@ function rig({ version = '501', running = 'FM-1_015', loader = 'ota-FM-1_015', a
     await use.dispatch('click');
   }
   const start = () => find(root, 'installer-ota-start');
-  return { document, root, access, pairs, flow, log, choose, start };
+  return { document, root, access, pairs, flow, log, choose, start, bytes: PACKAGES[version] };
 }
 
-const receive = (run) => run.flow.receivePackage({ file: { name: 'pkg.fwsc' }, bytes: PACKAGE });
+const receive = (run) => run.flow.receivePackage({ file: { name: 'pkg.fwsc' }, bytes: run.bytes });
 async function runThrough(run, phases = ['running', 'loader', 'application']) {
   const done = run.start().dispatch('click');
   for (const phase of phases) await run.choose(phase);

@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Offline orchestration seam. This module never calls navigator.requestMIDIAccess
-// or selects a port itself. The public verifier still rejects every package.
-import { verifyNativePackage } from './native-package-admission.js';
+// or selects a port itself. The default verifier is lunar-package-admission.js
+// (MIT), pinned to stock V15: it admits only that package byte for byte, or V15
+// with only the app replaced by a Lunar FM-1_5xx app, and rejects everything
+// else, so admission fails closed before any MIDI permission or port open.
+import { verifyNativePackage } from './lunar-package-admission.js';
 import { createNativeOtaAdapter } from './native-ota-adapter.js';
 
 const defaultClock = {
@@ -76,9 +79,8 @@ export const OTA_STAGES = Object.freeze([
 ]);
 
 /**
- * Call installFromUserAction only from an explicit install action after a
- * separate release verifier exists. There is deliberately no automatic UI or
- * global Web MIDI fallback here. The injected selector must make each pair an
+ * Call installFromUserAction only from an explicit install action. There is
+ * deliberately no automatic UI or global Web MIDI fallback here. The injected selector must make each pair an
  * explicit user choice; port names are not device-mode evidence.
  *
  * onStage(name, detail) reports each transition (see OTA_STAGES) with

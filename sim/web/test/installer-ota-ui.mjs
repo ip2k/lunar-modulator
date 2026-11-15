@@ -74,11 +74,15 @@ try {
     window.__t = { access, pairs, fake, requests: 0 };
     window.__flow = mountOtaInstallFlow(host, {
       requestMIDIAccess: async () => { window.__t.requests += 1; return access; },
+      // A stand-in record (the node tests drive the real admission check);
+      // the panel still binds it to the offered bytes by their SHA-256.
       packageAdmission: { async verify(bytes) {
+        const hex = async (data) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', data))]
+          .map((b) => b.toString(16).padStart(2, '0')).join('');
         const logicalImage = Uint8Array.of(1, 2, 3, 4);
-        const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', logicalImage));
-        return { format: 'lunar-native-package-admission-v1', product: 'FM-1_501', model: 'FM-1', version: 501,
-          logicalImage, logicalImageSha256: [...digest].map((b) => b.toString(16).padStart(2, '0')).join('') };
+        return { format: 'lunar-native-package-admission-v1', kind: 'lunar-install', product: 'FM-1_501',
+          model: 'FM-1', version: 501, packageSha256: await hex(bytes),
+          logicalImage, logicalImageSha256: await hex(logicalImage) };
       } },
       clock: { now: () => performance.now(), setTimeout: (fn, ms) => setTimeout(fn, ms === 30000 ? 2 : ms),
         clearTimeout: (id) => clearTimeout(id), sleep: () => Promise.resolve() },

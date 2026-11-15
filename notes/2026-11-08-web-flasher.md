@@ -36,7 +36,8 @@ the FM-1 and the dev kit were not touched; every MIDI port in the tests is a fak
   Felucca upstream link, UPSTREAM.md, the four GPL files, `licences/GPL-3.0.txt`, source.
 - The admission gate is untouched: `verifyNativePackage` still rejects everything, so
   in a published build the button never enables and no MIDI permission is requested.
-  A V15 package is refused the same way (no special case).
+  A V15 package is refused the same way (no special case). (Superseded on 2026-11-14,
+  see below.)
 
 ## Tests
 
@@ -49,7 +50,7 @@ the FM-1 and the dev kit were not touched; every MIDI port in the tests is a fak
   package cleared, guidance mapping, page hand-off with a missing catalogue.
 - `native-ota-controller.test.mjs` +3: stage order, roll back identities, resume.
 - Shared fakes: `test/fake-dom.mjs`, `test/fake-midi.mjs` (extracted from existing tests).
-- `test/installer-ota-ui.mjs`: Chromium (Playwright 1.63, container on the LAN build
+- `test/installer-ota-ui.mjs`: Chromium (Playwright 1.63, in a container on a Docker
   host): licence links and files reachable, unadmitted refusal with zero MIDI requests,
   no horizontal scroll at 375 px, full flow against the scripted fake FM-1 in the real
   DOM, cancel. Added to the Chromium-only page-test step in ci.yml; the node tests are
@@ -69,3 +70,30 @@ the FM-1 and the dev kit were not touched; every MIDI port in the tests is a fak
 - Licence boundary: `installer-page.js` (MIT) now imports the GPL flow, so the served
   page is a combined work; the page says so. Decision for the owner: keep this under
   the GPL switch with the simulator, or gate the flow behind a separate page.
+
+## 2026-11-14: admission wired in (PR #161 salvage, slice 3)
+
+When this work was salvaged onto main, the panel and the controller were switched from
+`native-package-admission.js` (inspection only; its verifier rejects everything) to
+`lunar-package-admission.js`, the release check pinned to stock V15 (SHA-256
+`db1642b2…`). What changed:
+
+- `installer-ota-flow.js` calls the verifier through `verifiedAdmission`, which fails
+  closed: no verifier, a verifier that throws or rejects, or a record that is malformed
+  (wrong format, no logical image, no package digest), whose `kind` and identity
+  disagree (`stock-rollback` must be `FM-1_015`, `lunar-install` must be `FM-1_5xx`) or
+  whose `packageSha256` is not the SHA-256 of the offered bytes, all refuse the package.
+- Install needs `kind: 'lunar-install'`; Roll back needs `kind: 'stock-rollback'` and
+  `FM-1_015`.
+- At the click the controller re-runs the check on a private copy of the bytes and
+  refuses if the kind or identity changed since selection. This happens before any
+  `requestMIDIAccess` call.
+- The flow tests now drive the real check against a synthetic stock profile
+  (`sim/web/test/lunar-package-fixture.mjs`, shared with the admission test), and
+  `installer-ota-admission.test.mjs` covers refusals (flash head/SPL, post-flash
+  entries, cfg/reserved, non-Lunar identity), throwing and missing verifiers, bad
+  records, a re-check that fails at the click, the default wiring, and the bytes a full
+  install sends.
+
+Still not done: no Lunar package has been installed on an FM-1 through this page, and the
+page has not been run against real WebMIDI.

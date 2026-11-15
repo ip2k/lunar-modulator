@@ -9,6 +9,7 @@ history.
 ## [Unreleased]
 
 ### Added
+
 - **Browser recovery page (`sim/web/www/recovery.html`).** Drives the
   FM-1-transporter data port (Pico 2 W, docs/17) with Web Serial: key mode,
   two compared dumps saved to disk, a read-only dry run, a write restricted to
@@ -31,9 +32,18 @@ history.
   E0000000 verify, re-enumeration, `ota-FM-1_nnn` loader identity, F0000000 write,
   fresh identity) with per-stage progress, explicit port-pair choice that hides
   unrelated MIDI devices, resume from the OTA loader, and next-step guidance on
-  failure. No package is admitted yet, so the button stays disabled in published
-  builds. The page names the GPL-3.0-only licence of the fm1-ota module and links its
+  failure. The page names the GPL-3.0-only licence of the fm1-ota module and links its
   source. Offline tests with fake MIDI ports and a Chromium page test cover the flow.
+
+- **The install panel now admits packages through the release check (PR #161 salvage,
+  slice 3 of 3, 2026-11-14).** Install is offered only for a package that
+  `lunar-package-admission.js` admits: stock V15 with only the application replaced
+  by a Lunar `FM-1_5xx` build. Roll back is offered only for the exact stock V15
+  package. A package whose bootloader area, `isd_config`, `ota.bin`, cfg or reserved
+  areas differ from stock is refused, and so is any package when the check fails or
+  cannot run; nothing is sent to the FM-1 and no MIDI permission is asked in that case.
+  The check runs again when you press Install. No Lunar package has been installed on
+  an FM-1 this way yet: this path is untested on hardware.
 
 - **Browser features salvaged from the unmerged release work (PR #161, slice 2
   of 3, 2026-11-14).**

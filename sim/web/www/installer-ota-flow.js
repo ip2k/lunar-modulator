@@ -5,14 +5,63 @@
 // GPL-3.0-only controller, so this file is GPL-3.0-only too; see the licence
 // note in installer.html. It never opens Web MIDI by itself: access is
 // requested by the install click, after package admission, and every port
-// pair is an explicit user choice. The public admission verifier still
-// refuses every package, so in a published build the install button stays
-// disabled and no MIDI permission is ever requested.
-import { verifyNativePackage } from './native-package-admission.js';
+// pair is an explicit user choice.
+//
+// Admission is lunar-package-admission.js (MIT), the same rules as
+// tools/jieli/build_fwsc.py: only the user's own stock V15 package byte for
+// byte (roll back), or that package with only the application replaced by a
+// Lunar FM-1_5xx app (install), every other byte (SPL, isd_config, ota.bin,
+// cfg, flash head [0, 0x4000)) equal to stock. A package is admitted only if
+// that check resolves to a well-formed record bound to these exact bytes;
+// a missing verifier, a throwing or rejecting one, or a malformed record
+// refuses the package, and the install button stays disabled. The click
+// re-runs the same check before any MIDI permission is asked for.
+import { verifyNativePackage } from './lunar-package-admission.js';
 import { createNativeOtaController } from './native-ota-controller.js';
 
 export const STOCK_PRODUCT = 'FM-1_015';
 const PRODUCT_RE = /^FM-1_\d{3}$/;
+const LUNAR_PRODUCT_RE = /^FM-1_5\d{2}$/;
+const ADMISSION_FORMAT = 'lunar-native-package-admission-v1';
+
+async function sha256Hex(bytes) {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) throw new Error('Web Crypto SHA-256 is required to bind admission to the package');
+  const digest = new Uint8Array(await subtle.digest('SHA-256', bytes));
+  return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Run `packageAdmission.verify` on a copy of `bytes` and return its record
+ * once checked, or throw. Fails closed: anything but a well-formed record for
+ * these exact bytes (kind and identity consistent, logical image and its
+ * digest present, package digest equal to the bytes') is a refusal.
+ */
+export async function verifiedAdmission(packageAdmission, bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.length === 0) {
+    throw new TypeError('package admission blocked: no package bytes');
+  }
+  const verify = packageAdmission?.verify;
+  if (typeof verify !== 'function') {
+    throw new TypeError('package admission blocked: no admission verifier is available');
+  }
+  const snapshot = Uint8Array.from(bytes);
+  const record = await verify.call(packageAdmission, Uint8Array.from(snapshot));
+  if (!record || typeof record !== 'object' || record.format !== ADMISSION_FORMAT
+      || typeof record.product !== 'string' || !PRODUCT_RE.test(record.product)
+      || !(record.logicalImage instanceof Uint8Array) || record.logicalImage.length === 0
+      || typeof record.logicalImageSha256 !== 'string' || typeof record.packageSha256 !== 'string') {
+    throw new TypeError('package admission blocked: the verifier returned an invalid admission record');
+  }
+  if (!((record.kind === 'stock-rollback' && record.product === STOCK_PRODUCT)
+      || (record.kind === 'lunar-install' && LUNAR_PRODUCT_RE.test(record.product)))) {
+    throw new TypeError('package admission blocked: the verifier returned an invalid admission record (kind and identity disagree)');
+  }
+  if (record.packageSha256.toLowerCase() !== await sha256Hex(snapshot)) {
+    throw new Error('package admission blocked: the admission record is for different bytes');
+  }
+  return record;
+}
 
 // Ports which are never the FM-1, whatever the user picks (the handshake still
 // checks the identity afterwards; this only keeps the list honest).
@@ -50,6 +99,9 @@ export function guidanceFor(error, lastStage) {
   const message = error instanceof Error ? error.message : String(error ?? '');
   if (/package admission blocked|invalid admission|verifier/i.test(message)) {
     return 'Nothing was sent to the FM-1. This package has not passed release admission, so it cannot be installed.';
+  }
+  if (lastStage === 'admission') {
+    return 'The admission check could not complete, so nothing was sent to the FM-1. Choose the package again and retry.';
   }
   if (/cancelled/i.test(message)) {
     return lastStage && !/^(admission|midi-access|select-running)$/.test(lastStage)
@@ -123,7 +175,7 @@ export function mountOtaInstallFlow(root, {
   const section = el('section', { className: 'installer-ota-flow' });
   section.setAttribute('aria-labelledby', 'installer-ota-heading');
   const heading = el('h2', { id: 'installer-ota-heading', textContent: 'Install or roll back on an FM-1' });
-  const intro = el('p', { textContent: 'This uses the FM-1’s stock update path over Web MIDI. Choose a package above; it is checked for release admission before anything else happens. No package has been admitted yet, so installation is closed.' });
+  const intro = el('p', { textContent: 'This uses the FM-1’s stock update path over Web MIDI. Choose a package above; it is checked for release admission before anything else happens. Only two kinds of package are admitted: your own stock V15 package (FM-1_015) byte for byte, to roll back, and that same package with only the application replaced by a Lunar build (FM-1_5xx), to install. Everything else is refused and the button stays disabled. No Lunar package has yet been installed on an FM-1 this way: it is untested on hardware.' });
 
   const modeLabel = el('label', { textContent: 'Action ' });
   const modeSelect = el('select', { id: 'installer-ota-mode' });
@@ -232,12 +284,16 @@ export function mountOtaInstallFlow(root, {
     if (!pkg.admitted) return 'the package was not admitted.';
     if (typeof requestMIDIAccess !== 'function') return 'this browser has no Web MIDI.';
     if (mode === 'rollback') {
-      if (pkg.product !== STOCK_PRODUCT) return `a roll back needs your own ${STOCK_PRODUCT} package, not ${pkg.product}.`;
+      if (pkg.product !== STOCK_PRODUCT || pkg.kind !== 'stock-rollback') {
+        return `a roll back needs your own ${STOCK_PRODUCT} package, not ${pkg.product}.`;
+      }
       if (!PRODUCT_RE.test(runningInput.value) || runningInput.value === STOCK_PRODUCT) {
         return `enter the firmware the FM-1 is running now (FM-1_nnn, not ${STOCK_PRODUCT}).`;
       }
     } else if (pkg.product === STOCK_PRODUCT) {
       return `this is the stock ${STOCK_PRODUCT} package; use Roll back instead.`;
+    } else if (pkg.kind !== 'lunar-install') {
+      return 'only a Lunar install package can be installed.';
     }
     return null;
   }
@@ -253,17 +309,14 @@ export function mountOtaInstallFlow(root, {
       return;
     }
     pkg = { name: next.file?.name ?? 'selected package', bytes: Uint8Array.from(next.bytes),
-      product: null, admitted: false };
+      product: null, kind: null, admitted: false };
     admission.textContent = 'Checking release admission…';
     refresh();
     try {
-      const verified = await packageAdmission.verify(Uint8Array.from(pkg.bytes));
+      const admitted = await verifiedAdmission(packageAdmission, pkg.bytes);
       if (mine !== generation || destroyed) return;
-      if (!verified || verified.format !== 'lunar-native-package-admission-v1'
-          || !PRODUCT_RE.test(verified.product ?? '')) {
-        throw new Error('verifier returned an invalid admission record');
-      }
-      pkg.product = verified.product;
+      pkg.product = admitted.product;
+      pkg.kind = admitted.kind;
       pkg.admitted = true;
     } catch (error) {
       if (mine !== generation || destroyed) return;
@@ -347,16 +400,26 @@ export function mountOtaInstallFlow(root, {
     resetStages(resume);
     lastStage = null;
     refresh();
-    const controller = createNativeOtaController({
-      packageAdmission: { verify: (bytes) => packageAdmission.verify(bytes) },
-      requestMIDIAccess, selectPair,
-      ...(clock ? { clock } : {}), ...(transferTimeouts ? { transferTimeouts } : {}),
-      onStage: setStage,
-    });
+    const chosen = pkg; // the package admitted when the click happened
+    const expectedProduct = targetFor(mode);
+    const runningProduct = runningInput.value;
     try {
+      const controller = createNativeOtaController({
+        // The click re-runs the same checks; the kind must still be the one shown.
+        packageAdmission: { async verify(bytes) {
+          const record = await verifiedAdmission(packageAdmission, bytes);
+          if (record.kind !== chosen.kind || record.product !== chosen.product) {
+            throw new Error('package admission blocked: the package no longer matches its earlier admission');
+          }
+          return record;
+        } },
+        requestMIDIAccess, selectPair,
+        ...(clock ? { clock } : {}), ...(transferTimeouts ? { transferTimeouts } : {}),
+        onStage: setStage,
+      });
       const outcome = await controller.installFromUserAction({
-        packageBytes: Uint8Array.from(pkg.bytes), expectedProduct: targetFor(mode),
-        runningProduct: runningInput.value, startPhase: resume ? 'loader' : 'running',
+        packageBytes: Uint8Array.from(chosen.bytes), expectedProduct,
+        runningProduct, startPhase: resume ? 'loader' : 'running',
       });
       result.textContent = `Done: the unit reports ${outcome.product}. Package SHA-256 ${outcome.packageSha256}.`;
     } catch (error) {

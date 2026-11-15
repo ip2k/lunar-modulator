@@ -53,7 +53,7 @@ test('reports local structural findings, but states release admission and instal
   assert.match(view.report.textContent, /header CRC: passed/);
   assert.match(view.report.textContent, /flash\.bin \(100 bytes, CRC passed\)/);
   assert.match(view.report.textContent, /structure and CRC checks passed/);
-  assert.match(view.report.textContent, /Release admission: not established\. Installation is unavailable\./);
+  assert.match(view.report.textContent, /Release admission is not part of this inspection; the install panel checks it separately\./);
   assert.equal(view.report.textContent.includes('1,2,3'), false);
   view.controller.destroy();
   assert.equal(view.root.children[0].removed, true);
@@ -72,7 +72,7 @@ test('rejects oversized files before reading and clears previous report immediat
   view.input.files = [file('malformed.fwsc', Uint8Array.of(1, 2, 3))];
   await view.input.dispatch('change');
   assert.match(view.report.textContent, /unknown/);
-  assert.match(view.report.textContent, /Release admission: not established/);
+  assert.match(view.report.textContent, /Release admission is not part of this inspection/);
 });
 
 test('clear invalidates an in-flight read so stale inspection cannot replace the cleared result', async () => {

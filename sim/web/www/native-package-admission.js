@@ -48,7 +48,10 @@ export function inspectNativePackage(input) {
   return blocked('unknown', 'unrecognized artifact format; admission is closed');
 }
 
-/** Adapter-compatible verifier which always rejects until an audited release verifier exists. */
+/**
+ * Inspection-only verifier: always rejects. The install panel and the OTA controller
+ * use lunar-package-admission.js, the release check, instead.
+ */
 export async function verifyNativePackage(input) {
   const inspection = inspectNativePackage(input);
   throw new Error(`package admission blocked (${inspection.kind}): ${inspection.reason}`);
