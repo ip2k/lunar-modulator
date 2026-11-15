@@ -28,6 +28,12 @@ async function check(label, fn) { await fn(); report.checks.push(label); console
 
 try {
   await page.goto(`${url}installer.html`);
+  await check('without ?install=1 the page offers no Install or Roll back', async () => {
+    await page.locator('#installer-ota-off').waitFor();
+    assert.equal(await page.locator('#installer-ota-start').count(), 0);
+    assert.equal(await page.evaluate(() => window.__midiRequests), 0);
+  });
+  await page.goto(`${url}installer.html?install=1`);
   await check('panel, licence note and source links render without the catalogue', async () => {
     await page.locator('#installer-ota-start').waitFor();
     assert.equal(await page.locator('#installer-ota-start').isDisabled(), true);

@@ -667,3 +667,24 @@ test('saved request controls use native keyboard controls with labels and live s
   assert.match(html, /<section aria-labelledby="installer-request-heading">/);
   assert.doesNotMatch(html, /id="installer-request-(?:file|load)"[^>]*tabindex="-1"/);
 });
+
+test('Install and Roll back stay off unless ?install=1 (owner, 2026-11-14)', async () => {
+  const mount = async (search, opts = {}) => {
+    const document = new Document();
+    document.defaultView.location.search = search;
+    const root = new Element('div', document);
+    const ota = new Element('div', document);
+    document.nodes.set('installer-ota-flow', ota);
+    await mountInstallerPage(root, { fetchImpl: async () => ({ ok: false }), ...opts });
+    return walk(ota).map((node) => node.id).filter(Boolean);
+  };
+  for (const search of ['', '?install=0', '?install=true', '?ota=1']) {
+    const found = await mount(search);
+    assert.ok(found.includes('installer-ota-off'), search);
+    assert.ok(!found.includes('installer-ota-start'), search);
+  }
+  const on = await mount('?install=1');
+  assert.ok(on.includes('installer-ota-start') && !on.includes('installer-ota-off'));
+  assert.ok((await mount('', { installEnabled: true })).includes('installer-ota-start'));
+  assert.ok(!(await mount('?install=1', { installEnabled: false })).includes('installer-ota-start'));
+});

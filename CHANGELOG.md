@@ -44,6 +44,9 @@ history.
   cannot run; nothing is sent to the FM-1 and no MIDI permission is asked in that case.
   The check runs again when you press Install. No Lunar package has been installed on
   an FM-1 this way yet: this path is untested on hardware.
+  Install and Roll back are switched off on the published page until one install
+  has been proven on an FM-1 (owner, 2026-11-14): the panel appears only with
+  `installer.html?install=1`.
 
 - **Browser features salvaged from the unmerged release work (PR #161, slice 2
   of 3, 2026-11-14).**

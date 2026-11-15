@@ -97,3 +97,14 @@ When this work was salvaged onto main, the panel and the controller were switche
 
 Still not done: no Lunar package has been installed on an FM-1 through this page, and the
 page has not been run against real WebMIDI.
+
+### Switched off on the public page (owner, 2026-11-14)
+
+The install flow sends the stock `7F` upgrade command and syscmd 48 (`0x30`) read
+responses, which CLAUDE.md D4 bans outside an authorised session, and it has not run
+on an FM-1. The owner chose "Behind a flag": `installer-page.js` mounts the panel only
+when the URL carries `?install=1` (or a caller passes `installEnabled: true`); otherwise
+it shows `#installer-ota-off` and sends nothing. Remove the flag after the first
+install proven on hardware (M8). The owner also accepted the recovery page taking any
+1 MiB backup with its boot-area refusal and difference warning ("Any backup, warned"),
+and the installer page being GPL-3.0 as a whole because it imports the GPL flow.

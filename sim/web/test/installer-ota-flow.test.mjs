@@ -346,6 +346,7 @@ test('the page hands an inspected file to the install flow, even when the catalo
   let accessCalls = 0;
   const controller = await mountInstallerPage(root, {
     fetchImpl: async () => ({ ok: false }),
+    installEnabled: true,
     otaOptions: { requestMIDIAccess: async () => { accessCalls += 1; } },
   });
   assert.equal(controller, null, 'the catalogue failure is reported as before');

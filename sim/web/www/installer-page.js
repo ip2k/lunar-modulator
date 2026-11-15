@@ -82,6 +82,7 @@ export async function mountInstallerPage(root, {
   buildClient = null,
   buildConfiguration = undefined,
   otaOptions = {},
+  installEnabled = undefined,
 } = {}) {
   if (!root || !root.ownerDocument || typeof root.append !== 'function') {
     throw new TypeError('A DOM root element is required');
@@ -109,8 +110,19 @@ export async function mountInstallerPage(root, {
   const profileSelect = document.getElementById?.('installer-build-profile');
   let selectedBuildConfiguration = buildConfiguration;
   // The install flow does not depend on the catalogue, so it mounts before the fetch below.
+  // Owner, 2026-11-14: Install and Roll back stay off on the public page until
+  // one install has been proven on an FM-1 (M8). `?install=1` turns them on.
   const otaRoot = document.getElementById?.('installer-ota-flow');
-  const otaFlow = otaRoot ? mountOtaInstallFlow(otaRoot, otaOptions) : null;
+  const search = document.defaultView?.location?.search ?? globalThis.location?.search ?? '';
+  const otaOn = installEnabled ?? new URLSearchParams(search).get('install') === '1';
+  if (otaRoot && !otaOn) {
+    const off = document.createElement('p');
+    off.id = 'installer-ota-off';
+    off.textContent = 'Installing from this page is switched off until an install has been '
+      + 'proven on an FM-1. Nothing on this page sends anything to a device.';
+    otaRoot.append(off);
+  }
+  const otaFlow = otaRoot && otaOn ? mountOtaInstallFlow(otaRoot, otaOptions) : null;
   const packageInspectionRoot = document.getElementById?.('installer-package-inspection');
   const packageInspection = packageInspectionRoot
     ? mountLocalPackageInspection(packageInspectionRoot,
