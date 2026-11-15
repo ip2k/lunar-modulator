@@ -24,6 +24,10 @@ original conversation; last updated 2026-11-14 (M8 tool prepared). Read this fir
   branch's note called that a coordinator approval; the owner approved the
   44 KiB budget on 2026-11-14 ("Approve 44 KiB"), accepting that the largest
   simulator chains (e.g. Macro+Shapes+Plate+Ensemble) no longer fit.
+  Measured in PR #205: Macro+Shapes+Plate alone (the starter project plus
+  the `deep-bass` example in sound 2) needs 101% and is refused; Shapes
+  (Braids at 96 kHz) takes 207 KB by itself. The tests now load that example
+  beside Macro+Room (`0cca9202`).
 
 ## M8 flash-install tool prepared, not run — 2026-11-14
 

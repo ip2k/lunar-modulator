@@ -37,7 +37,7 @@ was removed. Native app proof is pending the coordinator's bounded LAN lane.
 
 [verified] Rarefaction status/orient/scope and Serena initial/config/find_symbol
 agreed on the representative test body in the shared main checkout. Their root
-is `/Users/likwid/Developer/mvave-fm1-firmware`, outside this isolated worktree;
+is the main checkout, outside this isolated worktree;
 no shared activation/restart occurred. Exact base source reads and bounded
 searches in this checkout are authoritative for this change. No graph was built.
 
