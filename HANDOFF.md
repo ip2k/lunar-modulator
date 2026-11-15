@@ -69,6 +69,11 @@ state, stack placement) before M6 runs on the FM-1.
   tool in a separate session (proposed as a card; it runs once the owner
   starts it).
 - **Owner decisions, 2026-11-14** (after `m5-plan-2`, PR #203):
+  - **PR #207 (web installer and recovery pages):** "Behind a flag": Install and
+    Roll back stay off on the public page unless `?install=1`, until one install is
+    proven on the FM-1 (M8). "Any backup, warned": the recovery page may write any
+    1 MiB backup (boot area refused, difference warned). "GPL page is fine": the
+    installer page is GPL-3.0 as a whole.
   - **"Approve"**: `m5p2.bin`, SHA-256
     `aba6ed7ceaa0cac990dedcaf664b10707632a139be83b3bea5e0f62739bf968c`, may
     run once more in RAM on the FM-1, watchdog kicks included, with the owner at

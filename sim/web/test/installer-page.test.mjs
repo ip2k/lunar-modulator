@@ -1,44 +1,8 @@
 // SPDX-License-Identifier: MIT
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { Element, Document, walk } from './fake-dom.mjs';
 import { MAX_SAVED_REQUEST_BYTES, parseSavedRequest, mountInstallerPage } from '../www/installer-page.js';
-
-class Element {
-  constructor(tagName, ownerDocument) {
-    this.tagName = tagName.toUpperCase();
-    this.ownerDocument = ownerDocument;
-    this.children = [];
-    this.listeners = new Map();
-    this.attributes = new Map();
-    this.checked = false;
-    this.disabled = false;
-    this._textContent = '';
-  }
-  append(...children) { this.children.push(...children); }
-  setAttribute(name, value) { this.attributes.set(name, String(value)); }
-  getAttribute(name) { return this.attributes.get(name) ?? null; }
-  addEventListener(name, callback) {
-    if (!this.listeners.has(name)) this.listeners.set(name, []);
-    this.listeners.get(name).push(callback);
-  }
-  async dispatch(name) {
-    await Promise.all((this.listeners.get(name) ?? []).map((callback) => callback({ target: this })));
-  }
-  click() { this.wasClicked = true; }
-  remove() { this.removed = true; }
-  get textContent() { return this._textContent + this.children.map((child) => child.textContent).join(''); }
-  set textContent(value) { this._textContent = String(value); this.children = []; }
-}
-
-class Document {
-  constructor() { this.nodes = new Map(); this.defaultView = { location: { origin: 'https://lunar.test' } }; this.serviceMarker = null; }
-  querySelector(selector) { return selector === 'meta[name="lunar-installer-build-service"]' ? this.serviceMarker : null; }
-  createElement(tagName) { return new Element(tagName, this); }
-  createTextNode(value) { const node = new Element('#text', this); node.textContent = value; return node; }
-  getElementById(id) { return this.nodes.get(id) ?? null; }
-}
-
-function walk(root) { return [root, ...root.children.flatMap(walk)]; }
 
 const ids = [
   'legacy-example-afterglow-relay', 'legacy-example-event-horizon',
@@ -702,4 +666,25 @@ test('saved request controls use native keyboard controls with labels and live s
   assert.match(html, /<p id="installer-request-status" role="status" aria-live="polite">/);
   assert.match(html, /<section aria-labelledby="installer-request-heading">/);
   assert.doesNotMatch(html, /id="installer-request-(?:file|load)"[^>]*tabindex="-1"/);
+});
+
+test('Install and Roll back stay off unless ?install=1 (owner, 2026-11-14)', async () => {
+  const mount = async (search, opts = {}) => {
+    const document = new Document();
+    document.defaultView.location.search = search;
+    const root = new Element('div', document);
+    const ota = new Element('div', document);
+    document.nodes.set('installer-ota-flow', ota);
+    await mountInstallerPage(root, { fetchImpl: async () => ({ ok: false }), ...opts });
+    return walk(ota).map((node) => node.id).filter(Boolean);
+  };
+  for (const search of ['', '?install=0', '?install=true', '?ota=1']) {
+    const found = await mount(search);
+    assert.ok(found.includes('installer-ota-off'), search);
+    assert.ok(!found.includes('installer-ota-start'), search);
+  }
+  const on = await mount('?install=1');
+  assert.ok(on.includes('installer-ota-start') && !on.includes('installer-ota-off'));
+  assert.ok((await mount('', { installEnabled: true })).includes('installer-ota-start'));
+  assert.ok(!(await mount('?install=1', { installEnabled: false })).includes('installer-ota-start'));
 });

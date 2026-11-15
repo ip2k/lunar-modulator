@@ -37,7 +37,9 @@ owner approval; this document approves nothing.
   (#162) and an admission-gated WebMIDI OTA controller ported from
   Felucca's GPL-3.0 protocol module (#164). The controller refuses every
   package until an audited verifier admits it; no install action is wired
-  into `installer.html` yet.
+  into `installer.html` yet. (2026-11-14: the controller and the install
+  panel were salvaged onto main and now admit through
+  `lunar-package-admission.js`; untested on hardware.)
 - **Its images ran on this FM-1 and failed the owner's acceptance**
   [verified: that branch's `HANDOFF.md`]: audio starved (315.6 produced
   blocks/s, 373.8 underruns/s; 689.34 needed), and the last stage-7 install

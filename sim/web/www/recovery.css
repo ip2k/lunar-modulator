@@ -1,0 +1,26 @@
+/* Recovery page. Layout only; colours come from style.css tokens. */
+.recovery-page main { max-width: 78ch; padding: 0 16px 48px; }
+.rec-step {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 14px 0;
+  padding: 12px 18px 14px;
+}
+.rec-step h2 { font-size: 1.05rem; margin: 4px 0 8px; display: flex; align-items: center; gap: 10px; }
+.rec-n {
+  display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem;
+  border: 1px solid var(--accent); border-radius: 50%; font-size: 0.8rem;
+}
+.rec-step.done .rec-n { background: var(--accent); color: var(--accent-text); }
+.rec-note { font-size: 0.85rem; opacity: 0.85; }
+#image-state { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rec-pre {
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+  max-height: 16rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.8rem;
+}
+.rec-err { color: #ff8a80; }
+.rec-ok { color: #8ee0a0; }
+.recovery-page progress { width: 100%; margin: 6px 0; }
+.recovery-page button[disabled] { opacity: 0.45; cursor: not-allowed; }

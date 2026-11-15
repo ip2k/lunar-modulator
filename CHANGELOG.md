@@ -10,6 +10,44 @@ history.
 
 ### Added
 
+- **Browser recovery page (`sim/web/www/recovery.html`).** Drives the
+  FM-1-transporter data port (Pico 2 W, docs/17) with Web Serial: key mode,
+  two compared dumps saved to disk, a read-only dry run, a write restricted to
+  `0x4000`-`0x92FFF` with the boot area refused, and a full readback. The soft
+  key is never sent (owner decision D2): a command allowlist refuses it, and
+  flash commands need the user's "FM-1 is off" confirmation plus a fresh
+  `uboot=1` status, and are refused outright if a running V15 is reported. The
+  page explains how to flash the transporter UF2 (BOOTSEL) and links the
+  source; it hosts no binaries. A write happens only on the connection that
+  identified the FM-1, uploaded the loader, took the backup and made the dry
+  run; reconnecting starts over. A chosen 1 MiB image shows its SHA-256 and a
+  warning when it differs from that backup. A unit whose boot area was
+  replaced (Felucca, SLOOP) cannot be restored to stock here, by design.
+  Tested against a fake transporter port (`sim/web/test/recovery-*.test.mjs`);
+  not tried on hardware.
+
+- **Install and roll-back panel on the installer page** (M12w part 1). Choosing a
+  package shows its admission result; Install or Roll back is an explicit action, only
+  enabled for an admitted package, and walks the stock update stages (7F, pause,
+  E0000000 verify, re-enumeration, `ota-FM-1_nnn` loader identity, F0000000 write,
+  fresh identity) with per-stage progress, explicit port-pair choice that hides
+  unrelated MIDI devices, resume from the OTA loader, and next-step guidance on
+  failure. The page names the GPL-3.0-only licence of the fm1-ota module and links its
+  source. Offline tests with fake MIDI ports and a Chromium page test cover the flow.
+
+- **The install panel now admits packages through the release check (PR #161 salvage,
+  slice 3 of 3, 2026-11-14).** Install is offered only for a package that
+  `lunar-package-admission.js` admits: stock V15 with only the application replaced
+  by a Lunar `FM-1_5xx` build. Roll back is offered only for the exact stock V15
+  package. A package whose bootloader area, `isd_config`, `ota.bin`, cfg or reserved
+  areas differ from stock is refused, and so is any package when the check fails or
+  cannot run; nothing is sent to the FM-1 and no MIDI permission is asked in that case.
+  The check runs again when you press Install. No Lunar package has been installed on
+  an FM-1 this way yet: this path is untested on hardware.
+  Install and Roll back are switched off on the published page until one install
+  has been proven on an FM-1 (owner, 2026-11-14): the panel appears only with
+  `installer.html?install=1`.
+
 - **Browser features salvaged from the unmerged release work (PR #161, slice 2
   of 3, 2026-11-14).**
   - The simulator and editor export a DX7 voice bank (VMEM) from the current
