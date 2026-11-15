@@ -71,7 +71,7 @@ package admission remain separate incomplete milestones.
 
 ## Lifecycle and recovery
 
-Worktree: `/Users/likwid/.codex/worktrees/lunar-installer-customization-20261101`.
+Worktree: a Codex worktree (removed).
 Small test logs remain under ignored `scratch/installer-customization-20261101`;
 pytest temp outputs and exporter temporary/build directories are removed after
 checks. Exporter TemporaryDirectory under ignored `scratch/native-image-catalogue/`

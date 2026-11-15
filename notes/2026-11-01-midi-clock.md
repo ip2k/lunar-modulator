@@ -3,7 +3,7 @@
 Personal/non-commercial Lunar Modulator work. Coordinator task: complete missing
 S10 browser input from base `a1b7823b`; no device, USB, MIDI output, native build,
 or hardware operations. Branch `feature/2026-11-01@midi-clock`; own checkout
-`/Users/likwid/.codex/worktrees/lunar-midi-clock-20261101`.
+a Codex worktree (removed).
 
 ## Result and checks
 

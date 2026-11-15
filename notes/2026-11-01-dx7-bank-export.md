@@ -3,7 +3,7 @@
 Personal, non-commercial Lunar work. Independent lane based on exact
 `a1b7823ba768d7657474f9be432d7584998b1501`.
 Branch: `feature/2026-11-01@dx7-bank-export`.
-Worktree: `/Users/likwid/.codex/worktrees/lunar-dx7-export-20261101`.
+Worktree: a Codex worktree (removed).
 
 ## Outcome
 
@@ -63,7 +63,7 @@ shadow handler, Save flow, and actual runtime tests supplied the checks.
 Aeon CPU0–3, at most 4 CPUs, 6 GiB RAM/swap, docker-batch.slice, labelled
 project=mvave-fm1-firmware/session=dx7-export-20261101, --rm. Compilation
 network disabled; Alpine package installation used networking. Remote staging
-is `/home/likwid/datasets/lunar/dx7-export-20261101`; remove after collecting
+is the project folder under `/datasets` on the LAN; remove after collecting
 small reports. No hardware, USB, flash, reset, or device output was attempted.
 [verified] Cleanup: own labelled containers exited, remote staging and build
 products removed after copying the small reports. No local generated binary
