@@ -10,6 +10,8 @@ battery-powered FM synthesizer from M-VAVE (AKA Cuvave).
 
 Play with the latest firmware in your browser: **<https://ip2k.github.io/lunar-modulator/>** 
 
+For the stock FM-1 firmware and other community firmware, keril's [FM-1 Emulator](https://fm1-emulator.atst.tools/) runs them in the browser too, with a beginner's course and WAV export.
+
 ![Lunar Modulator in the browser: the to-scale FM-1 panel with a chord held on Macro](assets/screenshots/virtual-fm1.png)
 
 ## Project Goals
