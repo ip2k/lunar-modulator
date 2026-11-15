@@ -88,7 +88,10 @@ test('refused: a changed SPL / flash head [0, 0x4000), even with every CRC repai
 });
 
 test('refused: changed entries after flash.bin (isd_config, ota.bin)', async () => {
-  for (const at of [FO + FB + 4, FO + FB + 40]) {   // the ota.bin entry, then the tail entry
+  // One digest (post_flash_sha256) pins everything after flash.bin: in V15 that is
+  // USR, isd_config, ota.bin and the tail. The synthetic package has no separate
+  // isd_config entry, so a byte is flipped in its ota.bin entry and in its tail.
+  for (const at of [FO + FB + 4, FO + FB + 40]) {
     const run = mount({ packageAdmission: { verify: realVerify } });
     await run.offer(tampered({ log: (l) => { l[at] ^= 1; } }));
     await assertRefused(run, /entries after flash\.bin \(USR, isd_config, ota\.bin, tail\) differ from stock/);
