@@ -8,6 +8,21 @@ history.
 
 ## [Unreleased]
 
+### Added
+
+- **Browser features salvaged from the unmerged release work (PR #161, slice 2
+  of 3, 2026-11-14).**
+  - The simulator and editor export a DX7 voice bank (VMEM) from the current
+    patches.
+  - Realtime MIDI in the browser: the virtual FM-1 follows incoming MIDI clock,
+    Start, Continue and Stop on its linked sequencer clock; an internal clock
+    ignores them. `fm1.wasm` is rebuilt for it.
+  - The customization page and its catalogue: a request contract for a custom
+    firmware build, a generated site catalogue of module choices, and the
+    package-inspection and admission checks around them.
+  - Saved customization requests restore atomically: a request that fails any
+    check leaves the live selection untouched (PR #170).
+
 ### Fixed
 
 - **Sequencer, modulation and save-file fixes salvaged from the unmerged

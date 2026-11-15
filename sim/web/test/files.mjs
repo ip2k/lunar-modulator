@@ -94,6 +94,31 @@ async function filesChecks() {
   const s = await save('sound:current');
   r.save_names = [p.name, s.name];
   r.save_kinds = [JSON.parse(p.text).kind, JSON.parse(s.text).kind];
+  // VMEM cannot preserve empty slots: refuse without starting a download.
+  let bankDownloads = 0;
+  const countBank = () => { ++bankDownloads; };
+  page.on('download', countBank);
+  await page.selectOption('#save-kind', 'dx7-bank');
+  await page.click('#save');
+  await waitNotice(page, /Load all 32 FM6 user slots/);
+  r.bank_empty_refused = bankDownloads === 0;
+  // Load our original test bank through the existing chooser, then download.
+  await page.setInputFiles('#dx7-file', join(www, '..', 'test', 'dx7', 'lunar-test-bank.syx'));
+  await page.waitForFunction(() => window.fm1.dx7?.result?.[1] === 32);
+  await page.evaluate(() => {
+    window.bankUrls = { created: [], revoked: [] };
+    const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL);
+    URL.createObjectURL = (blob) => { const u = create(blob); window.bankUrls.created.push(u); return u; };
+    URL.revokeObjectURL = (u) => { window.bankUrls.revoked.push(u); revoke(u); };
+  });
+  const [bankDl] = await Promise.all([page.waitForEvent('download'), page.click('#save')]);
+  const bank = readFileSync(await bankDl.path());
+  r.bank_download = bank.length === 4104 && bank.equals(readFileSync(join(www, '..', 'test', 'dx7', 'lunar-test-bank.syx'))) &&
+    bankDl.suggestedFilename().endsWith('.fm6-bank.syx');
+  await wait(page, 4300);
+  r.bank_urls_released = await page.evaluate(() => window.bankUrls.created.length === 1 &&
+    window.bankUrls.revoked.includes(window.bankUrls.created[0]) && !document.querySelector('a[download]'));
+  page.off('download', countBank);
   // A drop: a sound asks where it goes; Sound 2.
   await drop(page, example('deep-bass.sound.lunar'), 'deep-bass.sound.lunar');
   await page.waitForSelector('#target-card:not([hidden])');
@@ -260,7 +285,7 @@ async function filesChecks() {
     (await third.evaluate(async () => (await window.fm1.files.store.all('recent')).length)) === r.recent_after.length;
   await third.close();
   await ctx.close();
-  r.pass = r.open_enabled_off && r.save_disabled_off &&
+  r.pass = r.bank_empty_refused && r.bank_download && r.bank_urls_released && r.open_enabled_off && r.save_disabled_off &&
     r.save_names[0] === 'untitled.lunar' && /^untitled-s1\.sound\.lunar$/.test(r.save_names[1]) &&
     r.save_kinds.join() === 'project,sound' &&
     /Load sound “Deep space bass” into/.test(r.target_title) && r.slot_hidden &&

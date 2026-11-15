@@ -66,6 +66,10 @@ node "$SIM/test/parity.mjs" --native "$OUT/native/fm1-render" --sim "$OUT/native
 echo "== DX7 patches (the module's SysEx export)"
 node "$SIM/test/sysex.mjs" --wasm "$OUT/wasm/fm1.wasm" --dx7 "$SIM/test/dx7" --summary "$OUT/sysex.json"
 
+echo "== MIDI realtime routing and native clock input"
+node --test "$SIM/test/midi-realtime-routing.test.mjs"
+node "$SIM/test/midi-realtime.mjs" "$OUT/wasm/fm1.wasm"
+
 echo "== metadata (the editor's meta.json and the module's id)"
 "$OUT/native/fm1-sim-render" --meta "$OUT/meta-native.json"
 node "$SIM/test/meta.mjs" --wasm "$OUT/wasm/fm1.wasm" --native "$OUT/meta-native.json" \

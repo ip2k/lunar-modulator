@@ -1,0 +1,2 @@
+# Keep in sync with the existing private installer API's strict Pydantic v2 model.
+pydantic==2.14.1

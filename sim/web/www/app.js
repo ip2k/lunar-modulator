@@ -1009,13 +1009,13 @@ async function connectMidi() {
     const attach = () => {
       const names = [];
       for (const input of access.inputs.values()) {
-        if (input.state === 'disconnected') { midiLearn.release(input.id); input.onmidimessage = null; continue; }
+        if (input.state === 'disconnected') { send({ type: 'midi-reset' }); midiLearn.release(input.id); input.onmidimessage = null; continue; }
         input.onmidimessage = (e) => onMidi(e, input.id);
         attached.set(input.id, input);
         names.push(input.name);
       }
       for (const [id, input] of attached) if (!access.inputs.has(id) || input.state === 'disconnected') {
-        midiLearn.release(id); input.onmidimessage = null; attached.delete(id);
+        send({ type: 'midi-reset' }); midiLearn.release(id); input.onmidimessage = null; attached.delete(id);
       }
       btn.textContent = names.length ? `MIDI: ${names.join(', ')}` : 'MIDI: no inputs';
     };
@@ -1028,7 +1028,16 @@ async function connectMidi() {
 }
 
 function onMidi(e, source) {
-  if (midiLearn.handle(source, e.data)) return;
+  const data = e?.data;
+  if (!data || !data.length) return;
+  // Realtime is independent of channel messages and MIDI learn. The native
+  // saved Link preference decides whether it can affect transport or tempo.
+  if (data.length === 1 && [0xf8, 0xfa, 0xfb, 0xfc].includes(data[0])) {
+    send({ type: 'rt', status: data[0] });
+    return;
+  }
+  if (data.length !== 3 || data[0] < 0x80 || data[0] >= 0xf0 || data[1] > 127 || data[2] > 127) return;
+  if (midiLearn.handle(source, data)) return;
   const [status, a = 0, b = 0] = e.data;
   const type = status & 0xf0;
   if (type === 0x90 && b > 0) send({ type: 'note-on', note: a, velocity: b });

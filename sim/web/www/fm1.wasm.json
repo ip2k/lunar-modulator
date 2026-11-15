@@ -1,13 +1,13 @@
 {
   "about": "Written by sim/web/build.sh; tests/test_sim_web.py checks it.",
-  "wasm_sha256": "f7a20254875cdc2eebdaede01fbf064705edb2157018aa68faa1183735734e5b",
-  "wasm_bytes": 1635325,
+  "wasm_sha256": "d923ae0f6809b0d1c48e5abe2b7dd271aae098a10cb400c02f15b21abbc0831f",
+  "wasm_bytes": 1636957,
   "sources_sha256": {
-    "engines": "1106a795c17fa964fb381002384ad67c06de2e7017d8c18e086aae6fca0fa55c",
-    "sim": "d488d5aef98af0426fe978f3cfc0947c49aa2f68deeda6ee919990cc8b604a85"
+    "engines": "8d9b1884e24c2182c430ddb19b5f73e85270265987ad0b9b2466d965d04705ab",
+    "sim": "910f66fcede56ded7343f44dc0fb78b0cc385147ed7268fb9e4f674f24017ab3"
   },
   "engines": "working tree",
-  "built": "2026-11-15T00:15:52Z",
+  "built": "2026-11-15T02:16:42Z",
   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
   "native_reference": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
   "images": [
@@ -93,7 +93,7 @@
     "passed": true
   },
   "dx7_sysex": {
-    "passed": 18,
+    "passed": 19,
     "failed": 0,
     "cases": [
       {
@@ -167,6 +167,10 @@
       {
         "name": "each voice sounds the same from the bank as from its single dump",
         "pass": true
+      },
+      {
+        "name": "complete bank export is canonical, checksummed and byte exact",
+        "pass": true
       }
     ]
   },
@@ -181,10 +185,10 @@
       "applied": 82728,
       "resyncs": 0,
       "telemetry_blocks": 862,
-      "p50_ms": 0.05926299999998719,
-      "p99_ms": 0.09409999999999741,
-      "max_ms": 0.27880400000000094,
-      "edit_us_per_quantum": 8.05563494826405
+      "p50_ms": 0.0587019999999967,
+      "p99_ms": 0.09169499999995878,
+      "max_ms": 0.27614900000000375,
+      "edit_us_per_quantum": 7.889608548496237
     },
     "check": {
       "params": 474,
