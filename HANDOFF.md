@@ -20,9 +20,10 @@ original conversation; last updated 2026-11-14 (M8 tool prepared). Read this fir
   Slice 1 is `fix/2026-11-14@salvage-165-engine-fixes`: the Compare Window,
   Capture, lock-snapshot, preset-modulation, Acid Gen/Divide, empty-sounds
   and state-codec fixes, cherry-picked with `-x`. Its lock snapshot raises
-  the sequencer's RAM budget from 36,864 B to 45,056 B (43,156 B used); the
-  branch's note records that as a coordinator approval, so the owner should
-  confirm it in that PR's review.
+  the sequencer's RAM budget from 36,864 B to 45,056 B (43,156 B used). The
+  branch's note called that a coordinator approval; the owner approved the
+  44 KiB budget on 2026-11-14 ("Approve 44 KiB"), accepting that the largest
+  simulator chains (e.g. Macro+Shapes+Plate+Ensemble) no longer fit.
 
 ## M8 flash-install tool prepared, not run — 2026-11-14
 
