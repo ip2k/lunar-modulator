@@ -23,6 +23,9 @@ history.
     in the sequencer and in the simulator's automation.
     Each queued event now carries its target, so the sequencer's share of RAM
     grows from 36,620 B to 43,156 B of a 45,056 B budget (was 36,864 B).
+    The simulator's RAM meter counts the extra 6,528 B, so a few of the
+    largest chains that only just fitted before (Macro and Shapes with Plate
+    and Ensemble, for one) are now refused with the usual "does not fit".
   - Saving a single sound or effect preset keeps the modulators that feed its
     modulation, so it sounds the same when loaded.
   - Acid Gen stops its sequencer-driven notes on Stop and keeps live and
