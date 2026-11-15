@@ -59,6 +59,11 @@ state, stack placement) before M6 runs on the FM-1.
     as a second RAM run in the same bench session if the first is
     inconclusive: it writes the `usb_update_mode` marker at `0x01C7FD80` so a
     watchdog reset returns to the mask ROM, then the breadcrumbs are read back.
+  - **"Approve"** (later the same day): the host tool
+    `tools/fm1-transporter/fm1t_m5p2.py`, SHA-256
+    `b216ab672bc86dce29f8e7ff90857e4cbf04c22eadedd976ab559701ccdf2c4c`
+    (PR #204, after an independent review and its five fixes). The bench
+    session follows docs/19 §7 with the owner at the unit.
   - Unchanged: no flash writes, no soft key, D2 bans, and any other image or
     tool hash needs a new yes.
 
