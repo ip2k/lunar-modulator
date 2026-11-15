@@ -89,14 +89,21 @@ static unsigned crossing(const cmp_t *s, float d, float level) {
   return f >= (float)(FM1_MOD_TICK - 1u) ? FM1_MOD_TICK - 1u : (unsigned)f;
 }
 
+/* Publish one GATE edge and its inverse/trigger together. */
+static void gate_edge(cmp_t *s, const fm1_mod_io_t *io, unsigned frame, unsigned high) {
+  kind_gate_set(&s->gate, &io->gout[O_GATE], frame, high);
+  kind_gate_set(&s->not_, &io->gout[O_NOT], frame, !high);
+  if (high) mod_trig_fire(&s->rise, &io->gout[O_RISE], frame);
+  else mod_trig_fire(&s->fall, &io->gout[O_FALL], frame);
+}
+
 static void cmp_process(void *self, const fm1_mod_io_t *io) {
   cmp_t *s = (cmp_t *)self;
   const float *p = io->p;
   const unsigned mode = (unsigned)p[P_MODE];
   const float h = p[P_HYST] * 0.5f, w = p[P_WIDTH];
   float x = p[P_A], d;
-  unsigned g = s->gate.level, zone = s->zone, f = 0;
-  int changed = 0;
+  unsigned zone = s->zone;
   if (mode == M_TREND) x = s->primed ? (p[P_A] - s->prev_a) * s->per_tick : 0.0f;
   s->prev_a = p[P_A];
   d = mod_clampf(x - (p[P_B] + p[P_THRESH]), -1e6f, 1e6f, 0.0f);
@@ -108,36 +115,30 @@ static void cmp_process(void *self, const fm1_mod_io_t *io) {
   kind_gate_begin(&s->below, &io->gout[O_BELOW]);
   mod_trig_begin(&s->rise, &io->gout[O_RISE]);
   mod_trig_begin(&s->fall, &io->gout[O_FALL]);
-  g = s->gate.level;
 
   /* GATE */
   if (mode == M_WINDOW) {
     const float m = d < 0.0f ? -d : d;
-    if (!g && m < w - h) {
-      g = 1;
-      f = crossing(s, d, d > 0.0f ? w - h : h - w);
-      changed = 1;
-    } else if (g && m > w + h) {
-      g = 0;
-      f = crossing(s, d, d > 0.0f ? w + h : -w - h);
-      changed = 1;
+    const float inner = w - h;
+    /* A straight line may enter and leave the window in one tick. Choose
+     * entry from the starting side, even when the endpoint changed sign.
+     * A closed inner band (Width <= Hyst/2) cannot be entered. */
+    const int from_below = s->primed && s->prev_d <= -inner && d > -inner;
+    const int from_above = s->primed && s->prev_d >= inner && d < inner;
+    if (!s->gate.level && inner > 0.0f && (m < inner || from_below || from_above)) {
+      const float level = from_below ? -inner : from_above ? inner : (d > 0.0f ? inner : -inner);
+      gate_edge(s, io, crossing(s, d, level), 1);
     }
-  } else if (!g && d > h) {
-    g = 1;
-    f = crossing(s, d, h);
-    changed = 1;
-  } else if (g && d < -h) {
-    g = 0;
-    f = crossing(s, d, -h);
-    changed = 1;
+    if (s->gate.level && m > w + h) {
+      gate_edge(s, io, crossing(s, d, d > 0.0f ? w + h : -w - h), 0);
+    }
+  } else if (!s->gate.level && d > h) {
+    gate_edge(s, io, crossing(s, d, h), 1);
+  } else if (s->gate.level && d < -h) {
+    gate_edge(s, io, crossing(s, d, -h), 0);
   }
-  if (changed) {
-    kind_gate_set(&s->gate, &io->gout[O_GATE], f, g);
-    kind_gate_set(&s->not_, &io->gout[O_NOT], f, !g);
-    if (g) mod_trig_fire(&s->rise, &io->gout[O_RISE], f);
-    else mod_trig_fire(&s->fall, &io->gout[O_FALL], f);
-  } else if (s->not_.level == s->gate.level) {
-    kind_gate_set(&s->not_, &io->gout[O_NOT], 0, !g);   /* the first tick: NOT starts high */
+  if (s->not_.level == s->gate.level) {
+    kind_gate_set(&s->not_, &io->gout[O_NOT], 0, !s->gate.level); /* first tick: NOT starts high */
   }
 
   /* ABOVE, MID, BELOW */

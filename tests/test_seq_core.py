@@ -18,7 +18,7 @@ from tests.seq_helpers import (ENGINES, SEQ_CHECK, TPB, TPS, Script, ccs, clip, 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "movy"
 RATE = 44118                      # the FM-1's rate
 THR = RATE * 6000                 # clock threshold, frames x bpm_x100 x PPQN per tick
-HALF_BUDGET = 72 * 1024 // 2      # docs/13 §5: about half of 72 KiB at 4-8 tracks
+SEQ_BUDGET = 44 * 1024           # immutable lock snapshots, approved 2026-11-01
 
 
 def fm1(tracks=8, block=128):
@@ -718,13 +718,21 @@ def tick_span_capture():
 @pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
 def test_capture_keeps_46080_master_ticks(seq_tools, tmp_path, compat, tool):
     """All 33 note-ons stay in the ring; the take starts with the first and
-    lands in tick order [verified: the Movy oracle, 2026-10-01]."""
+    lands in tick order [verified: the Movy oracle, 2026-10-01]. The take
+    exceeds the addressable clip: native refuses it and retains the history;
+    compatibility keeps Movy's representable prefix."""
     doc = capture_state(ENGINES / "build" / tool, tmp_path, tick_span_capture(), compat, "t")
     before = snaps(doc)["before"]
     assert before["capture"]["pending"] == 33 and before["master_tick"] == 67200 + 46080
     got = notes(doc["end"], 1)
-    assert [(n["tick"], n["gate"], n["pitch"]) for n in got] == \
-        [(1440 * i, 480, 40 + i) for i in range(5)]
+    if compat:
+        # Movy keeps only the prefix with representable anchors. Retain its
+        # oracle witness; native Capture must not silently drop 28 notes.
+        assert [(n["tick"], n["gate"], n["pitch"]) for n in got] == \
+            [(1440 * i, 480, 40 + i) for i in range(5)]
+    else:
+        assert got == [] and doc["end"]["stats"]["refused"] == 1
+        assert doc["end"]["capture"]["pending"] == 33
 
 
 def deep_playhead_capture():
@@ -745,17 +753,37 @@ def deep_playhead_capture():
     return f"#! rate=48000 block=64 tracks=1 end={end}\n" + "\n".join(lines) + "\n"
 
 
-@pytest.mark.parametrize("compat", [True, False])
 @pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
-def test_capture_reads_a_playhead_past_8191(seq_tools, tmp_path, compat, tool):
+def test_capture_reads_a_playhead_past_8191(seq_tools, tmp_path, tool):
     """The note lands at its playhead modulo the clip's span, 8,448 mod
-    6,144 = 2,304, step 96 [verified: the Movy oracle, 2026-10-01]."""
-    doc = capture_state(ENGINES / "build" / tool, tmp_path, deep_playhead_capture(), compat, "p")
+    6,144 = 2,304, step 96 [verified: the Movy oracle, 2026-10-01]. This
+    compatibility witness creates a window past step 255; native Capture
+    refuses that first take transactionally (the separate test below)."""
+    doc = capture_state(ENGINES / "build" / tool, tmp_path, deep_playhead_capture(), True, "p")
     assert track(snaps(doc)["here"], 0)["pos"] == 8448
     c = clip(doc["end"], 0)
     assert (c["len"], c["loop_start"]) == (256, 240)
     got = [(n["tick"], n["step"]) for n in notes(doc["end"], 0) if n["pitch"] == 72]
     assert got == [(2304, 96)]
+
+
+@pytest.mark.parametrize("tool", ["fm1-seq", "fm1-seq-check"])
+def test_native_capture_refuses_a_window_past_step_255(seq_tools, tmp_path, tool):
+    """The same history cannot create Movy's unroundtrippable 240..495
+    window natively. Both attempts are refused, and their notes stay pending.
+    Full arena identity (including history) is checked by the C regression."""
+    text = deep_playhead_capture().replace("@180000 cap 0\n",
+                                          "@180000 cap 0\n#?@180064 refused\n")
+    doc = capture_state(ENGINES / "build" / tool, tmp_path, text, False, "p")
+    first = snaps(doc)["refused"]
+    assert first["capture"]["pending"] == 4 and first["stats"]["refused"] == 1
+    assert notes(first, 0) == []
+    c = clip(doc["end"], 0)
+    assert (c["len"], c["loop_start"]) == (16, 240)
+    assert notes(doc["end"], 0) == []
+    # The later input starts a new phrase after the normal silence gap.
+    assert doc["end"]["capture"]["pending"] == 1
+    assert doc["end"]["stats"]["refused"] == 2
 
 
 def fast_loop(k1, k2, cap, between=()):
@@ -866,7 +894,7 @@ def sizes(tool):
 
 
 def test_memory_figures_for_four_and_eight_tracks(seq_tools):
-    """The owner's budget: about half of docs/13's 72 KiB at the reduced
+    """The approved 44 KiB sequencer allocation at the reduced
     track count, Capture included (the owner's decision of 2026-10-01: 256
     packed events, on by default). These are the figures engines/seq.md and
     docs/13 §10 report; a change to the layout must update all three. The
@@ -875,7 +903,7 @@ def test_memory_figures_for_four_and_eight_tracks(seq_tools):
     z = sizes(seq_tools)
     assert z["tracks"]["4"] == 18192
     assert z["tracks"]["8"] == 32080
-    assert z["tracks"]["8"] + 272 * z["event_bytes"] + z["cmd_bytes"] + 1024 + 20 <= HALF_BUDGET
+    assert z["tracks"]["8"] + 272 * z["event_bytes"] + z["cmd_bytes"] + 1024 + 20 <= SEQ_BUDGET
     assert z["no_capture"]["4"] == 15120
     assert z["no_capture"]["8"] == 29008
     for t in range(1, 17):
@@ -883,7 +911,7 @@ def test_memory_figures_for_four_and_eight_tracks(seq_tools):
             "Capture: 256 events of 12 bytes"
     assert z["limits8"] == {"notes": 1536, "locks": 1536, "trigs": 256, "gates": 64, "song": 64,
                             "rec_notes": 16, "pad_mutes": 16, "capture": 256}
-    assert z["event_bytes"] == 12
+    assert z["event_bytes"] == 36
 
 
 def test_size_is_linear_in_tracks(seq_tools):

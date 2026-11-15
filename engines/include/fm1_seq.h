@@ -112,6 +112,11 @@ typedef struct fm1_seq_ev {
   uint8_t track;            /* 0-based; FM1_SEQ_NONE for transport and clicks */
   uint8_t a;
   fm1_seq_val_t b;
+  /* LOCK only: immutable target and base at emission, even if a later
+   * command releases/relabels the lane before dispatch. Handmade LOCK
+   * events must supply these too. Other kinds leave them zero. */
+  char label[FM1_SEQ_LABEL_MAX];
+  fm1_seq_val_t lane_base;
 } fm1_seq_ev_t;
 
 /* One Movy `cmd` op as a typed record: the verb and its integer arguments as

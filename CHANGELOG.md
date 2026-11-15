@@ -8,6 +8,37 @@ history.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Sequencer, modulation and save-file fixes salvaged from the unmerged
+  release work (PR #165, 2026-11-01).**
+  - Compare's Window mode now catches a signal that passes all the way
+    through the window within one tick: Gate opens and closes, where before it
+    stayed shut.
+  - Capture while playing puts notes in the right place when the loop does
+    not start at step 1, and refuses, as a whole and with nothing changed, a
+    take that would land past the clip's 16 bars, instead of dropping notes.
+  - A parameter lock that is already queued reaches the parameter it was
+    recorded for, even if its lane is cleared or relabelled before it plays,
+    in the sequencer and in the simulator's automation.
+    Each queued event now carries its target, so the sequencer's share of RAM
+    grows from 36,620 B to 43,156 B of a 45,056 B budget (was 36,864 B).
+    The simulator's RAM meter counts the extra 6,528 B, so a few of the
+    largest chains that only just fitted before (Macro and Shapes with Plate
+    and Ensemble, for one) are now refused with the usual "does not fit".
+  - Saving a single sound or effect preset keeps the modulators that feed its
+    modulation, so it sounds the same when loaded.
+  - Acid Gen stops its sequencer-driven notes on Stop and keeps live and
+    sequenced notes apart; Divide no longer loses a trigger that a reset or
+    clock later in the same tick used to erase.
+  - A project file with an empty list of sounds is refused, as the format
+    always required.
+  - Save files: a file from a newer version now reports what it had to
+    skip, and `fm1-state pack --strict` refuses a file that would lose or
+    change settings. The binary writer gains a bounded-memory, two-pass mode
+    for saving on the FM-1 later; nothing uses it on the unit yet.
+  - The simulator in the browser is rebuilt with these fixes.
+
 ### Added
 
 - The README links keril's community [FM-1 Emulator](https://fm1-emulator.atst.tools/), which runs the stock FM-1 firmware and other community firmware in the browser (PR #201, thanks to kkeril).

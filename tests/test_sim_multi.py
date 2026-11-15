@@ -23,7 +23,7 @@ from tests.engine_helpers import GPL_MODS
 from tests.test_sim_web import SCENARIOS, left_channel, run, scenario_args, tools  # noqa: F401
 
 BUDGET = 387924
-SEQ_FIXED = 32080 + 3264          # the sequencer's instance (8 tracks) and event buffer (272 events),
+SEQ_FIXED = 32080 + 9792          # the sequencer's instance (8 tracks) and event buffer (272 events),
 SEQ_MORE = 240 + 1024 + 20        # its pending record, the UI bound and the click,
 MOD_BYTES = 26880                 # and the modulation runtime (fm1_mod_size(), docs/16 MG3; MG9 voices; glide; its modes)
 SIM_32BIT = "-m32" in shlex.split(os.environ.get("FM1_SIM_EXTRA", "")) or struct.calcsize("P") == 4
@@ -165,7 +165,26 @@ def test_fx_mode_walks_the_inserts_mix_and_master(tools):
     s2 = sim(tools, "--engine", "macro", "--sound", "1:shapes", "--button", "0.05:SEL:0.05",
              "--turn", "0.07:PRESETS:1", "--button", "0.15:FX", "--turn", "0.2:SELECT:-64",
              "--turn", "0.25:ALGORITHM:1", seconds=0.4)
-    assert s2["current"] == 1 and s2["inserts"][1] == ["plate", ""] and s2["inserts"][0] == ["", ""]
+    # Macro's instance size differs by host ABI. Use this build's measured
+    # instances and fixed costs to predict whether Plate fits, then check the
+    # app's selected effect, refusal, and reported RAM against that contract.
+    base_ram = (instance_bytes(tools, "macro") + instance_bytes(tools, "shapes") +
+                FIXED + MIX_BLOCK)
+    plate_ram = base_ram + instance_bytes(tools, "plate", "fx")
+    ensemble_ram = base_ram + instance_bytes(tools, "ensemble", "fx")
+    assert ensemble_ram <= BUDGET, "the fallback insert must fit in this target"
+    assert s2["current"] == 1 and s2["inserts"][0] == ["", ""]
+    if plate_ram <= BUDGET:
+        assert s2["inserts"][1] == ["plate", ""]
+        assert s2["ram"] == plate_ram
+        assert s2["popup_list"]["title"] == "S2 insert 1 effect"
+        assert s2["popup"][:2] == ["Empty slot", "Plate"]
+        assert s2.get("popup_tone") != "refuse"
+    else:
+        assert s2["inserts"][1] == ["ensemble", ""]
+        assert s2["popup"] == ["Plate", "does not fit", need_line(plate_ram)]
+        assert s2["ram"] == ensemble_ram
+    assert s2["ram"] <= BUDGET
 
 
 def test_sel_and_select_swap_the_inserts(tools):
@@ -208,13 +227,13 @@ def test_the_meter_refuses_what_would_not_fit(tools):
 def test_the_refusal_popup_gives_the_first_refusals_figure(tools):
     """PRESETS steps over two sounds that would not fit (Shapes, then Macro
     Heavy) to Six-Op; the popup names the first one skipped and what the
-    chain would need with that one, not the last one's figure. (The second
-    master effect is Ensemble since glide: with Diffuse, Macro and Shapes no
-    longer fit together once both carried glide's state.)"""
-    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "plate", "--fx", "ensemble"]
+    chain would need with that one, not the last one's figure. Room and
+    Ensemble leave room for Macro + Shapes under the unchanged RAM budget
+    with immutable lock events, while both larger replacements still fail."""
+    chain = ["--engine", "macro", "--sound", "1:shapes", "--fx", "room", "--fx", "ensemble"]
     s = sim(tools, *chain, "--turn", "0.1:PRESETS:1", seconds=0.3)
     assert s["engine"] == "sixop" and s["popup"][:2] == ["Shapes", "does not fit"]
-    rest = (instance_bytes(tools, "shapes") + instance_bytes(tools, "plate", "fx") +
+    rest = (instance_bytes(tools, "shapes") + instance_bytes(tools, "room", "fx") +
             instance_bytes(tools, "ensemble", "fx") + FIXED + MIX_BLOCK)
     assert rest + instance_bytes(tools, "macro") <= BUDGET, "the chain must fit to begin with"
     assert rest + instance_bytes(tools, "macro-heavy") > BUDGET, "Macro Heavy must be refused too"

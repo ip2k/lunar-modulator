@@ -125,17 +125,18 @@ typedef struct acid_gen {
   int auto_done;                /* mutations Mut Every made since Start */
   int dirty;                    /* rebuild before the next step */
   int built_root, built_scale;  /* the key the line was built in */
-  uint8_t keys[AG_MAX_KEYS];
+  uint8_t keys[AG_MAX_KEYS];     /* MIDI key in bits 0..6, sequencer origin in bit 7 */
   int n_keys;
   int playing;                  /* stepping */
   int latched;                  /* Transpose + Latch: playing with no key held */
   int transpose;                /* semitones the line plays at */
+  int source;                   /* origin of the newest key, retained by Latch */
   int tick;                     /* ticks into the step; 0: a step is due */
   int pos;                      /* the step that played last, -1 none yet */
   int pp_dir;                   /* ping-pong's way, +1 or -1 */
   int passes;                   /* passes of the line since Start */
   int rand_steps;               /* steps in Random, a pass every Length of them */
-  int sounding;                 /* the key sent and not yet ended, -1 none */
+  int sounding;                 /* packed key/origin sent and not yet ended, -1 none */
   int slides;                   /* it slides into the next step */
   int gate_left;                /* ticks until its note-off; -1: held to the next step */
   int slide_off;                /* a key to end at the next tick (a slide's), -1 none */
@@ -156,8 +157,8 @@ static void send_off(acid_gen_t *s, out_t *o, uint16_t frame, int key) {
   if (o->n < o->cap) {
     o->ev[o->n].frame = frame;
     o->ev[o->n].kind = FM1_MIDI_EV_NOTE_OFF;
-    o->ev[o->n].a = (uint8_t)key;
-    o->ev[o->n].b = 0;
+    o->ev[o->n].a = (uint8_t)(key & 127);
+    o->ev[o->n].b = FM1_MIDI_EV_B(0, key >> 7);
     ++o->n;
   } else if (s->n_owed < AG_OWED) {
     s->owed[s->n_owed++] = (uint8_t)key;   /* at most two notes sound: room enough */
@@ -168,8 +169,8 @@ static int send_on(out_t *o, uint16_t frame, int key, int vel) {
   if (o->n >= o->cap) return 0;            /* no room: not sent, so nothing to end */
   o->ev[o->n].frame = frame;
   o->ev[o->n].kind = FM1_MIDI_EV_NOTE_ON;
-  o->ev[o->n].a = (uint8_t)key;
-  o->ev[o->n].b = (uint16_t)vel;
+  o->ev[o->n].a = (uint8_t)(key & 127);
+  o->ev[o->n].b = FM1_MIDI_EV_B(vel, key >> 7);
   ++o->n;
   return 1;
 }
@@ -226,7 +227,8 @@ static void build(acid_gen_t *s) {
 /* The pitch the line's root plays at: the newest key held, or its own. */
 static void retranspose(acid_gen_t *s) {
   const int own = 12 * (s->p[AG_OCTAVE] + 1) + effective_root(s);
-  s->transpose = s->n_keys ? s->keys[s->n_keys - 1] - own : 0;
+  s->transpose = s->n_keys ? (s->keys[s->n_keys - 1] & 127) - own : 0;
+  if (s->n_keys) s->source = s->keys[s->n_keys - 1] >> 7;
 }
 
 static uint32_t xorshift(uint32_t *r) {
@@ -294,8 +296,9 @@ static void fire(acid_gen_t *s, out_t *o, uint16_t frame) {
   }
   note = st->note + s->transpose;
   note = note < 0 ? 0 : (note > 127 ? 127 : note);
+  note |= (s->p[AG_KEYS] == AG_KEYS_RUN ? FM1_MIDI_SRC_SEQ : s->source) << 7;
   if (s->sounding >= 0 && s->slides) {
-    if (note != s->sounding) {               /* a slide: the new note first */
+    if ((note & 127) != (s->sounding & 127)) { /* a slide: the new note first */
       if (send_on(o, frame, note, (st->flags & BS_ACCENT) ? AG_VEL_ACCENT : AG_VEL_PLAIN)) {
         s->slide_off = s->sounding;          /* its note-off at the next tick */
         s->sounding = note;
@@ -303,7 +306,7 @@ static void fire(acid_gen_t *s, out_t *o, uint16_t frame) {
         end_notes(s, o, frame);
         return;
       }
-    }                                        /* the same note: a tie */
+    }                                        /* same pitch: tie, keep its original owner */
   } else {
     send_off(s, o, frame, s->sounding);
     s->sounding = -1;
@@ -403,15 +406,43 @@ static void on_tick(acid_gen_t *s, const fm1_midi_fx_ctx_t *ctx, uint16_t frame,
   if (++s->tick >= kRateTicks[s->line.rate & 3]) s->tick = 0;
 }
 
+/* Stop forgets sequencer keys without turning their release into a latch.
+ * Live held keys and a live latch keep playing. Run belongs to transport. */
+static void stop_seq(acid_gen_t *s, out_t *o, uint16_t frame) {
+  int i, n = 0;
+  for (i = 0; i < s->n_keys; ++i)
+    if (!(s->keys[i] & 128)) s->keys[n++] = s->keys[i];
+  s->n_keys = n;
+  if (s->p[AG_KEYS] == AG_KEYS_RUN || (!n && s->source == FM1_MIDI_SRC_SEQ)) {
+    stop(s, o, frame);
+    return;
+  }
+  if (s->slide_off >= 128) {
+    send_off(s, o, frame, s->slide_off);
+    s->slide_off = -1;
+  }
+  if (s->sounding >= 128) {
+    send_off(s, o, frame, s->sounding);
+    s->sounding = -1;
+    s->slides = 0;
+    s->gate_left = -1;
+  }
+  if (n) retranspose(s);
+}
+
 static void handle(acid_gen_t *s, const fm1_midi_ev_t *ev, out_t *o) {
+  const int key = ev->a | (FM1_MIDI_EV_SRC(ev->b) == FM1_MIDI_SRC_SEQ ? 128 : 0);
   switch (ev->kind) {
     case FM1_MIDI_EV_NOTE_ON:
       if (ev->a > 127) break;
-      if (ev->b) key_down(s, ev->a, ev->frame, o);
-      else key_up(s, ev->a, ev->frame, o);
+      if (FM1_MIDI_EV_VEL(ev->b)) key_down(s, key, ev->frame, o);
+      else key_up(s, key, ev->frame, o);
       break;
     case FM1_MIDI_EV_NOTE_OFF:
-      if (ev->a <= 127) key_up(s, ev->a, ev->frame, o);
+      if (ev->a <= 127) key_up(s, key, ev->frame, o);
+      break;
+    case FM1_MIDI_EV_STOP:
+      stop_seq(s, o, ev->frame);
       break;
     case FM1_MIDI_EV_RESET:                  /* Start: the line again, from step 1 */
       s->auto_done = 0;
@@ -495,9 +526,12 @@ static uint32_t ag_process(void *self, const fm1_midi_ev_t *in, uint32_t n_in,
                            const fm1_midi_fx_ctx_t *ctx, fm1_midi_ev_t *out, uint32_t cap) {
   acid_gen_t *s = (acid_gen_t *)self;
   out_t o;
+  fm1_midi_fx_ctx_t tick_ctx;
   uint32_t i = 0, j = 0, k;
   const uint32_t n_ticks = ctx && ctx->ticks ? ctx->n_ticks : 0u;
   if (!s) return 0;
+  if (ctx) tick_ctx = *ctx;
+  else memset(&tick_ctx, 0, sizeof tick_ctx);
   if (!in) n_in = 0;
   o.ev = out;
   o.cap = out ? cap : 0u;
@@ -506,8 +540,8 @@ static uint32_t ag_process(void *self, const fm1_midi_ev_t *in, uint32_t n_in,
   for (k = 0; k < (uint32_t)s->n_owed && o.n < o.cap; ++k) {
     o.ev[o.n].frame = 0;
     o.ev[o.n].kind = FM1_MIDI_EV_NOTE_OFF;
-    o.ev[o.n].a = s->owed[k];
-    o.ev[o.n].b = 0;
+    o.ev[o.n].a = s->owed[k] & 127;
+    o.ev[o.n].b = FM1_MIDI_EV_B(0, s->owed[k] >> 7);
     ++o.n;
   }
   if (k) {
@@ -525,9 +559,13 @@ static uint32_t ag_process(void *self, const fm1_midi_ev_t *in, uint32_t n_in,
    * pressed on a tick plays on it. */
   while (i < n_in || j < n_ticks) {
     if (i < n_in && (j >= n_ticks || in[i].frame <= ctx->ticks[j])) {
+      /* Context describes the block's beginning; its transport events
+       * govern the ticks after them within this same block. */
+      if (in[i].kind == FM1_MIDI_EV_STOP) tick_ctx.running = 0;
+      else if (in[i].kind == FM1_MIDI_EV_RESET) tick_ctx.running = 1;
       handle(s, &in[i++], &o);
     } else {
-      on_tick(s, ctx, ctx->ticks[j++], &o);
+      on_tick(s, &tick_ctx, ctx->ticks[j++], &o);
     }
   }
   return o.n;

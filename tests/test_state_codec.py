@@ -468,6 +468,80 @@ def test_repairs_and_skips_are_counted(tool, names, name, text, counts):
         assert getattr(rep, k) == v, k
 
 
+@pytest.mark.parametrize("text,count", [
+    (SND % ('"Unison": 1', ""), "skipped"),
+    (SND % ('"Shape": 999', ""), "repaired"),
+])
+@pytest.mark.parametrize("size", [None, 4095, 4096, 4097])
+def test_strict_pack_refuses_loss_while_default_remains_compatible(tool, tmp_path, text, count, size):
+    data = text.encode()
+    if size is not None:
+        assert len(data) < size
+        data += b" " * (size - len(data))
+    default = tmp_path / "default.lunarbin"
+    strict = tmp_path / "strict.lunarbin"
+    assert run(tool, "pack", "-", "-o", default, data=data).returncode == 0
+    refused = run(tool, "pack", "-", "--strict", "-o", strict, data=data)
+    assert refused.returncode == 1
+    report = json.loads(refused.stderr.decode().splitlines()[-1])
+    assert report["code"] == "BAD" and report[count] == 1
+    assert "strict pack" in report["what"]
+    assert not strict.exists()
+
+
+def test_strict_pack_preserves_valid_bytes(tool, tmp_path):
+    source = (EXAMPLES / "settings.lunar").read_bytes()  # available in both GPL profiles
+    default = tmp_path / "default.lunarbin"
+    strict = tmp_path / "strict.lunarbin"
+    assert run(tool, "pack", "-", "-o", default, data=source).returncode == 0
+    result = run(tool, "pack", "-", "--strict", "-o", strict, data=source)
+    assert result.returncode == 0, result.stderr.decode()
+    assert strict.read_bytes() == default.read_bytes()
+
+    binary_default = tmp_path / "binary-default.lunarbin"
+    binary_strict = tmp_path / "binary-strict.lunarbin"
+    assert run(tool, "pack", default, "-o", binary_default).returncode == 0
+    assert run(tool, "pack", default, "--strict", "-o", binary_strict).returncode == 0
+    assert binary_strict.read_bytes() == binary_default.read_bytes()
+
+
+def test_state_tool_cli_buffers_across_success_and_refusal(tool, tmp_path):
+    """Exercise CLI owned input/output buffers through process exit (also under LSan)."""
+    source_path = EXAMPLES / "settings.lunar"  # available in both GPL profiles
+    source = source_path.read_bytes()
+    packed = run(tool, "pack", "-", "--strict", "--store", data=source)
+    assert packed.returncode == 0, packed.stderr.decode()
+    assert packed.stdout.startswith(b"\x89Lunar\r\n")
+
+    canonical = run(tool, "canon", source_path)
+    assert canonical.returncode == 0, canonical.stderr.decode()
+    unpacked = run(tool, "unpack", "-", data=packed.stdout)
+    assert unpacked.returncode == 0, unpacked.stderr.decode()
+    assert unpacked.stdout == canonical.stdout
+    packed_path = tmp_path / "project.lunarbin"
+    packed_path.write_bytes(packed.stdout)
+    assert run(tool, "diff", "-", packed_path, data=source).returncode == 0
+    assert run(tool, "records", "-", data=source).returncode == 0
+    settings = b'{"lunar":"1.0","kind":"settings","settings":{}}'
+    assert run(tool, "check", "-", data=settings).returncode == 0
+    assert run(tool, "json-check", "-", data=source).returncode == 0
+
+    movy = (GOLD / "orbit.set.movy1").read_bytes()
+    movy_packed = run(tool, "from-movy1", "-", data=movy)
+    assert movy_packed.returncode == 0, movy_packed.stderr.decode()
+    movy_unpacked = run(tool, "unpack", "-", data=movy_packed.stdout)
+    assert movy_unpacked.returncode == 0, movy_unpacked.stderr.decode()
+    assert movy_unpacked.stdout == movy
+
+    lossy = source.replace(b'"metronome": false', b'"metronomee": false')
+    assert lossy != source
+    refused = run(tool, "pack", "-", "--strict", "--store", data=lossy)
+    assert refused.returncode == 1
+    report = json.loads(refused.stderr)
+    assert report["code"] == "BAD" and report["skipped"] == 1
+    assert not refused.stdout
+
+
 def test_a_file_with_the_arps_own_swing_still_loads(tool, names):
     """The arp follows the set's swing (owner, 2026-10-06): its own Swing
     (uid 7) is retired, and a file written before then, which names it,

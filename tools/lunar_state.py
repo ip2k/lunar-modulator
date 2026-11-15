@@ -579,6 +579,8 @@ class JsonReader:
                 self.session(v)
             elif k == "sounds":
                 self.want(v, list)
+                if not v:
+                    self.bad("Sound 1 is never empty")
                 for i, s in enumerate(v):
                     self.path = ["sounds", i]
                     if i >= 4:
@@ -2591,6 +2593,8 @@ def read_bin(data):
         if c.left():
             if version == 1:
                 raise Refused("BAD", "a chunk longer than its contents")
+            # One nonempty forward extension was omitted; known records stay usable.
+            rep.skipped += 1
     if kname in ("project", "sound") and 0 not in units:
         raise Refused("BAD", "a project needs its Sound 1" if kname == "project" else "a sound file needs its sound")
     if kname == "mods" and not mod_seen:

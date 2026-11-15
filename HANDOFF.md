@@ -9,6 +9,26 @@ repository, so a fresh Claude project (or a human) can continue without the
 original conversation; last updated 2026-11-14 (M8 tool prepared). Read this first, then
 `DEVELOPERS.md` (the README is the product page), then `docs/`.
 
+## Salvaging PR #161 in three PRs — owner decision, 2026-11-14
+
+- **Owner decision (2026-11-14, "Salvage in 3 PRs").** Stale PR #161
+  (`feature/2026-11-01@milestone-integration`, 237 commits ahead of main,
+  never merged) is salvaged in three new PRs from main, one at a time: (1)
+  the engine fixes from PR #165, (2) the browser features, (3) the M12w
+  pages. Then #161 and #166–#168 are closed with a pointer to the salvage
+  PRs. The branch stays, so #162, #163 and #169 remain archived there.
+  Slice 1 is `fix/2026-11-14@salvage-165-engine-fixes`: the Compare Window,
+  Capture, lock-snapshot, preset-modulation, Acid Gen/Divide, empty-sounds
+  and state-codec fixes, cherry-picked with `-x`. Its lock snapshot raises
+  the sequencer's RAM budget from 36,864 B to 45,056 B (43,156 B used). The
+  branch's note called that a coordinator approval; the owner approved the
+  44 KiB budget on 2026-11-14 ("Approve 44 KiB"), accepting that the largest
+  simulator chains (e.g. Macro+Shapes+Plate+Ensemble) no longer fit.
+  Measured in PR #205: Macro+Shapes+Plate alone (the starter project plus
+  the `deep-bass` example in sound 2) needs 101% and is refused; Shapes
+  (Braids at 96 kHz) takes 207 KB by itself. The tests now load that example
+  beside Macro+Room (`0cca9202`).
+
 ## M8 flash-install tool prepared, not run — 2026-11-14
 
 `tools/fm1-transporter/fm1t_m8.py` and its runbook docs/22 are ready for
