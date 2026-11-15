@@ -8,6 +8,34 @@ history.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Sequencer, modulation and save-file fixes salvaged from the unmerged
+  release work (PR #165, 2026-11-01).**
+  - Compare's Window mode now catches a signal that passes all the way
+    through the window within one tick: Gate opens and closes, where before it
+    stayed shut.
+  - Capture while playing puts notes in the right place when the loop does
+    not start at step 1, and refuses, as a whole and with nothing changed, a
+    take that would land past the clip's 16 bars, instead of dropping notes.
+  - A parameter lock that is already queued reaches the parameter it was
+    recorded for, even if its lane is cleared or relabelled before it plays,
+    in the sequencer and in the simulator's automation.
+    Each queued event now carries its target, so the sequencer's share of RAM
+    grows from 36,620 B to 43,156 B of a 45,056 B budget (was 36,864 B).
+  - Saving a single sound or effect preset keeps the modulators that feed its
+    modulation, so it sounds the same when loaded.
+  - Acid Gen stops its sequencer-driven notes on Stop and keeps live and
+    sequenced notes apart; Divide no longer loses a trigger that a reset or
+    clock later in the same tick used to erase.
+  - A project file with an empty list of sounds is refused, as the format
+    always required.
+  - Save files: a file from a newer version now reports what it had to
+    skip, and `fm1-state pack --strict` refuses a file that would lose or
+    change settings. The binary writer gains a bounded-memory, two-pass mode
+    for saving on the FM-1 later; nothing uses it on the unit yet.
+  - The simulator in the browser is rebuilt with these fixes.
+
 ### Added
 
 - **A host tool for the two approved m5-plan-2 runs on the FM-1, and their bench steps (not yet run; the tool's hash awaits the owner's approval).** `fm1t_m5p2.py` loads either approved image into the FM-1's memory and starts it once, refuses the second image until the first has run, and after the second run reads back its 48 bytes of memory notes once. docs/19 §7 has the steps, what to film and how to tell whether the first run was enough.
